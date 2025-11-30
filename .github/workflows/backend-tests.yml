@@ -23,9 +23,9 @@ jobs:
     - name: Build and Run Tests using Docker Compose
       run: |
         # 使用我們定義好的測試環境配置
-        docker-compose -f docker-compose.test.yml build
+        docker compose -f docker-compose.test.yml build
         
         # 執行測試
         # --abort-on-container-exit: 當測試容器結束時停止所有容器
         # --exit-code-from backend_test: 使用測試容器的退出碼作為整個命令的退出碼
-        docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from backend_test
+        docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from backend_test
