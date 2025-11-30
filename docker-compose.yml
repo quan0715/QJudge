@@ -1,0 +1,104 @@
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: oj_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-online_judge}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - oj_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: oj_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - oj_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application"
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oj_network
+
+  # Celery Worker
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_celery
+    command: celery -A config worker -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - oj_network
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oj_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - oj_network
+
+
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  oj_network:
+    driver: bridge

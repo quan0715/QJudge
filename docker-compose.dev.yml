@@ -1,0 +1,108 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: oj_postgres_dev
+    environment:
+      POSTGRES_DB: ${DB_NAME:-online_judge}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - oj_network_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: oj_redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - oj_network_dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Backend (Dev Mode)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_backend_dev
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oj_network_dev
+
+  # Celery Worker (Dev Mode)
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_celery_dev
+    command: celery -A config.celery worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
+    env_file:
+      - .env
+    environment:
+      - JUDGE_TMP_DIR=/judge_tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - oj_network_dev
+
+  # Frontend (Dev Mode with Hot Reload)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: oj_frontend_dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    networks:
+      - oj_network_dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  judge_tmp:
+
+networks:
+  oj_network_dev:
+    driver: bridge

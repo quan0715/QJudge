@@ -1,0 +1,16 @@
+FROM ubuntu:22.04
+
+# 安裝 g++ 和基礎工具
+RUN apt-get update && apt-get install -y \
+    g++ \
+    time \
+    && rm -rf /var/lib/apt/lists/*
+
+# 設定工作目錄
+WORKDIR /judge
+
+# 建立非 root 用戶
+RUN useradd -m -u 1001 judge && \
+    chown -R judge:judge /judge
+
+USER judge

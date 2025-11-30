@@ -1,0 +1,121 @@
+@use "@carbon/react";
+
+// NYCU Brand Colors & Palette
+:root {
+  --nycu-primary: #0033a1;
+  --nycu-primary-hover: #00227a;
+  --nycu-secondary: #a5a5a5;
+  --nycu-dark-bg: #161616; // Carbon Gray 100
+  --nycu-gradient-start: #0033a1;
+  --nycu-gradient-end: #00154a;
+}
+
+body {
+  background-color: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
+  overflow-x: hidden;
+}
+
+// Utility Classes
+
+.premium-gradient-bg {
+  background: linear-gradient(
+    135deg,
+    var(--nycu-gradient-start) 0%,
+    var(--nycu-gradient-end) 100%
+  );
+  color: white;
+}
+
+// Carbon-compliant utilities (Flat design)
+.carbon-panel {
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-ui-03);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Custom Scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cds-layer-01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nycu-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nycu-primary);
+}
+
+// Markdown body overrides to fix background color rendering
+.markdown-body {
+  background-color: transparent !important;
+  color: var(--cds-text-primary) !important;
+  
+  // Ensure code blocks use proper theme colors
+  pre {
+    background-color: var(--cds-layer-02) !important;
+  }
+  
+  code {
+    background-color: var(--cds-layer-02) !important;
+    color: var(--cds-text-primary) !important;
+  }
+  
+  // Fix table backgrounds
+  table tr {
+    background-color: transparent !important;
+    
+    &:nth-child(2n) {
+      background-color: var(--cds-layer-accent-01) !important;
+    }
+  }
+  
+  // Fix blockquote backgrounds
+  blockquote {
+    color: var(--cds-text-secondary) !important;
+    border-left-color: var(--cds-border-subtle) !important;
+  }
+}
