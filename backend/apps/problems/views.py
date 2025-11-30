@@ -1,6 +1,7 @@
 """
 Views for problems app.
 """
+from django.db.models import Case, ExpressionWrapper, F, FloatField, Value, When
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -63,17 +64,28 @@ class ProblemViewSet(viewsets.ModelViewSet):
     ]
     filterset_fields = ['difficulty', 'is_visible']
     search_fields = ['title', 'translations__title']
-    search_fields = ['title', 'translations__title']
     ordering_fields = ['id', 'difficulty', 'submission_count', 'acceptance_rate']
     ordering = ['id']
     lookup_field = 'id'
-    
+
     def get_queryset(self):
         """
         Filter queryset based on user role.
         """
         user = self.request.user
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().annotate(
+            acceptance_rate=Case(
+                When(
+                    submission_count__gt=0,
+                    then=ExpressionWrapper(
+                        F('accepted_count') * Value(100.0) / F('submission_count'),
+                        output_field=FloatField(),
+                    ),
+                ),
+                default=Value(0.0),
+                output_field=FloatField(),
+            )
+        )
         
         # Management view filtering
         if self.request.query_params.get('scope') == 'manage':
