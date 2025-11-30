@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ProblemForm from '../components/ProblemForm';
 import type { ProblemFormData } from '../components/ProblemForm';
 import { authFetch } from '../services/auth';
+import { api } from '../services/api';
 
 const TeacherContestProblemEditPage = () => {
   const navigate = useNavigate();
@@ -22,13 +23,33 @@ const TeacherContestProblemEditPage = () => {
 
   const loadProblem = async () => {
     try {
-      // Note: We might need a specific endpoint for contest problem details if permissions differ
-      // But usually the problem ID is globally unique or we use the same endpoint
-      const res = await authFetch(`/api/v1/problems/${problemId}/`);
+      if (!problemId) return;
       
-      if (res.ok) {
-        const data = await res.json();
-        setInitialData(data);
+      // Try to fetch as a global problem first with 'manage' scope
+      let data = await api.getProblem(problemId, 'manage');
+      
+      if (!data) {
+        // If failed, try to fetch as a contest problem
+        if (contestId) {
+            const contestProblem = await api.getContestProblem(contestId, problemId);
+            if (contestProblem && contestProblem.problem) {
+                // If we found the problem via contest, it might have the real global ID
+                // But for editing, we need the full data. 
+                // If contestProblem.problem has the full data, use it.
+                // Otherwise, try to fetch global problem using the ID from contestProblem
+                if (contestProblem.problem.id !== problemId) {
+                    data = await api.getProblem(contestProblem.problem.id, 'manage');
+                } else {
+                    data = contestProblem.problem;
+                }
+            }
+        }
+      }
+
+      if (data) {
+        setInitialData(data as any);
+      } else {
+        setError('無法載入題目資料');
       }
     } catch (err) {
       setError('Failed to load problem');
@@ -41,7 +62,7 @@ const TeacherContestProblemEditPage = () => {
     setSuccess('');
 
     try {
-      const url = `/api/v1/problems/${problemId}/`; // Always edit for now
+      const url = `/api/v1/problems/${problemId}/?scope=manage`; // Always edit for now
       const method = 'PUT';
 
       const res = await authFetch(url, {

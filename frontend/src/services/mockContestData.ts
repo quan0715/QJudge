@@ -12,6 +12,21 @@ export interface Contest {
   registeredUsers: string[]; // List of user IDs
   enteredUsers: string[]; // List of user IDs who have entered
   leftUsers: string[]; // List of user IDs who have left (cannot re-enter)
+  isArchived?: boolean;
+}
+
+export interface ContestQuestion {
+  id: string;
+  contest_id: string;
+  problem_id?: string;
+  student_id: string;
+  student_name: string;
+  title: string;
+  content: string;
+  answer?: string;
+  answered_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ContestProblem extends Problem {
@@ -110,7 +125,33 @@ const MOCK_CONTEST_PROBLEMS: Record<string, ContestProblem[]> = {
   ]
 };
 
+const MOCK_QUESTIONS: ContestQuestion[] = [
+  {
+    id: '1',
+    contest_id: '1',
+    problem_id: '1',
+    student_id: 'current_user',
+    student_name: 'Test Student',
+    title: '關於測資範圍',
+    content: '請問 nums 的長度最大是多少？',
+    answer: '最大長度為 10^4',
+    answered_by: 'Admin',
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+    updated_at: new Date(Date.now() - 3500000).toISOString()
+  }
+];
+
 // Simulate Local Storage Persistence for Demo
+const getStoredQuestions = (): ContestQuestion[] => {
+  const stored = localStorage.getItem('mock_questions');
+  if (stored) return JSON.parse(stored);
+  localStorage.setItem('mock_questions', JSON.stringify(MOCK_QUESTIONS));
+  return MOCK_QUESTIONS;
+};
+
+const saveQuestions = (questions: ContestQuestion[]) => {
+  localStorage.setItem('mock_questions', JSON.stringify(questions));
+};
 const getStoredContests = (): Contest[] => {
   const stored = localStorage.getItem('mock_contests');
   if (stored) return JSON.parse(stored);
@@ -245,5 +286,57 @@ export const mockContestService = {
       { id: '1', title: '歡迎參加', content: '請遵守考試規則，切勿作弊。', time: new Date().toISOString() },
       { id: '2', title: '題目更正', content: '第二題的測資範圍已更新，請重新查看。', time: new Date(Date.now() + 1800000).toISOString() }
     ];
+  },
+
+  // Q&A Methods
+  getContestQuestions: async (contestId: string): Promise<ContestQuestion[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const questions = getStoredQuestions();
+        resolve(questions.filter(q => q.contest_id === contestId));
+      }, 300);
+    });
+  },
+
+  createContestQuestion: async (contestId: string, data: { title: string; content: string; problemId?: string }): Promise<ContestQuestion> => {
+    const questions = getStoredQuestions();
+    const newQuestion: ContestQuestion = {
+      id: (questions.length + 1).toString(),
+      contest_id: contestId,
+      problem_id: data.problemId,
+      student_id: 'current_user',
+      student_name: 'Current User', // In real app, get from auth context
+      title: data.title,
+      content: data.content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    questions.push(newQuestion);
+    saveQuestions(questions);
+    return newQuestion;
+  },
+
+  answerContestQuestion: async (contestId: string, questionId: string, answer: string): Promise<ContestQuestion> => {
+    const questions = getStoredQuestions();
+    const index = questions.findIndex(q => q.id === questionId && q.contest_id === contestId);
+    if (index === -1) throw new Error('Question not found');
+    
+    questions[index] = {
+      ...questions[index],
+      answer,
+      answered_by: 'Teacher', // In real app, get from auth context
+      updated_at: new Date().toISOString()
+    };
+    saveQuestions(questions);
+    return questions[index];
+  },
+
+  archiveContest: async (contestId: string): Promise<void> => {
+    const contests = getStoredContests();
+    const index = contests.findIndex(c => c.id === contestId);
+    if (index !== -1) {
+      contests[index].isArchived = true;
+      saveContests(contests);
+    }
   }
 };

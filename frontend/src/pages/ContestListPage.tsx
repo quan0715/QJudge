@@ -12,7 +12,12 @@ import {
   TableRow,
   TableHeader,
   TableBody,
-  TableCell
+  TableCell,
+  Tabs,
+  Tab,
+  TabList,
+  TabPanels,
+  TabPanel
 } from '@carbon/react';
 import { api } from '../services/api';
 import type { Contest } from '../services/api';
@@ -113,50 +118,41 @@ const ContestListPage = () => {
     { key: 'type', header: '類型' },
   ];
 
-  const rows = contests.map(c => {
-    return {
-      id: c.id,
-      title: (
-        <div style={{ fontWeight: 500, fontSize: '1rem' }}>
-          {c.title}
-        </div>
-      ),
-      status: (
-        <Tag type={c.status === 'running' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
-          {c.status === 'running' ? '進行中' : c.status === 'upcoming' ? '即將開始' : '已結束'}
-        </Tag>
-      ),
-      time: (
-        <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-          {new Date(c.start_time).toLocaleString()} ~ {new Date(c.end_time).toLocaleString()}
-        </div>
-      ),
-      userStatus: (
-        <div>
-          {c.has_left ? (
-            <Tag type="red">已離開</Tag>
-          ) : c.is_registered ? (
-            <Tag type="teal">已報名</Tag>
-          ) : (
-            <Tag type="gray">未報名</Tag>
-          )}
-        </div>
-      ),
-      type: c.is_private ? <Tag type="purple">需密碼</Tag> : <Tag type="cool-gray">公開</Tag>
-    };
-  });
+  const renderTable = (filteredContests: Contest[]) => {
+    const rows = filteredContests.map(c => {
+      return {
+        id: c.id,
+        title: (
+          <div style={{ fontWeight: 500, fontSize: '1rem' }}>
+            {c.title}
+          </div>
+        ),
+        status: (
+          <Tag type={c.status === 'running' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
+            {c.status === 'running' ? '進行中' : c.status === 'upcoming' ? '即將開始' : '已結束'}
+          </Tag>
+        ),
+        time: (
+          <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            {new Date(c.start_time).toLocaleString()} ~ {new Date(c.end_time).toLocaleString()}
+          </div>
+        ),
+        userStatus: (
+          <div>
+            {c.has_left ? (
+              <Tag type="red">已離開</Tag>
+            ) : c.is_registered ? (
+              <Tag type="teal">已報名</Tag>
+            ) : (
+              <Tag type="gray">未報名</Tag>
+            )}
+          </div>
+        ),
+        type: c.is_private ? <Tag type="purple">需密碼</Tag> : <Tag type="cool-gray">公開</Tag>
+      };
+    });
 
-  if (loading) return <Loading />;
-
-  return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 300, marginBottom: '0.5rem' }}>競賽列表</h1>
-        <p style={{ color: 'var(--cds-text-secondary)' }}>
-          參加競賽，與其他同學切磋程式解題技巧。
-        </p>
-      </div>
-
+    return (
       <DataTable rows={rows} headers={headers}>
         {({ rows, headers, getHeaderProps, getTableProps }) => (
           <TableContainer 
@@ -195,6 +191,37 @@ const ContestListPage = () => {
           </TableContainer>
         )}
       </DataTable>
+    );
+  };
+
+  const activeContests = contests.filter(c => !c.is_archived);
+  const archivedContests = contests.filter(c => c.is_archived);
+
+  if (loading) return <Loading />;
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 300, marginBottom: '0.5rem' }}>競賽列表</h1>
+        <p style={{ color: 'var(--cds-text-secondary)' }}>
+          參加競賽，與其他同學切磋程式解題技巧。
+        </p>
+      </div>
+
+      <Tabs>
+        <TabList aria-label="Contest types">
+          <Tab>進行中 / 即將開始</Tab>
+          <Tab>已封存</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel>
+            {renderTable(activeContests)}
+          </TabPanel>
+          <TabPanel>
+            {renderTable(archivedContests)}
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
 
       {/* Registration Modal */}
       <Modal

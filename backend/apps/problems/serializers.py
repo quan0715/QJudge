@@ -135,12 +135,19 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Problem
         fields = '__all__'
-        read_only_fields = ['created_by', 'created_at', 'updated_at']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate']
     
     def create(self, validated_data):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
+        
+        # Auto-generate slug if empty
+        if not validated_data.get('slug'):
+            import uuid
+            base_slug = validated_data.get('title', 'problem').lower()
+            base_slug = ''.join(c if c.isalnum() or c in '-_' else '-' for c in base_slug)
+            validated_data['slug'] = f"{base_slug}-{uuid.uuid4().hex[:8]}"
         
         problem = Problem.objects.create(**validated_data)
         

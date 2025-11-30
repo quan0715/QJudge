@@ -14,7 +14,7 @@ import {
   Loading,
   Modal
 } from '@carbon/react';
-import { Add, Edit, TrashCan } from '@carbon/icons-react';
+import { Add, Edit, TrashCan, Archive } from '@carbon/icons-react';
 import { api } from '../services/api';
 import type { Contest } from '../services/api';
 
@@ -24,6 +24,8 @@ const TeacherContestListPage = () => {
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [contestToDelete, setContestToDelete] = useState<string | null>(null);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [contestToArchive, setContestToArchive] = useState<string | null>(null);
 
   useEffect(() => {
     loadContests();
@@ -59,6 +61,24 @@ const TeacherContestListPage = () => {
     }
   };
 
+  const handleArchiveClick = (id: string) => {
+    setContestToArchive(id);
+    setArchiveModalOpen(true);
+  };
+
+  const confirmArchive = async () => {
+    if (contestToArchive) {
+      try {
+        await api.archiveContest(contestToArchive);
+        setArchiveModalOpen(false);
+        setContestToArchive(null);
+        loadContests();
+      } catch (error) {
+        alert('封存失敗');
+      }
+    }
+  };
+
   const headers = [
     { key: 'title', header: '標題' },
     { key: 'status', header: '狀態' },
@@ -86,6 +106,15 @@ const TeacherContestListPage = () => {
           iconDescription="編輯"
           hasIconOnly
           onClick={() => navigate(`/teacher/contests/${c.id}/edit`)}
+        />
+        <Button
+          kind="ghost"
+          size="sm"
+          renderIcon={Archive}
+          iconDescription="封存"
+          hasIconOnly
+          onClick={() => handleArchiveClick(c.id)}
+          disabled={c.is_archived}
         />
         <Button
           kind="danger--ghost"
@@ -147,6 +176,17 @@ const TeacherContestListPage = () => {
         onRequestSubmit={confirmDelete}
       >
         <p>確定要刪除此競賽嗎？此動作無法復原。</p>
+      </Modal>
+
+      <Modal
+        open={archiveModalOpen}
+        modalHeading="封存競賽"
+        primaryButtonText="封存"
+        secondaryButtonText="取消"
+        onRequestClose={() => setArchiveModalOpen(false)}
+        onRequestSubmit={confirmArchive}
+      >
+        <p>確定要封存此競賽嗎？封存後將移至封存列表。</p>
       </Modal>
     </div>
   );

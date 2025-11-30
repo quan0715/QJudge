@@ -33,6 +33,7 @@ interface Problem {
   is_visible: boolean;
   created_by: string;
   created_at: string;
+  is_contest_only?: boolean;
 }
 
 const ProblemManagementPage = () => {
@@ -96,6 +97,7 @@ const ProblemManagementPage = () => {
     { key: 'id', header: 'ID' },
     { key: 'title', header: '標題' },
     { key: 'difficulty', header: '難度' },
+    { key: 'type', header: '類型' },
     { key: 'stats', header: '統計' },
     { key: 'visibility', header: '狀態' },
     { key: 'created_by', header: '作者' },
@@ -152,11 +154,14 @@ const ProblemManagementPage = () => {
             <Table {...getTableProps()}>
               <TableHead>
                 <TableRow>
-                  {headers.map((header) => (
-                    <TableHeader {...getHeaderProps({ header })}>
-                      {header.header}
-                    </TableHeader>
-                  ))}
+                  {headers.map((header) => {
+                    const { key, ...headerProps } = getHeaderProps({ header });
+                    return (
+                      <TableHeader key={key} {...headerProps}>
+                        {header.header}
+                      </TableHeader>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -166,13 +171,21 @@ const ProblemManagementPage = () => {
 
                   const canEdit = currentUser?.role === 'admin' || problem.created_by === currentUser?.username;
 
+                  const { key, ...rowProps } = getRowProps({ row });
                   return (
-                    <TableRow {...getRowProps({ row })}>
+                    <TableRow key={key} {...rowProps}>
                       <TableCell>{problem.id}</TableCell>
                       <TableCell>
                         <div style={{ fontWeight: 500 }}>{problem.title}</div>
                       </TableCell>
                       <TableCell>{getDifficultyTag(problem.difficulty)}</TableCell>
+                      <TableCell>
+                        {problem.is_contest_only ? (
+                          <Tag type="purple">競賽</Tag>
+                        ) : (
+                          <Tag type="blue">練習</Tag>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
                           <span>提交: <strong>{problem.submission_count}</strong></span>

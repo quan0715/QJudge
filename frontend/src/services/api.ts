@@ -11,6 +11,7 @@ export interface Problem {
   submission_count?: number;
   accepted_count?: number;
   created_by?: string;
+  is_contest_only?: boolean;
 }
 
 export interface AuthResponse {
@@ -21,8 +22,23 @@ export interface AuthResponse {
     user: {
       username: string;
       email: string;
+      role?: string;
     };
   };
+}
+
+export interface ContestQuestion {
+  id: string;
+  contest_id: string;
+  problem_id?: string;
+  student_id: string;
+  student_name: string;
+  title: string;
+  content: string;
+  answer?: string;
+  answered_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const api = {
@@ -37,8 +53,9 @@ export const api = {
     return data.results || data;
   },
 
-  getProblem: async (id: string): Promise<Problem | undefined> => {
-    const res = await authFetch(`/api/v1/problems/${id}/`);
+  getProblem: async (id: string, scope?: string): Promise<Problem | undefined> => {
+    const query = scope ? `?scope=${scope}` : '';
+    const res = await authFetch(`/api/v1/problems/${id}/${query}`);
     if (!res.ok) {
       return undefined;
     }
@@ -153,6 +170,11 @@ export const api = {
 
   getContest: async (id: string): Promise<Contest | undefined> => {
     const res = await authFetch(`/api/v1/contests/${id}/`);
+    return res.json();
+  },
+
+  getContestProblem: async (contestId: string, problemId: string): Promise<any | undefined> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/problems/${problemId}/`);
     if (!res.ok) return undefined;
     return res.json();
   },
@@ -276,6 +298,41 @@ export const api = {
     }
     return res.json();
   },
+
+  // Contest Q&A
+  getContestQuestions: async (contestId: string): Promise<ContestQuestion[]> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/questions/`);
+    if (!res.ok) throw new Error('Failed to fetch questions');
+    return res.json();
+  },
+
+  createContestQuestion: async (contestId: string, data: { title: string; content: string; problem_id?: string }): Promise<ContestQuestion> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/questions/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to post question');
+    return res.json();
+  },
+
+  answerContestQuestion: async (contestId: string, questionId: string, answer: string): Promise<ContestQuestion> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/questions/${questionId}/answer/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer })
+    });
+    if (!res.ok) throw new Error('Failed to answer question');
+    return res.json();
+  },
+
+  // Contest Archiving
+  archiveContest: async (contestId: string): Promise<void> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/archive/`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to archive contest');
+  },
 };
 
 export interface Contest {
@@ -292,4 +349,5 @@ export interface Contest {
   allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
+  is_archived?: boolean;
 }

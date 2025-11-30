@@ -10,10 +10,14 @@ import {
   TableContainer, 
   TableToolbar, 
   TableToolbarContent, 
-  TableToolbarSearch, 
-  Tag, 
+  TableToolbarSearch,
   Pagination,
-  Loading
+  Tag,
+  Tabs,
+  Tab,
+  TabList,
+  TabPanels,
+  TabPanel
 } from '@carbon/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -71,62 +75,49 @@ const ProblemListPage = () => {
   const endIndex = startIndex + pageSize;
   const currentProblems = problems.slice(startIndex, endIndex);
 
-  const rows = currentProblems.map(p => ({
-    id: p.id.toString(),
-    title: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Link 
-          to={`/problems/${p.display_id || p.id}`}
-          style={{ 
-            textDecoration: 'none', 
-            color: 'var(--cds-link-primary)',
-            fontWeight: 500,
-            fontSize: '1rem'
-          }}
-        >
-          {p.display_id || p.id}. {p.title}
-        </Link>
-        {/* TODO: Check actual solved status from backend */}
-        {/* {p.solved && <CheckmarkFilled style={{ color: 'green' }} />} */}
-      </div>
-    ),
-    difficulty: (
-      <Tag type={getDifficultyColor(p.difficulty)}>
-        {getDifficultyLabel(p.difficulty)}
-      </Tag>
-    ),
-    acceptance_rate: (
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600 }}>{p.acceptance_rate.toFixed(1)}%</span>
-        <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginLeft: '0.5rem' }}>
-          ({p.accepted_count}/{p.submission_count})
-        </span>
-      </div>
-    ),
-  }));
+  const renderTable = (filteredProblems: Problem[]) => {
+    const rows = filteredProblems.map(p => ({
+      id: p.id.toString(),
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Link 
+            to={`/problems/${p.display_id || p.id}`}
+            style={{ 
+              textDecoration: 'none', 
+              color: 'var(--cds-link-primary)',
+              fontWeight: 500,
+              fontSize: '1rem'
+            }}
+          >
+            {p.display_id || p.id}. {p.title}
+          </Link>
+        </div>
+      ),
+      difficulty: (
+        <Tag type={getDifficultyColor(p.difficulty)}>
+          {getDifficultyLabel(p.difficulty)}
+        </Tag>
+      ),
+      acceptance_rate: (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontWeight: 600 }}>{p.acceptance_rate.toFixed(1)}%</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginLeft: '0.5rem' }}>
+            ({p.accepted_count}/{p.submission_count})
+          </span>
+        </div>
+      ),
+    }));
 
-  if (loading) {
-    return <Loading />;
-  }
-
-  return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 300, marginBottom: '0.5rem' }}>題目列表</h1>
-        <p style={{ color: 'var(--cds-text-secondary)' }}>
-          挑戰各種難度的程式設計問題，提升你的演算法能力。
-        </p>
-      </div>
-
+    return (
       <DataTable rows={rows} headers={headers}>
         {({ rows, headers, getHeaderProps, getTableProps, onInputChange }) => (
           <TableContainer 
             title="" 
             description=""
             style={{ 
-              backgroundColor: 'transparent', // Removed background
-              padding: '0', // Removed padding
-              boxShadow: 'none' // Removed shadow
+              backgroundColor: 'transparent',
+              padding: '0',
+              boxShadow: 'none'
             }}
           >
             <TableToolbar>
@@ -166,6 +157,35 @@ const ProblemListPage = () => {
           </TableContainer>
         )}
       </DataTable>
+    );
+  };
+
+  const practiceProblems = currentProblems.filter(p => !p.is_contest_only);
+  const contestProblems = currentProblems.filter(p => p.is_contest_only);
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 300, marginBottom: '0.5rem' }}>題目列表</h1>
+        <p style={{ color: 'var(--cds-text-secondary)' }}>
+          挑戰各種難度的程式設計問題，提升你的演算法能力。
+        </p>
+      </div>
+
+      <Tabs>
+        <TabList aria-label="Problem types">
+          <Tab>練習題目</Tab>
+          <Tab>競賽題目</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel>
+            {renderTable(practiceProblems)}
+          </TabPanel>
+          <TabPanel>
+            {renderTable(contestProblems)}
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
       <Pagination
         totalItems={problems.length}
         backwardText="上一頁"

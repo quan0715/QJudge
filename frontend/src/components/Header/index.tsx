@@ -14,8 +14,6 @@ const AppHeader = () => {
         <HeaderMenuItem as={Link} to="/problems">Problems</HeaderMenuItem>
         <HeaderMenuItem as={Link} to="/submissions">Submissions</HeaderMenuItem>
         <HeaderMenuItem as={Link} to="/contests">Contests</HeaderMenuItem>
-        <HeaderMenuItem as={Link} to="/status">Status</HeaderMenuItem>
-        <HeaderMenuItem as={Link} to="/ranking">Ranking</HeaderMenuItem>
       </HeaderNavigation>
       <HeaderGlobalBar>
         <HeaderGlobalAction aria-label="Notifications" tooltipAlignment="center">

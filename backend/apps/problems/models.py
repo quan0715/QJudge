@@ -20,7 +20,7 @@ class Problem(models.Model):
     
     # Basic info
     title = models.CharField(max_length=255, verbose_name='標題')
-    slug = models.SlugField(max_length=255, unique=True, verbose_name='Slug')
+    slug = models.SlugField(max_length=255, unique=True, blank=True, verbose_name='Slug')
     difficulty = models.CharField(
         max_length=10,
         choices=DIFFICULTY_CHOICES,

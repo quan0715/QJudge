@@ -38,7 +38,7 @@ const ProblemFormPage = () => {
     setSuccess('');
 
     try {
-      const url = isEditMode ? `/api/v1/problems/${id}/` : '/api/v1/problems/';
+      const url = isEditMode ? `/api/v1/problems/${id}/?scope=manage` : '/api/v1/problems/';
       const method = isEditMode ? 'PUT' : 'POST';
 
       const res = await authFetch(url, {

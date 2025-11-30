@@ -9,7 +9,8 @@ from typing import Dict, Any
 
 class CppJudge:
     def __init__(self):
-        self.client = docker.from_env()
+        # 增加 timeout 設置避免 UnixHTTPConnectionPool timeout
+        self.client = docker.from_env(timeout=60)
         self.image = 'oj-judge:latest'
     
     def execute_cpp(
@@ -135,7 +136,8 @@ timeout {timeout_sec}s ./main < input.txt 2>&1
                 remove=False
             )
             
-            result = container.wait(timeout=timeout)
+            # 增加 timeout 參數，避免等待太久
+            result = container.wait(timeout=int(timeout) + 5)
             output = container.logs().decode('utf-8', errors='ignore')
             
             # 簡化的時間和記憶體統計
@@ -156,6 +158,14 @@ timeout {timeout_sec}s ./main < input.txt 2>&1
             return {
                 'exit_code': -1,
                 'output': str(e),
+                'time': 0,
+                'memory': 0
+            }
+        except docker.errors.APIError as e:
+            # Docker API 錯誤（包括 timeout）
+            return {
+                'exit_code': -1,
+                'output': f'Docker API Error: {str(e)}',
                 'time': 0,
                 'memory': 0
             }

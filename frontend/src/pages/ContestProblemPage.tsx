@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loading, Button } from '@carbon/react';
+import { Loading, Button, Tabs, Tab, TabList, TabPanels, TabPanel } from '@carbon/react';
 import { ArrowLeft } from '@carbon/icons-react';
 import ProblemSolver from '../components/ProblemSolver';
+import ContestQuestionList from '../components/ContestQuestionList';
 import type { Problem, Submission } from '../components/ProblemSolver';
 import { api } from '../services/api';
 
@@ -17,28 +18,28 @@ const ContestProblemPage = () => {
     const fetchData = async () => {
       if (!contestId || !problemId) return;
       try {
-        // Fetch contest details which includes problems
-        const contestData = await api.getContest(contestId);
-        if (!contestData) throw new Error('Contest not found');
+        // Fetch problem details directly
+        const problemData = await api.getContestProblem(contestId, problemId);
+        
+        if (problemData) {
+           setProblem(problemData);
+        } else {
+           // Fallback to fetching contest if direct problem fetch fails (or if using mock that doesn't support it yet)
+           const contestData = await api.getContest(contestId);
+           if (!contestData) throw new Error('Contest not found');
 
-        // Find the specific problem in the contest
-        // The contestData.problems is a list of ContestProblem objects
-        // We need to cast it to any because the type definition might not be fully updated in api.ts
-        // We need to cast it to any because the type definition might not be fully updated in api.ts
-        // Admin serializer returns 'problem_list', Student serializer returns 'problems'
-        const contestProblems = (contestData as any).problems || (contestData as any).problem_list || [];
-        const contestProblem = contestProblems.find((p: any) => p.problem.id.toString() === problemId);
+           const contestProblems = (contestData as any).problems || (contestData as any).problem_list || [];
+           const contestProblem = contestProblems.find((p: any) => p.problem.id.toString() === problemId);
 
-        if (!contestProblem) {
-          throw new Error('Problem not found in this contest');
+           if (!contestProblem) {
+             throw new Error('Problem not found in this contest');
+           }
+
+           setProblem({
+             ...contestProblem.problem,
+             score: contestProblem.score
+           });
         }
-
-        // Construct the problem object for ProblemSolver
-        // We merge the problem details with contest-specific info (score)
-        setProblem({
-          ...contestProblem.problem,
-          score: contestProblem.score
-        });
 
       } catch (err: any) {
         setError(err.message || '無法載入題目資料');
@@ -103,13 +104,31 @@ const ContestProblemPage = () => {
         </Button>
       </div>
       
-      <div style={{ flex: 1 }}>
-        <ProblemSolver
-          problem={problem}
-          onSubmit={handleSubmit}
-          isContestMode={true}
-          contestId={contestId}
-        />
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <Tabs>
+          <TabList aria-label="Problem tabs">
+            <Tab>題目描述 & 作答</Tab>
+            <Tab>提問與討論</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel style={{ padding: 0, height: 'calc(100vh - 160px)', overflow: 'hidden' }}>
+              <ProblemSolver
+                problem={problem}
+                onSubmit={handleSubmit}
+                isContestMode={true}
+                contestId={contestId}
+              />
+            </TabPanel>
+            <TabPanel style={{ padding: '1rem', height: 'calc(100vh - 160px)', overflow: 'auto' }}>
+              <ContestQuestionList 
+                contestId={contestId || ''} 
+                problemId={problemId || ''}
+                // In a real app, we would check the user's role here
+                isTeacherOrAdmin={true} 
+              />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
       </div>
     </div>
   );

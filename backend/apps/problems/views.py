@@ -73,19 +73,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         Filter queryset based on user role.
         """
         user = self.request.user
-        queryset = super().get_queryset().annotate(
-            acceptance_rate=Case(
-                When(
-                    submission_count__gt=0,
-                    then=ExpressionWrapper(
-                        F('accepted_count') * Value(100.0) / F('submission_count'),
-                        output_field=FloatField(),
-                    ),
-                ),
-                default=Value(0.0),
-                output_field=FloatField(),
-            )
-        )
+        queryset = super().get_queryset()
         
         # Management view filtering
         if self.request.query_params.get('scope') == 'manage':
@@ -103,11 +91,15 @@ class ProblemViewSet(viewsets.ModelViewSet):
             # Others shouldn't be here, but default to none or own
             return queryset.none()
         
+        # For retrieve (detail view), allow authenticated admin/teacher to see all
+        # This allows preview of hidden problems from management page
+        if self.action == 'retrieve' and user.is_authenticated:
+            if user.is_staff or user.role in ['admin', 'teacher']:
+                return queryset
+        
         # Normal view filtering (Problem List)
-        # By default, only show visible problems to everyone (including admins/teachers)
-        # unless they are explicitly in management mode (scope=manage)
-        if self.request.query_params.get('scope') != 'manage':
-            queryset = queryset.filter(is_visible=True)
+        # By default, only show visible problems
+        queryset = queryset.filter(is_visible=True)
             
         return queryset.prefetch_related('translations', 'test_cases')
 
