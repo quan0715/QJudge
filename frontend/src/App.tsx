@@ -12,6 +12,9 @@ import DashboardPage from './pages/DashboardPage';
 import ContestListPage from './pages/ContestListPage';
 import ContestDashboardPage from './pages/ContestDashboardPage';
 import ContestProblemPage from './pages/ContestProblemPage';
+import ContestSubmissionListPage from './pages/ContestSubmissionListPage';
+import ContestSubmissionDetailPage from './pages/ContestSubmissionDetailPage';
+import ContestStandingsPage from './pages/ContestStandingsPage';
 import ContestLayout from './layouts/ContestLayout';
 import UserManagementPage from './pages/UserManagementPage';
 import ProblemManagementPage from './pages/ProblemManagementPage';
@@ -55,6 +58,9 @@ function App() {
           <Route path="/contests/:contestId" element={<ContestLayout />}>
             <Route index element={<ContestDashboardPage />} />
             <Route path="problems/:problemId" element={<ContestProblemPage />} />
+            <Route path="submissions" element={<ContestSubmissionListPage />} />
+            <Route path="submissions/:submissionId" element={<ContestSubmissionDetailPage />} />
+            <Route path="standings" element={<ContestStandingsPage />} />
           </Route>
         </Route>
 
@@ -68,7 +74,7 @@ function App() {
             {/* Teacher Contest Management */}
             <Route path="/teacher/contests" element={<TeacherContestListPage />} />
             <Route path="/teacher/contests/new" element={<TeacherContestEditPage />} />
-            <Route path="/teacher/contests/:id/edit" element={<TeacherContestEditPage />} />
+            <Route path="/teacher/contests/:id/edit" element={<Navigate to="/contests/:id" replace />} />
             <Route path="/teacher/contests/:contestId/problems/:problemId/edit" element={<TeacherContestProblemEditPage />} />
           </Route>
         </Route>

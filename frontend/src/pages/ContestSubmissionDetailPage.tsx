@@ -54,22 +54,22 @@ interface SubmissionDetail {
   }>;
 }
 
-const SubmissionDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+const ContestSubmissionDetailPage = () => {
+  const { contestId, submissionId } = useParams<{ contestId: string; submissionId: string }>();
   const navigate = useNavigate();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
+    if (submissionId) {
       fetchSubmission();
     }
-  }, [id]);
+  }, [submissionId]);
 
   const fetchSubmission = async () => {
     try {
-      const data = await api.getSubmission(id!);
+      const data = await api.getSubmission(submissionId!);
       setSubmission(data);
       
       // Start polling if submission is pending or judging
@@ -91,7 +91,7 @@ const SubmissionDetailPage = () => {
   const startPolling = () => {
     const pollInterval = setInterval(async () => {
       try {
-        const data = await api.getSubmission(id!);
+        const data = await api.getSubmission(submissionId!);
         setSubmission(data);
         
         // Stop polling if status is final
@@ -163,7 +163,7 @@ const SubmissionDetailPage = () => {
           您沒有權限查看此提交的詳細內容（程式碼與測試結果）。<br/>
           在競賽中，您只能查看自己的提交詳情。
         </p>
-        <Button onClick={() => navigate(-1)}>返回上一頁</Button>
+        <Button onClick={() => navigate(`/contests/${contestId}/submissions`)}>返回提交列表</Button>
       </div>
     );
   }
@@ -172,7 +172,7 @@ const SubmissionDetailPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <p>提交不存在或無法載入</p>
-        <Button onClick={() => navigate('/submissions')}>返回列表</Button>
+        <Button onClick={() => navigate(`/contests/${contestId}/submissions`)}>返回提交列表</Button>
       </div>
     );
   }
@@ -203,10 +203,10 @@ const SubmissionDetailPage = () => {
         <Button
           kind="ghost"
           renderIcon={ArrowLeft}
-          onClick={() => navigate('/submissions')}
+          onClick={() => navigate(`/contests/${contestId}/submissions`)}
           style={{ marginBottom: '1rem' }}
         >
-          返回列表
+          返回提交列表
         </Button>
         <h2 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '1rem' }}>
           提交 #{submission.id}
@@ -235,9 +235,14 @@ const SubmissionDetailPage = () => {
               題目
             </div>
             <div style={{ fontSize: '1rem', fontWeight: 600 }}>
+              {/* Link to contest problem instead of global problem */}
               <a
-                href={`/problems/${submission.problem.id}`}
-                style={{ color: 'var(--cds-link-primary)', textDecoration: 'none' }}
+                href={`/contests/${contestId}/problems/${submission.problem.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/contests/${contestId}/problems/${submission.problem.id}`);
+                }}
+                style={{ color: 'var(--cds-link-primary)', textDecoration: 'none', cursor: 'pointer' }}
               >
                 {submission.problem.title}
               </a>
@@ -382,4 +387,4 @@ const SubmissionDetailPage = () => {
   );
 };
 
-export default SubmissionDetailPage;
+export default ContestSubmissionDetailPage;

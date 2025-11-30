@@ -19,8 +19,8 @@ class ContestParticipantInline(admin.TabularInline):
 
 @admin.register(Contest)
 class ContestAdmin(admin.ModelAdmin):
-    list_display = ['title', 'start_time', 'end_time', 'creator', 'is_visible', 'is_public']
-    list_filter = ['is_visible', 'is_public', 'start_time']
+    list_display = ['title', 'start_time', 'end_time', 'creator', 'is_public']
+    list_filter = ['is_public', 'start_time']
     search_fields = ['title', 'description']
     inlines = [ContestProblemInline, ContestParticipantInline]
 

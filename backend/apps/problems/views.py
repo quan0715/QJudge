@@ -98,8 +98,8 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 return queryset
         
         # Normal view filtering (Problem List)
-        # By default, only show visible problems
-        queryset = queryset.filter(is_visible=True)
+        # MVP: Only show problems where is_practice_visible=True
+        queryset = queryset.filter(is_practice_visible=True)
             
         return queryset.prefetch_related('translations', 'test_cases')
 

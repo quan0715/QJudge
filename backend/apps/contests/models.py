@@ -3,6 +3,7 @@ Models for contests and exams.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from apps.problems.models import Problem
 
 User = get_user_model()
@@ -26,14 +27,22 @@ class Contest(models.Model):
         verbose_name='建立者'
     )
     
-    is_visible = models.BooleanField(default=True, verbose_name='是否可見')
-    is_public = models.BooleanField(default=False, verbose_name='是否公開')
+    
+    is_public = models.BooleanField(default=True, verbose_name='是否公開 (無需密碼)')
     password = models.CharField(max_length=255, blank=True, null=True, verbose_name='密碼')
     
     # Settings
     allow_view_results = models.BooleanField(default=True, verbose_name='允許查看結果')
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
     ban_tab_switching = models.BooleanField(default=False, verbose_name='禁止切換分頁')
+    
+    # Contest state
+    is_ended = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name='已結束',
+        help_text='主辦者手動標記比賽已結束，只有結束後才能公開題目到練習題庫'
+    )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
@@ -60,6 +69,22 @@ class Contest(models.Model):
     
     def __str__(self):
         return self.title
+    
+    @property
+    def status(self):
+        """Calculate contest status based on time and is_ended flag."""
+        # If manually ended, always return 'ended'
+        if self.is_ended:
+            return 'ended'
+        
+        now = timezone.now()
+        if now < self.start_time:
+            return 'upcoming'
+        elif now <= self.end_time:
+            return 'ongoing'
+        else:
+            # Time has passed but not manually ended yet
+            return 'finished'  # Finished by time but not officially ended
 
 
 class ContestProblem(models.Model):

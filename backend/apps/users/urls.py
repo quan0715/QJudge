@@ -12,6 +12,7 @@ from .views import (
     EmailVerificationView,
     UserSearchView,
     UserRoleUpdateView,
+    UserStatsView,
 )
 
 app_name = 'users'
@@ -31,6 +32,7 @@ urlpatterns = [
     
     # Current user
     path('me', CurrentUserView.as_view(), name='current-user'),
+    path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
     
     # User management (admin only)
     path('search', UserSearchView.as_view(), name='user-search'),

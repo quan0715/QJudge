@@ -20,7 +20,12 @@ import {
   TableToolbarContent,
   TableToolbarSearch,
   Tag,
-  InlineLoading
+  InlineLoading,
+  Tabs,
+  Tab,
+  TabList,
+  TabPanels,
+  TabPanel
 } from '@carbon/react';
 import { authFetch } from '../services/auth';
 
@@ -41,6 +46,7 @@ const ProblemManagementPage = () => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
 
@@ -136,7 +142,24 @@ const ProblemManagementPage = () => {
         </div>
       )}
 
-      <DataTable rows={problems.map(p => ({ ...p, id: p.id.toString() }))} headers={headers}>
+      <Tabs selectedIndex={selectedTab} onChange={({ selectedIndex }) => setSelectedTab(selectedIndex)}>
+        <TabList aria-label="Problem type tabs">
+          <Tab>全部題目 ({problems.length})</Tab>
+          <Tab>練習題目 ({problems.filter(p => !p.is_contest_only).length})</Tab>
+          <Tab>競賽題目 ({problems.filter(p => p.is_contest_only).length})</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel>{renderTable(problems)}</TabPanel>
+          <TabPanel>{renderTable(problems.filter(p => !p.is_contest_only))}</TabPanel>
+          <TabPanel>{renderTable(problems.filter(p => p.is_contest_only))}</TabPanel>
+        </TabPanels>
+      </Tabs>
+    </div>
+  );
+
+  function renderTable(filteredProblems: Problem[]) {
+    return (
+      <DataTable rows={filteredProblems.map(p => ({ ...p, id: p.id.toString() }))} headers={headers}>
         {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
           <TableContainer>
             <TableToolbar>
@@ -260,8 +283,8 @@ const ProblemManagementPage = () => {
           </TableContainer>
         )}
       </DataTable>
-    </div>
-  );
+    );
+  }
 };
 
 export default ProblemManagementPage;

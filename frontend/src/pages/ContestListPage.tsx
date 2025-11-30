@@ -17,7 +17,8 @@ import {
   Tab,
   TabList,
   TabPanels,
-  TabPanel
+  TabPanel,
+  ToastNotification
 } from '@carbon/react';
 import { api } from '../services/api';
 import type { Contest } from '../services/api';
@@ -32,7 +33,9 @@ const ContestListPage = () => {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [enterModalOpen, setEnterModalOpen] = useState(false);
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const fetchContests = async () => {
@@ -90,6 +93,8 @@ const ContestListPage = () => {
     try {
       await api.registerContest(selectedContest.id, password);
       setRegisterModalOpen(false);
+      setSuccessMessage(`成功報名競賽：${selectedContest.title}`);
+      setShowSuccessToast(true);
       // After registration, refresh list
       const data = await api.getContests();
       setContests(data);
@@ -128,8 +133,8 @@ const ContestListPage = () => {
           </div>
         ),
         status: (
-          <Tag type={c.status === 'running' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
-            {c.status === 'running' ? '進行中' : c.status === 'upcoming' ? '即將開始' : '已結束'}
+          <Tag type={c.status === 'ongoing' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
+            {c.status === 'ongoing' ? '進行中' : c.status === 'upcoming' ? '即將開始' : '已結束'}
           </Tag>
         ),
         time: (
@@ -148,7 +153,7 @@ const ContestListPage = () => {
             )}
           </div>
         ),
-        type: c.is_private ? <Tag type="purple">需密碼</Tag> : <Tag type="cool-gray">公開</Tag>
+        type: !c.is_public ? <Tag type="purple">需密碼</Tag> : <Tag type="cool-gray">公開</Tag>
       };
     });
 
@@ -235,7 +240,7 @@ const ContestListPage = () => {
         <p style={{ marginBottom: '1rem' }}>
           {selectedContest?.description || '確定要報名此競賽嗎？'}
         </p>
-        {selectedContest?.is_private && (
+        {selectedContest?.password && (
           <TextInput
             id="contest-password"
             labelText="競賽密碼"
@@ -247,7 +252,7 @@ const ContestListPage = () => {
             invalidText={error}
           />
         )}
-        {!selectedContest?.is_private && error && (
+        {!selectedContest?.password && error && (
           <p style={{ color: 'red' }}>{error}</p>
         )}
       </Modal>
@@ -284,6 +289,18 @@ const ContestListPage = () => {
           <p>準備好開始了嗎？</p>
         </div>
       </Modal>
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <ToastNotification
+          kind="success"
+          title="報名成功"
+          subtitle={successMessage}
+          timeout={3000}
+          onClose={() => setShowSuccessToast(false)}
+          style={{ position: 'fixed', top: '3rem', right: '1rem', zIndex: 9999 }}
+        />
+      )}
     </div>
   );
 };

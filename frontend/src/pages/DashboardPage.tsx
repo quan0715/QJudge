@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Grid, Column, Tile, Button, ClickableTile } from '@carbon/react';
+import { Grid, Column, Tile, Button, ClickableTile, ProgressBar } from '@carbon/react';
 import { Launch, Education, Bullhorn } from '@carbon/icons-react';
+import { api } from '../services/api';
 
 interface User {
   username: string;
@@ -9,12 +10,23 @@ interface User {
 
 const DashboardPage = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       setUser(JSON.parse(userStr));
     }
+
+    const fetchStats = async () => {
+        try {
+            const data = await api.getUserStats();
+            setStats(data);
+        } catch (err) {
+            console.error('Failed to fetch stats', err);
+        }
+    };
+    fetchStats();
   }, []);
 
   if (!user) return null;
@@ -104,20 +116,56 @@ const DashboardPage = () => {
       <Column lg={6} md={8} sm={4} style={{ marginTop: '2rem' }}>
         <h3 style={{ marginBottom: '1rem' }}>My Stats</h3>
         <Tile style={{ height: 'calc(100% - 3rem)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
-              <p style={{ color: 'var(--cds-text-secondary)' }}>Problems Solved</p>
-              <h1 style={{ fontSize: '3rem' }}>0</h1>
+          {stats ? (
+            <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', height: '100%' }}>
+                {/* Circular Progress */}
+                <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
+                    <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--cds-ui-03)" strokeWidth="3" />
+                        <path 
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                            fill="none" 
+                            stroke="var(--cds-interactive-01)" 
+                            strokeWidth="3" 
+                            strokeDasharray={`${(stats.total_solved / (stats.total_easy + stats.total_medium + stats.total_hard || 1)) * 100}, 100`} 
+                        />
+                    </svg>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.total_solved}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>Solved</div>
+                    </div>
+                </div>
+                
+                {/* Breakdown */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                            <span style={{ color: '#24a148' }}>Easy</span>
+                            <span style={{ color: 'var(--cds-text-secondary)' }}>{stats.easy_solved} <span style={{ fontSize: '0.75rem' }}>/ {stats.total_easy}</span></span>
+                        </div>
+                        <ProgressBar value={stats.easy_solved} max={stats.total_easy} size="small" label="Easy" hideLabel status="active" />
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                            <span style={{ color: '#f1c21b' }}>Medium</span>
+                            <span style={{ color: 'var(--cds-text-secondary)' }}>{stats.medium_solved} <span style={{ fontSize: '0.75rem' }}>/ {stats.total_medium}</span></span>
+                        </div>
+                        <ProgressBar value={stats.medium_solved} max={stats.total_medium} size="small" label="Medium" hideLabel status="active" />
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                            <span style={{ color: '#da1e28' }}>Hard</span>
+                            <span style={{ color: 'var(--cds-text-secondary)' }}>{stats.hard_solved} <span style={{ fontSize: '0.75rem' }}>/ {stats.total_hard}</span></span>
+                        </div>
+                        <ProgressBar value={stats.hard_solved} max={stats.total_hard} size="small" label="Hard" hideLabel status="active" />
+                    </div>
+                </div>
             </div>
-            <div>
-              <p style={{ color: 'var(--cds-text-secondary)' }}>Contest Rating</p>
-              <h1 style={{ fontSize: '3rem' }}>-</h1>
-            </div>
-            <div>
-              <p style={{ color: 'var(--cds-text-secondary)' }}>Global Rank</p>
-              <h1 style={{ fontSize: '3rem' }}>-</h1>
-            </div>
-          </div>
+          ) : (
+             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                 Loading stats...
+             </div>
+          )}
         </Tile>
       </Column>
     </Grid>

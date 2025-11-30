@@ -36,7 +36,13 @@ services:
       "
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
-      - DATABASE_URL=postgresql://oj_user:oj_password@postgres_test:5432/oj_test
+      - POSTGRES_DB=oj_test
+      - POSTGRES_USER=oj_user
+      - POSTGRES_PASSWORD=oj_password
+      - POSTGRES_HOST=postgres_test
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis_test
+      - REDIS_PORT=6379
       - REDIS_URL=redis://redis_test:6379/0
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=False

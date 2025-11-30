@@ -54,6 +54,17 @@ class Submission(models.Model):
     )
     
     # Content
+    SOURCE_TYPE_CHOICES = [
+        ('practice', 'Practice'),
+        ('contest', 'Contest'),
+    ]
+    source_type = models.CharField(
+        max_length=10,
+        choices=SOURCE_TYPE_CHOICES,
+        default='practice',
+        db_index=True,
+        verbose_name='來源類型'
+    )
     language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, verbose_name='語言')
     code = models.TextField(verbose_name='程式碼')
     is_test = models.BooleanField(default=False, verbose_name='測試提交')

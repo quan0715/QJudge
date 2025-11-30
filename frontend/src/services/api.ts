@@ -11,6 +11,15 @@ export interface Problem {
   submission_count?: number;
   accepted_count?: number;
   created_by?: string;
+  // New MVP fields
+  is_practice_visible?: boolean;
+  created_in_contest?: {
+    id: string;
+    title: string;
+    start_time: string;
+    end_time: string;
+  } | null;
+  // Deprecated fields (keep for backwards compatibility)
   is_contest_only?: boolean;
 }
 
@@ -30,7 +39,6 @@ export interface AuthResponse {
 export interface ContestQuestion {
   id: string;
   contest_id: string;
-  problem_id?: string;
   student_id: string;
   student_name: string;
   title: string;
@@ -130,6 +138,29 @@ export const api = {
     return res.json();
   },
 
+  getSubmissions: async (params?: { source_type?: 'practice' | 'contest', contest_id?: string, problem_id?: string }): Promise<any[]> => {
+    const queryParams = new URLSearchParams();
+    if (params?.source_type) queryParams.append('source_type', params.source_type);
+    if (params?.contest_id) queryParams.append('contest', params.contest_id);
+    if (params?.problem_id) queryParams.append('problem', params.problem_id);
+    
+    const res = await authFetch(`/api/v1/submissions/?${queryParams.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch submissions');
+    const data = await res.json();
+    return data.results || data;
+  },
+
+  getSubmission: async (id: string): Promise<any> => {
+    const res = await authFetch(`/api/v1/submissions/${id}/`);
+    if (!res.ok) {
+        if (res.status === 403) {
+            throw new Error('Permission denied');
+        }
+        throw new Error('Failed to fetch submission');
+    }
+    return res.json();
+  },
+
   // User management (admin only)
   searchUsers: async (query: string): Promise<any> => {
     const res = await authFetch(`/api/v1/auth/search?q=${encodeURIComponent(query)}`);
@@ -157,6 +188,13 @@ export const api = {
       throw error;
     }
     return res.json();
+  },
+
+  getUserStats: async (): Promise<any> => {
+    const res = await authFetch(`${API_BASE}/me/stats`);
+    if (!res.ok) throw new Error('Failed to fetch user stats');
+    const data = await res.json();
+    return data.data;
   },
 
   // Contest API
@@ -275,26 +313,48 @@ export const api = {
     if (!res.ok) throw new Error('Failed to delete announcement');
   },
 
-  getContestStandings: async (id: string): Promise<any[]> => {
+  getContestStandings: async (id: string): Promise<any> => {
     const res = await authFetch(`/api/v1/contests/${id}/standings/`);
     if (!res.ok) throw new Error('Failed to fetch standings');
     return res.json();
   },
 
-  addContestProblem: async (contestId: string, sourceProblemId: string | null, title?: string): Promise<Problem> => {
+  addContestProblem: async (contestId: string, title: string): Promise<Problem> => {
+    // MVP: No longer support cloning from practice problems
+    // Only create new problems
     const res = await authFetch(`/api/v1/contests/${contestId}/add_problem/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        source_problem_id: sourceProblemId,
-        title: title
-      })
+      body: JSON.stringify({ title })
     });
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to add problem');
+    }
+    return res.json();
+  },
+
+  // Contest ending and problem publishing
+  endContest: async (contestId: string): Promise<any> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/end_contest/`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to end contest');
+    }
+    return res.json();
+  },
+
+  publishProblemToPractice: async (contestId: string, problemId: string): Promise<any> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/problems/${problemId}/publish/`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to publish problem');
     }
     return res.json();
   },
@@ -306,7 +366,7 @@ export const api = {
     return res.json();
   },
 
-  createContestQuestion: async (contestId: string, data: { title: string; content: string; problem_id?: string }): Promise<ContestQuestion> => {
+  createContestQuestion: async (contestId: string, data: { title: string; content: string }): Promise<ContestQuestion> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/questions/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -342,10 +402,21 @@ export interface Contest {
   rules?: string;
   start_time: string;
   end_time: string;
-  status: 'upcoming' | 'running' | 'ended';
-  is_private: boolean;
+  status: 'upcoming' | 'running' | 'ended' | 'finished';
+  current_user_role?: 'student' | 'teacher' | 'admin';
+  permissions?: {
+    can_edit?: boolean;
+    can_delete?: boolean;
+    can_end_contest?: boolean;
+    can_manage_problems?: boolean;
+    can_view_all_submissions?: boolean;
+    can_export_scores?: boolean;
+  };
+  is_public: boolean;
+  password?: string;
   is_registered: boolean;
   has_left: boolean;
+  is_ended?: boolean;  // New MVP field
   allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;

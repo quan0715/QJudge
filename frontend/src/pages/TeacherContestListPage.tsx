@@ -91,12 +91,12 @@ const TeacherContestListPage = () => {
     id: c.id,
     title: c.title,
     status: (
-      <Tag type={c.status === 'running' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
-        {c.status === 'running' ? '進行中' : c.status === 'upcoming' ? '未開始' : '已結束'}
+      <Tag type={c.status === 'ongoing' ? 'green' : c.status === 'upcoming' ? 'blue' : 'gray'}>
+        {c.status === 'ongoing' ? '進行中' : c.status === 'upcoming' ? '未開始' : '已結束'}
       </Tag>
     ),
     time: `${new Date(c.start_time).toLocaleString()} ~ ${new Date(c.end_time).toLocaleString()}`,
-    visibility: c.is_private ? <Tag type="purple">私有 (密碼)</Tag> : <Tag type="teal">公開</Tag>,
+    visibility: !c.is_public ? <Tag type="purple">私有 (密碼)</Tag> : <Tag type="teal">公開</Tag>,
     actions: (
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <Button
@@ -105,7 +105,7 @@ const TeacherContestListPage = () => {
           renderIcon={Edit}
           iconDescription="編輯"
           hasIconOnly
-          onClick={() => navigate(`/teacher/contests/${c.id}/edit`)}
+          onClick={() => navigate(`/contests/${c.id}`)}
         />
         <Button
           kind="ghost"

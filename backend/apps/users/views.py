@@ -419,3 +419,42 @@ class UserRoleUpdateView(APIView):
             'data': user_serializer.data,
             'message': f'已將 {user.username} 的角色從 {old_role} 更新為 {new_role}'
         })
+
+
+class UserStatsView(APIView):
+    """
+    Get current user statistics.
+    GET /api/v1/users/me/stats
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        from apps.problems.models import Problem
+        from apps.submissions.models import Submission
+
+        # Total problems by difficulty
+        total_easy = Problem.objects.filter(difficulty='easy').count()
+        total_medium = Problem.objects.filter(difficulty='medium').count()
+        total_hard = Problem.objects.filter(difficulty='hard').count()
+
+        # Solved problems by difficulty (distinct problems solved by user)
+        solved_ids = Submission.objects.filter(user=user, status='AC').values_list('problem_id', flat=True).distinct()
+        solved_objs = Problem.objects.filter(id__in=solved_ids)
+        
+        easy_solved = solved_objs.filter(difficulty='easy').count()
+        medium_solved = solved_objs.filter(difficulty='medium').count()
+        hard_solved = solved_objs.filter(difficulty='hard').count()
+
+        return Response({
+            'success': True,
+            'data': {
+                'total_solved': easy_solved + medium_solved + hard_solved,
+                'easy_solved': easy_solved,
+                'medium_solved': medium_solved,
+                'hard_solved': hard_solved,
+                'total_easy': total_easy,
+                'total_medium': total_medium,
+                'total_hard': total_hard,
+            }
+        })

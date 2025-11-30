@@ -55,22 +55,44 @@ class Problem(models.Model):
     )
     
     # Contest specific fields
-    is_contest_only = models.BooleanField(default=False, verbose_name='僅限競賽')
+    # DEPRECATED: The following fields are deprecated and will be removed in a future version
+    # Use is_practice_visible and created_in_contest instead
+    is_contest_only = models.BooleanField(
+        default=False, 
+        verbose_name='僅限競賽 (deprecated)'
+    )
     source_problem = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='copies',
-        verbose_name='來源題目'
+        verbose_name='來源題目 (deprecated)'
     )
     contest = models.ForeignKey(
         'contests.Contest',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='contest_problems',
-        verbose_name='所屬競賽'
+        related_name='legacy_contest_problems',
+        verbose_name='所屬競賽 (deprecated)'
+    )
+    
+    # New fields for MVP contest-to-practice flow
+    is_practice_visible = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name='顯示在練習題庫',
+        help_text='控制此題是否在練習題庫中顯示給學生'
+    )
+    created_in_contest = models.ForeignKey(
+        'contests.Contest',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='originally_created_problems',
+        verbose_name='來源競賽',
+        help_text='記錄此題最初在哪場競賽中建立'
     )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')

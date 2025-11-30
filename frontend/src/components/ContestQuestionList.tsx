@@ -10,7 +10,7 @@ import {
 } from '@carbon/react';
 import { Send, CheckmarkFilled } from '@carbon/icons-react';
 import type { ContestQuestion } from '../services/api';
-import { mockContestService } from '../services/mockContestData';
+import { api } from '../services/api';
 
 interface ContestQuestionListProps {
   contestId: string;
@@ -31,13 +31,9 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false }:
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      // Use mock service for now as backend might not be ready
-      const data = await mockContestService.getContestQuestions(contestId);
-      // Filter by problemId if provided, otherwise show all contest questions
-      const filtered = problemId 
-        ? data.filter(q => q.problem_id === problemId)
-        : data;
-      setQuestions(filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      const data = await api.getContestQuestions(contestId);
+      // Show all contest questions, sorted by creation date
+      setQuestions(data.sort((a: ContestQuestion, b: ContestQuestion) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } catch (err) {
       console.error(err);
       setError('無法載入提問列表');
@@ -58,10 +54,9 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false }:
 
     try {
       setSubmitting(true);
-      await mockContestService.createContestQuestion(contestId, {
+      await api.createContestQuestion(contestId, {
         title: newQuestionTitle,
-        content: newQuestionContent,
-        problemId
+        content: newQuestionContent
       });
       setNewQuestionTitle('');
       setNewQuestionContent('');
@@ -80,7 +75,7 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false }:
 
     try {
       setSubmitting(true);
-      await mockContestService.answerContestQuestion(contestId, questionId, content);
+      await api.answerContestQuestion(contestId, questionId, content);
       setReplyContent(prev => ({ ...prev, [questionId]: '' }));
       setReplyingTo(null);
       await fetchQuestions();

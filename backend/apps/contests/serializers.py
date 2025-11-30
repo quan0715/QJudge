@@ -16,10 +16,44 @@ from apps.problems.serializers import ProblemListSerializer
 class ContestProblemSerializer(serializers.ModelSerializer):
     """Serializer for problems within a contest."""
     problem = ProblemListSerializer(read_only=True)
+    user_status = serializers.SerializerMethodField()
     
     class Meta:
         model = ContestProblem
-        fields = ['id', 'problem', 'order', 'score']
+        fields = ['id', 'problem', 'order', 'score', 'user_status']
+
+    def get_user_status(self, obj):
+        """Get status for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+            
+        # Check for submissions in this contest for this problem by this user
+        # We need to look up submissions where contest=obj.contest and problem=obj.problem
+        from apps.submissions.models import Submission
+        
+        # Check for AC first
+        has_ac = Submission.objects.filter(
+            contest=obj.contest,
+            problem=obj.problem,
+            user=request.user,
+            status='AC'
+        ).exists()
+        
+        if has_ac:
+            return 'AC'
+            
+        # Check for any other submission
+        has_attempt = Submission.objects.filter(
+            contest=obj.contest,
+            problem=obj.problem,
+            user=request.user
+        ).exists()
+        
+        if has_attempt:
+            return 'attempted'
+            
+        return None
 
 
 class ContestListSerializer(serializers.ModelSerializer):
@@ -39,6 +73,7 @@ class ContestListSerializer(serializers.ModelSerializer):
             'end_time',
             'creator',
             'is_public',
+            'is_ended',
             'participant_count',
             'is_registered',
             'has_left',
@@ -87,11 +122,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'end_time',
             'creator',
             'is_public',
+            'is_ended',
             'allow_view_results',
             'problems',
             'is_registered',
             'has_left',
             'status',
+            'current_user_role',
+            'permissions',
         ]
     
     def get_status(self, obj):
@@ -116,10 +154,18 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         has_started = timezone.now() >= obj.start_time
         
-        if is_staff or has_started:
-            contest_problems = ContestProblem.objects.filter(contest=obj).order_by('order')
-            return ContestProblemSerializer(contest_problems, many=True).data
-            
+        
+        # Check if user is registered
+        is_registered = ContestParticipant.objects.filter(
+            contest=obj, 
+            user=request.user, 
+            left_at__isnull=True
+        ).exists()
+        
+        if is_staff or has_started or is_registered:
+            problem_list = obj.contestproblem_set.select_related('problem').order_by('order')
+            return ContestProblemSerializer(problem_list, many=True).data
+        
         return []
 
     def get_is_registered(self, obj):
@@ -136,6 +182,42 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return False
         participant = ContestParticipant.objects.filter(contest=obj, user=request.user).first()
         return participant.left_at is not None if participant else False
+
+    current_user_role = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+
+    def get_current_user_role(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+            
+        user = request.user
+        if user.is_staff or user.role == 'admin':
+            return 'admin'
+        if user == obj.creator or user.role == 'teacher':
+            # Note: A teacher who didn't create the contest is still a teacher, 
+            # but might have limited permissions compared to creator.
+            # For simplicity, we return 'teacher' but permissions will handle specifics.
+            return 'teacher'
+        return 'student'
+
+    def get_permissions(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return {}
+            
+        user = request.user
+        is_admin = user.is_staff or user.role == 'admin'
+        is_creator = user == obj.creator
+        
+        return {
+            'can_edit': is_admin or is_creator,
+            'can_delete': is_admin, # Only admin can delete for now
+            'can_end_contest': is_admin or is_creator,
+            'can_manage_problems': is_admin or is_creator,
+            'can_view_all_submissions': is_admin or is_creator,
+            'can_export_scores': is_admin or is_creator,
+        }
 
 
 class ContestRegisterSerializer(serializers.Serializer):
@@ -154,23 +236,28 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
 
 class ContestQuestionSerializer(serializers.ModelSerializer):
     """Serializer for contest Q&A."""
-    user = UserSerializer(read_only=True)
-    replied_by = UserSerializer(read_only=True)
+    student_name = serializers.CharField(source='user.username', read_only=True)
+    student_id = serializers.CharField(source='user.id', read_only=True)
+    answered_by = serializers.CharField(source='replied_by.username', read_only=True)
+    answer = serializers.CharField(source='reply', required=False)
+    contest_id = serializers.CharField(source='contest.id', read_only=True)
     
     class Meta:
         model = ContestQuestion
         fields = [
             'id',
+            'contest_id',
             'title',
             'content',
-            'reply',
-            'user',
-            'replied_by',
+            'answer',
+            'student_name',
+            'student_id',
+            'answered_by',
             'replied_at',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['reply', 'replied_by', 'replied_at']
+        read_only_fields = ['answer', 'answered_by', 'replied_at', 'student_name', 'student_id', 'contest_id']
 
 
 class ContestAnnouncementSerializer(serializers.ModelSerializer):
@@ -202,6 +289,7 @@ class ContestAdminSerializer(serializers.ModelSerializer):
             'end_time',
             'is_public',
             'password',
+            'is_ended',
             'allow_view_results',
             'allow_multiple_joins',
             'ban_tab_switching',

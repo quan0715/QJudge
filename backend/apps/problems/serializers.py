@@ -60,10 +60,14 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'accepted_count',
             'acceptance_rate',
             'is_visible',
+            'is_practice_visible',
+            'created_in_contest',
             'created_at',
             'created_by',
             'language_configs',
         ]
+    
+    language_configs = LanguageConfigSerializer(many=True, read_only=True)
     
     created_by = serializers.ReadOnlyField(source='created_by.username')
     
@@ -78,6 +82,13 @@ class ProblemListSerializer(serializers.ModelSerializer):
         return translation.title if translation else f"Problem {obj.id}"
 
 
+class ContestInfoSerializer(serializers.ModelSerializer):
+    """Minimal serializer for contest info in problem detail."""
+    class Meta:
+        model = Problem._meta.get_field('created_in_contest').remote_field.model
+        fields = ['id', 'title', 'start_time', 'end_time']
+
+
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
     translation = serializers.SerializerMethodField()
@@ -86,6 +97,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     display_id = serializers.CharField(read_only=True)
+    created_in_contest = serializers.SerializerMethodField()
     
     class Meta:
         model = Problem
@@ -100,6 +112,8 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'submission_count',
             'accepted_count',
             'acceptance_rate',
+            'is_practice_visible',
+            'created_in_contest',
             'translation',
             'samples',
             'translations',
@@ -124,6 +138,17 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
         """Get sample test cases."""
         samples = obj.test_cases.filter(is_sample=True).order_by('order')
         return TestCaseSerializer(samples, many=True).data
+    
+    def get_created_in_contest(self, obj):
+        """Get contest info if this problem was created in a contest."""
+        if obj.created_in_contest:
+            return {
+                'id': obj.created_in_contest.id,
+                'title': obj.created_in_contest.title,
+                'start_time': obj.created_in_contest.start_time,
+                'end_time': obj.created_in_contest.end_time,
+            }
+        return None
 
 
 class ProblemAdminSerializer(serializers.ModelSerializer):
@@ -166,6 +191,18 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
+        
+        
+        # Auto-generate slug if empty
+        if 'slug' in validated_data and not validated_data.get('slug'):
+            import uuid
+            # Use first translation title if available, otherwise use existing
+            title_base = instance.title
+            if translations_data:
+                title_base = translations_data[0].get('title', instance.title)
+            base_slug = title_base.lower() if title_base else 'problem'
+            base_slug = ''.join(c if c.isalnum() or c in '-_' else '-' for c in base_slug)
+            validated_data['slug'] = f"{base_slug}-{uuid.uuid4().hex[:8]}"
         
         # Update problem fields
         for attr, value in validated_data.items():

@@ -6,7 +6,7 @@ export interface Contest {
   description: string;
   startTime: string;
   endTime: string;
-  status: 'upcoming' | 'running' | 'ended';
+  status: 'upcoming' | 'ongoing' | 'ended';
   isPrivate: boolean; // If true, requires password
   password?: string;
   registeredUsers: string[]; // List of user IDs
@@ -41,7 +41,7 @@ const MOCK_CONTESTS: Contest[] = [
     description: '本次競賽範圍涵蓋基礎演算法與資料結構。',
     startTime: new Date(Date.now() - 3600000).toISOString(), // Started 1 hour ago
     endTime: new Date(Date.now() + 7200000).toISOString(), // Ends in 2 hours
-    status: 'running',
+    status: 'ongoing',
     isPrivate: false,
     registeredUsers: ['current_user'],
     enteredUsers: [],

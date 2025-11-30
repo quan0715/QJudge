@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loading, Button, Tabs, Tab, TabList, TabPanels, TabPanel } from '@carbon/react';
+import { useContestNavigationGuard } from '../hooks/useContestNavigationGuard';
+import { Loading, Button } from '@carbon/react';
 import { ArrowLeft } from '@carbon/icons-react';
 import ProblemSolver from '../components/ProblemSolver';
-import ContestQuestionList from '../components/ContestQuestionList';
 import type { Problem, Submission } from '../components/ProblemSolver';
 import { api } from '../services/api';
 
@@ -13,42 +13,57 @@ const ContestProblemPage = () => {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contest, setContest] = useState<any>(null);
+  
+  useContestNavigationGuard(contestId, contest?.status === 'ongoing');
 
   useEffect(() => {
     const fetchData = async () => {
       if (!contestId || !problemId) return;
       try {
-        // Fetch problem details directly
-        const problemData = await api.getContestProblem(contestId, problemId);
+        // Fetch contest data which includes problem list
+        const contestData = await api.getContest(contestId);
+        if (!contestData) throw new Error('Contest not found');
+        setContest(contestData);
         
-        if (problemData) {
-           setProblem(problemData);
-        } else {
-           // Fallback to fetching contest if direct problem fetch fails (or if using mock that doesn't support it yet)
-           const contestData = await api.getContest(contestId);
-           if (!contestData) throw new Error('Contest not found');
+        // Extract problem from contest data
+        // Backend may return 'problems' or 'problem_list' depending on serializer
+        const contestProblems = (contestData as any).problems || (contestData as any).problem_list || [];
+        console.log('Contest problems:', contestProblems);
+        console.log('Looking for problem ID:', problemId);
+        
+        // Try to find by problem.id to verify it belongs to contest
+        const contestProblemRef = contestProblems.find((cp: any) => 
+          cp.problem.id.toString() === problemId || 
+          cp.problem.id === Number(problemId)
+        );
 
-           const contestProblems = (contestData as any).problems || (contestData as any).problem_list || [];
-           const contestProblem = contestProblems.find((p: any) => p.problem.id.toString() === problemId);
-
-           if (!contestProblem) {
-             throw new Error('Problem not found in this contest');
-           }
-
-           setProblem({
-             ...contestProblem.problem,
-             score: contestProblem.score
-           });
+        if (!contestProblemRef) {
+          console.error('Available problem IDs:', contestProblems.map((cp: any) => cp.problem.id));
+          throw new Error('Problem not found in this contest');
         }
 
+        // Fetch full problem details
+        const fullProblem = await api.getContestProblem(contestId, problemId);
+        if (!fullProblem) {
+            throw new Error('Failed to load problem details');
+        }
+
+        console.log('Found contest problem:', fullProblem);
+
+        // Set problem with score from contest reference
+        setProblem({
+          ...fullProblem,
+          score: contestProblemRef.score
+        });
+
       } catch (err: any) {
-        setError(err.message || '無法載入題目資料');
-        console.error(err);
+        console.error('Error loading problem:', err);
+        setError(err.message || 'Failed to load problem');
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [contestId, problemId]);
 
@@ -72,7 +87,7 @@ const ContestProblemPage = () => {
         // Let's redirect to contest dashboard or a submission list if available
         // For now, let's redirect to the contest dashboard to see the status
         setTimeout(() => {
-            navigate(`/contests/${contestId}/dashboard`);
+            navigate(`/contests/${contestId}`);
         }, 100);
       }
     } catch (err: any) {
@@ -85,7 +100,7 @@ const ContestProblemPage = () => {
     <div style={{ padding: '2rem' }}>
       <h3>錯誤</h3>
       <p>{error}</p>
-      <Button kind="secondary" onClick={() => navigate(`/contests/${contestId}/dashboard`)}>
+      <Button kind="secondary" onClick={() => navigate(`/contests/${contestId}`)}>
         返回競賽
       </Button>
     </div>
@@ -98,37 +113,19 @@ const ContestProblemPage = () => {
         <Button 
           kind="ghost" 
           renderIcon={ArrowLeft} 
-          onClick={() => navigate(`/contests/${contestId}/dashboard`)}
+          onClick={() => navigate(`/contests/${contestId}`)}
         >
           返回題目列表
         </Button>
       </div>
       
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        <Tabs>
-          <TabList aria-label="Problem tabs">
-            <Tab>題目描述 & 作答</Tab>
-            <Tab>提問與討論</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel style={{ padding: 0, height: 'calc(100vh - 160px)', overflow: 'hidden' }}>
-              <ProblemSolver
-                problem={problem}
-                onSubmit={handleSubmit}
-                isContestMode={true}
-                contestId={contestId}
-              />
-            </TabPanel>
-            <TabPanel style={{ padding: '1rem', height: 'calc(100vh - 160px)', overflow: 'auto' }}>
-              <ContestQuestionList 
-                contestId={contestId || ''} 
-                problemId={problemId || ''}
-                // In a real app, we would check the user's role here
-                isTeacherOrAdmin={true} 
-              />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <ProblemSolver
+          problem={problem}
+          onSubmit={handleSubmit}
+          isContestMode={true}
+          contestId={contestId}
+        />
       </div>
     </div>
   );

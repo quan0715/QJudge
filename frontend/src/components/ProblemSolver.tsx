@@ -108,9 +108,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
 
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const url = isContestMode
-              ? `/api/v1/contests/${contestId}/submissions/${submissionId}/` // Assuming this endpoint exists or similar
-              : `/api/v1/submissions/${submissionId}/`;
+          const url = `/api/v1/submissions/${submissionId}/`;
 
           // Fallback to standard endpoint if contest specific one isn't distinct for polling details
           // Actually usually submission ID is unique globally so /api/v1/submissions/:id works

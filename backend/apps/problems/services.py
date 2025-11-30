@@ -57,8 +57,19 @@ class ProblemService:
     @transaction.atomic
     def clone_problem(source_problem: Problem, contest, created_by) -> Problem:
         """
+        DEPRECATED: This method is deprecated and will be removed in a future version.
+        The new MVP does not support cloning from practice problems.
+        Use create_contest_problem() instead to create new problems directly.
+        
         Clone a problem for a specific contest.
         """
+        import warnings
+        warnings.warn(
+            "clone_problem() is deprecated. Use create_contest_problem() to create new problems.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         # Generate Q number for contest problem
         display_id = ProblemService.generate_contest_problem_id()
         
@@ -70,17 +81,17 @@ class ProblemService:
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
-            is_visible=False, # Hidden by default until contest starts or manually published?
+            is_visible=False,
+            # Use new MVP fields instead of deprecated ones
+            is_practice_visible=False,
+            created_in_contest=contest,
+            # Deprecated fields (kept for backwards compatibility)
             is_contest_only=True,
             source_problem=source_problem,
-            contest=contest,
             created_by=created_by
         )
         
         # Handle slug uniqueness better if needed
-        # For now, appending contest ID and 'copy' might suffice, but slug must be unique globally.
-        # If original slug is 'two-sum', new is 'two-sum-1-copy'.
-        # If that exists, we might need random suffix.
         if Problem.objects.filter(slug=new_problem.slug).exclude(id=new_problem.id).exists():
             new_problem.slug = f"{source_problem.slug}-{contest.id}-{uuid.uuid4().hex[:8]}"
             new_problem.save()
@@ -129,6 +140,7 @@ class ProblemService:
     def create_contest_problem(contest, created_by, title="New Problem") -> Problem:
         """
         Create a new empty problem for a contest.
+        Uses new MVP fields: is_practice_visible=False, created_in_contest=contest
         """
         # Generate Q number for contest problem
         display_id = ProblemService.generate_contest_problem_id()
@@ -140,12 +152,12 @@ class ProblemService:
             display_id=display_id,
             difficulty='medium',
             is_visible=False,
+            # New MVP fields
+            is_practice_visible=False,  # Contest problems are not visible in practice by default
+            created_in_contest=contest,  # Track the source contest
+            # Deprecated fields (kept for backwards compatibility)
             is_contest_only=True,
-            contest=contest,
             created_by=created_by
         )
-        
-        # Create default language configs?
-        # Maybe handled by signals or manual setup.
         
         return problem

@@ -5,9 +5,11 @@ import {
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
+  HeaderNavigation,
+  HeaderMenuItem,
   Modal
 } from '@carbon/react';
-import { Logout, Time } from '@carbon/icons-react';
+import { Logout, Time, Edit } from '@carbon/icons-react';
 import { api } from '../services/api';
 import type { Contest } from '../services/api';
 
@@ -17,6 +19,18 @@ const ContestLayout = () => {
   const [contest, setContest] = useState<Contest | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error('Failed to parse user from local storage', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (contestId) {
@@ -66,6 +80,17 @@ const ContestLayout = () => {
         <HeaderName prefix="NYCU" href="#">
           [競賽模式] {contest?.title}
         </HeaderName>
+        <HeaderNavigation aria-label="Contest Navigation">
+          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}`)}>
+            題目列表
+          </HeaderMenuItem>
+          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/submissions`)}>
+            提交記錄
+          </HeaderMenuItem>
+          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/standings`)}>
+            排行榜
+          </HeaderMenuItem>
+        </HeaderNavigation>
         <HeaderGlobalBar>
           <div style={{ 
             display: 'flex', 
@@ -79,6 +104,15 @@ const ContestLayout = () => {
             <Time style={{ marginRight: '0.5rem' }} />
             {timeLeft}
           </div>
+          {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+            <HeaderGlobalAction 
+              aria-label="Edit Contest" 
+              onClick={() => navigate(`/contests/${contestId}?tab=management`)}
+              tooltipAlignment="end"
+            >
+              <Edit size={20} />
+            </HeaderGlobalAction>
+          )}
           <HeaderGlobalAction 
             aria-label="Exit Contest" 
             onClick={() => setIsExitModalOpen(true)}
