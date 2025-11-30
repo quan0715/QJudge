@@ -100,6 +100,20 @@ class ProblemViewSet(viewsets.ModelViewSet):
         # Normal view filtering (Problem List)
         # MVP: Only show problems where is_practice_visible=True
         queryset = queryset.filter(is_practice_visible=True)
+        
+        # Annotate with user status if authenticated
+        if user.is_authenticated:
+            from django.db.models import Exists, OuterRef
+            from apps.submissions.models import Submission
+            
+            ac_submissions = Submission.objects.filter(
+                problem=OuterRef('pk'),
+                user=user,
+                status='AC'
+            )
+            queryset = queryset.annotate(
+                is_solved=Exists(ac_submissions)
+            )
             
         return queryset.prefetch_related('translations', 'test_cases')
 

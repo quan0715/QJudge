@@ -6,7 +6,7 @@ const HomePage = () => {
   return (
     <div style={{ width: '100%' }}>
       {/* Hero Section */}
-      <section className="premium-gradient-bg" style={{ padding: '8rem 2rem', position: 'relative', overflow: 'hidden', backgroundImage: 'url(/src/assets/home_hero_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <section className="premium-gradient-bg hero-separator" style={{ padding: '8rem 2rem', position: 'relative', overflow: 'hidden', backgroundImage: 'url(/src/assets/home_hero_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {/* Overlay for readability */}
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 51, 161, 0.8)' }} />
 

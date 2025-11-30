@@ -61,8 +61,13 @@ class EmailAuthService:
         Returns:
             User object if authentication successful, None otherwise
         """
+        from django.db.models import Q
         try:
-            user = User.objects.get(email=email, auth_provider='email')
+            # Check if input is email or username
+            user = User.objects.get(
+                Q(email=email) | Q(username=email),
+                auth_provider='email'
+            )
         except User.DoesNotExist:
             return None
         

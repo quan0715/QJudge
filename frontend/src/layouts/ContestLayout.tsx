@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Header,
   HeaderName,
@@ -7,19 +7,27 @@ import {
   HeaderGlobalAction,
   HeaderNavigation,
   HeaderMenuItem,
-  Modal
+  Modal,
+  Toggle,
+  Theme,
+  Button
 } from '@carbon/react';
-import { Logout, Time, Edit } from '@carbon/icons-react';
-import { api } from '../services/api';
-import type { Contest } from '../services/api';
+import { Logout, Time, Stop } from '@carbon/icons-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Light, Asleep } from '@carbon/icons-react';
+import { createExamHandlers } from '@/components/contest/ExamModeWrapper';
+import { api } from '@/services/api';
+import type { ContestDetail } from '@/models/contest';
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
-  const [contest, setContest] = useState<Contest | null>(null);
+  const [searchParams] = useSearchParams();
+  const [contest, setContest] = useState<ContestDetail | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -63,69 +71,117 @@ const ContestLayout = () => {
     return () => clearInterval(timer);
   }, [contest]);
 
-  const handleExit = async () => {
+  const refreshContest = async () => {
     if (contestId) {
-      try {
-        await api.leaveContest(contestId);
-        navigate('/contests');
-      } catch (error) {
-        console.error('Failed to leave contest', error);
+      const c = await api.getContest(contestId);
+      setContest(c || null);
+    }
+  };
+
+  const handleExit = async () => {
+    if (!contestId || !contest) return;
+
+    try {
+      // If exam mode is enabled and exam is active, end the exam first
+      if (contest.exam_mode_enabled && contest.status === 'active' && !contest.has_finished_exam) {
+        const { endExam } = createExamHandlers(contest.id, contest.exam_mode_enabled, refreshContest);
+        await endExam();
       }
+      
+      // Then leave the contest
+      await api.leaveContest(contestId);
+      navigate('/contests');
+    } catch (error) {
+      console.error('Failed to leave contest', error);
+      alert('無法離開競賽，請稍後再試');
     }
   };
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header aria-label="Contest Platform">
-        <HeaderName prefix="NYCU" href="#">
-          [競賽模式] {contest?.title}
-        </HeaderName>
-        <HeaderNavigation aria-label="Contest Navigation">
-          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}`)}>
-            題目列表
-          </HeaderMenuItem>
-          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/submissions`)}>
-            提交記錄
-          </HeaderMenuItem>
-          <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/standings`)}>
-            排行榜
-          </HeaderMenuItem>
-        </HeaderNavigation>
-        <HeaderGlobalBar>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            color: 'white', 
-            marginRight: '2rem',
-            fontFamily: 'monospace',
-            fontSize: '1.2rem',
-            fontWeight: 'bold'
-          }}>
-            <Time style={{ marginRight: '0.5rem' }} />
-            {timeLeft}
-          </div>
-          {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+      <Theme theme={theme}>
+        <Header aria-label="Contest Platform">
+          <HeaderName prefix="NYCU" href="#">
+            [競賽模式] {contest?.name}
+          </HeaderName>
+          <HeaderNavigation aria-label="Contest Navigation">
+            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}`)}>
+              題目列表
+            </HeaderMenuItem>
+            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/submissions`)}>
+              提交記錄
+            </HeaderMenuItem>
+            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/standings`)}>
+              排行榜
+            </HeaderMenuItem>
+          </HeaderNavigation>
+          <HeaderGlobalBar>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              color: 'var(--cds-text-primary)', 
+              marginRight: '2rem',
+              fontFamily: 'monospace',
+              fontSize: '1.2rem',
+              fontWeight: 'bold'
+            }}>
+              <Time style={{ marginRight: '0.5rem' }} />
+              {timeLeft}
+            </div>
+            
             <HeaderGlobalAction 
-              aria-label="Edit Contest" 
-              onClick={() => navigate(`/contests/${contestId}?tab=management`)}
+              aria-label={theme === 'white' ? 'Switch to Dark Mode' : 'Switch to Light Mode'} 
+              tooltipAlignment="center"
+              onClick={toggleTheme}
+            >
+              {theme === 'white' ? <Asleep size={20} /> : <Light size={20} />}
+            </HeaderGlobalAction>
+
+            {/* Removed separate End Exam button - Exit Contest now handles this */}
+            {false && (
+              <div style={{ marginRight: '1rem' }}>
+                <Button
+                  kind="danger"
+                  renderIcon={Stop}
+                  size="sm"
+                  onClick={() => setIsExitModalOpen(true)}
+                >
+                  結束競賽（交卷）
+                </Button>
+              </div>
+            )}
+
+            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+              <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
+                <Toggle
+                  id="view-mode-toggle"
+                  labelA="學生視角"
+                  labelB="管理模式"
+                  toggled={searchParams.get('view') !== 'student'}
+                  onToggle={(checked: boolean) => {
+                    const newView = checked ? 'teacher' : 'student';
+                    navigate(`/contests/${contestId}?view=${newView}`);
+                  }}
+                  size="sm"
+                />
+              </div>
+            )}
+            <HeaderGlobalAction 
+              aria-label="Exit Contest" 
+              onClick={() => setIsExitModalOpen(true)}
               tooltipAlignment="end"
             >
-              <Edit size={20} />
+              <Logout size={20} />
             </HeaderGlobalAction>
-          )}
-          <HeaderGlobalAction 
-            aria-label="Exit Contest" 
-            onClick={() => setIsExitModalOpen(true)}
-            tooltipAlignment="end"
-          >
-            <Logout size={20} />
-          </HeaderGlobalAction>
-        </HeaderGlobalBar>
-      </Header>
+          </HeaderGlobalBar>
+        </Header>
+      </Theme>
 
-      <div style={{ marginTop: '3rem', flex: 1, overflow: 'auto', backgroundColor: 'var(--cds-layer-01)' }}>
-        <Outlet />
-      </div>
+      <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ marginTop: '3rem', flex: 1, overflow: 'auto', backgroundColor: 'var(--cds-layer-01)' }}>
+          <Outlet context={{ refreshContest }} />
+        </div>
+      </Theme>
 
       <Modal
         open={isExitModalOpen}
@@ -137,15 +193,39 @@ const ContestLayout = () => {
         danger
       >
         <p>
-          {contest?.allow_multiple_joins ? (
-            <span>您確定要離開競賽嗎？<br />您可以隨時重新進入繼續作答。</span>
-          ) : (
-            <span>
-              警告：離開競賽後將<strong>無法重新進入</strong>。
-              <br />
-              確定要現在結束考試嗎？
-            </span>
-          )}
+          {(() => {
+            // Teacher/Admin
+            if (contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin') {
+              return '確定要離開競賽管理頁面嗎？';
+            }
+
+            // Student - Not joined
+            if (!contest?.has_joined && !contest?.is_registered) {
+              return '確定要離開競賽頁面嗎？';
+            }
+
+            // Student - Joined but exam not started (or finished)
+            if (!contest?.status || contest.status === 'inactive' || contest.has_finished_exam) {
+              return '確定要離開競賽頁面嗎？';
+            }
+
+            // Student - Exam in progress
+            return (
+              <span>
+                警告：競賽正在進行中。
+                <br />
+                {contest?.allow_multiple_joins ? (
+                  '您可以隨時重新進入繼續作答。'
+                ) : (
+                  <span style={{ color: 'var(--cds-support-error)' }}>
+                    注意：若離開競賽，計時器可能不會暫停（視競賽規則而定）。
+                  </span>
+                )}
+                <br />
+                確定要現在離開嗎？
+              </span>
+            );
+          })()}
         </p>
       </Modal>
     </div>

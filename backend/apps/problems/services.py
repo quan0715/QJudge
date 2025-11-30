@@ -85,9 +85,6 @@ class ProblemService:
             # Use new MVP fields instead of deprecated ones
             is_practice_visible=False,
             created_in_contest=contest,
-            # Deprecated fields (kept for backwards compatibility)
-            is_contest_only=True,
-            source_problem=source_problem,
             created_by=created_by
         )
         
@@ -155,8 +152,6 @@ class ProblemService:
             # New MVP fields
             is_practice_visible=False,  # Contest problems are not visible in practice by default
             created_in_contest=contest,  # Track the source contest
-            # Deprecated fields (kept for backwards compatibility)
-            is_contest_only=True,
             created_by=created_by
         )
         

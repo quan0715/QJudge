@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Button } from '@carbon/react';
-import { api } from '../services/api';
-import type { Contest } from '../services/api';
+import { api } from '@/services/api';
+import type { Contest } from '@/services/api';
 
 interface EndContestButtonProps {
   contest: Contest;
@@ -58,7 +58,7 @@ export const EndContestButton: React.FC<EndContestButtonProps> = ({ contest, onC
       >
         <div style={{ fontSize: '1rem', lineHeight: '1.6' }}>
           <p style={{ marginBottom: '1rem', fontWeight: 'bold' }}>
-            您即將結束競賽：{contest.title}
+            您即將結束競賽：{contest.name}
           </p>
           
           <p style={{ marginBottom: '0.5rem' }}>請注意：</p>

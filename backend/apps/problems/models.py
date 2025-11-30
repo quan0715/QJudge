@@ -57,26 +57,6 @@ class Problem(models.Model):
     # Contest specific fields
     # DEPRECATED: The following fields are deprecated and will be removed in a future version
     # Use is_practice_visible and created_in_contest instead
-    is_contest_only = models.BooleanField(
-        default=False, 
-        verbose_name='僅限競賽 (deprecated)'
-    )
-    source_problem = models.ForeignKey(
-        'self',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='copies',
-        verbose_name='來源題目 (deprecated)'
-    )
-    contest = models.ForeignKey(
-        'contests.Contest',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='legacy_contest_problems',
-        verbose_name='所屬競賽 (deprecated)'
-    )
     
     # New fields for MVP contest-to-practice flow
     is_practice_visible = models.BooleanField(

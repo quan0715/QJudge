@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Grid, Column, Tile, Button, ClickableTile, ProgressBar } from '@carbon/react';
 import { Launch, Education, Bullhorn } from '@carbon/icons-react';
-import { api } from '../services/api';
+import { api } from '@/services/api';
 
 interface User {
   username: string;

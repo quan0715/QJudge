@@ -32,7 +32,7 @@ interface ProblemPreviewProps {
   memoryLimit?: number;
   translations?: Translation[];
   testCases?: TestCase[];
-  defaultLang?: 'zh-hant' | 'en';
+  defaultLang?: 'zh-TW' | 'en';
   showLanguageToggle?: boolean;
   compact?: boolean;
 }
@@ -44,11 +44,11 @@ const ProblemPreview = ({
   memoryLimit = 128,
   translations = [],
   testCases = [],
-  defaultLang = 'zh-hant',
+  defaultLang = 'zh-TW',
   showLanguageToggle = true,
   compact = false
 }: ProblemPreviewProps) => {
-  const [currentLang, setCurrentLang] = useState<'zh-hant' | 'en'>(defaultLang);
+  const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>(defaultLang);
 
   const translation = translations.find(t => t.language === currentLang) || translations[0];
 
@@ -62,7 +62,7 @@ const ProblemPreview = ({
   };
 
   const languageOptions = [
-    { id: 'zh-hant', label: '中文' },
+    { id: 'zh-TW', label: '中文' },
     { id: 'en', label: 'English' }
   ].filter(lang => translations.some(t => t.language === lang.id));
 
@@ -86,7 +86,7 @@ const ProblemPreview = ({
                   items={languageOptions}
                   itemToString={(item) => (item ? item.label : '')}
                   selectedItem={languageOptions.find(l => l.id === currentLang)}
-                  onChange={({ selectedItem }) => selectedItem && setCurrentLang(selectedItem.id as 'zh-hant' | 'en')}
+                  onChange={({ selectedItem }) => selectedItem && setCurrentLang(selectedItem.id as 'zh-TW' | 'en')}
                   size="sm"
                 />
               </div>
@@ -106,7 +106,7 @@ const ProblemPreview = ({
           {translation.description && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-hant' ? '題目描述' : 'Description'}
+                {currentLang === 'zh-TW' ? '題目描述' : 'Description'}
               </h4>
               <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
                 <ReactMarkdown 
@@ -122,7 +122,7 @@ const ProblemPreview = ({
           {translation.input_description && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-hant' ? '輸入說明' : 'Input Description'}
+                {currentLang === 'zh-TW' ? '輸入說明' : 'Input Description'}
               </h4>
               <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
                 <ReactMarkdown 
@@ -138,7 +138,7 @@ const ProblemPreview = ({
           {translation.output_description && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-hant' ? '輸出說明' : 'Output Description'}
+                {currentLang === 'zh-TW' ? '輸出說明' : 'Output Description'}
               </h4>
               <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
                 <ReactMarkdown 
@@ -154,7 +154,7 @@ const ProblemPreview = ({
           {sampleCases.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '1rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-hant' ? '範例測試' : 'Sample Test Cases'}
+                {currentLang === 'zh-TW' ? '範例測試' : 'Sample Test Cases'}
               </h4>
               {sampleCases.map((tc, index) => (
                 <div key={index} style={{ 
@@ -173,7 +173,7 @@ const ProblemPreview = ({
                     fontSize: '0.875rem',
                     color: 'var(--cds-text-primary)'
                   }}>
-                    {currentLang === 'zh-hant' ? `範例 ${index + 1}` : `Example ${index + 1}`}
+                    {currentLang === 'zh-TW' ? `範例 ${index + 1}` : `Example ${index + 1}`}
                   </div>
                   
                   {/* Content */}
@@ -191,7 +191,7 @@ const ProblemPreview = ({
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
-                        {currentLang === 'zh-hant' ? '輸入' : 'Input'}
+                        {currentLang === 'zh-TW' ? '輸入' : 'Input'}
                       </div>
                       <pre style={{ 
                         background: 'var(--cds-field)',
@@ -220,7 +220,7 @@ const ProblemPreview = ({
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
-                        {currentLang === 'zh-hant' ? '輸出' : 'Output'}
+                        {currentLang === 'zh-TW' ? '輸出' : 'Output'}
                       </div>
                       <pre style={{ 
                         background: 'var(--cds-field)',
@@ -245,7 +245,7 @@ const ProblemPreview = ({
           {translation.hint && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-hant' ? '提示' : 'Hint'}
+                {currentLang === 'zh-TW' ? '提示' : 'Hint'}
               </h4>
               <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
                 <ReactMarkdown 

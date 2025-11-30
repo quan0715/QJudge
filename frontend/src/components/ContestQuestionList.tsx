@@ -9,8 +9,8 @@ import {
   Tag
 } from '@carbon/react';
 import { Send, CheckmarkFilled } from '@carbon/icons-react';
-import type { ContestQuestion } from '../services/api';
-import { api } from '../services/api';
+import type { ContestQuestion } from '@/services/api';
+import { api } from '@/services/api';
 
 interface ContestQuestionListProps {
   contestId: string;

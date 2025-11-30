@@ -45,10 +45,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         
-        # Admin/Teacher can see everything
-        if user.is_staff or user.role in ['admin', 'teacher']:
-            return queryset.select_related('user', 'problem', 'contest')
-            
+        # Admin/Teacher can see everything, but we still want to respect source_type filter if provided
+        # to avoid showing contest submissions in the global list by default.
+        
         # For detail view (retrieve), do not filter by source_type
         # The retrieve() method has strict permission checks (owner/admin/creator)
         if self.action == 'retrieve':
@@ -58,16 +57,19 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         source_type = self.request.query_params.get('source_type', 'practice')
         
         if source_type == 'practice':
-            # Practice: Only own submissions
-            return queryset.filter(source_type='practice', user=user).select_related('user', 'problem', 'contest')
+            # Practice: Show ALL practice submissions (Public)
+            # Exclude contest submissions
+            return queryset.filter(source_type='practice').select_related('user', 'problem', 'contest')
             
         elif source_type == 'contest':
             # Contest: See all (for scoreboard), but filter by contest if provided
-            # Logic: If querying contest submissions, we generally allow seeing the list
-            # to build the scoreboard.
+            contest_id = self.request.query_params.get('contest')
+            if contest_id:
+                queryset = queryset.filter(contest_id=contest_id)
+            
             return queryset.filter(source_type='contest').select_related('user', 'problem', 'contest')
             
-        # Fallback (shouldn't happen with correct usage, but safe default)
+        # Fallback
         return queryset.filter(user=user)
     
     def get_serializer_class(self):
@@ -87,10 +89,10 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         
         # Check permissions
         is_owner = instance.user == user
-        is_admin = user.is_staff or user.role in ['admin', 'teacher']
-        is_contest_creator = instance.contest and instance.contest.creator == user
+        is_admin = user.is_staff or getattr(user, 'role', '') in ['admin', 'teacher']
+        is_contest_owner = instance.contest and instance.contest.owner == user
         
-        if not (is_owner or is_admin or is_contest_creator):
+        if not (is_owner or is_admin or is_contest_owner):
             return Response(
                 {'detail': 'You do not have permission to view this submission details.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -112,19 +114,28 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             source_type = 'contest'
             
             # Validate contest status
-            if contest.status == 'upcoming':
+            # Use computed_status or status field. status field is 'active'/'inactive'.
+            # But 'active' means running. 'inactive' could mean upcoming or ended.
+            # We should check if it's actually running.
+            # The model has 'status' field: active/inactive.
+            # If status is inactive, reject.
+            if contest.status != 'active':
                  from rest_framework.exceptions import PermissionDenied
-                 raise PermissionDenied("Contest has not started yet")
-                 
-            if contest.is_ended:
-                 from rest_framework.exceptions import PermissionDenied
-                 raise PermissionDenied("Contest has ended")
+                 raise PermissionDenied("Contest is not active")
                  
             # Validate registration
             from apps.contests.models import ContestParticipant
-            if not ContestParticipant.objects.filter(contest=contest, user=user).exists():
-                 # Allow if admin/creator
-                 if not (user.is_staff or user.role in ['admin', 'teacher'] or contest.creator == user):
+            try:
+                participant = ContestParticipant.objects.get(contest=contest, user=user)
+                
+                # Check if exam finished
+                if participant.has_finished_exam:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You have finished the exam and cannot submit anymore")
+                    
+            except ContestParticipant.DoesNotExist:
+                 # Allow if admin/owner
+                 if not (user.is_staff or getattr(user, 'role', '') in ['admin', 'teacher'] or contest.owner == user):
                      from rest_framework.exceptions import PermissionDenied
                      raise PermissionDenied("You are not registered for this contest")
         

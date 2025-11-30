@@ -76,7 +76,7 @@ const ProblemForm = ({
   onSubmit,
   onCancel,
   isEditMode,
-  isContestMode = false,
+  // isContestMode = false,
   loading = false,
   error: externalError,
   success: externalSuccess

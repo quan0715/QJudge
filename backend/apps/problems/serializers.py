@@ -64,8 +64,12 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'created_in_contest',
             'created_at',
             'created_by',
+            'created_by',
             'language_configs',
+            'is_solved',
         ]
+    
+    is_solved = serializers.BooleanField(read_only=True, default=False)
     
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     

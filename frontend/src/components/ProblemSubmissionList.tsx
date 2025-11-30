@@ -17,7 +17,7 @@ import {
 } from '@carbon/react';
 import { View } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { authFetch } from '../services/auth';
+import { authFetch } from '@/services/auth';
 
 interface Submission {
   id: number;

@@ -2,7 +2,7 @@ import { HeaderGlobalAction, HeaderPanel, Switcher, SwitcherItem, SwitcherDivide
 import { UserAvatar, Logout, User as UserIcon } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { clearAuthStorage } from '../../services/auth';
+import { clearAuthStorage } from '@/services/auth';
 
 interface User {
   username: string;

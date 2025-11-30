@@ -1,0 +1,93 @@
+# Example Problem: A + B Problem
+
+title: "A + B Problem"
+difficulty: easy
+time_limit: 1000
+memory_limit: 256
+is_visible: true
+is_practice_visible: true
+
+# Translations (at least one required)
+translations:
+  - language: "en"
+    title: "A + B Problem"
+    description: |
+      Given two integers $A$ and $B$, compute the value of $A + B$.
+      
+      This is a standard practice problem to get familiar with the Online Judge system.
+    input_description: |
+      A single line containing two integers $A$ and $B$, separated by a space.
+      
+      **Constraints**
+      - $-10^9 \le A, B \le 10^9$
+    output_description: |
+      Output a single integer representing the sum of $A$ and $B$.
+    hint: "Use long long in C++ to avoid overflow."
+
+  - language: "zh-TW"
+    title: "A + B 問題"
+    description: |
+      給定兩個整數 $A$ 和 $B$，計算 $A + B$ 的值。
+      
+      這是一個標準的練習題，用來熟悉 Online Judge 系統。
+    input_description: |
+      一行包含兩個整數 $A$ 和 $B$，以空格分隔。
+      
+      **限制條件**
+      - $-10^9 \le A, B \le 10^9$
+    output_description: |
+      輸出一個整數，代表 $A + B$ 的和。
+    hint: "在 C++ 中請使用 long long 以避免溢位。"
+
+# Test Cases
+test_cases:
+  - input_data: "1 2"
+    output_data: "3"
+    is_sample: true
+    score: 0
+    order: 0
+    is_hidden: false
+    
+  - input_data: "100 200"
+    output_data: "300"
+    is_sample: true
+    score: 0
+    order: 1
+    is_hidden: false
+    
+  - input_data: "0 0"
+    output_data: "0"
+    is_sample: false
+    score: 20
+    order: 2
+    is_hidden: false
+    
+  - input_data: "-1 1"
+    output_data: "0"
+    is_sample: false
+    score: 30
+    order: 3
+    is_hidden: false
+    
+  - input_data: "1000000000 1000000000"
+    output_data: "2000000000"
+    is_sample: false
+    score: 50
+    order: 4
+    is_hidden: false
+
+# Language Configurations (optional)
+language_configs:
+  - language: "cpp"
+    template_code: |
+      #include <iostream>
+      using namespace std;
+      
+      int main() {
+          long long a, b;
+          cin >> a >> b;
+          cout << a + b << endl;
+          return 0;
+      }
+    is_enabled: true
+    order: 0

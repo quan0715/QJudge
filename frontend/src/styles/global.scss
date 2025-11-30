@@ -10,6 +10,19 @@
   --nycu-gradient-end: #00154a;
 }
 
+// Ensure full viewport height for proper footer positioning
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 body {
   background-color: var(--cds-layer-01);
   color: var(--cds-text-primary);
@@ -118,4 +131,15 @@ body {
     color: var(--cds-text-secondary) !important;
     border-left-color: var(--cds-border-subtle) !important;
   }
+}
+
+// Separator Utilities
+.header-separator {
+  border-bottom: 1px solid var(--cds-layer-accent-01);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero-separator {
+  border-bottom: 1px solid var(--nycu-secondary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }

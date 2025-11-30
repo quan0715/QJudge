@@ -2,20 +2,38 @@
 Views for contests app.
 """
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Contest, ContestParticipant, ContestQuestion, ContestAnnouncement
+from .models import (
+    Contest, 
+    ContestParticipant, 
+    ContestProblem,
+    ContestAnnouncement,
+    Clarification,
+    ExamEvent
+)
 from .serializers import (
     ContestListSerializer,
     ContestDetailSerializer,
+    ContestCreateUpdateSerializer,
     ContestParticipantSerializer,
-    ContestQuestionSerializer,
-    ContestAdminSerializer,
     ContestAnnouncementSerializer,
+    ContestProblemSerializer,
+    ContestProblemCreateSerializer,
+    ClarificationSerializer,
+    ClarificationCreateSerializer,
+    ClarificationReplySerializer,
+    ExamEventSerializer,
+    ExamEventCreateSerializer,
+)
+from .permissions import (
+    IsContestOwnerOrAdmin,
+    IsContestParticipant,
+    get_user_role_in_contest
 )
 
 
@@ -30,10 +48,10 @@ class ContestViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter
     ]
-    filterset_fields = ['is_public', 'creator']
-    search_fields = ['title']
-    ordering_fields = ['start_time', 'end_time']
-    ordering = ['-start_time']
+    filterset_fields = ['visibility', 'owner', 'status']
+    search_fields = ['name']
+    ordering_fields = ['start_time', 'end_time', 'created_at']
+    ordering = ['-created_at']
     
     def get_queryset(self):
         """
@@ -43,42 +61,62 @@ class ContestViewSet(viewsets.ModelViewSet):
         queryset = queryset.annotate(participant_count=Count('participants'))
         
         user = self.request.user
-        queryset = Contest.objects.annotate(
-            participant_count=Count('participants')
-        )
-        
-        user = self.request.user
         scope = self.request.query_params.get('scope', 'visible')
         
         # Teacher/Admin can see manage scope
         if scope == 'manage':
-            if not (user.is_staff or user.role in ['teacher', 'admin']):
+            if not user.is_authenticated:
                 return queryset.none()
-            return queryset.filter(creator=user)
+            if user.is_staff or getattr(user, 'role', '') == 'admin':
+                return queryset
+            # Teachers see contests they own
+            return queryset.filter(owner=user)
         
-        if scope == 'all':
-            # Admin can see all contests
-            if not (user.is_staff or user.role == 'admin'):
-                return queryset.none()
-
+        # Public scope (default)
+        if user.is_staff or getattr(user, 'role', '') == 'admin':
+            return queryset
             
-        return queryset
+        # For regular users:
+        # 1. Public contests
+        # 2. Private contests they have registered for
+        # 3. Contests they own (if they are teachers)
+        
+        if user.is_authenticated:
+            # Allow seeing public and private contests
+            # Private contests require password to join, but should be listed
+            return queryset.filter(
+                Q(visibility__in=['public', 'private']) |
+                Q(participants=user) |
+                Q(owner=user)
+            ).distinct()
+        else:
+            return queryset.filter(visibility='public')
     
     def get_serializer_class(self):
         if self.action == 'list':
             return ContestListSerializer
-            
-        user = self.request.user
-        if user.is_authenticated and (
-            user.is_staff or user.role in ['admin', 'teacher']
-        ):
-            return ContestAdminSerializer
+        
+        if self.action in ['create', 'update', 'partial_update']:
+            return ContestCreateUpdateSerializer
             
         return ContestDetailSerializer
 
     def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
+        serializer.save(owner=self.request.user)
     
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    def toggle_status(self, request, pk=None):
+        """
+        Toggle contest status between active and inactive.
+        """
+        contest = self.get_object()
+        if contest.status == 'active':
+            contest.status = 'inactive'
+        else:
+            contest.status = 'active'
+        contest.save()
+        return Response({'status': contest.status})
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def register(self, request, pk=None):
         """
@@ -95,7 +133,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
             
         # Check password if private
-        if contest.password:
+        if contest.visibility == 'private':
             password = request.data.get('password')
             if password != contest.password:
                 return Response(
@@ -113,21 +151,21 @@ class ContestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def enter(self, request, pk=None):
         """
-        Enter a contest.
+        Enter a contest (check eligibility).
         """
         contest = self.get_object()
         user = request.user
         
-        # Privileged users (Admin/Teacher/Creator) can always enter
-        is_privileged = user.is_staff or user.role in ['admin', 'teacher'] or user == contest.creator
+        role = get_user_role_in_contest(user, contest)
         
-        if is_privileged:
+        # Admin/Teacher can always enter
+        if role in ['admin', 'teacher']:
             return Response({'message': 'Entered successfully (Privileged)'})
         
-        # Check start time
-        if contest.status == 'upcoming':
+        # Check status
+        if contest.status == 'inactive':
              return Response(
-                {'message': 'Contest has not started yet'},
+                {'message': 'Contest is not active'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -146,8 +184,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        # If re-entering, clear left_at? Or just allow.
-        # If allow_multiple_joins is True, we might want to reset left_at or just ignore it.
+        # If re-entering, clear left_at if allowed
         if participant.left_at and contest.allow_multiple_joins:
              participant.left_at = None
              participant.save()
@@ -172,180 +209,74 @@ class ContestViewSet(viewsets.ModelViewSet):
             
         return Response({'message': 'Left successfully'})
     
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def add_problem(self, request, pk=None):
         """
-        Add a NEW problem to the contest.
-        Note: Clone/copy from practice problems is no longer supported in MVP.
-        Body: { "title": "Problem Title" }
+        Add a problem to the contest.
+        Supports adding existing problem (by ID) or creating a new one (by title).
         """
         contest = self.get_object()
         user = request.user
         
-        # Check permissions (only creator or admin)
-        if not (user.is_staff or user.role == 'admin' or user == contest.creator):
-             return Response(
-                {'message': 'Permission denied'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
-        # MVP: No longer support cloning from practice problems
-        source_problem_id = request.data.get('source_problem_id')
-        if source_problem_id:
-            return Response(
-                {'message': 'Cloning from practice problems is no longer supported. Please create a new problem.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        problem_id = request.data.get('problem_id')
+        title = request.data.get('title')
         
-        from apps.problems.services import ProblemService
-        from apps.contests.models import ContestProblem
+        if problem_id:
+            # Add existing problem
+            from apps.problems.models import Problem
+            try:
+                problem = Problem.objects.get(id=problem_id)
+            except Problem.DoesNotExist:
+                return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+        elif title:
+            # Create new problem
+            from apps.problems.services import ProblemService
+            problem = ProblemService.create_contest_problem(contest, user, title=title)
+        else:
+            return Response({'error': 'Either problem_id or title is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Determine order and label
         from django.db.models import Max
-        
-        title = request.data.get('title', 'New Problem')
-        new_problem = ProblemService.create_contest_problem(contest, user, title=title)
-            
-        # Link to contest via ContestProblem (for ordering and score)
-        # Determine order: last + 1
         last_order = ContestProblem.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
         new_order = (last_order if last_order is not None else -1) + 1
         
+        # Generate label (A, B, C...)
+        label = chr(65 + new_order) if new_order < 26 else f"P{new_order+1}"
+        if request.data.get('label'):
+            label = request.data.get('label')
+            
         ContestProblem.objects.create(
             contest=contest,
-            problem=new_problem,
+            problem=problem,
             order=new_order,
-            score=100 # Default score
+            label=label,
+            score=request.data.get('score', 100)
         )
         
-        # Return the new problem data
         from apps.problems.serializers import ProblemListSerializer
-        serializer = ProblemListSerializer(new_problem, context={'request': request})
+        serializer = ProblemListSerializer(problem, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def end_contest(self, request, pk=None):
-        """
-        Manually mark the contest as ended.
-        Only contest creator or admin can call this.
-        After ending, problems can be published to practice library.
-        """
-        contest = self.get_object()
-        user = request.user
-        
-        # Check permissions (only creator or admin)
-        if not (user.is_staff or user.role == 'admin' or user == contest.creator):
-            return Response(
-                {'message': 'Only contest creator or admin can end the contest'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Check if already ended
-        if contest.is_ended:
-            return Response(
-                {'message': 'Contest is already ended'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Mark as ended
-        contest.is_ended = True
-        contest.save()
-        
-        # Return updated contest data
-        serializer = self.get_serializer(contest)
-        return Response({
-            'message': 'Contest ended successfully',
-            'contest': serializer.data
-        })
-
     @action(
-        detail=True,
-        methods=['get'],
-        permission_classes=[permissions.IsAuthenticated],
-        url_path='problems/(?P<problem_id>\d+)'
-    )
-    def retrieve_problem(self, request, pk=None, problem_id=None):
-        """
-        Get specific problem details within a contest.
-        Allows participants to view problem details during the contest.
-        """
-        contest = self.get_object()
-        user = request.user
-        
-        # Check if privileged (Admin/Teacher/Creator)
-        is_privileged = user.is_staff or user.role in ['admin', 'teacher'] or user == contest.creator
-        
-        if not is_privileged:
-            # Check if contest has started
-            if contest.status == 'upcoming':
-                return Response(
-                    {'message': 'Contest has not started yet'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            # Check if user is registered
-            if not ContestParticipant.objects.filter(contest=contest, user=user).exists():
-                return Response(
-                    {'message': 'You must register for the contest first'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        # Get the problem
-        from apps.contests.models import ContestProblem
-        try:
-            contest_problem = ContestProblem.objects.get(
-                contest=contest,
-                problem_id=problem_id
-            )
-        except ContestProblem.DoesNotExist:
-            return Response(
-                {'message': 'Problem not found in this contest'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        # Return full problem details
-        from apps.problems.serializers import ProblemDetailSerializer
-        problem_data = ProblemDetailSerializer(contest_problem.problem, context={'request': request}).data
-        
-        # Add contest-specific info
-        problem_data['score'] = contest_problem.score
-        problem_data['order'] = contest_problem.order
-        
-        return Response(problem_data)
-
-    @action(
-        detail=True,
-        methods=['post'],
-        permission_classes=[permissions.IsAuthenticated],
+        detail=True, 
+        methods=['post'], 
+        permission_classes=[IsContestOwnerOrAdmin],
         url_path='problems/(?P<problem_id>\d+)/publish'
     )
     def publish_problem_to_practice(self, request, pk=None, problem_id=None):
         """
         Publish a contest problem to the practice library.
-        Only allowed after contest is ended.
-        Route: POST /contests/{contest_id}/problems/{problem_id}/publish/
         """
         contest = self.get_object()
-        user = request.user
         
-        # Check permissions (only creator or admin)
-        if not (user.is_staff or user.role == 'admin' or user == contest.creator):
+        # Check if contest is ended/inactive
+        if contest.status == 'active':
             return Response(
-                {'message': 'Only contest creator or admin can publish problems'},
+                {'message': 'Contest must be inactive/ended before publishing problems'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Check if contest is ended
-        if not contest.is_ended:
-            return Response(
-                {'message': 'Contest must be ended before publishing problems to practice'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Get the problem
-        from apps.problems.models import Problem
-        from apps.contests.models import ContestProblem
         
         try:
-            # Verify this problem belongs to this contest
             contest_problem = ContestProblem.objects.get(
                 contest=contest,
                 problem_id=problem_id
@@ -357,24 +288,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Check if already published
         if problem.is_practice_visible:
             return Response(
-                {'message': 'Problem is already published to practice library'},
+                {'message': 'Problem is already published'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Publish to practice
         problem.is_practice_visible = True
         problem.save()
         
-        # Return updated problem data
-        from apps.problems.serializers import ProblemListSerializer
-        serializer = ProblemListSerializer(problem, context={'request': request})
-        return Response({
-            'message': 'Problem published to practice library successfully',
-            'problem': serializer.data
-        })
+        return Response({'message': 'Problem published successfully'})
 
     @action(detail=True, methods=['get'])
     def standings(self, request, pk=None):
@@ -382,25 +305,34 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get contest standings (ICPC Style).
         """
         contest = self.get_object()
+        user = request.user
         
-        # Check if results are visible
-        if not contest.allow_view_results:
-            user = request.user
-            if not (user.is_authenticated and (user.is_staff or user == contest.creator)):
-                return Response(
-                    {'message': 'Results are not visible yet'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        # Check visibility
+        role = get_user_role_in_contest(user, contest)
+        can_view = False
         
-        # 1. Get Problems (columns)
-        from apps.contests.models import ContestProblem
+        if role in ['admin', 'teacher']:
+            can_view = True
+        elif contest.scoreboard_visible_during_contest:
+            can_view = True
+        elif contest.status == 'inactive': # Ended
+            can_view = True
+            
+        if not can_view:
+             return Response(
+                {'message': 'Scoreboard is not visible'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 1. Get Problems
         contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order')
         problems_data = [{
             'id': cp.problem.id,
             'title': cp.problem.title,
             'order': cp.order,
-            'label': chr(65 + i) if i < 26 else f"P{i+1}" # A, B, C...
-        } for i, cp in enumerate(contest_problems)]
+            'label': cp.label,
+            'score': cp.score
+        } for cp in contest_problems]
 
         # 2. Get Participants
         participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
@@ -408,11 +340,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         # 3. Get Submissions
         from apps.submissions.models import Submission
         submissions = Submission.objects.filter(
-            contest=contest
+            contest=contest,
+            source_type='contest'
         ).order_by('created_at')
 
-        # 4. Process
-        # user_id -> { solved: 0, time: 0, problems: { prob_id: { status: '', tries: 0, time: 0, is_pending: False } } }
+        # 4. Process Stats
         from apps.users.serializers import UserSerializer
         stats = {} 
         for p in participants:
@@ -421,9 +353,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                 'solved': 0,
                 'time': 0, # Penalty
                 'joined_at': p.joined_at,
+                'has_finished_exam': p.has_finished_exam,
                 'problems': {}
             }
-            # Initialize problems
             for cp in contest_problems:
                 stats[p.user.id]['problems'][cp.problem.id] = {
                     'status': None,
@@ -435,20 +367,18 @@ class ContestViewSet(viewsets.ModelViewSet):
         for sub in submissions:
             uid = sub.user.id
             pid = sub.problem.id
-            if uid not in stats: continue # Should be registered
-            if pid not in stats[uid]['problems']: continue # Should be in contest
+            if uid not in stats: continue
+            if pid not in stats[uid]['problems']: continue
 
             p_stat = stats[uid]['problems'][pid]
             
             if p_stat['status'] == 'AC':
-                continue # Already solved, ignore subsequent
-
-            # Update tries
-            # CE doesn't count for tries in ICPC usually
-            if sub.status == 'CE':
                 continue
+
+            # if sub.status == 'CE':
+            #     continue
             
-            if sub.status == 'pending' or sub.status == 'judging':
+            if sub.status in ['pending', 'judging']:
                 p_stat['pending'] = True
                 continue
 
@@ -456,25 +386,22 @@ class ContestViewSet(viewsets.ModelViewSet):
             
             if sub.status == 'AC':
                 p_stat['status'] = 'AC'
-                # Calculate time in minutes
-                time_diff = sub.created_at - contest.start_time
+                # Calculate time in minutes from start_time
+                # If start_time is null (shouldn't happen in active contest), use created_at
+                start_time = contest.start_time or contest.created_at
+                time_diff = sub.created_at - start_time
                 minutes = int(time_diff.total_seconds() / 60)
                 p_stat['time'] = minutes
                 
-                # Update total
                 stats[uid]['solved'] += 1
-                # Penalty: Time + 20 * (tries - 1)
                 penalty = minutes + 20 * (p_stat['tries'] - 1)
                 stats[uid]['time'] += penalty
             else:
-                p_stat['status'] = 'attempted' # Failed attempt
+                p_stat['status'] = sub.status
 
-        # 5. Convert to list and sort
         standings_list = list(stats.values())
-        # Sort by Solved (desc), then Time (asc)
         standings_list.sort(key=lambda x: (-x['solved'], x['time']))
 
-        # Add Rank
         for i, item in enumerate(standings_list):
             item['rank'] = i + 1
 
@@ -484,13 +411,134 @@ class ContestViewSet(viewsets.ModelViewSet):
         })
 
 
+class ClarificationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Clarifications (Q&A).
+    """
+    serializer_class = ClarificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ClarificationCreateSerializer
+        return ClarificationSerializer
+    
+    def get_queryset(self):
+        contest_id = self.kwargs.get('contest_pk')
+        user = self.request.user
+        
+        # Base queryset
+        queryset = Clarification.objects.filter(contest_id=contest_id).select_related('author', 'problem')
+        
+        # Admin/Teacher see all
+        contest = Contest.objects.get(id=contest_id)
+        role = get_user_role_in_contest(user, contest)
+        if role in ['admin', 'teacher']:
+            return queryset
+            
+        # Students see their own + public ones
+        return queryset.filter(
+            Q(author=user) | Q(is_public=True)
+        )
+    
+    def perform_create(self, serializer):
+        contest_id = self.kwargs.get('contest_pk')
+        contest = Contest.objects.get(id=contest_id)
+        serializer.save(author=self.request.user, contest=contest, status='pending')
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    def reply(self, request, pk=None, contest_pk=None):
+        """
+        Reply to a clarification.
+        """
+        clarification = self.get_object()
+        serializer = ClarificationReplySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        clarification.answer = serializer.validated_data['answer']
+        clarification.is_public = serializer.validated_data['is_public']
+        clarification.status = 'answered'
+        clarification.answered_at = timezone.now()
+        clarification.save()
+        
+        return Response(ClarificationSerializer(clarification).data)
+
+
+class ExamViewSet(viewsets.ViewSet):
+    """
+    ViewSet for Exam Mode operations.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @action(detail=False, methods=['post'], url_path='start')
+    def start_exam(self, request, contest_pk=None):
+        """
+        Signal that user is starting the exam (entering full screen).
+        """
+        contest = Contest.objects.get(id=contest_pk)
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=request.user)
+            if not participant.started_at:
+                participant.started_at = timezone.now()
+                participant.save()
+            return Response({'status': 'started'})
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='end')
+    def end_exam(self, request, contest_pk=None):
+        """
+        User manually finishes the exam.
+        """
+        contest = Contest.objects.get(id=contest_pk)
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=request.user)
+            
+            if not participant.started_at:
+                return Response(
+                    {'error': 'You have not started the exam yet'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            participant.has_finished_exam = True
+            participant.save()
+            return Response({'status': 'finished'})
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='events')
+    def log_event(self, request, contest_pk=None):
+        """
+        Log an exam event (tab switch, etc).
+        """
+        contest = Contest.objects.get(id=contest_pk)
+        serializer = ExamEventCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        ExamEvent.objects.create(
+            contest=contest,
+            user=request.user,
+            event_type=serializer.validated_data['event_type'],
+            metadata=serializer.validated_data.get('metadata')
+        )
+        return Response({'status': 'logged'})
+        
+    @action(detail=False, methods=['get'], url_path='events', permission_classes=[IsContestOwnerOrAdmin])
+    def list_events(self, request, contest_pk=None):
+        """
+        List all events for this contest (Teacher only).
+        """
+        events = ExamEvent.objects.filter(contest_id=contest_pk).select_related('user').order_by('-created_at')
+        return Response(ExamEventSerializer(events, many=True).data)
+
+
 class ContestAnnouncementViewSet(viewsets.ModelViewSet):
     """
     ViewSet for contest announcements.
     """
     serializer_class = ContestAnnouncementSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    pagination_class = None  # Disable pagination for frontend compatibility
+    pagination_class = None
     
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
@@ -500,100 +548,144 @@ class ContestAnnouncementViewSet(viewsets.ModelViewSet):
         contest_id = self.kwargs.get('contest_pk')
         contest = Contest.objects.get(id=contest_id)
         
-        # Only creator or admin can create announcements
         user = self.request.user
-        if not (user.is_staff or user == contest.creator):
-            raise permissions.PermissionDenied("Only contest creator can post announcements")
+        if not (user.is_staff or user == contest.owner):
+            raise permissions.PermissionDenied("Only contest owner can post announcements")
             
         serializer.save(created_by=user, contest=contest)
-        
-    def perform_destroy(self, instance):
-        # Only creator or admin can delete
-        user = self.request.user
-        if not (user.is_staff or user == instance.contest.creator):
-            raise permissions.PermissionDenied("Only contest creator can delete announcements")
-        instance.delete()
 
 
-class ContestQuestionViewSet(viewsets.ModelViewSet):
+class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for contest Q&A.
+    ViewSet for retrieving contest problems.
     """
-    serializer_class = ContestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None  # Disable pagination for frontend compatibility
-    
+    serializer_class = ContestProblemSerializer
+
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
-        return ContestQuestion.objects.filter(contest_id=contest_id)
-    
-    def perform_create(self, serializer):
+        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem')
+
+    def retrieve(self, request, *args, **kwargs):
         contest_id = self.kwargs.get('contest_pk')
-        contest = Contest.objects.get(id=contest_id)
-        serializer.save(user=self.request.user, contest=contest)
-
-    @action(detail=True, methods=['get'], url_path='problems/(?P<problem_id>\d+)')
-    def retrieve_problem(self, request, pk=None, problem_id=None):
-        """
-        Get specific problem details within a contest.
-        """
-        contest = self.get_object()
-        user = request.user
+        problem_id = self.kwargs.get('pk')
         
-        # Check if contest started or user is privileged
-        is_privileged = user.is_staff or user == contest.creator
-        
-        from django.utils import timezone
-        if not is_privileged and contest.start_time > timezone.now():
-             return Response(
-                {'message': 'Contest has not started yet'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
-        # Check if problem is in contest
         try:
-            contest_problem = ContestProblem.objects.get(contest=contest, problem_id=problem_id)
-        except ContestProblem.DoesNotExist:
-            return Response(
-                {'message': 'Problem not found in this contest'},
-                status=status.HTTP_404_NOT_FOUND
+            # We look up by problem_id (the Problem's ID), not ContestProblem's ID
+            contest_problem = ContestProblem.objects.get(
+                contest_id=contest_id,
+                problem_id=problem_id
             )
-            
-        # Return problem details
-        from apps.problems.serializers import ProblemDetailSerializer
-        # We might want to attach the score from contest_problem to the problem data
-        problem_data = ProblemDetailSerializer(contest_problem.problem, context={'request': request}).data
-        problem_data['score'] = contest_problem.score
-        
-        return Response(problem_data)
+        except ContestProblem.DoesNotExist:
+            # Try looking up by ContestProblem ID as a fallback
+            try:
+                contest_problem = ContestProblem.objects.get(
+                    contest_id=contest_id,
+                    id=problem_id
+                )
+            except ContestProblem.DoesNotExist:
+                return Response(
+                    {'detail': 'Problem not found in this contest.'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def answer(self, request, pk=None, contest_pk=None):
+        contest = contest_problem.contest
+        user = request.user
+        role = get_user_role_in_contest(user, contest)
+        
+        # Check permissions
+        if role not in ['admin', 'teacher']:
+            # Check if contest is active or ended (if allowed to view results)
+            if contest.status == 'inactive' and not contest.allow_view_results:
+                 return Response(
+                    {'detail': 'Contest is not active.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if registered
+            try:
+                participant = ContestParticipant.objects.get(contest=contest, user=user)
+                
+                # Must have started exam or finished it to view problems
+                if not participant.started_at and not participant.has_finished_exam:
+                     return Response(
+                        {'detail': 'You must start the contest to view problems.'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                    
+            except ContestParticipant.DoesNotExist:
+                 return Response(
+                    {'detail': 'You are not registered for this contest.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Serialize the problem with full details
+        from apps.problems.serializers import ProblemDetailSerializer
+        problem = contest_problem.problem
+        serializer = ProblemDetailSerializer(problem, context={'request': request})
+        data = serializer.data
+        
+        # Add contest-specific fields
+        data['score'] = contest_problem.score
+        data['label'] = contest_problem.label
+        data['contest_problem_id'] = contest_problem.id
+        
+        return Response(data)
+
+    def create(self, request, *args, **kwargs):
         """
-        Answer a contest question.
+        Create a new problem and add it to the contest.
+        Used for YAML import or creating new problems directly in contest context.
         """
-        question = self.get_object()
-        contest = question.contest
+        contest_id = self.kwargs.get('contest_pk')
+        from .models import Contest, ContestProblem
+        from django.shortcuts import get_object_or_404
+        
+        contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
         
-        # Only creator or admin can answer
-        if not (user.is_staff or user == contest.creator):
-            return Response(
-                {'message': 'Permission denied'},
+        # Check permissions (admin or teacher)
+        if not (user.is_staff or user.role in ['admin', 'teacher']):
+             return Response(
+                {'detail': 'Permission denied.'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        answer = request.data.get('answer')
-        if not answer:
-            return Response(
-                {'message': 'Answer is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        question.reply = answer
-        question.replied_by = user
-        question.replied_at = timezone.now()
-        question.save()
+        # Use ProblemAdminSerializer to create the problem
+        from apps.problems.serializers import ProblemAdminSerializer
         
-        serializer = self.get_serializer(question)
-        return Response(serializer.data)
+        # Ensure problem is hidden from practice and linked to contest
+        data = request.data.copy()
+        data['is_practice_visible'] = False
+        data['is_visible'] = True # Visible in general (so it can be seen in contest)
+        
+        serializer = ProblemAdminSerializer(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        
+        # Save with created_in_contest
+        problem = serializer.save(created_in_contest=contest)
+        
+        # Calculate next order and label
+        last_problem = ContestProblem.objects.filter(contest=contest).order_by('-order').first()
+        next_order = (last_problem.order + 1) if last_problem else 0
+        
+        # Simple label generation (A, B, C...)
+        import string
+        if next_order < 26:
+            next_label = string.ascii_uppercase[next_order]
+        else:
+            next_label = f"P{next_order + 1}"
+            
+        # Create ContestProblem link
+        contest_problem = ContestProblem.objects.create(
+            contest=contest,
+            problem=problem,
+            score=100, # Default score
+            label=next_label,
+            order=next_order
+        )
+        
+        # Return the created problem data with contest_id for navigation
+        response_data = serializer.data
+        response_data['contest_id'] = contest.id
+        return Response(response_data, status=status.HTTP_201_CREATED)
