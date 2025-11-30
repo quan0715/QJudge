@@ -36,7 +36,7 @@ import {
 } from '@carbon/react';
 import { Save, ArrowLeft, Add, TrashCan, ChevronUp, ChevronDown } from '@carbon/icons-react';
 import { api } from '../services/api';
-import type { Contest, Problem } from '../services/api';
+import type { Problem } from '../services/api';
 
 const TeacherContestEditPage = () => {
   const { id } = useParams<{ id: string }>();

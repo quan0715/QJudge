@@ -17,6 +17,7 @@ import {
 } from '@carbon/react';
 import { View } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { authFetch } from '../services/auth';
 
 interface Submission {
   id: number;
@@ -55,14 +56,11 @@ const ProblemSubmissionList: React.FC<ProblemSubmissionListProps> = ({ problemId
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       // Note: Backend should handle this logic:
       // - Show all public submissions (is_test=false) for problem
       // - Show user's test submissions (is_test=true) for problem
       // For now, we just fetch all submissions for this problem
-      const res = await fetch(`/api/v1/submissions/?problem=${problemId}&ordering=-created_at&page=${page}&page_size=${pageSize}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await authFetch(`/api/v1/submissions/?problem=${problemId}&ordering=-created_at&page=${page}&page_size=${pageSize}`);
       const data = await res.json();
       setSubmissions(data.results || []);
       setTotal(data.count || 0);

@@ -6,8 +6,8 @@ import {
   View,
   TrashCan 
 } from '@carbon/icons-react';
-import { 
-  Button, 
+import {
+  Button,
   DataTable,
   Table,
   TableHead,
@@ -22,6 +22,7 @@ import {
   Tag,
   InlineLoading
 } from '@carbon/react';
+import { authFetch } from '../services/auth';
 
 interface Problem {
   id: number;
@@ -59,12 +60,7 @@ const ProblemManagementPage = () => {
     setError('');
     
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/v1/problems/?scope=manage', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await authFetch('/api/v1/problems/?scope=manage');
       
       if (res.ok) {
         const data = await res.json();
@@ -219,16 +215,12 @@ const ProblemManagementPage = () => {
                                 renderIcon={TrashCan}
                                 iconDescription="刪除"
                                 hasIconOnly
-                                onClick={async () => {
-                                  if (confirm(`確定要刪除題目「${problem.title}」嗎？`)) {
-                                    try {
-                                      const token = localStorage.getItem('token');
-                                      const res = await fetch(`/api/v1/problems/${problem.id}/`, {
-                                        method: 'DELETE',
-                                        headers: {
-                                          'Authorization': `Bearer ${token}`
-                                        }
-                                      });
+                                  onClick={async () => {
+                                    if (confirm(`確定要刪除題目「${problem.title}」嗎？`)) {
+                                      try {
+                                        const res = await authFetch(`/api/v1/problems/${problem.id}/`, {
+                                          method: 'DELETE'
+                                        });
                                       
                                       if (res.ok) {
                                         // Refresh the list

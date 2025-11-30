@@ -16,7 +16,6 @@ import {
   Loading
 } from '@carbon/react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckmarkFilled, View } from '@carbon/icons-react';
 import { api } from '../services/api';
 import type { Problem } from '../services/api';
 

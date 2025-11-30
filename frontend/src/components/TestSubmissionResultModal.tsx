@@ -1,6 +1,5 @@
 import React from 'react';
 import { Modal, Tag, InlineLoading } from '@carbon/react';
-import { CheckmarkFilled, WarningFilled, ErrorFilled, Time } from '@carbon/icons-react';
 
 interface Submission {
   id: number;
@@ -35,17 +34,6 @@ const TestSubmissionResultModal: React.FC<TestSubmissionResultModalProps> = ({
       case 'RE': return 'red';
       case 'CE': return 'gray';
       default: return 'gray';
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'AC': return <CheckmarkFilled />;
-      case 'WA': return <WarningFilled />;
-      case 'TLE': return <Time />;
-      case 'RE': return <ErrorFilled />;
-      default: return null;
     }
   };
 

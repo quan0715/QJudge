@@ -6,8 +6,8 @@ import {
   WarningFilled,
   TrashCan
 } from '@carbon/icons-react';
-import { 
-  TextInput, 
+import {
+  TextInput,
   Button, 
   Table,
   TableHead,
@@ -19,7 +19,8 @@ import {
   SelectItem,
   Modal,
   TableContainer
-} from '@carbon/react';
+  } from '@carbon/react';
+import { authFetch } from '../services/auth';
 import { api } from '../services/api';
 
 interface User {
@@ -151,14 +152,10 @@ const UserManagementPage = () => {
   const handleDeleteConfirm = async () => {
     if (!userToDelete) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/v1/auth/${userToDelete.id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      try {
+        const res = await authFetch(`/api/v1/auth/${userToDelete.id}/`, {
+          method: 'DELETE'
+        });
 
       if (res.ok) {
         setSuccess(`已刪除用戶 ${userToDelete.email}`);

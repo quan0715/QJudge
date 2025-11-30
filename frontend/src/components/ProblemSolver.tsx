@@ -11,13 +11,13 @@ import {
   TabList,
   TabPanels,
   TabPanel,
-  Loading
 } from '@carbon/react';
 import { Send, Play } from '@carbon/icons-react';
 import Editor from '@monaco-editor/react';
 import ProblemPreview from './ProblemPreview';
 import ProblemSubmissionList from './ProblemSubmissionList';
 import TestSubmissionResultModal from './TestSubmissionResultModal';
+import { authFetch } from '../services/auth';
 
 export interface LanguageConfig {
   language: string;
@@ -106,18 +106,15 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
     setIsPollingResult(true);
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const url = isContestMode 
-            ? `/api/v1/contests/${contestId}/submissions/${submissionId}/` // Assuming this endpoint exists or similar
-            : `/api/v1/submissions/${submissionId}/`;
-            
-        // Fallback to standard endpoint if contest specific one isn't distinct for polling details
-        // Actually usually submission ID is unique globally so /api/v1/submissions/:id works
-        const res = await fetch(`/api/v1/submissions/${submissionId}/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const url = isContestMode
+              ? `/api/v1/contests/${contestId}/submissions/${submissionId}/` // Assuming this endpoint exists or similar
+              : `/api/v1/submissions/${submissionId}/`;
+
+          // Fallback to standard endpoint if contest specific one isn't distinct for polling details
+          // Actually usually submission ID is unique globally so /api/v1/submissions/:id works
+          const res = await authFetch(url);
         const data = await res.json();
         setTestSubmission(data);
         

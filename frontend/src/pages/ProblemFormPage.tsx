@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProblemForm from '../components/ProblemForm';
 import type { ProblemFormData } from '../components/ProblemForm';
+import { authFetch } from '../services/auth';
 const ProblemFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -20,10 +21,7 @@ const ProblemFormPage = () => {
 
   const loadProblem = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/v1/problems/${id}/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await authFetch(`/api/v1/problems/${id}/`);
       
       if (res.ok) {
         const data = await res.json();
@@ -40,15 +38,13 @@ const ProblemFormPage = () => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
       const url = isEditMode ? `/api/v1/problems/${id}/` : '/api/v1/problems/';
       const method = isEditMode ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
       });

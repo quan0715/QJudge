@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProblemForm from '../components/ProblemForm';
 import type { ProblemFormData } from '../components/ProblemForm';
+import { authFetch } from '../services/auth';
 
 const TeacherContestProblemEditPage = () => {
   const navigate = useNavigate();
@@ -21,12 +22,9 @@ const TeacherContestProblemEditPage = () => {
 
   const loadProblem = async () => {
     try {
-      const token = localStorage.getItem('token');
       // Note: We might need a specific endpoint for contest problem details if permissions differ
       // But usually the problem ID is globally unique or we use the same endpoint
-      const res = await fetch(`/api/v1/problems/${problemId}/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await authFetch(`/api/v1/problems/${problemId}/`);
       
       if (res.ok) {
         const data = await res.json();
@@ -43,15 +41,13 @@ const TeacherContestProblemEditPage = () => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
       const url = `/api/v1/problems/${problemId}/`; // Always edit for now
       const method = 'PUT';
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
       });

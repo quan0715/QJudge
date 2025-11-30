@@ -20,6 +20,7 @@ import {
 } from '@carbon/react';
 import { ArrowLeft } from '@carbon/icons-react';
 import Editor from '@monaco-editor/react';
+import { authFetch } from '../services/auth';
 
 interface SubmissionDetail {
   id: number;
@@ -65,10 +66,7 @@ const SubmissionDetailPage = () => {
 
   const fetchSubmission = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/v1/submissions/${id}/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      const res = await authFetch(`/api/v1/submissions/${id}/`);
 
       if (res.ok) {
         const data = await res.json();
@@ -88,13 +86,10 @@ const SubmissionDetailPage = () => {
     }
   };
 
-  const startPolling = () => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/v1/submissions/${id}/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
+    const startPolling = () => {
+      const pollInterval = setInterval(async () => {
+        try {
+          const res = await authFetch(`/api/v1/submissions/${id}/`);
 
         if (res.ok) {
           const data = await res.json();
@@ -179,7 +174,7 @@ const SubmissionDetailPage = () => {
   ];
 
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  const resultRows = (submission.results || []).map((result, index) => ({
+  const resultRows = (submission.results || []).map((result) => ({
     id: result.id.toString(),
     test_case: result.test_case.is_sample 
       ? `範例 ${result.test_case.order + 1}` 
