@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loading } from '@carbon/react';
 import ProblemSolver from '../components/ProblemSolver';
 import type { Problem, Submission } from '../components/ProblemSolver';
+import { authFetch } from '../services/auth';
 
 const ProblemDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,11 +15,8 @@ const ProblemDetailPage: React.FC = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       if (!id) return;
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/v1/problems/${id}/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
+        try {
+          const res = await authFetch(`/api/v1/problems/${id}/`);
         
         if (!res.ok) throw new Error('Failed to fetch problem');
         
@@ -38,13 +36,11 @@ const ProblemDetailPage: React.FC = () => {
   const handleSubmit = async (code: string, language: string, isTest: boolean): Promise<Submission | void> => {
     if (!problem) return;
 
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/v1/submissions/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      const res = await authFetch('/api/v1/submissions/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
       body: JSON.stringify({
         problem: problem.id,
         language: language,

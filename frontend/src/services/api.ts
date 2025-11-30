@@ -1,3 +1,5 @@
+import { authFetch } from './auth';
+
 const API_BASE = '/api/v1/auth';
 
 export interface Problem {
@@ -25,11 +27,8 @@ export interface AuthResponse {
 
 export const api = {
   getProblems: async (scope?: string): Promise<Problem[]> => {
-    const token = localStorage.getItem('token');
     const query = scope ? `?scope=${scope}` : '';
-    const res = await fetch(`/api/v1/problems/${query}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/problems/${query}`);
     if (!res.ok) {
       throw new Error('Failed to fetch problems');
     }
@@ -39,10 +38,7 @@ export const api = {
   },
 
   getProblem: async (id: string): Promise<Problem | undefined> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/problems/${id}/`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/problems/${id}/`);
     if (!res.ok) {
       return undefined;
     }
@@ -97,12 +93,10 @@ export const api = {
   },
 
   submitSolution: async (data: { problem_id: string; language: string; code: string; contest_id?: string; is_test?: boolean }): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/submissions/`, {
+    const res = await authFetch(`/api/v1/submissions/`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      headers: {
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         problem: data.problem_id,
@@ -121,12 +115,7 @@ export const api = {
 
   // User management (admin only)
   searchUsers: async (query: string): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/auth/search?q=${encodeURIComponent(query)}`, {
-      headers: { 
-        'Authorization': `Bearer ${token}`
-      },
-    });
+    const res = await authFetch(`/api/v1/auth/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) {
       const errorData = await res.json();
       const error: any = new Error('Search failed');
@@ -137,12 +126,10 @@ export const api = {
   },
 
   updateUserRole: async (userId: number, role: string): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/auth/${userId}/role`, {
+    const res = await authFetch(`/api/v1/auth/${userId}/role`, {
       method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      headers: {
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ role }),
     });
@@ -157,32 +144,24 @@ export const api = {
 
   // Contest API
   getContests: async (scope?: string): Promise<Contest[]> => {
-    const token = localStorage.getItem('token');
     const query = scope ? `?scope=${scope}` : '';
-    const res = await fetch(`/api/v1/contests/${query}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/contests/${query}`);
     if (!res.ok) throw new Error('Failed to fetch contests');
     const data = await res.json();
     return data.results || data;
   },
 
   getContest: async (id: string): Promise<Contest | undefined> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/contests/${id}/`);
     if (!res.ok) return undefined;
     return res.json();
   },
 
   createContest: async (data: any): Promise<Contest> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/v1/contests/', {
+    const res = await authFetch('/api/v1/contests/', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     });
@@ -194,12 +173,10 @@ export const api = {
   },
 
   updateContest: async (id: string, data: any): Promise<Contest> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/`, {
+    const res = await authFetch(`/api/v1/contests/${id}/`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     });
@@ -211,23 +188,17 @@ export const api = {
   },
 
   deleteContest: async (id: string): Promise<void> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const res = await authFetch(`/api/v1/contests/${id}/`, {
+      method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete contest');
   },
 
   registerContest: async (id: string, password?: string): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/register/`, {
+    const res = await authFetch(`/api/v1/contests/${id}/register/`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ password })
     });
@@ -239,12 +210,8 @@ export const api = {
   },
 
   enterContest: async (id: string): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/enter/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const res = await authFetch(`/api/v1/contests/${id}/enter/`, {
+      method: 'POST'
     });
     if (!res.ok) {
       const errorData = await res.json();
@@ -254,33 +221,24 @@ export const api = {
   },
 
   leaveContest: async (id: string): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/leave/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const res = await authFetch(`/api/v1/contests/${id}/leave/`, {
+      method: 'POST'
     });
     if (!res.ok) throw new Error('Failed to leave contest');
     return res.json();
   },
 
   getContestAnnouncements: async (id: string): Promise<any[]> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/announcements/`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/contests/${id}/announcements/`);
     if (!res.ok) throw new Error('Failed to fetch announcements');
     return res.json();
   },
 
   createContestAnnouncement: async (contestId: string, data: { title: string; content: string }): Promise<any> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${contestId}/announcements/`, {
+    const res = await authFetch(`/api/v1/contests/${contestId}/announcements/`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     });
@@ -289,36 +247,27 @@ export const api = {
   },
 
   deleteContestAnnouncement: async (contestId: string, announcementId: string): Promise<void> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${contestId}/announcements/${announcementId}/`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const res = await authFetch(`/api/v1/contests/${contestId}/announcements/${announcementId}/`, {
+      method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete announcement');
   },
 
   getContestStandings: async (id: string): Promise<any[]> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${id}/standings/`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const res = await authFetch(`/api/v1/contests/${id}/standings/`);
     if (!res.ok) throw new Error('Failed to fetch standings');
     return res.json();
   },
 
   addContestProblem: async (contestId: string, sourceProblemId: string | null, title?: string): Promise<Problem> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/contests/${contestId}/add_problem/`, {
+    const res = await authFetch(`/api/v1/contests/${contestId}/add_problem/`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         source_problem_id: sourceProblemId,
-        title: title 
+        title: title
       })
     });
     if (!res.ok) {

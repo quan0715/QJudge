@@ -9,8 +9,6 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableToolbar,
-  TableToolbarContent,
   Button,
   Tag,
   Loading,

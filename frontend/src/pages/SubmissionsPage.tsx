@@ -20,6 +20,7 @@ import {
   InlineLoading
 } from '@carbon/react';
 import { View, Renew } from '@carbon/icons-react';
+import { authFetch } from '../services/auth';
 
 interface Submission {
   id: number;
@@ -46,8 +47,7 @@ const SubmissionsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const statusOptions = [
@@ -69,15 +69,12 @@ const SubmissionsPage = () => {
   const fetchSubmissions = async () => {
     if (!refreshing) setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       let url = `/api/v1/submissions/?page=${page}&page_size=${pageSize}&is_test=false`;
       if (statusFilter !== 'all') {
         url += `&status=${statusFilter}`;
       }
 
-      const res = await fetch(url, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      const res = await authFetch(url);
 
       if (res.ok) {
         const data = await res.json();
@@ -210,8 +207,7 @@ const SubmissionsPage = () => {
           headers,
           getTableProps,
           getHeaderProps,
-          getRowProps,
-          getTableContainerProps
+          getRowProps
         }: any) => (
           <TableContainer 
             title="" 

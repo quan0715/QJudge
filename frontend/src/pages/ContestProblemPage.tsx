@@ -5,7 +5,6 @@ import { ArrowLeft } from '@carbon/icons-react';
 import ProblemSolver from '../components/ProblemSolver';
 import type { Problem, Submission } from '../components/ProblemSolver';
 import { api } from '../services/api';
-import type { Contest } from '../services/api';
 
 const ContestProblemPage = () => {
   const { contestId, problemId } = useParams<{ contestId: string; problemId: string }>();
@@ -13,7 +12,6 @@ const ContestProblemPage = () => {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [contest, setContest] = useState<Contest | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,7 +20,6 @@ const ContestProblemPage = () => {
         // Fetch contest details which includes problems
         const contestData = await api.getContest(contestId);
         if (!contestData) throw new Error('Contest not found');
-        setContest(contestData);
 
         // Find the specific problem in the contest
         // The contestData.problems is a list of ContestProblem objects

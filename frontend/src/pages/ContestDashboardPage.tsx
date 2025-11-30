@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Grid,
-  Column,
   Tile,
   DataTable,
   Table,
@@ -21,7 +19,7 @@ import {
   Loading,
   ProgressBar
 } from '@carbon/react';
-import { CheckmarkFilled, CloseFilled, Time } from '@carbon/icons-react';
+import { Time } from '@carbon/icons-react';
 import { api } from '../services/api';
 import type { Contest } from '../services/api';
 

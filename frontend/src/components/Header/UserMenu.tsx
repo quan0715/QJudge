@@ -2,6 +2,7 @@ import { HeaderGlobalAction, HeaderPanel, Switcher, SwitcherItem, SwitcherDivide
 import { UserAvatar, Logout, User as UserIcon } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { clearAuthStorage } from '../../services/auth';
 
 interface User {
   username: string;
@@ -34,8 +35,7 @@ const UserMenu = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthStorage();
     setUser(null);
     setIsUserMenuOpen(false);
     navigate('/');
