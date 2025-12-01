@@ -11,6 +11,7 @@ import {
   TabList,
   TabPanels,
   TabPanel,
+  Tile,
 } from '@carbon/react';
 import { Send, Play } from '@carbon/icons-react';
 import Editor from '@monaco-editor/react';
@@ -18,6 +19,7 @@ import ProblemPreview from './ProblemPreview';
 import ProblemSubmissionList from './ProblemSubmissionList';
 import TestSubmissionResultModal from './TestSubmissionResultModal';
 import { authFetch } from '@/services/auth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export interface LanguageConfig {
   language: string;
@@ -68,6 +70,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   const [code, setCode] = useState<string>(initialCode);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { theme } = useTheme();
   
   // Modal states
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
@@ -204,133 +207,139 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
             <TabPanels>
               <TabPanel>
                 {isContestMode ? (
-                  // Contest Mode: Vertical layout (top: problem, bottom: editor)
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                      <ProblemPreview
-                        title={problem.title}
-                        difficulty={problem.difficulty}
-                        timeLimit={problem.time_limit}
-                        memoryLimit={problem.memory_limit}
-                        translations={problem.translations}
-                        testCases={problem.test_cases?.filter(tc => tc.is_sample)}
-                        showLanguageToggle={problem.translations && problem.translations.length > 1}
-                        compact={true}
-                      />
-                    </div>
+                  // Contest Mode: Split layout
+                  <Grid fullWidth narrow>
+                    <Column lg={6} md={8} sm={4}>
+                      <Tile style={{ height: 'calc(100vh - 200px)', overflowY: 'auto', marginRight: '1rem' }}>
+                        <ProblemPreview
+                          title={problem.title}
+                          difficulty={problem.difficulty}
+                          timeLimit={problem.time_limit}
+                          memoryLimit={problem.memory_limit}
+                          translations={problem.translations}
+                          testCases={problem.test_cases?.filter(tc => tc.is_sample)}
+                          showLanguageToggle={problem.translations && problem.translations.length > 1}
+                          compact={true}
+                        />
+                      </Tile>
+                    </Column>
 
-                    <div className="editor-container">
-                      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ width: '200px' }}>
-                          <Dropdown
-                            id="language-selector"
-                            titleText="程式語言"
-                            label="選擇語言"
-                            items={languageItems}
-                            itemToString={(item: any) => item ? item.label : ''}
-                            selectedItem={languageItems.find(i => i.id === selectedLanguage)}
-                            onChange={handleLanguageChange}
+                    <Column lg={10} md={8} sm={4}>
+                      <Tile style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ width: '200px' }}>
+                            <Dropdown
+                              id="language-selector"
+                              titleText="程式語言"
+                              label="選擇語言"
+                              items={languageItems}
+                              itemToString={(item: any) => item ? item.label : ''}
+                              selectedItem={languageItems.find(i => i.id === selectedLanguage)}
+                              onChange={handleLanguageChange}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <Button
+                              kind="secondary"
+                              renderIcon={Play}
+                              onClick={() => setIsTestModalOpen(true)}
+                              disabled={!selectedLanguage || submitting}
+                            >
+                              測試提交
+                            </Button>
+                            <Button
+                              kind="primary"
+                              renderIcon={Send}
+                              onClick={() => setIsSubmitModalOpen(true)}
+                              disabled={!selectedLanguage || submitting}
+                            >
+                              正式提交
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div style={{ flex: 1, border: '1px solid var(--cds-border-subtle-01)' }}>
+                          <Editor
+                            height="100%"
+                            language={selectedLanguage === 'cpp' ? 'cpp' : selectedLanguage}
+                            value={code}
+                            onChange={(value) => setCode(value || '')}
+                            theme={theme === 'white' ? 'vs' : 'my-dark'}
+                            beforeMount={(monaco) => {
+                              monaco.editor.defineTheme('my-dark', {
+                                base: 'vs-dark',
+                                inherit: true,
+                                rules: [
+                                  { token: 'comment', foreground: '8FC876', fontStyle: 'italic' },
+                                  { token: 'keyword', foreground: 'E685DC', fontStyle: 'bold' },
+                                  { token: 'string', foreground: 'FFB86C' },
+                                  { token: 'number', foreground: 'D1F1A9' },
+                                  { token: 'type', foreground: '5FE7C3' },
+                                  { token: 'function', foreground: 'F9E2AF' },
+                                  { token: 'variable', foreground: 'B4E7FF' },
+                                  { token: 'operator', foreground: 'F5F5F5' },
+                                ],
+                                colors: {
+                                  'editor.background': '#0D1117',
+                                  'editor.foreground': '#E6EDF3',
+                                  'editorLineNumber.foreground': '#6E7681',
+                                  'editorLineNumber.activeForeground': '#FFFFFF',
+                                  'editor.selectionBackground': '#3B5270',
+                                  'editor.inactiveSelectionBackground': '#2D3748',
+                                  'editorCursor.foreground': '#58A6FF',
+                                  'editor.lineHighlightBackground': '#161B22',
+                                }
+                              });
+                            }}
+                            onMount={(editor, monaco) => {
+                              monaco.editor.setTheme(theme === 'white' ? 'vs' : 'my-dark');
+                              setTimeout(() => {
+                                editor.layout();
+                              }, 100);
+                              document.fonts.ready.then(() => {
+                                editor.layout();
+                              });
+                            }}
+                            options={{
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              lineHeight: 20,
+                              letterSpacing: 0,
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              fontLigatures: false,
+                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace",
+                              fontWeight: '400',
+                              cursorBlinking: 'smooth',
+                              cursorSmoothCaretAnimation: 'on',
+                              smoothScrolling: true,
+                              padding: { top: 16, bottom: 16 },
+                            }}
                           />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Button
-                            kind="secondary"
-                            renderIcon={Play}
-                            onClick={() => setIsTestModalOpen(true)}
-                            disabled={!selectedLanguage || submitting}
-                          >
-                            測試提交
-                          </Button>
-                          <Button
-                            kind="primary"
-                            renderIcon={Send}
-                            onClick={() => setIsSubmitModalOpen(true)}
-                            disabled={!selectedLanguage || submitting}
-                          >
-                            正式提交
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div style={{ border: '1px solid var(--cds-border-subtle-01)', height: '500px' }}>
-                        <Editor
-                          height="100%"
-                          language={selectedLanguage === 'cpp' ? 'cpp' : selectedLanguage}
-                          value={code}
-                          onChange={(value) => setCode(value || '')}
-                          theme="vs-dark"
-                          beforeMount={(monaco) => {
-                            monaco.editor.defineTheme('my-dark', {
-                              base: 'vs-dark',
-                              inherit: true,
-                              rules: [
-                                { token: 'comment', foreground: '8FC876', fontStyle: 'italic' },
-                                { token: 'keyword', foreground: 'E685DC', fontStyle: 'bold' },
-                                { token: 'string', foreground: 'FFB86C' },
-                                { token: 'number', foreground: 'D1F1A9' },
-                                { token: 'type', foreground: '5FE7C3' },
-                                { token: 'function', foreground: 'F9E2AF' },
-                                { token: 'variable', foreground: 'B4E7FF' },
-                                { token: 'operator', foreground: 'F5F5F5' },
-                              ],
-                              colors: {
-                                'editor.background': '#0D1117',
-                                'editor.foreground': '#E6EDF3',
-                                'editorLineNumber.foreground': '#6E7681',
-                                'editorLineNumber.activeForeground': '#FFFFFF',
-                                'editor.selectionBackground': '#3B5270',
-                                'editor.inactiveSelectionBackground': '#2D3748',
-                                'editorCursor.foreground': '#58A6FF',
-                                'editor.lineHighlightBackground': '#161B22',
-                              }
-                            });
-                          }}
-                          onMount={(editor, monaco) => {
-                            monaco.editor.setTheme('my-dark');
-                            setTimeout(() => {
-                              editor.layout();
-                            }, 100);
-                            document.fonts.ready.then(() => {
-                              editor.layout();
-                            });
-                          }}
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            lineHeight: 20,
-                            letterSpacing: 0,
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            fontLigatures: false,
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace",
-                            fontWeight: '400',
-                            cursorBlinking: 'smooth',
-                            cursorSmoothCaretAnimation: 'on',
-                            smoothScrolling: true,
-                            padding: { top: 16, bottom: 16 },
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                      </Tile>
+                    </Column>
+                  </Grid>
                 ) : (
                   // Normal Mode: Horizontal layout (left: problem, right: editor)
                   <Grid>
                     <Column lg={8} md={8} sm={4}>
-                      <ProblemPreview
-                        title={problem.title}
-                        difficulty={problem.difficulty}
-                        timeLimit={problem.time_limit}
-                        memoryLimit={problem.memory_limit}
-                        translations={problem.translations}
-                        testCases={problem.test_cases?.filter(tc => tc.is_sample)}
-                        showLanguageToggle={problem.translations && problem.translations.length > 1}
-                        compact={false}
-                      />
+                      <Tile>
+                        <ProblemPreview
+                          title={problem.title}
+                          difficulty={problem.difficulty}
+                          timeLimit={problem.time_limit}
+                          memoryLimit={problem.memory_limit}
+                          translations={problem.translations}
+                          testCases={problem.test_cases?.filter(tc => tc.is_sample)}
+                          showLanguageToggle={problem.translations && problem.translations.length > 1}
+                          compact={false}
+                        />
+                      </Tile>
                     </Column>
 
                     <Column lg={8} md={8} sm={4}>
-                      <div className="editor-container" style={{ position: 'sticky', top: '2rem' }}>
+                      <Tile style={{ position: 'sticky', top: '2rem' }}>
                         <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ width: '200px' }}>
                             <Dropdown
@@ -369,7 +378,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                             language={selectedLanguage === 'cpp' ? 'cpp' : selectedLanguage}
                             value={code}
                             onChange={(value) => setCode(value || '')}
-                            theme="vs-dark"
+                            theme={theme === 'white' ? 'vs' : 'my-dark'}
                             beforeMount={(monaco) => {
                               monaco.editor.defineTheme('my-dark', {
                                 base: 'vs-dark',
@@ -397,7 +406,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               });
                             }}
                             onMount={(editor, monaco) => {
-                              monaco.editor.setTheme('my-dark');
+                              monaco.editor.setTheme(theme === 'white' ? 'vs' : 'my-dark');
                               setTimeout(() => {
                                 editor.layout();
                               }, 100);
@@ -422,7 +431,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                             }}
                           />
                         </div>
-                      </div>
+                      </Tile>
                     </Column>
                   </Grid>
                 )}

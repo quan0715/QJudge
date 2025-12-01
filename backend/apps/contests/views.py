@@ -7,14 +7,16 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
 
 from .models import (
-    Contest, 
-    ContestParticipant, 
+    Contest,
+    ContestParticipant,
     ContestProblem,
     ContestAnnouncement,
     Clarification,
-    ExamEvent
+    ExamEvent,
+    ContestActivity
 )
 from .serializers import (
     ContestListSerializer,
@@ -29,6 +31,7 @@ from .serializers import (
     ClarificationReplySerializer,
     ExamEventSerializer,
     ExamEventCreateSerializer,
+    ContestActivitySerializer
 )
 from .permissions import (
     IsContestOwnerOrAdmin,
@@ -52,17 +55,17 @@ class ContestViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         """
         Filter contests based on visibility and user role.
         """
         queryset = super().get_queryset()
         queryset = queryset.annotate(participant_count=Count('participants'))
-        
+
         user = self.request.user
         scope = self.request.query_params.get('scope', 'visible')
-        
+
         # Teacher/Admin can see manage scope
         if scope == 'manage':
             if not user.is_authenticated:
@@ -71,16 +74,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                 return queryset
             # Teachers see contests they own
             return queryset.filter(owner=user)
-        
+
         # Public scope (default)
         if user.is_staff or getattr(user, 'role', '') == 'admin':
             return queryset
-            
+
         # For regular users:
         # 1. Public contests
         # 2. Private contests they have registered for
         # 3. Contests they own (if they are teachers)
-        
+
         if user.is_authenticated:
             # Allow seeing public and private contests
             # Private contests require password to join, but should be listed
@@ -91,19 +94,19 @@ class ContestViewSet(viewsets.ModelViewSet):
             ).distinct()
         else:
             return queryset.filter(visibility='public')
-    
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ContestListSerializer
-        
+
         if self.action in ['create', 'update', 'partial_update']:
             return ContestCreateUpdateSerializer
-            
+
         return ContestDetailSerializer
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
-    
+
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def toggle_status(self, request, pk=None):
         """
@@ -115,7 +118,137 @@ class ContestViewSet(viewsets.ModelViewSet):
         else:
             contest.status = 'active'
         contest.save()
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'other', 
+            f"Toggled contest status to {contest.status}"
+        )
+        
         return Response({'status': contest.status})
+
+    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
+    def participants(self, request, pk=None):
+        """
+        Get all participants for this contest (Teacher view).
+        """
+        contest = self.get_object()
+        participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
+        serializer = ContestParticipantSerializer(participants, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='unlock_participant')
+    def unlock_participant(self, request, pk=None):
+        """
+        Unlock a participant.
+        """
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
+            participant.is_locked = False
+            participant.lock_reason = ""
+            participant.save()
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'unlock_user', 
+                f"Unlocked participant {participant.user.username}"
+            )
+            
+            return Response({'status': 'unlocked'})
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsContestOwnerOrAdmin], url_path='update_participant')
+    def update_participant(self, request, pk=None):
+        """
+        Update a participant's status (lock, finished exam, etc.).
+        """
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
+
+            if 'is_locked' in request.data:
+                participant.is_locked = request.data['is_locked']
+            if 'lock_reason' in request.data:
+                participant.lock_reason = request.data['lock_reason']
+            if 'has_finished_exam' in request.data:
+                participant.has_finished_exam = request.data['has_finished_exam']
+
+            participant.save()
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'other', 
+                f"Updated participant {participant.user.username}: {request.data}"
+            )
+            
+            return Response({'status': 'updated'})
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin], url_path='events')
+    def _list_events(self, request, pk=None):
+        """
+        List exam events for a contest (Teacher/Admin only).
+        """
+        contest = self.get_object()
+        role = get_user_role_in_contest(request.user, contest)
+
+        if role not in ['teacher', 'admin']:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        events = ExamEvent.objects.filter(contest=contest)
+
+        # Optional filtering by user
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            events = events.filter(user_id=user_id)
+
+        serializer = ExamEventCreateSerializer(events, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_participant')
+    def add_participant(self, request, pk=None):
+        """
+        Manually add a participant to the contest.
+        """
+        contest = self.get_object()
+        username = request.data.get('username')
+
+        if not username:
+            return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.users.models import User
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if ContestParticipant.objects.filter(contest=contest, user=user).exists():
+            return Response({'error': 'User is already registered'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ContestParticipant.objects.create(contest=contest, user=user)
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'register', 
+            f"Added participant: {username}"
+        )
+        
+        return Response({'status': 'added'})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def register(self, request, pk=None):
@@ -142,6 +275,14 @@ class ContestViewSet(viewsets.ModelViewSet):
                 )
         
         ContestParticipant.objects.create(contest=contest, user=user)
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'register', 
+            f"Registered for contest"
+        )
         
         return Response(
             {'message': 'Successfully registered'},
@@ -188,6 +329,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         if participant.left_at and contest.allow_multiple_joins:
              participant.left_at = None
              participant.save()
+             
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'enter_contest', 
+            f"Entered contest"
+        )
             
         return Response({'message': 'Entered successfully'})
 
@@ -204,6 +353,14 @@ class ContestViewSet(viewsets.ModelViewSet):
             if not participant.left_at:
                 participant.left_at = timezone.now()
                 participant.save()
+                
+                # Log activity
+                ContestActivityViewSet.log_activity(
+                    contest, 
+                    request.user, 
+                    'other', 
+                    f"Left contest"
+                )
         except ContestParticipant.DoesNotExist:
             pass
             
@@ -255,6 +412,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         from apps.problems.serializers import ProblemListSerializer
         serializer = ProblemListSerializer(problem, context={'request': request})
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'submit_code', 
+            f"Submitted code for problem {problem.display_id}"
+        )
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -296,6 +461,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         problem.is_practice_visible = True
         problem.save()
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'other', 
+            f"Published problem {problem.display_id} to practice"
+        )
         
         return Response({'message': 'Problem published successfully'})
 
@@ -351,6 +524,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             stats[p.user.id] = {
                 'user': UserSerializer(p.user).data,
                 'solved': 0,
+                'total_score': 0,
                 'time': 0, # Penalty
                 'joined_at': p.joined_at,
                 'has_finished_exam': p.has_finished_exam,
@@ -396,6 +570,10 @@ class ContestViewSet(viewsets.ModelViewSet):
                 stats[uid]['solved'] += 1
                 penalty = minutes + 20 * (p_stat['tries'] - 1)
                 stats[uid]['time'] += penalty
+                
+                # Add score
+                problem_score = next((cp.score for cp in contest_problems if cp.problem.id == pid), 0)
+                stats[uid]['total_score'] += problem_score
             else:
                 p_stat['status'] = sub.status
 
@@ -444,7 +622,7 @@ class ClarificationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         contest_id = self.kwargs.get('contest_pk')
         contest = Contest.objects.get(id=contest_id)
-        serializer.save(author=self.request.user, contest=contest, status='pending')
+        serializer.save(author=self.request.user, contest=contest, status='pending', is_public=True)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def reply(self, request, pk=None, contest_pk=None):
@@ -460,6 +638,14 @@ class ClarificationViewSet(viewsets.ModelViewSet):
         clarification.status = 'answered'
         clarification.answered_at = timezone.now()
         clarification.save()
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            clarification.contest, 
+            request.user, 
+            'reply_question', 
+            f"Replied to question #{clarification.id}"
+        )
         
         return Response(ClarificationSerializer(clarification).data)
 
@@ -481,6 +667,15 @@ class ExamViewSet(viewsets.ViewSet):
             if not participant.started_at:
                 participant.started_at = timezone.now()
                 participant.save()
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'start_exam', 
+                "Started exam"
+            )
+            
             return Response({'status': 'started'})
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
@@ -506,8 +701,19 @@ class ExamViewSet(viewsets.ViewSet):
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'], url_path='events')
-    def log_event(self, request, contest_pk=None):
+    @action(detail=False, methods=['post', 'get'], url_path='events', permission_classes=[permissions.IsAuthenticated])
+    def events(self, request, contest_pk=None):
+        """
+        Handle exam events.
+        POST: Log an event (Student/Participant)
+        GET: List events (Teacher/Admin only)
+        """
+        if request.method == 'POST':
+            return self._log_event(request, contest_pk)
+        else:
+            return self._list_events(request, contest_pk)
+
+    def _log_event(self, request, contest_pk=None):
         """
         Log an exam event (tab switch, etc).
         """
@@ -521,13 +727,76 @@ class ExamViewSet(viewsets.ViewSet):
             event_type=serializer.validated_data['event_type'],
             metadata=serializer.validated_data.get('metadata')
         )
-        return Response({'status': 'logged'})
         
-    @action(detail=False, methods=['get'], url_path='events', permission_classes=[IsContestOwnerOrAdmin])
-    def list_events(self, request, contest_pk=None):
+        # Auto-lock logic
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=request.user)
+            
+            # Admin/Teacher bypass
+            role = get_user_role_in_contest(request.user, contest)
+            if role in ['admin', 'teacher']:
+                return Response({'status': 'logged', 'locked': False, 'bypass': True})
+
+            # Increment violation count
+            participant.violation_count += 1
+            
+            # Check threshold
+            should_lock = False
+            if participant.violation_count > contest.max_cheat_warnings:
+                should_lock = True
+            
+            if should_lock and not participant.is_locked:
+                participant.is_locked = True
+                
+                # Use provided lock reason or default
+                custom_reason = serializer.validated_data.get('lock_reason')
+                if custom_reason:
+                    participant.lock_reason = custom_reason
+                else:
+                    participant.lock_reason = f"System lock: {serializer.validated_data['event_type']}"
+                
+                # Log activity
+                ContestActivityViewSet.log_activity(
+                    contest, 
+                    request.user, 
+                    'lock_user', 
+                    f"Auto-locked due to {serializer.validated_data['event_type']}"
+                )
+            
+            participant.save()
+            
+            return Response({
+                'status': 'logged', 
+                'locked': participant.is_locked,
+                'violation_count': participant.violation_count,
+                'max_warnings': contest.max_cheat_warnings
+            })
+        except ContestParticipant.DoesNotExist:
+            pass
+            
+        return Response({'status': 'logged', 'locked': False})
+        
+    def _list_events(self, request, contest_pk=None):
         """
         List all events for this contest (Teacher only).
         """
+        # Manual permission check since we can't use permission_classes on helper methods
+        # and the main action allows all authenticated users (for POST)
+        contest = Contest.objects.get(id=contest_pk)
+        user = request.user
+        
+        is_allowed = (
+            user.is_staff or 
+            user.is_superuser or 
+            contest.owner_id == user.id
+        )
+        
+        if not is_allowed:
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         events = ExamEvent.objects.filter(contest_id=contest_pk).select_related('user').order_by('-created_at')
         return Response(ExamEventSerializer(events, many=True).data)
 
@@ -553,6 +822,15 @@ class ContestAnnouncementViewSet(viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Only contest owner can post announcements")
             
         serializer.save(created_by=user, contest=contest)
+        
+        # Log activity
+        from .views import ContestActivityViewSet
+        ContestActivityViewSet.log_activity(
+            contest, 
+            user, 
+            'announce', 
+            f"Posted announcement: {serializer.validated_data.get('title')}"
+        )
 
 
 class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
@@ -688,4 +966,49 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         # Return the created problem data with contest_id for navigation
         response_data = serializer.data
         response_data['contest_id'] = contest.id
+        
+        # Log activity
+        from .views import ContestActivityViewSet
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'update_problem', 
+            f"Created new problem {problem.display_id} in contest"
+        )
+        
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing contest activities.
+    Only accessible by admins and teachers.
+    """
+    serializer_class = ContestActivitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        contest_pk = self.kwargs.get('contest_pk')
+        user = self.request.user
+        contest = get_object_or_404(Contest, pk=contest_pk)
+        
+        role = get_user_role_in_contest(user, contest)
+        if role not in ['admin', 'teacher']:
+            return ContestActivity.objects.none()
+            
+        return ContestActivity.objects.filter(contest=contest).order_by('-created_at')
+
+    @staticmethod
+    def log_activity(contest, user, action_type, details=""):
+        """
+        Helper to log a contest activity.
+        """
+        try:
+            ContestActivity.objects.create(
+                contest=contest,
+                user=user,
+                action_type=action_type,
+                details=details
+            )
+        except Exception as e:
+            print(f"Failed to log activity: {e}")

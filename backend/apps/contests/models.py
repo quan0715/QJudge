@@ -64,6 +64,7 @@ class Contest(models.Model):
     allow_view_results = models.BooleanField(default=True, verbose_name='允許查看結果')
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
     ban_tab_switching = models.BooleanField(default=False, verbose_name='禁止切換分頁')
+    max_cheat_warnings = models.IntegerField(default=0, help_text="Number of warnings before locking (0 = immediate lock)")
     
     # Exam mode settings
     exam_mode_enabled = models.BooleanField(
@@ -166,6 +167,18 @@ class ContestParticipant(models.Model):
         verbose_name='已完成考試',
         help_text='學生按下「結束考試」後標記，用來控制是否還能繼續送出競賽提交'
     )
+    
+    # Locking mechanism
+    is_locked = models.BooleanField(
+        default=False,
+        verbose_name='已鎖定',
+        help_text='是否因違規而被鎖定'
+    )
+    lock_reason = models.TextField(
+        blank=True,
+        verbose_name='鎖定原因'
+    )
+    violation_count = models.IntegerField(default=0, verbose_name='違規次數')
     
     class Meta:
         db_table = 'contest_participants'
@@ -321,3 +334,58 @@ class ExamEvent(models.Model):
     
     def __str__(self):
         return f"{self.event_type} by {self.user.username} at {self.created_at}"
+
+
+class ContestActivity(models.Model):
+    """
+    General activity log for a contest.
+    Records high-level actions: register, start/end exam, submit, Q&A, updates, etc.
+    """
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name='activities',
+        verbose_name='考試'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='contest_activities',
+        verbose_name='操作者'
+    )
+    
+    ACTION_TYPE_CHOICES = [
+        ('register', 'Register'),
+        ('enter_contest', 'Enter Contest'),
+        ('start_exam', 'Start Exam'),
+        ('end_exam', 'End Exam'),
+        ('lock_user', 'Lock User'),
+        ('unlock_user', 'Unlock User'),
+        ('submit_code', 'Submit Code'),
+        ('ask_question', 'Ask Question'),
+        ('reply_question', 'Reply Question'),
+        ('update_problem', 'Update Problem'),
+        ('announce', 'Announce'),
+        ('other', 'Other'),
+    ]
+    action_type = models.CharField(
+        max_length=50,
+        choices=ACTION_TYPE_CHOICES,
+        verbose_name='動作類型'
+    )
+    
+    details = models.TextField(verbose_name='詳細內容')
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='發生時間')
+    
+    class Meta:
+        db_table = 'contest_activities'
+        verbose_name = '競賽活動'
+        verbose_name_plural = '競賽活動'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['contest', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.action_type} by {self.user.username}"

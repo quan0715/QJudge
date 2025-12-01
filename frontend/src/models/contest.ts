@@ -45,6 +45,8 @@ export interface ContestDetail {
   has_started?: boolean;
   started_at?: string;
   has_finished_exam: boolean;
+  is_locked?: boolean;
+  lock_reason?: string;
   is_registered?: boolean; // Backwards compatibility
   
   // Permissions
@@ -57,6 +59,7 @@ export interface ContestDetail {
   allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
+  max_cheat_warnings?: number;
 }
 
 export interface ScoreboardProblemCell {
@@ -143,6 +146,7 @@ export interface ContestUpdateRequest {
   allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
+  max_cheat_warnings?: number;
 }
 
 export interface ExamModeState {
@@ -150,6 +154,8 @@ export interface ExamModeState {
   isLocked: boolean;
   lockReason?: string;
   startTime?: Date;
+  violationCount?: number;
+  maxWarnings?: number;
 }
 
 export interface ContestQuestion {
@@ -191,4 +197,18 @@ export interface Contest {
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
   is_archived?: boolean;
+  max_cheat_warnings?: number;
+}
+
+export interface ContestParticipant {
+  user_id: number;
+  username: string;
+  user: any;
+  score: number;
+  rank?: number;
+  joined_at: string;
+  has_finished_exam: boolean;
+  is_locked: boolean;
+  lock_reason: string;
+  violation_count: number;
 }

@@ -15,7 +15,7 @@ import {
 import { Logout, Time, Stop } from '@carbon/icons-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
-import { createExamHandlers } from '@/components/contest/ExamModeWrapper';
+import ExamModeWrapper, { createExamHandlers } from '@/components/contest/ExamModeWrapper';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
 
@@ -28,6 +28,11 @@ const ContestLayout = () => {
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const { theme, toggleTheme } = useTheme();
+
+  const isExamActive = contest?.exam_mode_enabled && 
+                       contest?.status === 'active' && 
+                       !!contest?.started_at && 
+                       !contest?.has_finished_exam;
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -45,6 +50,23 @@ const ContestLayout = () => {
       api.getContest(contestId).then(c => setContest(c || null));
     }
   }, [contestId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isExamActive) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    if (isExamActive) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isExamActive]);
 
   useEffect(() => {
     if (!contest) return;
@@ -114,6 +136,17 @@ const ContestLayout = () => {
             <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/standings`)}>
               排行榜
             </HeaderMenuItem>
+
+            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/clarifications`)}>
+              提問與討論
+            </HeaderMenuItem>
+            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+              <>
+                <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/settings`)}>
+                  比賽設定
+                </HeaderMenuItem>
+              </>
+            )}
           </HeaderNavigation>
           <HeaderGlobalBar>
             <div style={{ 
@@ -179,7 +212,16 @@ const ContestLayout = () => {
 
       <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ marginTop: '3rem', flex: 1, overflow: 'auto', backgroundColor: 'var(--cds-layer-01)' }}>
-          <Outlet context={{ refreshContest }} />
+          <ExamModeWrapper
+            contestId={contestId || ''}
+            examModeEnabled={!!contest?.exam_mode_enabled}
+            isActive={!!isExamActive}
+            isLocked={contest?.is_locked}
+            lockReason={contest?.lock_reason}
+            currentUserRole={contest?.current_user_role}
+          >
+            <Outlet context={{ refreshContest }} />
+          </ExamModeWrapper>
         </div>
       </Theme>
 

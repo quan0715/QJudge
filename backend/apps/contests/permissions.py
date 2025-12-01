@@ -83,8 +83,14 @@ class IsContestOwnerOrAdmin(permissions.BasePermission):
             return True
         
         # Check if user is the owner
-        # Check if user is the owner
-        return obj.owner_id == request.user.id
+        if hasattr(obj, 'owner_id'):
+            return obj.owner_id == request.user.id
+        
+        # Check if object is linked to a contest (e.g. Clarification)
+        if hasattr(obj, 'contest') and hasattr(obj.contest, 'owner_id'):
+            return obj.contest.owner_id == request.user.id
+            
+        return False
 
 
 class IsContestParticipant(permissions.BasePermission):

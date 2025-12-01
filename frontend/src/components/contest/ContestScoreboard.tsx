@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   DataTable,
   Table,
@@ -7,158 +8,230 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  InlineNotification
+  Loading
 } from '@carbon/react';
-import type { ScoreboardData, ScoreboardProblemCell } from '@/types/contest';
 
-interface ContestScoreboardProps {
-  data: ScoreboardData;
+export interface ProblemInfo {
+  id: number;
+  title: string;
+  order: number;
+  label: string;
+  score?: number;
+  problem_id?: number;
 }
 
-const ContestScoreboard: React.FC<ContestScoreboardProps> = ({ data }) => {
-  const renderProblemCell = (cell: ScoreboardProblemCell | undefined, score?: number) => {
-    if (!cell || cell.status === 'NS') {
-      return <span style={{ color: 'var(--cds-text-disabled)' }}>-</span>;
-    }
+export interface ProblemStats {
+  status: 'AC' | 'WA' | 'attempted' | null;
+  tries: number;
+  time: number;
+  pending: boolean;
+}
 
-    // Common style for the cell content
-    const cellStyle: React.CSSProperties = {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '0.5rem',
-      borderRadius: '4px',
-      minWidth: '60px',
-      fontWeight: 'bold',
-      lineHeight: '1.2',
-      margin: '0 auto'
-    };
+export interface StandingRow {
+  rank: number;
+  user: {
+    id: number;
+    username: string;
+  };
+  solved: number;
+  total_score: number;
+  time: number;
+  problems: Record<string, ProblemStats>;
+}
 
-    if (cell.status === 'AC') {
+interface ContestScoreboardProps {
+  problems: ProblemInfo[];
+  standings: StandingRow[];
+  loading?: boolean;
+  className?: string;
+}
+
+const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
+  problems,
+  standings,
+  loading = false,
+  className
+}) => {
+  const getCellColor = (stats: ProblemStats) => {
+    if (stats.status === 'AC') return '#e6fffa'; // Light green
+    if (stats.status === 'WA') return '#fff0f6'; // Light pink/yellow? Or maybe yellow for pending
+    if (stats.pending) return '#fff0f6'; // Light pink/yellow? Or maybe yellow for pending
+    if (stats.tries > 0) return '#fff1f0'; // Light red
+    return 'transparent';
+  };
+
+  // Prepare headers for DataTable
+  const headers = [
+    { key: 'rank', header: '排名' },
+    { key: 'user', header: '參與者' },
+    { key: 'solved', header: '解題數' },
+    { key: 'total_score', header: '總分' },
+    { key: 'time', header: '罰時' },
+    ...problems.map(p => ({
+      key: `problem_${p.id}`,
+      header: p.label
+    }))
+  ];
+
+  const rows = standings.map(s => {
+      const row: any = {
+          id: s.user.id.toString(),
+          rank: s.rank,
+          user: s.user.username,
+          solved: s.solved,
+          total_score: s.total_score,
+          time: s.time
+      };
+      
+      problems.forEach(p => {
+          const stats = s.problems[p.id] || s.problems[p.id.toString()];
+          row[`problem_${p.id}`] = stats;
+      });
+      
+      return row;
+  });
+
+  const renderCell = (cell: any) => {
+    // Check if it's a problem column
+    if (cell.info.header.startsWith('problem_')) {
+      const stats = cell.value as ProblemStats | null;
+      if (!stats) return null;
+
+      const bgColor = getCellColor(stats);
+      const textColor = stats.status === 'AC' ? '#00524d' : 
+                       stats.pending ? '#8a3ffc' : '#a61e4d';
+
       return (
-        <div style={{
-          ...cellStyle,
-          backgroundColor: '#198038', // Darker Green (Green 60)
-          color: '#ffffff',
+        <div style={{ 
+          backgroundColor: bgColor,
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          textAlign: 'center',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '0.5rem',
+          minHeight: '60px',
+          minWidth: '60px' // Ensure minimum width
         }}>
-          <span style={{ fontSize: '1rem' }}>{score !== undefined ? score : cell.time}</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.9 }}>
-             {score !== undefined && cell.time !== null ? `(${cell.time})` : ''}
-             {cell.attempts > 1 ? ` (-${cell.attempts - 1})` : ''}
-          </span>
+          {stats.status === 'AC' && (
+            <>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: textColor }}> AC </div>
+              <div style={{ fontSize: '0.8em', color: textColor }}>
+                {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
+              </div>
+            </>
+          )}
+          {stats.status === 'WA' && (
+            <>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: textColor }}> WA </div>
+              <div style={{ fontSize: '0.8em', color: textColor }}>
+                {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
+              </div>
+            </>
+          )}
+          {stats.pending && (
+            <>
+              <div style={{ fontWeight: 'bold', color: textColor }}>Pending</div>
+              <div style={{ fontSize: '0.8em', color: textColor }}>{stats.tries} tries</div>
+            </>
+          )}
+          {!stats.status && !stats.pending && stats.tries > 0 && (
+             <div style={{ fontSize: '0.8em', color: textColor }}>
+                {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
+             </div>
+          )}
         </div>
       );
     }
 
-    // WA or other non-AC status
-    // Status mapping
-    const statusText = cell.status === 'WA' ? 'WA' :
-                       cell.status === 'TLE' ? 'TLE' :
-                       cell.status === 'MLE' ? 'MLE' :
-                       cell.status === 'RE' ? 'RE' :
-                       cell.status === 'CE' ? 'CE' : 'ERR';
-    
-    return (
-      <div style={{
-        ...cellStyle,
-        backgroundColor: '#da1e28', // Red 60
-        color: '#ffffff',
-      }}>
-        <span style={{ fontSize: '1rem' }}>{statusText}</span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.9 }}>
-          (-{cell.attempts})
-        </span>
-      </div>
-    );
+    // Default rendering for other columns
+    if (cell.info.header === 'rank') {
+      return <div style={{ fontWeight: 'bold', textAlign: 'left', width: '40px' }}>{cell.value}</div>;
+    }
+    if (cell.info.header === 'solved') {
+      return <div style={{ fontWeight: 'bold', textAlign: 'left', width: '60px' }}>{cell.value}</div>;
+    }
+    if (cell.info.header === 'total_score') {
+      return <div style={{ fontWeight: 'bold', textAlign: 'left', width: '60px' }}>{cell.value}</div>;
+    }
+    if (cell.info.header === 'time') {
+      return <div style={{ fontWeight: 'bold', textAlign: 'left', width: '80px' }}>{cell.value}</div>;
+    }
+    if (cell.info.header === 'user') {
+       return <div style={{ fontWeight: 600, textAlign: 'left' }}>{cell.value}</div>;
+    }
+
+    return cell.value;
   };
 
-  const headers = [
-    { key: 'rank', header: '排名' },
-    { key: 'user', header: '參賽者' },
-    { key: 'solved', header: '解題數' },
-    { key: 'penalty', header: '罰時' },
-    ...data.problems.map(p => ({ key: `problem_${p.label}`, header: p.label }))
-  ];
-
-  const rows = data.rows.map((row, index) => {
-    const rowData: any = {
-      id: row.user_id,
-      rank: index + 1,
-      user: row.display_name,
-      solved: row.solved_count,
-      penalty: row.penalty
-    };
-
-    // Add problem cells
-    data.problems.forEach(p => {
-      rowData[`problem_${p.label}`] = renderProblemCell(row.problems[p.label], p.score);
-    });
-
-    return rowData;
-  });
-
-  if (!data.rows || data.rows.length === 0) {
-    return (
-      <InlineNotification
-        kind="info"
-        title="暫無成績"
-        subtitle="目前還沒有參賽者提交解答"
-        lowContrast
-      />
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
-    <DataTable rows={rows} headers={headers}>
-      {({ rows, headers, getHeaderProps, getTableProps, getRowProps }) => (
-        <TableContainer title={`${data.contest.name} - 成績排行榜`}>
-          <Table {...getTableProps()} size="md">
-            <TableHead>
-              <TableRow>
-                {headers.map((header) => (
-                  <TableHeader 
-                    {...getHeaderProps({ header })} 
-                    key={header.key}
-                    style={{ 
-                      textAlign: 'center',
-                      verticalAlign: 'middle'
-                    }}
-                  >
-                    {header.header}
-                  </TableHeader>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => {
-                const isTopThree = parseInt(row.cells[0].value) <= 3;
-                return (
-                  <TableRow
-                    {...getRowProps({ row })}
-                    key={row.id}
-                    style={isTopThree ? { backgroundColor: 'var(--cds-layer-accent-01)' } : {}}
-                  >
-                    {row.cells.map((cell) => (
+    <div className={className} style={{ overflowX: 'auto' }}>
+      <DataTable rows={rows} headers={headers}>
+        {({
+          rows,
+          headers,
+          getTableProps,
+          getHeaderProps,
+          getRowProps
+        }: any) => (
+          <TableContainer>
+            <Table {...getTableProps()} isSortable className="contest-scoreboard-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <TableHead>
+                <TableRow>
+                  {headers.map((header: any) => {
+                    const headerProps = getHeaderProps({ header });
+                    return (
+                      <TableHeader 
+                          {...headerProps} 
+                          key={header.key} 
+                          className={`${headerProps.className || ''} ${header.key === 'user' ? 'text-left' : ''}`}
+                          style={{ 
+                              textAlign: header.key === 'user' ? 'left' : 'center',
+                              width: header.key === 'rank' ? '80px' : 
+                                     header.key === 'solved' ? '80px' : 
+                                     header.key === 'total_score' ? '80px' : 
+                                     header.key === 'time' ? '80px' : 
+                                     header.key.startsWith('problem_') ? '80px' : 'auto'
+                          }}
+                      >
+                        <p style={{ 
+                          textAlign: header.key.startsWith('problem_') ? 'center' : 'left',
+                          fontWeight: 'bold',
+                          fontSize: '14px',
+                        }}>
+                          {header.header}
+                        </p>
+                      </TableHeader>
+                    );
+                  })}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((row: any) => (
+                  <TableRow {...getRowProps({ row })} key={row.id}>
+                    {row.cells.map((cell: any) => (
                       <TableCell 
-                        key={cell.id}
+                        key={cell.id} 
                         style={{ 
-                          textAlign: 'center',
-                          verticalAlign: 'middle',
-                          padding: '0.5rem'
+                            padding: cell.info.header.startsWith('problem_') ? 0 : '1rem',
+                            textAlign: 'center'
                         }}
                       >
-                        {cell.value}
+                        {renderCell(cell)}
                       </TableCell>
                     ))}
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </DataTable>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </DataTable>
+    </div>
   );
 };
 

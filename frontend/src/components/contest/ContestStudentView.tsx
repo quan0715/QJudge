@@ -317,9 +317,19 @@ const ContestStudentView: React.FC<ContestStudentViewProps> = ({ contest, onRefr
             <div className="cds--col-lg-4">
               <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', alignItems: 'flex-end' }}>
                 {isActive && hasStarted && !hasFinished && (
-                  <Tag type="blue" size="lg">
-                    考試進行中
-                  </Tag>
+                  <>
+                    <Tag type="blue" size="lg">
+                      考試進行中
+                    </Tag>
+                    <Button
+                      renderIcon={Play}
+                      size="xl"
+                      onClick={() => setStartModalOpen(true)}
+                      style={{ width: '100%', maxWidth: '280px', marginTop: '0.5rem' }}
+                    >
+                      繼續考試
+                    </Button>
+                  </>
                 )}
 
                 {/* Show Start button if not finished OR if multiple joins allowed */}

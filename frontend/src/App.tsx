@@ -9,18 +9,21 @@ import ProblemDetailPage from '@/pages/problem/ProblemDetailPage';
 import SubmissionsPage from '@/pages/submission/SubmissionsPage';
 import SubmissionDetailPage from '@/pages/submission/SubmissionDetailPage';
 import DashboardPage from '@/pages/DashboardPage';
-import ContestListPage from '@/pages/contest/ContestListPage';
-import ContestDashboardPage from './pages/contest/ContestDashboardPage';
-import ContestProblemPage from '@/pages/contest/ContestProblemPage';
-import ContestSubmissionListPage from '@/pages/contest/ContestSubmissionListPage';
-import ContestSubmissionDetailPage from '@/pages/contest/ContestSubmissionDetailPage';
-import ContestStandingsPage from '@/pages/contest/ContestStandingsPage';
+import ContestListPage from '@/pages/contests/ContestListPage';
+import ContestDashboard from '@/pages/contests/ContestDashboard';
+import ContestProblemPage from '@/pages/contests/ContestProblemPage';
+import ContestSubmissionListPage from '@/pages/contests/ContestSubmissionListPage';
+
+import ContestSubmissionDetailPage from '@/pages/contests/ContestSubmissionDetailPage';
+import ContestStandingsPage from '@/pages/contests/ContestStandingsPage';
+import ContestSettingsPage from '@/pages/contests/ContestSettingsPage';
+import ContestQAPage from '@/pages/contests/ContestQAPage';
 import ContestLayout from '@/layouts/ContestLayout';
 import UserManagementPage from '@/pages/admin/UserManagementPage';
 import ProblemManagementPage from '@/pages/admin/ProblemManagementPage';
 import ProblemFormPage from '@/pages/admin/ProblemFormPage';
-import TeacherContestProblemEditPage from '@/pages/contest/TeacherContestProblemEditPage';
-import ContestCreatePage from '@/pages/contest/ContestCreatePage';
+import TeacherContestProblemEditPage from '@/pages/contests/TeacherContestProblemEditPage';
+import ContestCreatePage from '@/pages/contests/ContestCreatePage';
 import { RequireAuth, RequireGuest, RequireAdmin, RequireTeacherOrAdmin } from '@/components/RouteGuards';
  
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -58,11 +61,14 @@ function App() {
             </Route>
             {/* Contest Routes - Outside MainLayout with Custom Header */}
             <Route path="/contests/:contestId" element={<ContestLayout />}>
-              <Route index element={<ContestDashboardPage />} />
+              <Route index element={<ContestDashboard />} />
+              <Route path="problems" element={<ContestDashboard />} /> {/* Temporary redirect or list */}
               <Route path="problems/:problemId" element={<ContestProblemPage />} />
               <Route path="submissions" element={<ContestSubmissionListPage />} />
               <Route path="submissions/:submissionId" element={<ContestSubmissionDetailPage />} />
               <Route path="standings" element={<ContestStandingsPage />} />
+              <Route path="settings" element={<ContestSettingsPage />} />
+              <Route path="clarifications" element={<ContestQAPage />} />
             </Route>
           </Route>
 

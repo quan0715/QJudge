@@ -2,12 +2,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
 from .views import (
-    ContestViewSet, 
+    ContestViewSet,
     ContestAnnouncementViewSet,
     ClarificationViewSet,
     ExamViewSet,
-    ContestProblemViewSet
+    ContestProblemViewSet,
+    ContestActivityViewSet
 )
+from apps.submissions.views import SubmissionViewSet
 
 app_name = 'contests'
 
@@ -20,6 +22,8 @@ contest_router.register(r'announcements', ContestAnnouncementViewSet, basename='
 contest_router.register(r'clarifications', ClarificationViewSet, basename='contest-clarifications')
 contest_router.register(r'exam', ExamViewSet, basename='contest-exam')
 contest_router.register(r'problems', ContestProblemViewSet, basename='contest-problems')
+contest_router.register(r'submissions', SubmissionViewSet, basename='contest-submissions')
+contest_router.register(r'activities', ContestActivityViewSet, basename='contest-activities')
 
 urlpatterns = [
     path('', include(router.urls)),

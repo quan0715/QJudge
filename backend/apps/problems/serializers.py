@@ -148,7 +148,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
         if obj.created_in_contest:
             return {
                 'id': obj.created_in_contest.id,
-                'title': obj.created_in_contest.title,
+                'title': obj.created_in_contest.name,
                 'start_time': obj.created_in_contest.start_time,
                 'end_time': obj.created_in_contest.end_time,
             }

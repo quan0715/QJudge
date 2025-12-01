@@ -52,6 +52,14 @@ export const contestService = {
     return res.json();
   },
 
+  toggleStatus: async (id: string): Promise<{ status: string }> => {
+    const res = await authFetch(`/api/v1/contests/${id}/toggle_status/`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to toggle contest status');
+    return res.json();
+  },
+
   deleteContest: async (id: string): Promise<void> => {
     const res = await authFetch(`/api/v1/contests/${id}/`, {
       method: 'DELETE'
@@ -231,15 +239,20 @@ export const contestService = {
     return res.json();
   },
 
-  recordExamEvent: async (contestId: string, eventType: string): Promise<void> => {
+  recordExamEvent: async (contestId: string, eventType: string, lockReason?: string): Promise<any> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/exam/events/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: eventType })
+      body: JSON.stringify({ 
+        event_type: eventType,
+        lock_reason: lockReason
+      })
     });
     if (!res.ok) {
       console.error('Failed to record exam event:', eventType);
+      return null;
     }
+    return res.json();
   },
 
   getExamEvents: async (contestId: string): Promise<any[]> => {
@@ -304,5 +317,38 @@ export const contestService = {
       }
     );
     if (!res.ok) throw new Error('Failed to delete clarification');
+  },
+
+  getContestParticipants: async (contestId: string): Promise<any[]> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/participants/`);
+    if (!res.ok) throw new Error('Failed to fetch participants');
+    return res.json();
+  },
+
+  unlockParticipant: async (contestId: string, userId: number): Promise<void> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/unlock_participant/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    if (!res.ok) throw new Error('Failed to unlock participant');
+  },
+
+  updateParticipant: async (contestId: string, userId: number, data: any): Promise<void> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/update_participant/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, ...data })
+    });
+    if (!res.ok) throw new Error('Failed to update participant');
+  },
+
+  addParticipant: async (contestId: string, username: string): Promise<void> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/add_participant/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (!res.ok) throw new Error('Failed to add participant');
   },
 };

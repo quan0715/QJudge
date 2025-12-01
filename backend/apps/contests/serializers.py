@@ -10,6 +10,7 @@ from .models import (
     ContestAnnouncement,
     Clarification,
     ExamEvent,
+    ContestActivity,
 )
 from .permissions import get_user_role_in_contest, get_contest_permissions
 from apps.users.serializers import UserSerializer
@@ -69,6 +70,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     has_started = serializers.SerializerMethodField()
     started_at = serializers.SerializerMethodField()
     has_finished_exam = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
+    lock_reason = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     
     class Meta:
@@ -93,8 +96,26 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'has_started',
             'started_at',
             'has_finished_exam',
+            'is_locked',
+            'lock_reason',
             'problems',
         ]
+
+    def get_is_locked(self, obj):
+        """Check if current user is locked."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.is_locked if registration else False
+
+    def get_lock_reason(self, obj):
+        """Get lock reason for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.lock_reason if registration else None
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
@@ -324,7 +345,7 @@ class ClarificationReplySerializer(serializers.Serializer):
     Serializer for replying to a clarification.
     """
     answer = serializers.CharField()
-    is_public = serializers.BooleanField(default=False)
+    is_public = serializers.BooleanField(default=True)
 
 
 # ============================================================================
@@ -351,12 +372,21 @@ class ExamEventSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'user_username']
 
 
-class ExamEventCreateSerializer(serializers.Serializer):
-    """
-    Serializer for creating exam events.
-    """
-    event_type = serializers.ChoiceField(choices=ExamEvent.EVENT_TYPE_CHOICES)
-    metadata = serializers.JSONField(required=False, allow_null=True)
+class ExamEventCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating exam events."""
+    class Meta:
+        model = ExamEvent
+        fields = ['event_type', 'metadata']
+
+
+class ContestActivitySerializer(serializers.ModelSerializer):
+    """Serializer for contest activities."""
+    username = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = ContestActivity
+        fields = ['id', 'user', 'username', 'action_type', 'details', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
 
 
 # ============================================================================
@@ -380,7 +410,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ContestParticipant
-        fields = ['user_id', 'username', 'user', 'score', 'rank', 'joined_at', 'has_finished_exam']
+        fields = ['user_id', 'username', 'user', 'score', 'rank', 'joined_at', 'has_finished_exam', 'is_locked', 'lock_reason']
 
 
 # ============================================================================

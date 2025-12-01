@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DataTable,
   Table,
@@ -21,6 +21,7 @@ import {
 } from '@carbon/react';
 import { View, Renew, ArrowLeft } from '@carbon/icons-react';
 import { api } from '@/services/api';
+import SubmissionDetailModal from '@/components/contest/SubmissionDetailModal';
 
 interface Submission {
   id: number;
@@ -42,6 +43,7 @@ interface Submission {
 const ContestSubmissionListPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,6 +173,20 @@ const ContestSubmissionListPage = () => {
     });
   };
 
+  const handleSubmissionClick = (submissionId: string) => {
+    setSearchParams(prev => {
+      prev.set('select_id', submissionId);
+      return prev;
+    });
+  };
+
+  const handleCloseModal = () => {
+    setSearchParams(prev => {
+      prev.delete('select_id');
+      return prev;
+    });
+  };
+
   const headers = [
     { key: 'status', header: '狀態' },
     { key: 'problem', header: '題目' },
@@ -204,7 +220,7 @@ const ContestSubmissionListPage = () => {
         hasIconOnly
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/contests/${contestId}/submissions/${sub.id}`);
+          handleSubmissionClick(sub.id.toString());
         }}
       />
     )
@@ -304,7 +320,7 @@ const ContestSubmissionListPage = () => {
                   <TableRow 
                     {...getRowProps({ row })} 
                     key={row.id}
-                    onClick={() => navigate(`/contests/${contestId}/submissions/${row.id}`)}
+                    onClick={() => handleSubmissionClick(row.id)}
                     style={{ cursor: 'pointer' }}
                   >
                     {row.cells.map((cell: any) => (
@@ -332,6 +348,12 @@ const ContestSubmissionListPage = () => {
           setPageSize(newPageSize);
         }}
         style={{ marginTop: '1rem' }}
+      />
+      
+      <SubmissionDetailModal
+        submissionId={searchParams.get('select_id')}
+        isOpen={!!searchParams.get('select_id')}
+        onClose={handleCloseModal}
       />
     </div>
   );
