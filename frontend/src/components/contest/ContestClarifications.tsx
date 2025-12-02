@@ -18,12 +18,14 @@ interface ContestClarificationsProps {
   contestId: string;
   isTeacherOrAdmin: boolean;
   problems?: ContestProblemSummary[];
+  contestStatus?: string;
 }
 
 const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   contestId,
   isTeacherOrAdmin,
-  problems = []
+  problems = [],
+  contestStatus = 'active'
 }) => {
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -171,7 +173,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Announcements Section */}
       <Card 
         title="公告" 
-        action={isTeacherOrAdmin ? {
+        action={isTeacherOrAdmin && contestStatus === 'active' ? {
           label: "發布公告",
           onClick: () => setAnnouncementModalOpen(true)
         } : undefined}
@@ -235,10 +237,10 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Q&A Section */}
       <Card 
         title="學生提問與討論"
-        action={{
+        action={contestStatus === 'active' ? {
           label: "提出問題",
           onClick: () => setModalOpen(true)
-        }}
+        } : undefined}
       >
         {clarifications.length === 0 ? (
           <div style={{ 

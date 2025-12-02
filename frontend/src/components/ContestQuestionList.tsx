@@ -16,9 +16,10 @@ interface ContestQuestionListProps {
   contestId: string;
   problemId?: string;
   isTeacherOrAdmin?: boolean;
+  contestStatus?: string;
 }
 
-const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false }: ContestQuestionListProps) => {
+const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false, contestStatus = 'active' }: ContestQuestionListProps) => {
   const [questions, setQuestions] = useState<ContestQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,29 +104,37 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false }:
       {/* Ask Question Form */}
       <Tile className="ask-question-form" style={{ marginBottom: '2rem' }}>
         <h4 style={{ marginBottom: '1rem' }}>提問</h4>
-        <TextInput
-          id="question-title"
-          labelText="標題"
-          placeholder="請輸入問題摘要"
-          value={newQuestionTitle}
-          onChange={(e) => setNewQuestionTitle(e.target.value)}
-          style={{ marginBottom: '1rem' }}
-        />
-        <TextArea
-          id="question-content"
-          labelText="內容"
-          placeholder="請詳細描述您的問題"
-          value={newQuestionContent}
-          onChange={(e) => setNewQuestionContent(e.target.value)}
-          style={{ marginBottom: '1rem' }}
-        />
-        <Button
-          renderIcon={Send}
-          onClick={handleAskQuestion}
-          disabled={submitting || !newQuestionTitle.trim() || !newQuestionContent.trim()}
-        >
-          送出提問
-        </Button>
+        {contestStatus === 'active' ? (
+          <>
+            <TextInput
+              id="question-title"
+              labelText="標題"
+              placeholder="請輸入問題摘要"
+              value={newQuestionTitle}
+              onChange={(e) => setNewQuestionTitle(e.target.value)}
+              style={{ marginBottom: '1rem' }}
+            />
+            <TextArea
+              id="question-content"
+              labelText="內容"
+              placeholder="請詳細描述您的問題"
+              value={newQuestionContent}
+              onChange={(e) => setNewQuestionContent(e.target.value)}
+              style={{ marginBottom: '1rem' }}
+            />
+            <Button
+              renderIcon={Send}
+              onClick={handleAskQuestion}
+              disabled={submitting || !newQuestionTitle.trim() || !newQuestionContent.trim()}
+            >
+              送出提問
+            </Button>
+          </>
+        ) : (
+          <p style={{ color: 'var(--cds-text-secondary)' }}>
+            競賽已結束，無法進行提問。
+          </p>
+        )}
       </Tile>
 
       {/* Questions List */}

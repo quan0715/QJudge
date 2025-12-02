@@ -5,12 +5,11 @@ import {
   TextInput,
   TextArea,
   Select,
-  SelectItem,
   Toggle,
   Button,
-  DatePicker,
-  DatePickerInput,
   TimePicker,
+  TimePickerSelect,
+  SelectItem,
   NumberInput,
   Loading,
   InlineNotification,
@@ -22,6 +21,8 @@ import {
   TabPanels,
   TabPanel,
   DataTable,
+  DatePicker,
+  DatePickerInput,
   TableContainer,
   Table,
   TableHead,
@@ -48,6 +49,10 @@ const ContestSettingsPage = () => {
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [formData, setFormData] = useState<ContestUpdateRequest>({});
   const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
+  
+  // Local state for time inputs to allow typing
+  const [startTimeInput, setStartTimeInput] = useState('');
+  const [endTimeInput, setEndTimeInput] = useState('');
 
   // Problem Management State
   const [problems, setProblems] = useState<any[]>([]);
@@ -130,6 +135,24 @@ const ContestSettingsPage = () => {
         auto_unlock_minutes: data?.auto_unlock_minutes || 0,
         status: data?.status || 'inactive'
       });
+
+      // Initialize local time inputs
+      if (data?.start_time) {
+        const date = new Date(data.start_time);
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        setStartTimeInput(`${hours.toString().padStart(2, '0')}:${minutes}`);
+      }
+      if (data?.end_time) {
+        const date = new Date(data.end_time);
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        setEndTimeInput(`${hours.toString().padStart(2, '0')}:${minutes}`);
+      }
     } catch (error) {
       console.error('Failed to load contest', error);
       setNotification({ kind: 'error', message: '無法載入競賽設定' });
@@ -365,21 +388,60 @@ const ContestSettingsPage = () => {
                                 labelText="開始時間"
                                 type="text"
                                 placeholder="hh:mm"
-                                pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-                                value={formData.start_time ? new Date(formData.start_time).toTimeString().slice(0, 5) : ''}
+                                pattern="(0[1-9]|1[0-2]):[0-5][0-9]"
+                                value={startTimeInput}
                                 onChange={(e) => {
                                   const val = e.target.value;
+                                  setStartTimeInput(val);
+                                  
                                   if (val.length === 5 && val.includes(':')) {
-                                    const [hours, minutes] = val.split(':').map(Number);
-                                    if (!isNaN(hours) && !isNaN(minutes)) {
+                                    const [h, m] = val.split(':').map(Number);
+                                    if (!isNaN(h) && !isNaN(m) && h >= 1 && h <= 12 && m >= 0 && m <= 59) {
                                       const date = formData.start_time ? new Date(formData.start_time) : new Date();
-                                      date.setHours(hours);
-                                      date.setMinutes(minutes);
+                                      const currentHours = date.getHours();
+                                      const isPM = currentHours >= 12;
+                                      let newHours = h;
+                                      
+                                      // 12 AM is 0, 12 PM is 12. 
+                                      // 1-11 AM is 1-11. 1-11 PM is 13-23.
+                                      if (isPM) {
+                                          if (h === 12) newHours = 12;
+                                          else newHours = h + 12;
+                                      } else {
+                                          if (h === 12) newHours = 0;
+                                          else newHours = h;
+                                      }
+                                      
+                                      date.setHours(newHours);
+                                      date.setMinutes(m);
                                       setFormData({ ...formData, start_time: date.toISOString() });
                                     }
                                   }
                                 }}
-                              />
+                              >
+                                <TimePickerSelect 
+                                  id="start-time-select" 
+                                  // labelText="AM/PM"
+                                  value={(() => {
+                                    if (!formData.start_time) return 'AM';
+                                    return new Date(formData.start_time).getHours() >= 12 ? 'PM' : 'AM';
+                                  })()}
+                                  onChange={(e) => {
+                                    const newAmp = e.target.value;
+                                    const date = formData.start_time ? new Date(formData.start_time) : new Date();
+                                    let hours = date.getHours();
+                                    
+                                    if (newAmp === 'PM' && hours < 12) hours += 12;
+                                    if (newAmp === 'AM' && hours >= 12) hours -= 12;
+                                    
+                                    date.setHours(hours);
+                                    setFormData({ ...formData, start_time: date.toISOString() });
+                                  }}
+                                >
+                                  <SelectItem value="AM" text="AM" />
+                                  <SelectItem value="PM" text="PM" />
+                                </TimePickerSelect>
+                              </TimePicker>
                             </div>
                           </div>
                           
@@ -412,21 +474,58 @@ const ContestSettingsPage = () => {
                                 labelText="結束時間"
                                 type="text"
                                 placeholder="hh:mm"
-                                pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-                                value={formData.end_time ? new Date(formData.end_time).toTimeString().slice(0, 5) : ''}
+                                pattern="(0[1-9]|1[0-2]):[0-5][0-9]"
+                                value={endTimeInput}
                                 onChange={(e) => {
                                   const val = e.target.value;
+                                  setEndTimeInput(val);
+                                  
                                   if (val.length === 5 && val.includes(':')) {
-                                    const [hours, minutes] = val.split(':').map(Number);
-                                    if (!isNaN(hours) && !isNaN(minutes)) {
+                                    const [h, m] = val.split(':').map(Number);
+                                    if (!isNaN(h) && !isNaN(m) && h >= 1 && h <= 12 && m >= 0 && m <= 59) {
                                       const date = formData.end_time ? new Date(formData.end_time) : new Date();
-                                      date.setHours(hours);
-                                      date.setMinutes(minutes);
+                                      const currentHours = date.getHours();
+                                      const isPM = currentHours >= 12;
+                                      let newHours = h;
+                                      
+                                      if (isPM) {
+                                          if (h === 12) newHours = 12;
+                                          else newHours = h + 12;
+                                      } else {
+                                          if (h === 12) newHours = 0;
+                                          else newHours = h;
+                                      }
+                                      
+                                      date.setHours(newHours);
+                                      date.setMinutes(m);
                                       setFormData({ ...formData, end_time: date.toISOString() });
                                     }
                                   }
                                 }}
-                              />
+                              >
+                                <TimePickerSelect 
+                                  id="end-time-select" 
+                                  // labelText="AM/PM"
+                                  value={(() => {
+                                    if (!formData.end_time) return 'AM';
+                                    return new Date(formData.end_time).getHours() >= 12 ? 'PM' : 'AM';
+                                  })()}
+                                  onChange={(e) => {
+                                    const newAmp = e.target.value;
+                                    const date = formData.end_time ? new Date(formData.end_time) : new Date();
+                                    let hours = date.getHours();
+                                    
+                                    if (newAmp === 'PM' && hours < 12) hours += 12;
+                                    if (newAmp === 'AM' && hours >= 12) hours -= 12;
+                                    
+                                    date.setHours(hours);
+                                    setFormData({ ...formData, end_time: date.toISOString() });
+                                  }}
+                                >
+                                  <SelectItem value="AM" text="AM" />
+                                  <SelectItem value="PM" text="PM" />
+                                </TimePickerSelect>
+                              </TimePicker>
                             </div>
                           </div>
                         </div>

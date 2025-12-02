@@ -37,6 +37,7 @@ const ContestQAPage = () => {
                 contestId={contest.id} 
                 isTeacherOrAdmin={['teacher', 'admin'].includes(contest.current_user_role)}
                 problems={contest.problems}
+                contestStatus={contest.status}
               />
             </ContainerCard>
           </div>

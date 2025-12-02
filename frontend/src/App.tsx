@@ -16,7 +16,7 @@ import ContestSubmissionListPage from '@/pages/contests/ContestSubmissionListPag
 
 import ContestSubmissionDetailPage from '@/pages/contests/ContestSubmissionDetailPage';
 import ContestStandingsPage from '@/pages/contests/ContestStandingsPage';
-import ContestSettingsPage from '@/pages/contests/ContestSettingsPage';
+// import ContestSettingsPage from '@/pages/contests/ContestSettingsPage';
 import ContestQAPage from '@/pages/contests/ContestQAPage';
 import ContestLayout from '@/layouts/ContestLayout';
 import UserManagementPage from '@/pages/admin/UserManagementPage';
@@ -25,6 +25,14 @@ import ProblemFormPage from '@/pages/admin/ProblemFormPage';
 import TeacherContestProblemEditPage from '@/pages/contests/TeacherContestProblemEditPage';
 import ContestCreatePage from '@/pages/contests/ContestCreatePage';
 import { RequireAuth, RequireGuest, RequireAdmin, RequireTeacherOrAdmin } from '@/components/RouteGuards';
+
+// Contest Admin Pages
+import ContestAdminLayout from '@/layouts/ContestAdminLayout';
+import ContestAdminOverview from '@/pages/contest-admin/ContestAdminOverview';
+import ContestAdminSettingsPage from '@/pages/contest-admin/ContestSettingsPage';
+import ContestAdminProblemsPage from '@/pages/contest-admin/ContestProblemsPage';
+import ContestAdminParticipantsPage from '@/pages/contest-admin/ContestParticipantsPage';
+import ContestAdminLogsPage from '@/pages/contest-admin/ContestLogsPage';
  
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
@@ -67,7 +75,7 @@ function App() {
               <Route path="submissions" element={<ContestSubmissionListPage />} />
               <Route path="submissions/:submissionId" element={<ContestSubmissionDetailPage />} />
               <Route path="standings" element={<ContestStandingsPage />} />
-              <Route path="settings" element={<ContestSettingsPage />} />
+              {/* <Route path="settings" element={<ContestSettingsPage />} /> */}
               <Route path="clarifications" element={<ContestQAPage />} />
             </Route>
           </Route>
@@ -83,8 +91,17 @@ function App() {
               <Route path="/teacher/contests" element={<Navigate to="/contests" replace />} />
               <Route path="/contests/new" element={<ContestCreatePage />} />
               <Route path="/teacher/contests/new" element={<Navigate to="/contests/new" replace />} />
-              <Route path="/teacher/contests/:id/edit" element={<Navigate to="/contests/:id?view=teacher" replace />} />
+              <Route path="/teacher/contests/:id/edit" element={<Navigate to="/admin/contests/:id" replace />} />
               <Route path="/teacher/contests/:contestId/problems/:problemId/edit" element={<TeacherContestProblemEditPage />} />
+            </Route>
+
+            {/* New Contest Admin Routes */}
+            <Route path="/admin/contests/:contestId" element={<ContestAdminLayout />}>
+              <Route index element={<ContestAdminOverview />} />
+              <Route path="settings" element={<ContestAdminSettingsPage />} />
+              <Route path="problems" element={<ContestAdminProblemsPage />} />
+              <Route path="participants" element={<ContestAdminParticipantsPage />} />
+              <Route path="logs" element={<ContestAdminLogsPage />} />
             </Route>
           </Route>
 

@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@carbon/charts": "^1.27.0",
+    "@carbon/charts-react": "^1.27.0",
     "@carbon/icons-react": "^11.70.0",
     "@carbon/react": "^1.96.0",
     "@monaco-editor/react": "^4.7.0",
     "@types/js-yaml": "^4.0.9",
+    "d3": "^7.9.0",
     "github-markdown-css": "^5.8.1",
     "js-yaml": "^4.1.1",
     "katex": "^0.16.25",

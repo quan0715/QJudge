@@ -23,7 +23,8 @@ import {
   View,
   Logout,
   Time,
-  Stop
+  Stop,
+  Settings
 } from '@carbon/icons-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
@@ -206,8 +207,7 @@ const ContestLayout = () => {
         await handleEndExam();
       }
       
-      // Then leave the contest
-      await api.leaveContest(contestId);
+      // Then navigate away
       navigate('/contests');
     } catch (error) {
       console.error('Failed to leave contest', error);
@@ -270,6 +270,24 @@ const ContestLayout = () => {
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </HeaderGlobalAction>
 
+            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+              <HeaderGlobalAction 
+                aria-label="Manage Contest" 
+                tooltipAlignment="center" 
+                onClick={() => navigate(`/admin/contests/${contestId}`)}
+              >
+                <Settings size={20} />
+              </HeaderGlobalAction>
+            )}
+
+            <HeaderGlobalAction 
+              aria-label="Exit Contest" 
+              tooltipAlignment="center" 
+              onClick={() => setIsExitModalOpen(true)}
+            >
+              <Logout size={20} />
+            </HeaderGlobalAction>
+
             {/* Removed separate End Exam button - Exit Contest now handles this */}
             {false && (
               <div style={{ marginRight: '1rem' }}>
@@ -301,23 +319,7 @@ const ContestLayout = () => {
               </div>
             )}
 
-            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
-              <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/teacher/contests/${contestId}`)}
-                >
-                  教師後台
-                </Button>
-              </div>
-            )}
-
             {/* Fullscreen Toggle - Removed duplicate Button */}
-
-            <HeaderGlobalAction aria-label="Notifications" tooltipAlignment="end">
-              <NotificationIcon size={20} />
-            </HeaderGlobalAction>
             
             {/* User Info Display */}
             <div style={{ 

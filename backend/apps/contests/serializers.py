@@ -196,6 +196,10 @@ class ContestDetailSerializer(serializers.ModelSerializer):
 
     def get_has_finished_exam(self, obj):
         """Check if current user has finished the exam."""
+        # If contest has ended, everyone is finished
+        if obj.end_time and timezone.now() > obj.end_time:
+            return True
+            
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False

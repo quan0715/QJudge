@@ -256,8 +256,6 @@ const ContestDashboard = () => {
                     getRowProps,
                     getTableProps
                   }: any) => {
-                    const isTeacherView = (currentUser?.role === 'admin' || currentUser?.role === 'teacher') && searchParams.get('view') === 'teacher';
-
                     return (
                     <TableContainer>
                       <Table {...getTableProps()}>
@@ -321,19 +319,6 @@ const ContestDashboard = () => {
                                     >
                                       前往
                                     </Button>
-                                    {isTeacherView && (
-                                      <Button 
-                                        kind="ghost" 
-                                        size="sm" 
-                                        renderIcon={Edit}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/teacher/contests/${contestId}/problems/${problem?.id}/edit`);
-                                        }}
-                                      >
-                                        編輯
-                                      </Button>
-                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
