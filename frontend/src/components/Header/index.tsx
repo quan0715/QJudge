@@ -8,12 +8,12 @@ const AppHeader = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <Header aria-label="NYCU Online Judge" className="header-separator">
+    <Header aria-label="QJudge" className="header-separator">
       <SkipToContent />
-      <HeaderName as={Link} to="/" prefix="NYCU">
-        Online Judge
+      <HeaderName as={Link} to="/" prefix="QJudge">
+        Quan Judge
       </HeaderName>
-      <HeaderNavigation aria-label="NYCU Online Judge">
+      <HeaderNavigation aria-label="QJudge">
         <HeaderMenuItem as={Link} to="/problems">Problems</HeaderMenuItem>
         <HeaderMenuItem as={Link} to="/submissions">Submissions</HeaderMenuItem>
         <HeaderMenuItem as={Link} to="/contests">Contests</HeaderMenuItem>

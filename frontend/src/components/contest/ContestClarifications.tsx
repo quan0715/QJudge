@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Tile,
   Button,
   Modal,
   TextArea,
@@ -10,9 +9,10 @@ import {
   SelectItem,
   TextInput
 } from '@carbon/react';
-import { Add, TrashCan, Bullhorn } from '@carbon/icons-react';
+import { TrashCan } from '@carbon/icons-react';
 import type { Clarification, ContestProblemSummary } from '@/models/contest';
 import { api } from '@/services/api';
+import { Card } from '@/components/common/Card';
 
 interface ContestClarificationsProps {
   contestId: string;
@@ -169,34 +169,18 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   return (
     <div className="contest-clarifications">
       {/* Announcements Section */}
-      <section style={{ marginBottom: '4rem' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '1.5rem',
-          borderBottom: '1px solid var(--cds-border-subtle)',
-          paddingBottom: '1rem'
-        }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0 }}>
-            <Bullhorn size={24} /> 公告
-          </h3>
-          {isTeacherOrAdmin && (
-            <Button
-              renderIcon={Add}
-              size="md"
-              onClick={() => setAnnouncementModalOpen(true)}
-            >
-              發布公告
-            </Button>
-          )}
-        </div>
-
+      <Card 
+        title="公告" 
+        action={isTeacherOrAdmin ? {
+          label: "發布公告",
+          onClick: () => setAnnouncementModalOpen(true)
+        } : undefined}
+        style={{ marginBottom: '2rem' }}
+      >
         {announcements.length === 0 ? (
           <div style={{ 
             padding: '2rem', 
             textAlign: 'center', 
-            backgroundColor: 'var(--cds-layer-01)', 
             color: 'var(--cds-text-secondary)' 
           }}>
             目前沒有任何公告
@@ -204,15 +188,18 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {announcements.map((ann) => (
-              <Tile key={ann.id} style={{ 
+              <div key={ann.id} style={{ 
                 borderLeft: '4px solid var(--cds-interactive-01)',
                 backgroundColor: 'var(--cds-layer-01)',
-                padding: '1.5rem'
+                padding: '1rem',
+                marginBottom: '0.5rem',
+                border: '1px solid var(--cds-border-subtle)',
+                borderRadius: '4px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <h4 style={{ margin: 0, fontSize: '1.25rem' }}>{ann.title}</h4>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{ann.title}</h4>
                       {isTeacherOrAdmin && (
                         <Button
                           kind="ghost"
@@ -227,49 +214,36 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                     </div>
                     <p style={{ 
                       whiteSpace: 'pre-wrap', 
-                      marginBottom: '1rem', 
-                      fontSize: '1rem', 
-                      lineHeight: '1.5' 
+                      marginBottom: '0.5rem', 
+                      fontSize: '0.875rem', 
+                      lineHeight: '1.5',
+                      color: 'var(--cds-text-secondary)'
                     }}>
                       {ann.content}
                     </p>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
                       {ann.created_by?.username || 'Admin'} · {new Date(ann.created_at).toLocaleString()}
                     </div>
                   </div>
                 </div>
-              </Tile>
+              </div>
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
       {/* Q&A Section */}
-      <section>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '1.5rem',
-          borderBottom: '1px solid var(--cds-border-subtle)',
-          paddingBottom: '1rem'
-        }}>
-          <h3 style={{ margin: 0 }}>學生提問與討論</h3>
-          <Button
-            renderIcon={Add}
-            size="md"
-            kind="tertiary"
-            onClick={() => setModalOpen(true)}
-          >
-            提出問題
-          </Button>
-        </div>
-
+      <Card 
+        title="學生提問與討論"
+        action={{
+          label: "提出問題",
+          onClick: () => setModalOpen(true)
+        }}
+      >
         {clarifications.length === 0 ? (
           <div style={{ 
             padding: '2rem', 
             textAlign: 'center', 
-            backgroundColor: 'var(--cds-layer-01)', 
             color: 'var(--cds-text-secondary)' 
           }}>
             目前還沒有任何提問
@@ -277,16 +251,20 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {clarifications.map((clar) => (
-              <Tile key={clar.id} style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--cds-border-subtle)' }}>
+              <div key={clar.id} style={{ 
+                border: '1px solid var(--cds-border-subtle)', 
+                borderRadius: '4px',
+                overflow: 'hidden' 
+              }}>
                 {/* Question Header */}
                 <div style={{ 
-                  padding: '1rem 1.5rem', 
+                  padding: '1rem', 
                   backgroundColor: 'var(--cds-layer-01)',
-                  borderBottom: '1px solid var(--cds-border-subtle)'
+                  borderBottom: clar.answer ? '1px solid var(--cds-border-subtle)' : 'none'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                      <h4 style={{ margin: 0, marginRight: '0.5rem' }}>
+                      <h4 style={{ margin: 0, marginRight: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
                         {clar.question.length > 50 ? clar.question.substring(0, 50) + '...' : clar.question}
                       </h4>
                       {clar.problem_title && <Tag type="blue" size="sm">{clar.problem_title}</Tag>}
@@ -322,7 +300,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                     </div>
                   </div>
 
-                  <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
+                  <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)', fontSize: '0.875rem' }}>
                     {clar.question}
                   </p>
                   
@@ -334,7 +312,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                 {/* Answer Section */}
                 {clar.answer && (
                   <div style={{ 
-                    padding: '1rem 1.5rem', 
+                    padding: '1rem', 
                     backgroundColor: 'var(--cds-layer-02)', // Slightly darker/different background for answer
                   }}>
                     <div style={{ 
@@ -343,7 +321,8 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       display: 'flex', 
                       gap: '0.5rem', 
                       alignItems: 'center',
-                      color: 'var(--cds-text-primary)'
+                      color: 'var(--cds-text-primary)',
+                      fontSize: '0.875rem'
                     }}>
                       <span>回覆:</span>
                       {clar.is_public ? (
@@ -352,7 +331,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                         <Tag type="gray" size="sm">僅提問者可見</Tag>
                       )}
                     </div>
-                    <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
+                    <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)', fontSize: '0.875rem' }}>
                       {clar.answer}
                     </p>
                     {clar.answered_by && (
@@ -362,11 +341,12 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                     )}
                   </div>
                 )}
-              </Tile>
+              </div>
             ))}
           </div>
         )}
-      </section>
+      </Card>
+
 
       {/* Create Clarification Modal */}
       <Modal

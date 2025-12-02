@@ -74,12 +74,16 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     lock_reason = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     
+    rule = serializers.CharField(source='rules', read_only=True)
+    
     class Meta:
         model = Contest
         fields = [
             'id',
             'name',
             'description',
+            'rules',
+            'rule',
             'start_time',
             'end_time',
             'status',
@@ -179,6 +183,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'description',
+            'rules',
             'start_time',
             'end_time',
             'visibility',

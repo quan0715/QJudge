@@ -109,7 +109,7 @@ const ContestParticipantsPage = () => {
   if (loading && participants.length === 0) return <Loading />;
 
   return (
-    <div className="cds--grid" style={{ padding: '2rem' }}>
+    <div className="cds--grid" style={{ padding: '0' }}>
       <div className="cds--row">
         <div className="cds--col-lg-16">
           {error && (
@@ -147,11 +147,14 @@ const ContestParticipantsPage = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header) => (
-                        <TableHeader {...getHeaderProps({ header })}>
-                          {header.header}
-                        </TableHeader>
-                      ))}
+                      {headers.map((header) => {
+                        const { key, ...headerProps } = getHeaderProps({ header });
+                        return (
+                          <TableHeader {...headerProps} key={key}>
+                            {header.header}
+                          </TableHeader>
+                        );
+                      })}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -159,8 +162,9 @@ const ContestParticipantsPage = () => {
                       const p = participants.find(item => item.user_id.toString() === row.id);
                       if (!p) return null;
 
+                      const { key, ...rowProps } = getRowProps({ row });
                       return (
-                        <TableRow {...getRowProps({ row })}>
+                        <TableRow {...rowProps} key={key}>
                           <TableCell>
                             <div style={{ fontWeight: 'bold' }}>{p.username}</div>
                             <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>

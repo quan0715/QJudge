@@ -1,9 +1,11 @@
+version: '3.8'
 
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: oj_postgres
+    restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-online_judge}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -25,6 +27,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: oj_redis
+    restart: always
     ports:
       - "6379:6379"
     networks:
@@ -41,12 +44,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: oj_backend
+    restart: always
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application"
     volumes:
-      - ./backend:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
@@ -67,15 +70,22 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: oj_celery
+    restart: always
     command: celery -A config worker -l info
     volumes:
-      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
     env_file:
       - .env
+    environment:
+      - JUDGE_TMP_DIR=/judge_tmp
     depends_on:
-      - postgres
-      - redis
-      - backend
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
     networks:
       - oj_network
 
@@ -85,6 +95,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: oj_frontend
+    restart: always
     ports:
       - "80:80"
     depends_on:
@@ -92,12 +103,20 @@ services:
     networks:
       - oj_network
 
-
+  # Cloudflared Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: oj_cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    networks:
+      - oj_network
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  judge_tmp:
 
 networks:
   oj_network:

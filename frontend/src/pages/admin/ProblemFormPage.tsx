@@ -72,6 +72,10 @@ const ProblemFormPage = () => {
       loading={loading}
       error={error}
       success={success}
+      breadcrumbs={[
+        { label: 'Problems', href: '/admin/problems' },
+        { label: isEditMode ? 'Edit Problem' : 'New Problem' }
+      ]}
     />
   );
 };

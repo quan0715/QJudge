@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Loading,
@@ -15,7 +15,10 @@ import {
   TableHeader,
   TableBody,
   TableCell,
-  TableContainer
+  TableContainer,
+  TableExpandHeader,
+  TableExpandRow,
+  TableExpandedRow
 } from '@carbon/react';
 import Editor from '@monaco-editor/react';
 import { api } from '@/services/api';
@@ -49,6 +52,9 @@ interface SubmissionDetail {
     exec_time: number;
     memory_usage: number;
     error_message: string;
+    input?: string;
+    expected_output?: string;
+    output?: string;
   }>;
 }
 
@@ -161,8 +167,7 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
     { key: 'test_case', header: '測試案例' },
     { key: 'status', header: '狀態' },
     { key: 'time', header: '時間 (ms)' },
-    { key: 'memory', header: '記憶體 (KB)' },
-    { key: 'message', header: '訊息' }
+    { key: 'memory', header: '記憶體 (KB)' }
   ];
 
   const getResultRows = () => {
@@ -175,7 +180,8 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
       status: getStatusTag(result.status),
       time: result.exec_time,
       memory: result.memory_usage,
-      message: result.error_message || '-'
+      // Store raw data for expansion
+      rawData: result
     }));
   };
 
@@ -337,21 +343,94 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
                           <Table {...getTableProps()} size="sm">
                             <TableHead>
                               <TableRow>
-                                {headers.map((header: any) => (
-                                  <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                                    {header.header}
-                                  </TableHeader>
-                                ))}
+                                <TableExpandHeader />
+                                {headers.map((header: any) => {
+                                  const { key, ...headerProps } = getHeaderProps({ header });
+                                  return (
+                                    <TableHeader {...headerProps} key={key}>
+                                      {header.header}
+                                    </TableHeader>
+                                  );
+                                })}
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {rows.map((row: any) => (
-                                <TableRow {...getRowProps({ row })} key={row.id}>
-                                  {row.cells.map((cell: any) => (
-                                    <TableCell key={cell.id}>{cell.value}</TableCell>
-                                  ))}
-                                </TableRow>
-                              ))}
+                              {rows.map((row: any) => {
+                                const result = submission.results?.find(r => r.id.toString() === row.id);
+                                const { key, ...rowProps } = getRowProps({ row });
+                                return (
+                                  <React.Fragment key={key}>
+                                    <TableExpandRow {...rowProps}>
+                                      {row.cells.map((cell: any) => (
+                                        <TableCell key={cell.id}>{cell.value}</TableCell>
+                                      ))}
+                                    </TableExpandRow>
+                                    <TableExpandedRow colSpan={headers.length + 1}>
+                                      <div style={{ padding: '1rem' }}>
+                                        {result?.error_message && (
+                                          <div style={{ color: 'var(--cds-text-error)', marginBottom: '1rem' }}>
+                                            <strong>錯誤訊息:</strong>
+                                            <pre style={{ marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>{result.error_message}</pre>
+                                          </div>
+                                        )}
+                                        
+                                        {(result?.input || result?.expected_output) ? (
+                                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ gridColumn: '1 / -1' }}>
+                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>輸入</div>
+                                              <pre style={{ 
+                                                padding: '1rem', 
+                                                background: 'var(--cds-layer-02)', 
+                                                borderRadius: '4px',
+                                                margin: 0,
+                                                whiteSpace: 'pre-wrap',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto'
+                                              }}>
+                                                {result.input || '-'}
+                                              </pre>
+                                            </div>
+                                            
+                                            <div>
+                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>您的輸出</div>
+                                              <pre style={{ 
+                                                padding: '1rem', 
+                                                background: 'var(--cds-layer-02)', 
+                                                borderRadius: '4px',
+                                                margin: 0,
+                                                whiteSpace: 'pre-wrap',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto'
+                                              }}>
+                                                {result.output || '-'}
+                                              </pre>
+                                            </div>
+
+                                            <div>
+                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>預期輸出</div>
+                                              <pre style={{ 
+                                                padding: '1rem', 
+                                                background: 'var(--cds-layer-02)', 
+                                                borderRadius: '4px',
+                                                margin: 0,
+                                                whiteSpace: 'pre-wrap',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto'
+                                              }}>
+                                                {result.expected_output || '-'}
+                                              </pre>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div style={{ color: 'var(--cds-text-secondary)' }}>
+                                            無詳細資訊 (隱藏測資或無輸出)
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TableExpandedRow>
+                                  </React.Fragment>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </TableContainer>

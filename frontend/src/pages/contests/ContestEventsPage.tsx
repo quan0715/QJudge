@@ -73,18 +73,26 @@ const ContestEventsPage = () => {
   ];
 
   const getActionTag = (action: string) => {
-    switch (action) {
-      case 'register': return <Tag type="green">註冊</Tag>;
-      case 'start_exam': return <Tag type="blue">開始考試</Tag>;
-      case 'end_exam': return <Tag type="gray">結束考試</Tag>;
-      case 'lock_user': return <Tag type="red">鎖定</Tag>;
-      case 'unlock_user': return <Tag type="teal">解鎖</Tag>;
-      case 'submit_code': return <Tag type="purple">提交</Tag>;
-      case 'ask_question': return <Tag type="cyan">提問</Tag>;
-      case 'reply_question': return <Tag type="cyan">回覆</Tag>;
-      case 'announce': return <Tag type="magenta">公告</Tag>;
-      default: return <Tag type="outline">{action}</Tag>;
-    }
+    const actionMap: Record<string, { label: string; type: any }> = {
+      'register': { label: '註冊', type: 'green' },
+      'enter_contest': { label: '進入競賽', type: 'blue' },
+      'start_exam': { label: '開始考試', type: 'cyan' },
+      'end_exam': { label: '結束考試', type: 'magenta' },
+      'lock_user': { label: '鎖定用戶', type: 'red' },
+      'unlock_user': { label: '解鎖用戶', type: 'teal' },
+      'submit_code': { label: '提交程式碼', type: 'purple' },
+      'ask_question': { label: '提問', type: 'blue' },
+      'reply_question': { label: '回覆提問', type: 'blue' },
+      'update_problem': { label: '更新題目', type: 'gray' },
+      'announce': { label: '發布公告', type: 'magenta' },
+      'leave': { label: '離開競賽', type: 'gray' },
+      'publish_problem_to_practice': { label: '發布到練習區', type: 'cool-gray' },
+      'update_participant': { label: '更新參與者', type: 'gray' },
+      'other': { label: '其他', type: 'outline' }
+    };
+
+    const config = actionMap[action] || { label: action, type: 'outline' };
+    return <Tag type={config.type}>{config.label}</Tag>;
   };
 
   // Simple client-side pagination for now
@@ -95,7 +103,7 @@ const ContestEventsPage = () => {
   if (loading && events.length === 0) return <Loading />;
 
   return (
-    <div className="cds--grid" style={{ padding: '2rem' }}>
+    <div className="cds--grid" style={{ padding: '0' }}>
       <div className="cds--row">
         <div className="cds--col-lg-16">
           <DataTable rows={currentEvents} headers={headers}>
@@ -107,10 +115,18 @@ const ContestEventsPage = () => {
               getTableProps,
               onInputChange
             }: any) => (
-              <TableContainer title="考試事件紀錄" description="記錄所有競賽相關的操作與事件">
+              <TableContainer 
+                title="考試事件紀錄" 
+                description="記錄所有競賽相關的操作與事件"
+                style={{
+                  backgroundColor: 'var(--cds-background)',
+                  padding: '1rem',
+                  marginTop: '1rem'
+                }}
+              >
                 <TableToolbar>
                   <TableToolbarContent>
-                    <TableToolbarSearch onChange={onInputChange} />
+                    <TableToolbarSearch onChange={onInputChange} placeholder="搜尋事件..." />
                     {/* @ts-ignore */}
                     <TableToolbarAction onClick={loadEvents} renderIcon={Renew} iconDescription="重新整理" />
                   </TableToolbarContent>
@@ -118,18 +134,22 @@ const ContestEventsPage = () => {
                 <Table {...getTableProps()}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header: any) => (
-                        <TableHeader {...getHeaderProps({ header })}>
-                          {header.header}
-                        </TableHeader>
-                      ))}
+                      {headers.map((header: any) => {
+                        const { key, ...headerProps } = getHeaderProps({ header });
+                        return (
+                          <TableHeader {...headerProps} key={key}>
+                            {header.header}
+                          </TableHeader>
+                        );
+                      })}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {rows.map((row: any) => {
                       const event = events.find(e => e.id.toString() === row.id);
+                      const { key, ...rowProps } = getRowProps({ row });
                       return (
-                        <TableRow {...getRowProps({ row })}>
+                        <TableRow {...rowProps} key={key}>
                           <TableCell>{new Date(event?.created_at || '').toLocaleString()}</TableCell>
                           <TableCell>{event?.username}</TableCell>
                           <TableCell>{getActionTag(event?.action_type || '')}</TableCell>

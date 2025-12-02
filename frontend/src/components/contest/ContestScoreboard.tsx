@@ -53,10 +53,10 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   className
 }) => {
   const getCellColor = (stats: ProblemStats) => {
-    if (stats.status === 'AC') return '#e6fffa'; // Light green
-    if (stats.status === 'WA') return '#fff0f6'; // Light pink/yellow? Or maybe yellow for pending
-    if (stats.pending) return '#fff0f6'; // Light pink/yellow? Or maybe yellow for pending
-    if (stats.tries > 0) return '#fff1f0'; // Light red
+    if (stats.status === 'AC') return 'rgba(36, 161, 72, 0.2)'; // Green 20%
+    if (stats.status === 'WA') return 'rgba(218, 30, 40, 0.2)'; // Red 20%
+    if (stats.pending) return 'rgba(241, 194, 27, 0.2)'; // Yellow 20%
+    if (stats.tries > 0) return 'rgba(218, 30, 40, 0.1)'; // Red 10%
     return 'transparent';
   };
 
@@ -98,8 +98,13 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       if (!stats) return null;
 
       const bgColor = getCellColor(stats);
-      const textColor = stats.status === 'AC' ? '#00524d' : 
-                       stats.pending ? '#8a3ffc' : '#a61e4d';
+      // Use Carbon text colors
+      const textColor = stats.status === 'AC' ? 'var(--cds-text-primary)' : 
+                       stats.pending ? 'var(--cds-text-primary)' : 'var(--cds-text-primary)';
+      
+      const statusColor = stats.status === 'AC' ? 'var(--cds-support-success)' :
+                          stats.status === 'WA' ? 'var(--cds-support-error)' :
+                          stats.pending ? 'var(--cds-support-warning)' : 'var(--cds-text-secondary)';
 
       return (
         <div style={{ 
@@ -117,7 +122,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
         }}>
           {stats.status === 'AC' && (
             <>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: textColor }}> AC </div>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: statusColor }}> AC </div>
               <div style={{ fontSize: '0.8em', color: textColor }}>
                 {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
               </div>
@@ -125,7 +130,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           )}
           {stats.status === 'WA' && (
             <>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: textColor }}> WA </div>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: statusColor }}> WA </div>
               <div style={{ fontSize: '0.8em', color: textColor }}>
                 {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
               </div>
@@ -133,7 +138,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           )}
           {stats.pending && (
             <>
-              <div style={{ fontWeight: 'bold', color: textColor }}>Pending</div>
+              <div style={{ fontWeight: 'bold', color: statusColor }}>Pending</div>
               <div style={{ fontSize: '0.8em', color: textColor }}>{stats.tries} tries</div>
             </>
           )}

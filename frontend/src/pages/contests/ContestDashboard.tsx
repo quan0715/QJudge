@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Button, 
-  Tile, 
   Tag, 
   Loading,
   DataTable,
@@ -14,23 +13,29 @@ import {
   TableCell,
   TableContainer
 } from '@carbon/react';
-import { Play, Locked, CheckmarkFilled, Trophy, Time } from '@carbon/icons-react';
+import { Play, Time } from '@carbon/icons-react';
 import ReactMarkdown from 'react-markdown';
+
 import remarkGfm from 'remark-gfm';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
-import ContestScoreboard, { type ProblemInfo, type StandingRow } from '@/components/contest/ContestScoreboard';
-import { View } from '@carbon/icons-react';
+import { type ProblemInfo, type StandingRow } from '@/components/contest/ContestScoreboard';
 import { useSearchParams } from 'react-router-dom';
 import SubmissionDetailModal from '@/components/contest/SubmissionDetailModal';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import type { StatusType } from '@/components/common/StatusBadge';
+import SurfaceSection from '@/components/contest/layout/SurfaceSection';
+import ContainerCard from '@/components/contest/layout/ContainerCard';
+import SubmissionTrendChart from '@/components/contest/SubmissionTrendChart';
+import { useLocation } from 'react-router-dom';
 
 const ContestDashboard = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const { refreshContest } = useOutletContext<{ refreshContest: () => void }>();
   
   // Personal stats state
   const [myRank, setMyRank] = useState<StandingRow | null>(null);
@@ -90,21 +95,9 @@ const ContestDashboard = () => {
     }
   };
 
-  const handleEnterExam = async () => {
-    if (!contest) return;
-    
-    try {
-      if (!contest.has_started) {
-        await api.startExam(contest.id);
-        await refreshContest();
-        await loadContest();
-      }
-      navigate(`/contests/${contest.id}/problems`);
-    } catch (error) {
-      console.error('Failed to enter exam', error);
-      alert('無法進入考試，請稍後再試');
-    }
-  };
+
+
+
 
   const handleSubmissionClick = (submissionId: string) => {
     setSearchParams(prev => {
@@ -120,33 +113,56 @@ const ContestDashboard = () => {
     });
   };
 
-  const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { type: any; label: string }> = {
-      'AC': { type: 'green', label: 'AC' },
-      'WA': { type: 'red', label: 'WA' },
-      'TLE': { type: 'magenta', label: 'TLE' },
-      'MLE': { type: 'magenta', label: 'MLE' },
-      'RE': { type: 'red', label: 'RE' },
-      'CE': { type: 'gray', label: 'CE' },
-      'pending': { type: 'gray', label: 'Pending' },
-      'judging': { type: 'blue', label: 'Judging' },
-      'SE': { type: 'red', label: 'SE' }
-    };
+  const getStatusBadge = (status: string) => {
+    let type: StatusType = 'gray';
+    let label = status;
 
-    const config = statusConfig[status] || { type: 'gray', label: status };
-    return <Tag type={config.type} size="sm">{config.label}</Tag>;
+    switch (status) {
+      case 'AC':
+        type = 'success';
+        label = 'AC';
+        break;
+      case 'WA':
+        type = 'error';
+        label = 'WA';
+        break;
+      case 'TLE':
+        type = 'purple';
+        label = 'TLE';
+        break;
+      case 'MLE':
+        type = 'purple';
+        label = 'MLE';
+        break;
+      case 'RE':
+        type = 'error';
+        label = 'RE';
+        break;
+      case 'CE':
+        type = 'warning';
+        label = 'CE';
+        break;
+      case 'pending':
+        type = 'gray';
+        label = 'Pending';
+        break;
+      case 'judging':
+        type = 'info';
+        label = 'Judging';
+        break;
+      case 'SE':
+        type = 'error';
+        label = 'SE';
+        break;
+      default:
+        type = 'gray';
+        label = status;
+    }
+
+    return <StatusBadge status={type} text={label} size="sm" />;
   };
 
-  const getLanguageLabel = (lang: string) => {
-    const langMap: Record<string, string> = {
-      'cpp': 'C++',
-      'python': 'Python',
-      'java': 'Java',
-      'javascript': 'JavaScript',
-      'c': 'C'
-    };
-    return langMap[lang] || lang;
-  };
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -164,271 +180,192 @@ const ContestDashboard = () => {
     const stats = myRank.problems[problemId] || myRank.problems[problemId.toString()];
     if (!stats) return null;
     
-    if (stats.status === 'AC') return <Tag type="green" size="sm">AC</Tag>;
-    if (stats.pending) return <Tag type="gray" size="sm">Pending</Tag>;
-    if (stats.tries > 0) return <Tag type="red" size="sm">Tried</Tag>;
-    return <Tag type="gray" size="sm">Unsolved</Tag>;
+    if (stats.status === 'AC') return <StatusBadge status="success" text="AC" size="sm" />;
+    if (stats.pending) return <StatusBadge status="gray" text="Pending" size="sm" />;
+    if (stats.tries > 0) return <StatusBadge status="error" text="Tried" size="sm" />;
+    return <StatusBadge status="gray" text="Unsolved" size="sm" />;
   };
+
+  const isProblemsPage = location.pathname.endsWith('/problems');
 
   if (loading) return <Loading />;
   if (!contest) return <div>Contest not found</div>;
 
-  const isExamActive = contest.exam_mode_enabled && contest.status === 'active';
-
-  return (
-    <div className="cds--grid" style={{ padding: '2rem' }}>
-      <div className="cds--row">
-        <div className="cds--col-lg-16">
-          {/* Hero Section with Title and Action Button */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'flex-start',
-            marginBottom: '2rem',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            <div>
-              <h1 style={{ marginBottom: '1rem' }}>{contest.name}</h1>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Tag type={contest.status === 'active' ? 'green' : 'gray'}>
-                  {contest.status === 'active' ? '進行中' : '非活動'}
-                </Tag>
-                <Tag type="blue">{contest.visibility}</Tag>
-                {contest.exam_mode_enabled && <Tag type="purple">考試模式</Tag>}
-              </div>
+  // Render Problems View
+  if (isProblemsPage) {
+    return (
+      <SurfaceSection>
+        <div className="cds--grid" style={{ padding: 0 }}>
+          <div className="cds--row">
+            <div className="cds--col-lg-16">
+              <ContainerCard title="題目列表" noPadding>
+                <DataTable
+                  rows={problems.map(p => ({ ...p, id: p.id.toString() }))}
+                  headers={[
+                    { key: 'label', header: '標號' },
+                    { key: 'title', header: '題目' },
+                    { key: 'score', header: '分數' },
+                    { key: 'status', header: '狀態' },
+                    { key: 'action', header: '操作' }
+                  ]}
+                >
+                  {({
+                    rows,
+                    headers,
+                    getHeaderProps,
+                    getRowProps,
+                    getTableProps
+                  }: any) => (
+                    <TableContainer>
+                      <Table {...getTableProps()}>
+                        <TableHead>
+                          <TableRow>
+                            {headers.map((header: any) => {
+                              const { key, ...headerProps } = getHeaderProps({ header });
+                              return (
+                                <TableHeader {...headerProps} key={key}>
+                                  {header.header}
+                                </TableHeader>
+                              );
+                            })}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {rows.map((row: any) => {
+                            const problem = problems.find(p => p.id.toString() === row.id);
+                            const { key, ...rowProps } = getRowProps({ row });
+                            return (
+                              <TableRow 
+                                {...rowProps} 
+                                key={key}
+                                onClick={() => navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <TableCell>
+                                  <Tag type="cyan">{problem?.label}</Tag>
+                                </TableCell>
+                                <TableCell>{problem?.title}</TableCell>
+                                <TableCell>{problem?.score}</TableCell>
+                                <TableCell>
+                                  {problem && getProblemStatus(problem.id)}
+                                </TableCell>
+                                <TableCell>
+                                  <Button kind="ghost" size="sm" renderIcon={Play}>
+                                    前往
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </DataTable>
+              </ContainerCard>
+              <ContainerCard title="近期提交趨勢" noPadding>
+                <div style={{ padding: '1.5rem' }}>
+                  <SubmissionTrendChart 
+                    data={[
+                      { date: '10:00', count: 2 },
+                      { date: '10:15', count: 5 },
+                      { date: '10:30', count: 3 },
+                      { date: '10:45', count: 8 },
+                      { date: '11:00', count: 6 },
+                      { date: '11:15', count: 12 },
+                      { date: '11:30', count: 9 },
+                      { date: '11:45', count: 15 },
+                    ]} 
+                    height={250}
+                  />
+                </div>
+              </ContainerCard>
             </div>
+          </div>
+        </div>
+      </SurfaceSection>
+    );
+  }
 
-            {/* Exam Action Button - Moved to Hero Section Right Side */}
-            {isExamActive && (
-              <div style={{ minWidth: '200px' }}>
-                {contest.is_locked ? (
-                  <Button kind="danger" disabled renderIcon={Locked} style={{ width: '100%' }}>
-                    已被鎖定
-                  </Button>
-                ) : contest.has_finished_exam ? (
-                  <Button kind="ghost" disabled renderIcon={CheckmarkFilled} style={{ width: '100%' }}>
-                    已完成考試
-                  </Button>
-                ) : (
-                  <Button
-                    renderIcon={Play}
-                    size="xl"
-                    onClick={handleEnterExam}
-                    style={{ width: '100%' }}
-                  >
-                    {contest.has_started ? '繼續考試' : '開始考試'}
-                  </Button>
-                )}
-              </div>
+  // Render Overview View
+  return (
+    <SurfaceSection>
+      <div className="cds--grid" style={{ padding: 0 }}>
+        <div className="cds--row">
+          {/* Left Column: Description & Rules */}
+          <div className="cds--col-lg-10 cds--col-md-8">
+
+
+            {contest.rules && (
+              <ContainerCard title="競賽規則" style={{ marginBottom: '1.5rem' }}>
+                <div className="markdown-body" style={{ marginTop: '0.5rem' }}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {contest.rules}
+                  </ReactMarkdown>
+                </div>
+              </ContainerCard>
             )}
           </div>
 
-          <div className="cds--row">
-            <div className="cds--col-lg-10 cds--col-md-8">
-              <Tile style={{ marginBottom: '2rem' }}>
-                <h3>競賽說明</h3>
-                <div className="markdown-body" style={{ marginTop: '1rem', overflow: 'visible', height: 'auto' }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {contest.description || '無描述'}
-                  </ReactMarkdown>
+          {/* Right Column: Stats */}
+          <div className="cds--col-lg-6 cds--col-md-8">
+            <ContainerCard title="我的成績" style={{ marginBottom: '1.5rem' }}>
+              {myRank ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 300, marginBottom: '0.5rem' }}>
+                    Rank {myRank.rank}
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', color: 'var(--cds-text-secondary)' }}>
+                    <div>Solved: {(myRank as any).solved_count}</div>
+                    <div>Penalty: {(myRank as any).penalty}</div>
+                  </div>
                 </div>
-              </Tile>
-
-              {contest.rules && (
-                <Tile style={{ marginBottom: '2rem' }}>
-                  <h3>競賽規則</h3>
-                  <div className="markdown-body" style={{ marginTop: '1rem' }}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {contest.rules}
-                    </ReactMarkdown>
-                  </div>
-                </Tile>
+              ) : (
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--cds-text-secondary)' }}>
+                  暫無排名數據
+                </div>
               )}
-            </div>
 
-            <div className="cds--col-lg-10 cds--col-md-8">
-              {/* Problem List Section */}
-              {problems.length > 0 && (
-                <Tile style={{ marginBottom: '2rem' }}>
-                  <h3>題目列表</h3>
-                  <div style={{ marginTop: '1rem' }}>
-                    <DataTable
-                      rows={problems.map(p => ({ ...p, id: p.id.toString() }))}
-                      headers={[
-                        { key: 'label', header: '標號' },
-                        { key: 'title', header: '題目' },
-                        { key: 'score', header: '分數' },
-                        { key: 'status', header: '狀態' },
-                        { key: 'action', header: '操作' }
-                      ]}
+              <h5 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+                <Time size={16} /> 最近提交
+              </h5>
+              
+              {mySubmissions.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {mySubmissions.map(sub => (
+                    <div 
+                      key={sub.id} 
+                      onClick={() => handleSubmissionClick(sub.id.toString())}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        padding: '0.5rem',
+                        borderBottom: '1px solid var(--cds-border-subtle)',
+                        cursor: 'pointer'
+                      }}
                     >
-                      {({
-                        rows,
-                        headers,
-                        getHeaderProps,
-                        getRowProps,
-                        getTableProps
-                      }: any) => (
-                        <TableContainer>
-                          <Table {...getTableProps()}>
-                            <TableHead>
-                              <TableRow>
-                                {headers.map((header: any) => (
-                                  <TableHeader {...getHeaderProps({ header })}>
-                                    {header.header}
-                                  </TableHeader>
-                                ))}
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {rows.map((row: any) => {
-                                const problem = problems.find(p => p.id.toString() === row.id);
-                                return (
-                                  <TableRow 
-                                    {...getRowProps({ row })} 
-                                    onClick={() => navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`)}
-                                    style={{ cursor: 'pointer' }}
-                                  >
-                                    <TableCell>
-                                      <Tag type="cyan">{problem?.label}</Tag>
-                                    </TableCell>
-                                    <TableCell>{problem?.title}</TableCell>
-                                    <TableCell>{problem?.score}</TableCell>
-                                    <TableCell>
-                                      {problem && getProblemStatus(problem.id)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Button kind="ghost" size="sm" renderIcon={Play}>
-                                        前往
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      )}
-                    </DataTable>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {getStatusBadge(sub.status)}
+                        <span style={{ fontSize: '0.875rem' }}>{sub.problem?.title || sub.problem}</span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                        {formatDate(sub.created_at)}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                    <Button kind="ghost" size="sm" onClick={() => navigate(`/contests/${contestId}/submissions`)}>
+                      查看全部
+                    </Button>
                   </div>
-                </Tile>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                  尚無提交記錄
+                </div>
               )}
-            </div>
-
-            <div className="cds--col-lg-6 cds--col-md-8">
-              {/* Personal Stats Card */}
-              <Tile style={{ marginBottom: '2rem', height: '100%' }}>
-                <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Trophy /> 我的成績
-                </h4>
-                
-                {myRank ? (
-                  <div style={{ marginBottom: '2rem' }}>
-                    <ContestScoreboard 
-                      problems={problems} 
-                      standings={[myRank]} 
-                      loading={false}
-                    />
-                  </div>
-                ) : (
-                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--cds-text-secondary)', marginBottom: '2rem' }}>
-                    暫無排名數據
-                  </div>
-                )}
-
-                <h5 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Time /> 最近提交
-                </h5>
-                {mySubmissions.length > 0 ? (
-                  <DataTable
-                    rows={mySubmissions.map(sub => ({
-                      id: sub.id.toString(),
-                      status: sub.status,
-                      problem: sub.problem?.title || sub.problem,
-                      language: sub.language,
-                      score: sub.score,
-                      time: sub.exec_time,
-                      created_at: sub.created_at
-                    }))}
-                    headers={[
-                      { key: 'status', header: '狀態' },
-                      { key: 'problem', header: '題目' },
-                      { key: 'language', header: '語言' },
-                      { key: 'score', header: '得分' },
-                      { key: 'time', header: '耗時' },
-                      { key: 'created_at', header: '時間' },
-                      { key: 'action', header: '操作' }
-                    ]}
-                  >
-                    {({
-                      rows,
-                      headers,
-                      getHeaderProps,
-                      getRowProps,
-                      getTableProps
-                    }: any) => (
-                      <TableContainer>
-                        <Table {...getTableProps()} size="sm">
-                          <TableHead>
-                            <TableRow>
-                              {headers.map((header: any) => (
-                                <TableHeader {...getHeaderProps({ header })}>
-                                  {header.header}
-                                </TableHeader>
-                              ))}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {rows.map((row: any) => {
-                              const sub = mySubmissions.find(s => s.id.toString() === row.id);
-                              return (
-                                <TableRow 
-                                  {...getRowProps({ row })} 
-                                  onClick={() => handleSubmissionClick(sub.id.toString())}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  <TableCell>{getStatusTag(sub.status)}</TableCell>
-                                  <TableCell>{sub.problem?.title || sub.problem}</TableCell>
-                                  <TableCell>{getLanguageLabel(sub.language)}</TableCell>
-                                  <TableCell>{sub.score}</TableCell>
-                                  <TableCell>{sub.exec_time} ms</TableCell>
-                                  <TableCell>{formatDate(sub.created_at)}</TableCell>
-                                  <TableCell>
-                                    <Button 
-                                      kind="ghost" 
-                                      size="sm" 
-                                      renderIcon={View} 
-                                      hasIconOnly 
-                                      iconDescription="查看"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSubmissionClick(sub.id.toString());
-                                      }}
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    )}
-                  </DataTable>
-                ) : (
-                  <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
-                    尚無提交記錄
-                  </div>
-                )}
-                {mySubmissions.length > 0 && (
-                   <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-                      <Button kind="ghost" size="sm" onClick={() => navigate(`/contests/${contestId}/submissions`)}>
-                        查看全部
-                      </Button>
-                   </div>
-                )}
-              </Tile>
-            </div>
+            </ContainerCard>
           </div>
         </div>
       </div>
@@ -438,7 +375,7 @@ const ContestDashboard = () => {
         isOpen={!!searchParams.get('select_id')}
         onClose={handleCloseModal}
       />
-    </div>
+    </SurfaceSection>
   );
 };
 

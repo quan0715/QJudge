@@ -97,6 +97,11 @@ const TeacherContestProblemEditPage = () => {
       loading={loading}
       error={error}
       success={success}
+      breadcrumbs={[
+        { label: 'Contests', href: '/teacher/contests' },
+        { label: 'Contest Settings', href: `/teacher/contests/${contestId}/edit` },
+        { label: isEditMode ? 'Edit Problem' : 'New Problem' }
+      ]}
     />
   );
 };

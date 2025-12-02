@@ -19,7 +19,22 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
             'memory_usage',
             'output',
             'error_message',
+            'input',
+            'expected_output',
         ]
+
+    input = serializers.SerializerMethodField()
+    expected_output = serializers.SerializerMethodField()
+
+    def get_input(self, obj):
+        if obj.test_case.is_sample or not obj.test_case.is_hidden:
+            return obj.test_case.input_data
+        return None
+
+    def get_expected_output(self, obj):
+        if obj.test_case.is_sample or not obj.test_case.is_hidden:
+            return obj.test_case.output_data
+        return None
 
 
 class ScreenEventSerializer(serializers.ModelSerializer):

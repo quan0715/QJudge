@@ -58,8 +58,8 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         
         if source_type == 'practice':
             # Practice: Show ALL practice submissions (Public)
-            # Exclude contest submissions
-            return queryset.filter(source_type='practice').select_related('user', 'problem', 'contest')
+            # Exclude contest submissions and test submissions
+            return queryset.filter(source_type='practice', is_test=False).select_related('user', 'problem', 'contest')
             
         elif source_type == 'contest':
             # Contest: See all (for scoreboard), but filter by contest if provided

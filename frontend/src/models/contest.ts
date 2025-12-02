@@ -60,6 +60,7 @@ export interface ContestDetail {
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
   max_cheat_warnings?: number;
+  participant_count?: number;
 }
 
 export interface ScoreboardProblemCell {
@@ -130,6 +131,7 @@ export interface ContestCreateRequest {
   visibility: ContestVisibility;
   password?: string;
   description?: string;
+  rules?: string;
   start_time?: string;
   end_time?: string;
 }
@@ -137,6 +139,7 @@ export interface ContestCreateRequest {
 export interface ContestUpdateRequest {
   name?: string;
   description?: string;
+  rules?: string;
   start_time?: string;
   end_time?: string;
   visibility?: ContestVisibility;

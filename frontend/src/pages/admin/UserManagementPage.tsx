@@ -185,7 +185,7 @@ const UserManagementPage = () => {
   const getProviderLabel = (provider: string) => {
     const labels: Record<string, string> = {
       'email': 'Email/密碼',
-      'nycu-oauth': 'NYCU OAuth',
+      'nycu-oauth': 'SSO',
       'google': 'Google',
       'github': 'GitHub'
     };

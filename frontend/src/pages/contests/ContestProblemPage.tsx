@@ -16,7 +16,7 @@ const ContestProblemPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contest, setContest] = useState<any>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   useContestNavigationGuard(contestId, contest?.status === 'ongoing');
 

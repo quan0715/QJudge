@@ -109,7 +109,8 @@ class ProblemViewSet(viewsets.ModelViewSet):
             ac_submissions = Submission.objects.filter(
                 problem=OuterRef('pk'),
                 user=user,
-                status='AC'
+                status='AC',
+                is_test=False
             )
             queryset = queryset.annotate(
                 is_solved=Exists(ac_submissions)

@@ -15,7 +15,7 @@ const HomePage = () => {
             <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
               <h1 className="animate-slide-up" style={{ fontSize: '4rem', fontWeight: 'bold', marginBottom: '1.5rem', lineHeight: '1.2' }}>
                 Master Algorithms with <br />
-                <span className="text-gradient" style={{ background: 'linear-gradient(to right, #fff, #a5a5a5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NYCU Online Judge</span>
+                <span className="text-gradient" style={{ background: 'linear-gradient(to right, #fff, #a5a5a5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>QJudge</span>
               </h1>
               <p className="animate-slide-up" style={{ fontSize: '1.5rem', marginBottom: '3rem', opacity: 0.9, animationDelay: '0.2s' }}>
                 Join the elite community of problem solvers. Practice, compete, and elevate your coding skills to the next level.
@@ -37,7 +37,7 @@ const HomePage = () => {
       <section style={{ padding: '4rem 2rem', background: 'var(--cds-layer-01)' }}>
         <Grid>
           <Column lg={16} md={8} sm={4}>
-            <h2 style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '2.5rem' }}>Why NYCU OJ?</h2>
+            <h2 style={{ textAlign: 'center', marginBottom: '3rem', fontSize: '2.5rem' }}>Why QJudge?</h2>
           </Column>
           <Column lg={5} md={4} sm={4} style={{ marginBottom: '2rem' }}>
             <Tile className="glass-panel" style={{ height: '100%', textAlign: 'center', padding: '2rem', background: 'var(--cds-layer-02)' }}>

@@ -53,7 +53,7 @@ const LoginPage = () => {
       <div style={{ flex: 1, backgroundImage: 'url(/src/assets/login_split_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', color: 'white', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.6)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>NYCU Online Judge</h1>
+          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>QJudge</h1>
           <p style={{ fontSize: '1.25rem' }}>Join the community of developers and master your coding skills.</p>
         </div>
       </div>
@@ -71,7 +71,7 @@ const LoginPage = () => {
               <TextInput
                 id="email"
                 labelText="Email"
-                placeholder="student@nycu.edu.tw"
+                placeholder="student@example.com"
                 style={{ marginBottom: '1rem' }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -99,7 +99,7 @@ const LoginPage = () => {
                 <span style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'var(--cds-layer-01)', padding: '0 10px', color: '#888', fontSize: '0.875rem' }}>OR</span>
               </div>
               <Button kind="tertiary" renderIcon={ArrowRight} style={{ width: '100%' }} onClick={() => handleOAuthLogin('nycu')}>
-                Sign in with NYCU SSO
+                Sign in with SSO
               </Button>
             </Form>
           </div>

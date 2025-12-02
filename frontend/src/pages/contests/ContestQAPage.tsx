@@ -4,6 +4,8 @@ import ContestClarifications from '@/components/contest/ContestClarifications';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
 import { Loading } from '@carbon/react';
+import SurfaceSection from '@/components/contest/layout/SurfaceSection';
+import ContainerCard from '@/components/contest/layout/ContainerCard';
 
 const ContestQAPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -23,17 +25,24 @@ const ContestQAPage = () => {
   if (!contest) return <div>Contest not found</div>;
 
   return (
-    <div className="cds--grid" style={{ padding: '2rem' }}>
-      <div className="cds--row">
-        <div className="cds--col-lg-16">
-          <ContestClarifications 
-            contestId={contest.id} 
-            isTeacherOrAdmin={['teacher', 'admin'].includes(contest.current_user_role)}
-            problems={contest.problems}
-          />
+    <SurfaceSection>
+      <div className="cds--grid" style={{ padding: 0 }}>
+        <div className="cds--row">
+          <div className="cds--col-lg-16">
+            <ContainerCard title="提問與討論">
+              <p style={{ marginBottom: '1.5rem', color: 'var(--cds-text-secondary)' }}>
+                {contest.name} - 公告與問題討論區
+              </p>
+              <ContestClarifications 
+                contestId={contest.id} 
+                isTeacherOrAdmin={['teacher', 'admin'].includes(contest.current_user_role)}
+                problems={contest.problems}
+              />
+            </ContainerCard>
+          </div>
         </div>
       </div>
-    </div>
+    </SurfaceSection>
   );
 };
 

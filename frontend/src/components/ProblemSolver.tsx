@@ -63,7 +63,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   initialLanguage = '',
   onSubmit,
   isContestMode = false,
-  // contestId
+  contestId
 }) => {
   const [languageConfigs, setLanguageConfigs] = useState<LanguageConfig[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguage);
@@ -71,6 +71,37 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
+  
+  // Auto-save key generator
+  const getDraftKey = (lang: string) => {
+    if (isContestMode && contestId) {
+      return `draft_contest_${contestId}_problem_${problem.id}_${lang}`;
+    }
+    return `draft_problem_${problem.id}_${lang}`;
+  };
+
+  // Load draft or template
+  const loadDraftOrTemplate = (lang: string, configs: LanguageConfig[]) => {
+    const draftKey = getDraftKey(lang);
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+      setCode(savedDraft);
+    } else {
+      const config = configs.find(c => c.language === lang);
+      if (config) {
+        setCode(config.template_code || '');
+      }
+    }
+  };
+
+  // Save draft on code change
+  useEffect(() => {
+    if (selectedLanguage && code) {
+      const draftKey = getDraftKey(selectedLanguage);
+      localStorage.setItem(draftKey, code);
+    }
+  }, [code, selectedLanguage, problem.id, contestId]);
   
   // Modal states
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
@@ -89,8 +120,11 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
         const defaultLang = problem.language_configs.find((c: LanguageConfig) => c.is_enabled);
         if (defaultLang) {
           setSelectedLanguage(defaultLang.language);
-          setCode(defaultLang.template_code || '');
+          loadDraftOrTemplate(defaultLang.language, problem.language_configs);
         }
+      } else {
+        // If language is already selected (e.g. from props), try to load draft
+        loadDraftOrTemplate(selectedLanguage, problem.language_configs);
       }
     }
   }, [problem]);
@@ -98,11 +132,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   const handleLanguageChange = (item: any) => {
     const lang = item.selectedItem;
     setSelectedLanguage(lang.id);
-    
-    const config = languageConfigs.find(c => c.language === lang.id);
-    if (config && (!code || code.trim() === '')) {
-      setCode(config.template_code || '');
-    }
+    loadDraftOrTemplate(lang.id, languageConfigs);
   };
 
   const startPolling = (submissionId: number) => {
@@ -308,7 +338,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               scrollBeyondLastLine: false,
                               automaticLayout: true,
                               fontLigatures: false,
-                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace",
+                              fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
                               fontWeight: '400',
                               cursorBlinking: 'smooth',
                               cursorSmoothCaretAnimation: 'on',
@@ -422,7 +452,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               scrollBeyondLastLine: false,
                               automaticLayout: true,
                               fontLigatures: false,
-                              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace",
+                              fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
                               fontWeight: '400',
                               cursorBlinking: 'smooth',
                               cursorSmoothCaretAnimation: 'on',

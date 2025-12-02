@@ -15,9 +15,11 @@ import {
 import { Logout, Time, Stop } from '@carbon/icons-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
-import ExamModeWrapper, { createExamHandlers } from '@/components/contest/ExamModeWrapper';
+import ExamModeWrapper from '@/components/contest/ExamModeWrapper';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
+import ContestHero from '@/components/contest/layout/ContestHero';
+import ContestTabs from '@/components/contest/layout/ContestTabs';
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -100,14 +102,62 @@ const ContestLayout = () => {
     }
   };
 
+  const handleJoin = async () => {
+    if (!contest) return;
+    try {
+      await api.registerContest(contest.id);
+      await refreshContest();
+    } catch (error) {
+      console.error('Failed to join contest:', error);
+      alert('無法加入競賽，請稍後再試');
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!contest) return;
+    if (!confirm('確定要退出此競賽嗎？')) return;
+    try {
+      await api.leaveContest(contest.id);
+      await refreshContest();
+    } catch (error) {
+      console.error('Failed to leave contest:', error);
+      alert('無法退出競賽，請稍後再試');
+    }
+  };
+
+  const handleStartExam = async () => {
+    if (!contest) return;
+    try {
+      await api.startExam(contest.id);
+      await refreshContest();
+      // Navigate to problems after starting
+      // navigate(`/contests/${contest.id}/problems`); // Optional: auto navigate
+    } catch (error) {
+      console.error('Failed to start exam:', error);
+      alert('無法開始考試，請稍後再試');
+    }
+  };
+
+  const handleEndExam = async () => {
+    if (!contest) return;
+    if (!confirm('確定要交卷嗎？交卷後將無法再進行作答。')) return;
+    try {
+      await api.endExam(contest.id);
+      await refreshContest();
+    } catch (error) {
+      console.error('Failed to end exam:', error);
+      alert('無法交卷，請稍後再試');
+    }
+  };
+
   const handleExit = async () => {
     if (!contestId || !contest) return;
 
     try {
       // If exam mode is enabled and exam is active, end the exam first
       if (contest.exam_mode_enabled && contest.status === 'active' && !contest.has_finished_exam) {
-        const { endExam } = createExamHandlers(contest.id, contest.exam_mode_enabled, refreshContest);
-        await endExam();
+        // Use the new handleEndExam logic
+        await handleEndExam();
       }
       
       // Then leave the contest
@@ -123,7 +173,7 @@ const ContestLayout = () => {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Theme theme={theme}>
         <Header aria-label="Contest Platform">
-          <HeaderName prefix="NYCU" href="#">
+          <HeaderName prefix="QJudge" href="#">
             [競賽模式] {contest?.name}
           </HeaderName>
           <HeaderNavigation aria-label="Contest Navigation">
@@ -211,17 +261,36 @@ const ContestLayout = () => {
       </Theme>
 
       <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ marginTop: '3rem', flex: 1, overflow: 'auto', backgroundColor: 'var(--cds-layer-01)' }}>
-          <ExamModeWrapper
-            contestId={contestId || ''}
-            examModeEnabled={!!contest?.exam_mode_enabled}
-            isActive={!!isExamActive}
-            isLocked={contest?.is_locked}
-            lockReason={contest?.lock_reason}
-            currentUserRole={contest?.current_user_role}
-          >
-            <Outlet context={{ refreshContest }} />
-          </ExamModeWrapper>
+        <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
+          <div className="contest-content" style={{ 
+            flex: 1, 
+            overflow: 'auto',
+            backgroundColor: theme === 'white' ? '#f4f4f4' : '#161616', // Custom background as requested
+            position: 'relative'
+          }}>
+            {/* Hero Section - Scrolls away */}
+            <ContestHero 
+              contest={contest} 
+              onJoin={handleJoin}
+              onLeave={handleLeave}
+              onStartExam={handleStartExam}
+              onEndExam={handleEndExam}
+            />
+
+
+
+            {/* Main Content */}
+            <ExamModeWrapper
+              contestId={contestId || ''}
+              examModeEnabled={!!contest?.exam_mode_enabled}
+              isActive={!!isExamActive}
+              isLocked={contest?.is_locked}
+              lockReason={contest?.lock_reason}
+              currentUserRole={contest?.current_user_role}
+            >
+              <Outlet context={{ refreshContest }} />
+            </ExamModeWrapper>
+          </div>
         </div>
       </Theme>
 

@@ -4,6 +4,7 @@ import {
   Form,
   Stack,
   TextInput,
+  TextArea,
   Button,
   RadioButton,
   RadioButtonGroup,
@@ -16,6 +17,7 @@ const ContestCreatePage = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [rules, setRules] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [password, setPassword] = useState('');
   const [creating, setCreating] = useState(false);
@@ -46,6 +48,7 @@ const ContestCreatePage = () => {
       const contest = await api.createContest({
         name: name.trim(),
         description: description.trim(),
+        rules: rules.trim(),
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         visibility,
@@ -100,6 +103,15 @@ const ContestCreatePage = () => {
               placeholder="輸入競賽敘述"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+
+            <TextArea
+              id="contest-rules"
+              labelText="競賽規則 (支援 Markdown)"
+              placeholder="輸入競賽規則"
+              value={rules}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRules(e.target.value)}
+              rows={4}
             />
 
             <RadioButtonGroup

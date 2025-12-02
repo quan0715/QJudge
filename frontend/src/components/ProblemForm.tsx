@@ -21,6 +21,7 @@ import { Save, View } from '@carbon/icons-react';
 import ProblemPreview from './ProblemPreview';
 import Editor from '@monaco-editor/react';
 import { DEFAULT_TEMPLATES, LANGUAGE_OPTIONS } from '../constants/codeTemplates';
+import { PageHeader } from './common/PageHeader';
 
 export interface TestCase {
   input_data: string;
@@ -69,6 +70,7 @@ interface ProblemFormProps {
   loading?: boolean;
   error?: string;
   success?: string;
+  breadcrumbs?: { label: string; href?: string }[];
 }
 
 const ProblemForm = ({
@@ -79,10 +81,17 @@ const ProblemForm = ({
   // isContestMode = false,
   loading = false,
   error: externalError,
-  success: externalSuccess
+  success: externalSuccess,
+  breadcrumbs
 }: ProblemFormProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [currentLang, setCurrentLang] = useState<'zh-hant' | 'en'>('zh-hant');
+
+  // ... (rest of the component state and logic)
+  // Note: I am NOT replacing the whole file, just the top part to add import.
+  // Wait, replace_file_content replaces the range. I need to be careful.
+  // I will use multi_replace_file_content to be safer and surgical.
+
 
   // Basic Info
   const [title, setTitle] = useState('');
@@ -243,26 +252,29 @@ const ProblemForm = ({
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {isEditMode ? '編輯題目' : '新增題目'}
-        </h1>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <Button
-            kind="tertiary"
-            renderIcon={View}
-            onClick={() => setShowPreview(!showPreview)}
-          >
-            {showPreview ? '隱藏預覽' : '顯示預覽'}
-          </Button>
-          <Button
-            kind="secondary"
-            onClick={onCancel}
-          >
-            取消
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={isEditMode ? '編輯題目' : '新增題目'}
+        breadcrumbs={breadcrumbs}
+        actions={
+          <>
+            <Button
+              kind="tertiary"
+              renderIcon={View}
+              onClick={() => setShowPreview(!showPreview)}
+              size="md"
+            >
+              {showPreview ? '隱藏預覽' : '顯示預覽'}
+            </Button>
+            <Button
+              kind="secondary"
+              onClick={onCancel}
+              size="md"
+            >
+              取消
+            </Button>
+          </>
+        }
+      />
 
       {externalError && (
         <InlineNotification
@@ -611,7 +623,7 @@ const ProblemForm = ({
                   }] : [])
                 ]}
                 testCases={testCases}
-                defaultLang={currentLang}
+                defaultLang={currentLang === 'zh-hant' ? 'zh-TW' : 'en'}
                 showLanguageToggle={!!(translationTitle && translationTitleEn)}
                 compact={false}
               />
