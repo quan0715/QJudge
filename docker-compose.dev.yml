@@ -39,6 +39,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
     container_name: oj_backend_dev
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -60,6 +62,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
     container_name: oj_celery_dev
     command: celery -A config.celery worker --loglevel=info
     volumes:
@@ -95,6 +99,13 @@ services:
       - .env
     depends_on:
       - backend
+    networks:
+      - oj_network_dev
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: oj_cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     networks:
       - oj_network_dev
 

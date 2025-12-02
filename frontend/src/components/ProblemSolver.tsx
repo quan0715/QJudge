@@ -55,6 +55,7 @@ interface ProblemSolverProps {
   onSubmit: (code: string, language: string, isTest: boolean) => Promise<Submission | void>;
   isContestMode?: boolean;
   contestId?: string; // For fetching contest-specific submissions if needed
+  readOnly?: boolean;
 }
 
 const ProblemSolver: React.FC<ProblemSolverProps> = ({
@@ -63,7 +64,8 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   initialLanguage = '',
   onSubmit,
   isContestMode = false,
-  contestId
+  contestId,
+  readOnly = false
 }) => {
   const [languageConfigs, setLanguageConfigs] = useState<LanguageConfig[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguage);
@@ -273,7 +275,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               kind="secondary"
                               renderIcon={Play}
                               onClick={() => setIsTestModalOpen(true)}
-                              disabled={!selectedLanguage || submitting}
+                              disabled={!selectedLanguage || submitting || readOnly}
                             >
                               測試提交
                             </Button>
@@ -281,7 +283,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               kind="primary"
                               renderIcon={Send}
                               onClick={() => setIsSubmitModalOpen(true)}
-                              disabled={!selectedLanguage || submitting}
+                              disabled={!selectedLanguage || submitting || readOnly}
                             >
                               正式提交
                             </Button>
@@ -387,7 +389,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               kind="secondary"
                               renderIcon={Play}
                               onClick={() => setIsTestModalOpen(true)}
-                              disabled={!selectedLanguage || submitting}
+                              disabled={!selectedLanguage || submitting || readOnly}
                             >
                               測試提交
                             </Button>
@@ -395,7 +397,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                               kind="primary"
                               renderIcon={Send}
                               onClick={() => setIsSubmitModalOpen(true)}
-                              disabled={!selectedLanguage || submitting}
+                              disabled={!selectedLanguage || submitting || readOnly}
                             >
                               正式提交
                             </Button>

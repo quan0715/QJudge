@@ -27,12 +27,18 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
     expected_output = serializers.SerializerMethodField()
 
     def get_input(self, obj):
-        if obj.test_case.is_sample or not obj.test_case.is_hidden:
+        user = self.context.get('request').user if self.context.get('request') else None
+        is_privileged = user and (user.is_staff or user.role in ['teacher', 'admin'])
+        
+        if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
             return obj.test_case.input_data
         return None
 
     def get_expected_output(self, obj):
-        if obj.test_case.is_sample or not obj.test_case.is_hidden:
+        user = self.context.get('request').user if self.context.get('request') else None
+        is_privileged = user and (user.is_staff or user.role in ['teacher', 'admin'])
+        
+        if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
             return obj.test_case.output_data
         return None
 

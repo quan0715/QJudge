@@ -30,6 +30,7 @@ import {
 } from '@carbon/react';
 import { authFetch } from '@/services/auth';
 import ProblemImportModal from '@/components/ProblemImportModal';
+import ProblemTable from '@/components/common/ProblemTable';
 
 interface Problem {
   id: number;
@@ -194,138 +195,43 @@ const ProblemManagementPage = () => {
 
   function renderTable(filteredProblems: Problem[]) {
     return (
-      <DataTable rows={filteredProblems.map(p => ({ ...p, id: p.id.toString() }))} headers={headers}>
-        {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
-          <TableContainer>
-            <TableToolbar>
-              <TableToolbarContent>
-                <TableToolbarSearch placeholder="搜尋題目..." />
-                <Button
-                  kind="secondary"
-                  renderIcon={Upload}
-                  onClick={() => setImportModalOpen(true)}
-                >
-                  匯入 YAML
-                </Button>
-                <Button
-                  kind="primary"
-                  renderIcon={Add}
-                  onClick={() => navigate('/admin/problems/new')}
-                >
-                  新增題目
-                </Button>
-              </TableToolbarContent>
-            </TableToolbar>
-            <Table {...getTableProps()}>
-              <TableHead>
-                <TableRow>
-                  {headers.map((header) => {
-                    const { key, ...headerProps } = getHeaderProps({ header });
-                    return (
-                      <TableHeader key={key} {...headerProps}>
-                        {header.header}
-                      </TableHeader>
-                    );
-                  })}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row) => {
-                  const problem = problems.find(p => p.id === Number(row.id));
-                  if (!problem) return null;
-
-                  const canEdit = currentUser?.role === 'admin' || problem.created_by === currentUser?.username;
-
-                  const { key, ...rowProps } = getRowProps({ row });
-                  return (
-                    <TableRow key={key} {...rowProps}>
-                      <TableCell>{problem.id}</TableCell>
-                      <TableCell>
-                        <div style={{ fontWeight: 500 }}>{problem.title}</div>
-                      </TableCell>
-                      <TableCell>{getDifficultyTag(problem.difficulty)}</TableCell>
-                      <TableCell>
-                        {!problem.is_practice_visible ? (
-                          <Tag type="purple">競賽</Tag>
-                        ) : (
-                          <Tag type="blue">練習</Tag>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
-                          <span>提交: <strong>{problem.submission_count}</strong></span>
-                          <span>通過: <strong>{problem.accepted_count}</strong></span>
-                          <span>通過率: <strong>{getAcceptanceRate(problem)}</strong></span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {problem.is_visible ? (
-                          <Tag type="green">可見</Tag>
-                        ) : (
-                          <Tag type="gray">隱藏</Tag>
-                        )}
-                      </TableCell>
-                      <TableCell>{problem.created_by || '-'}</TableCell>
-                      <TableCell>{formatDate(problem.created_at)}</TableCell>
-                      <TableCell>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Button
-                            kind="ghost"
-                            size="sm"
-                            renderIcon={View}
-                            iconDescription="查看"
-                            hasIconOnly
-                            onClick={() => navigate(`/problems/${problem.id}`)}
-                          />
-                          {canEdit && (
-                            <>
-                              <Button
-                                kind="ghost"
-                                size="sm"
-                                renderIcon={Edit}
-                                iconDescription="編輯"
-                                hasIconOnly
-                                onClick={() => navigate(`/admin/problems/${problem.id}/edit`)}
-                              />
-                              <Button
-                                kind="danger--ghost"
-                                size="sm"
-                                renderIcon={TrashCan}
-                                iconDescription="刪除"
-                                hasIconOnly
-                                  onClick={async () => {
-                                    if (confirm(`確定要刪除題目「${problem.title}」嗎？`)) {
-                                      try {
-                                        const res = await authFetch(`/api/v1/problems/${problem.id}/`, {
-                                          method: 'DELETE'
-                                        });
-                                      
-                                      if (res.ok) {
-                                        // Refresh the list
-                                        fetchProblems();
-                                      } else {
-                                        alert('刪除失敗');
-                                      }
-                                    } catch (err) {
-                                      alert('刪除失敗');
-                                      console.error(err);
-                                    }
-                                  }
-                                }}
-                              />
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </DataTable>
+      <ProblemTable
+        problems={filteredProblems}
+        mode="admin"
+        onAction={handleAction}
+        onImport={() => setImportModalOpen(true)}
+        onAdd={() => navigate('/admin/problems/new')}
+      />
     );
+  }
+
+  function handleAction(action: string, problem: any) {
+    if (action === 'view') {
+      navigate(`/problems/${problem.id}`);
+    } else if (action === 'edit') {
+      navigate(`/admin/problems/${problem.id}/edit`);
+    } else if (action === 'delete') {
+      handleDelete(problem);
+    }
+  }
+
+  async function handleDelete(problem: any) {
+    if (confirm(`確定要刪除題目「${problem.title}」嗎？`)) {
+      try {
+        const res = await authFetch(`/api/v1/problems/${problem.id}/`, {
+          method: 'DELETE'
+        });
+      
+        if (res.ok) {
+          fetchProblems();
+        } else {
+          alert('刪除失敗');
+        }
+      } catch (err) {
+        alert('刪除失敗');
+        console.error(err);
+      }
+    }
   }
 };
 

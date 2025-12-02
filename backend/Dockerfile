@@ -16,9 +16,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements/base.txt requirements/dev.txt ./requirements/
+# Install Python dependencies
+ARG DJANGO_ENV=production
+COPY requirements/base.txt requirements/prod.txt requirements/dev.txt ./requirements/
 RUN pip install --upgrade pip && \
-    pip install -r requirements/dev.txt
+    if [ "$DJANGO_ENV" = "development" ]; then \
+        pip install -r requirements/dev.txt; \
+    else \
+        pip install -r requirements/prod.txt; \
+    fi
 
 # Copy project
 COPY . .

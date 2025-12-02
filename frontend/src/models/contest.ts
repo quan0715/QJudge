@@ -1,5 +1,5 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
-export type ContestStatus = 'inactive' | 'active';
+export type ContestStatus = 'inactive' | 'active' | 'archived';
 export type ContestVisibility = 'public' | 'private';
 export type ExamEventType = 'tab_hidden' | 'window_blur' | 'exit_fullscreen';
 export type SubmissionStatus = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'NS';
@@ -39,14 +39,18 @@ export interface ContestDetail {
   exam_mode_enabled: boolean;
   scoreboard_visible_during_contest: boolean;
   
-  // User-specific state
+  // User specific
   current_user_role: UserRole;
+  participant_count?: number; // Added to fix lint error in ContestHero
   has_joined: boolean;
   has_started?: boolean;
   started_at?: string;
+  left_at?: string;
   has_finished_exam: boolean;
   is_locked?: boolean;
+  locked_at?: string;
   lock_reason?: string;
+  is_paused?: boolean;
   is_registered?: boolean; // Backwards compatibility
   
   // Permissions
@@ -56,11 +60,14 @@ export interface ContestDetail {
   problems: ContestProblemSummary[];
   
   // Additional settings
-  allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
-  ban_tab_switching?: boolean;
-  max_cheat_warnings?: number;
-  participant_count?: number;
+  ban_tab_switching: boolean;
+  max_cheat_warnings: number;
+  allow_auto_unlock: boolean;
+  auto_unlock_minutes: number;
+  
+  // User specific
+  // current_user_role is already defined in the base interface or should be merged
 }
 
 export interface ScoreboardProblemCell {
@@ -150,6 +157,9 @@ export interface ContestUpdateRequest {
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
   max_cheat_warnings?: number;
+  allow_auto_unlock?: boolean;
+  auto_unlock_minutes?: number;
+  status?: ContestStatus;
 }
 
 export interface ExamModeState {
@@ -159,6 +169,7 @@ export interface ExamModeState {
   startTime?: Date;
   violationCount?: number;
   maxWarnings?: number;
+  autoUnlockAt?: string;
 }
 
 export interface ContestQuestion {
@@ -212,6 +223,7 @@ export interface ContestParticipant {
   joined_at: string;
   has_finished_exam: boolean;
   is_locked: boolean;
-  lock_reason: string;
+  lock_reason?: string;
+  is_paused?: boolean;
   violation_count: number;
 }

@@ -18,8 +18,10 @@ import {
   TableContainer,
   TableExpandHeader,
   TableExpandRow,
-  TableExpandedRow
+  TableExpandedRow,
+  Button
 } from '@carbon/react';
+import { Copy } from '@carbon/icons-react';
 import Editor from '@monaco-editor/react';
 import { api } from '@/services/api';
 
@@ -68,6 +70,7 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && submissionId) {
@@ -124,6 +127,17 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
     return () => clearInterval(pollInterval);
   };
 
+  const handleCopyCode = async () => {
+    if (!submission?.code) return;
+    try {
+      await navigator.clipboard.writeText(submission.code);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+    }
+  };
+
   const getStatusTag = (status: string) => {
     const statusConfig: Record<string, { type: any; label: string }> = {
       'AC': { type: 'green', label: '通過' },
@@ -167,21 +181,25 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
     { key: 'test_case', header: '測試案例' },
     { key: 'status', header: '狀態' },
     { key: 'time', header: '時間 (ms)' },
-    { key: 'memory', header: '記憶體 (KB)' }
+    { key: 'memory', header: '記憶體 (KB)' },
+    { key: 'message', header: '訊息' }
   ];
 
   const getResultRows = () => {
     if (!submission?.results) return [];
-    return submission.results.map((result) => ({
+    return submission.results.map((result, i) => ({
       id: result.id.toString(),
-      test_case: result.test_case.is_sample 
-        ? `範例 ${result.test_case.order + 1}` 
-        : `測試 ${result.test_case.order + 1}`,
+      test_case: `Test ${i + 1}`,
       status: getStatusTag(result.status),
       time: result.exec_time,
       memory: result.memory_usage,
-      // Store raw data for expansion
-      rawData: result
+      message: result.error_message || '-',
+      // Additional data for expansion
+      input: result.input,
+      output: result.output,
+      expected_output: result.expected_output,
+      is_expandable: !!(result.input || result.output || result.expected_output),
+      raw_status: result.status // For conditional logic
     }));
   };
 
@@ -316,6 +334,16 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
               {/* Code Tab */}
               <TabPanel>
                 <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      renderIcon={Copy}
+                      onClick={handleCopyCode}
+                    >
+                      {copySuccess ? '已複製！' : '複製程式碼'}
+                    </Button>
+                  </div>
                   <div style={{ border: '1px solid var(--cds-border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                     <Editor
                       height="400px"
@@ -355,82 +383,78 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {rows.map((row: any) => {
-                                const result = submission.results?.find(r => r.id.toString() === row.id);
-                                const { key, ...rowProps } = getRowProps({ row });
-                                return (
-                                  <React.Fragment key={key}>
-                                    <TableExpandRow {...rowProps}>
-                                      {row.cells.map((cell: any) => (
-                                        <TableCell key={cell.id}>{cell.value}</TableCell>
-                                      ))}
-                                    </TableExpandRow>
+                              {rows.map((row: any) => (
+                                <React.Fragment key={row.id}>
+                                  <TableExpandRow
+                                    {...getRowProps({ row })}
+                                    isExpanded={row.isExpanded}
+                                    expandIconDescription="顯示詳情"
+                                    collapseIconDescription="隱藏詳情"
+                                    disabled={!row.is_expandable}
+                                  >
+                                    {row.cells.map((cell: any) => (
+                                      <TableCell key={cell.id}>{cell.value}</TableCell>
+                                    ))}
+                                  </TableExpandRow>
+                                  {row.isExpanded && (
                                     <TableExpandedRow colSpan={headers.length + 1}>
-                                      <div style={{ padding: '1rem' }}>
-                                        {result?.error_message && (
-                                          <div style={{ color: 'var(--cds-text-error)', marginBottom: '1rem' }}>
-                                            <strong>錯誤訊息:</strong>
-                                            <pre style={{ marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>{result.error_message}</pre>
+                                      <div style={{ padding: '1rem 0' }}>
+                                        {row.input && (
+                                          <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                              輸入 (Input)
+                                            </div>
+                                            <pre style={{
+                                              padding: '0.75rem',
+                                              backgroundColor: 'var(--cds-layer-02)',
+                                              borderRadius: '4px',
+                                              fontFamily: 'monospace',
+                                              fontSize: '0.875rem',
+                                              whiteSpace: 'pre-wrap',
+                                              margin: 0
+                                            }}>{row.input}</pre>
                                           </div>
                                         )}
                                         
-                                        {(result?.input || result?.expected_output) ? (
-                                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>輸入</div>
-                                              <pre style={{ 
-                                                padding: '1rem', 
-                                                background: 'var(--cds-layer-02)', 
-                                                borderRadius: '4px',
-                                                margin: 0,
-                                                whiteSpace: 'pre-wrap',
-                                                maxHeight: '200px',
-                                                overflowY: 'auto'
-                                              }}>
-                                                {result.input || '-'}
-                                              </pre>
+                                        {row.output && (
+                                          <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                              輸出 (Output)
                                             </div>
-                                            
-                                            <div>
-                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>您的輸出</div>
-                                              <pre style={{ 
-                                                padding: '1rem', 
-                                                background: 'var(--cds-layer-02)', 
-                                                borderRadius: '4px',
-                                                margin: 0,
-                                                whiteSpace: 'pre-wrap',
-                                                maxHeight: '200px',
-                                                overflowY: 'auto'
-                                              }}>
-                                                {result.output || '-'}
-                                              </pre>
-                                            </div>
-
-                                            <div>
-                                              <div style={{ fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>預期輸出</div>
-                                              <pre style={{ 
-                                                padding: '1rem', 
-                                                background: 'var(--cds-layer-02)', 
-                                                borderRadius: '4px',
-                                                margin: 0,
-                                                whiteSpace: 'pre-wrap',
-                                                maxHeight: '200px',
-                                                overflowY: 'auto'
-                                              }}>
-                                                {result.expected_output || '-'}
-                                              </pre>
-                                            </div>
+                                            <pre style={{
+                                              padding: '0.75rem',
+                                              backgroundColor: 'var(--cds-layer-02)',
+                                              borderRadius: '4px',
+                                              fontFamily: 'monospace',
+                                              fontSize: '0.875rem',
+                                              whiteSpace: 'pre-wrap',
+                                              margin: 0
+                                            }}>{row.output}</pre>
                                           </div>
-                                        ) : (
-                                          <div style={{ color: 'var(--cds-text-secondary)' }}>
-                                            無詳細資訊 (隱藏測資或無輸出)
+                                        )}
+
+                                        {/* Show Expected Output if WA or if it's a sample/public case (backend sends it) */}
+                                        {row.expected_output && (row.raw_status === 'WA' || row.raw_status === 'AC') && (
+                                          <div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                              預期輸出 (Expected Output)
+                                            </div>
+                                            <pre style={{
+                                              padding: '0.75rem',
+                                              backgroundColor: 'var(--cds-layer-02)',
+                                              borderRadius: '4px',
+                                              fontFamily: 'monospace',
+                                              fontSize: '0.875rem',
+                                              whiteSpace: 'pre-wrap',
+                                              margin: 0
+                                            }}>{row.expected_output}</pre>
                                           </div>
                                         )}
                                       </div>
                                     </TableExpandedRow>
-                                  </React.Fragment>
-                                );
-                              })}
+                                  )}
+                                </React.Fragment>
+                              ))}
                             </TableBody>
                           </Table>
                         </TableContainer>
@@ -451,4 +475,4 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose }: SubmissionDeta
   );
 };
 
-export default SubmissionDetailModal;
+export { SubmissionDetailModal };

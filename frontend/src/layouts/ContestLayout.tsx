@@ -5,21 +5,33 @@ import {
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
-  HeaderNavigation,
-  HeaderMenuItem,
-  Modal,
-  Toggle,
+  HeaderPanel,
+  Switcher,
+  SwitcherItem,
+  SwitcherDivider,
   Theme,
-  Button
+  Button,
+  Modal,
+  InlineNotification,
+  HeaderNavigation
 } from '@carbon/react';
-import { Logout, Time, Stop } from '@carbon/icons-react';
+import {
+  Maximize,
+  Minimize,
+  Notification as NotificationIcon,
+  UserAvatar,
+  View,
+  Logout,
+  Time,
+  Stop
+} from '@carbon/icons-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
 import ExamModeWrapper from '@/components/contest/ExamModeWrapper';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
 import ContestHero from '@/components/contest/layout/ContestHero';
-import ContestTabs from '@/components/contest/layout/ContestTabs';
+
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -29,12 +41,17 @@ const ContestLayout = () => {
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
-  const isExamActive = contest?.exam_mode_enabled && 
-                       contest?.status === 'active' && 
-                       !!contest?.started_at && 
-                       !contest?.has_finished_exam;
+  const isExamActive = !!(
+    contest?.exam_mode_enabled && 
+    contest?.has_started && 
+    !contest?.is_paused && 
+    !contest?.is_locked &&
+    !contest?.has_finished_exam
+  );
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -53,6 +70,17 @@ const ContestLayout = () => {
     }
   }, [contestId]);
 
+  // Redirect paused users to overview
+  useEffect(() => {
+    if (contest?.is_paused) {
+      const path = window.location.pathname;
+      const restrictedPaths = ['/problems', '/submissions', '/standings'];
+      if (restrictedPaths.some(p => path.includes(p))) {
+        navigate(`/contests/${contestId}`);
+      }
+    }
+  }, [contest, contestId, navigate]);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isExamActive) {
@@ -69,6 +97,14 @@ const ContestLayout = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isExamActive]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (!contest) return;
@@ -129,9 +165,19 @@ const ContestLayout = () => {
     if (!contest) return;
     try {
       await api.startExam(contest.id);
+      
+      // Request fullscreen if exam mode is enabled
+      if (contest.exam_mode_enabled) {
+        try {
+          await document.documentElement.requestFullscreen();
+        } catch (err) {
+          console.error('Failed to enter fullscreen:', err);
+        }
+      }
+
       await refreshContest();
       // Navigate to problems after starting
-      // navigate(`/contests/${contest.id}/problems`); // Optional: auto navigate
+      navigate(`/contests/${contest.id}/problems`);
     } catch (error) {
       console.error('Failed to start exam:', error);
       alert('無法開始考試，請稍後再試');
@@ -140,7 +186,7 @@ const ContestLayout = () => {
 
   const handleEndExam = async () => {
     if (!contest) return;
-    if (!confirm('確定要交卷嗎？交卷後將無法再進行作答。')) return;
+    // Confirmation is now handled by the caller (e.g., ContestHero)
     try {
       await api.endExam(contest.id);
       await refreshContest();
@@ -169,35 +215,31 @@ const ContestLayout = () => {
     }
   };
 
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling fullscreen:', err);
+    }
+  };
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Theme theme={theme}>
         <Header aria-label="Contest Platform">
-          <HeaderName prefix="QJudge" href="#">
-            [競賽模式] {contest?.name}
-          </HeaderName>
-          <HeaderNavigation aria-label="Contest Navigation">
-            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}`)}>
-              題目列表
-            </HeaderMenuItem>
-            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/submissions`)}>
-              提交記錄
-            </HeaderMenuItem>
-            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/standings`)}>
-              排行榜
-            </HeaderMenuItem>
-
-            <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/clarifications`)}>
-              提問與討論
-            </HeaderMenuItem>
-            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
-              <>
-                <HeaderMenuItem onClick={() => navigate(`/contests/${contestId}/settings`)}>
-                  比賽設定
-                </HeaderMenuItem>
-              </>
-            )}
-          </HeaderNavigation>
+          <HeaderName href="#" prefix="NYCU">
+        Online Judge
+      </HeaderName>
+      {/* Remove Navigation Links as requested */}
+      <HeaderNavigation aria-label="Contest Navigation">
+        {/* Empty or minimal navigation if needed */}
+      </HeaderNavigation>
           <HeaderGlobalBar>
             <div style={{ 
               display: 'flex', 
@@ -220,6 +262,14 @@ const ContestLayout = () => {
               {theme === 'white' ? <Asleep size={20} /> : <Light size={20} />}
             </HeaderGlobalAction>
 
+            <HeaderGlobalAction
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              tooltipAlignment="center"
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </HeaderGlobalAction>
+
             {/* Removed separate End Exam button - Exit Contest now handles this */}
             {false && (
               <div style={{ marginRight: '1rem' }}>
@@ -234,31 +284,91 @@ const ContestLayout = () => {
               </div>
             )}
 
-            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
-              <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
-                <Toggle
-                  id="view-mode-toggle"
-                  labelA="學生視角"
-                  labelB="管理模式"
-                  toggled={searchParams.get('view') !== 'student'}
-                  onToggle={(checked: boolean) => {
-                    const newView = checked ? 'teacher' : 'student';
-                    navigate(`/contests/${contestId}?view=${newView}`);
-                  }}
-                  size="sm"
-                />
+            {isExamActive && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginRight: '1rem',
+                  cursor: 'pointer',
+                  color: 'var(--cds-support-error)',
+                  fontWeight: 600
+                }}
+                onClick={() => setMonitoringModalOpen(true)}
+              >
+                <View style={{ marginRight: '0.5rem' }} />
+                監控中 (Monitoring Active)
               </div>
             )}
-            <HeaderGlobalAction 
-              aria-label="Exit Contest" 
-              onClick={() => setIsExitModalOpen(true)}
-              tooltipAlignment="end"
-            >
-              <Logout size={20} />
+
+            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+              <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/teacher/contests/${contestId}`)}
+                >
+                  教師後台
+                </Button>
+              </div>
+            )}
+
+            {/* Fullscreen Toggle - Removed duplicate Button */}
+
+            <HeaderGlobalAction aria-label="Notifications" tooltipAlignment="end">
+              <NotificationIcon size={20} />
             </HeaderGlobalAction>
-          </HeaderGlobalBar>
-        </Header>
-      </Theme>
+            
+            {/* User Info Display */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem', 
+              padding: '0 1rem', 
+              borderLeft: '1px solid var(--cds-border-subtle)',
+              height: '100%'
+            }}>
+              <UserAvatar size={20} />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                  {currentUser?.username || currentUser?.name || 'User'}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                  {currentUser?.role ? (currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)) : 'Student'}
+                </span>
+              </div>
+            </div>
+      </HeaderGlobalBar>
+    </Header>
+
+
+{/* Monitoring Warning Modal */}
+<Modal
+  open={monitoringModalOpen}
+  modalHeading="考試監控中 (Monitoring Active)"
+  passiveModal
+  onRequestClose={() => setMonitoringModalOpen(false)}
+>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <InlineNotification
+      kind="warning"
+      title="警告"
+      subtitle="本考試已啟用防作弊監控系統"
+      hideCloseButton
+    />
+    <div>
+      <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>請注意以下規則：</p>
+      <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem' }}>
+        <li>禁止切換瀏覽器分頁 (Tab Switching)</li>
+        <li>禁止離開全螢幕模式 (Exit Fullscreen)</li>
+        <li>禁止將視窗縮小或切換至其他應用程式 (Window Blur)</li>
+      </ul>
+    </div>
+    <p style={{ color: 'var(--cds-text-error)' }}>
+      違反上述規則將會被系統記錄，超過次數限制將會被<strong>自動鎖定</strong>並無法繼續考試。
+    </p>
+  </div>
+</Modal>    </Theme>
 
       <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>

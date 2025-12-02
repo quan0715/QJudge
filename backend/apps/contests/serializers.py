@@ -69,8 +69,11 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     has_joined = serializers.SerializerMethodField()
     has_started = serializers.SerializerMethodField()
     started_at = serializers.SerializerMethodField()
+    left_at = serializers.SerializerMethodField()
     has_finished_exam = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
+    locked_at = serializers.SerializerMethodField()
+    is_paused = serializers.SerializerMethodField()
     lock_reason = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     
@@ -99,10 +102,19 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'has_joined',
             'has_started',
             'started_at',
+            'left_at',
+            'has_finished_exam',
             'has_finished_exam',
             'is_locked',
+            'locked_at',
+            'is_paused',
             'lock_reason',
             'problems',
+            'allow_multiple_joins',
+            'ban_tab_switching',
+            'max_cheat_warnings',
+            'allow_auto_unlock',
+            'auto_unlock_minutes',
         ]
 
     def get_is_locked(self, obj):
@@ -113,6 +125,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         registration = obj.registrations.filter(user=request.user).first()
         return registration.is_locked if registration else False
 
+    def get_is_paused(self, obj):
+        """Check if current user is paused."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.is_paused if registration else False
+
     def get_lock_reason(self, obj):
         """Get lock reason for current user."""
         request = self.context.get('request')
@@ -120,6 +140,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return None
         registration = obj.registrations.filter(user=request.user).first()
         return registration.lock_reason if registration else None
+
+    def get_locked_at(self, obj):
+        """Get locked_at timestamp for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.locked_at if registration else None
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
@@ -158,6 +186,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         registration = obj.registrations.filter(user=request.user).first()
         return registration.started_at if registration else None
 
+    def get_left_at(self, obj):
+        """Get left time for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.left_at if registration else None
+
     def get_has_finished_exam(self, obj):
         """Check if current user has finished the exam."""
         request = self.context.get('request')
@@ -190,6 +226,12 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'password',
             'exam_mode_enabled',
             'scoreboard_visible_during_contest',
+            'allow_multiple_joins',
+            'ban_tab_switching',
+            'max_cheat_warnings',
+            'allow_auto_unlock',
+            'auto_unlock_minutes',
+            'status',
         ]
         read_only_fields = ['id']
     
@@ -413,9 +455,36 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     
+    auto_unlock_at = serializers.SerializerMethodField()
+    remaining_unlock_seconds = serializers.SerializerMethodField()
+    
     class Meta:
         model = ContestParticipant
-        fields = ['user_id', 'username', 'user', 'score', 'rank', 'joined_at', 'has_finished_exam', 'is_locked', 'lock_reason']
+        fields = [
+            'user_id', 'username', 'user', 'score', 'rank', 
+            'joined_at', 'has_finished_exam', 'is_locked', 'is_paused', 
+            'lock_reason', 'violation_count', 'auto_unlock_at', 'remaining_unlock_seconds'
+        ]
+
+    def get_auto_unlock_at(self, obj):
+        """Calculate auto unlock time if applicable."""
+        if not obj.is_locked or not obj.locked_at or not obj.contest.allow_auto_unlock:
+            return None
+        
+        minutes = obj.contest.auto_unlock_minutes or 0
+        return obj.locked_at + timezone.timedelta(minutes=minutes)
+
+    def get_remaining_unlock_seconds(self, obj):
+        """Calculate remaining seconds until auto unlock."""
+        unlock_at = self.get_auto_unlock_at(obj)
+        if not unlock_at:
+            return None
+            
+        now = timezone.now()
+        if now >= unlock_at:
+            return 0
+            
+        return int((unlock_at - now).total_seconds())
 
 
 # ============================================================================

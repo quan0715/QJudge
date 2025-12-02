@@ -41,8 +41,8 @@ export interface ContestProblemSummary {
 export interface ContestDetail {
   id: string;
   name: string;
-  title: string;
   description: string;
+  rules: string;
   start_time: string;
   end_time: string;
   status: ContestStatus;
@@ -67,9 +67,35 @@ export interface ContestDetail {
   
   // Additional settings
   is_public?: boolean;
+  allow_multiple_joins?: boolean;
+  ban_tab_switching?: boolean;
+  max_cheat_warnings?: number;
+  allow_auto_unlock?: boolean;
+  auto_unlock_minutes?: number;
+}
+
+// ... (Scoreboard types omitted)
+
+/**
+ * Contest update request
+ */
+export interface ContestUpdateRequest {
+  name?: string;
+  description?: string;
+  rules?: string;
+  start_time?: string;
+  end_time?: string;
+  status?: ContestStatus;
+  visibility?: ContestVisibility;
+  password?: string;
+  exam_mode_enabled?: boolean;
+  scoreboard_visible_during_contest?: boolean;
   allow_view_results?: boolean;
   allow_multiple_joins?: boolean;
   ban_tab_switching?: boolean;
+  max_cheat_warnings?: number;
+  allow_auto_unlock?: boolean;
+  auto_unlock_minutes?: number;
 }
 
 /**
@@ -166,22 +192,6 @@ export interface ContestCreateRequest {
   password?: string;
 }
 
-/**
- * Contest update request
- */
-export interface ContestUpdateRequest {
-  title?: string;
-  description?: string;
-  start_time?: string;
-  end_time?: string;
-  visibility?: ContestVisibility;
-  password?: string;
-  exam_mode_enabled?: boolean;
-  scoreboard_visible_during_contest?: boolean;
-  allow_view_results?: boolean;
-  allow_multiple_joins?: boolean;
-  ban_tab_switching?: boolean;
-}
 
 /**
  * Exam mode state

@@ -80,20 +80,31 @@ class ContestViewSet(viewsets.ModelViewSet):
             return queryset
 
         # For regular users:
-        # 1. Public contests
-        # 2. Private contests they have registered for
-        # 3. Contests they own (if they are teachers)
+        # 1. Public contests (excluding inactive ones unless registered?)
+        # Actually, requirement says: "User 進不去 inactive contest (這代表沒開放)"
+        # So inactive contests should be hidden or return 403 if accessed directly.
+        # But get_queryset filters the list.
+        
+        queryset = queryset.filter(
+            Q(visibility__in=['public', 'private']) |
+            Q(participants=user) |
+            Q(owner=user)
+        ).distinct()
 
         if user.is_authenticated:
-            # Allow seeing public and private contests
-            # Private contests require password to join, but should be listed
-            return queryset.filter(
-                Q(visibility__in=['public', 'private']) |
-                Q(participants=user) |
-                Q(owner=user)
-            ).distinct()
+             # Filter out inactive contests for non-owners/non-participants?
+             # Or just let them see it in list but block detail view?
+             # The requirement says "User 進不去 inactive contest".
+             # Usually this means detail view. But if they can't enter, maybe they shouldn't see it?
+             # But "inactive" also means "not open yet" or "ended"?
+             # Wait, status 'inactive' means "Not Open". 'active' means "Open".
+             # If it's inactive, maybe only owner should see it?
+             # Let's keep it visible in list if it's public, but block access in `retrieve` or `enter`.
+             pass
         else:
-            return queryset.filter(visibility='public')
+            queryset = queryset.filter(visibility='public')
+            
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -106,6 +117,45 @@ class ContestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve contest details. Block access if inactive and user is not owner/admin.
+        """
+        instance = self.get_object()
+        user = request.user
+        
+        # Allow if owner or admin
+        is_owner = user.is_authenticated and (instance.owner == user or user.is_staff or getattr(user, 'role', '') == 'admin')
+        
+        # Auto-unlock check
+        if user.is_authenticated:
+            try:
+                participant = ContestParticipant.objects.get(contest=instance, user=user)
+                if participant.is_locked and instance.allow_auto_unlock and participant.locked_at:
+                    minutes = instance.auto_unlock_minutes or 0
+                    unlock_time = participant.locked_at + timezone.timedelta(minutes=minutes)
+                    
+                    if timezone.now() >= unlock_time:
+                        participant.is_locked = False
+                        participant.is_paused = True  # Auto-unlock to paused state
+                        participant.locked_at = None
+                        participant.violation_count = 0
+                        participant.lock_reason = ""
+                        participant.save()
+                        
+                        # Log activity
+                        ContestActivityViewSet.log_activity(
+                            instance, 
+                            user, 
+                            'unlock_user', 
+                            "Auto-unlocked by system"
+                        )
+            except ContestParticipant.DoesNotExist:
+                pass
+            
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def toggle_status(self, request, pk=None):
@@ -129,6 +179,43 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return Response({'status': contest.status})
 
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    def archive(self, request, pk=None):
+        """
+        Archive a contest. This action is irreversible.
+        """
+        contest = self.get_object()
+        if contest.status == 'archived':
+            return Response({'error': 'Contest is already archived'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        contest.status = 'archived'
+        contest.save()
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'other', 
+            f"Archived contest"
+        )
+        
+        return Response({'status': 'archived'})
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a contest. Only owner can delete.
+        """
+        contest = self.get_object()
+        
+        # Check ownership (IsContestOwnerOrAdmin permission might allow admins, but let's enforce owner or superuser)
+        if request.user != contest.owner and not request.user.is_superuser:
+             return Response(
+                {'error': 'Only the contest owner can delete this contest.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
     def participants(self, request, pk=None):
         """
@@ -151,6 +238,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
             participant.is_locked = False
             participant.lock_reason = ""
+            participant.is_paused = True # Require manual resume
             participant.save()
             
             # Log activity
@@ -182,6 +270,8 @@ class ContestViewSet(viewsets.ModelViewSet):
                 participant.lock_reason = request.data['lock_reason']
             if 'has_finished_exam' in request.data:
                 participant.has_finished_exam = request.data['has_finished_exam']
+            if 'is_paused' in request.data:
+                participant.is_paused = request.data['is_paused']
 
             participant.save()
             
@@ -303,12 +393,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         if role in ['admin', 'teacher']:
             return Response({'message': 'Entered successfully (Privileged)'})
         
-        # Check status
-        if contest.status == 'inactive':
-             return Response(
-                {'message': 'Contest is not active'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # Check status - REMOVED to allow entry in inactive state
+        # if contest.status == 'inactive':
+        #      return Response(
+        #         {'message': 'Contest is not active'},
+        #         status=status.HTTP_403_FORBIDDEN
+        #     )
 
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=user)
@@ -318,6 +408,13 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
             
+        # Check if user is locked - REMOVED to allow entry (frontend handles lock screen)
+        # if participant.is_locked:
+        #     return Response(
+        #         {'message': 'You have been locked out of this contest due to rule violations.'},
+        #         status=status.HTTP_403_FORBIDDEN
+        #     )
+
         # Check if user left and multiple joins are not allowed
         if participant.left_at and not contest.allow_multiple_joins:
             return Response(
@@ -664,6 +761,37 @@ class ExamViewSet(viewsets.ViewSet):
         contest = Contest.objects.get(id=contest_pk)
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=request.user)
+            
+            if participant.is_locked:
+                return Response(
+                    {'error': 'You have been locked out of this contest.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            if participant.has_finished_exam:
+                if contest.allow_multiple_joins:
+                    # Reset finished status if multiple joins allowed
+                    participant.has_finished_exam = False
+                    participant.save()
+                else:
+                    return Response(
+                        {'error': 'You have already finished this exam.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            if participant.is_paused:
+                participant.is_paused = False
+                participant.save()
+                
+                # Log activity
+                ContestActivityViewSet.log_activity(
+                    contest, 
+                    request.user, 
+                    'start_exam', 
+                    "Resumed exam"
+                )
+                return Response({'status': 'resumed'})
+
             if not participant.started_at:
                 participant.started_at = timezone.now()
                 participant.save()
@@ -747,6 +875,7 @@ class ExamViewSet(viewsets.ViewSet):
             
             if should_lock and not participant.is_locked:
                 participant.is_locked = True
+                participant.locked_at = timezone.now()
                 
                 # Use provided lock reason or default
                 custom_reason = serializer.validated_data.get('lock_reason')
@@ -765,11 +894,19 @@ class ExamViewSet(viewsets.ViewSet):
             
             participant.save()
             
+            # Calculate auto unlock time
+            auto_unlock_at = None
+            if participant.is_locked and participant.locked_at and contest.allow_auto_unlock:
+                minutes = contest.auto_unlock_minutes or 0
+                auto_unlock_at = participant.locked_at + timezone.timedelta(minutes=minutes)
+            
             return Response({
                 'status': 'logged', 
                 'locked': participant.is_locked,
                 'violation_count': participant.violation_count,
-                'max_warnings': contest.max_cheat_warnings
+                'max_warnings': contest.max_cheat_warnings,
+                'remaining_chances': max(0, contest.max_cheat_warnings - participant.violation_count + 1),
+                'auto_unlock_at': auto_unlock_at
             })
         except ContestParticipant.DoesNotExist:
             pass
@@ -977,6 +1114,66 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         )
         
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Remove a problem from the contest.
+        """
+        contest_id = self.kwargs.get('contest_pk')
+        problem_id = self.kwargs.get('pk') # This is the problem_id (not ContestProblem id)
+        
+        from .models import Contest, ContestProblem
+        from django.shortcuts import get_object_or_404
+        
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+        
+        # Check permissions (admin or teacher)
+        if not (user.is_staff or user.role in ['admin', 'teacher']):
+             return Response(
+                {'detail': 'Permission denied.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        try:
+            # Find the ContestProblem entry
+            # We use problem_id because the URL structure is usually .../problems/<problem_id>/
+            # But wait, standard ViewSet expects pk to be the ID of the resource (ContestProblem).
+            # However, our frontend might be sending the Problem ID.
+            # Let's support both or check how retrieve works.
+            # Retrieve supports both. Let's do the same here.
+            
+            try:
+                contest_problem = ContestProblem.objects.get(
+                    contest=contest,
+                    problem_id=problem_id
+                )
+            except ContestProblem.DoesNotExist:
+                contest_problem = ContestProblem.objects.get(
+                    contest=contest,
+                    id=problem_id
+                )
+                
+            # Delete the relationship
+            problem_display_id = contest_problem.problem.display_id
+            contest_problem.delete()
+            
+            # Log activity
+            from .views import ContestActivityViewSet
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'update_problem', 
+                f"Removed problem {problem_display_id} from contest"
+            )
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except ContestProblem.DoesNotExist:
+            return Response(
+                {'detail': 'Problem not found in this contest.'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):

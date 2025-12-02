@@ -16,7 +16,10 @@ import {
   TableHeader,
   TableBody,
   TableCell,
-  TableContainer
+  TableContainer,
+  TableExpandHeader,
+  TableExpandRow,
+  TableExpandedRow
 } from '@carbon/react';
 import { ArrowLeft } from '@carbon/icons-react';
 import Editor from '@monaco-editor/react';
@@ -51,6 +54,9 @@ interface SubmissionDetail {
     exec_time: number;
     memory_usage: number;
     error_message: string;
+    input?: string;
+    output?: string;
+    expected_output?: string;
   }>;
 }
 
@@ -193,7 +199,13 @@ const ContestSubmissionDetailPage = () => {
     status: getStatusTag(result.status),
     time: result.exec_time,
     memory: result.memory_usage,
-    message: result.error_message || '-'
+    message: result.error_message || '-',
+    // Additional data for expansion
+    input: result.input,
+    output: result.output,
+    expected_output: result.expected_output,
+    is_expandable: !!(result.input || result.output || result.expected_output),
+    raw_status: result.status // For conditional logic
   }));
 
   return (
@@ -354,6 +366,7 @@ const ContestSubmissionDetailPage = () => {
                       <Table {...getTableProps()}>
                         <TableHead>
                           <TableRow>
+                            <TableExpandHeader />
                             {headers.map((header: any) => (
                               <TableHeader {...getHeaderProps({ header })} key={header.key}>
                                 {header.header}
@@ -363,11 +376,77 @@ const ContestSubmissionDetailPage = () => {
                         </TableHead>
                         <TableBody>
                           {rows.map((row: any) => (
-                            <TableRow {...getRowProps({ row })} key={row.id}>
-                              {row.cells.map((cell: any) => (
-                                <TableCell key={cell.id}>{cell.value}</TableCell>
-                              ))}
-                            </TableRow>
+                            <>
+                              <TableExpandRow
+                                {...getRowProps({ row })}
+                                key={row.id}
+                                isExpanded={row.isExpanded}
+                                expandIconDescription="顯示詳情"
+                                collapseIconDescription="隱藏詳情"
+                                disabled={!row.is_expandable}
+                              >
+                                {row.cells.map((cell: any) => (
+                                  <TableCell key={cell.id}>{cell.value}</TableCell>
+                                ))}
+                              </TableExpandRow>
+                              {row.isExpanded && (
+                                <TableExpandedRow colSpan={headers.length + 1}>
+                                  <div style={{ padding: '1rem 0' }}>
+                                    {row.input && (
+                                      <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                          輸入 (Input)
+                                        </div>
+                                        <pre style={{
+                                          padding: '0.75rem',
+                                          backgroundColor: 'var(--cds-layer-02)',
+                                          borderRadius: '4px',
+                                          fontFamily: 'monospace',
+                                          fontSize: '0.875rem',
+                                          whiteSpace: 'pre-wrap',
+                                          margin: 0
+                                        }}>{row.input}</pre>
+                                      </div>
+                                    )}
+                                    
+                                    {row.output && (
+                                      <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                          輸出 (Output)
+                                        </div>
+                                        <pre style={{
+                                          padding: '0.75rem',
+                                          backgroundColor: 'var(--cds-layer-02)',
+                                          borderRadius: '4px',
+                                          fontFamily: 'monospace',
+                                          fontSize: '0.875rem',
+                                          whiteSpace: 'pre-wrap',
+                                          margin: 0
+                                        }}>{row.output}</pre>
+                                      </div>
+                                    )}
+
+                                    {/* Show Expected Output if WA or if it's a sample/public case (backend sends it) */}
+                                    {row.expected_output && (row.raw_status === 'WA' || row.raw_status === 'AC') && (
+                                      <div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                                          預期輸出 (Expected Output)
+                                        </div>
+                                        <pre style={{
+                                          padding: '0.75rem',
+                                          backgroundColor: 'var(--cds-layer-02)',
+                                          borderRadius: '4px',
+                                          fontFamily: 'monospace',
+                                          fontSize: '0.875rem',
+                                          whiteSpace: 'pre-wrap',
+                                          margin: 0
+                                        }}>{row.expected_output}</pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                </TableExpandedRow>
+                              )}
+                            </>
                           ))}
                         </TableBody>
                       </Table>

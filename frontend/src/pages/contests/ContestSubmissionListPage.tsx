@@ -18,7 +18,7 @@ import {
 } from '@carbon/react';
 import { View, Renew } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import SubmissionDetailModal from '@/components/contest/SubmissionDetailModal';
+import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import type { StatusType } from '@/components/common/StatusBadge';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
@@ -52,6 +52,18 @@ const ContestSubmissionListPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error('Failed to parse user', e);
+      }
+    }
+  }, []);
 
   const statusOptions = [
     { id: 'all', label: '全部狀態' },
@@ -204,33 +216,43 @@ const ContestSubmissionListPage = () => {
     { key: 'actions', header: '操作' }
   ];
 
-  const rows = submissions.map(sub => ({
-    id: sub.id.toString(),
-    status: getStatusBadge(sub.status),
-    problem: (
-      <span style={{ fontWeight: 500 }}>
-        {sub.problem?.title || `Problem ${sub.problem?.id}`}
-      </span>
-    ),
-    username: sub.user?.username || 'Unknown',
-    language: getLanguageLabel(sub.language),
-    score: sub.score,
-    time: `${sub.exec_time} ms`,
-    created_at: formatDate(sub.created_at),
-    actions: (
-      <Button
-        kind="ghost"
-        size="sm"
-        renderIcon={View}
-        iconDescription="查看詳情"
-        hasIconOnly
-        onClick={(e) => {
-          e.stopPropagation();
-          handleSubmissionClick(sub.id.toString());
-        }}
-      />
-    )
-  }));
+  const rows = submissions.map(sub => {
+    const isOwner = sub.user?.username === currentUser?.username;
+    const isAdminOrTeacher = currentUser?.role === 'admin' || currentUser?.role === 'teacher';
+    const canView = isOwner || isAdminOrTeacher;
+
+    return {
+      id: sub.id.toString(),
+      status: getStatusBadge(sub.status),
+      problem: (
+        <span style={{ fontWeight: 500 }}>
+          {sub.problem?.title || `Problem ${sub.problem?.id}`}
+        </span>
+      ),
+      username: sub.user?.username || 'Unknown',
+      language: getLanguageLabel(sub.language),
+      score: sub.score,
+      time: `${sub.exec_time} ms`,
+      created_at: formatDate(sub.created_at),
+      actions: (
+        <Button
+          kind="ghost"
+          size="sm"
+          renderIcon={View}
+          iconDescription={canView ? "查看詳情" : "無權限查看"}
+          hasIconOnly
+          disabled={!canView}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canView) {
+              handleSubmissionClick(sub.id.toString());
+            }
+          }}
+        />
+      ),
+      canView // Pass to row for click handling
+    };
+  });
 
   if (loading && !refreshing && submissions.length === 0) {
     return (
@@ -324,8 +346,15 @@ const ContestSubmissionListPage = () => {
                             <TableRow 
                               {...rowProps} 
                               key={key}
-                              onClick={() => handleSubmissionClick(row.id)}
-                              style={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                if (row.canView) {
+                                  handleSubmissionClick(row.id);
+                                }
+                              }}
+                              style={{ 
+                                cursor: row.canView ? 'pointer' : 'not-allowed',
+                                opacity: row.canView ? 1 : 0.7
+                              }}
                             >
                               {row.cells.map((cell: any) => (
                                 <TableCell key={cell.id}>{cell.value}</TableCell>

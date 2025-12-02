@@ -64,9 +64,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const prevIsActiveRef = useRef(isActive);
 
   useEffect(() => {
-    // Disable anti-cheat on dashboard
-    const isDashboard = location.pathname === `/contests/${contestId}` || location.pathname === `/contests/${contestId}/`;
-    if (!examModeEnabled || !examState.isActive || isBypassed || isDashboard) return;
+    // Disable anti-cheat on dashboard check removed to ensure global protection
+    if (!examModeEnabled || !examState.isActive || isBypassed) return;
 
     // Event handlers
     const handleVisibilityChange = async () => {
@@ -120,14 +119,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       const res = await api.recordExamEvent(contestId, type, reason);
       
       if (res && typeof res === 'object') {
-        const { locked, violation_count, max_warnings, bypass } = res;
+        const { locked, violation_count, max_warnings, bypass, auto_unlock_at } = res;
         
         if (bypass) return;
 
         setExamState(prev => ({
           ...prev,
           violationCount: violation_count,
-          maxWarnings: max_warnings
+          maxWarnings: max_warnings,
+          autoUnlockAt: auto_unlock_at
         }));
 
         if (locked) {
@@ -166,6 +166,52 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const shouldShowLockScreen = examState.isLocked && !isAllowedPath();
 
+  // Auto-unlock countdown logic
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!shouldShowLockScreen || !examState.autoUnlockAt) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const unlockTime = new Date(examState.autoUnlockAt!).getTime();
+      const diff = unlockTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        clearInterval(timer);
+        // Optional: Auto-refresh or unlock
+        window.location.reload();
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [shouldShowLockScreen, examState.autoUnlockAt]);
+
+  const handleBackToContest = async () => {
+    // Exit fullscreen if active
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (e) {
+        console.error('Failed to exit fullscreen', e);
+      }
+    }
+    // Navigate to dashboard and refresh to ensure clean state
+    navigate(`/contests/${contestId}`);
+    window.location.reload();
+  };
+
   return (
     <div ref={containerRef} style={{ position: 'relative', minHeight: '100vh' }}>
       {children}
@@ -196,9 +242,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
               {examState.lockReason}
             </p>
-            <p style={{ fontSize: '1.2rem', color: '#ccc' }}>
-              請聯繫監考老師解除鎖定。
-            </p>
+            
+            {timeLeft ? (
+              <div style={{ margin: '2rem 0', padding: '1.5rem', border: '1px solid #555', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                <p style={{ fontSize: '1rem', color: '#ccc', marginBottom: '0.5rem' }}>自動解鎖倒數</p>
+                <div style={{ fontSize: '2.5rem', fontFamily: 'monospace', fontWeight: 'bold', color: '#42be65' }}>
+                  {timeLeft}
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: '1.2rem', color: '#ccc' }}>
+                請聯繫監考老師解除鎖定。
+              </p>
+            )}
+
             <p style={{ fontSize: '1rem', marginTop: '2rem', color: '#999' }}>
               此違規行為已被記錄。
             </p>
@@ -206,7 +263,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             <div style={{ marginTop: '3rem' }}>
               <Button 
                 kind="tertiary" 
-                onClick={() => navigate(`/contests/${contestId}`)}
+                onClick={handleBackToContest}
               >
                 回到競賽儀表板
               </Button>
@@ -226,7 +283,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         onRequestSubmit={() => setShowWarning(false)}
         onRequestClose={() => setShowWarning(false)}
         danger
-        size="xs"
+        size="sm"
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <WarningAlt size={64} style={{ color: '#f1c21b', marginBottom: '1rem' }} />
@@ -236,13 +293,31 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           <p style={{ marginBottom: '1rem' }}>
             請保持在考試頁面並維持全螢幕模式。
           </p>
-          {examState.maxWarnings !== undefined && examState.maxWarnings > 0 && (
-            <p style={{ color: '#da1e28' }}>
-              累積違規次數：{examState.violationCount} / {examState.maxWarnings + 1}
-              <br />
-              若再次違規將會被鎖定！
-            </p>
+          
+          {examState.violationCount !== undefined && examState.maxWarnings !== undefined && (
+            <div style={{ 
+              width: '100%', 
+              backgroundColor: 'var(--cds-layer-01)', 
+              padding: '1rem', 
+              borderRadius: '4px',
+              marginTop: '1rem' 
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>累積違規次數:</span>
+                <span style={{ fontWeight: 'bold', color: '#da1e28' }}>{examState.violationCount}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>剩餘機會:</span>
+                <span style={{ fontWeight: 'bold', color: '#42be65' }}>
+                  {Math.max(0, (examState.maxWarnings + 1) - examState.violationCount)}
+                </span>
+              </div>
+            </div>
           )}
+          
+          <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem' }}>
+            若剩餘機會歸零，您將被自動鎖定！
+          </p>
         </div>
       </Modal>
     </div>

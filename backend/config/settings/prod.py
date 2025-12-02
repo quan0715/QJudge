@@ -63,11 +63,14 @@ LOGGING = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+# CORS settings
+CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL'))
+    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL'))
+    CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+
+print(f'DEBUG: CSRF_TRUSTED_ORIGINS={CSRF_TRUSTED_ORIGINS}')

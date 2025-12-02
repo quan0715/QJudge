@@ -35,11 +35,18 @@ const ContestListPage = () => {
   // Modal State
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [enterModalOpen, setEnterModalOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string>('');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Generic Notification Modal
+  const [notificationModal, setNotificationModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    kind: 'info' as 'info' | 'error' | 'warning'
+  });
 
   useEffect(() => {
     const fetchContests = async () => {
@@ -55,27 +62,24 @@ const ContestListPage = () => {
     fetchContests();
   }, []);
 
-  const handleContestClick = (contest: Contest) => {
-    // Check if user is privileged (admin or teacher)
-    const userStr = localStorage.getItem('user');
-    let isPrivileged = false;
-    try {
-        const user = JSON.parse(userStr || '{}');
-        isPrivileged = user.role === 'admin' || user.role === 'teacher';
-    } catch (e) {
-        console.error('Failed to parse user', e);
-    }
+  const handleContestClick = async (contest: Contest) => {
 
-    // Check if user has already left the contest
-    if (contest.has_left && !contest.allow_multiple_joins && !isPrivileged) {
-      alert('您已離開此競賽，無法再次進入。');
-      return;
-    }
-
+    // Direct entry logic - no modal confirmation
     if (contest.is_registered) {
-      // If registered, open Entry Confirmation Modal instead of direct navigation
-      setSelectedContest(contest);
-      setEnterModalOpen(true);
+      try {
+        // Call enter contest API to register entry time/status
+        await api.enterContest(contest.id);
+        navigate(`/contests/${contest.id}`);
+      } catch (err: any) {
+        // If error (e.g. network), show notification but still try to navigate if it's just a state issue
+        // Or handle specific errors if needed. For now, just show error.
+        setNotificationModal({
+          open: true,
+          title: '錯誤',
+          message: err.message || '無法進入競賽',
+          kind: 'error'
+        });
+      }
     } else {
       // If not registered, navigate to contest page (which shows overview)
       navigate(`/contests/${contest.id}`);
@@ -95,18 +99,6 @@ const ContestListPage = () => {
       setContests(data);
     } catch (err: any) {
       setError(err.message || '密碼錯誤或報名失敗');
-    }
-  };
-
-  const handleEnterConfirm = async () => {
-    if (!selectedContest) return;
-    
-    try {
-      await api.enterContest(selectedContest.id);
-      setEnterModalOpen(false);
-      navigate(`/contests/${selectedContest.id}`);
-    } catch (err: any) {
-      alert(err.message || '無法進入競賽');
     }
   };
 
@@ -320,38 +312,7 @@ const ContestListPage = () => {
         )}
       </Modal>
 
-      {/* Entry Confirmation Modal */}
-      <Modal
-        open={enterModalOpen}
-        modalHeading="進入競賽確認"
-        primaryButtonText="進入競賽"
-        secondaryButtonText="取消"
-        onRequestClose={() => setEnterModalOpen(false)}
-        onRequestSubmit={handleEnterConfirm}
-        danger // Use danger style to emphasize the warning
-      >
-        <div style={{ fontSize: '1rem', lineHeight: '1.5' }}>
-          <p style={{ marginBottom: '1rem', fontWeight: 'bold' }}>
-            您即將進入競賽：{selectedContest?.name}
-          </p>
-          <p style={{ marginBottom: '0.5rem' }}>請注意以下規則：</p>
-          <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '1rem' }}>
-            <li>競賽期間請勿與他人討論試題。</li>
-            <li>
-              {selectedContest?.allow_multiple_joins ? (
-                <span>本競賽允許中途離開後再次進入。</span>
-              ) : (
-                <span>
-                  <span style={{ color: 'red', fontWeight: 'bold' }}>重要：</span>
-                  本競賽採「一次性進入」機制。若您中途點擊「離開競賽」按鈕，將無法再次進入考場。
-                </span>
-              )}
-            </li>
-            <li>請確保您的網路連線穩定。</li>
-          </ul>
-          <p>準備好開始了嗎？</p>
-        </div>
-      </Modal>
+
 
       {/* Success Toast */}
       {showSuccessToast && (
@@ -364,6 +325,21 @@ const ContestListPage = () => {
           style={{ position: 'fixed', top: '3rem', right: '1rem', zIndex: 9999 }}
         />
       )}
+
+      {/* Generic Notification Modal */}
+      <Modal
+        open={notificationModal.open}
+        modalHeading={notificationModal.title}
+        passiveModal
+        onRequestClose={() => setNotificationModal(prev => ({ ...prev, open: false }))}
+      >
+        <p style={{ 
+          fontSize: '1rem', 
+          color: notificationModal.kind === 'error' ? 'var(--cds-text-error)' : 'inherit' 
+        }}>
+          {notificationModal.message}
+        </p>
+      </Modal>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import {
   DataTable,
   Table,
@@ -21,6 +21,7 @@ import {
 } from '@carbon/react';
 import { View, Renew } from '@carbon/icons-react';
 import { authFetch } from '@/services/auth';
+import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
 
 interface Submission {
   id: number;
@@ -40,7 +41,7 @@ interface Submission {
 }
 
 const SubmissionsPage = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Removed unused navigate
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,6 +50,8 @@ const SubmissionsPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const statusOptions = [
     { id: 'all', label: '全部狀態' },
@@ -168,7 +171,8 @@ const SubmissionsPage = () => {
         hasIconOnly
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/submissions/${sub.id}`);
+          setSelectedSubmissionId(sub.id.toString());
+          setIsModalOpen(true);
         }}
       />
     )
@@ -258,7 +262,10 @@ const SubmissionsPage = () => {
                   <TableRow 
                     {...getRowProps({ row })} 
                     key={row.id}
-                    onClick={() => navigate(`/submissions/${row.id}`)}
+                    onClick={() => {
+                      setSelectedSubmissionId(row.id);
+                      setIsModalOpen(true);
+                    }}
                     style={{ cursor: 'pointer' }}
                     className="submission-row"
                   >
@@ -287,6 +294,12 @@ const SubmissionsPage = () => {
           setPageSize(newPageSize);
         }}
         style={{ marginTop: '1rem' }}
+      />
+
+      <SubmissionDetailModal
+        submissionId={selectedSubmissionId}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );

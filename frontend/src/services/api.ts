@@ -14,6 +14,7 @@ export const api = {
   ...problemService,
   ...submissionService,
   ...contestService,
+  logExamEvent: contestService.recordExamEvent,
   updateContest: async (id: string, data: any): Promise<any> => {
     const res = await authFetch(`/api/v1/contests/${id}/`, {
       method: 'PATCH',
@@ -21,6 +22,22 @@ export const api = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to update contest');
+    return res.json();
+  },
+
+  deleteContest: async (id: string): Promise<any> => {
+    const res = await authFetch(`/api/v1/contests/${id}/`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete contest');
+    return res.json();
+  },
+
+  archiveContest: async (id: string): Promise<any> => {
+    const res = await authFetch(`/api/v1/contests/${id}/archive/`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to archive contest');
     return res.json();
   },
 

@@ -3,6 +3,7 @@ import { TextInput, PasswordInput, Button, Form, InlineLoading } from '@carbon/r
 import { ArrowRight } from '@carbon/icons-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
+import loginBg from '@/assets/login_split_bg.png';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ const LoginPage = () => {
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: '100vh' }}>
       {/* Left Side - Image */}
-      <div style={{ flex: 1, backgroundImage: 'url(/src/assets/login_split_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', color: 'white', position: 'relative' }}>
+      <div style={{ flex: 1, backgroundImage: `url(${loginBg})`, backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', color: 'white', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.6)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
           <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>QJudge</h1>

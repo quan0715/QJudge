@@ -2,11 +2,13 @@ import { Button, Grid, Column, Tile } from '@carbon/react';
 import { ArrowRight, Code, Trophy, ChartLine } from '@carbon/icons-react';
 import { Link } from 'react-router-dom';
 
+import homeHeroBg from '@/assets/home_hero_bg.png';
+
 const HomePage = () => {
   return (
     <div style={{ width: '100%' }}>
       {/* Hero Section */}
-      <section className="premium-gradient-bg hero-separator" style={{ padding: '8rem 2rem', position: 'relative', overflow: 'hidden', backgroundImage: 'url(/src/assets/home_hero_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <section className="premium-gradient-bg hero-separator" style={{ padding: '8rem 2rem', position: 'relative', overflow: 'hidden', backgroundImage: `url(${homeHeroBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {/* Overlay for readability */}
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 51, 161, 0.8)' }} />
 

@@ -110,6 +110,24 @@ const ContestProblemPage = () => {
   );
   if (!problem) return <div>題目不存在</div>;
 
+  // Check view permissions
+  const canView = 
+    contest?.current_user_role === 'admin' || 
+    contest?.current_user_role === 'teacher' || 
+    (contest?.status === 'active' && contest?.has_started && !contest?.is_locked);
+
+  if (!canView) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h3>無法查看題目</h3>
+        <p>比賽尚未開始、已結束，或您已被鎖定。</p>
+        <Button kind="secondary" onClick={() => navigate(`/contests/${contestId}`)}>
+          返回競賽大廳
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ 
       height: '100%', 
@@ -174,6 +192,11 @@ const ContestProblemPage = () => {
           onSubmit={handleSubmit}
           isContestMode={true}
           contestId={contestId}
+          readOnly={
+            contest?.status === 'inactive' || 
+            contest?.is_locked || 
+            contest?.has_finished_exam
+          }
         />
       </div>
     </div>

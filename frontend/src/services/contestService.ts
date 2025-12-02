@@ -132,13 +132,13 @@ export const contestService = {
     return res.json();
   },
 
-  addContestProblem: async (contestId: string, title: string): Promise<Problem> => {
+  addContestProblem: async (contestId: string, data: { title?: string; problem_id?: string }): Promise<Problem> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/add_problem/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ title })
+      body: JSON.stringify(data)
     });
     if (!res.ok) {
         const errorData = await res.json();
@@ -160,6 +160,13 @@ export const contestService = {
         throw new Error(errorData.message || 'Failed to create problem');
     }
     return res.json();
+  },
+
+  removeContestProblem: async (contestId: string, problemId: string): Promise<void> => {
+    const res = await authFetch(`/api/v1/contests/${contestId}/problems/${problemId}/`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to remove problem');
   },
 
   endContest: async (contestId: string): Promise<any> => {

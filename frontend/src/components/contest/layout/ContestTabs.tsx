@@ -14,12 +14,12 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest }) => {
 
   // Map paths to tab indices
   const allTabs = [
-    { label: 'Overview', path: '' }, // index route
-    { label: 'Problems', path: 'problems' },
-    { label: 'Submissions', path: 'submissions' },
-    { label: 'Ranking', path: 'standings' },
-    { label: 'Clarifications', path: 'clarifications' },
-    { label: 'Settings', path: 'settings', requiredRole: ['teacher', 'admin'] },
+    { label: '總覽 (Overview)', path: '' }, // index route
+    { label: '題目 (Problems)', path: 'problems' },
+    { label: '提交 (Submissions)', path: 'submissions' },
+    { label: '排名 (Ranking)', path: 'standings' },
+    { label: '提問 (Clarifications)', path: 'clarifications' },
+    { label: '設定 (Settings)', path: 'settings', requiredRole: ['teacher', 'admin'] },
   ];
 
   // Filter tabs based on role
@@ -51,8 +51,8 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest }) => {
   return (
     <div style={{ 
       position: 'sticky',
-      top: 0,
-      zIndex: 100,
+      top: '3rem', // Stick below the 3rem (48px) Navbar
+      zIndex: 90, // Below Navbar (100+) but above content
       backgroundColor: 'var(--cds-layer-02)', // Match Hero background
       borderBottom: '1px solid var(--cds-border-subtle)',
       width: '100%',

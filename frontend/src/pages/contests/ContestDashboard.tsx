@@ -11,9 +11,10 @@ import {
   TableHeader,
   TableBody,
   TableCell,
-  TableContainer
+  TableContainer,
+  Modal
 } from '@carbon/react';
-import { Play, Time } from '@carbon/icons-react';
+import { Play, Time, Edit } from '@carbon/icons-react';
 import ReactMarkdown from 'react-markdown';
 
 import remarkGfm from 'remark-gfm';
@@ -21,7 +22,7 @@ import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
 import { type ProblemInfo, type StandingRow } from '@/components/contest/ContestScoreboard';
 import { useSearchParams } from 'react-router-dom';
-import SubmissionDetailModal from '@/components/contest/SubmissionDetailModal';
+import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import type { StatusType } from '@/components/common/StatusBadge';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
@@ -42,6 +43,7 @@ const ContestDashboard = () => {
   const [problems, setProblems] = useState<ProblemInfo[]>([]);
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [lockModalOpen, setLockModalOpen] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -96,6 +98,44 @@ const ContestDashboard = () => {
   };
 
 
+  useEffect(() => {
+    // Anti-Cheat Logic
+    if (!contest || !contest.exam_mode_enabled || !contest.has_started || contest.has_finished_exam || contest.is_locked) {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        logEvent('tab_hidden', { reason: 'visibility_hidden' });
+      }
+    };
+
+    const handleBlur = () => {
+      logEvent('window_blur', { reason: 'window_blur' });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [contest]);
+
+  const logEvent = async (type: string, metadata: any) => {
+    if (!contestId) return;
+    try {
+      const res = await api.logExamEvent(contestId, type, metadata);
+      if (res.locked) {
+        // Refresh contest to update locked status
+        loadContest();
+        setLockModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Failed to log event', error);
+    }
+  };
 
 
 
@@ -215,7 +255,10 @@ const ContestDashboard = () => {
                     getHeaderProps,
                     getRowProps,
                     getTableProps
-                  }: any) => (
+                  }: any) => {
+                    const isTeacherView = (currentUser?.role === 'admin' || currentUser?.role === 'teacher') && searchParams.get('view') === 'teacher';
+
+                    return (
                     <TableContainer>
                       <Table {...getTableProps()}>
                         <TableHead>
@@ -238,8 +281,22 @@ const ContestDashboard = () => {
                               <TableRow 
                                 {...rowProps} 
                                 key={key}
-                                onClick={() => navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`)}
-                                style={{ cursor: 'pointer' }}
+                                onClick={() => {
+                                  const canView = (currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
+                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked);
+                                  
+                                  if (canView) {
+                                    navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`);
+                                  }
+                                }}
+                                style={{ 
+                                  cursor: ((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
+                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked)) 
+                                    ? 'pointer' : 'not-allowed',
+                                  opacity: ((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
+                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked)) 
+                                    ? 1 : 0.5
+                                }}
                               >
                                 <TableCell>
                                   <Tag type="cyan">{problem?.label}</Tag>
@@ -250,9 +307,34 @@ const ContestDashboard = () => {
                                   {problem && getProblemStatus(problem.id)}
                                 </TableCell>
                                 <TableCell>
-                                  <Button kind="ghost" size="sm" renderIcon={Play}>
-                                    前往
-                                  </Button>
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <Button 
+                                      kind="ghost" 
+                                      size="sm" 
+                                      renderIcon={Play}
+                                      disabled={!((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
+                                        (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked))}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`);
+                                      }}
+                                    >
+                                      前往
+                                    </Button>
+                                    {isTeacherView && (
+                                      <Button 
+                                        kind="ghost" 
+                                        size="sm" 
+                                        renderIcon={Edit}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/teacher/contests/${contestId}/problems/${problem?.id}/edit`);
+                                        }}
+                                      >
+                                        編輯
+                                      </Button>
+                                    )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );
@@ -260,7 +342,8 @@ const ContestDashboard = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  )}
+                  );
+                  }}
                 </DataTable>
               </ContainerCard>
               <ContainerCard title="近期提交趨勢" noPadding>
@@ -375,6 +458,18 @@ const ContestDashboard = () => {
         isOpen={!!searchParams.get('select_id')}
         onClose={handleCloseModal}
       />
+
+      {/* Lock Notification Modal */}
+      <Modal
+        open={lockModalOpen}
+        modalHeading="考試鎖定通知"
+        passiveModal
+        onRequestClose={() => setLockModalOpen(false)}
+      >
+        <p style={{ fontSize: '1rem', color: 'var(--cds-text-error)' }}>
+          您因多次違規已被鎖定，無法繼續考試。
+        </p>
+      </Modal>
     </SurfaceSection>
   );
 };

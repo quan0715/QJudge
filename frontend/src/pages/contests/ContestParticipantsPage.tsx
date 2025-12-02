@@ -15,6 +15,7 @@ import {
   TextInput,
   Toggle,
   InlineNotification,
+  ToastNotification,
   Loading
 } from '@carbon/react';
 import { Add, Unlocked, Renew } from '@carbon/icons-react';
@@ -37,6 +38,9 @@ const ContestParticipantsPage = () => {
   // Add Modal State
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addUsername, setAddUsername] = useState('');
+  
+  // Notification State
+  const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
     if (contestId) {
@@ -62,10 +66,10 @@ const ContestParticipantsPage = () => {
     if (!confirm('確定要解除此學生的鎖定嗎？')) return;
     try {
       await api.unlockParticipant(contestId!, userId);
-      alert('已解除鎖定');
+      setNotification({ kind: 'success', message: '已解除鎖定' });
       loadParticipants();
     } catch (err: any) {
-      alert(err.message || '解除鎖定失敗');
+      setNotification({ kind: 'error', message: err.message || '解除鎖定失敗' });
     }
   };
 
@@ -85,11 +89,11 @@ const ContestParticipantsPage = () => {
         lock_reason: editLockReason,
         has_finished_exam: editHasFinished
       });
-      alert('更新成功');
+      setNotification({ kind: 'success', message: '更新成功' });
       setEditModalOpen(false);
       loadParticipants();
     } catch (err: any) {
-      alert(err.message || '更新失敗');
+      setNotification({ kind: 'error', message: err.message || '更新失敗' });
     }
   };
 
@@ -97,12 +101,12 @@ const ContestParticipantsPage = () => {
     if (!addUsername) return;
     try {
       await api.addParticipant(contestId!, addUsername);
-      alert('新增成功');
+      setNotification({ kind: 'success', message: '新增成功' });
       setAddModalOpen(false);
       setAddUsername('');
       loadParticipants();
     } catch (err: any) {
-      alert(err.message || '新增失敗');
+      setNotification({ kind: 'error', message: err.message || '新增失敗' });
     }
   };
 
@@ -286,6 +290,17 @@ const ContestParticipantsPage = () => {
           </Modal>
         </div>
       </div>
+      
+      {notification && (
+        <ToastNotification
+          kind={notification.kind}
+          title={notification.kind === 'success' ? '成功' : '錯誤'}
+          subtitle={notification.message}
+          timeout={3000}
+          onClose={() => setNotification(null)}
+          style={{ position: 'fixed', top: '3rem', right: '1rem', zIndex: 9999 }}
+        />
+      )}
     </div>
   );
 };
