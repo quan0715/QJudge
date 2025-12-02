@@ -51,7 +51,7 @@ const TeacherContestProblemEditPage = () => {
       } else {
         setError('無法載入題目資料');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load problem');
     }
   };
@@ -80,7 +80,7 @@ const TeacherContestProblemEditPage = () => {
         const errorData = await res.json();
         setError(JSON.stringify(errorData) || '操作失敗');
       }
-    } catch (err) {
+    } catch {
       setError('操作失敗，請稍後再試');
     } finally {
       setLoading(false);

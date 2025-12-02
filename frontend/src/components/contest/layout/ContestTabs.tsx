@@ -7,27 +7,18 @@ interface ContestTabsProps {
   contest: ContestDetail | null;
 }
 
-const ContestTabs: React.FC<ContestTabsProps> = ({ contest }) => {
+const ContestTabs: React.FC<ContestTabsProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { contestId } = useParams<{ contestId: string }>();
 
-  // Map paths to tab indices
-  const allTabs = [
+  const tabs = [
     { label: '總覽 (Overview)', path: '', key: 'overview' }, // index route
     { label: '題目 (Problems)', path: 'problems', key: 'problems' },
     { label: '提交 (Submissions)', path: 'submissions', key: 'submissions' },
     { label: '排名 (Ranking)', path: 'standings', key: 'standings' },
     { label: '提問 (Clarifications)', path: 'clarifications', key: 'clarifications' },
   ];
-
-  // Filter tabs based on role
-  const tabs = allTabs.filter(tab => {
-    if (!tab.requiredRole) return true;
-    if (!contest) return false;
-    const role = contest.current_user_role;
-    return tab.requiredRole.includes(role);
-  });
 
   // Determine active tab index
   const getCurrentTabIndex = () => {

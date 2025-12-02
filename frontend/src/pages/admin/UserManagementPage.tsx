@@ -165,7 +165,7 @@ const UserManagementPage = () => {
         const errorData = await res.json();
         setError(errorData.detail || '無法刪除用戶');
       }
-    } catch (err) {
+    } catch {
       setError('刪除用戶時發生錯誤');
     } finally {
       setIsDeleteModalOpen(false);

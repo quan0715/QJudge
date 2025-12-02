@@ -1,26 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Add,
-  Edit,
-  View,
-  TrashCan,
-  Upload
-} from '@carbon/icons-react';
 import {
-  Button,
-  DataTable,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableToolbar,
-  TableToolbarContent,
-  TableToolbarSearch,
-  Tag,
   InlineLoading,
   Tabs,
   Tab,
@@ -54,17 +34,7 @@ const ProblemManagementPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
-
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
-      }
-    }
     fetchProblems();
   }, []);
 
@@ -111,40 +81,6 @@ const ProblemManagementPage = () => {
     } catch (error: any) {
       throw error;
     }
-  };
-
-  const getDifficultyTag = (difficulty: string) => {
-    const config = {
-      'easy': { label: '簡單', type: 'green' },
-      'medium': { label: '中等', type: 'cyan' },
-      'hard': { label: '困難', type: 'red' }
-    } as const;
-    
-    const { label, type } = config[difficulty as keyof typeof config] || { label: difficulty, type: 'gray' };
-    return <Tag type={type as any}>{label}</Tag>;
-  };
-
-  const getAcceptanceRate = (problem: Problem) => {
-    if (problem.submission_count === 0) return '0%';
-    return `${((problem.accepted_count / problem.submission_count) * 100).toFixed(1)}%`;
-  };
-
-  const headers = [
-    { key: 'id', header: 'ID' },
-    { key: 'title', header: '標題' },
-    { key: 'difficulty', header: '難度' },
-    { key: 'type', header: '類型' },
-    { key: 'stats', header: '統計' },
-    { key: 'visibility', header: '狀態' },
-    { key: 'created_by', header: '作者' },
-    { key: 'created_at', header: '建立時間' },
-    { key: 'actions', header: '操作' },
-  ];
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
   };
 
   if (loading) {

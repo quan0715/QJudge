@@ -42,7 +42,7 @@ const LoginPage = () => {
       setLoading(true);
       const url = await api.getOAuthUrl(provider);
       window.location.href = url;
-    } catch (err) {
+    } catch {
       setError('Failed to initiate login');
       setLoading(false);
     }

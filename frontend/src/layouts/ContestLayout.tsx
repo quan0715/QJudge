@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import {
   Header,
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
-  HeaderPanel,
-  Switcher,
-  SwitcherItem,
-  SwitcherDivider,
   Theme,
   Button,
   Modal,
@@ -18,7 +14,6 @@ import {
 import {
   Maximize,
   Minimize,
-  Notification as NotificationIcon,
   UserAvatar,
   View,
   Logout,
@@ -37,7 +32,7 @@ import ContestHero from '@/components/contest/layout/ContestHero';
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  // const [searchParams] = useSearchParams();
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);

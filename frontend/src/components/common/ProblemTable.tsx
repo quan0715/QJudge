@@ -49,11 +49,9 @@ interface ProblemTableProps {
 const ProblemTable: React.FC<ProblemTableProps> = ({
   problems,
   mode,
-  loading,
   onAction,
   onImport,
-  onAdd,
-  currentUserRole
+  onAdd
 }) => {
 
   const getDifficultyTag = (difficulty?: string) => {
@@ -119,7 +117,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
           {mode === 'admin' && (
             <TableToolbar>
               <TableToolbarContent>
-                <TableToolbarSearch onChange={onInputChange} placeholder="搜尋題目..." />
+                <TableToolbarSearch onChange={(e) => { if (e && typeof e !== 'string') onInputChange(e); }} placeholder="搜尋題目..." />
                 {onImport && (
                   <Button kind="secondary" renderIcon={Upload} onClick={onImport}>
                     匯入 YAML

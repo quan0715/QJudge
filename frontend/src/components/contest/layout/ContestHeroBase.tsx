@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag, SkeletonText } from '@carbon/react';
-import { Time, UserMultiple, Catalog, Calendar } from '@carbon/icons-react';
+import { Time, UserMultiple, Catalog } from '@carbon/icons-react';
 import ReactMarkdown from 'react-markdown';
 import type { ContestDetail } from '@/models/contest';
 // Note: Using inline styles for ContestHero components to ensure consistent rendering without external CSS modules.
@@ -12,6 +12,55 @@ interface ContestHeroBaseProps {
   bottomContent?: React.ReactNode;
   loading?: boolean;
 }
+
+const DataCard = ({ icon: Icon, value, label }: { icon: React.ComponentType<any>, value: string | number, label: string }) => (
+  <div style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    padding: '0 2rem',
+    borderLeft: '1px solid var(--cds-border-subtle)',
+    minWidth: '140px',
+    alignItems: 'flex-start'
+  }}>
+    <div style={{ marginBottom: '0.5rem', color: 'var(--cds-text-secondary)' }}>
+      <Icon size={20} />
+    </div>
+    <div style={{ fontSize: '2.5rem', fontWeight: 300, lineHeight: 1, marginBottom: '0.25rem' }}>
+      {value}
+    </div>
+    <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+      {label}
+    </div>
+  </div>
+);
+
+const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+  <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
+    {label && (
+      <div style={{ 
+        marginBottom: '0.5rem', 
+        fontSize: '0.875rem', 
+        color: 'var(--cds-text-secondary)',
+        fontFamily: 'var(--cds-font-family)'
+      }}>
+        {label}
+      </div>
+    )}
+    <div style={{ 
+      height: '6px', 
+      width: '100%', 
+      backgroundColor: 'var(--cds-border-subtle)', 
+      position: 'relative' 
+    }}>
+      <div style={{ 
+        height: '100%', 
+        width: `${value}%`, 
+        backgroundColor: status === 'ended' || status === 'FINISHED' ? '#8d8d8d' : 'var(--cds-interactive)',
+        transition: 'width 0.3s ease'
+      }} />
+    </div>
+  </div>
+);
 
 const ContestHeroBase: React.FC<ContestHeroBaseProps> = ({ 
   contest, 
@@ -78,55 +127,6 @@ const ContestHeroBase: React.FC<ContestHeroBaseProps> = ({
       default: return status;
     }
   };
-
-  const DataCard = ({ icon: Icon, value, label }: { icon: any, value: string | number, label: string }) => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      padding: '0 2rem',
-      borderLeft: '1px solid var(--cds-border-subtle)',
-      minWidth: '140px',
-      alignItems: 'flex-start'
-    }}>
-      <div style={{ marginBottom: '0.5rem', color: 'var(--cds-text-secondary)' }}>
-        <Icon size={20} />
-      </div>
-      <div style={{ fontSize: '2.5rem', fontWeight: 300, lineHeight: 1, marginBottom: '0.25rem' }}>
-        {value}
-      </div>
-      <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-        {label}
-      </div>
-    </div>
-  );
-
-  const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
-    <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
-      {label && (
-        <div style={{ 
-          marginBottom: '0.5rem', 
-          fontSize: '0.875rem', 
-          color: 'var(--cds-text-secondary)',
-          fontFamily: 'var(--cds-font-family)'
-        }}>
-          {label}
-        </div>
-      )}
-      <div style={{ 
-        height: '6px', 
-        width: '100%', 
-        backgroundColor: 'var(--cds-border-subtle)', 
-        position: 'relative' 
-      }}>
-        <div style={{ 
-          height: '100%', 
-          width: `${value}%`, 
-          backgroundColor: status === 'ended' || status === 'FINISHED' ? '#8d8d8d' : 'var(--cds-interactive)',
-          transition: 'width 0.3s ease'
-        }} />
-      </div>
-    </div>
-  );
 
   return (
     <div style={{ 

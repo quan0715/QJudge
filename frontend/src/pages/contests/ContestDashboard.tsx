@@ -14,7 +14,7 @@ import {
   TableContainer,
   Modal
 } from '@carbon/react';
-import { Play, Time, Edit } from '@carbon/icons-react';
+import { Play, Time } from '@carbon/icons-react';
 import ReactMarkdown from 'react-markdown';
 
 import remarkGfm from 'remark-gfm';

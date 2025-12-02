@@ -280,7 +280,7 @@ export const mockContestService = {
     return false;
   },
 
-  getAnnouncements: async (_contestId: string): Promise<{id: string, title: string, content: string, time: string}[]> => {
+  getAnnouncements: async (): Promise<{id: string, title: string, content: string, time: string}[]> => {
     // Mock announcements
     return [
       { id: '1', title: '歡迎參加', content: '請遵守考試規則，切勿作弊。', time: new Date().toISOString() },

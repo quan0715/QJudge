@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, Modal } from '@carbon/react';
-import { PlayFilled, Login, Flag, WarningAltFilled, Settings } from '@carbon/icons-react';
+import { PlayFilled, Login, Flag, WarningAltFilled } from '@carbon/icons-react';
 import type { ContestDetail } from '@/models/contest';
 import ContestTabs from './ContestTabs';
 import ContestHeroBase from './ContestHeroBase';
@@ -23,7 +22,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onStartExam, 
   onEndExam,
 }) => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);

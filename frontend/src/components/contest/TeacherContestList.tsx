@@ -37,8 +37,8 @@ const TeacherContestList = () => {
     try {
       const data = await api.getContests('manage');
       setContests(data);
-    } catch (error) {
-      console.error('Failed to load contests', error);
+    } catch (err) {
+      console.error('Failed to fetch contests', err);
     } finally {
       setLoading(false);
     }

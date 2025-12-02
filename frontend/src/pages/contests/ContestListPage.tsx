@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Tag,
-  Modal,
-  TextInput,
   Loading,
   Button,
+  Modal,
   DataTable,
   TableContainer,
   Table,
@@ -18,8 +17,7 @@ import {
   Tab,
   TabList,
   TabPanels,
-  TabPanel,
-  ToastNotification
+  TabPanel
 } from '@carbon/react';
 import { Add } from '@carbon/icons-react';
 import { api } from '@/services/api';
@@ -31,14 +29,6 @@ const ContestListPage = () => {
   const navigate = useNavigate();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Modal State
-  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string>('');
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   
   // Generic Notification Modal
   const [notificationModal, setNotificationModal] = useState({
@@ -86,21 +76,6 @@ const ContestListPage = () => {
     }
   };
 
-  const handleRegister = async () => {
-    if (!selectedContest) return;
-
-    try {
-      await api.registerContest(selectedContest.id, password);
-      setRegisterModalOpen(false);
-      setSuccessMessage(`成功報名競賽：${selectedContest.name}`);
-      setShowSuccessToast(true);
-      // After registration, refresh list
-      const data = await api.getContests();
-      setContests(data);
-    } catch (err: any) {
-      setError(err.message || '密碼錯誤或報名失敗');
-    }
-  };
 
   const headers = [
     { key: 'name', header: '競賽名稱' },
@@ -252,7 +227,7 @@ const ContestListPage = () => {
               if (user.role === 'admin' || user.role === 'teacher') {
                 return <Tab>我的競賽</Tab>;
               }
-            } catch (e) {}
+            } catch {}
             return null;
           })()}
         </TabList>
@@ -277,54 +252,11 @@ const ContestListPage = () => {
                   </TabPanel>
                 );
               }
-            } catch (e) {}
+            } catch {}
             return null;
           })()}
         </TabPanels>
       </Tabs>
-
-      {/* Registration Modal */}
-      <Modal
-        open={registerModalOpen}
-        modalHeading={`報名競賽: ${selectedContest?.name}`}
-        primaryButtonText="確認報名"
-        secondaryButtonText="取消"
-        onRequestClose={() => setRegisterModalOpen(false)}
-        onRequestSubmit={handleRegister}
-      >
-        <p style={{ marginBottom: '1rem' }}>
-          {selectedContest?.description || '確定要報名此競賽嗎？'}
-        </p>
-        {selectedContest?.password && (
-          <TextInput
-            id="contest-password"
-            labelText="競賽密碼"
-            type="password"
-            placeholder="請輸入密碼"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            invalid={!!error}
-            invalidText={error}
-          />
-        )}
-        {!selectedContest?.password && error && (
-          <p style={{ color: 'red' }}>{error}</p>
-        )}
-      </Modal>
-
-
-
-      {/* Success Toast */}
-      {showSuccessToast && (
-        <ToastNotification
-          kind="success"
-          title="報名成功"
-          subtitle={successMessage}
-          timeout={3000}
-          onClose={() => setShowSuccessToast(false)}
-          style={{ position: 'fixed', top: '3rem', right: '1rem', zIndex: 9999 }}
-        />
-      )}
 
       {/* Generic Notification Modal */}
       <Modal
