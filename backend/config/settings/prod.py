@@ -73,4 +73,4 @@ CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_
 if os.getenv('FRONTEND_URL'):
     CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
 
-print(f'DEBUG: CSRF_TRUSTED_ORIGINS={CSRF_TRUSTED_ORIGINS}')
+

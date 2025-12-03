@@ -49,6 +49,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +76,7 @@ services:
       - .env
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
+      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
     depends_on:
       postgres:
         condition: service_healthy

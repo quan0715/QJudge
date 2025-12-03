@@ -1,0 +1,692 @@
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+/Users/quan/online_judge/frontend/src/components/ContestQuestionList.tsx
+  51:6  warning  React Hook useEffect has a missing dependency: 'fetchQuestions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/quan/online_judge/frontend/src/components/EndContestButton.tsx
+  28:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/ProblemForm.tsx
+  139:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/components/ProblemForm.tsx:139:7
+  137 |   useEffect(() => {
+  138 |     if (initialData) {
+> 139 |       setTitle(initialData.title || '');
+      |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  140 |       setDifficulty(initialData.difficulty || 'medium');
+  141 |       setTimeLimit(initialData.time_limit || 1000);
+  142 |       setMemoryLimit(initialData.memory_limit || 128);  react-hooks/set-state-in-effect
+  189:72  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  341:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  352:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  482:45  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/ProblemImportModal.tsx
+  17:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/ProblemSolver.tsx
+   37:18  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+   38:16  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+  106:6   warning  React Hook useEffect has a missing dependency: 'getDraftKey'. Either include it or remove the dependency array                                   react-hooks/exhaustive-deps
+  132:6   warning  React Hook useEffect has missing dependencies: 'loadDraftOrTemplate' and 'selectedLanguage'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  134:39  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+  195:19  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+  268:52  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+  382:52  error    Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/ProblemSubmissionList.tsx
+  76:6  warning  React Hook useEffect has a missing dependency: 'fetchSubmissions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/quan/online_judge/frontend/src/components/RouteGuards.tsx
+  39:14  error  Error: Avoid constructing JSX within try/catch
+
+React does not immediately render components when JSX is rendered, so any errors from this component will not be caught by the try/catch. To catch errors in rendering a given component, wrap that component in an error boundary. (https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+
+/Users/quan/online_judge/frontend/src/components/RouteGuards.tsx:39:14
+  37 |     // Check if user is admin role
+  38 |     if (user.role !== 'admin') {
+> 39 |       return <Navigate to="/dashboard" replace />;
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid constructing JSX within try/catch
+  40 |     }
+  41 |   } catch {
+  42 |     return <Navigate to="/login" replace />;                                   react-hooks/error-boundaries
+  61:14  error  Error: Avoid constructing JSX within try/catch
+
+React does not immediately render components when JSX is rendered, so any errors from this component will not be caught by the try/catch. To catch errors in rendering a given component, wrap that component in an error boundary. (https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+
+/Users/quan/online_judge/frontend/src/components/RouteGuards.tsx:61:14
+  59 |     // Check if user is teacher or admin
+  60 |     if (user.role !== 'teacher' && user.role !== 'admin') {
+> 61 |       return <Navigate to="/dashboard" replace />;
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid constructing JSX within try/catch
+  62 |     }
+  63 |   } catch {
+  64 |     return <Navigate to="/login" replace />;  react-hooks/error-boundaries
+
+/Users/quan/online_judge/frontend/src/components/common/ProblemTable.tsx
+  52:3   error  'loading' is defined but never used          @typescript-eslint/no-unused-vars
+  56:3   error  'currentUserRole' is defined but never used  @typescript-eslint/no-unused-vars
+  68:31  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/common/StatusBadge.tsx
+  12:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest-admin/dashboard/ParticipantCompletionSection.tsx
+  70:10  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/quan/online_judge/frontend/src/components/contest-admin/dashboard/ProblemCompletionSection.tsx
+  65:10  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/quan/online_judge/frontend/src/components/contest/ContestClarifications.tsx
+  31:54  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  57:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  68:40  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/ContestScoreboard.tsx
+   77:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  221:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/ContestSidebar.tsx
+  203:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/ExamEventStats.tsx
+  28:6   warning  React Hook useEffect has a missing dependency: 'fetchStats'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  37:30  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/ExamModeWrapper.tsx
+   77:15  error    Error: Cannot access variable before it is declared
+
+`recordEvent` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/quan/online_judge/frontend/src/components/contest/ExamModeWrapper.tsx:77:15
+  75 |         isRecordingEvent.current = true;
+  76 |         const reason = '您已切換分頁，本次作答已被鎖定';
+> 77 |         await recordEvent('tab_hidden', reason);
+     |               ^^^^^^^^^^^ `recordEvent` accessed before it is declared
+  78 |         isRecordingEvent.current = false;
+  79 |       }
+  80 |     };
+
+/Users/quan/online_judge/frontend/src/components/contest/ExamModeWrapper.tsx:116:3
+  114 |   }, [examModeEnabled, examState.isActive, contestId, location.pathname]);
+  115 |
+> 116 |   const recordEvent = async (type: string, reason: string) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 117 |     try {
+      | ^^^^^^^^^
+> 118 |       // @ts-ignore - API response type mismatch with current definition
+      …
+      | ^^^^^^^^^
+> 142 |     }
+      | ^^^^^^^^^
+> 143 |   };
+      | ^^^^^ `recordEvent` is declared here
+  144 |
+  145 |   const lockExam = (reason: string) => {
+  146 |     setExamState(prev => ({  react-hooks/immutability
+  114:6   warning  React Hook useEffect has missing dependencies: 'examState.isLocked', 'isBypassed', and 'recordEvent'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  118:7   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/ban-ts-comment
+  330:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-refresh/only-export-components
+
+/Users/quan/online_judge/frontend/src/components/contest/SubmissionDetailModal.tsx
+   83:6    warning  React Hook useEffect has a missing dependency: 'fetchSubmission'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   94:19   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  142:48   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  369:112  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  375:55   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  386:47   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  395:59   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/TeacherContestList.tsx
+  59:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  77:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHero.tsx
+   4:53  error  'Settings' is defined but never used           @typescript-eslint/no-unused-vars
+  26:9   error  'navigate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  57:44  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx
+    3:39  error  'Calendar' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   82:59  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  223:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:223:14
+  221 |             flexWrap: 'wrap'
+  222 |           }}>
+> 223 |             <DataCard 
+      |              ^^^^^^^^ This component is created during render
+  224 |               icon={UserMultiple} 
+  225 |               value={contest.participant_count || 0} 
+  226 |               label="Participants" 
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:82:20
+   80 |   };
+   81 |
+>  82 |   const DataCard = ({ icon: Icon, value, label }: { icon: any, value: string | number, label: string }) => (
+      |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |     <div style={{ 
+      | ^^^^^^^^^^^^^^^^^^
+>  84 |       display: 'flex', 
+      …
+      | ^^^^^^^^^^^^^^^^^^
+> 100 |     </div>
+      | ^^^^^^^^^^^^^^^^^^
+> 101 |   );
+      | ^^^^ The component is created during render here
+  102 |
+  103 |   const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+  104 |     <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>                                                                                                                                                                                                 react-hooks/static-components
+  228:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:228:14
+  226 |               label="Participants" 
+  227 |             />
+> 228 |             <DataCard 
+      |              ^^^^^^^^ This component is created during render
+  229 |               icon={Catalog} 
+  230 |               value={contest.problems.length} 
+  231 |               label="Problems" 
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:82:20
+   80 |   };
+   81 |
+>  82 |   const DataCard = ({ icon: Icon, value, label }: { icon: any, value: string | number, label: string }) => (
+      |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |     <div style={{ 
+      | ^^^^^^^^^^^^^^^^^^
+>  84 |       display: 'flex', 
+      …
+      | ^^^^^^^^^^^^^^^^^^
+> 100 |     </div>
+      | ^^^^^^^^^^^^^^^^^^
+> 101 |   );
+      | ^^^^ The component is created during render here
+  102 |
+  103 |   const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+  104 |     <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>                                                                                                                                                                                                         react-hooks/static-components
+  233:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:233:14
+  231 |               label="Problems" 
+  232 |             />
+> 233 |             <DataCard 
+      |              ^^^^^^^^ This component is created during render
+  234 |               icon={Time} 
+  235 |               value={getDuration()} 
+  236 |               label="Duration" 
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:82:20
+   80 |   };
+   81 |
+>  82 |   const DataCard = ({ icon: Icon, value, label }: { icon: any, value: string | number, label: string }) => (
+      |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |     <div style={{ 
+      | ^^^^^^^^^^^^^^^^^^
+>  84 |       display: 'flex', 
+      …
+      | ^^^^^^^^^^^^^^^^^^
+> 100 |     </div>
+      | ^^^^^^^^^^^^^^^^^^
+> 101 |   );
+      | ^^^^ The component is created during render here
+  102 |
+  103 |   const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+  104 |     <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>                                                                                                                                                                                                                          react-hooks/static-components
+  244:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:244:14
+  242 |         <div className="cds--row">
+  243 |           <div className="cds--col-lg-16">
+> 244 |             <MinimalProgressBar 
+      |              ^^^^^^^^^^^^^^^^^^ This component is created during render
+  245 |               value={progress} 
+  246 |               label={contest.status === 'active' ? `Contest Progress · ${Math.round(progress)}%` : contest.status} 
+  247 |               status={contest.status}
+
+/Users/quan/online_judge/frontend/src/components/contest/layout/ContestHeroBase.tsx:103:30
+  101 |   );
+  102 |
+> 103 |   const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+      |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 104 |     <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 105 |       {label && (
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 128 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |   );
+      | ^^^^ The component is created during render here
+  130 |
+  131 |   return (
+  132 |     <div style={{   react-hooks/static-components
+
+/Users/quan/online_judge/frontend/src/contexts/ThemeContext.tsx
+  20:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/contexts/ThemeContext.tsx:20:7
+  18 |     const savedTheme = localStorage.getItem('theme') as ThemeType;
+  19 |     if (savedTheme) {
+> 20 |       setThemeState(savedTheme);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |     }
+  22 |   }, []);
+  23 |  react-hooks/set-state-in-effect
+  45:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-refresh/only-export-components
+
+/Users/quan/online_judge/frontend/src/layouts/ContestLayout.tsx
+    8:3   error  'HeaderPanel' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+    9:3   error  'Switcher' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   10:3   error  'SwitcherItem' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   11:3   error  'SwitcherDivider' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   21:19  error  'NotificationIcon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   40:10  error  'searchParams' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   44:50  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   61:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/layouts/ContestLayout.tsx:61:9
+  59 |     if (userStr) {
+  60 |       try {
+> 61 |         setCurrentUser(JSON.parse(userStr));
+     |         ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  62 |       } catch (e) {
+  63 |         console.error('Failed to parse user from local storage', e);
+  64 |       }  react-hooks/set-state-in-effect
+  292:14  error  Unexpected constant truthiness on the left-hand side of a `&&` expression                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-constant-binary-expression
+
+/Users/quan/online_judge/frontend/src/models/contest.ts
+  220:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/DashboardPage.tsx
+  13:38  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  18:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/pages/DashboardPage.tsx:18:7
+  16 |     const userStr = localStorage.getItem('user');
+  17 |     if (userStr) {
+> 18 |       setUser(JSON.parse(userStr));
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  19 |     }
+  20 |
+  21 |     const fetchStats = async () => {  react-hooks/set-state-in-effect
+
+/Users/quan/online_judge/frontend/src/pages/ProfilePage.tsx
+  20:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/pages/ProfilePage.tsx:20:7
+  18 |     const userStr = localStorage.getItem('user');
+  19 |     if (userStr) {
+> 20 |       setUser(JSON.parse(userStr));
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  21 |     } else {
+  22 |       navigate('/login');
+  23 |     }  react-hooks/set-state-in-effect
+
+/Users/quan/online_judge/frontend/src/pages/admin/ProblemFormPage.tsx
+  20:6   warning  React Hook useEffect has missing dependencies: 'isEditMode' and 'loadProblem'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  30:14  error    'err' is defined but never used                                                                                                    @typescript-eslint/no-unused-vars
+  59:14  error    'err' is defined but never used                                                                                                    @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/pages/admin/ProblemManagementPage.tsx
+    4:3   error  'Add' is defined but never used                         @typescript-eslint/no-unused-vars
+    5:3   error  'Edit' is defined but never used                        @typescript-eslint/no-unused-vars
+    6:3   error  'View' is defined but never used                        @typescript-eslint/no-unused-vars
+    7:3   error  'TrashCan' is defined but never used                    @typescript-eslint/no-unused-vars
+    8:3   error  'Upload' is defined but never used                      @typescript-eslint/no-unused-vars
+   11:3   error  'Button' is defined but never used                      @typescript-eslint/no-unused-vars
+   12:3   error  'DataTable' is defined but never used                   @typescript-eslint/no-unused-vars
+   13:3   error  'Table' is defined but never used                       @typescript-eslint/no-unused-vars
+   14:3   error  'TableHead' is defined but never used                   @typescript-eslint/no-unused-vars
+   15:3   error  'TableRow' is defined but never used                    @typescript-eslint/no-unused-vars
+   16:3   error  'TableHeader' is defined but never used                 @typescript-eslint/no-unused-vars
+   17:3   error  'TableBody' is defined but never used                   @typescript-eslint/no-unused-vars
+   18:3   error  'TableCell' is defined but never used                   @typescript-eslint/no-unused-vars
+   19:3   error  'TableContainer' is defined but never used              @typescript-eslint/no-unused-vars
+   20:3   error  'TableToolbar' is defined but never used                @typescript-eslint/no-unused-vars
+   21:3   error  'TableToolbarContent' is defined but never used         @typescript-eslint/no-unused-vars
+   22:3   error  'TableToolbarSearch' is defined but never used          @typescript-eslint/no-unused-vars
+   46:24  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   57:10  error  'currentUser' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   92:51  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   93:5   error  Unnecessary try/catch wrapper                           no-useless-catch
+  111:21  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  116:9   error  'getDifficultyTag' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  124:31  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  127:9   error  'getAcceptanceRate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  132:9   error  'headers' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  144:9   error  'formatDate' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  208:50  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  218:40  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/admin/UserManagementPage.tsx
+   66:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:14  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/pages/auth/LoginPage.tsx
+  28:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:14  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/pages/auth/OAuthCallbackPage.tsx
+  17:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/pages/auth/OAuthCallbackPage.tsx:17:7
+  15 |
+  16 |     if (errorParam) {
+> 17 |       setError(errorDescription || errorParam);
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  18 |       return;
+  19 |     }
+  20 |  react-hooks/set-state-in-effect
+
+/Users/quan/online_judge/frontend/src/pages/auth/RegisterPage.tsx
+  33:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestAdminOverview.tsx
+  34:29  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestAdminOverview.tsx:34:29
+  32 |     userId: `u${i}`,
+  33 |     username: `student_${i + 1}`,
+> 34 |     solvedCount: Math.floor(Math.random() * 6), // 0 to 5
+     |                             ^^^^^^^^^^^^^ Cannot call impure function
+  35 |     totalSubmissions: Math.floor(Math.random() * 10) + 1,
+  36 |     lastSubmissionAt: new Date().toISOString(),
+  37 |   }));  react-hooks/purity
+  35:34  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestAdminOverview.tsx:35:34
+  33 |     username: `student_${i + 1}`,
+  34 |     solvedCount: Math.floor(Math.random() * 6), // 0 to 5
+> 35 |     totalSubmissions: Math.floor(Math.random() * 10) + 1,
+     |                                  ^^^^^^^^^^^^^ Cannot call impure function
+  36 |     lastSubmissionAt: new Date().toISOString(),
+  37 |   }));
+  38 |                  react-hooks/purity
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestLogsPage.tsx
+  27:48  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  34:6   warning  React Hook useEffect has a missing dependency: 'loadExamLogs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  63:76  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  68:43  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  76:35  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestParticipantsPage.tsx
+   51:6   warning  React Hook useEffect has a missing dependency: 'loadParticipants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   75:21  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   86:21  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  110:21  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  154:78  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  159:45  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  167:37  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestProblemsPage.tsx
+  19:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  28:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestProblemsPage.tsx:28:7
+  26 |   useEffect(() => {
+  27 |     if (contest && contest.problems) {
+> 28 |       setProblems(contest.problems);
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  29 |     }
+  30 |   }, [contest]);
+  31 |  react-hooks/set-state-in-effect
+
+/Users/quan/online_judge/frontend/src/pages/contest-admin/ContestSettingsPage.tsx
+  366:95  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestCreatePage.tsx
+  60:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestDashboard.tsx
+   17:22  error    'Edit' is defined but never used                                                                                                          @typescript-eslint/no-unused-vars
+   44:54  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+   45:50  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+   66:6   warning  React Hook useEffect has missing dependencies: 'loadContest' and 'loadPersonalStats'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   86:58  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+   93:45  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  124:6   warning  React Hook useEffect has a missing dependency: 'logEvent'. Either include it or remove the dependency array                               react-hooks/exhaustive-deps
+  126:51  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  258:22  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  264:51  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  275:43  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  387:46  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  388:47  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestEventsPage.tsx
+   42:6   warning  React Hook useEffect has a missing dependency: 'loadEvents'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+   52:31  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   56:51  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   76:60  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  117:16  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  130:22  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  137:45  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  148:37  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestListPage.tsx
+   36:27  error  'setSelectedContest' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   73:21  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  100:19  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  255:22  error  'e' is defined but never used                            @typescript-eslint/no-unused-vars
+  255:25  error  Empty block statement                                    no-empty
+  280:22  error  'e' is defined but never used                            @typescript-eslint/no-unused-vars
+  280:25  error  Empty block statement                                    no-empty
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestParticipantsPage.tsx
+   49:6   warning  React Hook useEffect has a missing dependency: 'loadParticipants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   57:19  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   71:19  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   95:19  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  108:19  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestProblemPage.tsx
+  18:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  96:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestSettingsPage.tsx
+   58:44   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+   75:48   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  114:6    warning  React Hook useEffect has missing dependencies: 'loadContest' and 'loadProblems'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  262:21   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  273:21   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  289:21   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  544:105  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  762:88   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  767:55   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  775:47   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  862:88   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  867:55   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  875:47   error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestStandingsPage.tsx
+  28:6   warning  React Hook useEffect has a missing dependency: 'fetchStandings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  33:65  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestSubmissionDetailPage.tsx
+   74:6    warning  React Hook useEffect has a missing dependency: 'fetchSubmission'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   85:19   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  117:48   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  364:108  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  370:51   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  378:43   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  388:55   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/ContestSubmissionListPage.tsx
+   55:50  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   84:6   warning  React Hook useEffect has a missing dependency: 'fetchSubmissions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   89:21  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  100:19  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  275:33  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  285:40  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  287:48  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  319:20  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  332:49  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  343:41  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  359:53  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  380:70  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/contests/TeacherContestProblemEditPage.tsx
+  22:6   warning  React Hook useEffect has missing dependencies: 'isEditMode' and 'loadProblem'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  50:32  error    Unexpected any. Specify a different type                                                                                           @typescript-eslint/no-explicit-any
+  54:14  error    'err' is defined but never used                                                                                                    @typescript-eslint/no-unused-vars
+  83:14  error    'err' is defined but never used                                                                                                    @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/pages/problem/ProblemListPage.tsx
+  130:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/submission/SubmissionDetailPage.tsx
+   68:6    warning  React Hook useEffect has a missing dependency: 'fetchSubmission'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   79:19   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  111:48   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  347:108  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  352:51   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  360:43   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  362:53   error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/pages/submission/SubmissionsPage.tsx
+   70:6   warning  React Hook useEffect has a missing dependency: 'fetchSubmissions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  101:48  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  215:12  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  229:33  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  238:42  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  240:50  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  253:41  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  261:33  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  272:43  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  292:62  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/services/api.ts
+  18:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/services/authService.ts
+   7:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  76:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/services/contestService.ts
+   19:76   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:67   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:45   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:45   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:56   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:107  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:57   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:50   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:83   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:49   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:47   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  249:95   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  265:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  282:57   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:15   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  306:14   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  329:62   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  344:70   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/services/mockContestData.ts
+  283:28  error  '_contestId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/quan/online_judge/frontend/src/services/submissionService.ts
+   4:137  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:128  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:46   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/quan/online_judge/frontend/src/utils/problemYamlParser.ts
+   51:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 279 problems (257 errors, 22 warnings)
+

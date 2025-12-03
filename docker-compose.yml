@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # PostgreSQL Database
@@ -43,6 +42,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: production
     container_name: oj_backend
     restart: always
     command: >

@@ -310,11 +310,9 @@ const ContestLayout = () => {
                 onClick={() => setMonitoringModalOpen(true)}
               >
                 <View style={{ marginRight: '0.5rem' }} />
-                監控中 (Monitoring Active)
+                Monitoring Active
               </div>
             )}
-
-            {/* Fullscreen Toggle - Removed duplicate Button */}
             
             {/* User Info Display */}
             <div style={{ 
@@ -406,7 +404,13 @@ const ContestLayout = () => {
         modalHeading="確認離開競賽"
         primaryButtonText="確認離開"
         secondaryButtonText="取消"
-        onRequestClose={() => setIsExitModalOpen(false)}
+        onRequestClose={() => {
+          // Reenter to full screen mode
+          if (!isFullscreen) {
+            toggleFullscreen()
+          }
+          setIsExitModalOpen(false)
+        }}
         onRequestSubmit={handleExit}
         danger
       >

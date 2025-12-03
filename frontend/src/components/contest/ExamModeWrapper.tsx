@@ -36,9 +36,22 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     maxWarnings: 0
   });
   const [showWarning, setShowWarning] = useState(false);
+  const [warningEventType, setWarningEventType] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isRecordingEvent = useRef(false);
   const isGracePeriod = useRef(false);
+  
+  // Event deduplication and cooldown
+  const lastEventType = useRef<string | null>(null);
+  const lastEventTime = useRef<number>(0);
+  const COOLDOWN_PERIOD = 2000; // 2 seconds global cooldown
+  
+  // Event priority (higher number = higher priority)
+  const EVENT_PRIORITY: Record<string, number> = {
+    'exit_fullscreen': 3,
+    'tab_hidden': 2,
+    'window_blur': 1
+  };
 
   // Admin/Teacher bypass
   const isBypassed = currentUserRole === 'admin' || currentUserRole === 'teacher';
@@ -67,37 +80,51 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Disable anti-cheat on dashboard check removed to ensure global protection
     if (!examModeEnabled || !examState.isActive || isBypassed) return;
 
+    // Shared event handler with deduplication and cooldown
+    const handleCheatEvent = async (eventType: string, reason: string) => {
+      if (examState.isLocked || isGracePeriod.current || isRecordingEvent.current) return;
+      
+      const now = Date.now();
+      const timeSinceLastEvent = now - lastEventTime.current;
+      
+      // Global cooldown check
+      if (timeSinceLastEvent < COOLDOWN_PERIOD) {
+        // Within cooldown period - check priority
+        const currentPriority = EVENT_PRIORITY[eventType] || 0;
+        const lastPriority = EVENT_PRIORITY[lastEventType.current || ''] || 0;
+        
+        // Only record if current event has higher priority
+        if (currentPriority <= lastPriority) {
+          console.log(`[Anti-cheat] Ignoring ${eventType} due to cooldown (last: ${lastEventType.current})`);
+          return;
+        }
+        console.log(`[Anti-cheat] Override: ${eventType} (priority ${currentPriority}) > ${lastEventType.current} (priority ${lastPriority})`);
+      }
+      
+      // Record the event
+      isRecordingEvent.current = true;
+      lastEventType.current = eventType;
+      lastEventTime.current = now;
+      
+      await recordEvent(eventType, reason);
+      
+      isRecordingEvent.current = false;
+    };
+
     // Event handlers
     const handleVisibilityChange = async () => {
-      if (examState.isLocked || isGracePeriod.current) return;
-      
-      if (document.visibilityState === 'hidden' && !isRecordingEvent.current) {
-        isRecordingEvent.current = true;
-        const reason = '您已切換分頁，本次作答已被鎖定';
-        await recordEvent('tab_hidden', reason);
-        isRecordingEvent.current = false;
+      if (document.visibilityState === 'hidden') {
+        await handleCheatEvent('tab_hidden', '您已切換分頁，本次作答已被鎖定');
       }
     };
 
     const handleBlur = async () => {
-      if (examState.isLocked || isGracePeriod.current) return;
-
-      if (!isRecordingEvent.current) {
-        isRecordingEvent.current = true;
-        const reason = '您已離開視窗，本次作答已被鎖定';
-        await recordEvent('window_blur', reason);
-        isRecordingEvent.current = false;
-      }
+      await handleCheatEvent('window_blur', '您已離開視窗，本次作答已被鎖定');
     };
 
     const handleFullscreenChange = async () => {
-      if (examState.isLocked || isGracePeriod.current) return;
-
-      if (!document.fullscreenElement && !isRecordingEvent.current) {
-        isRecordingEvent.current = true;
-        const reason = '您已退出全螢幕，本次作答已被鎖定';
-        await recordEvent('exit_fullscreen', reason);
-        isRecordingEvent.current = false;
+      if (!document.fullscreenElement) {
+        await handleCheatEvent('exit_fullscreen', '您已退出全螢幕，本次作答已被鎖定');
       }
     };
 
@@ -134,6 +161,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           lockExam(reason);
         } else if (violation_count > 0) {
           // Show warning if not locked but violation recorded
+          setWarningEventType(type);
           setShowWarning(true);
         }
       }
@@ -197,6 +225,23 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     return () => clearInterval(timer);
   }, [shouldShowLockScreen, examState.autoUnlockAt]);
+
+  const handleWarningClose = async () => {
+    setShowWarning(false);
+    
+    // If the warning was due to exiting fullscreen, re-enter fullscreen
+    if (warningEventType === 'exit_fullscreen' && !examState.isLocked) {
+      try {
+        await document.body.requestFullscreen();
+        console.log('[Anti-cheat] Re-entering fullscreen after warning');
+      } catch (error) {
+        console.error('[Anti-cheat] Failed to re-enter fullscreen:', error);
+      }
+    }
+    
+    // Reset warning event type
+    setWarningEventType(null);
+  };
 
   const handleBackToContest = async () => {
     // Exit fullscreen if active
@@ -280,8 +325,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         open={showWarning}
         modalHeading="⚠️ 違規警告"
         primaryButtonText="我了解了"
-        onRequestSubmit={() => setShowWarning(false)}
-        onRequestClose={() => setShowWarning(false)}
+        onRequestSubmit={() => handleWarningClose()}
+        onRequestClose={() => handleWarningClose()}
         danger
         size="sm"
       >

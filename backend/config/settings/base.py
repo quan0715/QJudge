@@ -180,3 +180,22 @@ NYCU_OAUTH_USERINFO_URL = 'https://id.nycu.edu.tw/api/profile/'
 JUDGE_ENGINE_ENABLED = os.getenv('JUDGE_ENGINE_ENABLED', 'True') == 'True'
 JUDGE_MAX_CPU_TIME = int(os.getenv('JUDGE_MAX_CPU_TIME', '10'))  # seconds
 JUDGE_MAX_MEMORY = int(os.getenv('JUDGE_MAX_MEMORY', '256'))  # MB
+
+# Docker settings for judge system
+DOCKER_HOST = os.getenv('DOCKER_HOST', None)  # None = use default socket
+DOCKER_IMAGE_JUDGE = os.getenv('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
+DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv('DOCKER_JUDGE_PIDS_LIMIT', '64'))
+DOCKER_JUDGE_TMPFS_SIZE = os.getenv('DOCKER_JUDGE_TMPFS_SIZE', '100M')
+DOCKER_JUDGE_TIMEOUT = int(os.getenv('DOCKER_JUDGE_TIMEOUT', '60'))  # seconds
+
+# Seccomp profile path (set to None to disable)
+# 優先使用 HOST_PROJECT_ROOT (解決 Docker Socket Binding 路徑問題)
+HOST_PROJECT_ROOT = os.getenv('HOST_PROJECT_ROOT')
+if HOST_PROJECT_ROOT:
+    DOCKER_SECCOMP_PROFILE = os.path.join(HOST_PROJECT_ROOT, 'backend/judge/seccomp_profiles/cpp.json')
+else:
+    DOCKER_SECCOMP_PROFILE = os.path.join(BASE_DIR, 'judge/seccomp_profiles/cpp.json')
+
+# 如果環境變數明確停用，則設為 None
+if os.getenv('DOCKER_SECCOMP_PROFILE') == '':
+    DOCKER_SECCOMP_PROFILE = None
