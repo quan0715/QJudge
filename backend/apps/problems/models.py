@@ -105,6 +105,8 @@ class Problem(models.Model):
 class LanguageConfig(models.Model):
     """
     Language-specific configuration for each problem.
+    Note: Frontend currently only supports C++, but backend maintains 
+    compatibility with other languages for legacy data.
     """
     LANGUAGE_CHOICES = [
         ('cpp', 'C++'),
@@ -159,7 +161,7 @@ class ProblemTranslation(models.Model):
         related_name='translations',
         verbose_name='題目'
     )
-    language = models.CharField(max_length=10, verbose_name='語言代碼')  # e.g., 'zh-hant', 'en'
+    language = models.CharField(max_length=10, verbose_name='語言代碼')  # e.g., 'zh-TW', 'zh-hant', 'en'
     
     # Content
     title = models.CharField(max_length=255, verbose_name='標題')

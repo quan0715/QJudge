@@ -77,8 +77,12 @@ class ProblemListSerializer(serializers.ModelSerializer):
     
     def get_title(self, obj):
         """Get title in requested language or default."""
-        lang = self.context.get('language', 'zh-hant')
-        translation = obj.translations.filter(language=lang).first()
+        lang = self.context.get('language', 'zh-TW')
+        # Support both zh-TW and zh-hant for backward compatibility
+        if lang == 'zh-TW':
+            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
+        else:
+            translation = obj.translations.filter(language=lang).first()
         if translation:
             return translation.title
         # Fallback to any translation or empty string
@@ -127,8 +131,12 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     
     def get_translation(self, obj):
         """Get translation for requested language."""
-        lang = self.context.get('language', 'zh-hant')
-        translation = obj.translations.filter(language=lang).first()
+        lang = self.context.get('language', 'zh-TW')
+        # Support both zh-TW and zh-hant for backward compatibility
+        if lang == 'zh-TW':
+            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
+        else:
+            translation = obj.translations.filter(language=lang).first()
         
         if not translation:
             # Fallback to first available

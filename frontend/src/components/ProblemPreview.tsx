@@ -50,7 +50,10 @@ const ProblemPreview = ({
 }: ProblemPreviewProps) => {
   const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>(defaultLang);
 
-  const translation = translations.find(t => t.language === currentLang) || translations[0];
+  // Find translation with backward compatibility for zh-hant
+  const translation = translations.find(t => t.language === currentLang) || 
+                      (currentLang === 'zh-TW' ? translations.find(t => t.language === 'zh-hant') : null) ||
+                      translations[0];
 
   const getDifficultyLabel = (diff: string) => {
     const labels: Record<string, string> = {
@@ -64,7 +67,13 @@ const ProblemPreview = ({
   const languageOptions = [
     { id: 'zh-TW', label: '中文' },
     { id: 'en', label: 'English' }
-  ].filter(lang => translations.some(t => t.language === lang.id));
+  ].filter(lang => {
+    if (lang.id === 'zh-TW') {
+      // Accept both zh-TW and zh-hant for Chinese
+      return translations.some(t => t.language === 'zh-TW' || t.language === 'zh-hant');
+    }
+    return translations.some(t => t.language === lang.id);
+  });
 
   const sampleCases = testCases.filter(tc => tc.is_sample);
 
