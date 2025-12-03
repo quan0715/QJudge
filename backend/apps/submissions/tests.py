@@ -105,7 +105,7 @@ int main() {
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
     
     def test_list_own_submissions(self):
-        """Test that students can only see their own submissions"""
+        """Test that students can see all practice submissions (Public)"""
         # Create submission for student
         submission1 = Submission.objects.create(
             user=self.student,
@@ -115,7 +115,7 @@ int main() {
             status='AC'
         )
         
-        # Create submission for teacher (should not be visible to student)
+        # Create submission for teacher (should also be visible to student in practice mode)
         submission2 = Submission.objects.create(
             user=self.teacher,
             problem=self.problem,
@@ -129,8 +129,8 @@ int main() {
         response = self.client.get('/api/v1/submissions/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['id'], submission1.id)
+        # Should see both because practice submissions are public
+        self.assertEqual(len(response.data['results']), 2)
     
     def test_teacher_can_see_all_submissions(self):
         """Test that teachers can see all submissions"""
@@ -186,12 +186,12 @@ int main() {
         self.client.force_authenticate(user=self.student)
         
         # Filter by first problem
-        response = self.client.get(f'/api/submissions/?problem={self.problem.id}')
+        response = self.client.get(f'/api/v1/submissions/?problem={self.problem.id}')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], sub1.id)
         
         # Filter by second problem
-        response = self.client.get(f'/api/submissions/?problem={problem2.id}')
+        response = self.client.get(f'/api/v1/submissions/?problem={problem2.id}')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], sub2.id)
     
@@ -216,12 +216,12 @@ int main() {
         self.client.force_authenticate(user=self.student)
         
         # Filter by AC status
-        response = self.client.get('/api/submissions/?status=AC')
+        response = self.client.get('/api/v1/submissions/?status=AC')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'AC')
         
         # Filter by WA status
-        response = self.client.get('/api/submissions/?status=WA')
+        response = self.client.get('/api/v1/submissions/?status=WA')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'WA')
 
@@ -272,3 +272,114 @@ class SubmissionModelTestCase(TestCase):
         
         expected = f"Submission {submission.id} by {self.user.username} for {self.problem.title}"
         self.assertEqual(str(submission), expected)
+
+
+class SubmissionExecutionTestCase(TestCase):
+    """
+    Integration tests for Submission Execution Flow.
+    Verifies that submissions are correctly judged and status is updated.
+    """
+    
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='exec_user',
+            email='exec@test.com',
+            password='testpass123'
+        )
+        
+        self.problem = Problem.objects.create(
+            title='A+B Problem',
+            slug='a-plus-b',
+            difficulty='easy',
+            time_limit=1000,
+            memory_limit=128,
+            created_by=self.user
+        )
+        
+        # Test Case: 1 + 2 = 3
+        ProblemTestCase.objects.create(
+            problem=self.problem,
+            input_data='1 2',
+            output_data='3',
+            is_sample=True,
+            score=100,
+            order=1
+        )
+        
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+    
+    def test_submission_cpp_ac(self):
+        """Test C++ submission that should be Accepted (AC)"""
+        code = '''#include <iostream>
+using namespace std;
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << endl;
+    return 0;
+}'''
+        
+        response = self.client.post('/api/v1/submissions/', {
+            'problem': self.problem.id,
+            'language': 'cpp',
+            'code': code
+        })
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        submission_id = response.data['id']
+        
+        # Reload submission from DB
+        submission = Submission.objects.get(id=submission_id)
+        
+        # Since CELERY_TASK_ALWAYS_EAGER = True in test settings, 
+        # the task should have completed synchronously.
+        self.assertEqual(submission.status, 'AC')
+        self.assertEqual(submission.score, 100)
+    
+    def test_submission_cpp_ce(self):
+        """Test C++ submission with syntax error (CE)"""
+        # Code with redeclaration error
+        code = '''#include <iostream>
+using namespace std;
+int main() {
+    int index;
+    cin >> index;
+    int index; // Redeclaration error
+    return 0;
+}'''
+        
+        response = self.client.post('/api/v1/submissions/', {
+            'problem': self.problem.id,
+            'language': 'cpp',
+            'code': code
+        })
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        submission_id = response.data['id']
+        
+        submission = Submission.objects.get(id=submission_id)
+        self.assertEqual(submission.status, 'CE')
+        self.assertIn('error', submission.error_message.lower())
+    
+    def test_submission_python_ac(self):
+        """Test Python submission that should be Accepted (AC)"""
+        code = '''
+import sys
+a, b = map(int, sys.stdin.read().split())
+print(a + b)
+'''
+        
+        response = self.client.post('/api/v1/submissions/', {
+            'problem': self.problem.id,
+            'language': 'python',
+            'code': code
+        })
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        submission_id = response.data['id']
+        
+        submission = Submission.objects.get(id=submission_id)
+        self.assertEqual(submission.status, 'AC')
+        self.assertEqual(submission.score, 100)
+

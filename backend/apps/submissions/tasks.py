@@ -44,7 +44,15 @@ def judge_submission(submission_id):
         
         # Initialize judge
         if USE_REAL_JUDGE:
-            judge = CppJudge()
+            from apps.judge.judge_factory import get_judge
+            try:
+                judge = get_judge(submission.language)
+            except ValueError:
+                # Fallback or error if language not supported
+                submission.status = 'SE'
+                submission.error_message = f"Unsupported language: {submission.language}"
+                submission.save()
+                return f"Submission {submission_id} failed: Unsupported language"
         
         for tc in test_cases:
             if USE_REAL_JUDGE:
@@ -104,6 +112,13 @@ def judge_submission(submission_id):
                 output=output[:1000],
                 error_message=error_msg[:1000]
             )
+            
+            # If CE or SE, stop testing other cases
+            if status in ['CE', 'SE']:
+                final_status = status
+                # Save the error message to the submission itself for easy access
+                submission.error_message = error_msg
+                break
         
         # Update submission
         submission.status = final_status

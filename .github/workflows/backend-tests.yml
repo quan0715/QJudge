@@ -1,0 +1,83 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_oj
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements/dev.txt
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements/dev.txt
+      
+      - name: Build Judge Docker Image
+        run: |
+          docker build -t oj-judge:latest \
+            -f backend/judge/Dockerfile.judge \
+            backend/judge
+      
+      - name: Verify Judge Image
+        run: |
+          docker images | grep oj-judge
+          docker run --rm oj-judge:latest g++ --version
+      
+      - name: Run Backend Tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          SECRET_KEY: test-secret-key-for-ci
+          # Enable Judge Engine for submission tests
+          JUDGE_ENGINE_ENABLED: 'true'
+          DOCKER_IMAGE_JUDGE: oj-judge:latest
+        run: |
+          cd backend
+          # Run all tests EXCEPT apps.judge (which is handled by judge-tests.yml)
+          # But include apps.submissions which now has integration tests
+          python manage.py test --exclude-tag=judge_engine --verbosity=2
