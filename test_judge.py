@@ -41,7 +41,7 @@ int main() {
 """
     
     judge = CppJudge()
-    result = judge.execute_cpp(
+    result = judge.execute(
         code=code,
         input_data="1 2",
         expected_output="3",
@@ -77,7 +77,7 @@ int main() {
 """
     
     judge = CppJudge()
-    result = judge.execute_cpp(
+    result = judge.execute(
         code=code,
         input_data="1 2",
         expected_output="3",
@@ -111,7 +111,7 @@ int main() {
 """
     
     judge = CppJudge()
-    result = judge.execute_cpp(
+    result = judge.execute(
         code=code,
         input_data="2 3",
         expected_output="5",
@@ -147,7 +147,7 @@ int main() {
 """
     
     judge = CppJudge()
-    result = judge.execute_cpp(
+    result = judge.execute(
         code=code,
         input_data="",
         expected_output="0",

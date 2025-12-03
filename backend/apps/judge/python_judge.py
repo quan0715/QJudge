@@ -70,10 +70,23 @@ class PythonJudge(BaseJudge):
             # 準備安全選項
             security_opts = ['no-new-privileges']
             
+            # 構建完整的命令：寫入代碼 -> 寫入輸入 -> 執行
+            # 使用 cat 和 heredoc 寫入檔案，注意轉義
+            full_cmd = f'''cat > main.py <<'CODEEOF'
+{code}
+CODEEOF
+
+cat > input.txt <<'INPUTEOF'
+{input_data}
+INPUTEOF
+
+timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1
+'''
+            
             container = self.client.containers.run(
                 self.image,
-                command=['python3', '-c', code],
-                stdin_open=True,
+                command=['/bin/bash', '-c', full_cmd],
+                working_dir='/tmp',
                 network_disabled=True,
                 mem_limit=f"{memory_limit}m",
                 memswap_limit=f"{memory_limit}m",
@@ -90,13 +103,10 @@ class PythonJudge(BaseJudge):
                 remove=False
             )
             
-            # 如果有輸入，提供給程式
-            if input_data:
-                container.attach_socket()
-            
             # 計算 timeout（秒）
-            timeout_sec = time_limit / 1000.0 + 0.5
-            result = container.wait(timeout=int(timeout_sec) + 5)
+            # 給予額外的緩衝時間讓 shell script 處理
+            timeout_sec = time_limit / 1000.0 + 2.0
+            result = container.wait(timeout=int(timeout_sec))
             
             end_time = time.time()
             execution_time_ms = int((end_time - start_time) * 1000)
