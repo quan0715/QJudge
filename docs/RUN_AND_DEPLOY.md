@@ -119,7 +119,8 @@ pip install -r requirements/dev.txt
 #### 2.4 配置環境變數
 
 ```bash
-# 複製環境變數範例檔案
+# 在 backend 目錄中複製環境變數範例檔案
+cd backend
 cp .env.example .env
 
 # 編輯 .env 檔案
