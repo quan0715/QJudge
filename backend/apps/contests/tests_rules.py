@@ -44,7 +44,7 @@ class ContestRulesTests(APITestCase):
         # Let's try to construct the url manually if needed or guess 'contest-detail'
         
         # Based on typical DRF router:
-        url = f'/api/contests/{self.contest.id}/'
+        url = f'/api/v1/contests/{self.contest.id}/'
         
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

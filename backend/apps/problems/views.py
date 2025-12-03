@@ -91,13 +91,12 @@ class ProblemViewSet(viewsets.ModelViewSet):
             # Others shouldn't be here, but default to none or own
             return queryset.none()
         
-        # For retrieve (detail view), allow authenticated admin/teacher to see all
-        # This allows preview of hidden problems from management page
-        if self.action == 'retrieve' and user.is_authenticated:
-            if user.is_staff or user.role in ['admin', 'teacher']:
-                return queryset
+        # For privileged users (admin/teacher), allow access to all problems
+        # This covers retrieve, update, partial_update, destroy
+        if user.is_authenticated and (user.is_staff or user.role in ['admin', 'teacher']):
+            return queryset
         
-        # Normal view filtering (Problem List)
+        # Normal view filtering (Problem List for students/public)
         # MVP: Only show problems where is_practice_visible=True
         queryset = queryset.filter(is_practice_visible=True)
         

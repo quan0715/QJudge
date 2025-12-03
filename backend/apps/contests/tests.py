@@ -26,21 +26,23 @@ class ContestTests(APITestCase):
         
         # Create public contest
         self.public_contest = Contest.objects.create(
-            title='Public Contest',
+            name='Public Contest',
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
-            creator=self.admin,
-            is_public=True
+            owner=self.admin,
+            visibility='public',
+            status='active'
         )
         
         # Create private contest
         self.private_contest = Contest.objects.create(
-            title='Private Contest',
+            name='Private Contest',
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
-            creator=self.admin,
-            is_public=False,
-            password='secretpassword'
+            owner=self.admin,
+            visibility='private',
+            password='secretpassword',
+            status='active'
         )
         
         self.client.force_authenticate(user=self.user)
