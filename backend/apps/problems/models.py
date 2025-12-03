@@ -105,6 +105,8 @@ class Problem(models.Model):
 class LanguageConfig(models.Model):
     """
     Language-specific configuration for each problem.
+    Note: Frontend currently only supports C++, but backend maintains 
+    compatibility with other languages for legacy data.
     """
     LANGUAGE_CHOICES = [
         ('cpp', 'C++'),
