@@ -85,7 +85,7 @@ const ProblemForm = ({
   breadcrumbs
 }: ProblemFormProps) => {
   const [showPreview, setShowPreview] = useState(false);
-  const [currentLang, setCurrentLang] = useState<'zh-hant' | 'en'>('zh-hant');
+  const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>('zh-TW');
 
   // ... (rest of the component state and logic)
   // Note: I am NOT replacing the whole file, just the top part to add import.
@@ -143,7 +143,7 @@ const ProblemForm = ({
       setIsVisible(initialData.is_visible ?? true);
 
       // Load translations
-      const transZh = initialData.translations?.find((t: Translation) => t.language === 'zh-hant');
+      const transZh = initialData.translations?.find((t: Translation) => t.language === 'zh-TW' || t.language === 'zh-hant');
       if (transZh) {
         setTranslationTitle(transZh.title);
         setDescription(transZh.description);
@@ -201,7 +201,7 @@ const ProblemForm = ({
     
     const translations = [
       {
-        language: 'zh-hant',
+        language: 'zh-TW',
         title: translationTitle,
         description,
         input_description: inputDescription,
@@ -238,17 +238,17 @@ const ProblemForm = ({
     await onSubmit(payload);
   };
 
-  const getCurrentTitle = () => currentLang === 'zh-hant' ? translationTitle : translationTitleEn;
-  const getCurrentDescription = () => currentLang === 'zh-hant' ? description : descriptionEn;
-  const getCurrentInputDesc = () => currentLang === 'zh-hant' ? inputDescription : inputDescriptionEn;
-  const getCurrentOutputDesc = () => currentLang === 'zh-hant' ? outputDescription : outputDescriptionEn;
-  const getCurrentHint = () => currentLang === 'zh-hant' ? hint : hintEn;
+  const getCurrentTitle = () => currentLang === 'zh-TW' ? translationTitle : translationTitleEn;
+  const getCurrentDescription = () => currentLang === 'zh-TW' ? description : descriptionEn;
+  const getCurrentInputDesc = () => currentLang === 'zh-TW' ? inputDescription : inputDescriptionEn;
+  const getCurrentOutputDesc = () => currentLang === 'zh-TW' ? outputDescription : outputDescriptionEn;
+  const getCurrentHint = () => currentLang === 'zh-TW' ? hint : hintEn;
 
-  const setCurrentTitle = (value: string) => currentLang === 'zh-hant' ? setTranslationTitle(value) : setTranslationTitleEn(value);
-  const setCurrentDescription = (value: string) => currentLang === 'zh-hant' ? setDescription(value) : setDescriptionEn(value);
-  const setCurrentInputDesc = (value: string) => currentLang === 'zh-hant' ? setInputDescription(value) : setInputDescriptionEn(value);
-  const setCurrentOutputDesc = (value: string) => currentLang === 'zh-hant' ? setOutputDescription(value) : setOutputDescriptionEn(value);
-  const setCurrentHint = (value: string) => currentLang === 'zh-hant' ? setHint(value) : setHintEn(value);
+  const setCurrentTitle = (value: string) => currentLang === 'zh-TW' ? setTranslationTitle(value) : setTranslationTitleEn(value);
+  const setCurrentDescription = (value: string) => currentLang === 'zh-TW' ? setDescription(value) : setDescriptionEn(value);
+  const setCurrentInputDesc = (value: string) => currentLang === 'zh-TW' ? setInputDescription(value) : setInputDescriptionEn(value);
+  const setCurrentOutputDesc = (value: string) => currentLang === 'zh-TW' ? setOutputDescription(value) : setOutputDescriptionEn(value);
+  const setCurrentHint = (value: string) => currentLang === 'zh-TW' ? setHint(value) : setHintEn(value);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
@@ -378,57 +378,57 @@ const ProblemForm = ({
                         id="language-selector"
                         labelText="語言 / Language"
                         value={currentLang}
-                        onChange={(e) => setCurrentLang(e.target.value as 'zh-hant' | 'en')}
+                        onChange={(e) => setCurrentLang(e.target.value as 'zh-TW' | 'en')}
                       >
-                        <SelectItem value="zh-hant" text="中文" />
+                        <SelectItem value="zh-TW" text="中文" />
                         <SelectItem value="en" text="English" />
                       </Select>
                     </div>
                     
                     <TextInput
                       id="current-title"
-                      labelText={currentLang === 'zh-hant' ? '標題 *' : 'Title *'}
-                      placeholder={currentLang === 'zh-hant' ? '輸入標題...' : 'Enter title...'}
+                      labelText={currentLang === 'zh-TW' ? '標題 *' : 'Title *'}
+                      placeholder={currentLang === 'zh-TW' ? '輸入標題...' : 'Enter title...'}
                       value={getCurrentTitle()}
                       onChange={(e) => setCurrentTitle(e.target.value)}
-                      required={currentLang === 'zh-hant'}
+                      required={currentLang === 'zh-TW'}
                       style={{ marginBottom: '1rem' }}
                     />
 
                     <TextArea
                       id="current-description"
-                      labelText={currentLang === 'zh-hant' ? '題目描述 * (支援 Markdown)' : 'Description * (Supports Markdown)'}
-                      placeholder={currentLang === 'zh-hant' ? '輸入題目描述...' : 'Enter description...'}
+                      labelText={currentLang === 'zh-TW' ? '題目描述 * (支援 Markdown)' : 'Description * (Supports Markdown)'}
+                      placeholder={currentLang === 'zh-TW' ? '輸入題目描述...' : 'Enter description...'}
                       value={getCurrentDescription()}
                       onChange={(e) => setCurrentDescription(e.target.value)}
                       rows={8}
-                      required={currentLang === 'zh-hant'}
+                      required={currentLang === 'zh-TW'}
                       style={{ marginBottom: '1rem' }}
                     />
                     <TextArea
                       id="current-input-description"
-                      labelText={currentLang === 'zh-hant' ? '輸入說明 *' : 'Input Description *'}
-                      placeholder={currentLang === 'zh-hant' ? '描述輸入格式...' : 'Describe input format...'}
+                      labelText={currentLang === 'zh-TW' ? '輸入說明 *' : 'Input Description *'}
+                      placeholder={currentLang === 'zh-TW' ? '描述輸入格式...' : 'Describe input format...'}
                       value={getCurrentInputDesc()}
                       onChange={(e) => setCurrentInputDesc(e.target.value)}
                       rows={4}
-                      required={currentLang === 'zh-hant'}
+                      required={currentLang === 'zh-TW'}
                       style={{ marginBottom: '1rem' }}
                     />
                     <TextArea
                       id="current-output-description"
-                      labelText={currentLang === 'zh-hant' ? '輸出說明 *' : 'Output Description *'}
-                      placeholder={currentLang === 'zh-hant' ? '描述輸出格式...' : 'Describe output format...'}
+                      labelText={currentLang === 'zh-TW' ? '輸出說明 *' : 'Output Description *'}
+                      placeholder={currentLang === 'zh-TW' ? '描述輸出格式...' : 'Describe output format...'}
                       value={getCurrentOutputDesc()}
                       onChange={(e) => setCurrentOutputDesc(e.target.value)}
                       rows={4}
-                      required={currentLang === 'zh-hant'}
+                      required={currentLang === 'zh-TW'}
                       style={{ marginBottom: '1rem' }}
                     />
                     <TextArea
                       id="current-hint"
-                      labelText={currentLang === 'zh-hant' ? '提示（選填）' : 'Hint (Optional)'}
-                      placeholder={currentLang === 'zh-hant' ? '提供解題提示...' : 'Provide hints...'}
+                      labelText={currentLang === 'zh-TW' ? '提示（選填）' : 'Hint (Optional)'}
+                      placeholder={currentLang === 'zh-TW' ? '提供解題提示...' : 'Provide hints...'}
                       value={getCurrentHint()}
                       onChange={(e) => setCurrentHint(e.target.value)}
                       rows={3}
@@ -606,7 +606,7 @@ const ProblemForm = ({
                 memoryLimit={memoryLimit}
                 translations={[
                   ...(translationTitle || description ? [{
-                    language: 'zh-hant',
+                    language: 'zh-TW',
                     title: translationTitle,
                     description,
                     input_description: inputDescription,
@@ -623,7 +623,7 @@ const ProblemForm = ({
                   }] : [])
                 ]}
                 testCases={testCases}
-                defaultLang={currentLang === 'zh-hant' ? 'zh-TW' : 'en'}
+                defaultLang={currentLang === 'zh-TW' ? 'zh-TW' : 'en'}
                 showLanguageToggle={!!(translationTitle && translationTitleEn)}
                 compact={false}
               />

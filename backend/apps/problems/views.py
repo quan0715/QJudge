@@ -155,7 +155,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         Add language to serializer context.
         """
         context = super().get_serializer_context()
-        context['language'] = self.request.query_params.get('lang', 'zh-hant')
+        context['language'] = self.request.query_params.get('lang', 'zh-TW')
         return context
     
     def perform_create(self, serializer):

@@ -38,8 +38,5 @@ rl.on('line', (line) => {
 };
 
 export const LANGUAGE_OPTIONS = [
-  { id: 'cpp', label: 'C++', icon: 'cpp' },
-  { id: 'python', label: 'Python', icon: 'python' },
-  { id: 'java', label: 'Java', icon: 'java' },
-  { id: 'javascript', label: 'JavaScript', icon: 'javascript' }
+  { id: 'cpp', label: 'C++', icon: 'cpp' }
 ];
