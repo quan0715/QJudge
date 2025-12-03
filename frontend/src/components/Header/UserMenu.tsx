@@ -82,9 +82,25 @@ const UserMenu = () => {
             </>
           )}
           {user.role === 'admin' && (
-            <SwitcherItem onClick={() => { navigate('/admin/users'); setIsUserMenuOpen(false); }} aria-label="Manage Users">
-              Manage Users
-            </SwitcherItem>
+            <>
+              <SwitcherItem onClick={() => { navigate('/admin/users'); setIsUserMenuOpen(false); }} aria-label="Manage Users">
+                Manage Users
+              </SwitcherItem>
+              <SwitcherItem aria-label="Django Admin">
+                <a 
+                  href="/django-admin/" 
+                  style={{ 
+                    textDecoration: 'none', 
+                    color: 'inherit',
+                    display: 'block',
+                    width: '100%'
+                  }}
+                  onClick={() => setIsUserMenuOpen(false)}
+                >
+                  Django Admin
+                </a>
+              </SwitcherItem>
+            </>
           )}
           <SwitcherDivider />
           <SwitcherItem onClick={handleLogout} aria-label="Logout">
