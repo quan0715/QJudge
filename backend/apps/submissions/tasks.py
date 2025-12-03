@@ -49,7 +49,7 @@ def judge_submission(submission_id):
         for tc in test_cases:
             if USE_REAL_JUDGE:
                 # Real Docker execution
-                result = judge.execute_cpp(
+                result = judge.execute(
                     code=submission.code,
                     input_data=tc.input_data,
                     expected_output=tc.output_data,

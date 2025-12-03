@@ -35,7 +35,7 @@ def check_judge_health():
         
         # 2. 測試簡單的正確答案 (AC)
         print("\n[2/4] 測試基本執行（AC）...")
-        result = judge.execute_cpp(
+        result = judge.execute(
             code='#include <iostream>\nint main() { std::cout << "Hello"; return 0; }',
             input_data='',
             expected_output='Hello',
@@ -54,7 +54,7 @@ def check_judge_health():
             
         # 3. 測試編譯錯誤 (CE)
         print("\n[3/4] 測試編譯錯誤（CE）...")
-        result = judge.execute_cpp(
+        result = judge.execute(
             code='#include <iostream>\nint main() { int a  return 0; }',  # 缺少分號
             input_data='',
             expected_output='',
@@ -70,7 +70,7 @@ def check_judge_health():
             
         # 4. 測試網路隔離
         print("\n[4/4] 測試安全性配置...")
-        result = judge.execute_cpp(
+        result = judge.execute(
             code='''
 #include <iostream>
 #include <sys/socket.h>
