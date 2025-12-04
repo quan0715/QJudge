@@ -201,28 +201,21 @@ class NYCUOAuthService:
             User object
         """
         user_info = oauth_data['user_info']
+        email = user_info.get('email')
+        username = user_info['username']
         
         # Try to find existing user by OAuth ID
         try:
             user = User.objects.get(
                 auth_provider='nycu-oauth',
-                oauth_id=user_info['oauth_id']
+                username=username,
+                email=email
             )
+            
             # Update user info
-            user.email = user_info['email']
-            user.username = user_info['username']
-            user.email_verified = True
-            user.save()
-            return user
-        except User.DoesNotExist:
-            pass
-        
-        # Try to find by email
-        try:
-            user = User.objects.get(email=user_info['email'])
-            # Link OAuth account
-            user.auth_provider = 'nycu-oauth'
-            user.oauth_id = user_info['oauth_id']
+            if email:
+                user.email = email
+            user.username = username
             user.email_verified = True
             user.save()
             return user
@@ -230,18 +223,17 @@ class NYCUOAuthService:
             pass
         
         # Create new user
-        # Ensure unique username
-        username = user_info['username']
         counter = 1
+        original_username = username
         while User.objects.filter(username=username).exists():
-            username = f"{user_info['username']}{counter}"
+            username = f"{original_username}{counter}"
             counter += 1
-        
+
         user = User.objects.create(
             username=username,
-            email=user_info['email'],
+            email=email,
             auth_provider='nycu-oauth',
-            oauth_id=user_info['oauth_id'],
+            oauth_id=oauth_id,
             email_verified=True,
             is_active=True,
         )
