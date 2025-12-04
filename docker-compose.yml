@@ -116,6 +116,20 @@ services:
     networks:
       - oj_network
 
+  # Judge Environment Image
+  # This service is only for building the image used by Celery workers.
+  # It exits immediately after starting.
+  judge-image:
+    build:
+      context: ./backend/judge
+      dockerfile: Dockerfile.judge
+    image: oj-judge:latest
+    container_name: oj_judge_image
+    command: ["true"]
+    restart: "no"
+    networks:
+      - oj_network
+
 volumes:
   postgres_data:
   static_volume:
