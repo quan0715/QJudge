@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import type { ContestDetail } from '@/models/contest';
+import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestTabsBase from './ContestTabsBase';
 
 interface ContestTabsProps {

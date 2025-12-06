@@ -19,12 +19,11 @@ import ReactMarkdown from 'react-markdown';
 
 import remarkGfm from 'remark-gfm';
 import { api } from '@/services/api';
-import type { ContestDetail } from '@/models/contest';
-import { type ProblemInfo, type StandingRow } from '@/components/contest/ContestScoreboard';
+import type { ContestDetail, ScoreboardRow, ContestProblemSummary } from '@/core/entities/contest.entity';
+import type { Submission } from '@/core/entities/submission.entity';
 import { useSearchParams } from 'react-router-dom';
-import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import type { StatusType } from '@/components/common/StatusBadge';
+import { SubmissionDetailModal } from '@/components/submission/SubmissionDetailModal';
+import { SubmissionStatusBadge } from '@/components/common/badges/SubmissionStatusBadge';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
 import SubmissionTrendChart from '@/components/contest/SubmissionTrendChart';
@@ -39,9 +38,9 @@ const ContestDashboard = () => {
   const [loading, setLoading] = useState(true);
   
   // Personal stats state
-  const [myRank, setMyRank] = useState<StandingRow | null>(null);
-  const [problems, setProblems] = useState<ProblemInfo[]>([]);
-  const [mySubmissions, setMySubmissions] = useState<any[]>([]);
+  const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
+  const [problems, setProblems] = useState<ContestProblemSummary[]>([]);
+  const [mySubmissions, setMySubmissions] = useState<Submission[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lockModalOpen, setLockModalOpen] = useState(false);
 
@@ -82,15 +81,27 @@ const ContestDashboard = () => {
     try {
       // Load standings to find rank
       const standingsData = await api.getScoreboard(contestId);
-      if (standingsData && standingsData.standings && Array.isArray(standingsData.standings)) {
-        const myEntry = standingsData.standings.find((s: any) => s.user?.username === currentUser.username);
-        setMyRank(myEntry);
-        setProblems(standingsData.problems || []);
+      if (standingsData && standingsData.rows && Array.isArray(standingsData.rows)) {
+        const myEntry = standingsData.rows.find((s: ScoreboardRow) => s.displayName === currentUser.username); // Assuming displayName is username or similar
+        setMyRank(myEntry || null);
+        
+        // Map Scoreboard problems to ContestProblemSummary if needed, or use what's available
+        // ScoreboardData problems are slightly different from ContestDetail problems
+        // Here we use what's in ScoreboardData which has label, problemId, score
+        const mappedProblems: ContestProblemSummary[] = standingsData.problems.map((p: any) => ({
+            id: p.problemId, // This might be contest_problem id or problem id depending on backend. 
+            // Assuming p.problemId is the ID we need for navigation or matching
+            problemId: p.problemId,
+            label: p.label,
+            title: p.label, // Scoreboard data might not have title, use label as fallback
+            score: p.score
+        }));
+        setProblems(mappedProblems);
       }
 
       // Load submissions
       const submissions = await api.getSubmissions({ contest_id: contestId });
-      const mySubs = submissions.filter((s: any) => s.user?.username === currentUser.username);
+      const mySubs = submissions.filter((s: Submission) => s.username === currentUser.username || s.userId === currentUser.id?.toString());
       setMySubmissions(mySubs.slice(0, 5)); // Show top 5 recent
     } catch (error) {
       console.error('Failed to load personal stats', error);
@@ -100,7 +111,7 @@ const ContestDashboard = () => {
 
   useEffect(() => {
     // Anti-Cheat Logic
-    if (!contest || !contest.exam_mode_enabled || !contest.has_started || contest.has_finished_exam || contest.is_locked) {
+    if (!contest || !contest.examModeEnabled || !contest.hasStarted || contest.hasFinishedExam || contest.isLocked) {
       return;
     }
 
@@ -127,7 +138,9 @@ const ContestDashboard = () => {
     if (!contestId) return;
     try {
       const res = await api.logExamEvent(contestId, type, metadata);
-      if (res.locked) {
+      // Check if response indicates locked. Backend likely returns snake_case or whatever api.logExamEvent returns.
+      // api.logExamEvent returns res.json().
+      if (res && res.locked) {
         // Refresh contest to update locked status
         loadContest();
         setLockModalOpen(true);
@@ -141,68 +154,17 @@ const ContestDashboard = () => {
 
   const handleSubmissionClick = (submissionId: string) => {
     setSearchParams(prev => {
-      prev.set('select_id', submissionId);
+      prev.set('submission_id', submissionId);
       return prev;
     });
   };
 
   const handleCloseModal = () => {
     setSearchParams(prev => {
-      prev.delete('select_id');
+      prev.delete('submission_id');
       return prev;
     });
   };
-
-  const getStatusBadge = (status: string) => {
-    let type: StatusType = 'gray';
-    let label = status;
-
-    switch (status) {
-      case 'AC':
-        type = 'success';
-        label = 'AC';
-        break;
-      case 'WA':
-        type = 'error';
-        label = 'WA';
-        break;
-      case 'TLE':
-        type = 'purple';
-        label = 'TLE';
-        break;
-      case 'MLE':
-        type = 'purple';
-        label = 'MLE';
-        break;
-      case 'RE':
-        type = 'error';
-        label = 'RE';
-        break;
-      case 'CE':
-        type = 'warning';
-        label = 'CE';
-        break;
-      case 'pending':
-        type = 'gray';
-        label = 'Pending';
-        break;
-      case 'judging':
-        type = 'info';
-        label = 'Judging';
-        break;
-      case 'SE':
-        type = 'error';
-        label = 'SE';
-        break;
-      default:
-        type = 'gray';
-        label = status;
-    }
-
-    return <StatusBadge status={type} text={label} size="sm" />;
-  };
-
-
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -215,15 +177,12 @@ const ContestDashboard = () => {
     });
   };
 
-  const getProblemStatus = (problemId: number) => {
+  const getProblemStatus = (problemId: string) => {
     if (!myRank || !myRank.problems) return null;
-    const stats = myRank.problems[problemId] || myRank.problems[problemId.toString()];
+    const stats = myRank.problems[problemId];
     if (!stats) return null;
     
-    if (stats.status === 'AC') return <StatusBadge status="success" text="AC" size="sm" />;
-    if (stats.pending) return <StatusBadge status="gray" text="Pending" size="sm" />;
-    if (stats.tries > 0) return <StatusBadge status="error" text="Tried" size="sm" />;
-    return <StatusBadge status="gray" text="Unsolved" size="sm" />;
+    return <SubmissionStatusBadge status={stats.status || (stats.attempts > 0 ? 'WA' : 'NS')} size="sm" />;
   };
 
   const isProblemsPage = location.pathname.endsWith('/problems');
@@ -240,7 +199,7 @@ const ContestDashboard = () => {
             <div className="cds--col-lg-16">
               <ContainerCard title="題目列表" noPadding>
                 <DataTable
-                  rows={problems.map(p => ({ ...p, id: p.id.toString() }))}
+                  rows={problems.map(p => ({ ...p, id: p.id }))}
                   headers={[
                     { key: 'label', header: '標號' },
                     { key: 'title', header: '題目' },
@@ -273,7 +232,7 @@ const ContestDashboard = () => {
                         </TableHead>
                         <TableBody>
                           {rows.map((row: any) => {
-                            const problem = problems.find(p => p.id.toString() === row.id);
+                            const problem = problems.find(p => p.id === row.id);
                             const { key, ...rowProps } = getRowProps({ row });
                             return (
                               <TableRow 
@@ -281,18 +240,18 @@ const ContestDashboard = () => {
                                 key={key}
                                 onClick={() => {
                                   const canView = (currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
-                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked);
+                                    (contest.status === 'active' && contest.hasStarted && !contest.hasFinishedExam && !contest.isLocked);
                                   
                                   if (canView) {
-                                    navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`);
+                                    navigate(`/contests/${contestId}/problems/${problem?.problemId || problem?.id}`);
                                   }
                                 }}
                                 style={{ 
                                   cursor: ((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
-                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked)) 
+                                    (contest.status === 'active' && contest.hasStarted && !contest.hasFinishedExam && !contest.isLocked)) 
                                     ? 'pointer' : 'not-allowed',
                                   opacity: ((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
-                                    (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked)) 
+                                    (contest.status === 'active' && contest.hasStarted && !contest.hasFinishedExam && !contest.isLocked)) 
                                     ? 1 : 0.5
                                 }}
                               >
@@ -311,10 +270,10 @@ const ContestDashboard = () => {
                                       size="sm" 
                                       renderIcon={Play}
                                       disabled={!((currentUser?.role === 'admin' || currentUser?.role === 'teacher') || 
-                                        (contest.status === 'active' && contest.has_started && !contest.has_finished_exam && !contest.is_locked))}
+                                        (contest.status === 'active' && contest.hasStarted && !contest.hasFinishedExam && !contest.isLocked))}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(`/contests/${contestId}/problems/${problem?.problem_id || problem?.id}`);
+                                        navigate(`/contests/${contestId}/problems/${problem?.problemId || problem?.id}`);
                                       }}
                                     >
                                       前往
@@ -384,8 +343,8 @@ const ContestDashboard = () => {
                     Rank {myRank.rank}
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', color: 'var(--cds-text-secondary)' }}>
-                    <div>Solved: {(myRank as any).solved_count}</div>
-                    <div>Penalty: {(myRank as any).penalty}</div>
+                    <div>Solved: {myRank.solvedCount}</div>
+                    <div>Penalty: {myRank.penalty}</div>
                   </div>
                 </div>
               ) : (
@@ -414,11 +373,11 @@ const ContestDashboard = () => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {getStatusBadge(sub.status)}
-                        <span style={{ fontSize: '0.875rem' }}>{sub.problem?.title || sub.problem}</span>
+                        <SubmissionStatusBadge status={sub.status} size="sm" />
+                        <span style={{ fontSize: '0.875rem' }}>{sub.problemId}</span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                        {formatDate(sub.created_at)}
+                        {formatDate(sub.createdAt)}
                       </div>
                     </div>
                   ))}
@@ -439,9 +398,10 @@ const ContestDashboard = () => {
       </div>
       
       <SubmissionDetailModal
-        submissionId={searchParams.get('select_id')}
-        isOpen={!!searchParams.get('select_id')}
+        submissionId={searchParams.get('submission_id')}
+        isOpen={!!searchParams.get('submission_id')}
         onClose={handleCloseModal}
+        contestId={contestId}
       />
 
       {/* Lock Notification Modal */}

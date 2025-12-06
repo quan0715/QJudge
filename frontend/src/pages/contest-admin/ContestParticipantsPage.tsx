@@ -20,7 +20,7 @@ import {
 } from '@carbon/react';
 import { Add, Renew, Edit, Unlocked } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import type { ContestDetail, ContestParticipant } from '@/models/contest';
+import type { ContestDetail, ContestParticipant } from '@/core/entities/contest.entity';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
 
 interface ContestAdminContext {
@@ -77,10 +77,10 @@ const ContestParticipantsPage: React.FC = () => {
     }
   };
 
-  const handleUnlockParticipant = async (userId: number) => {
+  const handleUnlockParticipant = async (userId: string) => {
     if (!contest.id || !confirm('確定要解除此學生的鎖定嗎？')) return;
     try {
-      await api.unlockParticipant(contest.id.toString(), userId);
+      await api.unlockParticipant(contest.id.toString(), Number(userId));
       loadParticipants();
       setNotification({ kind: 'success', message: '已解除鎖定' });
     } catch (error: any) {
@@ -90,16 +90,16 @@ const ContestParticipantsPage: React.FC = () => {
 
   const openEditParticipantModal = (p: ContestParticipant) => {
     setEditingParticipant(p);
-    setEditIsLocked(p.is_locked);
-    setEditLockReason(p.lock_reason || '');
-    setEditHasFinished(p.has_finished_exam);
+    setEditIsLocked(p.isLocked);
+    setEditLockReason(p.lockReason || '');
+    setEditHasFinished(p.hasFinishedExam);
     setEditParticipantModalOpen(true);
   };
 
   const handleUpdateParticipant = async () => {
     if (!contest.id || !editingParticipant) return;
     try {
-      await api.updateParticipant(contest.id.toString(), editingParticipant.user_id, {
+      await api.updateParticipant(contest.id.toString(), Number(editingParticipant.userId), {
         is_locked: editIsLocked,
         lock_reason: editLockReason,
         has_finished_exam: editHasFinished
@@ -142,12 +142,12 @@ const ContestParticipantsPage: React.FC = () => {
           <Loading withOverlay={false} />
         ) : (
           <DataTable
-            rows={participants.map(p => ({ ...p, id: p.user_id.toString() }))}
+            rows={participants.map(p => ({ ...p, id: p.userId.toString() }))}
             headers={[
               { key: 'username', header: '使用者' },
-              { key: 'joined_at', header: '加入時間' },
+              { key: 'joinedAt', header: '加入時間' },
               { key: 'status', header: '狀態' },
-              { key: 'lock_reason', header: '鎖定原因' },
+              { key: 'lockReason', header: '鎖定原因' },
               { key: 'actions', header: '操作' }
             ]}
           >
@@ -165,30 +165,30 @@ const ContestParticipantsPage: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {rows.map((row: any) => {
-                      const p = participants.find(item => item.user_id.toString() === row.id);
+                      const p = participants.find(item => item.userId.toString() === row.id);
                       if (!p) return null;
                       return (
                         <TableRow {...getRowProps({ row })} key={row.id}>
                           <TableCell>
                             <div style={{ fontWeight: 600 }}>{p.username}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                              {p.user?.email}
+                              {p.email}
                             </div>
                           </TableCell>
-                          <TableCell>{new Date(p.joined_at).toLocaleString('zh-TW')}</TableCell>
+                          <TableCell>{new Date(p.joinedAt).toLocaleString('zh-TW')}</TableCell>
                           <TableCell>
-                            {p.is_locked ? (
+                            {p.isLocked ? (
                               <Tag type="red">已鎖定</Tag>
-                            ) : p.has_finished_exam ? (
+                            ) : p.hasFinishedExam ? (
                               <Tag type="green">已交卷</Tag>
                             ) : (
                               <Tag type="blue">進行中</Tag>
                             )}
                           </TableCell>
                           <TableCell>
-                            {p.is_locked && (
+                            {p.isLocked && (
                               <span style={{ color: 'var(--cds-text-error)', fontSize: '0.875rem' }}>
-                                {p.lock_reason}
+                                {p.lockReason}
                               </span>
                             )}
                           </TableCell>
@@ -202,12 +202,12 @@ const ContestParticipantsPage: React.FC = () => {
                               >
                                 編輯
                               </Button>
-                              {p.is_locked && (
+                              {p.isLocked && (
                                 <Button 
                                   kind="ghost" 
                                   size="sm" 
                                   renderIcon={Unlocked}
-                                  onClick={() => handleUnlockParticipant(p.user_id)}
+                                  onClick={() => handleUnlockParticipant(p.userId)}
                                 >
                                   解鎖
                                 </Button>

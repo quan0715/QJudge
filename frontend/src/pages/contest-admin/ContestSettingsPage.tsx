@@ -20,7 +20,8 @@ import {
 } from '@carbon/react';
 import { Save } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import type { ContestDetail, ContestUpdateRequest } from '@/models/contest';
+import type { ContestDetail, ContestUpdateRequest, ContestVisibility } from '@/core/entities/contest.entity';
+import { mapContestUpdateRequestToDto } from '@/core/entities/mappers/contestMapper';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
 
 interface ContestAdminContext {
@@ -51,31 +52,31 @@ const ContestSettingsPage: React.FC = () => {
         name: contest.name || '',
         description: contest.description || '',
         rules: contest.rules || '',
-        start_time: contest.start_time || '',
-        end_time: contest.end_time || '',
+        startTime: contest.startTime || '',
+        endTime: contest.endTime || '',
         visibility: contest.visibility || 'public',
         password: contest.password || '',
-        exam_mode_enabled: contest.exam_mode_enabled || false,
-        scoreboard_visible_during_contest: contest.scoreboard_visible_during_contest || false,
-        allow_multiple_joins: contest.allow_multiple_joins || false,
-        ban_tab_switching: contest.ban_tab_switching || false,
-        max_cheat_warnings: contest.max_cheat_warnings || 0,
-        allow_auto_unlock: contest.allow_auto_unlock || false,
-        auto_unlock_minutes: contest.auto_unlock_minutes || 0,
+        examModeEnabled: contest.examModeEnabled || false,
+        scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest || false,
+        allowMultipleJoins: contest.allowMultipleJoins || false,
+        banTabSwitching: contest.banTabSwitching || false,
+        maxCheatWarnings: contest.maxCheatWarnings || 0,
+        allowAutoUnlock: contest.allowAutoUnlock || false,
+        autoUnlockMinutes: contest.autoUnlockMinutes || 0,
         status: contest.status || 'inactive'
       });
 
       // Initialize local time inputs
-      if (contest.start_time) {
-        const date = new Date(contest.start_time);
+      if (contest.startTime) {
+        const date = new Date(contest.startTime);
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         hours = hours % 12;
         hours = hours ? hours : 12;
         setStartTimeInput(`${hours.toString().padStart(2, '0')}:${minutes}`);
       }
-      if (contest.end_time) {
-        const date = new Date(contest.end_time);
+      if (contest.endTime) {
+        const date = new Date(contest.endTime);
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         hours = hours % 12;
@@ -90,9 +91,10 @@ const ContestSettingsPage: React.FC = () => {
     if (!contest.id) return;
 
     // Validation: Start time must be before end time
-    if (formData.start_time && formData.end_time) {
-      const start = new Date(formData.start_time);
-      const end = new Date(formData.end_time);
+    // Validation: Start time must be before end time
+    if (formData.startTime && formData.endTime) {
+      const start = new Date(formData.startTime);
+      const end = new Date(formData.endTime);
       if (start >= end) {
         setNotification({ kind: 'error', message: '結束時間必須晚於開始時間' });
         return;
@@ -101,7 +103,8 @@ const ContestSettingsPage: React.FC = () => {
 
     try {
       setSaving(true);
-      await api.updateContest(contest.id.toString(), formData);
+      const dto = mapContestUpdateRequestToDto(formData);
+      await api.updateContest(contest.id.toString(), dto);
       setNotification({ kind: 'success', message: '設定已更新' });
       refreshContest();
     } catch (error) {
@@ -188,14 +191,14 @@ const ContestSettingsPage: React.FC = () => {
                     <DatePicker 
                       datePickerType="single" 
                       dateFormat="m/d/Y"
-                      value={formData.start_time ? [new Date(formData.start_time)] : []}
+                      value={formData.startTime ? [new Date(formData.startTime)] : []}
                       onChange={(dates) => {
                         if (dates && dates.length > 0) {
                           const date = dates[0];
-                          const current = formData.start_time ? new Date(formData.start_time) : new Date();
+                          const current = formData.startTime ? new Date(formData.startTime) : new Date();
                           date.setHours(current.getHours());
                           date.setMinutes(current.getMinutes());
-                          setFormData({ ...formData, start_time: date.toISOString() });
+                          setFormData({ ...formData, startTime: date.toISOString() });
                         }
                       }}
                     >
@@ -221,7 +224,7 @@ const ContestSettingsPage: React.FC = () => {
                         if (val.length === 5 && val.includes(':')) {
                           const [h, m] = val.split(':').map(Number);
                           if (!isNaN(h) && !isNaN(m) && h >= 1 && h <= 12 && m >= 0 && m <= 59) {
-                            const date = formData.start_time ? new Date(formData.start_time) : new Date();
+                            const date = formData.startTime ? new Date(formData.startTime) : new Date();
                             const currentHours = date.getHours();
                             const isPM = currentHours >= 12;
                             let newHours = h;
@@ -236,7 +239,7 @@ const ContestSettingsPage: React.FC = () => {
                             
                             date.setHours(newHours);
                             date.setMinutes(m);
-                            setFormData({ ...formData, start_time: date.toISOString() });
+                            setFormData({ ...formData, startTime: date.toISOString() });
                           }
                         }
                       }}
@@ -245,19 +248,19 @@ const ContestSettingsPage: React.FC = () => {
                         id="start-time-select" 
                         // labelText="AM/PM"
                         value={(() => {
-                          if (!formData.start_time) return 'AM';
-                          return new Date(formData.start_time).getHours() >= 12 ? 'PM' : 'AM';
+                          if (!formData.startTime) return 'AM';
+                          return new Date(formData.startTime).getHours() >= 12 ? 'PM' : 'AM';
                         })()}
                         onChange={(e) => {
                           const newAmp = e.target.value;
-                          const date = formData.start_time ? new Date(formData.start_time) : new Date();
+                          const date = formData.startTime ? new Date(formData.startTime) : new Date();
                           let hours = date.getHours();
                           
                           if (newAmp === 'PM' && hours < 12) hours += 12;
                           if (newAmp === 'AM' && hours >= 12) hours -= 12;
                           
                           date.setHours(hours);
-                          setFormData({ ...formData, start_time: date.toISOString() });
+                          setFormData({ ...formData, startTime: date.toISOString() });
                         }}
                       >
                         <SelectItem value="AM" text="AM" />
@@ -272,14 +275,14 @@ const ContestSettingsPage: React.FC = () => {
                     <DatePicker 
                       datePickerType="single" 
                       dateFormat="m/d/Y"
-                      value={formData.end_time ? [new Date(formData.end_time)] : []}
+                      value={formData.endTime ? [new Date(formData.endTime)] : []}
                       onChange={(dates) => {
                         if (dates && dates.length > 0) {
                           const date = dates[0];
-                          const current = formData.end_time ? new Date(formData.end_time) : new Date();
+                          const current = formData.endTime ? new Date(formData.endTime) : new Date();
                           date.setHours(current.getHours());
                           date.setMinutes(current.getMinutes());
-                          setFormData({ ...formData, end_time: date.toISOString() });
+                          setFormData({ ...formData, endTime: date.toISOString() });
                         }
                       }}
                     >
@@ -305,7 +308,7 @@ const ContestSettingsPage: React.FC = () => {
                         if (val.length === 5 && val.includes(':')) {
                           const [h, m] = val.split(':').map(Number);
                           if (!isNaN(h) && !isNaN(m) && h >= 1 && h <= 12 && m >= 0 && m <= 59) {
-                            const date = formData.end_time ? new Date(formData.end_time) : new Date();
+                            const date = formData.endTime ? new Date(formData.endTime) : new Date();
                             const currentHours = date.getHours();
                             const isPM = currentHours >= 12;
                             let newHours = h;
@@ -320,7 +323,7 @@ const ContestSettingsPage: React.FC = () => {
                             
                             date.setHours(newHours);
                             date.setMinutes(m);
-                            setFormData({ ...formData, end_time: date.toISOString() });
+                            setFormData({ ...formData, endTime: date.toISOString() });
                           }
                         }
                       }}
@@ -329,19 +332,19 @@ const ContestSettingsPage: React.FC = () => {
                         id="end-time-select" 
                         // labelText="AM/PM"
                         value={(() => {
-                          if (!formData.end_time) return 'AM';
-                          return new Date(formData.end_time).getHours() >= 12 ? 'PM' : 'AM';
+                          if (!formData.endTime) return 'AM';
+                          return new Date(formData.endTime).getHours() >= 12 ? 'PM' : 'AM';
                         })()}
                         onChange={(e) => {
                           const newAmp = e.target.value;
-                          const date = formData.end_time ? new Date(formData.end_time) : new Date();
+                          const date = formData.endTime ? new Date(formData.endTime) : new Date();
                           let hours = date.getHours();
                           
                           if (newAmp === 'PM' && hours < 12) hours += 12;
                           if (newAmp === 'AM' && hours >= 12) hours -= 12;
                           
                           date.setHours(hours);
-                          setFormData({ ...formData, end_time: date.toISOString() });
+                          setFormData({ ...formData, endTime: date.toISOString() });
                         }}
                       >
                         <SelectItem value="AM" text="AM" />
@@ -363,7 +366,7 @@ const ContestSettingsPage: React.FC = () => {
                     id="visibility"
                     labelText="可見性"
                     value={formData.visibility || 'public'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as ContestVisibility })}
                   >
                     <SelectItem value="public" text="公開 (Public)" />
                     <SelectItem value="private" text="私有 (Private)" />
@@ -402,44 +405,44 @@ const ContestSettingsPage: React.FC = () => {
                     labelText="啟用考試模式"
                     labelA="關閉"
                     labelB="開啟"
-                    toggled={formData.exam_mode_enabled}
-                    onToggle={(checked) => setFormData({ ...formData, exam_mode_enabled: checked })}
+                    toggled={formData.examModeEnabled}
+                    onToggle={(checked) => setFormData({ ...formData, examModeEnabled: checked })}
                   />
                 </div>
 
-                {formData.exam_mode_enabled && (
+                {formData.examModeEnabled && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <Toggle
                       id="scoreboard-visible"
                       labelText="考試期間顯示排行榜"
                       labelA="隱藏"
                       labelB="顯示"
-                      toggled={formData.scoreboard_visible_during_contest}
-                      onToggle={(checked) => setFormData({ ...formData, scoreboard_visible_during_contest: checked })}
+                      toggled={formData.scoreboardVisibleDuringContest}
+                      onToggle={(checked) => setFormData({ ...formData, scoreboardVisibleDuringContest: checked })}
                     />
                     <Toggle
                       id="allow-multiple-joins"
                       labelText="允許多次加入"
                       labelA="禁止"
                       labelB="允許"
-                      toggled={formData.allow_multiple_joins}
-                      onToggle={(checked) => setFormData({ ...formData, allow_multiple_joins: checked })}
+                      toggled={formData.allowMultipleJoins}
+                      onToggle={(checked) => setFormData({ ...formData, allowMultipleJoins: checked })}
                     />
                     <Toggle
                       id="ban-tab-switching"
                       labelText="禁止切換分頁 (Anti-Cheat)"
                       labelA="不禁止"
                       labelB="禁止"
-                      toggled={formData.ban_tab_switching}
-                      onToggle={(checked) => setFormData({ ...formData, ban_tab_switching: checked })}
+                      toggled={formData.banTabSwitching}
+                      onToggle={(checked) => setFormData({ ...formData, banTabSwitching: checked })}
                     />
                     <NumberInput
                       id="max-warnings"
                       label="最大違規警告次數 (0 = 立即鎖定)"
                       min={0}
                       max={10}
-                      value={formData.max_cheat_warnings || 0}
-                      onChange={(_, { value }) => setFormData({ ...formData, max_cheat_warnings: Number(value) })}
+                      value={formData.maxCheatWarnings || 0}
+                      onChange={(_, { value }) => setFormData({ ...formData, maxCheatWarnings: Number(value) })}
                     />
                     
                     <div style={{ borderTop: '1px solid var(--cds-border-subtle)', margin: '0.5rem 0' }} />
@@ -449,19 +452,19 @@ const ContestSettingsPage: React.FC = () => {
                       labelText="允許自動解鎖 (Allow Auto-Unlock)"
                       labelA="禁止"
                       labelB="允許"
-                      toggled={formData.allow_auto_unlock}
-                      onToggle={(checked) => setFormData({ ...formData, allow_auto_unlock: checked })}
+                      toggled={formData.allowAutoUnlock}
+                      onToggle={(checked) => setFormData({ ...formData, allowAutoUnlock: checked })}
                     />
                     
-                    {formData.allow_auto_unlock && (
+                    {formData.allowAutoUnlock && (
                       <NumberInput
                         id="auto-unlock-minutes"
                         label="自動解鎖時間 (分鐘)"
                         helperText="鎖定後經過多少分鐘自動解鎖"
                         min={1}
                         max={1440}
-                        value={formData.auto_unlock_minutes || 5}
-                        onChange={(_, { value }) => setFormData({ ...formData, auto_unlock_minutes: Number(value) })}
+                        value={formData.autoUnlockMinutes || 5}
+                        onChange={(_, { value }) => setFormData({ ...formData, autoUnlockMinutes: Number(value) })}
                       />
                     )}
                   </div>

@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       host: true, // Listen on all addresses
-      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'q-judge.quan.wtf'],
+      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'q-judge.quan.wtf', 'q-judge-dev.quan.wtf'],
       proxy: {
         '/api': {
           target: env.VITE_API_TARGET || 'http://localhost:8000',

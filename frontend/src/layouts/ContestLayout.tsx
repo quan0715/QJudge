@@ -6,7 +6,6 @@ import {
   HeaderGlobalBar,
   HeaderGlobalAction,
   Theme,
-  Button,
   Modal,
   InlineNotification,
   HeaderNavigation
@@ -18,15 +17,15 @@ import {
   View,
   Logout,
   Time,
-  Stop,
   Settings
 } from '@carbon/icons-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
 import ExamModeWrapper from '@/components/contest/ExamModeWrapper';
 import { api } from '@/services/api';
-import type { ContestDetail } from '@/models/contest';
+import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestHero from '@/components/contest/layout/ContestHero';
+import ContentPageLayout from '@/layouts/ContentPageLayout';
 
 
 const ContestLayout = () => {
@@ -42,11 +41,11 @@ const ContestLayout = () => {
   const { theme, toggleTheme } = useTheme();
 
   const isExamActive = !!(
-    contest?.exam_mode_enabled && 
-    contest?.has_started && 
-    !contest?.is_paused && 
-    !contest?.is_locked &&
-    !contest?.has_finished_exam
+    contest?.examModeEnabled && 
+    contest?.hasStarted && 
+    !contest?.isPaused && 
+    !contest?.isLocked &&
+    !contest?.hasFinishedExam
   );
 
   useEffect(() => {
@@ -68,7 +67,7 @@ const ContestLayout = () => {
 
   // Redirect paused users to overview
   useEffect(() => {
-    if (contest?.is_paused) {
+    if (contest?.isPaused) {
       const path = window.location.pathname;
       const restrictedPaths = ['/problems', '/submissions', '/standings'];
       if (restrictedPaths.some(p => path.includes(p))) {
@@ -106,7 +105,7 @@ const ContestLayout = () => {
     if (!contest) return;
 
     const timer = setInterval(() => {
-      const end = new Date(contest.end_time).getTime();
+      const end = new Date(contest.endTime).getTime();
       const now = new Date().getTime();
       const diff = end - now;
 
@@ -163,7 +162,7 @@ const ContestLayout = () => {
       await api.startExam(contest.id);
       
       // Request fullscreen if exam mode is enabled
-      if (contest.exam_mode_enabled) {
+      if (contest.examModeEnabled) {
         try {
           await document.documentElement.requestFullscreen();
         } catch (err) {
@@ -197,7 +196,7 @@ const ContestLayout = () => {
 
     try {
       // If exam mode is enabled and exam is active, end the exam first
-      if (contest.exam_mode_enabled && contest.status === 'active' && !contest.has_finished_exam) {
+      if (contest.examModeEnabled && contest.status === 'active' && !contest.hasFinishedExam) {
         // Use the new handleEndExam logic
         await handleEndExam();
       }
@@ -265,11 +264,11 @@ const ContestLayout = () => {
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </HeaderGlobalAction>
 
-            {(contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+            {(contest?.currentUserRole === 'teacher' || contest?.currentUserRole === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
               <HeaderGlobalAction 
                 aria-label="Manage Contest" 
                 tooltipAlignment="center" 
-                onClick={() => navigate(`/admin/contests/${contestId}`)}
+                onClick={() => navigate(`/management/contests/${contestId}`)}
               >
                 <Settings size={20} />
               </HeaderGlobalAction>
@@ -284,18 +283,6 @@ const ContestLayout = () => {
             </HeaderGlobalAction>
 
             {/* Removed separate End Exam button - Exit Contest now handles this */}
-            {false && (
-              <div style={{ marginRight: '1rem' }}>
-                <Button
-                  kind="danger"
-                  renderIcon={Stop}
-                  size="sm"
-                  onClick={() => setIsExitModalOpen(true)}
-                >
-                  結束競賽（交卷）
-                </Button>
-              </div>
-            )}
 
             {isExamActive && (
               <div
@@ -367,35 +354,28 @@ const ContestLayout = () => {
 
       <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
-          <div className="contest-content" style={{ 
-            flex: 1, 
-            overflow: 'auto',
-            backgroundColor: theme === 'white' ? '#f4f4f4' : '#161616', // Custom background as requested
-            position: 'relative'
-          }}>
-            {/* Hero Section - Scrolls away */}
-            <ContestHero 
-              contest={contest} 
-              onJoin={handleJoin}
-              onLeave={handleLeave}
-              onStartExam={handleStartExam}
-              onEndExam={handleEndExam}
-            />
-
-
-
-            {/* Main Content */}
+          <ContentPageLayout
+            hero={
+              <ContestHero 
+                contest={contest} 
+                onJoin={handleJoin}
+                onLeave={handleLeave}
+                onStartExam={handleStartExam}
+                onEndExam={handleEndExam}
+              />
+            }
+          >
             <ExamModeWrapper
               contestId={contestId || ''}
-              examModeEnabled={!!contest?.exam_mode_enabled}
+              examModeEnabled={!!contest?.examModeEnabled}
               isActive={!!isExamActive}
-              isLocked={contest?.is_locked}
-              lockReason={contest?.lock_reason}
-              currentUserRole={contest?.current_user_role}
+              isLocked={contest?.isLocked}
+              lockReason={contest?.lockReason}
+              currentUserRole={contest?.currentUserRole}
             >
               <Outlet context={{ refreshContest }} />
             </ExamModeWrapper>
-          </div>
+          </ContentPageLayout>
         </div>
       </Theme>
 
@@ -417,17 +397,17 @@ const ContestLayout = () => {
         <p>
           {(() => {
             // Teacher/Admin
-            if (contest?.current_user_role === 'teacher' || contest?.current_user_role === 'admin') {
+            if (contest?.currentUserRole === 'teacher' || contest?.currentUserRole === 'admin') {
               return '確定要離開競賽管理頁面嗎？';
             }
 
             // Student - Not joined
-            if (!contest?.has_joined && !contest?.is_registered) {
+            if (!contest?.hasJoined && !contest?.isRegistered) {
               return '確定要離開競賽頁面嗎？';
             }
 
             // Student - Joined but exam not started (or finished)
-            if (!contest?.status || contest.status === 'inactive' || contest.has_finished_exam) {
+            if (!contest?.status || contest.status === 'inactive' || contest.hasFinishedExam) {
               return '確定要離開競賽頁面嗎？';
             }
 
@@ -436,7 +416,7 @@ const ContestLayout = () => {
               <span>
                 警告：競賽正在進行中。
                 <br />
-                {contest?.allow_multiple_joins ? (
+                {contest?.allowMultipleJoins ? (
                   '您可以隨時重新進入繼續作答。'
                 ) : (
                   <span style={{ color: 'var(--cds-support-error)' }}>

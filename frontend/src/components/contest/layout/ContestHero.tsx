@@ -1,9 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal } from '@carbon/react';
 import { PlayFilled, Login, Flag, WarningAltFilled } from '@carbon/icons-react';
-import type { ContestDetail } from '@/models/contest';
+import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestTabs from './ContestTabs';
-import ContestHeroBase from './ContestHeroBase';
+import { Tag } from '@carbon/react';
+import { Time, UserMultiple, Catalog } from '@carbon/icons-react';
+import ReactMarkdown from 'react-markdown';
+import { ContestStatusBadge } from '@/components/common/badges/ContestStatusBadge';
+import { HeroBase } from '@/components/common/layout/HeroBase';
+
+// Helper components moved from ContestHeroBase
+const DataCard = ({ icon: Icon, value, label }: { icon: React.ComponentType<any>, value: string | number, label: string }) => (
+  <div style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    padding: '0 2rem',
+    borderLeft: '1px solid var(--cds-border-subtle)',
+    minWidth: '140px',
+    alignItems: 'flex-start'
+  }}>
+    <div style={{ marginBottom: '0.5rem', color: 'var(--cds-text-secondary)' }}>
+      <Icon size={20} />
+    </div>
+    <div style={{ fontSize: '2.5rem', fontWeight: 300, lineHeight: 1, marginBottom: '0.25rem' }}>
+      {value}
+    </div>
+    <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+      {label}
+    </div>
+  </div>
+);
+
+const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
+  <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
+    {label && (
+      <div style={{ 
+        marginBottom: '0.5rem', 
+        fontSize: '0.875rem', 
+        color: 'var(--cds-text-secondary)',
+        fontFamily: 'var(--cds-font-family)'
+      }}>
+        {label}
+      </div>
+    )}
+    <div style={{ 
+      height: '6px', 
+      width: '100%', 
+      backgroundColor: 'var(--cds-border-subtle)', 
+      position: 'relative' 
+    }}>
+      <div style={{ 
+        height: '100%', 
+        width: `${value}%`, 
+        backgroundColor: status === 'ended' || status === 'FINISHED' ? '#8d8d8d' : 'var(--cds-interactive)',
+        transition: 'width 0.3s ease'
+      }} />
+    </div>
+  </div>
+);
 
 interface ContestHeroProps {
   contest: ContestDetail | null;
@@ -32,8 +86,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
     const updateProgress = () => {
       const now = new Date().getTime();
-      const start = new Date(contest.start_time).getTime();
-      const end = new Date(contest.end_time).getTime();
+      const start = new Date(contest.startTime).getTime();
+      const end = new Date(contest.endTime).getTime();
       const total = end - start;
       const elapsed = now - start;
 
@@ -53,11 +107,85 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   }, [contest]);
 
   if (loading || !contest) {
-    return <ContestHeroBase contest={{} as any} progress={0} loading={true} />;
+    // Pass empty props to HeroBase for loading state
+    return <HeroBase title="" loading={true} />;
   }
 
+  // --- Logic from ContestHeroBase ---
+  const startTime = new Date(contest.startTime);
+  const endTime = new Date(contest.endTime);
+
+  const getDuration = () => {
+    const diff = endTime.getTime() - startTime.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 24) return `${Math.floor(hours / 24)} Days`;
+    if (minutes > 0) return `${hours}h ${minutes}m`;
+    return `${hours}h`;
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleString('zh-TW', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  const badges = (
+    <>
+      <ContestStatusBadge status={contest.status} />
+      <Tag type={contest.visibility === 'public' ? 'green' : 'purple'}>
+        {contest.visibility === 'public' ? '公開' : '私有'}
+      </Tag>
+      {contest.examModeEnabled && (
+        <Tag type="red">考試模式</Tag>
+      )}
+    </>
+  );
+
+  const metadata = (
+    <>
+      <div>
+        <div style={{ marginBottom: '0.25rem' }}>Start Time</div>
+        <div style={{ color: 'var(--cds-text-primary)', fontWeight: 600 }}>{formatDate(startTime)}</div>
+      </div>
+      <div>
+        <div style={{ marginBottom: '0.25rem' }}>End Time</div>
+        <div style={{ color: 'var(--cds-text-primary)', fontWeight: 600 }}>{formatDate(endTime)}</div>
+      </div>
+    </>
+  );
+
+  const kpiCards = (
+    <>
+      <DataCard 
+        icon={UserMultiple} 
+        value={contest.participantCount || 0} 
+        label="Participants" 
+      />
+      <DataCard 
+        icon={Catalog} 
+        value={contest.problems.length} 
+        label="Problems" 
+      />
+      <DataCard 
+        icon={Time} 
+        value={getDuration()} 
+        label="Duration" 
+      />
+    </>
+  );
+
+  const progressBar = (
+    <MinimalProgressBar 
+      value={progress} 
+      label={contest.status === 'active' ? `Contest Progress · ${Math.round(progress)}%` : contest.status} 
+      status={contest.status}
+    />
+  );
+  // ----------------------------------
+
   const handleStartClick = () => {
-    if (contest.exam_mode_enabled) {
+    if (contest.examModeEnabled) {
       setShowStartConfirm(true);
     } else {
       onStartExam?.();
@@ -72,7 +200,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const onJoinContest = onJoin;
 
   const renderActions = () => {
-    if (!contest.has_joined) {
+    if (!contest.hasJoined) {
       return (
         <Button renderIcon={Login} onClick={onJoinContest}>
           立即報名 (Register)
@@ -88,8 +216,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
-    if (contest.has_finished_exam) {
-      if (contest.allow_multiple_joins) {
+    if (contest.hasFinishedExam) {
+      if (contest.allowMultipleJoins) {
         return (
           <Button renderIcon={PlayFilled} onClick={handleStartClick}>
             重新開始考試 (Start Exam)
@@ -104,16 +232,16 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     }
 
     // Active and Joined and Not Finished
-    if (contest.is_locked) {
+    if (contest.isLocked) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #da1e28' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#da1e28', fontWeight: 'bold' }}>
             <WarningAltFilled /> 考試已鎖定
           </div>
-          <div>{contest.lock_reason}</div>
-          {contest.allow_auto_unlock && contest.auto_unlock_minutes && contest.locked_at ? (
+          <div>{contest.lockReason}</div>
+          {contest.allowAutoUnlock && contest.autoUnlockMinutes && contest.lockedAt ? (
             <div style={{ fontSize: '0.9rem', color: '#42be65' }}>
-              預計解鎖時間: {new Date(new Date(contest.locked_at).getTime() + contest.auto_unlock_minutes * 60000).toLocaleTimeString()}
+              預計解鎖時間: {new Date(new Date(contest.lockedAt).getTime() + contest.autoUnlockMinutes * 60000).toLocaleTimeString()}
             </div>
           ) : (
             <div style={{ fontSize: '0.9rem', color: '#8d8d8d' }}>請聯繫監考人員解鎖</div>
@@ -125,9 +253,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     return (
       <div style={{ display: 'flex', gap: '1rem' }}>
         <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-          {contest.has_started ? '繼續考試 (Continue)' : '開始考試 (Start Exam)'}
+          {contest.hasStarted ? '繼續考試 (Continue)' : '開始考試 (Start Exam)'}
         </Button>
-        {contest.has_started && onEndExam && (
+        {contest.hasStarted && onEndExam && (
           <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
             結束考試 (Submit Exam)
           </Button>
@@ -138,11 +266,16 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
   return (
     <>
-      <ContestHeroBase 
-        contest={contest} 
-        progress={progress}
+      <HeroBase
+        title={contest.name}
+        description={<ReactMarkdown>{contest.description || 'No description provided.'}</ReactMarkdown>}
+        badges={badges}
+        metadata={metadata}
         actions={renderActions()}
+        kpiCards={kpiCards}
+        progressBar={progressBar}
         bottomContent={<ContestTabs contest={contest} />}
+        loading={loading}
       />
 
       {/* Start Exam Confirmation Modal */}
@@ -165,8 +298,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
           <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', lineHeight: '1.6' }}>
             <li>考試期間請保持<strong>全螢幕模式</strong>。</li>
             <li>禁止切換分頁或視窗，違規將被記錄。</li>
-            <li>若違規次數超過 <strong>{contest.max_cheat_warnings}</strong> 次，系統將自動鎖定您的考試權限。</li>
-            {contest.ban_tab_switching && (
+            <li>若違規次數超過 <strong>{contest.maxCheatWarnings}</strong> 次，系統將自動鎖定您的考試權限。</li>
+            {contest.banTabSwitching && (
               <li style={{ color: '#da1e28' }}>嚴格禁止切換分頁 (Tab Switching is Banned)</li>
             )}
           </ul>

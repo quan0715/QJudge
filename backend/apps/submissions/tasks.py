@@ -16,6 +16,16 @@ except ImportError:
     print("Warning: CppJudge not available, using mock judging")
 
 
+class MockTestCase:
+    def __init__(self, data, order):
+        self.input_data = data.get('input', '')
+        self.output_data = data.get('output', '')
+        self.score = 0
+        self.is_sample = False
+        self.is_hidden = False
+        self.id = f"custom_{order}"
+        self.order = order
+
 @shared_task
 def judge_submission(submission_id):
     """
@@ -23,18 +33,26 @@ def judge_submission(submission_id):
     """
     try:
         submission = Submission.objects.get(id=submission_id)
-        submission.status = 'judging'
-        submission.save()
-        
-        # Simulate judging delay
-        time.sleep(1)
-        
-        # Get test cases
-        test_cases = TestCase.objects.filter(problem=submission.problem).order_by('order')
+        # ... (rest of function)
         
         # Filter for test submissions
+        test_cases = []
         if submission.is_test:
-            test_cases = test_cases.filter(is_sample=True)
+            # Start with sample test cases
+            sample_cases = list(submission.problem.test_cases.filter(is_sample=True))
+            
+            custom_cases = []
+            if submission.custom_test_cases:
+                custom_cases = [
+                    MockTestCase(data, idx + 1000) # Offset order to avoid collision
+                    for idx, data in enumerate(submission.custom_test_cases)
+                ]
+            
+            # Combine them: Samples first, then Custom
+            test_cases = sample_cases + custom_cases
+        else:
+            # For normal submissions, use all test cases
+            test_cases = list(submission.problem.test_cases.all())
         
         total_score = 0
         max_exec_time = 0
@@ -103,14 +121,21 @@ def judge_submission(submission_id):
                     final_status = status
             
             # Save result
+            # For custom test cases (MockTestCase), they don't have a DB ID, so test_case will be None
+            tc_instance = None
+            if isinstance(tc, TestCase):
+                 tc_instance = tc
+            
             SubmissionResult.objects.create(
                 submission=submission,
-                test_case=tc,
+                test_case=tc_instance,
                 status=status,
                 exec_time=exec_time,
                 memory_usage=memory,
                 output=output[:1000],
-                error_message=error_msg[:1000]
+                error_message=error_msg[:1000],
+                input_data=tc.input_data[:2000],  # Save snapshot of input
+                expected_output=tc.output_data[:2000] # Save snapshot of expected output
             )
             
             # If CE or SE, stop testing other cases
@@ -133,12 +158,13 @@ def judge_submission(submission_id):
         except:
             pass
         
-        # Update problem stats
-        problem = submission.problem
-        problem.submission_count += 1
-        if submission.status == 'AC':
-            problem.accepted_count += 1
-        problem.save()
+        # Update problem stats (only for official submissions, not test runs)
+        if not submission.is_test:
+            problem = submission.problem
+            problem.submission_count += 1
+            if submission.status == 'AC':
+                problem.accepted_count += 1
+            problem.save()
         
         return f"Submission {submission_id} judged: {submission.status}"
         

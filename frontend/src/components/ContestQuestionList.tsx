@@ -9,7 +9,7 @@ import {
   Tag
 } from '@carbon/react';
 import { Send, CheckmarkFilled } from '@carbon/icons-react';
-import type { ContestQuestion } from '@/services/api';
+import type { ContestQuestion } from '@/core/entities/contest.entity';
 import { api } from '@/services/api';
 
 interface ContestQuestionListProps {
@@ -34,7 +34,7 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false, c
       setLoading(true);
       const data = await api.getContestQuestions(contestId);
       // Show all contest questions, sorted by creation date
-      setQuestions(data.sort((a: ContestQuestion, b: ContestQuestion) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      setQuestions(data.sort((a: ContestQuestion, b: ContestQuestion) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
       console.error(err);
       setError('無法載入提問列表');
@@ -151,7 +151,7 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false, c
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <h5 style={{ fontWeight: 'bold' }}>{question.title}</h5>
                 <span style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                  {new Date(question.created_at).toLocaleString()}
+                  {new Date(question.createdAt).toLocaleString()}
                 </span>
               </div>
               
@@ -159,7 +159,7 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false, c
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <Tag type="gray" size="sm">
-                  {question.student_name}
+                  {question.authorUsername}
                 </Tag>
                 {question.answer ? (
                   <Tag type="green" size="sm">已回覆</Tag>
@@ -178,7 +178,7 @@ const ContestQuestionList = ({ contestId, problemId, isTeacherOrAdmin = false, c
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <CheckmarkFilled color="var(--cds-support-success)" />
-                    <strong>助教回覆 ({question.answered_by})</strong>
+                    <strong>助教回覆 ({question.answeredBy})</strong>
                   </div>
                   <p style={{ whiteSpace: 'pre-wrap' }}>{question.answer}</p>
                 </div>

@@ -96,7 +96,7 @@ const TeacherContestList = () => {
         {getContestStateLabel(getContestState(c))}
       </Tag>
     ),
-    time: `${new Date(c.start_time).toLocaleString()} ~ ${new Date(c.end_time).toLocaleString()}`,
+    time: `${new Date(c.startTime).toLocaleString()} ~ ${new Date(c.endTime).toLocaleString()}`,
     visibility: c.visibility === 'private' ? <Tag type="purple">私有 (密碼)</Tag> : <Tag type="teal">公開</Tag>,
     actions: (
       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -115,7 +115,7 @@ const TeacherContestList = () => {
           iconDescription="封存"
           hasIconOnly
           onClick={() => handleArchiveClick(c.id)}
-          disabled={c.is_archived}
+          disabled={c.status === 'archived'}
         />
         <Button
           kind="danger--ghost"

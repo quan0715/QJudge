@@ -35,10 +35,12 @@ import {
 } from '@carbon/react';
 import { Save, Add, Edit, Unlocked, Renew } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import type { ContestDetail, ContestUpdateRequest, ContestParticipant } from '@/models/contest';
+import type { ContestDetail, ContestParticipant, ContestProblemSummary, ExamEvent } from '@/core/entities/contest.entity';
+import type { ContestUpdateRequest } from '@/models/contest';
+import { mapContestDetailDto, mapExamEventDto } from '@/core/entities/mappers/contestMapper';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
-import ProblemTable from '@/components/common/ProblemTable';
+import ProblemTable from '@/components/problem/ProblemTable';
 
 const ContestSettingsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -55,7 +57,7 @@ const ContestSettingsPage = () => {
   const [endTimeInput, setEndTimeInput] = useState('');
 
   // Problem Management State
-  const [problems, setProblems] = useState<any[]>([]);
+  const [problems, setProblems] = useState<ContestProblemSummary[]>([]);
   const [addProblemModalOpen, setAddProblemModalOpen] = useState(false);
   const [newProblemTitle, setNewProblemTitle] = useState('');
   const [newProblemId, setNewProblemId] = useState('');
@@ -72,7 +74,7 @@ const ContestSettingsPage = () => {
   const [editHasFinished, setEditHasFinished] = useState(false);
 
   // Exam Logs State
-  const [examEvents, setExamEvents] = useState<any[]>([]);
+  const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
   // Danger Zone State
@@ -116,37 +118,40 @@ const ContestSettingsPage = () => {
   const loadContest = async () => {
     try {
       setLoading(true);
-      const data = await api.getContest(contestId!);
+      const rawData = await api.getContest(contestId!);
+      const data = mapContestDetailDto(rawData);
       setContest(data || null);
+      
+      // Map camelCase entity to snake_case request DTO for form
       setFormData({
         name: data?.name || '',
         description: data?.description || '',
         rules: data?.rules || '',
-        start_time: data?.start_time || '',
-        end_time: data?.end_time || '',
+        start_time: data?.startTime || '',
+        end_time: data?.endTime || '',
         visibility: data?.visibility || 'public',
         password: data?.password || '',
-        exam_mode_enabled: data?.exam_mode_enabled || false,
-        scoreboard_visible_during_contest: data?.scoreboard_visible_during_contest || false,
-        allow_multiple_joins: data?.allow_multiple_joins || false,
-        ban_tab_switching: data?.ban_tab_switching || false,
-        max_cheat_warnings: data?.max_cheat_warnings || 0,
-        allow_auto_unlock: data?.allow_auto_unlock || false,
-        auto_unlock_minutes: data?.auto_unlock_minutes || 0,
-        status: data?.status || 'inactive'
+        exam_mode_enabled: data?.examModeEnabled || false,
+        scoreboard_visible_during_contest: data?.scoreboardVisibleDuringContest || false,
+        allow_multiple_joins: data?.allowMultipleJoins || false,
+        ban_tab_switching: data?.banTabSwitching || false,
+        max_cheat_warnings: data?.maxCheatWarnings || 0,
+        allow_auto_unlock: data?.allowAutoUnlock || false,
+        auto_unlock_minutes: data?.autoUnlockMinutes || 0,
+        status: (data?.status || 'inactive') as any
       });
 
       // Initialize local time inputs
-      if (data?.start_time) {
-        const date = new Date(data.start_time);
+      if (data?.startTime) {
+        const date = new Date(data.startTime);
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         hours = hours % 12;
         hours = hours ? hours : 12;
         setStartTimeInput(`${hours.toString().padStart(2, '0')}:${minutes}`);
       }
-      if (data?.end_time) {
-        const date = new Date(data.end_time);
+      if (data?.endTime) {
+        const date = new Date(data.endTime);
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         hours = hours % 12;
@@ -166,7 +171,8 @@ const ContestSettingsPage = () => {
     try {
       // Fetch contest details again or use a specific endpoint if available
       // Currently getContest returns problems
-      const data = await api.getContest(contestId);
+      const rawData = await api.getContest(contestId);
+      const data = mapContestDetailDto(rawData);
       if (data && data.problems) {
         setProblems(data.problems);
       }
@@ -192,8 +198,8 @@ const ContestSettingsPage = () => {
     if (!contestId) return;
     setLogsLoading(true);
     try {
-      const data = await api.getExamEvents(contestId);
-      setExamEvents(data);
+      const rawData = await api.getExamEvents(contestId);
+      setExamEvents(rawData.map(mapExamEventDto));
     } catch (error) {
       console.error('Failed to load exam logs', error);
     } finally {
@@ -264,10 +270,10 @@ const ContestSettingsPage = () => {
     }
   };
 
-  const handleUnlockParticipant = async (userId: number) => {
+  const handleUnlockParticipant = async (userId: string) => {
     if (!contestId || !confirm('確定要解除此學生的鎖定嗎？')) return;
     try {
-      await api.unlockParticipant(contestId, userId);
+      await api.unlockParticipant(contestId, Number(userId));
       loadParticipants();
       setNotification({ kind: 'success', message: '已解除鎖定' });
     } catch (error: any) {
@@ -278,7 +284,7 @@ const ContestSettingsPage = () => {
   const handleUpdateParticipant = async () => {
     if (!contestId || !editingParticipant) return;
     try {
-      await api.updateParticipant(contestId, editingParticipant.user_id, {
+      await api.updateParticipant(contestId, Number(editingParticipant.userId), {
         is_locked: editIsLocked,
         lock_reason: editLockReason,
         has_finished_exam: editHasFinished
@@ -293,9 +299,9 @@ const ContestSettingsPage = () => {
 
   const openEditParticipantModal = (p: ContestParticipant) => {
     setEditingParticipant(p);
-    setEditIsLocked(p.is_locked);
-    setEditLockReason(p.lock_reason || '');
-    setEditHasFinished(p.has_finished_exam);
+    setEditIsLocked(p.isLocked);
+    setEditLockReason(p.lockReason || '');
+    setEditHasFinished(p.hasFinishedExam);
     setEditParticipantModalOpen(true);
   };
 
@@ -709,17 +715,20 @@ const ContestSettingsPage = () => {
                   <ProblemTable
                     problems={problems.map(p => ({
                       ...p,
-                      id: p.problem_id?.toString() || p.id.toString(),
+                      id: p.id, // ContestProblem ID
+                      problemId: p.problemId, // Actual Problem ID
                       // Ensure label and order are present for contest mode
                       label: p.label || '-',
                       order: p.order || 0,
-                      score: p.score || 0
+                      score: p.score || 0,
+                      difficulty: p.difficulty as any // Cast to any to avoid strict enum check
                     }))}
                     mode="contest"
                     onAction={(action, problem) => {
                       if (action === 'edit') {
                         navigate(`/teacher/contests/${contestId}/problems/${problem.id}/edit`);
                       } else if (action === 'delete') {
+                        // Use id (ContestProblem ID)
                         handleRemoveProblem(problem.id.toString());
                       }
                     }}
@@ -750,12 +759,12 @@ const ContestSettingsPage = () => {
                     <Loading withOverlay={false} />
                   ) : (
                     <DataTable
-                      rows={participants.map(p => ({ ...p, id: p.user_id.toString() }))}
+                      rows={participants.map(p => ({ ...p, id: p.userId.toString() }))}
                       headers={[
                         { key: 'username', header: '使用者' },
-                        { key: 'joined_at', header: '加入時間' },
+                        { key: 'joinedAt', header: '加入時間' },
                         { key: 'status', header: '狀態' },
-                        { key: 'lock_reason', header: '鎖定原因' },
+                        { key: 'lockReason', header: '鎖定原因' },
                         { key: 'actions', header: '操作' }
                       ]}
                     >
@@ -773,52 +782,52 @@ const ContestSettingsPage = () => {
                             </TableHead>
                             <TableBody>
                               {rows.map((row: any) => {
-                                const p = participants.find(item => item.user_id.toString() === row.id);
+                                const p = participants.find(item => item.userId.toString() === row.id);
                                 if (!p) return null;
                                 return (
                                   <TableRow {...getRowProps({ row })} key={row.id}>
                                     <TableCell>
                                       <div style={{ fontWeight: 600 }}>{p.username}</div>
                                       <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                                        {p.user?.email}
+                                        {p.email}
                                       </div>
                                     </TableCell>
-                                    <TableCell>{new Date(p.joined_at).toLocaleString('zh-TW')}</TableCell>
+                                    <TableCell>{new Date(p.joinedAt).toLocaleString('zh-TW')}</TableCell>
                                     <TableCell>
-                                      {p.is_locked ? (
+                                      {p.isLocked ? (
                                         <Tag type="red">已鎖定</Tag>
-                                      ) : p.has_finished_exam ? (
+                                      ) : p.hasFinishedExam ? (
                                         <Tag type="green">已交卷</Tag>
                                       ) : (
                                         <Tag type="blue">進行中</Tag>
                                       )}
                                     </TableCell>
                                     <TableCell>
-                                      {p.is_locked && (
+                                      {p.isLocked && (
                                         <span style={{ color: 'var(--cds-text-error)', fontSize: '0.875rem' }}>
-                                          {p.lock_reason}
+                                          {p.lockReason}
                                         </span>
                                       )}
                                     </TableCell>
                                     <TableCell>
                                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <Button 
-                                          kind="ghost" 
-                                          size="sm" 
+                                        <Button
+                                          kind="ghost"
+                                          size="sm"
                                           renderIcon={Edit}
+                                          hasIconOnly
+                                          iconDescription="編輯狀態"
                                           onClick={() => openEditParticipantModal(p)}
-                                        >
-                                          編輯
-                                        </Button>
-                                        {p.is_locked && (
-                                          <Button 
-                                            kind="ghost" 
-                                            size="sm" 
+                                        />
+                                        {p.isLocked && (
+                                          <Button
+                                            kind="ghost"
+                                            size="sm"
                                             renderIcon={Unlocked}
-                                            onClick={() => handleUnlockParticipant(p.user_id)}
-                                          >
-                                            解鎖
-                                          </Button>
+                                            hasIconOnly
+                                            iconDescription="解除鎖定"
+                                            onClick={() => handleUnlockParticipant(p.userId)}
+                                          />
                                         )}
                                       </div>
                                     </TableCell>
@@ -853,10 +862,10 @@ const ContestSettingsPage = () => {
                     <DataTable
                       rows={examEvents.map((e, idx) => ({ ...e, id: e.id?.toString() || idx.toString() }))}
                       headers={[
-                        { key: 'user', header: '使用者' },
-                        { key: 'type', header: '事件類型' },
-                        { key: 'time', header: '時間' },
-                        { key: 'details', header: '詳細資訊' }
+                        { key: 'userName', header: '使用者' },
+                        { key: 'eventType', header: '事件類型' },
+                        { key: 'timestamp', header: '時間' },
+                        { key: 'reason', header: '詳細資訊' }
                       ]}
                     >
                       {({ rows, headers, getHeaderProps, getRowProps, getTableProps }: any) => (
@@ -876,16 +885,16 @@ const ContestSettingsPage = () => {
                                 const event = examEvents.find((e, idx) => (e.id?.toString() || idx.toString()) === row.id);
                                 return (
                                   <TableRow {...getRowProps({ row })} key={row.id}>
-                                    <TableCell>{event?.user_username || event?.user?.username || 'Unknown'}</TableCell>
+                                    <TableCell>{event?.userName || 'Unknown'}</TableCell>
                                     <TableCell>
-                                      <Tag type={event?.event_type === 'tab_switch' ? 'red' : 'gray'}>
-                                        {event?.event_type}
+                                      <Tag type={event?.eventType === 'tab_hidden' ? 'red' : 'gray'}>
+                                        {event?.eventType}
                                       </Tag>
                                     </TableCell>
-                                    <TableCell>{new Date(event?.created_at).toLocaleString('zh-TW')}</TableCell>
+                                    <TableCell>{new Date(event?.timestamp || '').toLocaleString('zh-TW')}</TableCell>
                                     <TableCell>
                                       <div style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>
-                                        {JSON.stringify(event?.metadata || {})}
+                                        {event?.reason || '-'}
                                       </div>
                                     </TableCell>
                                   </TableRow>
@@ -977,7 +986,7 @@ const ContestSettingsPage = () => {
                         size="sm" 
                         renderIcon={Unlocked}
                         onClick={() => {
-                          handleUnlockParticipant(editingParticipant.user_id);
+                          handleUnlockParticipant(editingParticipant.userId);
                           setEditParticipantModalOpen(false);
                         }}
                       >

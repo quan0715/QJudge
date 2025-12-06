@@ -5,9 +5,9 @@ import { contestService } from './contestService';
 import { authFetch } from './auth';
 
 // Re-export types for backward compatibility
-export type { Problem } from '@/models/problem';
+export type { Problem } from '@/core/entities/problem.entity';
 export type { AuthResponse } from '@/models/auth';
-export type { Contest, ContestQuestion } from '@/models/contest';
+export type { Contest, ContestQuestion } from '@/core/entities/contest.entity';
 
 export const api = {
   ...authService,

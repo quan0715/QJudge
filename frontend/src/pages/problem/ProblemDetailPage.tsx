@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Loading } from '@carbon/react';
-import ProblemSolver from '@/components/ProblemSolver';
-import type { Problem, Submission } from '@/components/ProblemSolver';
-import { authFetch } from '@/services/auth';
+import ProblemSolver from '@/components/problem/ProblemSolver';
+import type { ProblemDetail as Problem } from '@/core/entities/problem.entity';
+import type { SubmissionDetail as Submission } from '@/core/entities/submission.entity';
+import { submissionService } from '@/services/submissionService';
+import { problemService } from '@/services/problemService';
+import ContentPageLayout from '@/layouts/ContentPageLayout';
+import ProblemHero from '@/components/problem/layout/ProblemHero';
 
 const ProblemDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,12 +20,11 @@ const ProblemDetailPage: React.FC = () => {
     const fetchProblem = async () => {
       if (!id) return;
         try {
-          const res = await authFetch(`/api/v1/problems/${id}/`);
-        
-        if (!res.ok) throw new Error('Failed to fetch problem');
-        
-        const data = await res.json();
-        setProblem(data);
+          const fetchedProblem = await problemService.getProblem(id);
+          
+          if (!fetchedProblem) throw new Error('Failed to fetch problem');
+          
+          setProblem(fetchedProblem);
       } catch (err) {
         setError('無法載入題目資料');
         console.error(err);
@@ -33,57 +36,43 @@ const ProblemDetailPage: React.FC = () => {
     fetchProblem();
   }, [id]);
 
-  const handleSubmit = async (code: string, language: string, isTest: boolean): Promise<Submission | void> => {
+  const handleSubmit = async (code: string, language: string, isTest: boolean, customTestCases?: any[]): Promise<Submission | void> => {
     if (!problem) return;
 
-      const res = await authFetch('/api/v1/submissions/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-      body: JSON.stringify({
-        problem: problem.id,
-        language: language,
-        code: code,
-        is_test: isTest
-      })
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || '提交失敗，請稍後再試');
-    }
-
-    const response = await res.json();
-    
-    // Check for submission ID
-    const submissionId = response.id || response.submission_id || response.data?.id;
-    
-    if (!submissionId) {
-      throw new Error('提交成功但無法取得提交 ID');
-    }
-
-    if (isTest) {
-      // Return the submission object for the component to handle polling
-      return response;
-    } else {
-      // For official submission, redirect to submission detail
-      setTimeout(() => {
-        navigate(`/submissions/${submissionId}`);
-      }, 100);
+    try {
+        const result = await submissionService.submitSolution({
+            problem_id: problem.id,
+            language: language,
+            code: code,
+            is_test: isTest,
+            custom_test_cases: customTestCases,
+            contest_id: undefined // Add contest support later if needed
+        });
+        return result;
+    } catch (err: any) {
+        throw new Error(err.message || '提交失敗，請檢查輸入並稍後再試');
     }
   };
 
-  if (loading) return <Loading />;
-  if (error) return <div>{error}</div>;
-  if (!problem) return <div>題目不存在</div>;
-
   return (
-    <ProblemSolver
-      problem={problem}
-      onSubmit={handleSubmit}
-      isContestMode={false}
-    />
+    <ContentPageLayout
+      hero={<ProblemHero problem={problem} loading={loading} />}
+    >
+      {loading ? (
+         <div style={{ padding: '2rem' }}><Loading /></div>
+      ) : error ? (
+         <div style={{ padding: '2rem' }}>{error}</div>
+      ) : !problem ? (
+         <div style={{ padding: '2rem' }}>題目不存在</div>
+      ) : (
+        <ProblemSolver
+          problem={problem}
+          onSubmit={handleSubmit}
+          isContestMode={false}
+          hideHero={true}
+        />
+      )}
+    </ContentPageLayout>
   );
 };
 

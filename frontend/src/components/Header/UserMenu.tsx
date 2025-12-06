@@ -71,9 +71,18 @@ const UserMenu = () => {
           <SwitcherItem onClick={() => { navigate('/dashboard'); setIsUserMenuOpen(false); }} aria-label="Dashboard">
             Dashboard
           </SwitcherItem>
+           <SwitcherItem onClick={() => { navigate('/problems'); setIsUserMenuOpen(false); }} aria-label="Problems">
+            Problems
+          </SwitcherItem>
+           <SwitcherItem onClick={() => { navigate('/contests'); setIsUserMenuOpen(false); }} aria-label="Contests">
+            Contests
+          </SwitcherItem>
+          <SwitcherItem onClick={() => { navigate('/submissions'); setIsUserMenuOpen(false); }} aria-label="Submissions">
+            Submissions
+          </SwitcherItem>
           {(user.role === 'teacher' || user.role === 'admin') && (
             <>
-              <SwitcherItem onClick={() => { navigate('/admin/problems'); setIsUserMenuOpen(false); }} aria-label="Manage Problems">
+              <SwitcherItem onClick={() => { navigate('/management/problems'); setIsUserMenuOpen(false); }} aria-label="Manage Problems">
                 Manage Problems
               </SwitcherItem>
               <SwitcherItem onClick={() => { navigate('/teacher/contests'); setIsUserMenuOpen(false); }} aria-label="Manage Contests">
@@ -83,22 +92,17 @@ const UserMenu = () => {
           )}
           {user.role === 'admin' && (
             <>
+              <SwitcherItem onClick={() => { navigate('/management/announcements'); setIsUserMenuOpen(false); }} aria-label="管理公告">
+                管理公告
+              </SwitcherItem>
               <SwitcherItem onClick={() => { navigate('/admin/users'); setIsUserMenuOpen(false); }} aria-label="Manage Users">
                 Manage Users
               </SwitcherItem>
-              <SwitcherItem aria-label="Django Admin">
-                <a 
-                  href="/django-admin/" 
-                  style={{ 
-                    textDecoration: 'none', 
-                    color: 'inherit',
-                    display: 'block',
-                    width: '100%'
-                  }}
-                  onClick={() => setIsUserMenuOpen(false)}
-                >
-                  Django Admin
-                </a>
+              <SwitcherItem aria-label="API Documentation" href="/api/schema/swagger-ui/" target="_blank" rel="noopener noreferrer">
+                API Documentation
+              </SwitcherItem>
+              <SwitcherItem aria-label="Django Admin" href="/django-admin/">
+                Django Admin
               </SwitcherItem>
             </>
           )}

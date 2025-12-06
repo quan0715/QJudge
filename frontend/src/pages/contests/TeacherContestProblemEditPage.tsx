@@ -1,60 +1,65 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import ProblemForm from '@/components/ProblemForm';
-import type { ProblemFormData } from '@/components/ProblemForm';
+import ProblemForm from '@/components/problem/ProblemForm';
+import type { ProblemFormData } from '@/components/problem/ProblemForm';
 import { authFetch } from '@/services/auth';
 import { api } from '@/services/api';
 
 const TeacherContestProblemEditPage = () => {
+  const { contestId, problemId } = useParams<{ contestId: string; problemId: string }>();
   const navigate = useNavigate();
-  const { contestId, problemId } = useParams();
   const isEditMode = Boolean(problemId);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [initialData, setInitialData] = useState<Partial<ProblemFormData> | undefined>(undefined);
+  const [initialData, setInitialData] = useState<ProblemFormData | null>(null);
 
   useEffect(() => {
+    const loadProblem = async () => {
+      if (!problemId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        let data;
+        try {
+          // Try to fetch as a regular problem first (if user has permission)
+          data = await api.getProblem(problemId, 'manage');
+        } catch (err) {
+          // If failed, try to fetch as a contest problem
+          if (contestId) {
+            const contestProblem = await api.getContestProblem(contestId, problemId);
+            if (contestProblem) {
+              // If we found the problem via contest, it might have the real global ID
+              // But for editing, we need the full data. 
+              // If contestProblem has the full data, use it.
+              if (contestProblem.id !== problemId) {
+                data = await api.getProblem(contestProblem.id, 'manage');
+              } else {
+                data = contestProblem;
+              }
+            }
+          }
+        }
+
+        if (data) {
+          setInitialData(data as any);
+        } else {
+          setError('無法載入題目資料');
+        }
+      } catch {
+        setError('Failed to load problem');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (isEditMode) {
       loadProblem();
     }
-  }, [problemId]);
-
-  const loadProblem = async () => {
-    try {
-      if (!problemId) return;
-      
-      // Try to fetch as a global problem first with 'manage' scope
-      let data = await api.getProblem(problemId, 'manage');
-      
-      if (!data) {
-        // If failed, try to fetch as a contest problem
-        if (contestId) {
-            const contestProblem = await api.getContestProblem(contestId, problemId);
-            if (contestProblem && contestProblem.problem) {
-                // If we found the problem via contest, it might have the real global ID
-                // But for editing, we need the full data. 
-                // If contestProblem.problem has the full data, use it.
-                // Otherwise, try to fetch global problem using the ID from contestProblem
-                if (contestProblem.problem.id !== problemId) {
-                    data = await api.getProblem(contestProblem.problem.id, 'manage');
-                } else {
-                    data = contestProblem.problem;
-                }
-            }
-        }
-      }
-
-      if (data) {
-        setInitialData(data as any);
-      } else {
-        setError('無法載入題目資料');
-      }
-    } catch {
-      setError('Failed to load problem');
-    }
-  };
+  }, [contestId, problemId, isEditMode]);
 
   const handleSubmit = async (data: ProblemFormData) => {
     setLoading(true);
@@ -89,7 +94,7 @@ const TeacherContestProblemEditPage = () => {
 
   return (
     <ProblemForm
-      initialData={initialData}
+      initialData={initialData || undefined}
       onSubmit={handleSubmit}
       onCancel={() => navigate(`/teacher/contests/${contestId}/edit`)}
       isEditMode={isEditMode}

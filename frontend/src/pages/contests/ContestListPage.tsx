@@ -21,7 +21,8 @@ import {
 } from '@carbon/react';
 import { Add } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import type { Contest } from '@/services/api';
+import type { Contest } from '@/core/entities/contest.entity';
+import { mapContestDto } from '@/core/entities/mappers/contestMapper';
 import TeacherContestList from '@/components/contest/TeacherContestList';
 import { getContestState, getContestStateColor, getContestStateLabel } from '@/utils/contest';
 
@@ -41,8 +42,8 @@ const ContestListPage = () => {
   useEffect(() => {
     const fetchContests = async () => {
       try {
-        const data = await api.getContests();
-        setContests(data);
+        const rawData = await api.getContests();
+        setContests(rawData.map(mapContestDto));
       } catch (error) {
         console.error('Failed to fetch contests', error);
       } finally {
@@ -55,7 +56,7 @@ const ContestListPage = () => {
   const handleContestClick = async (contest: Contest) => {
 
     // Direct entry logic - no modal confirmation
-    if (contest.is_registered) {
+    if (contest.isRegistered) {
       try {
         // Call enter contest API to register entry time/status
         await api.enterContest(contest.id);
@@ -101,14 +102,13 @@ const ContestListPage = () => {
         ),
         time: (
           <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-            {new Date(c.start_time).toLocaleString()} ~ {new Date(c.end_time).toLocaleString()}
+            {new Date(c.startTime).toLocaleString()} ~ {new Date(c.endTime).toLocaleString()}
           </div>
         ),
         userStatus: (
           <div>
-            {c.has_left ? (
-              <Tag type="red">已離開</Tag>
-            ) : c.is_registered ? (
+            {/* Note: hasLeft is not in Contest entity yet, assuming it might be added or using hasJoined/isRegistered */}
+            {c.isRegistered ? (
               <Tag type="teal">已報名</Tag>
             ) : (
               <Tag type="gray">未報名</Tag>
@@ -175,9 +175,9 @@ const ContestListPage = () => {
   // 2. Regular users only see 'active' contests.
   const visibleContests = contests.filter(c => isPrivileged || c.status === 'active');
 
-  const activeContests = visibleContests.filter(c => !c.is_archived);
-  const archivedContests = visibleContests.filter(c => c.is_archived);
-  const registeredContests = contests.filter(c => c.is_registered);
+  const activeContests = visibleContests.filter(c => c.status !== 'archived');
+  const archivedContests = visibleContests.filter(c => c.status === 'archived');
+  const registeredContests = contests.filter(c => c.isRegistered);
 
   const renderEmptyState = (message: string) => (
     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--cds-text-secondary)' }}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dropdown } from '@carbon/react';
+import { Dropdown, Tag } from '@carbon/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -8,22 +8,8 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github-dark.css';
-import '../styles/markdown.css';
-
-interface TestCase {
-  input_data: string;
-  output_data: string;
-  is_sample: boolean;
-}
-
-interface Translation {
-  language: string;
-  title: string;
-  description: string;
-  input_description: string;
-  output_description: string;
-  hint: string;
-}
+import '@/styles/markdown.css';
+import type { TestCase, Translation, Tag as TagType } from '@/core/entities/problem.entity';
 
 interface ProblemPreviewProps {
   title?: string;
@@ -32,6 +18,7 @@ interface ProblemPreviewProps {
   memoryLimit?: number;
   translations?: Translation[];
   testCases?: TestCase[];
+  tags?: TagType[];
   defaultLang?: 'zh-TW' | 'en';
   showLanguageToggle?: boolean;
   compact?: boolean;
@@ -44,6 +31,7 @@ const ProblemPreview = ({
   memoryLimit = 128,
   translations = [],
   testCases = [],
+  tags = [],
   defaultLang = 'zh-TW',
   showLanguageToggle = true,
   compact = false
@@ -75,7 +63,7 @@ const ProblemPreview = ({
     return translations.some(t => t.language === lang.id);
   });
 
-  const sampleCases = testCases.filter(tc => tc.is_sample);
+  const sampleCases = testCases.filter(tc => tc.isSample);
 
   return (
     <div className="problem-preview">
@@ -106,6 +94,20 @@ const ProblemPreview = ({
             時間限制: <strong>{timeLimit}ms</strong> | 
             記憶體限制: <strong>{memoryLimit}MB</strong>
           </div>
+          {tags && tags.length > 0 && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+              {tags.map(tag => (
+                <Tag 
+                  key={tag.id} 
+                  type="outline"
+                  size="sm"
+                  style={tag.color ? { backgroundColor: `${tag.color}15`, color: tag.color, borderColor: tag.color } : undefined}
+                >
+                  {tag.name}
+                </Tag>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -128,7 +130,7 @@ const ProblemPreview = ({
             </div>
           )}
 
-          {translation.input_description && (
+          {translation.inputDescription && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '輸入說明' : 'Input Description'}
@@ -138,13 +140,13 @@ const ProblemPreview = ({
                   remarkPlugins={[remarkGfm, remarkMath]} 
                   rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
                 >
-                  {translation.input_description}
+                  {translation.inputDescription}
                 </ReactMarkdown>
               </div>
             </div>
           )}
 
-          {translation.output_description && (
+          {translation.outputDescription && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '輸出說明' : 'Output Description'}
@@ -154,7 +156,7 @@ const ProblemPreview = ({
                   remarkPlugins={[remarkGfm, remarkMath]} 
                   rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
                 >
-                  {translation.output_description}
+                  {translation.outputDescription}
                 </ReactMarkdown>
               </div>
             </div>
@@ -213,7 +215,7 @@ const ProblemPreview = ({
                         border: '1px solid var(--cds-border-subtle)',
                         fontFamily: "'IBM Plex Mono', monospace"
                       }}>
-                        {tc.input_data || '(空)'}
+                        {tc.input || '(空)'}
                       </pre>
                     </div>
                     
@@ -242,7 +244,7 @@ const ProblemPreview = ({
                         border: '1px solid var(--cds-border-subtle)',
                         fontFamily: "'IBM Plex Mono', monospace"
                       }}>
-                        {tc.output_data || '(空)'}
+                        {tc.output || '(空)'}
                       </pre>
                     </div>
                   </div>

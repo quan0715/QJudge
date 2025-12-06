@@ -3,9 +3,7 @@ Models for problems, translations, and test cases.
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+from django.conf import settings
 
 
 class Problem(models.Model):
@@ -47,7 +45,7 @@ class Problem(models.Model):
     
     # Metadata
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='created_problems',
@@ -81,6 +79,14 @@ class Problem(models.Model):
     # Statistics (denormalized for performance)
     submission_count = models.IntegerField(default=0, verbose_name='提交次數')
     accepted_count = models.IntegerField(default=0, verbose_name='通過次數')
+    
+    # Tags for categorization
+    tags = models.ManyToManyField(
+        'Tag',
+        related_name='problems',
+        blank=True,
+        verbose_name='標籤'
+    )
     
     class Meta:
         db_table = 'problems'
@@ -208,3 +214,29 @@ class TestCase(models.Model):
     
     def __str__(self):
         return f"TestCase {self.id} for {self.problem.title}"
+
+
+class Tag(models.Model):
+    """
+    Tags for categorizing problems (e.g., 'array', 'dynamic programming', 'graph').
+    """
+    name = models.CharField(max_length=50, unique=True, verbose_name='標籤名稱')
+    slug = models.SlugField(max_length=50, unique=True, verbose_name='Slug')
+    description = models.TextField(blank=True, verbose_name='描述')
+    color = models.CharField(
+        max_length=7,
+        default='#0f62fe',
+        verbose_name='顏色',
+        help_text='Hex color code for tag display'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    
+    class Meta:
+        db_table = 'tags'
+        verbose_name = '標籤'
+        verbose_name_plural = '標籤'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+

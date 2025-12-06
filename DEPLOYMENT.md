@@ -4,7 +4,9 @@
 
 本文檔提供 OJ 平台的完整部署指引，使用 **Cloudflare Tunnel** 進行安全的網路連接，無需開放公網 IP 和端口。
 
-**域名配置**：`nycu-coding-lab.quan.wtf`
+**域名配置**：
+- Production: `q-judge.quan.wtf`
+- Development: `q-judge-dev.quan.wtf`
 
 **技術棧**：Django + React + PostgreSQL + Redis + Cloudflare Tunnel
 
@@ -99,7 +101,7 @@ python manage.py runserver
 # Django
 SECRET_KEY=your-secret-key-here
 DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1,nycu-coding-lab.quan.wtf
+ALLOWED_HOSTS=localhost,127.0.0.1,q-judge.quan.wtf,q-judge-dev.quan.wtf
 
 # Database
 DB_NAME=oj_platform
@@ -114,7 +116,7 @@ REDIS_URL=redis://localhost:6379/0
 # NYCU OAuth
 NYCU_OAUTH_CLIENT_ID=your_client_id
 NYCU_OAUTH_CLIENT_SECRET=your_client_secret
-NYCU_OAUTH_REDIRECT_URI=https://nycu-coding-lab.quan.wtf/oauth/callback
+NYCU_OAUTH_REDIRECT_URI=https://q-judge.quan.wtf/oauth/callback
 
 # JWT
 JWT_SECRET_KEY=your-jwt-secret-key
@@ -148,8 +150,13 @@ npm run dev
 
 **`.env.local` 檔案範例**：
 ```env
-VITE_API_BASE_URL=https://nycu-coding-lab.quan.wtf/api/v1
-VITE_WS_BASE_URL=wss://nycu-coding-lab.quan.wtf/ws
+# For Production
+VITE_API_BASE_URL=https://q-judge.quan.wtf/api/v1
+VITE_WS_BASE_URL=wss://q-judge.quan.wtf/ws
+
+# For Development
+# VITE_API_BASE_URL=https://q-judge-dev.quan.wtf/api/v1
+# VITE_WS_BASE_URL=wss://q-judge-dev.quan.wtf/ws
 VITE_NYCU_OAUTH_CLIENT_ID=your_client_id
 VITE_NYCU_OAUTH_AUTHORIZE_URL=https://id.nycu.edu.tw/o/authorize/
 ```
@@ -203,8 +210,8 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-ENV VITE_API_BASE_URL=https://nycu-coding-lab.quan.wtf/api/v1
-ENV VITE_WS_BASE_URL=wss://nycu-coding-lab.quan.wtf/ws
+ENV VITE_API_BASE_URL=https://q-judge.quan.wtf/api/v1
+ENV VITE_WS_BASE_URL=wss://q-judge.quan.wtf/ws
 RUN npm run build
 
 # Production stage
@@ -489,7 +496,7 @@ networks:
 cloudflared tunnel login
 
 # 2. 創建 Tunnel
-cloudflared tunnel create nycu-coding-lab
+cloudflared tunnel create q-judge
 
 # 3. 記錄 Tunnel ID 和生成的憑證檔案路徑
 # 憑證檔案: ~/.cloudflared/<TUNNEL-ID>.json
@@ -500,22 +507,28 @@ cloudflared tunnel create nycu-coding-lab
 創建 `cloudflare/config.yml`：
 
 ```yaml
-tunnel: nycu-coding-lab
+tunnel: q-judge
 credentials-file: /etc/cloudflared/cert.json
 
 ingress:
-  # 主要網站
-  - hostname: nycu-coding-lab.quan.wtf
+  # Production Site
+  - hostname: q-judge.quan.wtf
     service: http://nginx:80
     originRequest:
       noTLSVerify: true
   
-  # API 端點（可選，與主站共用）
-  - hostname: api.nycu-coding-lab.quan.wtf
+  # Development Site
+  - hostname: q-judge-dev.quan.wtf
+    service: http://nginx:80
+    originRequest:
+      noTLSVerify: true
+  
+  # API Endpoint (optional)
+  - hostname: api.q-judge.quan.wtf
     service: http://backend:8000
   
-  號 MinIO Console（如需對外）
-  - hostname: storage.nycu-coding-lab.quan.wtf
+  # MinIO Console (if external access needed)
+  - hostname: storage.q-judge.quan.wtf
     service: http://minio:9001
   
   # Catch-all 規則
@@ -528,11 +541,22 @@ ingress:
 
 ```bash
 # 使用 cloudflared CLI 自動設置
-cloudflared tunnel route dns nycu-coding-lab nycu-coding-lab.quan.wtf
+# Production
+cloudflared tunnel route dns q-judge q-judge.quan.wtf
+
+# Development
+cloudflared tunnel route dns q-judge q-judge-dev.quan.wtf
 
 # 或手動在 Dashboard 中添加 CNAME 記錄：
+# Production:
 # 類型: CNAME
-# 名稱: nycu-coding-lab
+# 名稱: q-judge
+# 目標: <TUNNEL-ID>.cfargotunnel.com
+# Proxy: 已啟用（橙色雲朵）
+
+# Development:
+# 類型: CNAME
+# 名稱: q-judge-dev
 # 目標: <TUNNEL-ID>.cfargotunnel.com
 # Proxy: 已啟用（橙色雲朵）
 ```
@@ -541,7 +565,7 @@ cloudflared tunnel route dns nycu-coding-lab nycu-coding-lab.quan.wtf
 
 ```bash
 # 方法 1: 使用 CLI
-cloudflared tunnel token nycu-coding-lab
+cloudflared tunnel token q-judge
 
 # 方法 2: 在 Cloudflare Dashboard
 # Zero Trust > Access > Tunnels > 選擇 Tunnel > Configure > 複製 Token
@@ -697,10 +721,14 @@ docker-compose -f docker-compose.prod.yml exec backend python manage.py collects
 docker-compose -f docker-compose.prod.yml ps
 
 # 2. 測試 Tunnel 連接
-curl https://nycu-coding-lab.quan.wtf
+# Production
+curl https://q-judge.quan.wtf
+
+# Development
+curl https://q-judge-dev.quan.wtf
 
 # 3. 檢查 API
-curl https://nycu-coding-lab.quan.wtf/api/v1/health
+curl https://q-judge.quan.wtf/api/v1/health
 
 # 4. 檢查 Cloudflare Tunnel 狀態
 docker-compose -f docker-compose.prod.yml logs cloudflared
@@ -719,7 +747,7 @@ docker-compose -f docker-compose.prod.yml logs cloudflared
 
 Page Rules:
 ```
-URL: nycu-coding-lab.quan.wtf/static/*
+URL: q-judge.quan.wtf/static/*
 Cache Level: Cache Everything
 Edge Cache TTL: 1 month
 ```

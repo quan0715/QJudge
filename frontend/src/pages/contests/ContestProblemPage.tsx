@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useContestNavigationGuard } from '@/hooks/useContestNavigationGuard';
 import { Loading, Button } from '@carbon/react';
-import ProblemSolver from '@/components/ProblemSolver';
+import ProblemSolver from '@/components/problem/ProblemSolver';
 import ContestSidebar from '@/components/contest/ContestSidebar';
-import type { Problem, Submission } from '@/components/ProblemSolver';
+import type { ProblemDetail as Problem } from '@/core/entities/problem.entity';
+import type { SubmissionDetail as Submission } from '@/core/entities/submission.entity';
 import { api } from '@/services/api';
 
 import { ChevronLeft, ChevronRight } from '@carbon/icons-react';
@@ -55,10 +56,7 @@ const ContestProblemPage = () => {
         console.log('Found contest problem:', fullProblem);
 
         // Set problem with score from contest reference
-        setProblem({
-          ...fullProblem,
-          score: contestProblemRef.score
-        });
+        setProblem(fullProblem);
 
       } catch (err: any) {
         console.error('Error loading problem:', err);

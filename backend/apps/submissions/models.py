@@ -68,6 +68,7 @@ class Submission(models.Model):
     language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, verbose_name='語言')
     code = models.TextField(verbose_name='程式碼')
     is_test = models.BooleanField(default=False, verbose_name='測試提交')
+    custom_test_cases = models.JSONField(default=list, blank=True, verbose_name='自訂測資')
     
     # Result
     status = models.CharField(
@@ -123,7 +124,9 @@ class SubmissionResult(models.Model):
         TestCase,
         on_delete=models.CASCADE,
         related_name='submission_results',
-        verbose_name='測試案例'
+        verbose_name='測試案例',
+        null=True,
+        blank=True
     )
     
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, verbose_name='狀態')
@@ -132,14 +135,20 @@ class SubmissionResult(models.Model):
     output = models.TextField(blank=True, verbose_name='輸出')
     error_message = models.TextField(blank=True, verbose_name='錯誤訊息')
     
+    # Snapshot of test case data (for custom test cases or historical preservation)
+    input_data = models.TextField(blank=True, null=True, verbose_name='輸入資料')
+    expected_output = models.TextField(blank=True, null=True, verbose_name='預期輸出')
+    
     class Meta:
         db_table = 'submission_results'
         verbose_name = '評測結果'
         verbose_name_plural = '評測結果'
-        unique_together = ['submission', 'test_case']
+        # unique_together = ['submission', 'test_case'] # Removed to allow multiple custom cases (test_case=None)
     
     def __str__(self):
-        return f"Result {self.id} for Submission {self.submission.id}"
+        if self.test_case:
+            return f"Result {self.id} for Submission {self.submission.id} (Case {self.test_case.id})"
+        return f"Result {self.id} for Submission {self.submission.id} (Custom Case)"
 
 
 class ScreenEvent(models.Model):

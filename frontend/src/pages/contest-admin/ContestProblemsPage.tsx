@@ -5,7 +5,7 @@ import { Add } from '@carbon/icons-react';
 import { api } from '@/services/api';
 import type { ContestDetail } from '@/models/contest';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
-import ProblemTable from '@/components/common/ProblemTable';
+import ProblemTable from '@/components/problem/ProblemTable';
 
 interface ContestAdminContext {
   contest: ContestDetail;

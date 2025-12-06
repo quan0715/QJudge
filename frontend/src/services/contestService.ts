@@ -1,6 +1,15 @@
 import { authFetch } from './auth';
-import type { Contest, ContestDetail, ContestQuestion } from '@/models/contest';
-import type { Problem } from '@/models/problem';
+import type { Contest, ContestDetail, ContestQuestion, ScoreboardData, ExamEvent, ContestParticipant } from '@/core/entities/contest.entity';
+import type { Problem, ProblemDetail } from '@/core/entities/problem.entity';
+import { 
+  mapContestDto, 
+  mapContestDetailDto, 
+  mapScoreboardDto, 
+  mapExamEventDto,
+  mapContestQuestionDto,
+  mapContestParticipantDto
+} from '@/core/entities/mappers/contestMapper';
+import { mapProblemDto, mapProblemDetailDto } from '@/core/entities/mappers/problemMapper';
 
 export const contestService = {
   getContests: async (scope?: string): Promise<Contest[]> => {
@@ -8,18 +17,22 @@ export const contestService = {
     const res = await authFetch(`/api/v1/contests/${query}`);
     if (!res.ok) throw new Error('Failed to fetch contests');
     const data = await res.json();
-    return data.results || data;
+    const results = data.results || data;
+    return Array.isArray(results) ? results.map(mapContestDto) : [];
   },
 
   getContest: async (id: string): Promise<ContestDetail | undefined> => {
     const res = await authFetch(`/api/v1/contests/${id}/`);
-    return res.json();
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    return mapContestDetailDto(data);
   },
 
-  getContestProblem: async (contestId: string, problemId: string): Promise<any | undefined> => {
+  getContestProblem: async (contestId: string, problemId: string): Promise<ProblemDetail | undefined> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/problems/${problemId}/`);
     if (!res.ok) return undefined;
-    return res.json();
+    const data = await res.json();
+    return mapProblemDetailDto(data);
   },
 
   createContest: async (data: any): Promise<Contest> => {
@@ -34,7 +47,8 @@ export const contestService = {
       const errorData = await res.json();
       throw new Error(errorData.detail || 'Failed to create contest');
     }
-    return res.json();
+    const responseData = await res.json();
+    return mapContestDto(responseData);
   },
 
   updateContest: async (id: string, data: any): Promise<Contest> => {
@@ -49,7 +63,8 @@ export const contestService = {
       const errorData = await res.json();
       throw new Error(errorData.detail || 'Failed to update contest');
     }
-    return res.json();
+    const responseData = await res.json();
+    return mapContestDto(responseData);
   },
 
   toggleStatus: async (id: string): Promise<{ status: string }> => {
@@ -126,10 +141,11 @@ export const contestService = {
     if (!res.ok) throw new Error('Failed to delete announcement');
   },
 
-  getContestStandings: async (id: string): Promise<any> => {
+  getContestStandings: async (id: string): Promise<ScoreboardData> => {
     const res = await authFetch(`/api/v1/contests/${id}/standings/`);
     if (!res.ok) throw new Error('Failed to fetch standings');
-    return res.json();
+    const data = await res.json();
+    return mapScoreboardDto(data);
   },
 
   addContestProblem: async (contestId: string, data: { title?: string; problem_id?: string }): Promise<Problem> => {
@@ -144,7 +160,8 @@ export const contestService = {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to add problem');
     }
-    return res.json();
+    const responseData = await res.json();
+    return mapProblemDto(responseData);
   },
 
   createContestProblem: async (contestId: string, data: any): Promise<Problem> => {
@@ -159,7 +176,8 @@ export const contestService = {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to create problem');
     }
-    return res.json();
+    const responseData = await res.json();
+    return mapProblemDto(responseData);
   },
 
   removeContestProblem: async (contestId: string, problemId: string): Promise<void> => {
@@ -194,7 +212,8 @@ export const contestService = {
   getContestQuestions: async (contestId: string): Promise<ContestQuestion[]> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/questions/`);
     if (!res.ok) throw new Error('Failed to fetch questions');
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data.map(mapContestQuestionDto) : [];
   },
 
   createContestQuestion: async (contestId: string, data: { title: string; content: string }): Promise<ContestQuestion> => {
@@ -204,7 +223,8 @@ export const contestService = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to post question');
-    return res.json();
+    const responseData = await res.json();
+    return mapContestQuestionDto(responseData);
   },
 
   answerContestQuestion: async (contestId: string, questionId: string, answer: string): Promise<ContestQuestion> => {
@@ -214,7 +234,8 @@ export const contestService = {
       body: JSON.stringify({ answer })
     });
     if (!res.ok) throw new Error('Failed to answer question');
-    return res.json();
+    const responseData = await res.json();
+    return mapContestQuestionDto(responseData);
   },
 
   archiveContest: async (contestId: string): Promise<void> => {
@@ -262,13 +283,14 @@ export const contestService = {
     return res.json();
   },
 
-  getExamEvents: async (contestId: string): Promise<any[]> => {
+  getExamEvents: async (contestId: string): Promise<ExamEvent[]> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/exam/events/`);
     if (!res.ok) throw new Error('Failed to fetch exam events');
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data.map(mapExamEventDto) : [];
   },
 
-  getScoreboard: async (contestId: string): Promise<any> => {
+  getScoreboard: async (contestId: string): Promise<ScoreboardData> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/standings/`);
     if (!res.ok) {
       if (res.status === 403) {
@@ -276,7 +298,8 @@ export const contestService = {
       }
       throw new Error('Failed to fetch scoreboard');
     }
-    return res.json();
+    const data = await res.json();
+    return mapScoreboardDto(data);
   },
 
   getClarifications: async (contestId: string): Promise<any[]> => {
@@ -326,10 +349,11 @@ export const contestService = {
     if (!res.ok) throw new Error('Failed to delete clarification');
   },
 
-  getContestParticipants: async (contestId: string): Promise<any[]> => {
+  getContestParticipants: async (contestId: string): Promise<ContestParticipant[]> => {
     const res = await authFetch(`/api/v1/contests/${contestId}/participants/`);
     if (!res.ok) throw new Error('Failed to fetch participants');
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data.map(mapContestParticipantDto) : [];
   },
 
   unlockParticipant: async (contestId: string, userId: number): Promise<void> => {

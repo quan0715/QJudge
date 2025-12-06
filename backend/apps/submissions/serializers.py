@@ -21,26 +21,42 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
             'error_message',
             'input',
             'expected_output',
+            'is_hidden',
         ]
 
     input = serializers.SerializerMethodField()
     expected_output = serializers.SerializerMethodField()
+    is_hidden = serializers.SerializerMethodField()
 
     def get_input(self, obj):
         user = self.context.get('request').user if self.context.get('request') else None
-        is_privileged = user and (user.is_staff or user.role in ['teacher', 'admin'])
+        is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
         
+        # If it's a custom test case (test_case is None), return the stored input
+        if obj.test_case is None:
+            return obj.input_data
+
         if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
             return obj.test_case.input_data
         return None
 
     def get_expected_output(self, obj):
         user = self.context.get('request').user if self.context.get('request') else None
-        is_privileged = user and (user.is_staff or user.role in ['teacher', 'admin'])
+        is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
         
+        # If it's a custom test case (test_case is None), return the stored expected output
+        if obj.test_case is None:
+            return obj.expected_output
+
         if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
             return obj.test_case.output_data
         return None
+
+    def get_is_hidden(self, obj):
+        """Return whether this testcase is hidden."""
+        if obj.test_case is None:
+            return False
+        return obj.test_case.is_hidden
 
 
 class ScreenEventSerializer(serializers.ModelSerializer):
@@ -102,6 +118,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'updated_at',
             'results',
             'screen_events',
+            'custom_test_cases',
         ]
 
 
@@ -117,6 +134,7 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
             'language',
             'code',
             'is_test',
+            'custom_test_cases',
             'status',
             'created_at',
         ]
@@ -125,6 +143,7 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
             'problem': {'required': True},
             'code': {'required': True},
             'language': {'required': True},
+            'custom_test_cases': {'required': False},
         }
     
     def validate(self, attrs):

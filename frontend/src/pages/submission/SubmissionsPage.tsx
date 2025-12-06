@@ -1,27 +1,19 @@
 import { useState, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
-  DataTable,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-  TableContainer,
   TableToolbar,
   TableToolbarContent,
   TableToolbarSearch,
   Pagination,
-  Tag,
   Loading,
   Button,
   Dropdown,
   InlineLoading
 } from '@carbon/react';
-import { View, Renew } from '@carbon/icons-react';
+import { Renew } from '@carbon/icons-react';
 import { authFetch } from '@/services/auth';
-import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
+import { SubmissionDetailModal } from '@/components/submission/SubmissionDetailModal';
+import { SubmissionTable, type SubmissionRow } from '@/components/submission/SubmissionTable';
 
 interface Submission {
   id: number;
@@ -42,6 +34,7 @@ interface Submission {
 
 const SubmissionsPage = () => {
   // const navigate = useNavigate(); // Removed unused navigate
+  const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +43,10 @@ const SubmissionsPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Read submission_id from URL
+  const submissionIdFromUrl = searchParams.get('submission_id');
+  const isModalOpen = !!submissionIdFromUrl;
 
   const statusOptions = [
     { id: 'all', label: '全部狀態' },
@@ -97,86 +92,27 @@ const SubmissionsPage = () => {
     fetchSubmissions();
   };
 
-  const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { type: any; label: string }> = {
-      'AC': { type: 'green', label: 'AC' },
-      'WA': { type: 'red', label: 'WA' },
-      'TLE': { type: 'magenta', label: 'TLE' },
-      'MLE': { type: 'magenta', label: 'MLE' },
-      'RE': { type: 'red', label: 'RE' },
-      'CE': { type: 'gray', label: 'CE' },
-      'pending': { type: 'gray', label: 'Pending' },
-      'judging': { type: 'blue', label: 'Judging' },
-      'SE': { type: 'red', label: 'SE' }
-    };
 
-    const config = statusConfig[status] || { type: 'gray', label: status };
-    return <Tag type={config.type} size="sm">{config.label}</Tag>;
-  };
 
-  const getLanguageLabel = (lang: string) => {
-    const langMap: Record<string, string> = {
-      'cpp': 'C++',
-      'python': 'Python',
-      'java': 'Java',
-      'javascript': 'JavaScript',
-      'c': 'C'
-    };
-    return langMap[lang] || lang;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('zh-TW', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const headers = [
-    { key: 'id', header: 'ID' },
-    { key: 'status', header: '狀態' },
-    { key: 'problem', header: '題目' },
-    { key: 'username', header: '用戶' },
-    { key: 'language', header: '語言' },
-    { key: 'score', header: '得分' },
-    { key: 'time', header: '時間' },
-    { key: 'created_at', header: '提交時間' },
-    { key: 'actions', header: '操作' }
-  ];
-
-  const rows = submissions.map(sub => ({
+  const submissionRows: SubmissionRow[] = submissions.map(sub => ({
     id: sub.id.toString(),
-    status: getStatusTag(sub.status),
-    problem: (
-      <span style={{ fontWeight: 500 }}>
-        {sub.problem?.title || `Problem ${sub.problem?.id}`}
-      </span>
-    ),
+    status: sub.status,
+    problem_id: sub.problem?.id,
+    problem_title: sub.problem?.title || `Problem ${sub.problem?.id}`,
     username: sub.user?.username || 'Unknown',
-    language: getLanguageLabel(sub.language),
+   language: sub.language,
     score: sub.score,
-    time: `${sub.exec_time} ms`,
-    created_at: formatDate(sub.created_at),
-    actions: (
-      <Button
-        kind="ghost"
-        size="sm"
-        renderIcon={View}
-        iconDescription="查看詳情"
-        hasIconOnly
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedSubmissionId(sub.id.toString());
-          setIsModalOpen(true);
-        }}
-      />
-    )
+    exec_time: sub.exec_time,
+    created_at: sub.created_at
   }));
+
+  const handleViewDetails = (id: string) => {
+    setSearchParams({ submission_id: id });
+  };
+
+  const handleCloseModal = () => {
+    setSearchParams({});
+  };
 
   if (loading && !refreshing && submissions.length === 0) {
     return (
@@ -205,80 +141,39 @@ const SubmissionsPage = () => {
         </Button>
       </div>
 
-      <DataTable rows={rows} headers={headers}>
-        {({
-          rows,
-          headers,
-          getTableProps,
-          getHeaderProps,
-          getRowProps
-        }: any) => (
-          <TableContainer 
-            title="" 
-            description=""
-            style={{ 
-              backgroundColor: 'transparent',
-              padding: '0',
-              boxShadow: 'none'
-            }}
-          >
-            <TableToolbar>
-              <TableToolbarContent>
-                <TableToolbarSearch
-                  placeholder="搜尋用戶或題目..."
-                  onChange={(e: any) => setSearchQuery(e.target.value)}
-                  persistent
-                />
-                <div style={{ width: '200px' }}>
-                  <Dropdown
-                    id="status-filter"
-                    titleText=""
-                    label="篩選狀態"
-                    items={statusOptions}
-                    itemToString={(item: any) => (item ? item.label : '')}
-                    selectedItem={statusOptions.find(s => s.id === statusFilter)}
-                    onChange={({ selectedItem }: any) => {
-                      if (selectedItem) {
-                        setStatusFilter(selectedItem.id);
-                        setPage(1);
-                      }
-                    }}
-                  />
-                </div>
-              </TableToolbarContent>
-            </TableToolbar>
-            <Table {...getTableProps()}>
-              <TableHead>
-                <TableRow>
-                  {headers.map((header: any) => (
-                    <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                      {header.header}
-                    </TableHeader>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row: any) => (
-                  <TableRow 
-                    {...getRowProps({ row })} 
-                    key={row.id}
-                    onClick={() => {
-                      setSelectedSubmissionId(row.id);
-                      setIsModalOpen(true);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                    className="submission-row"
-                  >
-                    {row.cells.map((cell: any) => (
-                      <TableCell key={cell.id}>{cell.value}</TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </DataTable>
+      <TableToolbar>
+        <TableToolbarContent>
+          <TableToolbarSearch
+            placeholder="搜尋用戶或題目..."
+            onChange={(e: any) => setSearchQuery(e.target.value)}
+            persistent
+          />
+          <div style={{ width: '200px' }}>
+            <Dropdown
+              id="status-filter"
+              titleText=""
+              label="篩選狀態"
+              items={statusOptions}
+              itemToString={(item: any) => (item ? item.label : '')}
+              selectedItem={statusOptions.find(s => s.id === statusFilter)}
+              onChange={({ selectedItem }: any) => {
+                if (selectedItem) {
+                  setStatusFilter(selectedItem.id);
+                  setPage(1);
+                }
+              }}
+            />
+          </div>
+        </TableToolbarContent>
+      </TableToolbar>
+
+      <SubmissionTable
+        submissions={submissionRows}
+        onViewDetails={handleViewDetails}
+        showProblem={true}
+        showUser={true}
+        showScore={true}
+      />
 
       <Pagination
         totalItems={totalItems}
@@ -297,9 +192,9 @@ const SubmissionsPage = () => {
       />
 
       <SubmissionDetailModal
-        submissionId={selectedSubmissionId}
+        submissionId={submissionIdFromUrl}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
       />
     </div>
   );

@@ -10,7 +10,8 @@ import {
   TextInput
 } from '@carbon/react';
 import { TrashCan } from '@carbon/icons-react';
-import type { Clarification, ContestProblemSummary } from '@/models/contest';
+import type { Clarification, ContestProblemSummary, ContestAnnouncement } from '@/core/entities/contest.entity';
+import { mapClarificationDto, mapContestAnnouncementDto } from '@/core/entities/mappers/contestMapper';
 import { api } from '@/services/api';
 import { Card } from '@/components/common/Card';
 
@@ -28,7 +29,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   contestStatus = 'active'
 }) => {
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Modal states
@@ -64,20 +65,21 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       ]);
 
       // Handle clarifications
+      let rawClars = [];
       if (clarData && typeof clarData === 'object' && 'results' in clarData) {
-        setClarifications((clarData as any).results);
+        rawClars = (clarData as any).results;
       } else if (Array.isArray(clarData)) {
-        setClarifications(clarData as Clarification[]);
-      } else {
-        setClarifications([]);
+        rawClars = clarData;
       }
+      setClarifications(rawClars.map(mapClarificationDto));
 
       // Handle announcements
+      let rawAnns = [];
       if (Array.isArray(annData)) {
-        setAnnouncements(annData);
-      } else {
-        setAnnouncements([]);
+        rawAnns = annData;
       }
+      setAnnouncements(rawAnns.map(mapContestAnnouncementDto));
+
     } catch (error) {
       console.error('Failed to fetch data', error);
     } finally {
@@ -125,7 +127,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
     if (!selectedClar || !replyText) return;
 
     try {
-      await api.replyClarification(contestId, selectedClar.id.toString(), replyText, replyIsPublic);
+      await api.replyClarification(contestId, selectedClar.id, replyText, replyIsPublic);
       setReplyModalOpen(false);
       setReplyText('');
       setReplyIsPublic(false);
@@ -136,11 +138,11 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
     }
   };
 
-  const handleDeleteClarification = async (clarId: number) => {
+  const handleDeleteClarification = async (clarId: string) => {
     if (!confirm('確定要刪除此提問？')) return;
 
     try {
-      await api.deleteClarification(contestId, clarId.toString());
+      await api.deleteClarification(contestId, clarId);
       fetchData();
     } catch (error) {
       console.error('Failed to delete clarification', error);
@@ -160,7 +162,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   const openReplyModal = (clar: Clarification) => {
     setSelectedClar(clar);
     setReplyText(clar.answer || '');
-    setReplyIsPublic(clar.is_public);
+    setReplyIsPublic(clar.isPublic);
     setReplyModalOpen(true);
   };
 
@@ -224,7 +226,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       {ann.content}
                     </p>
                     <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                      {ann.created_by?.username || 'Admin'} · {new Date(ann.created_at).toLocaleString()}
+                      {ann.createdBy} · {new Date(ann.createdAt).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -269,8 +271,8 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       <h4 style={{ margin: 0, marginRight: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
                         {clar.question.length > 50 ? clar.question.substring(0, 50) + '...' : clar.question}
                       </h4>
-                      {clar.problem_title && <Tag type="blue" size="sm">{clar.problem_title}</Tag>}
-                      {clar.is_public ? (
+                      {clar.problemTitle && <Tag type="blue" size="sm">{clar.problemTitle}</Tag>}
+                      {clar.isPublic ? (
                         <Tag type="green" size="sm">公開</Tag>
                       ) : (
                         <Tag type="gray" size="sm">私密</Tag>
@@ -307,7 +309,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                   </p>
                   
                   <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                    提問者: {clar.author_username} · {new Date(clar.created_at).toLocaleString()}
+                    提問者: {clar.authorUsername} · {new Date(clar.createdAt).toLocaleString()}
                   </div>
                 </div>
 
@@ -327,7 +329,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       fontSize: '0.875rem'
                     }}>
                       <span>回覆:</span>
-                      {clar.is_public ? (
+                      {clar.isPublic ? (
                         <Tag type="green" size="sm">公開回覆</Tag>
                       ) : (
                         <Tag type="gray" size="sm">僅提問者可見</Tag>
@@ -336,9 +338,9 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                     <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)', fontSize: '0.875rem' }}>
                       {clar.answer}
                     </p>
-                    {clar.answered_by && (
+                    {clar.answeredBy && (
                       <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                        回覆者: {clar.answered_by}
+                        回覆者: {clar.answeredBy}
                       </div>
                     )}
                   </div>
@@ -379,8 +381,8 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
             <SelectItem value="" text="一般提問" />
             {problems.map(p => (
               <SelectItem 
-                key={p.problem_id} 
-                value={p.problem_id} 
+                key={p.problemId} 
+                value={p.problemId} 
                 text={`${p.label}. ${p.title}`} 
               />
             ))}

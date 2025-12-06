@@ -33,7 +33,7 @@ export const EndContestButton: React.FC<EndContestButtonProps> = ({ contest, onC
   };
 
   // Don't show if already ended
-  if (contest.is_ended) {
+  if (contest.status === 'ended') {
     return null;
   }
 

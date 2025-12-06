@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ContestClarifications from '@/components/contest/ContestClarifications';
 import { api } from '@/services/api';
-import type { ContestDetail } from '@/models/contest';
+import type { ContestDetail } from '@/core/entities/contest.entity';
+import { mapContestDetailDto } from '@/core/entities/mappers/contestMapper';
 import { Loading } from '@carbon/react';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
 import ContainerCard from '@/components/contest/layout/ContainerCard';
@@ -14,8 +15,9 @@ const ContestQAPage = () => {
 
   useEffect(() => {
     if (contestId) {
-      api.getContest(contestId).then(c => {
-        setContest(c || null);
+      api.getContest(contestId).then(rawData => {
+        const data = mapContestDetailDto(rawData);
+        setContest(data || null);
         setLoading(false);
       });
     }
@@ -35,7 +37,7 @@ const ContestQAPage = () => {
               </p>
               <ContestClarifications 
                 contestId={contest.id} 
-                isTeacherOrAdmin={['teacher', 'admin'].includes(contest.current_user_role)}
+                isTeacherOrAdmin={['teacher', 'admin'].includes(contest.currentUserRole || '')}
                 problems={contest.problems}
                 contestStatus={contest.status}
               />

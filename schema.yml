@@ -1,0 +1,4689 @@
+openapi: 3.0.3
+info:
+  title: Online Judge API
+  version: 1.0.0
+  description: API documentation for Online Judge Platform
+paths:
+  /api/v1/auth/{id}/role:
+    patch:
+      operationId: v1_auth_role_partial_update
+      description: |-
+        Update user role (admin only).
+
+        PATCH /api/v1/users/{id}/role
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/email/login:
+    post:
+      operationId: v1_auth_email_login_create
+      description: |-
+        User login with email/password.
+
+        POST /api/v1/auth/email/login
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/email/register:
+    post:
+      operationId: v1_auth_email_register_create
+      description: |-
+        User registration with email/password.
+
+        POST /api/v1/auth/email/register
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/me:
+    get:
+      operationId: v1_auth_me_retrieve
+      description: |-
+        Get current authenticated user information.
+
+        GET /api/v1/users/me
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: v1_auth_me_partial_update
+      description: Update current user profile.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/me/stats:
+    get:
+      operationId: v1_auth_me_stats_retrieve
+      description: |-
+        Get current user statistics.
+        GET /api/v1/users/me/stats
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/nycu/callback:
+    post:
+      operationId: v1_auth_nycu_callback_create
+      description: |-
+        Handle NYCU OAuth callback.
+
+        POST /api/v1/auth/nycu-oauth/callback
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/nycu/login:
+    get:
+      operationId: v1_auth_nycu_login_retrieve
+      description: |-
+        Initiate NYCU OAuth login.
+
+        GET /api/v1/auth/nycu/login
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/refresh:
+    post:
+      operationId: v1_auth_refresh_create
+      description: |-
+        Refresh access token.
+
+        POST /api/v1/auth/refresh
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/search:
+    get:
+      operationId: v1_auth_search_retrieve
+      description: |-
+        Search users by username or email (admin only).
+        If no query provided, returns all users (paginated).
+
+        GET /api/v1/users/search?q=query
+        GET /api/v1/users/search  (list all users)
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/verify-email:
+    post:
+      operationId: v1_auth_verify_email_create
+      description: |-
+        Verify email address.
+
+        POST /api/v1/auth/verify-email
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/:
+    get:
+      operationId: v1_contests_list
+      description: ViewSet for contests.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: owner
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: 狀態
+          enum:
+          - active
+          - archived
+          - inactive
+        description: |-
+          active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+          * `active` - Active
+          * `inactive` - Inactive
+          * `archived` - Archived
+      - in: query
+        name: visibility
+        schema:
+          type: string
+          title: 可見性
+          enum:
+          - private
+          - public
+        description: |-
+          * `public` - Public
+          * `private` - Private
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContestListList'
+          description: ''
+    post:
+      operationId: v1_contests_create
+      description: ViewSet for contests.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestCreateUpdate'
+          description: ''
+  /api/v1/contests/{contest_pk}/activities/:
+    get:
+      operationId: v1_contests_activities_list
+      description: |-
+        ViewSet for viewing contest activities.
+        Only accessible by admins and teachers.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContestActivityList'
+          description: ''
+  /api/v1/contests/{contest_pk}/activities/{id}/:
+    get:
+      operationId: v1_contests_activities_retrieve
+      description: |-
+        ViewSet for viewing contest activities.
+        Only accessible by admins and teachers.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestActivity'
+          description: ''
+  /api/v1/contests/{contest_pk}/announcements/:
+    get:
+      operationId: v1_contests_announcements_list
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContestAnnouncement'
+          description: ''
+    post:
+      operationId: v1_contests_announcements_create
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestAnnouncement'
+          description: ''
+  /api/v1/contests/{contest_pk}/announcements/{id}/:
+    get:
+      operationId: v1_contests_announcements_retrieve
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試公告.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestAnnouncement'
+          description: ''
+    put:
+      operationId: v1_contests_announcements_update
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試公告.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestAnnouncementRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestAnnouncement'
+          description: ''
+    patch:
+      operationId: v1_contests_announcements_partial_update
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試公告.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContestAnnouncementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContestAnnouncementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContestAnnouncementRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestAnnouncement'
+          description: ''
+    delete:
+      operationId: v1_contests_announcements_destroy
+      description: ViewSet for contest announcements.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試公告.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/contests/{contest_pk}/clarifications/:
+    get:
+      operationId: v1_contests_clarifications_list
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClarificationList'
+          description: ''
+    post:
+      operationId: v1_contests_clarifications_create
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClarificationCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClarificationCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClarificationCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClarificationCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/clarifications/{id}/:
+    get:
+      operationId: v1_contests_clarifications_retrieve
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clarification'
+          description: ''
+    put:
+      operationId: v1_contests_clarifications_update
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clarification'
+          description: ''
+    patch:
+      operationId: v1_contests_clarifications_partial_update
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedClarificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedClarificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedClarificationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clarification'
+          description: ''
+    delete:
+      operationId: v1_contests_clarifications_destroy
+      description: ViewSet for Clarifications (Q&A).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/contests/{contest_pk}/clarifications/{id}/reply/:
+    post:
+      operationId: v1_contests_clarifications_reply_create
+      description: Reply to a clarification.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClarificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clarification'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/end/:
+    post:
+      operationId: v1_contests_exam_end_create
+      description: User manually finishes the exam.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/events/:
+    get:
+      operationId: v1_contests_exam_events_retrieve
+      description: |-
+        Handle exam events.
+        POST: Log an event (Student/Participant)
+        GET: List events (Teacher/Admin only)
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_contests_exam_events_create
+      description: |-
+        Handle exam events.
+        POST: Log an event (Student/Participant)
+        GET: List events (Teacher/Admin only)
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/start/:
+    post:
+      operationId: v1_contests_exam_start_create
+      description: Signal that user is starting the exam (entering full screen).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/problems/:
+    get:
+      operationId: v1_contests_problems_list
+      description: ViewSet for retrieving contest problems.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContestProblemList'
+          description: ''
+    post:
+      operationId: v1_contests_problems_create
+      description: |-
+        Create a new problem and add it to the contest.
+        Used for YAML import or creating new problems directly in contest context.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestProblemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestProblemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestProblemRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestProblem'
+          description: ''
+  /api/v1/contests/{contest_pk}/problems/{id}/:
+    get:
+      operationId: v1_contests_problems_retrieve
+      description: ViewSet for retrieving contest problems.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試題目.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestProblem'
+          description: ''
+    delete:
+      operationId: v1_contests_problems_destroy
+      description: Remove a problem from the contest.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試題目.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/contests/{contest_pk}/submissions/:
+    get:
+      operationId: v1_contests_submissions_list
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: query
+        name: contest
+        schema:
+          type: integer
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: query
+        name: language
+        schema:
+          type: string
+          title: 語言
+          enum:
+          - c
+          - cpp
+          - java
+          - python
+        description: |-
+          * `python` - Python 3.11
+          * `cpp` - C++ 20
+          * `c` - C 11
+          * `java` - Java 17
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: problem
+        schema:
+          type: integer
+      - in: query
+        name: source_type
+        schema:
+          type: string
+          title: 來源類型
+          enum:
+          - contest
+          - practice
+        description: |-
+          * `practice` - Practice
+          * `contest` - Contest
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: 狀態
+          enum:
+          - AC
+          - CE
+          - MLE
+          - RE
+          - SE
+          - TLE
+          - WA
+          - judging
+          - pending
+        description: |-
+          * `pending` - Pending
+          * `judging` - Judging
+          * `AC` - Accepted
+          * `WA` - Wrong Answer
+          * `TLE` - Time Limit Exceeded
+          * `MLE` - Memory Limit Exceeded
+          * `RE` - Runtime Error
+          * `CE` - Compilation Error
+          * `SE` - System Error
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubmissionListList'
+          description: ''
+    post:
+      operationId: v1_contests_submissions_create
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSubmission'
+          description: ''
+  /api/v1/contests/{contest_pk}/submissions/{id}/:
+    get:
+      operationId: v1_contests_submissions_retrieve
+      description: |-
+        Get submission details.
+        Strict permission check: Only owner or admin can see code.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionDetail'
+          description: ''
+    put:
+      operationId: v1_contests_submissions_update
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionList'
+          description: ''
+    patch:
+      operationId: v1_contests_submissions_partial_update
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionList'
+          description: ''
+    delete:
+      operationId: v1_contests_submissions_destroy
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: integer
+          title: 考試
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/contests/{id}/:
+    get:
+      operationId: v1_contests_retrieve
+      description: Retrieve contest details. Block access if inactive and user is
+        not owner/admin.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+    put:
+      operationId: v1_contests_update
+      description: ViewSet for contests.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestCreateUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestCreateUpdate'
+          description: ''
+    patch:
+      operationId: v1_contests_partial_update
+      description: ViewSet for contests.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContestCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContestCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContestCreateUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestCreateUpdate'
+          description: ''
+    delete:
+      operationId: v1_contests_destroy
+      description: Delete a contest. Only owner can delete.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/contests/{id}/add_participant/:
+    post:
+      operationId: v1_contests_add_participant_create
+      description: Manually add a participant to the contest.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/add_problem/:
+    post:
+      operationId: v1_contests_add_problem_create
+      description: |-
+        Add a problem to the contest.
+        Supports adding existing problem (by ID) or creating a new one (by title).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/archive/:
+    post:
+      operationId: v1_contests_archive_create
+      description: Archive a contest. This action is irreversible.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/enter/:
+    post:
+      operationId: v1_contests_enter_create
+      description: Enter a contest (check eligibility).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/events/:
+    get:
+      operationId: v1_contests_events_retrieve
+      description: List exam events for a contest (Teacher/Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/leave/:
+    post:
+      operationId: v1_contests_leave_create
+      description: Leave a contest.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/participants/:
+    get:
+      operationId: v1_contests_participants_retrieve
+      description: Get all participants for this contest (Teacher view).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/problems/{problem_id}/publish/:
+    post:
+      operationId: v1_contests_problems_publish_create
+      description: Publish a contest problem to the practice library.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      - in: path
+        name: problem_id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/register/:
+    post:
+      operationId: v1_contests_register_create
+      description: Register for a contest.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/standings/:
+    get:
+      operationId: v1_contests_standings_retrieve
+      description: Get contest standings (ICPC Style).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/toggle_status/:
+    post:
+      operationId: v1_contests_toggle_status_create
+      description: Toggle contest status between active and inactive.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/unlock_participant/:
+    post:
+      operationId: v1_contests_unlock_participant_create
+      description: Unlock a participant.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/update_participant/:
+    patch:
+      operationId: v1_contests_update_participant_partial_update
+      description: Update a participant's status (lock, finished exam, etc.).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContestDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContestDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContestDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: v1_notifications_list
+      description: ViewSet for viewing notifications.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/:
+    get:
+      operationId: v1_notifications_retrieve
+      description: ViewSet for viewing notifications.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    patch:
+      operationId: v1_notifications_read_partial_update
+      description: Mark notification as read.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/read_all/:
+    patch:
+      operationId: v1_notifications_read_all_partial_update
+      description: Mark all notifications as read.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/problems/:
+    get:
+      operationId: v1_problems_list
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: query
+        name: difficulty
+        schema:
+          type: string
+          title: 難度
+          enum:
+          - easy
+          - hard
+          - medium
+        description: |-
+          * `easy` - 簡單
+          * `medium` - 中等
+          * `hard` - 困難
+      - in: query
+        name: is_visible
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProblemListList'
+          description: ''
+    post:
+      operationId: v1_problems_create
+      description: ViewSet for viewing and editing problems.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/problems/{id}/:
+    get:
+      operationId: v1_problems_retrieve
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+    put:
+      operationId: v1_problems_update
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+    patch:
+      operationId: v1_problems_partial_update
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProblemDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+    delete:
+      operationId: v1_problems_destroy
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/problems/{id}/import_yaml/:
+    post:
+      operationId: v1_problems_import_yaml_create
+      description: |-
+        Update existing problem from YAML data.
+        Uses merge strategy: only updates provided fields.
+        Nested arrays (translations, test_cases, language_configs) are fully replaced.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/problems/{id}/submit/:
+    post:
+      operationId: v1_problems_submit_create
+      description: Submit endpoint placeholder.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/problems/{id}/test_run/:
+    post:
+      operationId: v1_problems_test_run_create
+      description: |-
+        Execute code with custom input without creating a submission.
+        Returns execution results immediately.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/problems/tags/:
+    get:
+      operationId: v1_problems_tags_list
+      description: ViewSet for viewing and editing tags.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTagList'
+          description: ''
+    post:
+      operationId: v1_problems_tags_create
+      description: ViewSet for viewing and editing tags.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+  /api/v1/problems/tags/{slug}/:
+    get:
+      operationId: v1_problems_tags_retrieve
+      description: ViewSet for viewing and editing tags.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    put:
+      operationId: v1_problems_tags_update
+      description: ViewSet for viewing and editing tags.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    patch:
+      operationId: v1_problems_tags_partial_update
+      description: ViewSet for viewing and editing tags.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    delete:
+      operationId: v1_problems_tags_destroy
+      description: ViewSet for viewing and editing tags.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/submissions/:
+    get:
+      operationId: v1_submissions_list
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: query
+        name: contest
+        schema:
+          type: integer
+      - in: query
+        name: language
+        schema:
+          type: string
+          title: 語言
+          enum:
+          - c
+          - cpp
+          - java
+          - python
+        description: |-
+          * `python` - Python 3.11
+          * `cpp` - C++ 20
+          * `c` - C 11
+          * `java` - Java 17
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: problem
+        schema:
+          type: integer
+      - in: query
+        name: source_type
+        schema:
+          type: string
+          title: 來源類型
+          enum:
+          - contest
+          - practice
+        description: |-
+          * `practice` - Practice
+          * `contest` - Contest
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: 狀態
+          enum:
+          - AC
+          - CE
+          - MLE
+          - RE
+          - SE
+          - TLE
+          - WA
+          - judging
+          - pending
+        description: |-
+          * `pending` - Pending
+          * `judging` - Judging
+          * `AC` - Accepted
+          * `WA` - Wrong Answer
+          * `TLE` - Time Limit Exceeded
+          * `MLE` - Memory Limit Exceeded
+          * `RE` - Runtime Error
+          * `CE` - Compilation Error
+          * `SE` - System Error
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubmissionListList'
+          description: ''
+    post:
+      operationId: v1_submissions_create
+      description: ViewSet for viewing and creating submissions.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSubmission'
+          description: ''
+  /api/v1/submissions/{id}/:
+    get:
+      operationId: v1_submissions_retrieve
+      description: |-
+        Get submission details.
+        Strict permission check: Only owner or admin can see code.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionDetail'
+          description: ''
+    put:
+      operationId: v1_submissions_update
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmissionListRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionList'
+          description: ''
+    patch:
+      operationId: v1_submissions_partial_update
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionListRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionList'
+          description: ''
+    delete:
+      operationId: v1_submissions_destroy
+      description: ViewSet for viewing and creating submissions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 提交記錄.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    ActionTypeEnum:
+      enum:
+      - register
+      - enter_contest
+      - start_exam
+      - end_exam
+      - lock_user
+      - unlock_user
+      - submit_code
+      - ask_question
+      - reply_question
+      - update_problem
+      - announce
+      - other
+      type: string
+      description: |-
+        * `register` - Register
+        * `enter_contest` - Enter Contest
+        * `start_exam` - Start Exam
+        * `end_exam` - End Exam
+        * `lock_user` - Lock User
+        * `unlock_user` - Unlock User
+        * `submit_code` - Submit Code
+        * `ask_question` - Ask Question
+        * `reply_question` - Reply Question
+        * `update_problem` - Update Problem
+        * `announce` - Announce
+        * `other` - Other
+    AuthProviderEnum:
+      enum:
+      - email
+      - nycu-oauth
+      - google
+      - github
+      type: string
+      description: |-
+        * `email` - Email/Password
+        * `nycu-oauth` - NYCU OAuth
+        * `google` - Google
+        * `github` - GitHub
+    Clarification:
+      type: object
+      description: Serializer for clarifications/Q&A.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        contest:
+          type: integer
+          title: 考試
+        problem:
+          type: integer
+          nullable: true
+          title: 題目
+          description: 若為 null 則為一般問題
+        problem_title:
+          type: string
+          readOnly: true
+          nullable: true
+        author:
+          type: integer
+          readOnly: true
+          title: 提問者
+        author_username:
+          type: string
+          readOnly: true
+        question:
+          type: string
+          title: 問題
+        answer:
+          type: string
+          nullable: true
+          title: 回答
+        is_public:
+          type: boolean
+          title: 公開
+          description: 是否對所有參賽者公開此 Q&A
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ClarificationStatusEnum'
+          readOnly: true
+          title: 狀態
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提問時間
+        answered_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 回答時間
+      required:
+      - answered_at
+      - author
+      - author_username
+      - contest
+      - created_at
+      - id
+      - problem_title
+      - question
+      - status
+    ClarificationCreate:
+      type: object
+      description: Serializer for creating a clarification.
+      properties:
+        problem_id:
+          type: integer
+          nullable: true
+        question:
+          type: string
+          title: 問題
+      required:
+      - question
+    ClarificationCreateRequest:
+      type: object
+      description: Serializer for creating a clarification.
+      properties:
+        problem_id:
+          type: integer
+          nullable: true
+        question:
+          type: string
+          minLength: 1
+          title: 問題
+      required:
+      - question
+    ClarificationRequest:
+      type: object
+      description: Serializer for clarifications/Q&A.
+      properties:
+        contest:
+          type: integer
+          title: 考試
+        problem:
+          type: integer
+          nullable: true
+          title: 題目
+          description: 若為 null 則為一般問題
+        question:
+          type: string
+          minLength: 1
+          title: 問題
+        answer:
+          type: string
+          nullable: true
+          title: 回答
+        is_public:
+          type: boolean
+          title: 公開
+          description: 是否對所有參賽者公開此 Q&A
+      required:
+      - contest
+      - question
+    ClarificationStatusEnum:
+      enum:
+      - pending
+      - answered
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `answered` - Answered
+    ContestActivity:
+      type: object
+      description: Serializer for contest activities.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          title: 操作者
+        username:
+          type: string
+          readOnly: true
+        action_type:
+          allOf:
+          - $ref: '#/components/schemas/ActionTypeEnum'
+          title: 動作類型
+        details:
+          type: string
+          title: 詳細內容
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 發生時間
+      required:
+      - action_type
+      - created_at
+      - details
+      - id
+      - user
+      - username
+    ContestAnnouncement:
+      type: object
+      description: Serializer for contest announcements.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: 標題
+          maxLength: 255
+        content:
+          type: string
+          title: 內容
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 發布時間
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新時間
+      required:
+      - content
+      - created_at
+      - created_by
+      - id
+      - title
+      - updated_at
+    ContestAnnouncementRequest:
+      type: object
+      description: Serializer for contest announcements.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        content:
+          type: string
+          minLength: 1
+          title: 內容
+      required:
+      - content
+      - title
+    ContestCreateUpdate:
+      type: object
+      description: |-
+        Serializer for creating and updating contests.
+        Minimal fields for creation, can be updated later.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        password:
+          type: string
+          nullable: true
+          title: 密碼
+          maxLength: 255
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+      required:
+      - id
+    ContestCreateUpdateRequest:
+      type: object
+      description: |-
+        Serializer for creating and updating contests.
+        Minimal fields for creation, can be updated later.
+      properties:
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        password:
+          type: string
+          nullable: true
+          title: 密碼
+          maxLength: 255
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+    ContestDetail:
+      type: object
+      description: |-
+        Serializer for contest detail view.
+        Includes role-based permissions and full contest information.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        rule:
+          type: string
+          readOnly: true
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        owner_username:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新時間
+        current_user_role:
+          type: string
+          readOnly: true
+        permissions:
+          type: string
+          readOnly: true
+        has_joined:
+          type: string
+          readOnly: true
+        has_started:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          readOnly: true
+        left_at:
+          type: string
+          readOnly: true
+        has_finished_exam:
+          type: string
+          readOnly: true
+        is_locked:
+          type: string
+          readOnly: true
+        locked_at:
+          type: string
+          readOnly: true
+        is_paused:
+          type: string
+          readOnly: true
+        lock_reason:
+          type: string
+          readOnly: true
+        problems:
+          type: string
+          readOnly: true
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+      required:
+      - created_at
+      - current_user_role
+      - has_finished_exam
+      - has_joined
+      - has_started
+      - id
+      - is_locked
+      - is_paused
+      - left_at
+      - lock_reason
+      - locked_at
+      - owner_username
+      - permissions
+      - problems
+      - rule
+      - started_at
+      - updated_at
+    ContestDetailRequest:
+      type: object
+      description: |-
+        Serializer for contest detail view.
+        Includes role-based permissions and full contest information.
+      properties:
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+    ContestList:
+      type: object
+      description: |-
+        Serializer for contest list view.
+        Returns minimal information for listing contests.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        owner_username:
+          type: string
+          readOnly: true
+        participant_count:
+          type: string
+          readOnly: true
+        is_registered:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+      required:
+      - created_at
+      - id
+      - is_registered
+      - owner_username
+      - participant_count
+    ContestProblem:
+      type: object
+      description: |-
+        Serializer for problems within a contest.
+        Includes label and problem summary.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        problem_id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          title: 標籤
+          description: '例如: A, B, C'
+          maxLength: 10
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        difficulty:
+          type: string
+          readOnly: true
+        user_status:
+          type: string
+          readOnly: true
+      required:
+      - difficulty
+      - id
+      - problem_id
+      - title
+      - user_status
+    ContestProblemRequest:
+      type: object
+      description: |-
+        Serializer for problems within a contest.
+        Includes label and problem summary.
+      properties:
+        label:
+          type: string
+          minLength: 1
+          title: 標籤
+          description: '例如: A, B, C'
+          maxLength: 10
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+    CreateSubmission:
+      type: object
+      description: Serializer for creating a submission.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        problem:
+          type: integer
+          title: 題目
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        code:
+          type: string
+          title: 程式碼
+        is_test:
+          type: boolean
+          title: 測試提交
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6d7Enum'
+          readOnly: true
+          title: 狀態
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提交時間
+      required:
+      - code
+      - created_at
+      - id
+      - language
+      - problem
+      - status
+    CreateSubmissionRequest:
+      type: object
+      description: Serializer for creating a submission.
+      properties:
+        problem:
+          type: integer
+          title: 題目
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        code:
+          type: string
+          minLength: 1
+          title: 程式碼
+        is_test:
+          type: boolean
+          title: 測試提交
+      required:
+      - code
+      - language
+      - problem
+    DifficultyEnum:
+      enum:
+      - easy
+      - medium
+      - hard
+      type: string
+      description: |-
+        * `easy` - 簡單
+        * `medium` - 中等
+        * `hard` - 困難
+    EventTypeEnum:
+      enum:
+      - blur
+      - focus
+      - copy
+      - paste
+      - fullscreen_exit
+      type: string
+      description: |-
+        * `blur` - 視窗失焦
+        * `focus` - 視窗聚焦
+        * `copy` - 複製
+        * `paste` - 貼上
+        * `fullscreen_exit` - 退出全螢幕
+    Language040Enum:
+      enum:
+      - python
+      - cpp
+      - c
+      - java
+      type: string
+      description: |-
+        * `python` - Python 3.11
+        * `cpp` - C++ 20
+        * `c` - C 11
+        * `java` - Java 17
+    LanguageConfig:
+      type: object
+      description: Serializer for language configuration.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        language:
+          allOf:
+          - $ref: '#/components/schemas/LanguageConfigLanguageEnum'
+          title: 程式語言
+        template_code:
+          type: string
+          title: 範本程式碼
+        is_enabled:
+          type: boolean
+          title: 啟用
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+      required:
+      - id
+      - language
+    LanguageConfigLanguageEnum:
+      enum:
+      - cpp
+      - python
+      - java
+      - javascript
+      type: string
+      description: |-
+        * `cpp` - C++
+        * `python` - Python
+        * `java` - Java
+        * `javascript` - JavaScript
+    LanguageConfigRequest:
+      type: object
+      description: Serializer for language configuration.
+      properties:
+        language:
+          allOf:
+          - $ref: '#/components/schemas/LanguageConfigLanguageEnum'
+          title: 程式語言
+        template_code:
+          type: string
+          title: 範本程式碼
+        is_enabled:
+          type: boolean
+          title: 啟用
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+      required:
+      - language
+    Notification:
+      type: object
+      description: Serializer for notifications.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          title: 類型
+        title:
+          type: string
+          title: 標題
+          maxLength: 255
+        message:
+          type: string
+          title: 內容
+        link:
+          type: string
+          title: 連結
+          maxLength: 255
+        is_read:
+          type: boolean
+          title: 已讀
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+      required:
+      - created_at
+      - id
+      - message
+      - title
+    NotificationTypeEnum:
+      enum:
+      - system
+      - contest
+      - submission
+      - discussion
+      type: string
+      description: |-
+        * `system` - 系統通知
+        * `contest` - 考試通知
+        * `submission` - 評測通知
+        * `discussion` - 討論通知
+    PaginatedClarificationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Clarification'
+    PaginatedContestActivityList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContestActivity'
+    PaginatedContestListList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContestList'
+    PaginatedContestProblemList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContestProblem'
+    PaginatedNotificationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedProblemListList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemList'
+    PaginatedSubmissionListList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionList'
+    PaginatedTagList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    PatchedClarificationRequest:
+      type: object
+      description: Serializer for clarifications/Q&A.
+      properties:
+        contest:
+          type: integer
+          title: 考試
+        problem:
+          type: integer
+          nullable: true
+          title: 題目
+          description: 若為 null 則為一般問題
+        question:
+          type: string
+          minLength: 1
+          title: 問題
+        answer:
+          type: string
+          nullable: true
+          title: 回答
+        is_public:
+          type: boolean
+          title: 公開
+          description: 是否對所有參賽者公開此 Q&A
+    PatchedContestAnnouncementRequest:
+      type: object
+      description: Serializer for contest announcements.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        content:
+          type: string
+          minLength: 1
+          title: 內容
+    PatchedContestCreateUpdateRequest:
+      type: object
+      description: |-
+        Serializer for creating and updating contests.
+        Minimal fields for creation, can be updated later.
+      properties:
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        password:
+          type: string
+          nullable: true
+          title: 密碼
+          maxLength: 255
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+    PatchedContestDetailRequest:
+      type: object
+      description: |-
+        Serializer for contest detail view.
+        Includes role-based permissions and full contest information.
+      properties:
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        rules:
+          type: string
+          title: 競賽規定
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 開始時間
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          title: 結束時間
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusDc4Enum'
+          title: 狀態
+          description: |-
+            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `archived` - Archived
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可見性
+        exam_mode_enabled:
+          type: boolean
+          title: 啟用考試模式
+          description: 啟用全螢幕與防失焦的嚴格考試模式
+        scoreboard_visible_during_contest:
+          type: boolean
+          title: 比賽中顯示排行榜
+          description: 'False: 學生只能看自己成績；True: 學生可看完整排行榜'
+        allow_multiple_joins:
+          type: boolean
+          title: 允許多次加入
+        ban_tab_switching:
+          type: boolean
+        max_cheat_warnings:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        allow_auto_unlock:
+          type: boolean
+          title: 允許自動解鎖
+        auto_unlock_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: 自動解鎖時間 (分鐘)
+    PatchedNotificationRequest:
+      type: object
+      description: Serializer for notifications.
+      properties:
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          title: 類型
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        message:
+          type: string
+          minLength: 1
+          title: 內容
+        link:
+          type: string
+          title: 連結
+          maxLength: 255
+        is_read:
+          type: boolean
+          title: 已讀
+    PatchedProblemDetailRequest:
+      type: object
+      description: Serializer for problem detail (full info).
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        difficulty:
+          allOf:
+          - $ref: '#/components/schemas/DifficultyEnum'
+          title: 難度
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 時間限制 (ms)
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體限制 (MB)
+        submission_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 提交次數
+        accepted_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 通過次數
+        is_practice_visible:
+          type: boolean
+          title: 顯示在練習題庫
+          description: 控制此題是否在練習題庫中顯示給學生
+    PatchedSubmissionListRequest:
+      type: object
+      description: Serializer for submission list.
+      properties:
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6d7Enum'
+          title: 狀態
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        exec_time:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 執行時間 (ms)
+        memory_usage:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體使用 (KB)
+    PatchedTagRequest:
+      type: object
+      description: Serializer for tags.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 標籤名稱
+          maxLength: 50
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          title: 描述
+        color:
+          type: string
+          minLength: 1
+          title: 顏色
+          description: Hex color code for tag display
+          maxLength: 7
+    ProblemDetail:
+      type: object
+      description: Serializer for problem detail (full info).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        display_id:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          title: 標題
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        difficulty:
+          allOf:
+          - $ref: '#/components/schemas/DifficultyEnum'
+          title: 難度
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 時間限制 (ms)
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體限制 (MB)
+        submission_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 提交次數
+        accepted_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 通過次數
+        acceptance_rate:
+          type: string
+          readOnly: true
+        is_practice_visible:
+          type: boolean
+          title: 顯示在練習題庫
+          description: 控制此題是否在練習題庫中顯示給學生
+        created_in_contest:
+          type: string
+          readOnly: true
+        translation:
+          type: string
+          readOnly: true
+        samples:
+          type: string
+          readOnly: true
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemTranslation'
+          readOnly: true
+        test_cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+          readOnly: true
+        language_configs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LanguageConfig'
+          readOnly: true
+      required:
+      - acceptance_rate
+      - created_in_contest
+      - display_id
+      - id
+      - language_configs
+      - samples
+      - test_cases
+      - title
+      - translation
+      - translations
+    ProblemDetailRequest:
+      type: object
+      description: Serializer for problem detail (full info).
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        difficulty:
+          allOf:
+          - $ref: '#/components/schemas/DifficultyEnum'
+          title: 難度
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 時間限制 (ms)
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體限制 (MB)
+        submission_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 提交次數
+        accepted_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 通過次數
+        is_practice_visible:
+          type: boolean
+          title: 顯示在練習題庫
+          description: 控制此題是否在練習題庫中顯示給學生
+      required:
+      - title
+    ProblemList:
+      type: object
+      description: Serializer for problem list (minimal info).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        display_id:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        difficulty:
+          allOf:
+          - $ref: '#/components/schemas/DifficultyEnum'
+          title: 難度
+        submission_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 提交次數
+        accepted_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 通過次數
+        acceptance_rate:
+          type: string
+          readOnly: true
+        is_visible:
+          type: boolean
+          title: 是否可見
+        is_practice_visible:
+          type: boolean
+          title: 顯示在練習題庫
+          description: 控制此題是否在練習題庫中顯示給學生
+        created_in_contest:
+          type: integer
+          nullable: true
+          title: 來源競賽
+          description: 記錄此題最初在哪場競賽中建立
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+        created_by:
+          type: string
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          readOnly: true
+        language_configs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LanguageConfig'
+          readOnly: true
+        is_solved:
+          type: boolean
+          readOnly: true
+          default: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+      required:
+      - acceptance_rate
+      - created_at
+      - created_by
+      - display_id
+      - id
+      - is_solved
+      - language_configs
+      - tags
+      - title
+    ProblemListRequest:
+      type: object
+      description: Serializer for problem list (minimal info).
+      properties:
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        difficulty:
+          allOf:
+          - $ref: '#/components/schemas/DifficultyEnum'
+          title: 難度
+        submission_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 提交次數
+        accepted_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 通過次數
+        is_visible:
+          type: boolean
+          title: 是否可見
+        is_practice_visible:
+          type: boolean
+          title: 顯示在練習題庫
+          description: 控制此題是否在練習題庫中顯示給學生
+        created_in_contest:
+          type: integer
+          nullable: true
+          title: 來源競賽
+          description: 記錄此題最初在哪場競賽中建立
+    ProblemTranslation:
+      type: object
+      description: Serializer for problem translations.
+      properties:
+        language:
+          type: string
+          title: 語言代碼
+          maxLength: 10
+        title:
+          type: string
+          title: 標題
+          maxLength: 255
+        description:
+          type: string
+          title: 題目描述
+        input_description:
+          type: string
+          title: 輸入說明
+        output_description:
+          type: string
+          title: 輸出說明
+        hint:
+          type: string
+          title: 提示
+      required:
+      - description
+      - input_description
+      - language
+      - output_description
+      - title
+    ProblemTranslationRequest:
+      type: object
+      description: Serializer for problem translations.
+      properties:
+        language:
+          type: string
+          minLength: 1
+          title: 語言代碼
+          maxLength: 10
+        title:
+          type: string
+          minLength: 1
+          title: 標題
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          title: 題目描述
+        input_description:
+          type: string
+          minLength: 1
+          title: 輸入說明
+        output_description:
+          type: string
+          minLength: 1
+          title: 輸出說明
+        hint:
+          type: string
+          title: 提示
+      required:
+      - description
+      - input_description
+      - language
+      - output_description
+      - title
+    RoleEnum:
+      enum:
+      - student
+      - teacher
+      - admin
+      type: string
+      description: |-
+        * `student` - 學生
+        * `teacher` - 教師
+        * `admin` - 管理員
+    ScreenEvent:
+      type: object
+      description: Serializer for screen events.
+      properties:
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          title: 事件類型
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 發生時間
+        details:
+          title: 詳細資訊
+      required:
+      - event_type
+      - timestamp
+    SourceTypeEnum:
+      enum:
+      - practice
+      - contest
+      type: string
+      description: |-
+        * `practice` - Practice
+        * `contest` - Contest
+    Status6d7Enum:
+      enum:
+      - pending
+      - judging
+      - AC
+      - WA
+      - TLE
+      - MLE
+      - RE
+      - CE
+      - SE
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `judging` - Judging
+        * `AC` - Accepted
+        * `WA` - Wrong Answer
+        * `TLE` - Time Limit Exceeded
+        * `MLE` - Memory Limit Exceeded
+        * `RE` - Runtime Error
+        * `CE` - Compilation Error
+        * `SE` - System Error
+    StatusDc4Enum:
+      enum:
+      - active
+      - inactive
+      - archived
+      type: string
+      description: |-
+        * `active` - Active
+        * `inactive` - Inactive
+        * `archived` - Archived
+    SubmissionDetail:
+      type: object
+      description: Serializer for submission detail.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        problem:
+          allOf:
+          - $ref: '#/components/schemas/ProblemList'
+          readOnly: true
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        code:
+          type: string
+          title: 程式碼
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6d7Enum'
+          title: 狀態
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        exec_time:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 執行時間 (ms)
+        memory_usage:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體使用 (KB)
+        error_message:
+          type: string
+          title: 錯誤訊息
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提交時間
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新時間
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionResult'
+          readOnly: true
+        screen_events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreenEvent'
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - id
+      - language
+      - problem
+      - results
+      - screen_events
+      - updated_at
+      - user
+    SubmissionList:
+      type: object
+      description: Serializer for submission list.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        problem:
+          allOf:
+          - $ref: '#/components/schemas/ProblemList'
+          readOnly: true
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6d7Enum'
+          title: 狀態
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        exec_time:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 執行時間 (ms)
+        memory_usage:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體使用 (KB)
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 提交時間
+      required:
+      - created_at
+      - id
+      - language
+      - problem
+      - user
+    SubmissionListRequest:
+      type: object
+      description: Serializer for submission list.
+      properties:
+        contest:
+          type: integer
+          nullable: true
+          title: 考試
+        source_type:
+          allOf:
+          - $ref: '#/components/schemas/SourceTypeEnum'
+          title: 來源類型
+        language:
+          allOf:
+          - $ref: '#/components/schemas/Language040Enum'
+          title: 語言
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6d7Enum'
+          title: 狀態
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        exec_time:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 執行時間 (ms)
+        memory_usage:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體使用 (KB)
+      required:
+      - language
+    SubmissionResult:
+      type: object
+      description: Serializer for submission results.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        test_case:
+          type: integer
+          title: 測試案例
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SubmissionResultStatusEnum'
+          title: 狀態
+        exec_time:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 執行時間 (ms)
+        memory_usage:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 記憶體使用 (KB)
+        output:
+          type: string
+          title: 輸出
+        error_message:
+          type: string
+          title: 錯誤訊息
+        input:
+          type: string
+          readOnly: true
+        expected_output:
+          type: string
+          readOnly: true
+        is_hidden:
+          type: string
+          readOnly: true
+      required:
+      - expected_output
+      - id
+      - input
+      - is_hidden
+      - status
+      - test_case
+    SubmissionResultStatusEnum:
+      enum:
+      - AC
+      - WA
+      - TLE
+      - MLE
+      - RE
+      - SE
+      type: string
+      description: |-
+        * `AC` - Accepted
+        * `WA` - Wrong Answer
+        * `TLE` - Time Limit Exceeded
+        * `MLE` - Memory Limit Exceeded
+        * `RE` - Runtime Error
+        * `SE` - System Error
+    Tag:
+      type: object
+      description: Serializer for tags.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 標籤名稱
+          maxLength: 50
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          title: 描述
+        color:
+          type: string
+          title: 顏色
+          description: Hex color code for tag display
+          maxLength: 7
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+      required:
+      - created_at
+      - id
+      - name
+      - slug
+    TagRequest:
+      type: object
+      description: Serializer for tags.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 標籤名稱
+          maxLength: 50
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          title: 描述
+        color:
+          type: string
+          minLength: 1
+          title: 顏色
+          description: Hex color code for tag display
+          maxLength: 7
+      required:
+      - name
+      - slug
+    TestCase:
+      type: object
+      description: Serializer for test cases.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        input_data:
+          type: string
+          title: 輸入資料
+        output_data:
+          type: string
+          title: 輸出資料
+        is_sample:
+          type: boolean
+          title: 是否為範例
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+        is_hidden:
+          type: boolean
+          title: 是否隱藏
+      required:
+      - id
+      - input_data
+      - output_data
+    TestCaseRequest:
+      type: object
+      description: Serializer for test cases.
+      properties:
+        input_data:
+          type: string
+          minLength: 1
+          title: 輸入資料
+        output_data:
+          type: string
+          minLength: 1
+          title: 輸出資料
+        is_sample:
+          type: boolean
+          title: 是否為範例
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 分數
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 排序
+        is_hidden:
+          type: boolean
+          title: 是否隱藏
+      required:
+      - input_data
+      - output_data
+    User:
+      type: object
+      description: Serializer for user model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        auth_provider:
+          allOf:
+          - $ref: '#/components/schemas/AuthProviderEnum'
+          readOnly: true
+          title: 認證方式
+        email_verified:
+          type: boolean
+          readOnly: true
+          title: Email 已驗證
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 加入日期
+        last_login_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 最後登入時間
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/UserProfile'
+          readOnly: true
+      required:
+      - auth_provider
+      - date_joined
+      - email
+      - email_verified
+      - id
+      - last_login_at
+      - profile
+      - username
+    UserProfile:
+      type: object
+      description: Serializer for user profile.
+      properties:
+        solved_count:
+          type: integer
+          readOnly: true
+          title: 已解題數
+        submission_count:
+          type: integer
+          readOnly: true
+          title: 提交次數
+        accept_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          title: 通過率
+        preferred_language:
+          type: string
+          title: 偏好語言
+          maxLength: 20
+      required:
+      - accept_rate
+      - solved_count
+      - submission_count
+    UserProfileRequest:
+      type: object
+      description: Serializer for user profile.
+      properties:
+        preferred_language:
+          type: string
+          minLength: 1
+          title: 偏好語言
+          maxLength: 20
+    UserRequest:
+      type: object
+      description: Serializer for user model.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+      required:
+      - email
+      - username
+    VisibilityEnum:
+      enum:
+      - public
+      - private
+      type: string
+      description: |-
+        * `public` - Public
+        * `private` - Private
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

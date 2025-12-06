@@ -2,7 +2,7 @@
 Serializers for problems app.
 """
 from rest_framework import serializers
-from .models import Problem, ProblemTranslation, TestCase, LanguageConfig
+from .models import Problem, ProblemTranslation, TestCase, LanguageConfig, Tag
 
 
 class ProblemTranslationSerializer(serializers.ModelSerializer):
@@ -43,6 +43,32 @@ class LanguageConfigSerializer(serializers.ModelSerializer):
         fields = ['id', 'language', 'template_code', 'is_enabled', 'order']
 
 
+class TagSerializer(serializers.ModelSerializer):
+    """Serializer for tags."""
+    class Meta:
+        model = Tag
+        fields = ['id', 'name', 'slug', 'description', 'color', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class TestRunSerializer(serializers.Serializer):
+    """Serializer for test run requests."""
+    language = serializers.ChoiceField(
+        choices=['cpp', 'python', 'java', 'c'],
+        required=True,
+        help_text='Programming language'
+    )
+    source_code = serializers.CharField(
+        required=True,
+        help_text='Source code to execute'
+    )
+    custom_input = serializers.CharField(
+        required=True,
+        allow_blank=True,
+        help_text='Custom input for the program'
+    )
+
+
 class ProblemListSerializer(serializers.ModelSerializer):
     """Serializer for problem list (minimal info)."""
     title = serializers.SerializerMethodField()
@@ -67,11 +93,13 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'created_by',
             'language_configs',
             'is_solved',
+            'tags',
         ]
     
     is_solved = serializers.BooleanField(read_only=True, default=False)
     
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     
     created_by = serializers.ReadOnlyField(source='created_by.username')
     
@@ -104,6 +132,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     translations = ProblemTranslationSerializer(many=True, read_only=True)
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     display_id = serializers.CharField(read_only=True)
     created_in_contest = serializers.SerializerMethodField()
     
@@ -127,6 +156,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'translations',
             'test_cases',
             'language_configs',
+            'tags',
         ]
     
     def get_translation(self, obj):
@@ -169,15 +199,80 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
     
+    # New Tag UX fields
+    existing_tag_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        write_only=True
+    )
+    new_tag_names = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        write_only=True
+    )
+    
     class Meta:
         model = Problem
         fields = '__all__'
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate']
     
+    def _handle_tags(self, problem, validated_data):
+        """Helper to handle tag association."""
+        existing_tag_ids = validated_data.pop('existing_tag_ids', [])
+        new_tag_names = validated_data.pop('new_tag_names', [])
+        tags_data = validated_data.pop('tags', None) # Legacy support
+
+        # If new UX fields are present, use them
+        if existing_tag_ids is not None or new_tag_names is not None:
+            all_tags = []
+            
+            # 1. Fetch existing tags
+            if existing_tag_ids:
+                existing_tags = Tag.objects.filter(id__in=existing_tag_ids)
+                all_tags.extend(existing_tags)
+            
+            # 2. Create or get new tags
+            if new_tag_names:
+                for name in new_tag_names:
+                    name = name.strip()
+                    if not name:
+                        continue
+                        
+                    # Generate slug from name
+                    # Simple slugify: lowercase and replace spaces with hyphens
+                    # For more robust slugify, use django.utils.text.slugify
+                    from django.utils.text import slugify
+                    slug = slugify(name)
+                    if not slug:
+                        # Fallback for non-ascii names if slugify returns empty
+                        import uuid
+                        slug = f"tag-{uuid.uuid4().hex[:8]}"
+                    
+                    # Ensure slug is unique enough or handle collision?
+                    # The requirement says: get_or_create(slug=slug, defaults={'name': name})
+                    # But if slug exists, we return it.
+                    
+                    tag, created = Tag.objects.get_or_create(
+                        slug=slug,
+                        defaults={'name': name}
+                    )
+                    all_tags.append(tag)
+            
+            problem.tags.set(all_tags)
+            
+        # Fallback to legacy 'tags' field if provided and new fields are NOT provided
+        elif tags_data is not None:
+            problem.tags.set(tags_data)
+
     def create(self, validated_data):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
+        
+        # Extract tag data but don't process yet
+        existing_tag_ids = validated_data.pop('existing_tag_ids', None)
+        new_tag_names = validated_data.pop('new_tag_names', None)
+        tags_data = validated_data.pop('tags', None)
         
         # Auto-generate slug if empty
         if not validated_data.get('slug'):
@@ -187,6 +282,15 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             validated_data['slug'] = f"{base_slug}-{uuid.uuid4().hex[:8]}"
         
         problem = Problem.objects.create(**validated_data)
+        
+        # Handle Tags
+        # Re-inject tag data to use helper
+        tag_context = {
+            'existing_tag_ids': existing_tag_ids,
+            'new_tag_names': new_tag_names,
+            'tags': tags_data
+        }
+        self._handle_tags(problem, tag_context)
         
         for trans_data in translations_data:
             ProblemTranslation.objects.create(problem=problem, **trans_data)
@@ -203,6 +307,11 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
+        
+        # Extract tag data
+        existing_tag_ids = validated_data.pop('existing_tag_ids', None)
+        new_tag_names = validated_data.pop('new_tag_names', None)
+        tags_data = validated_data.pop('tags', None)
         
         
         # Auto-generate slug if empty
@@ -221,6 +330,14 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         
+        # Handle Tags
+        tag_context = {
+            'existing_tag_ids': existing_tag_ids,
+            'new_tag_names': new_tag_names,
+            'tags': tags_data
+        }
+        self._handle_tags(instance, tag_context)
+        
         # Update translations (simple replacement for now)
         if translations_data:
             instance.translations.all().delete()
@@ -238,5 +355,5 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             instance.language_configs.all().delete()
             for lc_data in language_configs_data:
                 LanguageConfig.objects.create(problem=instance, **lc_data)
-                
+        
         return instance

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
-import type { ExamModeState, UserRole } from '@/models/contest';
+import type { ExamModeState } from '@/core/entities/contest.entity';
+import type { UserRole } from '@/core/entities/user.entity';
 import { api } from '@/services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Modal, Button } from '@carbon/react';

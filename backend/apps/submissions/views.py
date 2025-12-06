@@ -144,5 +144,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             source_type=source_type
         )
         
-        # Trigger async judging task
-        judge_submission.delay(submission.id)
+        # Trigger async judging task after transaction commits
+        from django.db import transaction
+        transaction.on_commit(lambda: judge_submission.delay(submission.id))

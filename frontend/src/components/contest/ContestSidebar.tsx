@@ -6,7 +6,7 @@ import {
   Button
 } from '@carbon/react';
 import { Time, ArrowLeft, Checkmark } from '@carbon/icons-react';
-import type { ContestDetail } from '@/models/contest';
+import type { ContestDetail } from '@/core/entities/contest.entity';
 
 interface ContestSidebarProps {
   contest: ContestDetail;
@@ -21,7 +21,7 @@ const ContestSidebar: React.FC<ContestSidebarProps> = ({ contest, currentProblem
     if (!contest) return;
 
     const timer = setInterval(() => {
-      const end = new Date(contest.end_time).getTime();
+      const end = new Date(contest.endTime).getTime();
       const now = new Date().getTime();
       const diff = end - now;
 
@@ -202,16 +202,16 @@ const ContestSidebar: React.FC<ContestSidebarProps> = ({ contest, currentProblem
           {contest.problems && contest.problems.length > 0 ? (
             contest.problems.map((problem: any) => {
               const isCurrentProblem = currentProblemId && 
-                (problem.problem_id.toString() === currentProblemId.toString());
+                (problem.problemId.toString() === currentProblemId.toString());
               const isCompleted = false; // TODO: Get actual status from backend
               
               return (
                 <ClickableTile
-                  key={problem.problem_id}
+                  key={problem.problemId}
                   onClick={() => {
                     const searchParams = new URLSearchParams(window.location.search);
                     navigate({
-                      pathname: `/contests/${contest.id}/problems/${problem.problem_id}`,
+                      pathname: `/contests/${contest.id}/problems/${problem.problemId}`,
                       search: searchParams.toString()
                     });
                   }}

@@ -18,7 +18,7 @@ import {
 } from '@carbon/react';
 import { View, Renew } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import { SubmissionDetailModal } from '@/components/contest/SubmissionDetailModal';
+import { SubmissionDetailModal } from '@/components/submission/SubmissionDetailModal';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import type { StatusType } from '@/components/common/StatusBadge';
 import SurfaceSection from '@/components/contest/layout/SurfaceSection';
@@ -193,14 +193,14 @@ const ContestSubmissionListPage = () => {
 
   const handleSubmissionClick = (submissionId: string) => {
     setSearchParams(prev => {
-      prev.set('select_id', submissionId);
+      prev.set('submission_id', submissionId);
       return prev;
     });
   };
 
   const handleCloseModal = () => {
     setSearchParams(prev => {
-      prev.delete('select_id');
+      prev.delete('submission_id');
       return prev;
     });
   };
@@ -389,9 +389,10 @@ const ContestSubmissionListPage = () => {
       </div>
       
       <SubmissionDetailModal
-        submissionId={searchParams.get('select_id')}
-        isOpen={!!searchParams.get('select_id')}
+        submissionId={searchParams.get('submission_id')}
+        isOpen={!!searchParams.get('submission_id')}
         onClose={handleCloseModal}
+        contestId={contestId}
       />
     </SurfaceSection>
   );

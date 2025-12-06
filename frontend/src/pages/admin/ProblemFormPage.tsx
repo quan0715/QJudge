@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import ProblemForm from '@/components/ProblemForm';
-import type { ProblemFormData } from '@/components/ProblemForm';
+import ProblemForm from '@/components/problem/ProblemForm';
+import type { ProblemFormData } from '@/components/problem/ProblemForm';
 import { authFetch } from '@/services/auth';
 const ProblemFormPage = () => {
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ const ProblemFormPage = () => {
 
       if (res.ok) {
         setSuccess(isEditMode ? '題目更新成功！' : '題目建立成功！');
-        setTimeout(() => navigate('/admin/problems'), 1500);
+        setTimeout(() => navigate('/management/problems'), 1500);
       } else {
         const errorData = await res.json();
         setError(JSON.stringify(errorData) || '操作失敗');
@@ -67,13 +67,13 @@ const ProblemFormPage = () => {
     <ProblemForm
       initialData={initialData}
       onSubmit={handleSubmit}
-      onCancel={() => navigate('/admin/problems')}
+      onCancel={() => navigate('/management/problems')}
       isEditMode={isEditMode}
       loading={loading}
       error={error}
       success={success}
       breadcrumbs={[
-        { label: 'Problems', href: '/admin/problems' },
+        { label: 'Problems', href: '/management/problems' },
         { label: isEditMode ? 'Edit Problem' : 'New Problem' }
       ]}
     />

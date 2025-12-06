@@ -20,7 +20,7 @@ import {
 } from '@carbon/react';
 import { Add, Unlocked, Renew } from '@carbon/icons-react';
 import { api } from '@/services/api';
-import type { ContestParticipant } from '@/models/contest';
+import type { ContestParticipant } from '@/core/entities/contest.entity';
 
 const ContestParticipantsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -62,10 +62,10 @@ const ContestParticipantsPage = () => {
     }
   };
 
-  const handleUnlock = async (userId: number) => {
+  const handleUnlock = async (userId: string) => {
     if (!confirm('確定要解除此學生的鎖定嗎？')) return;
     try {
-      await api.unlockParticipant(contestId!, userId);
+      await api.unlockParticipant(contestId!, Number(userId));
       setNotification({ kind: 'success', message: '已解除鎖定' });
       loadParticipants();
     } catch (err: any) {
@@ -75,16 +75,16 @@ const ContestParticipantsPage = () => {
 
   const handleEditClick = (p: ContestParticipant) => {
     setEditingParticipant(p);
-    setEditLockReason(p.lock_reason || '');
-    setEditIsLocked(p.is_locked);
-    setEditHasFinished(p.has_finished_exam);
+    setEditLockReason(p.lockReason || '');
+    setEditIsLocked(p.isLocked);
+    setEditHasFinished(p.hasFinishedExam);
     setEditModalOpen(true);
   };
 
   const handleSaveParticipant = async () => {
     if (!editingParticipant) return;
     try {
-      await api.updateParticipant(contestId!, editingParticipant.user_id, {
+      await api.updateParticipant(contestId!, Number(editingParticipant.userId), {
         is_locked: editIsLocked,
         lock_reason: editLockReason,
         has_finished_exam: editHasFinished
@@ -127,12 +127,12 @@ const ContestParticipantsPage = () => {
           )}
 
           <DataTable
-            rows={participants.map((p) => ({ ...p, id: p.user_id.toString() }))}
+            rows={participants.map((p) => ({ ...p, id: p.userId.toString() }))}
             headers={[
               { key: 'username', header: '使用者' },
-              { key: 'joined_at', header: '加入時間' },
+              { key: 'joinedAt', header: '加入時間' },
               { key: 'status', header: '狀態' },
-              { key: 'lock_reason', header: '鎖定原因' },
+              { key: 'lockReason', header: '鎖定原因' },
               { key: 'actions', header: '操作' },
             ]}
             render={({ rows, headers, getHeaderProps, getRowProps }) => (
@@ -163,7 +163,7 @@ const ContestParticipantsPage = () => {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => {
-                      const p = participants.find(item => item.user_id.toString() === row.id);
+                      const p = participants.find(item => item.userId.toString() === row.id);
                       if (!p) return null;
 
                       const { key, ...rowProps } = getRowProps({ row });
@@ -172,23 +172,23 @@ const ContestParticipantsPage = () => {
                           <TableCell>
                             <div style={{ fontWeight: 'bold' }}>{p.username}</div>
                             <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                              {p.user?.email}
+                              {p.email}
                             </div>
                           </TableCell>
-                          <TableCell>{new Date(p.joined_at).toLocaleString()}</TableCell>
+                          <TableCell>{new Date(p.joinedAt).toLocaleString()}</TableCell>
                           <TableCell>
-                            {p.is_locked ? (
+                            {p.isLocked ? (
                               <Tag type="red">已鎖定</Tag>
-                            ) : p.has_finished_exam ? (
+                            ) : p.hasFinishedExam ? (
                               <Tag type="green">已交卷</Tag>
                             ) : (
                               <Tag type="blue">進行中</Tag>
                             )}
                           </TableCell>
                           <TableCell>
-                            {p.is_locked && (
+                            {p.isLocked && (
                               <span style={{ color: 'var(--cds-support-error)' }}>
-                                {p.lock_reason}
+                                {p.lockReason}
                               </span>
                             )}
                           </TableCell>
@@ -201,12 +201,12 @@ const ContestParticipantsPage = () => {
                               >
                                 編輯
                               </Button>
-                              {p.is_locked && (
+                              {p.isLocked && (
                                 <Button
                                   size="sm"
                                   kind="ghost"
                                   renderIcon={Unlocked}
-                                  onClick={() => handleUnlock(p.user_id)}
+                                  onClick={() => handleUnlock(p.userId)}
                                 >
                                   解鎖
                                 </Button>

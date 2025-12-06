@@ -1,5 +1,6 @@
 import { authFetch } from './auth';
-import type { Problem } from '@/models/problem';
+import type { Problem, ProblemDetail } from '@/core/entities/problem.entity';
+import { mapProblemDto, mapProblemDetailDto } from '@/core/entities/mappers/problemMapper';
 
 export const problemService = {
   getProblems: async (scope?: string): Promise<Problem[]> => {
@@ -10,15 +11,17 @@ export const problemService = {
     }
     const data = await res.json();
     // Handle both paginated and non-paginated responses
-    return data.results || data;
+    const results = data.results || data;
+    return Array.isArray(results) ? results.map(mapProblemDto) : [];
   },
 
-  getProblem: async (id: string, scope?: string): Promise<Problem | undefined> => {
+  getProblem: async (id: string, scope?: string): Promise<ProblemDetail | undefined> => {
     const query = scope ? `?scope=${scope}` : '';
     const res = await authFetch(`/api/v1/problems/${id}/${query}`);
     if (!res.ok) {
       return undefined;
     }
-    return res.json();
+    const data = await res.json();
+    return mapProblemDetailDto(data);
   },
 };

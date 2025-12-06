@@ -1,17 +1,17 @@
-import type { Contest, ContestDetail } from '@/models/contest';
+import type { Contest, ContestDetail } from '@/core/entities/contest.entity';
 
 export type ContestDisplayState = 'upcoming' | 'running' | 'ended' | 'inactive';
 
 export const getContestState = (
-  contest: Pick<Contest | ContestDetail, 'status' | 'start_time' | 'end_time'>
+  contest: Pick<Contest | ContestDetail, 'status' | 'startTime' | 'endTime'>
 ): ContestDisplayState => {
   if (contest.status === 'inactive') {
     return 'inactive';
   }
 
   const now = new Date().getTime();
-  const startTime = new Date(contest.start_time).getTime();
-  const endTime = new Date(contest.end_time).getTime();
+  const startTime = new Date(contest.startTime).getTime();
+  const endTime = new Date(contest.endTime).getTime();
 
   if (now < startTime) {
     return 'upcoming';

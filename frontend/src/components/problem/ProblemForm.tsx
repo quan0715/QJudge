@@ -3,8 +3,6 @@ import {
   Form,
   TextInput,
   TextArea,
-  Select,
-  SelectItem,
   Button,
   Toggle,
   NumberInput,
@@ -15,13 +13,18 @@ import {
   TabPanels,
   TabPanel,
   Grid,
-  Column
+  Column,
+  Dropdown,
+  FilterableMultiSelect,
+  Tag as CarbonTag
 } from '@carbon/react';
 import { Save, View } from '@carbon/icons-react';
-import ProblemPreview from './ProblemPreview';
+import ProblemPreview from '@/components/problem/ProblemPreview';
 import Editor from '@monaco-editor/react';
-import { DEFAULT_TEMPLATES, LANGUAGE_OPTIONS } from '../constants/codeTemplates';
-import { PageHeader } from './common/PageHeader';
+import { DEFAULT_TEMPLATES, LANGUAGE_OPTIONS } from '@/constants/codeTemplates';
+import { PageHeader } from '@/components/common/PageHeader';
+import { tagService } from '@/services/tagService';
+import type { Tag } from '@/models/problem';
 
 export interface TestCase {
   input_data: string;
@@ -59,6 +62,8 @@ export interface ProblemFormData {
   translations: Translation[];
   test_cases: TestCase[];
   language_configs: LanguageConfig[];
+  existing_tag_ids?: number[]; // IDs of existing tags
+  new_tag_names?: string[]; // Names of new tags to create
 }
 
 interface ProblemFormProps {
@@ -87,18 +92,18 @@ const ProblemForm = ({
   const [showPreview, setShowPreview] = useState(false);
   const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>('zh-TW');
 
-  // ... (rest of the component state and logic)
-  // Note: I am NOT replacing the whole file, just the top part to add import.
-  // Wait, replace_file_content replaces the range. I need to be careful.
-  // I will use multi_replace_file_content to be safer and surgical.
-
-
   // Basic Info
   const [title, setTitle] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [timeLimit, setTimeLimit] = useState(1000);
   const [memoryLimit, setMemoryLimit] = useState(128);
   const [isVisible, setIsVisible] = useState(true);
+
+  // Tags
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedExistingTagIds, setSelectedExistingTagIds] = useState<number[]>([]);
+  const [pendingNewTagNames, setPendingNewTagNames] = useState<string[]>([]);
+  const [tagInputValue, setTagInputValue] = useState('');
 
   // Translation (Chinese)
   const [translationTitle, setTranslationTitle] = useState('');
@@ -133,6 +138,19 @@ const ProblemForm = ({
       order: index
     }))
   );
+
+  // Load tags on mount
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await tagService.getTags();
+        setAvailableTags(tags);
+      } catch (error) {
+        console.error('Failed to load tags:', error);
+      }
+    };
+    loadTags();
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -169,6 +187,13 @@ const ProblemForm = ({
       // Load language configs
       if (initialData.language_configs && initialData.language_configs.length > 0) {
         setLanguageConfigs(initialData.language_configs);
+      }
+
+      // Load tags (if present in initialData)
+      // Assuming initialData comes from API which returns Tag objects in 'tags' field
+      if ((initialData as any).tags) {
+        const tags = (initialData as any).tags as Tag[];
+        setSelectedExistingTagIds(tags.map(t => Number(t.id)));
       }
     }
   }, [initialData]);
@@ -232,7 +257,9 @@ const ProblemForm = ({
       order: 0, // Default order
       translations,
       test_cases: testCases,
-      language_configs: languageConfigs
+      language_configs: languageConfigs,
+      existing_tag_ids: selectedExistingTagIds,
+      new_tag_names: pendingNewTagNames
     };
 
     await onSubmit(payload);
@@ -321,17 +348,24 @@ const ProblemForm = ({
                       />
                     </Column>
                     <Column lg={4} md={4} sm={4}>
-                      <Select
+                      <Dropdown
                         id="difficulty"
-                        labelText="難度"
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
+                        titleText="難度"
+                        label="選擇難度"
+                        items={[
+                          { id: 'easy', label: '簡單' },
+                          { id: 'medium', label: '中等' },
+                          { id: 'hard', label: '困難' }
+                        ]}
+                        itemToString={(item) => item ? item.label : ''}
+                        selectedItem={[
+                          { id: 'easy', label: '簡單' },
+                          { id: 'medium', label: '中等' },
+                          { id: 'hard', label: '困難' }
+                        ].find(i => i.id === difficulty)}
+                        onChange={({ selectedItem }) => setDifficulty(selectedItem?.id || 'medium')}
                         style={{ marginBottom: '1rem' }}
-                      >
-                        <SelectItem value="easy" text="簡單" />
-                        <SelectItem value="medium" text="中等" />
-                        <SelectItem value="hard" text="困難" />
-                      </Select>
+                      />
                     </Column>
                     <Column lg={4} md={4} sm={4}>
                       <NumberInput
@@ -367,6 +401,83 @@ const ProblemForm = ({
                         style={{ marginBottom: '1rem' }}
                       />
                     </Column>
+
+                    <Column lg={16} md={8} sm={4}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label className="cds--label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                          標籤
+                        </label>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <FilterableMultiSelect
+                            id="tag-selector"
+                            titleText="選擇現有標籤"
+                            placeholder="搜尋並選擇標籤..."
+                            items={availableTags.map(tag => ({
+                              id: tag.id,
+                              label: tag.name
+                            }))}
+                            itemToString={(item) => item ? item.label : ''}
+                            initialSelectedItems={availableTags
+                              .filter(tag => selectedExistingTagIds.includes(Number(tag.id)))
+                              .map(tag => ({ id: tag.id, label: tag.name }))}
+                            onChange={({ selectedItems }) => {
+                              setSelectedExistingTagIds(selectedItems.map(item => Number(item.id)));
+                            }}
+                            selectionFeedback="top-after-reopen"
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label className="cds--label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                            新增標籤 (New Tags)
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                            {pendingNewTagNames.map((name, index) => (
+                              <CarbonTag
+                                key={`new-${index}`}
+                                type="green"
+                                filter
+                                onClose={() => setPendingNewTagNames(prev => prev.filter((_, i) => i !== index))}
+                              >
+                                {name} (新)
+                              </CarbonTag>
+                            ))}
+                          </div>
+                          <TextInput
+                            id="new-tag-input"
+                            labelText=""
+                            hideLabel
+                            placeholder="輸入新標籤名稱後按 Enter..."
+                            value={tagInputValue}
+                            onChange={(e) => setTagInputValue(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent) => {
+                              if (e.key === 'Enter') {
+                                const value = tagInputValue.trim();
+                                if (value) {
+                                  // Check if it's an existing tag
+                                  const existingTag = availableTags.find(t => t.name.toLowerCase() === value.toLowerCase());
+                                  if (existingTag) {
+                                    if (!selectedExistingTagIds.includes(Number(existingTag.id))) {
+                                      setSelectedExistingTagIds(prev => [...prev, Number(existingTag.id)]);
+                                    }
+                                  } else {
+                                    // It's a new tag
+                                    if (!pendingNewTagNames.includes(value)) {
+                                      setPendingNewTagNames(prev => [...prev, value]);
+                                    }
+                                  }
+                                  setTagInputValue('');
+                                }
+                                e.preventDefault();
+                              }
+                            }}
+                          />
+                          <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
+                            提示：輸入標籤名稱後按 Enter 加入。綠色標籤為新增標籤，將在儲存時建立。
+                          </div>
+                        </div>
+                      </div>
+                    </Column>
                   </Grid>
                 </TabPanel>
 
@@ -374,15 +485,21 @@ const ProblemForm = ({
                 <TabPanel>
                   <div style={{ marginTop: '1rem' }}>
                     <div style={{ marginBottom: '1rem' }}>
-                      <Select
+                      <Dropdown
                         id="language-selector"
-                        labelText="語言 / Language"
-                        value={currentLang}
-                        onChange={(e) => setCurrentLang(e.target.value as 'zh-TW' | 'en')}
-                      >
-                        <SelectItem value="zh-TW" text="中文" />
-                        <SelectItem value="en" text="English" />
-                      </Select>
+                        titleText="語言 / Language"
+                        label="選擇語言"
+                        items={[
+                          { id: 'zh-TW', label: '中文' },
+                          { id: 'en', label: 'English' }
+                        ]}
+                        itemToString={(item) => item ? item.label : ''}
+                        selectedItem={[
+                          { id: 'zh-TW', label: '中文' },
+                          { id: 'en', label: 'English' }
+                        ].find(i => i.id === currentLang)}
+                        onChange={({ selectedItem }) => setCurrentLang(selectedItem?.id as 'zh-TW' | 'en')}
+                      />
                     </div>
                     
                     <TextInput
@@ -581,6 +698,8 @@ const ProblemForm = ({
               </TabPanels>
             </Tabs>
 
+
+
             <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
               <Button
                 type="submit"
@@ -609,20 +728,25 @@ const ProblemForm = ({
                     language: 'zh-TW',
                     title: translationTitle,
                     description,
-                    input_description: inputDescription,
-                    output_description: outputDescription,
+                    inputDescription: inputDescription,
+                    outputDescription: outputDescription,
                     hint
                   }] : []),
                   ...(translationTitleEn || descriptionEn ? [{
                     language: 'en',
                     title: translationTitleEn,
                     description: descriptionEn,
-                    input_description: inputDescriptionEn,
-                    output_description: outputDescriptionEn,
+                    inputDescription: inputDescriptionEn,
+                    outputDescription: outputDescriptionEn,
                     hint: hintEn
                   }] : [])
                 ]}
-                testCases={testCases}
+                testCases={testCases.map(tc => ({ 
+                  ...tc, 
+                  input: tc.input_data,
+                  output: tc.output_data,
+                  isSample: tc.is_sample || false 
+                }))}
                 defaultLang={currentLang === 'zh-TW' ? 'zh-TW' : 'en'}
                 showLanguageToggle={!!(translationTitle && translationTitleEn)}
                 compact={false}

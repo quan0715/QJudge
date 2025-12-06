@@ -10,7 +10,7 @@ import {
   TableContainer,
   InlineNotification
 } from '@carbon/react';
-import type { ExamEventStats } from '@/types/contest';
+import type { ExamEventStats } from '@/core/entities/contest.entity';
 import { api } from '@/services/api';
 
 interface ExamEventStatsProps {
@@ -37,12 +37,12 @@ const ExamEventStatsComponent: React.FC<ExamEventStatsProps> = ({ contestId }) =
       events.forEach((event: any) => {
         if (!userMap.has(event.user_id)) {
           userMap.set(event.user_id, {
-            user_id: event.user_id,
-            user_name: event.user_name || event.student_name || 'Unknown',
-            tab_hidden_count: 0,
-            window_blur_count: 0,
-            exit_fullscreen_count: 0,
-            total_violations: 0
+            userId: event.user_id,
+            userName: event.user_name || event.student_name || 'Unknown',
+            tabHiddenCount: 0,
+            windowBlurCount: 0,
+            exitFullscreenCount: 0,
+            totalViolations: 0
           });
         }
 
@@ -50,17 +50,17 @@ const ExamEventStatsComponent: React.FC<ExamEventStatsProps> = ({ contestId }) =
         
         switch (event.event_type) {
           case 'tab_hidden':
-            userStats.tab_hidden_count++;
+            userStats.tabHiddenCount++;
             break;
           case 'window_blur':
-            userStats.window_blur_count++;
+            userStats.windowBlurCount++;
             break;
           case 'exit_fullscreen':
-            userStats.exit_fullscreen_count++;
+            userStats.exitFullscreenCount++;
             break;
         }
         
-        userStats.total_violations++;
+        userStats.totalViolations++;
       });
 
       setStats(Array.from(userMap.values()));
@@ -72,20 +72,20 @@ const ExamEventStatsComponent: React.FC<ExamEventStatsProps> = ({ contestId }) =
   };
 
   const headers = [
-    { key: 'user_name', header: '參賽者' },
-    { key: 'tab_hidden_count', header: '切換分頁' },
-    { key: 'window_blur_count', header: '視窗失焦' },
-    { key: 'exit_fullscreen_count', header: '退出全螢幕' },
-    { key: 'total_violations', header: '總違規次數' }
+    { key: 'userName', header: '參賽者' },
+    { key: 'tabHiddenCount', header: '切換分頁' },
+    { key: 'windowBlurCount', header: '視窗失焦' },
+    { key: 'exitFullscreenCount', header: '退出全螢幕' },
+    { key: 'totalViolations', header: '總違規次數' }
   ];
 
   const rows = stats.map(stat => ({
-    id: stat.user_id,
-    user_name: stat.user_name,
-    tab_hidden_count: stat.tab_hidden_count,
-    window_blur_count: stat.window_blur_count,
-    exit_fullscreen_count: stat.exit_fullscreen_count,
-    total_violations: stat.total_violations
+    id: stat.userId,
+    userName: stat.userName,
+    tabHiddenCount: stat.tabHiddenCount,
+    windowBlurCount: stat.windowBlurCount,
+    exitFullscreenCount: stat.exitFullscreenCount,
+    totalViolations: stat.totalViolations
   }));
 
   if (loading) {
