@@ -60,6 +60,7 @@ class PythonJudge(BaseJudge):
         Returns:
             Dict with keys: status, output, error, time, memory
         """
+        container = None
         try:
             self._ensure_docker_client()
             
@@ -115,12 +116,6 @@ timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1
             
             # 記憶體統計（簡化版）
             memory_usage_kb = 4096  # 預設估算
-            
-            # 清理容器
-            try:
-                container.remove(force=True)
-            except:
-                pass
             
             # 判斷執行結果
             if result['StatusCode'] == 124:  # timeout
@@ -178,3 +173,10 @@ timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1
                 'time': 0,
                 'memory': 0
             }
+        finally:
+            # 確保容器在任何情況下都被清理
+            if container:
+                try:
+                    container.remove(force=True)
+                except:
+                    pass
