@@ -20,7 +20,6 @@ import { useCopyText } from '@/hooks/useCopyText';
 import ProblemLink from '@/domains/problem/components/ProblemLink';
 import { formatDate } from '@/utils/format';
 import type { SubmissionDetail } from '@/core/entities/submission.entity';
-import { SubmissionStatusBadge } from '@/ui/components/badges/SubmissionStatusBadge';
 import { DifficultyBadge } from '@/ui/components/badges/DifficultyBadge';
 import DataCard from '@/ui/components/data-card/DataCard';
 import { getLanguageConfig } from '@/core/config/languageConfig';
