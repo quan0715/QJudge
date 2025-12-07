@@ -41,7 +41,11 @@ interface Submission {
   created_at: string;
 }
 
-const ContestSubmissionListPage = () => {
+interface ContestSubmissionListPageProps {
+  maxWidth?: string;
+}
+
+const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ maxWidth }) => {
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -88,7 +92,7 @@ const ContestSubmissionListPage = () => {
     try {
       const params: any = {
         source_type: 'contest',
-        contest_id: contestId,
+        contest: contestId,
         page: page,
         page_size: pageSize
       };
@@ -216,8 +220,8 @@ const ContestSubmissionListPage = () => {
     { key: 'actions', header: '操作' }
   ];
 
-  const rows = submissions.map(sub => {
-    const isOwner = sub.user?.username === currentUser?.username;
+  const rows = submissions.map((sub: any) => {
+    const isOwner = sub.username === currentUser?.username;
     const isAdminOrTeacher = currentUser?.role === 'admin' || currentUser?.role === 'teacher';
     const canView = isOwner || isAdminOrTeacher;
 
@@ -226,14 +230,14 @@ const ContestSubmissionListPage = () => {
       status: getStatusBadge(sub.status),
       problem: (
         <span style={{ fontWeight: 500 }}>
-          {sub.problem?.title || `Problem ${sub.problem?.id}`}
+          {sub.problemTitle || `Problem ${sub.problemId}`}
         </span>
       ),
-      username: sub.user?.username || 'Unknown',
+      username: sub.username || 'Unknown',
       language: getLanguageLabel(sub.language),
-      score: sub.score,
-      time: `${sub.exec_time} ms`,
-      created_at: formatDate(sub.created_at),
+      score: sub.score ?? 0,
+      time: sub.execTime !== undefined ? `${sub.execTime} ms` : '-',
+      created_at: sub.createdAt ? formatDate(sub.createdAt) : '-',
       actions: (
         <Button
           kind="ghost"
@@ -263,7 +267,7 @@ const ContestSubmissionListPage = () => {
   }
 
   return (
-    <SurfaceSection>
+    <SurfaceSection maxWidth={maxWidth}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           {/* Left Column: Filters */}

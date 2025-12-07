@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal } from '@carbon/react';
 import { PlayFilled, Login, Flag, WarningAltFilled } from '@carbon/icons-react';
+
 import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestTabs from './ContestTabs';
 import { Tag } from '@carbon/react';
@@ -9,34 +10,33 @@ import ReactMarkdown from 'react-markdown';
 import { ContestStatusBadge } from '@/ui/components/badges/ContestStatusBadge';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
+import './ContestHero.css';
 
-const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => (
-  <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
-    {label && (
-      <div style={{ 
-        marginBottom: '0.5rem', 
-        fontSize: '0.875rem', 
-        color: 'var(--cds-text-secondary)',
-        fontFamily: 'var(--cds-font-family)'
-      }}>
-        {label}
+const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => {
+  const isFinished = status === 'ended' || status === 'FINISHED';
+  const isActive = status === 'active';
+
+  return (
+    <div style={{ width: '100%', marginTop: '0', marginBottom: '1.25rem' }}>
+      {label && (
+        <div style={{ 
+          marginBottom: '0.5rem', 
+          fontSize: '0.875rem', 
+          color: 'var(--cds-text-secondary)',
+          fontFamily: 'var(--cds-font-family)'
+        }}>
+          {label}
+        </div>
+      )}
+      <div className="contest-progress-bar-container">
+        <div 
+          className={`contest-progress-bar-fill ${isActive ? 'active' : ''} ${isFinished ? 'finished' : ''}`}
+          style={{ width: `${value}%` }} 
+        />
       </div>
-    )}
-    <div style={{ 
-      height: '6px', 
-      width: '100%', 
-      backgroundColor: 'var(--cds-border-subtle)', 
-      position: 'relative' 
-    }}>
-      <div style={{ 
-        height: '100%', 
-        width: `${value}%`, 
-        backgroundColor: status === 'ended' || status === 'FINISHED' ? '#8d8d8d' : 'var(--cds-interactive)',
-        transition: 'width 0.3s ease'
-      }} />
     </div>
-  </div>
-);
+  );
+};
 
 interface ContestHeroProps {
   contest: ContestDetail | null;
@@ -46,6 +46,7 @@ interface ContestHeroProps {
   onStartExam?: () => void;
   onEndExam?: () => void;
   onTabChange?: (tab: string) => void;
+  maxWidth?: string;
 }
 
 const ContestHero: React.FC<ContestHeroProps> = ({ 
@@ -54,12 +55,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onJoin, 
   onStartExam, 
   onEndExam,
+  maxWidth
 }) => {
-  // const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-
+  
   useEffect(() => {
     if (!contest) return;
 
@@ -87,7 +88,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
   if (loading || !contest) {
     // Pass empty props to HeroBase for loading state
-    return <HeroBase title="" loading={true} />;
+    return <HeroBase title="" loading={true} maxWidth={maxWidth} />;
   }
 
   // --- Logic from ContestHeroBase ---
@@ -157,7 +158,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const progressBar = (
     <MinimalProgressBar 
       value={progress} 
-      label={contest.status === 'active' ? `Contest Progress · ${Math.round(progress)}%` : contest.status} 
+      label={contest.status === 'active' ? `考試進度 · ${Math.round(progress)}%` : '考試未啟用'} 
       status={contest.status}
     />
   );
@@ -176,12 +177,14 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   };
 
   // Wrapper for onJoin to match the prop name expected by the button
-  const onJoinContest = onJoin;
+  // const onJoinContest = onJoin; 
+  // We use handleJoinClick instead
 
   const renderActions = () => {
+
     if (!contest.hasJoined) {
       return (
-        <Button renderIcon={Login} onClick={onJoinContest}>
+        <Button renderIcon={Login} onClick={onJoin}>
           立即報名 (Register)
         </Button>
       );
@@ -190,7 +193,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     if (contest.status !== 'active') {
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
-          考試已結束 (Contest Ended)
+          考試未啟用 (Contest Inactive)
         </Button>
       );
     }
@@ -229,16 +232,25 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
+    // Active and Joined and Not Finished - Has Started
+    if (contest.hasStarted) {
+      return (
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          {onEndExam && (
+            <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
+              結束考試 (Submit Exam)
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    // Active and Joined but Not Started Yet
     return (
       <div style={{ display: 'flex', gap: '1rem' }}>
         <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-          {contest.hasStarted ? '繼續考試 (Continue)' : '開始考試 (Start Exam)'}
+          開始考試 (Start Exam)
         </Button>
-        {contest.hasStarted && onEndExam && (
-          <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
-            結束考試 (Submit Exam)
-          </Button>
-        )}
       </div>
     );
   };
@@ -253,8 +265,14 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         actions={renderActions()}
         kpiCards={kpiCards}
         progressBar={progressBar}
-        bottomContent={<ContestTabs contest={contest} />}
+        bottomContent={
+          <ContestTabs 
+            contest={contest} 
+            maxWidth={maxWidth}
+          />
+        }
         loading={loading}
+        maxWidth={maxWidth}
       />
 
       {/* Start Exam Confirmation Modal */}

@@ -57,18 +57,8 @@ class ProblemService:
     @transaction.atomic
     def clone_problem(source_problem: Problem, contest, created_by) -> Problem:
         """
-        DEPRECATED: This method is deprecated and will be removed in a future version.
-        The new MVP does not support cloning from practice problems.
-        Use create_contest_problem() instead to create new problems directly.
-        
         Clone a problem for a specific contest.
         """
-        import warnings
-        warnings.warn(
-            "clone_problem() is deprecated. Use create_contest_problem() to create new problems.",
-            DeprecationWarning,
-            stacklevel=2
-        )
         
         # Generate Q number for contest problem
         display_id = ProblemService.generate_contest_problem_id()

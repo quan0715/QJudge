@@ -3,6 +3,106 @@
 本文件為 AI Agent 專用技能參考文件。
 在進行任何前端生成任務時，需完整遵守以下規範與技能要求。
 
+---
+
+## 🏗️ 0. Frontend Architecture (QJudge 2.0)
+
+本專案採用 **Domain-Driven, Component-Based Architecture**，遵循 **Clean Architecture** 原則。
+
+### 📁 Folder Structure
+
+```
+src/
+  app/                      # Application Bootstrap & Configuration
+    router.tsx              # Main Router Definition
+    providers.tsx           # Global Providers (Theme, Auth, QueryClient)
+    App.tsx                 # Root Component
+    main.tsx                # Entry Point
+  
+  core/                     # Domain Layer (Enterprise Business Rules)
+    entities/               # TypeScript Interfaces/Types (e.g., Problem, Contest)
+      mappers/              # DTO <-> Entity Mappers
+    config/                 # Environment & Constants
+    errors/                 # Custom Error Classes
+  
+  services/                 # Infrastructure Layer (External Interfaces)
+    api/                    # Axios instances & Interceptors (httpClient.ts)
+    auth/                   # Auth Service (index.ts)
+    contest/                # Contest Domain API (index.ts)
+    problem/                # Problem Domain API (index.ts)
+    submission/             # Submission Domain API (index.ts)
+  
+  ui/                       # Shared Presentation Layer (Dumb Components)
+    components/             # Reusable Atomic UI (Buttons, Cards, Inputs)
+    layout/                 # UI Structures (PageHeader, Shell, Grid Wrappers)
+    carbon/                 # Carbon Overrides & Wrappers
+    theme/                  # Token Definitions, Theme Context
+    hooks/                  # Shared UI Hooks (useTheme, useMediaQuery)
+    styles/                 # Global SCSS/CSS Mixins
+  
+  domains/                  # Features organized by Business Domain
+    contest/
+      pages/                # Route Components (ContestList, ContestDetail)
+        admin/              # Admin-specific pages (Settings, Participants)
+      components/           # Domain-Specific UI (ContestCard, Scoreboard)
+        layout/             # Domain-specific layout (ContestHero, ContestTabs)
+      hooks/                # Business Logic Hooks (useContestTimer)
+      utils/                # Domain Helpers
+    problem/
+      pages/                
+      components/           # (ProblemSolver, CodeEditor, Terminal)
+      hooks/                
+      utils/                
+    submission/
+      pages/
+      components/           # (SubmissionStatus, DiffViewer)
+      hooks/
+    auth/                   # Login, Profile, 2FA
+    common/                 # Cross-domain shared business logic (rare)
+  
+  utils/                    # Pure Technical Utilities (date, string, validation)
+  hooks/                    # Shared React Hooks
+```
+
+### 🔄 Clean Architecture Mapping
+
+| Layer | Folder | Responsibility | Dependencies |
+|-------|--------|----------------|--------------|
+| Domain Layer | `src/core/entities` | Enterprise Business Rules & Types | None (Pure TS) |
+| Application Layer | `src/domains/*/hooks` | Business Use Cases (View Logic) | Domain Layer, Services |
+| Presentation Layer | `src/domains/*/pages`, `src/ui/*` | UI & Interaction | Application Layer, Carbon |
+| Infrastructure Layer | `src/services/` | API / Storage / Hardware | Config, 3rd Party Libs |
+
+### ⚠️ Architecture Rules (STRICT)
+
+1. **Dependency Flow**: `Presentation -> Application -> Domain`
+   - ❌ Forbidden: `core/entities` importing from `ui/`
+
+2. **Domain Isolation**:
+   - `domains/problem` should NOT import from `domains/contest`
+   - If shared logic needed → move to `domains/common` or `core`
+
+3. **No Logic in Pages**:
+   - Pages only compose components and fetch data (via hooks)
+   - Complex logic goes into `hooks/` or `components/`
+
+4. **Carbon First**:
+   - All UI elements must use Carbon components or wrappers in `ui/`
+   - No raw CSS for standard elements (Buttons, Inputs)
+
+5. **Layout Consistency**:
+   - All pages must use `ui/layout/` wrappers
+   - PageHeader → Tabs → Content flow must be preserved
+
+6. **Service Layer Rules**:
+   - API Surface: Only use `index.ts` for public exports
+   - Pure Data: Never import React inside services
+   - No UI: No toast, modal in services
+   - Centralized HTTP: Always use `@/services/api/httpClient`
+   - Typed: All requests/responses use types from `core/entities`
+
+---
+
 🎨 1. Carbon Design System Overview（核心原則）
 
 在開發 QJudge 前端 UI（ProblemSolver、ContestLayout 等）時，所有視覺、排版、色彩、元件、交互行為必須遵循 IBM Carbon Design System。
@@ -285,3 +385,89 @@ AI 在產生 UI 程式碼時不得：
 ✔ Run Test payload 是否符合規範？
 
 AI 需全部通過後才可輸出程式碼。
+
+---
+
+## 📋 12. Key UI Components Reference
+
+### 12.1 Layout Components (`ui/layout/`)
+
+| Component | Purpose | Usage |
+|-----------|---------|-------|
+| `PageHeader` | Standard page header with title, subtitle, actions | All pages |
+| `SurfaceSection` | Full-width section with max-width content | Page content areas |
+| `ContainerCard` | Card with optional title and action | Data display |
+| `StickyTabs` | Sticky navigation tabs | Domain navigation |
+
+### 12.2 Domain Components Pattern
+
+```tsx
+// domains/contest/components/ContestProblemList.tsx
+// ✅ Good: Uses shared UI components + domain-specific logic
+import { ContainerCard } from '@/ui/components/layout/ContainerCard';
+import { SurfaceSection } from '@/ui/components/layout/SurfaceSection';
+import ProblemTable from '@/domains/problem/components/ProblemTable';
+
+// ❌ Bad: Importing from another domain directly
+import { ContestCard } from '@/domains/contest/components/ContestCard'; // in problem domain
+```
+
+### 12.3 Service Layer Pattern
+
+```tsx
+// services/contest/index.ts
+// ✅ Good: Pure data fetching, typed responses
+import { httpClient } from '@/services/api/httpClient';
+import type { ContestDetail } from '@/core/entities/contest.entity';
+
+export const getContest = async (id: string): Promise<ContestDetail> => {
+  const response = await httpClient.get(`/contests/${id}/`);
+  return response.data;
+};
+
+// ❌ Bad: UI logic in services
+import { toast } from 'react-hot-toast'; // Never in services!
+```
+
+---
+
+## 🔧 13. Development Patterns
+
+### 13.1 Permission-Based UI
+
+```tsx
+// ✅ Pattern: Check permissions from entity
+const canManage = contest.permissions?.canViewAllSubmissions || isAdminOrTeacher;
+
+// Show admin actions conditionally
+<ContainerCard 
+  action={canManage ? <AdminActions /> : undefined}
+>
+```
+
+### 13.2 Entity Mapping
+
+```tsx
+// core/entities/mappers/contestMapper.ts
+// Always map DTO (snake_case) to Entity (camelCase)
+export const mapContestDetailDto = (dto: any): ContestDetail => ({
+  id: dto.id,
+  hasStarted: dto.has_started,
+  hasFinishedExam: dto.has_finished_exam,
+  // ...
+});
+```
+
+### 13.3 Component Props Interface
+
+```tsx
+// ✅ Good: Clear, typed props
+interface ContestProblemListProps {
+  contest: ContestDetail;
+  problems: ContestProblemSummary[];
+  myRank: ScoreboardRow | null;
+  currentUser: any;
+  maxWidth?: string;
+  onReload?: () => void;
+}
+```

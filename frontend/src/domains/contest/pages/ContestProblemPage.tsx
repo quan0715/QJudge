@@ -1,15 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useContestNavigationGuard } from '@/hooks/useContestNavigationGuard';
 import { Loading, Button } from '@carbon/react';
 import ProblemSolver from '@/domains/problem/components/ProblemSolver';
-import ContestSidebar from '@/domains/contest/components/ContestSidebar';
 import type { ProblemDetail as Problem } from '@/core/entities/problem.entity';
 import type { SubmissionDetail as Submission } from '@/core/entities/submission.entity';
 import { getContestProblem, getContest } from '@/services/contest';
 import { submitSolution } from '@/services/submission';
-
-import { ChevronLeft, ChevronRight } from '@carbon/icons-react';
 
 const ContestProblemPage = () => {
   const { contestId, problemId } = useParams<{ contestId: string; problemId: string }>();
@@ -18,53 +15,64 @@ const ContestProblemPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contest, setContest] = useState<any>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [contestProblemInfo, setContestProblemInfo] = useState<{ score?: number; label?: string } | null>(null);
+  const [_isPending, startTransition] = useTransition();
+  
+  // Cache contest data by contestId
+  const contestCache = useRef<{ id: string; data: any } | null>(null);
   
   useContestNavigationGuard(contestId, contest?.status === 'ongoing');
 
   useEffect(() => {
     const fetchData = async () => {
       if (!contestId || !problemId) return;
+      
       try {
-        // Fetch contest data which includes problem list
-        const contestData = await getContest(contestId);
-        if (!contestData) throw new Error('Contest not found');
+        // Use cached contest data if available
+        let contestData = contestCache.current?.id === contestId 
+          ? contestCache.current.data 
+          : null;
+        
+        if (!contestData) {
+          setLoading(true);
+          contestData = await getContest(contestId);
+          if (!contestData) throw new Error('Contest not found');
+          contestCache.current = { id: contestId, data: contestData };
+        }
+        
         setContest(contestData);
         
         // Extract problem from contest data
-        // Backend returns 'problems' with the ContestProblemSerializer format
         const contestProblems = (contestData as any).problems || [];
-        console.log('Contest problems:', contestProblems);
-        console.log('Looking for problem ID:', problemId);
         
-        // Try to find by problem_id (from the serializer)
+        // Find by problemId (camelCase after mapping from problem_id)
         const contestProblemRef = contestProblems.find((cp: any) => 
-          cp.problem_id?.toString() === problemId || 
+          cp.problemId?.toString() === problemId || 
+          cp.problemId === Number(problemId) ||
+          cp.problem_id?.toString() === problemId ||
           cp.problem_id === Number(problemId)
         );
 
         if (!contestProblemRef) {
-          console.error('Available problem IDs:', contestProblems.map((cp: any) => cp.problem_id));
+          console.error('Available problem IDs:', contestProblems.map((cp: any) => cp.problemId || cp.problem_id));
           throw new Error('Problem not found in this contest');
         }
 
-        // Fetch full problem details
+        // Update contest problem info immediately for faster UI response
+        setContestProblemInfo({
+          score: contestProblemRef.score,
+          label: contestProblemRef.label
+        });
+
+        // Fetch full problem details with transition for smoother update
         const fullProblem = await getContestProblem(contestId, problemId);
         if (!fullProblem) {
             throw new Error('Failed to load problem details');
         }
 
-        console.log('Found contest problem:', fullProblem);
-
-        // Store contest problem metadata (score, label)
-        setContestProblemInfo({
-          score: contestProblemRef.score,
-          label: contestProblemRef.label
+        startTransition(() => {
+          setProblem(fullProblem);
         });
-        
-        // Set problem with score from contest reference
-        setProblem(fullProblem);
 
       } catch (err: any) {
         console.error('Error loading problem:', err);
@@ -116,11 +124,12 @@ const ContestProblemPage = () => {
   );
   if (!problem) return <div>題目不存在</div>;
 
-  // Check view permissions
+  // Check view permissions - use camelCase since contest is mapped via mapContestDetailDto
   const canView = 
-    contest?.current_user_role === 'admin' || 
-    contest?.current_user_role === 'teacher' || 
-    (contest?.status === 'active' && contest?.has_started && !contest?.is_locked);
+    contest?.currentUserRole === 'admin' || 
+    contest?.currentUserRole === 'teacher' || 
+    contest?.permissions?.canEditContest ||
+    (contest?.status === 'active' && contest?.hasStarted && !contest?.isLocked);
 
   if (!canView) {
     return (
@@ -138,70 +147,15 @@ const ContestProblemPage = () => {
     <div style={{ 
       height: '100%', 
       display: 'flex',
-      overflow: 'hidden',
-      position: 'relative'
     }}>
-      {/* Left Side - Contest Sidebar (Collapsible) */}
-      <div style={{ 
-        width: isSidebarOpen ? '300px' : '0px',
-        height: '100%',
-        overflow: 'hidden',
-        backgroundColor: 'var(--cds-layer-01)',
-        borderRight: isSidebarOpen ? '1px solid var(--cds-border-subtle-01)' : 'none',
-        transition: 'width 0.3s ease, border 0.3s ease',
-        position: 'relative',
-        zIndex: 1
-      }}>
-        <div style={{ width: '300px', height: '100%', padding: '1rem' }}>
-          <ContestSidebar 
-            contest={contest}
-            currentProblemId={problemId}
-          />
-        </div>
-      </div>
-
-      {/* Toggle Button */}
-      <div style={{
-        position: 'absolute',
-        left: isSidebarOpen ? '300px' : '0',
-        top: '1rem',
-        zIndex: 10,
-        transition: 'left 0.3s ease'
-      }}>
-        <Button
-          hasIconOnly
-          renderIcon={isSidebarOpen ? ChevronLeft : ChevronRight}
-          iconDescription={isSidebarOpen ? "收起列表" : "展開列表"}
-          kind="ghost"
-          size="sm"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          style={{
-            backgroundColor: 'var(--cds-layer-01)',
-            border: '1px solid var(--cds-border-subtle-01)',
-            borderLeft: isSidebarOpen ? 'none' : '1px solid var(--cds-border-subtle-01)',
-            borderTopLeftRadius: 0,
-            borderBottomLeftRadius: 0,
-            boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
-          }}
-        />
-      </div>
-
-      {/* Right Side - Problem Solver */}
-      <div style={{ 
-        flex: 1,
-        height: '100%',
-        overflow: 'auto',
-        paddingLeft: isSidebarOpen ? '0' : '1rem' // Add some padding when sidebar is closed
-      }}>
-        <ProblemSolver
-          problem={problem}
-          onSubmit={handleSubmit}
-          contestId={contestId}
-          contestName={contest?.name}
-          problemScore={contestProblemInfo?.score}
-          problemLabel={contestProblemInfo?.label}
-        />
-      </div>
+      <ProblemSolver
+        problem={problem}
+        onSubmit={handleSubmit}
+        contestId={contestId}
+        contestName={contest?.name}
+        problemScore={contestProblemInfo?.score}
+        problemLabel={contestProblemInfo?.label}
+      />
     </div>
   );
 };

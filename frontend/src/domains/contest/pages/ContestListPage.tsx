@@ -105,19 +105,8 @@ const ContestListPage: React.FC = () => {
   };
 
   const handleContestClick = async (contest: Contest) => {
-    // Direct entry logic - no modal confirmation
-    if (contest.isRegistered) { // Using standard entity property
-      handleEnter(contest.id);
-    } else {
-      // If not registered, navigate to contest page (which shows overview)
-      // OR open registration modal? Existing logic seemed to want to click row to enter/register
-      if (!contest.isRegistered) {
-          setSelectedContest(contest);
-          setRegisterModalOpen(true);
-      } else {
-          navigate(`/contests/${contest.id}`);
-      }
-    }
+    // Always navigate to contest page - registration can happen there
+    navigate(`/contests/${contest.id}`);
   };
 
   const headers = [

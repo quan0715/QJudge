@@ -11,6 +11,8 @@ import {
   Loading
 } from '@carbon/react';
 
+import { Link } from 'react-router-dom';
+
 export interface ProblemInfo {
   id: number;
   title: string;
@@ -44,13 +46,15 @@ interface ContestScoreboardProps {
   standings: StandingRow[];
   loading?: boolean;
   className?: string;
+  contestId?: string;
 }
 
 const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   problems,
   standings,
   loading = false,
-  className
+  className,
+  contestId
 }) => {
   const getCellColor = (stats: ProblemStats) => {
     if (stats.status === 'AC') return 'rgba(36, 161, 72, 0.2)'; // Green 20%
@@ -73,18 +77,22 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     }))
   ];
 
-  const rows = standings.map(s => {
+  const rows = standings.map((s, index) => {
+      // Use rank + index for unique ID since multiple users could have same rank
+      const rowId = `row_${s.rank}_${s.user?.id || index}`;
       const row: any = {
-          id: s.user.id.toString(),
+          id: rowId,
           rank: s.rank,
-          user: s.user.username,
-          solved: s.solved,
-          total_score: s.total_score,
-          time: s.time
+          user: s.user?.username || 'Unknown',
+          solved: s.solved || 0,
+          total_score: s.total_score || 0,
+          time: s.time || 0
       };
       
       problems.forEach(p => {
-          const stats = s.problems[p.id] || s.problems[p.id.toString()];
+          // API returns problems keyed by problem ID (as string)
+          const problemId = String(p.id || p.problem_id || '');
+          const stats = problemId && s.problems ? s.problems[problemId] : null;
           row[`problem_${p.id}`] = stats;
       });
       
@@ -189,6 +197,12 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 <TableRow>
                   {headers.map((header: any) => {
                     const headerProps = getHeaderProps({ header });
+                    const isProblemColumn = header.key.startsWith('problem_');
+                    const problem = isProblemColumn 
+                        ? problems.find(p => `problem_${p.id}` === header.key) 
+                        : null;
+                    const problemId = problem?.problem_id || problem?.id; // Prefer real problem ID
+
                     return (
                       <TableHeader 
                           {...headerProps} 
@@ -203,13 +217,22 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                                      header.key.startsWith('problem_') ? '80px' : 'auto'
                           }}
                       >
-                        <p style={{ 
+                        <div style={{ 
                           textAlign: header.key.startsWith('problem_') ? 'center' : 'left',
                           fontWeight: 'bold',
                           fontSize: '14px',
                         }}>
-                          {header.header}
-                        </p>
+                          {isProblemColumn && contestId && problemId ? (
+                             <Link 
+                               to={`/contests/${contestId}/solve/${problemId}`}
+                               style={{ textDecoration: 'none', color: 'inherit', display: 'block', width: '100%', height: '100%' }}
+                             >
+                               {header.header}
+                             </Link>
+                          ) : (
+                             header.header
+                          )}
+                        </div>
                       </TableHeader>
                     );
                   })}

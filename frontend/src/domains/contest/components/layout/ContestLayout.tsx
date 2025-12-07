@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Header,
   HeaderName,
@@ -8,7 +8,10 @@ import {
   Theme,
   Modal,
   InlineNotification,
-  HeaderNavigation
+  HeaderNavigation,
+  HeaderMenu,
+  HeaderMenuItem,
+  SkeletonText
 } from '@carbon/react';
 import {
   Maximize,
@@ -16,7 +19,8 @@ import {
   View,
   Logout,
   Time,
-  Settings
+  Settings,
+  Renew
 } from '@carbon/icons-react';
 import { useTheme } from '@/ui/theme/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
@@ -32,18 +36,24 @@ import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestHero from '@/domains/contest/components/layout/ContestHero';
 import { ContentPage } from '@/ui/layout/ContentPage';
 import { UserAvatarDisplay } from '@/ui/components/UserAvatarDisplay';
+import { ContestProvider } from '@/domains/contest/contexts/ContestContext';
 
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
+  const [isCountdownToStart, setIsCountdownToStart] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  // Detect if we're on a solve page - hide hero/tabs for cleaner UI
+  const isSolvePage = location.pathname.includes('/solve/');
 
   const isExamActive = !!(
     contest?.examModeEnabled && 
@@ -110,14 +120,23 @@ const ContestLayout = () => {
     if (!contest) return;
 
     const timer = setInterval(() => {
-      const end = new Date(contest.endTime).getTime();
       const now = new Date().getTime();
-      const diff = end - now;
+      const start = new Date(contest.startTime).getTime();
+      const end = new Date(contest.endTime).getTime();
+      
+      // Determine which target time to countdown to
+      const contestNotStartedYet = now < start;
+      setIsCountdownToStart(contestNotStartedYet);
+      const targetTime = contestNotStartedYet ? start : end;
+      const diff = targetTime - now;
 
       if (diff <= 0) {
+        if (contestNotStartedYet) {
+          // Contest just started - refresh to update status
+          refreshContest();
+        }
         setTimeLeft('00:00:00');
         clearInterval(timer);
-        // Auto exit or show ended message
       } else {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -232,13 +251,30 @@ const ContestLayout = () => {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Theme theme={theme}>
         <Header aria-label="Contest Platform">
-          <HeaderName href="#" prefix="NYCU">
-        Online Judge
-      </HeaderName>
-      {/* Remove Navigation Links as requested */}
-      <HeaderNavigation aria-label="Contest Navigation">
-        {/* Empty or minimal navigation if needed */}
-      </HeaderNavigation>
+          <HeaderName 
+            href={`/contests/${contestId}`} 
+            prefix="QJudge"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/contests/${contestId}`);
+            }}
+          >
+            {contest?.name || '競賽模式'}
+          </HeaderName>
+          <HeaderNavigation aria-label="Contest Navigation">
+            {isSolvePage && contest?.problems && contest.problems.length > 0 && (
+              <HeaderMenu aria-label="Problems" menuLinkName="題目列表">
+                {contest.problems.map((problem, index) => (
+                  <HeaderMenuItem
+                    key={problem.id}
+                    onClick={() => navigate(`/contests/${contestId}/solve/${problem.problemId}`)}
+                  >
+                    {problem.label || String.fromCharCode(65 + index)}. {problem.title}
+                  </HeaderMenuItem>
+                ))}
+              </HeaderMenu>
+            )}
+          </HeaderNavigation>
           <HeaderGlobalBar>
             <div style={{ 
               display: 'flex', 
@@ -246,11 +282,17 @@ const ContestLayout = () => {
               color: 'var(--cds-text-primary)', 
               marginRight: '2rem',
               fontFamily: 'monospace',
-              fontSize: '1.2rem',
+              fontSize: '1rem',
               fontWeight: 'bold'
             }}>
               <Time style={{ marginRight: '0.5rem' }} />
-              {timeLeft}
+              {!contest ? (
+                <SkeletonText width="100px" />
+              ) : (
+                <span>
+                  {isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}
+                </span>
+              )}
             </div>
             
             <HeaderGlobalAction 
@@ -259,6 +301,14 @@ const ContestLayout = () => {
               onClick={toggleTheme}
             >
               {theme === 'white' ? <Asleep size={20} /> : <Light size={20} />}
+            </HeaderGlobalAction>
+
+            <HeaderGlobalAction
+              aria-label="重新整理競賽資訊"
+              tooltipAlignment="center"
+              onClick={refreshContest}
+            >
+              <Renew size={20} />
             </HeaderGlobalAction>
 
             <HeaderGlobalAction
@@ -343,7 +393,7 @@ const ContestLayout = () => {
       <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
           <ContentPage
-            hero={
+            hero={!isSolvePage ? (
               <ContestHero 
                 contest={contest} 
                 onJoin={handleJoin}
@@ -351,7 +401,7 @@ const ContestLayout = () => {
                 onStartExam={handleStartExam}
                 onEndExam={handleEndExam}
               />
-            }
+            ) : undefined}
           >
             <ExamModeWrapper
               contestId={contestId || ''}
@@ -361,7 +411,9 @@ const ContestLayout = () => {
               lockReason={contest?.lockReason}
               currentUserRole={contest?.currentUserRole}
             >
-              <Outlet context={{ refreshContest }} />
+              <ContestProvider initialContest={contest} onRefresh={refreshContest}>
+                <Outlet context={{ refreshContest }} />
+              </ContestProvider>
             </ExamModeWrapper>
           </ContentPage>
         </div>

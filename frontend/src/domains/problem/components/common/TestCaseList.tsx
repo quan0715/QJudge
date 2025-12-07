@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-    Button, TextArea, FormLabel,
+    Button, TextArea, FormLabel, NumberInput,
     Accordion, AccordionItem, Tag, Toggle, Modal
 } from '@carbon/react';
 import { Add, TrashCan, Edit } from '@carbon/icons-react';
@@ -25,6 +25,7 @@ export interface TestCaseItem {
     memoryUsage?: number; // KB
     errorMessage?: string;
     actualOutput?: string;
+    score?: number;
 }
 
 /**
@@ -41,9 +42,9 @@ interface TestCaseListProps {
     readOnly?: boolean;
     
     // Edit actions
-    onAdd?: (input: string, output: string, isHidden?: boolean) => void;
+    onAdd?: (input: string, output: string, isHidden?: boolean, score?: number) => void;
     onDelete?: (id: string) => void;
-    onUpdate?: (id: string, input: string, output: string) => void;
+    onUpdate?: (id: string, input: string, output: string, score?: number) => void;
     onToggleVisibility?: (id: string, isHidden: boolean) => void;
     onToggleSample?: (id: string, isSample: boolean) => void;
     
@@ -65,10 +66,10 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
     onCancelAdd
 }) => {
     // Add Modal State
-    console.log('items', items);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newInput, setNewInput] = useState('');
     const [newOutput, setNewOutput] = useState('');
+    const [newScore, setNewScore] = useState(0);
     const [newIsHidden, setNewIsHidden] = useState(false);
     const [addError, setAddError] = useState('');
     
@@ -76,6 +77,7 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editInput, setEditInput] = useState('');
     const [editOutput, setEditOutput] = useState('');
+    const [editScore, setEditScore] = useState(0);
     
     // Determine if external control is being used for the add button
     const hasExternalAddControl = externalIsAdding !== undefined || onCancelAdd !== undefined;
@@ -87,6 +89,7 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
         setIsAddModalOpen(true);
         setNewInput('');
         setNewOutput('');
+        setNewScore(0);
         setNewIsHidden(false);
         setAddError('');
     };
@@ -108,7 +111,7 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
         }
         
         if (onAdd) {
-            onAdd(newInput, newOutput, mode === 'problem' ? newIsHidden : undefined);
+            onAdd(newInput, newOutput, mode === 'problem' ? newIsHidden : undefined, newScore);
         }
         closeAddModal();
     };
@@ -117,17 +120,19 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
         setEditingId(item.id);
         setEditInput(item.input);
         setEditOutput(item.output || '');
+        setEditScore(item.score || 0);
     };
 
     const cancelEdit = () => {
         setEditingId(null);
         setEditInput('');
         setEditOutput('');
+        setEditScore(0);
     };
 
     const saveEdit = (id: string) => {
         if (onUpdate) {
-            onUpdate(id, editInput, editOutput);
+            onUpdate(id, editInput, editOutput, editScore);
         }
         cancelEdit();
     };
@@ -205,6 +210,20 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
                         invalid={addError.includes('輸出')}
                     />
                 </div>
+
+                {isProblemMode && (
+                    <div style={{ marginBottom: '1rem' }}>
+                         <NumberInput
+                            id="new-tc-score"
+                            label="分數 (Score)"
+                            value={newScore}
+                            onChange={(_e: any, { value }: { value: number | string }) => setNewScore(Number(value))}
+                            min={0}
+                            style={{ marginBottom: '1rem' }}
+                        />
+                    </div>
+                )}
+                
                 
                 {/* Visibility Toggle for Problem Mode */}
                 {isProblemMode && (
@@ -262,6 +281,13 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 <span style={{ fontWeight: 600, minWidth: '60px' }}>
                                                   Case {index + 1}
                                                 </span>
+
+                                                {isProblemMode && (
+                                                    <Tag type="cyan" size="sm">
+                                                        {item.score ?? 0} 分
+                                                    </Tag>
+                                                )}
+                                                
                                                 
                                                 {/* Tags for Problem Mode */}
                                                 {isProblemMode && (
@@ -396,6 +422,17 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
                                                         onChange={(e: any) => setEditOutput(e.target.value)}
                                                     />
                                                 </div>
+                                                {isProblemMode && (
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                         <NumberInput
+                                                            id={`edit-tc-score-${item.id}`}
+                                                            label="分數 (Score)"
+                                                            value={editScore}
+                                                            onChange={(_e: any, { value }: { value: number | string }) => setEditScore(Number(value))}
+                                                            min={0}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                     <Button kind="secondary" size="sm" onClick={cancelEdit}>取消</Button>
                                                     <Button size="sm" onClick={() => saveEdit(item.id)}>儲存變更</Button>

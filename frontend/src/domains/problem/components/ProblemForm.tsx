@@ -161,12 +161,12 @@ const ProblemForm = ({
   }, [initialData]);
 
   // Test Case Handlers
-  const handleAddTestCase = (input: string, output: string, isHidden?: boolean) => {
+  const handleAddTestCase = (input: string, output: string, isHidden?: boolean, score?: number) => {
     const newTestCase: TestCase = {
       input,
       output,
       isSample: !isHidden, // isSample = !isHidden (public tests are samples)
-      score: 10,
+      score: score ?? 10,
       order: testCases.length,
       isHidden: isHidden ?? false
     };
@@ -178,10 +178,10 @@ const ProblemForm = ({
     setTestCases(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleUpdateTestCase = (id: string, input: string, output: string) => {
+  const handleUpdateTestCase = (id: string, input: string, output: string, score?: number) => {
     const idx = parseInt(id);
     setTestCases(prev => prev.map((tc, i) => 
-      i === idx ? { ...tc, input, output } : tc
+      i === idx ? { ...tc, input, output, score: score ?? tc.score ?? 0 } : tc
     ));
   };
 
@@ -236,7 +236,14 @@ const ProblemForm = ({
       isVisible,
       order: 0, // Default order
       translations,
-      testCases,
+      testCases: testCases.map(tc => ({
+        ...tc,
+        input_data: tc.input,
+        output_data: tc.output,
+        is_sample: tc.isSample,
+        is_hidden: tc.isHidden,
+        score: tc.score
+      }) as any),
       languageConfigs,
       existingTagIds: selectedExistingTagIds,
       newTagNames: pendingNewTagNames
@@ -506,7 +513,8 @@ const ProblemForm = ({
                         input: tc.input,
                         output: tc.output,
                         isSample: tc.isSample,
-                        isHidden: tc.isHidden ?? false
+                        isHidden: tc.isHidden ?? false,
+                        score: tc.score
                     }))}
                     onAdd={handleAddTestCase}
                     onDelete={handleDeleteTestCase}

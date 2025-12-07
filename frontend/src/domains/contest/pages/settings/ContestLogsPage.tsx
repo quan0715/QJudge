@@ -1,0 +1,226 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  DataTable,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarSearch,
+  Button,
+  Loading,
+  InlineNotification,
+  Pagination,
+  Tag
+} from '@carbon/react';
+import { Renew } from '@carbon/icons-react';
+import { getExamEvents } from '@/services/contest';
+import { mapExamEventDto } from '@/core/entities/mappers/contestMapper';
+import type { ExamEvent } from '@/core/entities/contest.entity';
+import ContainerCard from '@/ui/components/layout/ContainerCard';
+import { PageHeader } from '@/ui/layout/PageHeader';
+
+const ContestAdminLogsPage = () => {
+  const { contestId } = useParams<{ contestId: string }>();
+
+  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<ExamEvent[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<ExamEvent[]>([]);
+  const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => {
+    if (contestId) {
+      loadLogs();
+    }
+  }, [contestId]);
+
+  // Filter events when search term changes
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredEvents(events);
+    } else {
+      const lowerSearch = searchTerm.toLowerCase();
+      const filtered = events.filter(e => 
+        e.userName?.toLowerCase().includes(lowerSearch) ||
+        e.eventType?.toLowerCase().includes(lowerSearch) ||
+        e.reason?.toLowerCase().includes(lowerSearch)
+      );
+      setFilteredEvents(filtered);
+    }
+    setPage(1); // Reset to first page on search
+  }, [searchTerm, events]);
+
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      const rawData = await getExamEvents(contestId!);
+      const data = rawData.map(mapExamEventDto);
+      // Sort by time desc
+      data.sort((a: ExamEvent, b: ExamEvent) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setEvents(data);
+      setFilteredEvents(data);
+    } catch (error) {
+      console.error('Failed to load logs', error);
+      setNotification({ kind: 'error', message: '無法載入考試紀錄' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Comprehensive event type mapping (merged from both files)
+  const getEventTag = (type: string) => {
+    const eventMap: Record<string, { label: string; type: any }> = {
+      // Exam/Contest events
+      'join': { label: '加入', type: 'green' },
+      'register': { label: '註冊', type: 'green' },
+      'enter_contest': { label: '進入競賽', type: 'blue' },
+      'start_exam': { label: '開始考試', type: 'cyan' },
+      'end_exam': { label: '結束考試', type: 'magenta' },
+      'leave': { label: '離開競賽', type: 'gray' },
+      
+      // Submission events
+      'submit': { label: '提交', type: 'blue' },
+      'submit_code': { label: '提交程式碼', type: 'purple' },
+      
+      // Cheat detection events
+      'tab_switch': { label: '切換分頁', type: 'red' },
+      'cheat_warning': { label: '違規警告', type: 'red' },
+      'lock': { label: '鎖定', type: 'magenta' },
+      'lock_user': { label: '鎖定用戶', type: 'red' },
+      'unlock': { label: '解鎖', type: 'teal' },
+      'unlock_user': { label: '解鎖用戶', type: 'teal' },
+      
+      // Q&A events
+      'ask_question': { label: '提問', type: 'blue' },
+      'reply_question': { label: '回覆提問', type: 'blue' },
+      'announce': { label: '發布公告', type: 'magenta' },
+      
+      // Admin events
+      'update_problem': { label: '更新題目', type: 'gray' },
+      'update_participant': { label: '更新參與者', type: 'gray' },
+      'publish_problem_to_practice': { label: '發布到練習區', type: 'cool-gray' },
+    };
+
+    const config = eventMap[type] || { label: type, type: 'outline' };
+    return <Tag type={config.type} size="sm">{config.label}</Tag>;
+  };
+
+  const headers = [
+    { key: 'timestamp', header: '時間' },
+    { key: 'userName', header: '使用者' },
+    { key: 'eventType', header: '事件類型' },
+    { key: 'reason', header: '詳細內容' }
+  ];
+
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+
+  return (
+    <div className="contest-admin-logs">
+      <PageHeader 
+        title="考試紀錄" 
+        subtitle="監控所有與考試相關的事件"
+        maxWidth="1056px"
+        action={
+            <Button size="md" kind="secondary" renderIcon={Renew} onClick={loadLogs}>
+                重新整理
+            </Button>
+        }
+      />
+
+      <div style={{ padding: '1rem', maxWidth: '1056px', margin: '0 auto', width: '100%' }}>
+        {notification && (
+            <InlineNotification
+                kind={notification.kind}
+                title={notification.kind === 'success' ? '成功' : '錯誤'}
+                subtitle={notification.message}
+                onClose={() => setNotification(null)}
+                style={{ marginBottom: '1rem', maxWidth: '100%' }}
+            />
+        )}
+        
+        {loading && events.length === 0 ? (
+            <Loading withOverlay={false} />
+        ) : (
+            <ContainerCard noPadding>
+                <DataTable
+                    rows={paginatedEvents.map((e, index) => ({ 
+                        ...e, 
+                        id: e.id ? e.id.toString() : index.toString(),
+                        userName: e.userName || 'Unknown',
+                        reason: e.reason || '-'
+                    }))}
+                    headers={headers}
+                >
+                    {({ rows, headers, getHeaderProps, getRowProps, getTableProps }: any) => (
+                    <TableContainer>
+                        <TableToolbar>
+                          <TableToolbarContent>
+                            <TableToolbarSearch 
+                              onChange={(e: any) => setSearchTerm(e.target?.value || '')} 
+                              placeholder="搜尋事件..." 
+                              persistent
+                            />
+                          </TableToolbarContent>
+                        </TableToolbar>
+                        <Table {...getTableProps()}>
+                        <TableHead>
+                            <TableRow>
+                            {headers.map((header: any) => (
+                                <TableHeader {...getHeaderProps({ header })} key={header.key}>
+                                {header.header}
+                                </TableHeader>
+                            ))}
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {rows.map((row: any) => {
+                                const event = filteredEvents.find((e, i) => (e.id ? e.id.toString() : i.toString()) === row.id);
+                                return (
+                                <TableRow {...getRowProps({ row })} key={row.id}>
+                                    <TableCell>{new Date(row.cells.find((c: any) => c.info.header === 'timestamp')?.value).toLocaleString()}</TableCell>
+                                    <TableCell>{row.cells.find((c: any) => c.info.header === 'userName')?.value}</TableCell>
+                                    <TableCell>
+                                        {event ? getEventTag(event.eventType) : row.cells.find((c: any) => c.info.header === 'eventType')?.value}
+                                    </TableCell>
+                                    <TableCell>{row.cells.find((c: any) => c.info.header === 'reason')?.value}</TableCell>
+                                </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                        </Table>
+                    </TableContainer>
+                    )}
+                </DataTable>
+                <Pagination
+                    totalItems={filteredEvents.length}
+                    backwardText="上一頁"
+                    forwardText="下一頁"
+                    itemsPerPageText="每頁顯示"
+                    page={page}
+                    pageSize={pageSize}
+                    pageSizes={[20, 50, 100, 200]}
+                    onChange={({ page: newPage, pageSize: newPageSize }: any) => {
+                        setPage(newPage);
+                        setPageSize(newPageSize);
+                    }}
+                />
+            </ContainerCard>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ContestAdminLogsPage;

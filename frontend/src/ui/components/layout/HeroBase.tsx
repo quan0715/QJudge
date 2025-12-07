@@ -97,6 +97,12 @@ export const HeroBase: React.FC<HeroBaseProps> = ({
             flexDirection: 'column',
             maxWidth: isMobile ? '100%' : '65%'
           }}>
+
+            {badges && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                {badges}
+                </div>
+            )}
             <h1 style={{ 
              fontSize: 'var(--cds-heading-06, 2.625rem)',
              fontWeight: 400,
@@ -120,11 +126,6 @@ export const HeroBase: React.FC<HeroBaseProps> = ({
                 </div>
             )}
 
-            {badges && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                {badges}
-                </div>
-            )}
 
             {metadata && (
                 <div style={{ display: 'flex', gap: '2rem', color: 'var(--cds-text-secondary)', fontSize: '0.875rem', flexWrap: 'wrap' }}>

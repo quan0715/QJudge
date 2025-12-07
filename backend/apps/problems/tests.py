@@ -133,7 +133,7 @@ class ProblemCRUDTests(TestCase):
             'difficulty': 'hard',
             'time_limit': 2000,
             'memory_limit': 256,
-            'tags': [self.tag1.id, self.tag2.id]
+            'existing_tag_ids': [self.tag1.id, self.tag2.id]
         }
         response = self.client.post('/api/v1/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -142,6 +142,24 @@ class ProblemCRUDTests(TestCase):
         self.assertEqual(problem.title, 'New Tagged Problem')
         self.assertEqual(problem.created_by, self.teacher)
         self.assertEqual(problem.tags.count(), 2)
+
+    def test_create_problem_with_new_tags(self):
+        """Test creating a problem with new tag names"""
+        self.client.force_authenticate(user=self.teacher)
+        data = {
+            'title': 'New Tags Problem',
+            'slug': 'new-tags',
+            'difficulty': 'medium',
+            'new_tag_names': ['Greedy', 'Sorting']
+        }
+        response = self.client.post('/api/v1/problems/', data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        problem = Problem.objects.get(slug='new-tags')
+        self.assertEqual(problem.tags.count(), 2)
+        tag_names = list(problem.tags.values_list('name', flat=True))
+        self.assertIn('Greedy', tag_names)
+        self.assertIn('Sorting', tag_names)
 
     def test_create_problem_invalid_data(self):
         """Test creating a problem with missing required fields"""
@@ -197,7 +215,7 @@ class ProblemCRUDTests(TestCase):
             'difficulty': 'easy',
             'time_limit': 500,
             'memory_limit': 64,
-            'tags': [self.tag2.id]
+            'existing_tag_ids': [self.tag2.id]
         }
         response = self.client.put(f'/api/v1/problems/{self.problem.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

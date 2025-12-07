@@ -29,15 +29,15 @@ export const ProblemDescriptionTab: React.FC<{ problem: any }> = ({ problem }) =
 );
 
 // History Tab
-export const ProblemHistoryTab: React.FC<{ problemId: string }> = ({ problemId }) => (
+export const ProblemHistoryTab: React.FC<{ problemId: string; contestId?: string }> = ({ problemId, contestId }) => (
   <ContainerCard style={{ width: '100%', margin: '0 auto' }} noPadding>
-     <ProblemSubmissionHistory problemId={problemId} />
+     <ProblemSubmissionHistory problemId={problemId} contestId={contestId} />
   </ContainerCard>
 );
 
 // Stats Tab - re-export from dedicated component
-export const ProblemStatsTab: React.FC<{ problem: ProblemDetail }> = ({ problem }) => (
-  <ProblemStatsTabComponent problem={problem} />
+export const ProblemStatsTab: React.FC<{ problem: ProblemDetail; contestId?: string }> = ({ problem, contestId }) => (
+  <ProblemStatsTabComponent problem={problem} contestId={contestId} />
 );
 
 // Settings Tab

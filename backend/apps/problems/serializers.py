@@ -234,14 +234,15 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             
             # 2. Create or get new tags
             if new_tag_names:
+                # Deduplicate names first
+                unique_names = set()
                 for name in new_tag_names:
-                    name = name.strip()
-                    if not name:
-                        continue
-                        
+                    cleaned_name = name.strip()
+                    if cleaned_name:
+                        unique_names.add(cleaned_name)
+                
+                for name in unique_names:
                     # Generate slug from name
-                    # Simple slugify: lowercase and replace spaces with hyphens
-                    # For more robust slugify, use django.utils.text.slugify
                     from django.utils.text import slugify
                     slug = slugify(name)
                     if not slug:
@@ -249,14 +250,19 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
                         import uuid
                         slug = f"tag-{uuid.uuid4().hex[:8]}"
                     
-                    # Ensure slug is unique enough or handle collision?
-                    # The requirement says: get_or_create(slug=slug, defaults={'name': name})
-                    # But if slug exists, we return it.
-                    
-                    tag, created = Tag.objects.get_or_create(
-                        slug=slug,
-                        defaults={'name': name}
-                    )
+                    try:
+                        tag, created = Tag.objects.get_or_create(
+                            slug=slug,
+                            defaults={'name': name}
+                        )
+                    except Exception:
+                        # Handle race condition or duplicate slug/name that get_or_create missed
+                        try:
+                            tag = Tag.objects.get(name=name)
+                        except Tag.DoesNotExist:
+                             # If still can't find/create, skip or log
+                             continue
+
                     all_tags.append(tag)
             
             problem.tags.set(all_tags)

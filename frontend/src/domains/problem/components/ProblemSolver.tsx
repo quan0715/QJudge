@@ -274,8 +274,8 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                 theme={theme}
             />
           );
-          case 2: return <ProblemHistoryTab problemId={problem.id as string} />;
-          case 3: return <ProblemStatsTab problem={problem} />;
+          case 2: return <ProblemHistoryTab problemId={problem.id as string} contestId={contestId} />;
+          case 3: return <ProblemStatsTab problem={problem} contestId={contestId} />;
           case 4: return <ProblemSettingsTab problem={problem} />;
           default: return null;
       }
@@ -287,8 +287,9 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   // Consistent content width for alignment
   const contentMaxWidth = '1056px';
 
+  // Show full UI with hero and tabs for all modes
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 'var(--cds-spacing-09, 3rem)' }}>
+    <div style={{ minHeight: '100vh', width: '100%', paddingBottom: 'var(--cds-spacing-09, 3rem)' }}>
        {/* Hero with embedded Tabs */}
        <ProblemHero 
           problem={problem} 

@@ -15,7 +15,7 @@ import {
   Tag,
   SkeletonText
 } from '@carbon/react';
-import { Edit, TrashCan, Upload, Add, CheckmarkOutline } from '@carbon/icons-react';
+import { Edit, TrashCan, Upload, Add, CheckmarkOutline, CaretUp, CaretDown } from '@carbon/icons-react';
 import { Link } from 'react-router-dom';
 import type { Problem } from '@/core/entities/problem.entity';
 import { DifficultyBadge } from '@/ui/components/badges/DifficultyBadge';
@@ -75,15 +75,17 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
       ];
     }
     if (mode === 'contest') {
-      return [
-        { key: 'order', header: '順序' },
+      const headers = [
         { key: 'label', header: '標號' },
         { key: 'title', header: '標題' },
         { key: 'difficulty', header: '難度' },
         { key: 'tags', header: '標籤' },
-        { key: 'score', header: '分數' },
-        { key: 'actions', header: '操作' }
+        { key: 'score', header: '分數' }
       ];
+      if (onAction) {
+        headers.push({ key: 'actions', header: '操作' });
+      }
+      return headers;
     }
     // Admin mode - simplified columns
     return [
@@ -97,7 +99,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
 
   const rows = problems.map(p => ({
     ...p,
-    id: p.id.toString(),
+    id: p.id?.toString() || '',
     title: p.title || '',
     difficulty: p.difficulty || '',
     createdAt: p.createdAt || ''
@@ -107,16 +109,16 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
     <DataTable rows={rows} headers={getHeaders()}>
       {({ rows, headers, getTableProps, getHeaderProps, getRowProps, onInputChange }) => (
         <TableContainer>
-          {(mode === 'admin' || mode === 'student') && (
+          {((mode === 'admin' || mode === 'student') || (mode === 'contest' && (!!onAdd || !!onImport))) && (
             <TableToolbar>
               <TableToolbarContent>
                 <TableToolbarSearch onChange={(e) => { if (e && typeof e !== 'string') onInputChange(e); }} placeholder="搜尋題目..." />
-                {mode === 'admin' && onImport && (
+                {(mode === 'admin' || mode === 'contest') && onImport && (
                   <Button kind="secondary" renderIcon={Upload} onClick={onImport}>
                     匯入 YAML
                   </Button>
                 )}
-                {mode === 'admin' && onAdd && (
+                {(mode === 'admin' || mode === 'contest') && onAdd && (
                   <Button kind="primary" renderIcon={Add} onClick={onAdd}>
                     新增題目
                   </Button>
@@ -162,7 +164,6 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
                     {mode === 'contest' ? (
                       // Contest Mode Columns
                       <>
-                        <TableCell>{problem.order}</TableCell>
                         <TableCell>
                           <Tag type="cyan">{problem.label}</Tag>
                         </TableCell>
@@ -186,27 +187,40 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
                           </div>
                         </TableCell>
                         <TableCell>{problem.score}</TableCell>
-                        <TableCell>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <Button 
-                              kind="ghost" 
-                              size="sm" 
-                              renderIcon={Edit}
-                              onClick={() => onAction?.('edit', problem)}
-                            >
-                              編輯
-                            </Button>
-                            <Button 
-                              kind="ghost" 
-                              size="sm" 
-                              renderIcon={TrashCan}
-                              onClick={() => onAction?.('delete', problem)}
-                              style={{ color: 'var(--cds-text-error)' }}
-                            >
-                              移除
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {onAction && (
+                          <TableCell>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <Button 
+                                kind="ghost" 
+                                size="sm" 
+                                hasIconOnly
+                                renderIcon={CaretUp}
+                                iconDescription="往上移動"
+                                tooltipPosition="bottom"
+                                onClick={(e) => { e.stopPropagation(); onAction?.('move_up', problem); }}
+                              />
+                              <Button 
+                                kind="ghost" 
+                                size="sm" 
+                                hasIconOnly
+                                renderIcon={CaretDown}
+                                iconDescription="往下移動"
+                                tooltipPosition="bottom"
+                                onClick={(e) => { e.stopPropagation(); onAction?.('move_down', problem); }}
+                              />
+                              <div style={{ width: '1px', backgroundColor: 'var(--cds-border-subtle)', margin: '0 0.25rem' }} />
+                              <Button 
+                                kind="ghost" 
+                                size="sm" 
+                                renderIcon={TrashCan}
+                                onClick={(e) => { e.stopPropagation(); onAction?.('delete', problem); }}
+                                style={{ color: 'var(--cds-text-error)' }}
+                              >
+                                移除
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </>
                     ) : mode === 'student' ? (
                       // Student Mode Columns
@@ -298,7 +312,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
                             kind="ghost"
                             size="sm"
                             renderIcon={Edit}
-                            onClick={() => onAction?.('edit', problem)}
+                            onClick={(e) => { e.stopPropagation(); onAction?.('edit', problem); }}
                           >
                             編輯
                           </Button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Breadcrumb, BreadcrumbItem } from '@carbon/react';
+import { Tag } from '@carbon/react';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
 import { Checkmark, Percentage, Document, Trophy } from '@carbon/icons-react';
@@ -24,8 +24,8 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   loading,
   bottomContent,
   contestMode = false,
-  contestId,
-  contestName,
+  contestId: _contestId,
+  contestName: _contestName,
   problemScore,
   problemLabel,
   maxWidth
@@ -68,20 +68,20 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   );
 
   // Breadcrumbs: adapt based on mode
-  const breadcrumbs = contestMode ? (
-    <Breadcrumb>
-        <BreadcrumbItem href="/">Home</BreadcrumbItem>
-        <BreadcrumbItem href="/contests">Contests</BreadcrumbItem>
-        <BreadcrumbItem href={`/contests/${contestId}`}>{contestName || 'Contest'}</BreadcrumbItem>
-        <BreadcrumbItem href="#" isCurrentPage>{problemLabel ? `${problemLabel}. ${problem.title}` : problem.title}</BreadcrumbItem>
-    </Breadcrumb>
-  ) : (
-    <Breadcrumb>
-        <BreadcrumbItem href="/">Home</BreadcrumbItem>
-        <BreadcrumbItem href="/problems">Problems</BreadcrumbItem>
-        <BreadcrumbItem href="#" isCurrentPage>{problem.title}</BreadcrumbItem>
-    </Breadcrumb>
-  );
+  // const breadcrumbs = contestMode ? (
+  //   <Breadcrumb>
+  //       <BreadcrumbItem href="/">Home</BreadcrumbItem>
+  //       <BreadcrumbItem href="/contests">Contests</BreadcrumbItem>
+  //       <BreadcrumbItem href={`/contests/${contestId}`}>{contestName || 'Contest'}</BreadcrumbItem>
+  //       <BreadcrumbItem href="#" isCurrentPage>{problemLabel ? `${problemLabel}. ${problem.title}` : problem.title}</BreadcrumbItem>
+  //   </Breadcrumb>
+  // ) : (
+  //   <Breadcrumb>
+  //       <BreadcrumbItem href="/">Home</BreadcrumbItem>
+  //       <BreadcrumbItem href="/problems">Problems</BreadcrumbItem>
+  //       <BreadcrumbItem href="#" isCurrentPage>{problem.title}</BreadcrumbItem>
+  //   </Breadcrumb>
+  // );
 
   // Calculate AC rate from problem statistics
   const acRate = problem.submissionCount && problem.submissionCount > 0
@@ -129,7 +129,7 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
 
   return (
     <HeroBase
-      breadcrumbs={breadcrumbs}
+      // breadcrumbs={breadcrumbs}
       title={displayTitle}
       badges={badges}
       metadata={metadata}

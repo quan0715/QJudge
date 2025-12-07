@@ -139,9 +139,15 @@ class ContestProblem(models.Model):
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_problems')
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
     
-    label = models.CharField(max_length=10, default='A', verbose_name='標籤', help_text='例如: A, B, C')
+    # label = models.CharField(max_length=10, default='A', verbose_name='標籤', help_text='例如: A, B, C')
     order = models.IntegerField(default=0, verbose_name='排序')
     score = models.IntegerField(default=100, verbose_name='分數')
+
+    @property
+    def label(self):
+        if self.order < 26:
+            return chr(65 + self.order)
+        return f"P{self.order + 1}"
     
     class Meta:
         db_table = 'contest_problems'

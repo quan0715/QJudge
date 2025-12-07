@@ -1,33 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import ContestClarifications from '@/domains/contest/components/ContestClarifications';
-import { getContest } from '@/services/contest';
-import type { ContestDetail } from '@/core/entities/contest.entity';
-import { mapContestDetailDto } from '@/core/entities/mappers/contestMapper';
 import { Loading } from '@carbon/react';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
 
-const ContestQAPage = () => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const [contest, setContest] = useState<ContestDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+interface ContestQAPageProps {
+  maxWidth?: string;
+}
 
-  useEffect(() => {
-    if (contestId) {
-      getContest(contestId).then((rawData: any) => {
-        const data = mapContestDetailDto(rawData);
-        setContest(data || null);
-        setLoading(false);
-      });
-    }
-  }, [contestId]);
+const ContestQAPage: React.FC<ContestQAPageProps> = ({ maxWidth }) => {
+  const { contest, loading } = useContest();
 
   if (loading) return <Loading />;
   if (!contest) return <div>Contest not found</div>;
 
   return (
-    <SurfaceSection>
+    <SurfaceSection maxWidth={maxWidth}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           <div className="cds--col-lg-16">

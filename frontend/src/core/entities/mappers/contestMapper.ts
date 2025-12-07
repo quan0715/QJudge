@@ -110,15 +110,32 @@ export function mapScoreboardRowDto(dto: any): ScoreboardRow {
 }
 
 export function mapScoreboardDto(dto: any): ScoreboardData {
+  // API returns { problems: [], standings: [] }
+  const standings = dto.standings || dto.rows || [];
+  
   return {
     contestId: dto.contest?.id?.toString() || '',
     contestName: dto.contest?.name || '',
     problems: Array.isArray(dto.problems) ? dto.problems.map((p: any) => ({
+      id: p.id,
       label: p.label,
-      problemId: p.problem_id?.toString(),
-      score: p.score
+      problemId: p.id?.toString() || p.problem_id?.toString(),
+      score: p.score,
+      title: p.title,
+      order: p.order
     })) : [],
-    rows: Array.isArray(dto.rows) ? dto.rows.map(mapScoreboardRowDto) : []
+    rows: Array.isArray(standings) ? standings.map((s: any) => ({
+      rank: s.rank || 0,
+      user: s.user || { id: 0, username: 'Unknown' },
+      userId: s.user?.id?.toString() || '',
+      displayName: s.user?.username || '',
+      solved: s.solved || 0,
+      solvedCount: s.solved || 0,
+      total_score: s.total_score || 0,
+      time: s.time || 0,
+      penalty: s.time || 0,
+      problems: s.problems || {}
+    })) : []
   };
 }
 

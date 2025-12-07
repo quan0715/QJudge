@@ -11,7 +11,11 @@ import ContestScoreboard, { type ProblemInfo, type StandingRow } from '@/domains
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 
-const ContestStandingsPage = () => {
+interface ContestStandingsPageProps {
+  maxWidth?: string;
+}
+
+const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({ maxWidth }) => {
   const { contestId } = useParams<{ contestId: string }>();
   const [problems, setProblems] = useState<ProblemInfo[]>([]);
   const [standings, setStandings] = useState<StandingRow[]>([]);
@@ -31,12 +35,16 @@ const ContestStandingsPage = () => {
     if (!refreshing && standings.length === 0) setLoading(true);
     try {
       const data = await getContestStandings(contestId!) as any;
-      // Backend now returns { problems: [], standings: [] }
-      if (data.problems && data.standings) {
+      // mapScoreboardDto returns { problems: [], rows: [] }
+      if (data.problems && data.rows) {
+        setProblems(data.problems);
+        setStandings(data.rows);
+      } else if (data.problems && data.standings) {
+        // Fallback for old API format
         setProblems(data.problems);
         setStandings(data.standings);
       } else {
-        // Fallback for old API (shouldn't happen if backend deployed)
+        // Fallback for very old API (shouldn't happen)
         setStandings(Array.isArray(data) ? data : []);
       }
     } catch (error) {
@@ -55,7 +63,7 @@ const ContestStandingsPage = () => {
   if (loading && !refreshing && standings.length === 0) return <Loading />;
 
   return (
-    <SurfaceSection>
+    <SurfaceSection maxWidth={maxWidth}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           <div className="cds--col-lg-16">
@@ -81,7 +89,8 @@ const ContestStandingsPage = () => {
                 <ContestScoreboard 
                   problems={problems} 
                   standings={standings} 
-                  loading={loading} 
+                  loading={loading}
+                  contestId={contestId}
                 />
               </div>
             </ContainerCard>

@@ -96,7 +96,8 @@ class ProblemViewSet(viewsets.ModelViewSet):
         # For privileged users (admin/teacher), allow access to all problems
         # This covers retrieve, update, partial_update, destroy
         if user.is_authenticated and (user.is_staff or user.role in ['admin', 'teacher']):
-            return queryset
+            if self.action != 'list':
+                return queryset
         
         # Normal view filtering (Problem List for students/public)
         # MVP: Only show problems where is_practice_visible=True

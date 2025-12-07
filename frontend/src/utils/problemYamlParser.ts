@@ -20,15 +20,15 @@ export interface ProblemYAML {
     input_data: string;
     output_data: string;
     is_sample: boolean;
-    score: number;
-    order: number;
-    is_hidden: boolean;
+    score?: number;
+    order?: number;
+    is_hidden?: boolean;
   }[];
   language_configs?: {
     language: string;
     template_code: string;
-    is_enabled: boolean;
-    order: number;
+    is_enabled?: boolean;
+    order?: number;
   }[];
 }
 
@@ -109,28 +109,17 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
         if (typeof tc.is_sample !== 'boolean') {
           errors.push({ field: `test_cases[${index}].is_sample`, message: 'is_sample must be a boolean' });
         }
-        if (typeof tc.score !== 'number' || tc.score < 0) {
+        // Score, order, is_hidden are optional now
+        if (tc.score !== undefined && (typeof tc.score !== 'number' || tc.score < 0)) {
           errors.push({ field: `test_cases[${index}].score`, message: 'Score must be a non-negative number' });
         }
-        if (typeof tc.order !== 'number') {
+        if (tc.order !== undefined && typeof tc.order !== 'number') {
           errors.push({ field: `test_cases[${index}].order`, message: 'Order must be a number' });
         }
-        if (typeof tc.is_hidden !== 'boolean') {
+        if (tc.is_hidden !== undefined && typeof tc.is_hidden !== 'boolean') {
           errors.push({ field: `test_cases[${index}].is_hidden`, message: 'is_hidden must be a boolean' });
         }
       });
-
-      // Check score sum for non-sample cases
-      const nonSampleTotal = data.test_cases
-        .filter((tc: any) => !tc.is_sample)
-        .reduce((sum: number, tc: any) => sum + (tc.score || 0), 0);
-      
-      if (nonSampleTotal !== 100 && nonSampleTotal !== 0) {
-        errors.push({ 
-          field: 'test_cases', 
-          message: `Non-sample test case scores should sum to 100 (current: ${nonSampleTotal}). This is a warning, not a hard error.` 
-        });
-      }
     }
 
     // Validate language configs (optional but recommended)
@@ -145,10 +134,10 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
           if (typeof lc.template_code !== 'string') {
             errors.push({ field: `language_configs[${index}].template_code`, message: 'Template code must be a string' });
           }
-          if (typeof lc.is_enabled !== 'boolean') {
+          if (lc.is_enabled !== undefined && typeof lc.is_enabled !== 'boolean') {
             errors.push({ field: `language_configs[${index}].is_enabled`, message: 'is_enabled must be a boolean' });
           }
-          if (typeof lc.order !== 'number') {
+          if (lc.order !== undefined && typeof lc.order !== 'number') {
             errors.push({ field: `language_configs[${index}].order`, message: 'Order must be a number' });
           }
         });
@@ -189,19 +178,19 @@ export function convertYAMLToProblemData(yaml: ProblemYAML) {
       output_description: t.output_description,
       hint: t.hint || ''
     })),
-    test_cases: yaml.test_cases?.map(tc => ({
+    test_cases: yaml.test_cases?.map((tc, index) => ({
       input_data: tc.input_data,
       output_data: tc.output_data,
       is_sample: tc.is_sample,
-      score: tc.score,
-      order: tc.order,
-      is_hidden: tc.is_hidden
+      score: tc.score ?? 0, // Default to 0
+      order: tc.order ?? index, // Default to array index
+      is_hidden: tc.is_hidden ?? false // Default to false
     })) || [],
-    language_configs: yaml.language_configs?.map(lc => ({
+    language_configs: yaml.language_configs?.map((lc, index) => ({
       language: lc.language,
       template_code: lc.template_code,
-      is_enabled: lc.is_enabled,
-      order: lc.order  
+      is_enabled: lc.is_enabled ?? true, // Default to true
+      order: lc.order ?? index // Default to array index
     })) || []
   };
 }

@@ -258,7 +258,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', minHeight: '100vh' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', flex: 1 }}>
       {children}
 
       {/* Lock Overlay */}

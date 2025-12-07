@@ -138,6 +138,11 @@ export const removeContestProblem = async (contestId: string, problemId: string)
   if (!res.ok) throw new Error('Failed to remove problem');
 };
 
+export const reorderContestProblems = async (contestId: string, orders: { id: string | number; order: number }[]): Promise<void> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/reorder_problems/`, { orders });
+  if (!res.ok) throw new Error('Failed to reorder problems');
+};
+
 export const endContest = async (contestId: string): Promise<any> => {
   const res = await httpClient.post(`/api/v1/contests/${contestId}/end_contest/`);
   if (!res.ok) {
@@ -284,6 +289,11 @@ export const addParticipant = async (contestId: string, username: string): Promi
   if (!res.ok) throw new Error('Failed to add participant');
 };
 
+export const removeParticipant = async (contestId: string, userId: number): Promise<void> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/remove_participant/`, { user_id: userId });
+  if (!res.ok) throw new Error('Failed to remove participant');
+};
+
 export default {
   getContests,
   getContest,
@@ -321,4 +331,5 @@ export default {
   unlockParticipant,
   updateParticipant,
   addParticipant,
+  reorderContestProblems,
 };

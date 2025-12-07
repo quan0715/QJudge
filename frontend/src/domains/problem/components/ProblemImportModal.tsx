@@ -74,7 +74,7 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, 
         resetState();
         // Navigate to problem preview
         if (contestId) {
-          navigate(`/contests/${contestId}/problems/${problemId}`);
+          navigate(`/contests/${contestId}/solve/${problemId}`);
         } else {
           navigate(`/problems/${problemId}`);
         }

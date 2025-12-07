@@ -12,26 +12,15 @@ import DashboardPage from '@/app/pages/DashboardPage';
 import ContestListPage from '@/domains/contest/pages/ContestListPage';
 import ContestDashboard from '@/domains/contest/pages/ContestDashboard';
 import ContestProblemPage from '@/domains/contest/pages/ContestProblemPage';
-import ContestSubmissionListPage from '@/domains/contest/pages/ContestSubmissionListPage';
-import ContestStandingsPage from '@/domains/contest/pages/ContestStandingsPage';
-// import ContestSettingsPage from '@/pages/contests/ContestSettingsPage';
-import ContestQAPage from '@/domains/contest/pages/ContestQAPage';
 import ContestLayout from '@/domains/contest/components/layout/ContestLayout';
 import UserManagementPage from '@/domains/admin/pages/UserManagementPage';
 import AnnouncementManagementPage from '@/domains/admin/pages/AnnouncementManagementPage';
 import ProblemManagementPage from '@/domains/admin/pages/ProblemManagementPage';
 import ProblemFormPage from '@/domains/admin/pages/ProblemFormPage';
-import TeacherContestProblemEditPage from '@/domains/contest/pages/TeacherContestProblemEditPage';
 import ContestCreatePage from '@/domains/contest/pages/ContestCreatePage';
 import { RequireAuth, RequireGuest, RequireAdmin, RequireTeacherOrAdmin } from '@/domains/auth/components/RouteGuards';
 
-// Contest Admin Pages
-import ContestAdminLayout from '@/domains/contest/components/layout/ContestAdminLayout';
-import ContestAdminOverview from '@/domains/contest/pages/admin/ContestAdminOverview';
-import ContestAdminSettingsPage from '@/domains/contest/pages/admin/ContestSettingsPage';
-import ContestAdminProblemsPage from '@/domains/contest/pages/admin/ContestProblemsPage';
-import ContestAdminParticipantsPage from '@/domains/contest/pages/admin/ContestParticipantsPage';
-import ContestAdminLogsPage from '@/domains/contest/pages/admin/ContestLogsPage';
+// Admin pages are now rendered as tabs in ContestDashboard
  
 import { ThemeProvider } from '@/ui/theme/ThemeContext';
 
@@ -80,13 +69,14 @@ function App() {
             {/* Contest Routes - Outside MainLayout with Custom Header */}
             <Route path="/contests/:contestId" element={<ContestLayout />}>
               <Route index element={<ContestDashboard />} />
-              <Route path="problems" element={<ContestDashboard />} /> {/* Temporary redirect or list */}
-              <Route path="problems/:problemId" element={<ContestProblemPage />} />
-              <Route path="submissions" element={<ContestSubmissionListPage />} />
-              {/* Removed submissions/:submissionId route - using modal instead */}
-              <Route path="standings" element={<ContestStandingsPage />} />
-              {/* <Route path="settings" element={<ContestSettingsPage />} /> */}
-              <Route path="clarifications" element={<ContestQAPage />} />
+              {/* Legacy route redirects to new query param structure */}
+              <Route path="problems" element={<Navigate to="../?tab=problems" replace />} />
+              <Route path="submissions" element={<Navigate to="../?tab=submissions" replace />} />
+              <Route path="standings" element={<Navigate to="../?tab=standings" replace />} />
+              <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
+              
+              {/* Problem Solving Page */}
+              <Route path="solve/:problemId" element={<ContestProblemPage />} />
             </Route>
           </Route>
 
@@ -97,21 +87,18 @@ function App() {
               <Route path="/management/problems/new" element={<ProblemFormPage />} />
               <Route path="/management/problems/:id/edit" element={<ProblemFormPage />} />
               
-              {/* Teacher Contest Management */}
+              {/* Teacher Contest Management - Redirect to unified view */}
               <Route path="/teacher/contests" element={<Navigate to="/contests" replace />} />
               <Route path="/contests/new" element={<ContestCreatePage />} />
               <Route path="/teacher/contests/new" element={<Navigate to="/contests/new" replace />} />
-              <Route path="/teacher/contests/:id/edit" element={<Navigate to="/management/contests/:id" replace />} />
-              <Route path="/teacher/contests/:contestId/problems/:problemId/edit" element={<TeacherContestProblemEditPage />} />
-            </Route>
-
-            {/* New Contest Management Routes */}
-            <Route path="/management/contests/:contestId" element={<ContestAdminLayout />}>
-              <Route index element={<ContestAdminOverview />} />
-              <Route path="settings" element={<ContestAdminSettingsPage />} />
-              <Route path="problems" element={<ContestAdminProblemsPage />} />
-              <Route path="participants" element={<ContestAdminParticipantsPage />} />
-              <Route path="logs" element={<ContestAdminLogsPage />} />
+              <Route path="/teacher/contests/:id/edit" element={<Navigate to="/contests/:id?tab=settings" replace />} />
+              
+              {/* Redirect old management paths to unified contest view */}
+              <Route path="/management/contests/:contestId" element={<Navigate to="/contests/:contestId?tab=settings" replace />} />
+              <Route path="/management/contests/:contestId/settings" element={<Navigate to="/contests/:contestId?tab=settings" replace />} />
+              <Route path="/management/contests/:contestId/problems" element={<Navigate to="/contests/:contestId?tab=manage-problems" replace />} />
+              <Route path="/management/contests/:contestId/participants" element={<Navigate to="/contests/:contestId?tab=participants" replace />} />
+              <Route path="/management/contests/:contestId/logs" element={<Navigate to="/contests/:contestId?tab=logs" replace />} />
             </Route>
           </Route>
 

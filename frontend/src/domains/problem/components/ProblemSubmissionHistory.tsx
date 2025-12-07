@@ -7,9 +7,10 @@ import { httpClient } from '@/services/api/httpClient';
 
 interface ProblemSubmissionHistoryProps {
   problemId: number | string;
+  contestId?: string;
 }
 
-const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ problemId }) => {
+const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ problemId, contestId }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,12 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      const res = await httpClient.get(`/api/v1/submissions/?problem=${problemId}&ordering=-created_at&is_test=false`);
+      // Build query with optional contest filter
+      let url = `/api/v1/submissions/?problem=${problemId}&ordering=-created_at&is_test=false`;
+      if (contestId) {
+        url += `&contest=${contestId}`;
+      }
+      const res = await httpClient.get(url);
       const data = await res.json();
       setSubmissions(data.results || []);
     } catch (error) {
@@ -77,6 +83,7 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
         submissionId={submissionIdFromUrl}
         isOpen={isModalOpen}
         onClose={() => setSearchParams({})}
+        contestId={contestId}
       />
     </div>
   );

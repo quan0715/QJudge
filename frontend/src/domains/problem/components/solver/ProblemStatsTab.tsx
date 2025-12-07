@@ -9,6 +9,7 @@ import { getSubmissions } from '@/services/submission';
 
 interface ProblemStatsTabProps {
   problem: ProblemDetail;
+  contestId?: string;
 }
 
 interface StatusCount {
@@ -26,7 +27,7 @@ interface WeeklyData {
  * Problem Statistics Tab
  * Displays AC rate, result distribution, and weekly submission trend
  */
-const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
+const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId }) => {
   const [loading, setLoading] = useState(true);
   const [statusData, setStatusData] = useState<StatusCount[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
@@ -43,7 +44,11 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const { results: submissions } = await getSubmissions({ problemId: problem.id });
+        const { results: submissions } = await getSubmissions({ 
+          problem: problem.id,
+          contest: contestId,
+          source_type: contestId ? 'contest' : 'practice'
+        });
         
         // Calculate last 7 days distribution
         const statusCounts: Record<string, number> = {};

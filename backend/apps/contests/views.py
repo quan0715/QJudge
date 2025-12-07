@@ -2,7 +2,7 @@
 Views for contests app.
 """
 from django.utils import timezone
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -340,6 +340,36 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'added'})
 
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='remove_participant')
+    def remove_participant(self, request, pk=None):
+        """
+        Remove a participant from the contest.
+        Only contest owners/admins can perform this action.
+        """
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        username = participant.user.username
+        participant.delete()
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'unregister', 
+            f"Removed participant: {username}"
+        )
+        
+        return Response({'status': 'removed'})
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def register(self, request, pk=None):
         """
@@ -476,10 +506,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         title = request.data.get('title')
         
         if problem_id:
-            # Add existing problem
+            # Clone existing problem (Template)
             from apps.problems.models import Problem
+            from apps.problems.services import ProblemService
             try:
-                problem = Problem.objects.get(id=problem_id)
+                source_problem = Problem.objects.get(id=problem_id)
+                # Clone it to the contest
+                problem = ProblemService.clone_problem(source_problem, contest, user)
             except Problem.DoesNotExist:
                 return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
         elif title:
@@ -495,16 +528,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         new_order = (last_order if last_order is not None else -1) + 1
         
         # Generate label (A, B, C...)
-        label = chr(65 + new_order) if new_order < 26 else f"P{new_order+1}"
-        if request.data.get('label'):
-            label = request.data.get('label')
-            
         ContestProblem.objects.create(
             contest=contest,
             problem=problem,
             order=new_order,
-            label=label,
-            score=request.data.get('score', 100)
+            score=0, 
+            # label=label, # Dynamic now
         )
         
         from apps.problems.serializers import ProblemListSerializer
@@ -518,6 +547,35 @@ class ContestViewSet(viewsets.ModelViewSet):
         )
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    def reorder_problems(self, request, pk=None):
+        """
+        Reorder problems and regenerate labels.
+        Expects: { "orders": [{ "id": 1, "order": 0 }, ...] }  where id is ContestProblem ID
+        """
+        contest = self.get_object()
+        orders = request.data.get('orders', [])
+        
+        if not orders:
+            return Response({'error': 'No orders provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 1. Update orders
+        for item in orders:
+            cp_id = item.get('id')
+            new_order = item.get('order')
+            if cp_id is not None and new_order is not None:
+                ContestProblem.objects.filter(contest=contest, id=cp_id).update(order=new_order)
+                
+        # 2. Regenerate labels based on sorted order
+        contest_problems = ContestProblem.objects.filter(contest=contest).order_by('order')
+        for i, cp in enumerate(contest_problems):
+            # Ensure order is sequential 0, 1, 2...
+            cp.order = i
+            # cp.label = ... # Dynamic now
+            cp.save()
+            
+        return Response({'status': 'reordered'})
 
     @action(
         detail=True, 
@@ -595,13 +653,15 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
         
         # 1. Get Problems
-        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order')
+        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order').annotate(
+            problem_score_sum=Sum('problem__test_cases__score')
+        )
         problems_data = [{
             'id': cp.problem.id,
             'title': cp.problem.title,
             'order': cp.order,
             'label': cp.label,
-            'score': cp.score
+            'score': cp.problem_score_sum or 0
         } for cp in contest_problems]
 
         # 2. Get Participants
@@ -669,7 +729,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 stats[uid]['time'] += penalty
                 
                 # Add score
-                problem_score = next((cp.score for cp in contest_problems if cp.problem.id == pid), 0)
+                problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
                 stats[uid]['total_score'] += problem_score
             else:
                 p_stat['status'] = sub.status
@@ -979,7 +1039,9 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
-        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem')
+        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem').annotate(
+            problem_score_sum=Sum('problem__test_cases__score')
+        )
 
     def retrieve(self, request, *args, **kwargs):
         contest_id = self.kwargs.get('contest_pk')
@@ -1041,7 +1103,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         data = serializer.data
         
         # Add contest-specific fields
-        data['score'] = contest_problem.score
+        # data['score'] = contest_problem.score
+        data['score'] = contest_problem.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
         data['label'] = contest_problem.label
         data['contest_problem_id'] = contest_problem.id
         
@@ -1095,8 +1158,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest_problem = ContestProblem.objects.create(
             contest=contest,
             problem=problem,
-            score=100, # Default score
-            label=next_label,
+            # score=100, # Default score removed
+            # label=next_label,
             order=next_order
         )
         

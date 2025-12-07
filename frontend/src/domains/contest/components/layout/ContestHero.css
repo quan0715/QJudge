@@ -1,0 +1,50 @@
+/* Carbon Design System Motion */
+/* https://carbondesignsystem.com/elements/motion/overview/ */
+
+.contest-progress-bar-container {
+  height: 6px;
+  width: 100%;
+  background-color: var(--cds-border-subtle);
+  position: relative;
+  overflow: hidden;
+  border-radius: 0; /* Carbon style is usually square, but keeping consistent */
+}
+
+.contest-progress-bar-fill {
+  height: 100%;
+  /* Carbon Standard Productive Easing: cubic-bezier(0.2, 0, 0.38, 0.9) */
+  transition: width 0.4s cubic-bezier(0.2, 0, 0.38, 0.9);
+  position: relative;
+}
+
+/* Shimmer effect for active contest */
+.contest-progress-bar-fill.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.contest-progress-bar-fill.finished {
+  background-color: var(--cds-text-secondary); /* #8d8d8d */
+}
+
+.contest-progress-bar-fill.active {
+  background-color: var(--cds-interactive);
+}

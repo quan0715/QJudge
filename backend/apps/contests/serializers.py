@@ -12,6 +12,7 @@ from .models import (
     ExamEvent,
     ContestActivity,
 )
+from django.db.models import Sum
 from .permissions import get_user_role_in_contest, get_contest_permissions
 from apps.users.serializers import UserSerializer
 from apps.problems.serializers import ProblemListSerializer
@@ -242,14 +243,40 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Validate contest data."""
         # For private contests, password should be provided
-        if data.get('visibility') == 'private' and not data.get('password'):
-            raise serializers.ValidationError({
-                'password': 'Password is required for private contests.'
-            })
+        visibility = data.get('visibility')
+        
+        # Get effective visibility (from data or instance)
+        if visibility is None and self.instance:
+            visibility = self.instance.visibility
+            
+        if visibility == 'private':
+            password_in_data = 'password' in data
+            password = data.get('password')
+            
+            # If explicit empty password provided
+            if password_in_data and not password:
+                raise serializers.ValidationError({
+                    'password': 'Password is required for private contests.'
+                })
+                
+            # If no password provided, ensure existing password
+            if not password_in_data:
+                if not self.instance or not self.instance.password:
+                     raise serializers.ValidationError({
+                        'password': 'Password is required for private contests.'
+                     })
         
         # Validate time range
-        if data.get('start_time') and data.get('end_time'):
-            if data['start_time'] >= data['end_time']:
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        
+        # Handle partial updates for time check
+        if self.instance:
+            start_time = start_time if start_time is not None else self.instance.start_time
+            end_time = end_time if end_time is not None else self.instance.end_time
+
+        if start_time and end_time:
+            if start_time >= end_time:
                 raise serializers.ValidationError({
                     'end_time': 'End time must be after start time.'
                 })
@@ -278,6 +305,8 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     problem_id = serializers.IntegerField(source='problem.id', read_only=True)
     title = serializers.CharField(source='problem.title', read_only=True)
     difficulty = serializers.CharField(source='problem.difficulty', read_only=True)
+    label = serializers.CharField(read_only=True)
+    score = serializers.SerializerMethodField()
     user_status = serializers.SerializerMethodField()
     
     class Meta:
@@ -326,15 +355,22 @@ class ContestProblemSerializer(serializers.ModelSerializer):
         
         return None
 
+    def get_score(self, obj):
+        # Allow pre-calculated/annotated score to avoid N+1
+        if hasattr(obj, 'problem_score_sum'):
+            return obj.problem_score_sum or 0
+        # Fallback to aggregation
+        return obj.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
+
 
 class ContestProblemCreateSerializer(serializers.Serializer):
     """
     Serializer for adding a problem to a contest.
     """
     problem_id = serializers.IntegerField()
-    label = serializers.CharField(max_length=10)
+    # label = serializers.CharField(max_length=10) # Dynamic now
     order = serializers.IntegerField(default=0)
-    score = serializers.IntegerField(default=100)
+    # score = serializers.IntegerField(default=100)
 
 
 # ============================================================================

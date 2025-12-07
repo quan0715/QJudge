@@ -2,8 +2,19 @@ import { httpClient } from '@/services/api/httpClient';
 import type { Problem, ProblemDetail } from '@/core/entities/problem.entity';
 import { mapProblemDto, mapProblemDetailDto } from '@/core/entities/mappers/problemMapper';
 
-export const getProblems = async (scope?: string): Promise<Problem[]> => {
-  const query = scope ? `?scope=${scope}` : '';
+export const getProblems = async (params?: { scope?: string, search?: string } | string): Promise<Problem[]> => {
+  let query = '';
+  
+  if (typeof params === 'string') {
+    query = params ? `?scope=${params}` : '';
+  } else if (params) {
+    const searchParams = new URLSearchParams();
+    if (params.scope) searchParams.append('scope', params.scope);
+    if (params.search) searchParams.append('search', params.search);
+    const queryString = searchParams.toString();
+    query = queryString ? `?${queryString}` : '';
+  }
+
   const res = await httpClient.get(`/api/v1/problems/${query}`);
   
   if (!res.ok) {
