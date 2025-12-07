@@ -33,6 +33,9 @@ export interface ContestParticipant {
   score: number;
   rank?: number;
   joinedAt: string;
+  // Primary state field
+  examStatus: ExamStatusType;
+  // Legacy fields (kept for backward compatibility during migration)
   hasFinishedExam: boolean;
   isLocked: boolean;
   lockReason?: string;
@@ -57,6 +60,14 @@ export interface Contest {
   participantCount?: number;
 }
 
+// Explicit exam state for student participation
+export type ExamStatusType = 
+  | 'not_started' 
+  | 'in_progress' 
+  | 'paused' 
+  | 'locked' 
+  | 'submitted';
+
 export interface ContestDetail extends Contest {
   rules?: string;
   
@@ -80,6 +91,7 @@ export interface ContestDetail extends Contest {
   lockedAt?: string;
   lockReason?: string;
   isPaused?: boolean;
+  examStatus?: ExamStatusType;  // Primary state field
   
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];

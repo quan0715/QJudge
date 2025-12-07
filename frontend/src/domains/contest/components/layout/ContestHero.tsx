@@ -181,7 +181,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   // We use handleJoinClick instead
 
   const renderActions = () => {
-
+    // Step 0: Not registered
     if (!contest.hasJoined) {
       return (
         <Button renderIcon={Login} onClick={onJoin}>
@@ -190,6 +190,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
+    // Contest must be active for exam actions
     if (contest.status !== 'active') {
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
@@ -198,61 +199,90 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
-    if (contest.hasFinishedExam) {
-      if (contest.allowMultipleJoins) {
+    // Use examStatus as primary state (fallback to booleans for backward compatibility)
+    const examStatus = contest.examStatus || (
+      contest.isLocked ? 'locked' :
+      contest.hasFinishedExam ? 'submitted' :
+      contest.isPaused ? 'paused' :
+      contest.hasStarted ? 'in_progress' :
+      'not_started'
+    );
+
+    switch (examStatus) {
+      case 'locked':
+        // Step 2.5: Locked - show lock info
         return (
-          <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-            重新開始考試 (Start Exam)
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #da1e28' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#da1e28', fontWeight: 'bold' }}>
+              <WarningAltFilled /> 考試已鎖定 (Locked)
+            </div>
+            <div>{contest.lockReason}</div>
+            {contest.allowAutoUnlock && contest.autoUnlockMinutes && contest.lockedAt ? (
+              <div style={{ fontSize: '0.9rem', color: '#42be65' }}>
+                預計解鎖時間: {new Date(new Date(contest.lockedAt).getTime() + contest.autoUnlockMinutes * 60000).toLocaleTimeString()}
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.9rem', color: '#8d8d8d' }}>請聯繫監考人員解鎖</div>
+            )}
+          </div>
+        );
+
+      case 'submitted':
+        // Step 3: Submitted - show finished or allow restart
+        if (contest.allowMultipleJoins) {
+          return (
+            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+              重新開始考試 (Restart Exam)
+            </Button>
+          );
+        }
+        return (
+          <Button kind="secondary" disabled renderIcon={Flag}>
+            已交卷 (Finished)
           </Button>
         );
-      }
-      return (
-        <Button kind="secondary" disabled renderIcon={Flag}>
-          已交卷 (Finished)
-        </Button>
-      );
-    }
 
-    // Active and Joined and Not Finished
-    if (contest.isLocked) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #da1e28' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#da1e28', fontWeight: 'bold' }}>
-            <WarningAltFilled /> 考試已鎖定
-          </div>
-          <div>{contest.lockReason}</div>
-          {contest.allowAutoUnlock && contest.autoUnlockMinutes && contest.lockedAt ? (
-            <div style={{ fontSize: '0.9rem', color: '#42be65' }}>
-              預計解鎖時間: {new Date(new Date(contest.lockedAt).getTime() + contest.autoUnlockMinutes * 60000).toLocaleTimeString()}
+      case 'paused':
+        // Step 1 (paused): Needs to resume - show resume button
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #f1c21b', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f1c21b', fontWeight: 'bold' }}>
+                <WarningAltFilled /> 考試已暫停 (Paused)
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
+                請點擊繼續考試以重新進入考試模式
+              </div>
             </div>
-          ) : (
-            <div style={{ fontSize: '0.9rem', color: '#8d8d8d' }}>請聯繫監考人員解鎖</div>
-          )}
-        </div>
-      );
-    }
-
-    // Active and Joined and Not Finished - Has Started
-    if (contest.hasStarted) {
-      return (
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {onEndExam && (
-            <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
-              結束考試 (Submit Exam)
+            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+              繼續考試 (Resume Exam)
             </Button>
-          )}
-        </div>
-      );
-    }
+          </div>
+        );
 
-    // Active and Joined but Not Started Yet
-    return (
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-          開始考試 (Start Exam)
-        </Button>
-      </div>
-    );
+      case 'in_progress':
+        // Step 2: In progress - show end exam button
+        return (
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            {onEndExam && (
+              <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
+                結束考試 (Submit Exam)
+              </Button>
+            )}
+          </div>
+        );
+
+      case 'not_started':
+      default:
+        // Step 1 (not started): Show start button
+        return (
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+              開始考試 (Start Exam)
+            </Button>
+          </div>
+        );
+    }
   };
 
   return (

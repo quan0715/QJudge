@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
-import type { ExamModeState } from '@/core/entities/contest.entity';
+import type { ExamModeState, ExamStatusType } from '@/core/entities/contest.entity';
 import type { UserRole } from '@/core/entities/user.entity';
 import { endExam as serviceEndExam, recordExamEvent } from '@/services/contest';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -13,6 +13,7 @@ interface ExamModeWrapperProps {
   isActive: boolean;
   isLocked?: boolean;
   lockReason?: string;
+  examStatus?: ExamStatusType;
   currentUserRole?: UserRole;
   onExamStart?: () => void;
   onExamEnd?: () => void;
@@ -25,6 +26,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   isActive,
   isLocked,
   lockReason,
+  examStatus,
   currentUserRole,
   children
 }) => {
@@ -58,22 +60,26 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const isBypassed = currentUserRole === 'admin' || currentUserRole === 'teacher';
 
   useEffect(() => {
+    // Use examStatus as primary source if available
+    const effectiveIsLocked = examStatus === 'locked' || !!isLocked;
+    const effectiveIsActive = examStatus === 'in_progress' || (isActive && examStatus !== 'paused' && examStatus !== 'submitted');
+    
     setExamState(prev => ({ 
       ...prev, 
-      isActive,
-      isLocked: !!isLocked,
+      isActive: effectiveIsActive,
+      isLocked: effectiveIsLocked,
       lockReason: lockReason || prev.lockReason
     }));
 
     // Start grace period when exam becomes active
-    if (isActive && !prevIsActiveRef.current) {
+    if (effectiveIsActive && !prevIsActiveRef.current) {
       isGracePeriod.current = true;
       setTimeout(() => {
         isGracePeriod.current = false;
       }, 3000); // 3 seconds grace period
     }
-    prevIsActiveRef.current = isActive;
-  }, [isActive, isLocked, lockReason]);
+    prevIsActiveRef.current = effectiveIsActive;
+  }, [isActive, isLocked, lockReason, examStatus]);
 
   const prevIsActiveRef = useRef(isActive);
 

@@ -157,6 +157,15 @@ class ContestProblem(models.Model):
         unique_together = ['contest', 'problem']
 
 
+class ExamStatus(models.TextChoices):
+    """Explicit state for student exam participation."""
+    NOT_STARTED = 'not_started', '未開始'
+    IN_PROGRESS = 'in_progress', '進行中'
+    PAUSED = 'paused', '暫停'
+    LOCKED = 'locked', '已鎖定'
+    SUBMITTED = 'submitted', '已交卷'
+
+
 class ContestParticipant(models.Model):
     """
     Participant in a contest (registration record).
@@ -201,6 +210,15 @@ class ContestParticipant(models.Model):
         default=False,
         verbose_name='已暫停',
         help_text='是否處於暫停狀態（需手動點擊繼續）'
+    )
+    
+    # Explicit exam state (primary state field for UI)
+    exam_status = models.CharField(
+        max_length=20,
+        choices=ExamStatus.choices,
+        default=ExamStatus.NOT_STARTED,
+        verbose_name='考試狀態',
+        help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
     )
     
     class Meta:

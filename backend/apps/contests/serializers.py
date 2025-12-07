@@ -76,6 +76,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     locked_at = serializers.SerializerMethodField()
     is_paused = serializers.SerializerMethodField()
     lock_reason = serializers.SerializerMethodField()
+    exam_status = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     
     rule = serializers.CharField(source='rules', read_only=True)
@@ -110,6 +111,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'locked_at',
             'is_paused',
             'lock_reason',
+            'exam_status',
             'problems',
             'allow_multiple_joins',
             'ban_tab_switching',
@@ -149,6 +151,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return None
         registration = obj.registrations.filter(user=request.user).first()
         return registration.locked_at if registration else None
+
+    def get_exam_status(self, obj):
+        """Get exam status for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.exam_status if registration else None
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
@@ -502,7 +512,8 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         model = ContestParticipant
         fields = [
             'user_id', 'username', 'user', 'score', 'rank', 
-            'joined_at', 'has_finished_exam', 'is_locked', 'is_paused', 
+            'joined_at', 'exam_status',
+            'has_finished_exam', 'is_locked', 'is_paused', 
             'lock_reason', 'violation_count', 'auto_unlock_at', 'remaining_unlock_seconds'
         ]
 

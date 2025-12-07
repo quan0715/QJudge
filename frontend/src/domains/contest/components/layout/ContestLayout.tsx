@@ -7,7 +7,6 @@ import {
   HeaderGlobalAction,
   Theme,
   Modal,
-  InlineNotification,
   HeaderNavigation,
   HeaderMenu,
   HeaderMenuItem,
@@ -37,6 +36,7 @@ import ContestHero from '@/domains/contest/components/layout/ContestHero';
 import { ContentPage } from '@/ui/layout/ContentPage';
 import { UserAvatarDisplay } from '@/ui/components/UserAvatarDisplay';
 import { ContestProvider } from '@/domains/contest/contexts/ContestContext';
+import { ExamModeMonitorModel } from '@/domains/contest/components/Model/ExamModeMonitorModel';
 
 
 const ContestLayout = () => {
@@ -95,7 +95,6 @@ const ContestLayout = () => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isExamActive) {
         e.preventDefault();
-        e.returnValue = '';
       }
     };
 
@@ -359,65 +358,44 @@ const ContestLayout = () => {
             {/* User Info Display */}
             <UserAvatarDisplay />
       </HeaderGlobalBar>
-    </Header>
+        </Header>
 
-
-{/* Monitoring Warning Modal */}
-<Modal
-  open={monitoringModalOpen}
-  modalHeading="考試監控中 (Monitoring Active)"
-  passiveModal
-  onRequestClose={() => setMonitoringModalOpen(false)}
->
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-    <InlineNotification
-      kind="warning"
-      title="警告"
-      subtitle="本考試已啟用防作弊監控系統"
-      hideCloseButton
-    />
-    <div>
-      <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>請注意以下規則：</p>
-      <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem' }}>
-        <li>禁止切換瀏覽器分頁 (Tab Switching)</li>
-        <li>禁止離開全螢幕模式 (Exit Fullscreen)</li>
-        <li>禁止將視窗縮小或切換至其他應用程式 (Window Blur)</li>
-      </ul>
-    </div>
-    <p style={{ color: 'var(--cds-text-error)' }}>
-      違反上述規則將會被系統記錄，超過次數限制將會被<strong>自動鎖定</strong>並無法繼續考試。
-    </p>
-  </div>
-</Modal>    </Theme>
-
-      <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
-          <ContentPage
-            hero={!isSolvePage ? (
-              <ContestHero 
-                contest={contest} 
-                onJoin={handleJoin}
-                onLeave={handleLeave}
-                onStartExam={handleStartExam}
-                onEndExam={handleEndExam}
-              />
-            ) : undefined}
-          >
-            <ExamModeWrapper
-              contestId={contestId || ''}
-              examModeEnabled={!!contest?.examModeEnabled}
-              isActive={!!isExamActive}
-              isLocked={contest?.isLocked}
-              lockReason={contest?.lockReason}
-              currentUserRole={contest?.currentUserRole}
-            >
-              <ContestProvider initialContest={contest} onRefresh={refreshContest}>
-                <Outlet context={{ refreshContest }} />
-              </ContestProvider>
-            </ExamModeWrapper>
-          </ContentPage>
-        </div>
+      {/* Monitoring Warning Modal */}
+        <ExamModeMonitorModel
+          open={monitoringModalOpen}
+          onRequestClose={() => setMonitoringModalOpen(false)}
+        />
       </Theme>
+
+        <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
+            <ContentPage
+              hero={!isSolvePage ? (
+                <ContestHero 
+                  contest={contest} 
+                  onJoin={handleJoin}
+                  onLeave={handleLeave}
+                  onStartExam={handleStartExam}
+                  onEndExam={handleEndExam}
+                />
+              ) : undefined}
+            >
+              <ExamModeWrapper
+                contestId={contestId || ''}
+                examModeEnabled={!!contest?.examModeEnabled}
+                isActive={!!isExamActive}
+                isLocked={contest?.isLocked}
+                lockReason={contest?.lockReason}
+                examStatus={contest?.examStatus}
+                currentUserRole={contest?.currentUserRole}
+              >
+                <ContestProvider initialContest={contest} onRefresh={refreshContest}>
+                  <Outlet context={{ refreshContest }} />
+                </ContestProvider>
+              </ExamModeWrapper>
+            </ContentPage>
+          </div>
+        </Theme>
 
       <Modal
         open={isExitModalOpen}

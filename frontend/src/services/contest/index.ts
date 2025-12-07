@@ -284,9 +284,14 @@ export const updateParticipant = async (contestId: string, userId: number, data:
   if (!res.ok) throw new Error('Failed to update participant');
 };
 
-export const addParticipant = async (contestId: string, username: string): Promise<void> => {
+export const addContestParticipant = async (contestId: string, username: string): Promise<void> => {
   const res = await httpClient.post(`/api/v1/contests/${contestId}/add_participant/`, { username });
   if (!res.ok) throw new Error('Failed to add participant');
+};
+
+export const reopenExam = async (contestId: string, userId: number): Promise<void> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/reopen_exam/`, { user_id: userId });
+  if (!res.ok) throw new Error('Failed to reopen exam');
 };
 
 export const removeParticipant = async (contestId: string, userId: number): Promise<void> => {
@@ -330,6 +335,7 @@ export default {
   getContestParticipants,
   unlockParticipant,
   updateParticipant,
-  addParticipant,
+  addContestParticipant,
+  reopenExam,
   reorderContestProblems,
 };

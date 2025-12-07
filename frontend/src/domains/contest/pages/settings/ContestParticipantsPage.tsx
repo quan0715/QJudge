@@ -13,21 +13,22 @@ import {
   Loading,
   InlineNotification,
   Modal,
-  TextInput,
   Tag,
-  Toggle,
+  TextInput,
+  Pagination,
   TextArea,
-  Pagination
+  Dropdown
 } from '@carbon/react';
-import { Renew, Add, Edit, Unlocked, TrashCan } from '@carbon/icons-react';
+import { Add, Edit, TrashCan, Unlocked, Renew, Restart } from '@carbon/icons-react';
 import { 
   getContestParticipants, 
-  addParticipant, 
+  addContestParticipant,
   unlockParticipant, 
-  updateParticipant,
-  removeParticipant 
+  updateParticipant, 
+  removeParticipant,
+  reopenExam
 } from '@/services/contest';
-import type { ContestParticipant } from '@/core/entities/contest.entity';
+import type { ContestParticipant, ExamStatusType } from '@/core/entities/contest.entity';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import { PageHeader } from '@/ui/layout/PageHeader';
 
@@ -46,10 +47,18 @@ const ContestAdminParticipantsPage = () => {
   // Edit Participant State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<ContestParticipant | null>(null);
-  const [editIsLocked, setEditIsLocked] = useState(false);
+  const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>('not_started');
   const [editLockReason, setEditLockReason] = useState('');
-  const [editHasFinished, setEditHasFinished] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Exam status options for dropdown
+  const examStatusOptions = [
+    { id: 'not_started', label: '未開始' },
+    { id: 'in_progress', label: '進行中' },
+    { id: 'paused', label: '已暫停' },
+    { id: 'locked', label: '已鎖定' },
+    { id: 'submitted', label: '已交卷' },
+  ];
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -78,7 +87,7 @@ const ContestAdminParticipantsPage = () => {
     if (!contestId || !addUsername) return;
     try {
       setAdding(true);
-      await addParticipant(contestId, addUsername);
+      await addContestParticipant(contestId, addUsername);
       setAddModalOpen(false);
       setAddUsername('');
       await loadParticipants();
@@ -103,9 +112,8 @@ const ContestAdminParticipantsPage = () => {
 
   const openEditModal = (p: ContestParticipant) => {
     setEditingParticipant(p);
-    setEditIsLocked(p.isLocked);
+    setEditExamStatus(p.examStatus || 'not_started');
     setEditLockReason(p.lockReason || '');
-    setEditHasFinished(p.hasFinishedExam);
     setEditModalOpen(true);
   };
 
@@ -114,9 +122,8 @@ const ContestAdminParticipantsPage = () => {
     try {
       setSaving(true);
       await updateParticipant(contestId, Number(editingParticipant.userId), {
-        is_locked: editIsLocked,
-        lock_reason: editLockReason,
-        has_finished_exam: editHasFinished
+        exam_status: editExamStatus,
+        lock_reason: editExamStatus === 'locked' ? editLockReason : ''
       });
       setEditModalOpen(false);
       await loadParticipants();
@@ -125,6 +132,17 @@ const ContestAdminParticipantsPage = () => {
       setNotification({ kind: 'error', message: error.message || '更新失敗' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReopenExam = async (userId: number) => {
+    if (!contestId || !confirm('確定要重新開放此學生考試嗎？')) return;
+    try {
+      await reopenExam(contestId, userId);
+      await loadParticipants();
+      setNotification({ kind: 'success', message: '已重新開放考試' });
+    } catch (error: any) {
+      setNotification({ kind: 'error', message: error.message || '重新開放失敗' });
     }
   };
 
@@ -214,10 +232,11 @@ const ContestAdminParticipantsPage = () => {
                                 <TableCell>{new Date(p.joinedAt).toLocaleString()}</TableCell>
                                 <TableCell>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {/* {p.isGuest && <Tag type="cool-gray" size="sm">訪客</Tag>} */}
-                                        {p.isLocked && <Tag type="red" size="sm">已鎖定</Tag>}
-                                        {p.hasFinishedExam && <Tag type="green" size="sm">已交卷</Tag>}
-                                        {!p.isLocked && !p.hasFinishedExam && <Tag type="blue" size="sm">進行中</Tag>}
+                                        {p.examStatus === 'locked' && <Tag type="red" size="sm">已鎖定</Tag>}
+                                        {p.examStatus === 'submitted' && <Tag type="green" size="sm">已交卷</Tag>}
+                                        {p.examStatus === 'in_progress' && <Tag type="blue" size="sm">進行中</Tag>}
+                                        {p.examStatus === 'paused' && <Tag type="warm-gray" size="sm">已暫停</Tag>}
+                                        {(p.examStatus === 'not_started' || !p.examStatus) && <Tag type="cool-gray" size="sm">未開始</Tag>}
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -225,7 +244,7 @@ const ContestAdminParticipantsPage = () => {
                                 </TableCell>
                                 <TableCell>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {p.isLocked && (
+                                        {p.examStatus === 'locked' && (
                                             <Button 
                                                 kind="ghost" 
                                                 size="sm" 
@@ -233,6 +252,16 @@ const ContestAdminParticipantsPage = () => {
                                                 iconDescription="解除鎖定" 
                                                 hasIconOnly 
                                                 onClick={() => handleUnlock(Number(p.userId))}
+                                            />
+                                        )}
+                                        {p.examStatus === 'submitted' && (
+                                            <Button 
+                                                kind="ghost" 
+                                                size="sm" 
+                                                renderIcon={Restart} 
+                                                iconDescription="重新開放考試" 
+                                                hasIconOnly 
+                                                onClick={() => handleReopenExam(Number(p.userId))}
                                             />
                                         )}
                                         <Button
@@ -306,16 +335,17 @@ const ContestAdminParticipantsPage = () => {
             primaryButtonDisabled={saving}
         >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <Toggle
-                    id="is-locked"
-                    labelText="鎖定狀態"
-                    labelA="未鎖定"
-                    labelB="已鎖定"
-                    toggled={editIsLocked}
-                    onToggle={(checked) => setEditIsLocked(checked)}
+                <Dropdown
+                    id="exam-status"
+                    titleText="考試狀態"
+                    label="選擇狀態"
+                    items={examStatusOptions}
+                    itemToString={(item: any) => item?.label || ''}
+                    selectedItem={examStatusOptions.find(opt => opt.id === editExamStatus)}
+                    onChange={({ selectedItem }: any) => setEditExamStatus(selectedItem?.id as ExamStatusType)}
                 />
                 
-                {editIsLocked && (
+                {editExamStatus === 'locked' && (
                     <TextArea
                         id="lock-reason"
                         labelText="鎖定原因"
@@ -323,15 +353,6 @@ const ContestAdminParticipantsPage = () => {
                         onChange={(e) => setEditLockReason(e.target.value)}
                     />
                 )}
-                
-                <Toggle
-                    id="has-finished"
-                    labelText="考試完成狀態"
-                    labelA="未完成"
-                    labelB="已交卷"
-                    toggled={editHasFinished}
-                    onToggle={(checked) => setEditHasFinished(checked)}
-                />
             </div>
         </Modal>
       </div>

@@ -67,6 +67,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     lockedAt: dto.locked_at,
     lockReason: dto.lock_reason,
     isPaused: !!dto.is_paused,
+    examStatus: dto.exam_status,
     
     permissions: {
       canSwitchView: !!dto.permissions?.can_switch_view,
@@ -90,6 +91,7 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     score: dto.score || 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || '',
+    examStatus: dto.exam_status || 'not_started',
     hasFinishedExam: !!dto.has_finished_exam,
     isLocked: !!dto.is_locked,
     lockReason: dto.lock_reason,

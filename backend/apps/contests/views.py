@@ -16,7 +16,8 @@ from .models import (
     ContestAnnouncement,
     Clarification,
     ExamEvent,
-    ContestActivity
+    ContestActivity,
+    ExamStatus
 )
 from .serializers import (
     ContestListSerializer,
@@ -139,6 +140,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                     if timezone.now() >= unlock_time:
                         participant.is_locked = False
                         participant.is_paused = True  # Auto-unlock to paused state
+                        participant.exam_status = ExamStatus.PAUSED
                         participant.locked_at = None
                         participant.violation_count = 0
                         participant.lock_reason = ""
@@ -239,6 +241,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             participant.is_locked = False
             participant.lock_reason = ""
             participant.is_paused = True # Require manual resume
+            participant.exam_status = ExamStatus.PAUSED
             participant.save()
             
             # Log activity
@@ -266,12 +269,20 @@ class ContestViewSet(viewsets.ModelViewSet):
 
             if 'is_locked' in request.data:
                 participant.is_locked = request.data['is_locked']
+                if request.data['is_locked']:
+                    participant.exam_status = ExamStatus.LOCKED
             if 'lock_reason' in request.data:
                 participant.lock_reason = request.data['lock_reason']
             if 'has_finished_exam' in request.data:
                 participant.has_finished_exam = request.data['has_finished_exam']
+                if request.data['has_finished_exam']:
+                    participant.exam_status = ExamStatus.SUBMITTED
             if 'is_paused' in request.data:
                 participant.is_paused = request.data['is_paused']
+                if request.data['is_paused']:
+                    participant.exam_status = ExamStatus.PAUSED
+            if 'exam_status' in request.data:
+                participant.exam_status = request.data['exam_status']
 
             participant.save()
             
@@ -279,11 +290,45 @@ class ContestViewSet(viewsets.ModelViewSet):
             ContestActivityViewSet.log_activity(
                 contest, 
                 request.user, 
-                'other', 
+                'update_participant', 
                 f"Updated participant {participant.user.username}: {request.data}"
             )
             
-            return Response({'status': 'updated'})
+            return Response({'status': 'updated', 'exam_status': participant.exam_status})
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='reopen_exam')
+    def reopen_exam(self, request, pk=None):
+        """
+        Admin reopens a submitted exam, allowing student to continue.
+        """
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
+            
+            if not participant.has_finished_exam and participant.exam_status != ExamStatus.SUBMITTED:
+                return Response(
+                    {'error': 'Participant has not submitted exam yet'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            participant.has_finished_exam = False
+            participant.is_paused = True  # Require student to click "Continue"
+            participant.exam_status = ExamStatus.PAUSED
+            participant.save()
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'reopen_exam', 
+                f"Reopened exam for {participant.user.username}"
+            )
+            
+            return Response({'status': 'reopened', 'exam_status': ExamStatus.PAUSED})
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -822,16 +867,19 @@ class ExamViewSet(viewsets.ViewSet):
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=request.user)
             
-            if participant.is_locked:
+            # Check if locked
+            if participant.is_locked or participant.exam_status == ExamStatus.LOCKED:
                 return Response(
                     {'error': 'You have been locked out of this contest.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            if participant.has_finished_exam:
+            # Check if already submitted
+            if participant.has_finished_exam or participant.exam_status == ExamStatus.SUBMITTED:
                 if contest.allow_multiple_joins:
-                    # Reset finished status if multiple joins allowed
+                    # Reset for re-entry
                     participant.has_finished_exam = False
+                    participant.exam_status = ExamStatus.IN_PROGRESS
                     participant.save()
                 else:
                     return Response(
@@ -839,8 +887,25 @@ class ExamViewSet(viewsets.ViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            if participant.is_paused:
+            # Handle resume from paused state
+            if participant.is_paused or participant.exam_status == ExamStatus.PAUSED:
                 participant.is_paused = False
+                participant.exam_status = ExamStatus.IN_PROGRESS
+                participant.save()
+                
+                # Log activity
+                ContestActivityViewSet.log_activity(
+                    contest, 
+                    request.user, 
+                    'resume_exam', 
+                    "Resumed exam"
+                )
+                return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
+
+            # First start
+            if not participant.started_at or participant.exam_status == ExamStatus.NOT_STARTED:
+                participant.started_at = timezone.now()
+                participant.exam_status = ExamStatus.IN_PROGRESS
                 participant.save()
                 
                 # Log activity
@@ -848,23 +913,10 @@ class ExamViewSet(viewsets.ViewSet):
                     contest, 
                     request.user, 
                     'start_exam', 
-                    "Resumed exam"
+                    "Started exam"
                 )
-                return Response({'status': 'resumed'})
-
-            if not participant.started_at:
-                participant.started_at = timezone.now()
-                participant.save()
             
-            # Log activity
-            ContestActivityViewSet.log_activity(
-                contest, 
-                request.user, 
-                'start_exam', 
-                "Started exam"
-            )
-            
-            return Response({'status': 'started'})
+            return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -882,10 +934,21 @@ class ExamViewSet(viewsets.ViewSet):
                     {'error': 'You have not started the exam yet'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-                
+            
             participant.has_finished_exam = True
+            participant.left_at = timezone.now()
+            participant.exam_status = ExamStatus.SUBMITTED
             participant.save()
-            return Response({'status': 'finished'})
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest, 
+                request.user, 
+                'end_exam', 
+                "Submitted exam"
+            )
+            
+            return Response({'status': 'finished', 'exam_status': ExamStatus.SUBMITTED})
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -936,6 +999,7 @@ class ExamViewSet(viewsets.ViewSet):
             if should_lock and not participant.is_locked:
                 participant.is_locked = True
                 participant.locked_at = timezone.now()
+                participant.exam_status = ExamStatus.LOCKED
                 
                 # Use provided lock reason or default
                 custom_reason = serializer.validated_data.get('lock_reason')
