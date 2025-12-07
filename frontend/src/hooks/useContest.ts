@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/services/api';
+import { getContest } from '@/services/contest';
 import type { ContestDetail } from '@/core/entities/contest.entity';
 
 export const useContest = (contestId: string | undefined) => {
@@ -12,7 +12,7 @@ export const useContest = (contestId: string | undefined) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getContest(contestId);
+      const data = await getContest(contestId);
       setContest(data || null);
     } catch (err) {
       console.error('Failed to load contest', err);

@@ -1,7 +1,7 @@
-"""
-Unit tests for Submission API and Models
-"""
-from django.test import TestCase
+
+import unittest
+from unittest.mock import patch, MagicMock
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -77,12 +77,13 @@ int main() {
     return 0;
 }'''
         
-        response = self.client.post('/api/v1/submissions/', {
-            'problem': self.problem.id,
-            'language': 'cpp',
-            'code': code,
-            'is_test': False
-        })
+        with override_settings(CELERY_TASK_ALWAYS_EAGER=True):
+            response = self.client.post('/api/v1/submissions/', {
+                'problem': self.problem.id,
+                'language': 'cpp',
+                'code': code,
+                'is_test': False
+            })
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['problem'], self.problem.id)
@@ -274,13 +275,34 @@ class SubmissionModelTestCase(TestCase):
         self.assertEqual(str(submission), expected)
 
 
+@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 class SubmissionExecutionTestCase(TestCase):
     """
     Integration tests for Submission Execution Flow.
     Verifies that submissions are correctly judged and status is updated.
     """
     
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def setUp(self):
+        # Patch transaction.on_commit to run immediately
+        self.on_commit_patcher = patch('django.db.transaction.on_commit', side_effect=lambda func: func())
+        self.on_commit_patcher.start()
+
+        # Patch get_judge to avoid Docker execution
+        self.get_judge_patcher = patch('apps.judge.judge_factory.get_judge')
+        self.mock_get_judge = self.get_judge_patcher.start()
+        
+        # Setup default mock judge behavior (AC)
+        self.mock_judge = MagicMock()
+        self.mock_get_judge.return_value = self.mock_judge
+        self.mock_judge.execute.return_value = {
+            'status': 'AC',
+            'time': 10,
+            'memory': 1024,
+            'output': '3',
+            'error': ''
+        }
+
         self.user = User.objects.create_user(
             username='exec_user',
             email='exec@test.com',
@@ -308,6 +330,10 @@ class SubmissionExecutionTestCase(TestCase):
         
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+
+    def tearDown(self):
+        self.on_commit_patcher.stop()
+        self.get_judge_patcher.stop()
     
     def test_submission_cpp_ac(self):
         """Test C++ submission that should be Accepted (AC)"""
@@ -339,7 +365,6 @@ int main() {
     
     def test_submission_cpp_ce(self):
         """Test C++ submission with syntax error (CE)"""
-        # Code with redeclaration error
         code = '''#include <iostream>
 using namespace std;
 int main() {
@@ -348,6 +373,15 @@ int main() {
     int index; // Redeclaration error
     return 0;
 }'''
+        
+        # Override mock to simulate CE
+        self.mock_judge.execute.return_value = {
+            'status': 'CE',
+            'time': 0,
+            'memory': 0,
+            'output': '',
+            'error': 'Redeclaration error'
+        }
         
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,

@@ -122,7 +122,7 @@ class SubmissionResult(models.Model):
     )
     test_case = models.ForeignKey(
         TestCase,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Preserve results when test cases are updated/deleted
         related_name='submission_results',
         verbose_name='測試案例',
         null=True,

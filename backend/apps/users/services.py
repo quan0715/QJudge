@@ -195,7 +195,7 @@ class NYCUOAuthService:
         Get or create user from NYCU OAuth data.
         
         Args:
-            oauth_data: dict with 'username', 'email', 'oauth_id'
+            oauth_data: dict with 'username', 'email'
         
         Returns:
             User object
@@ -204,23 +204,23 @@ class NYCUOAuthService:
         email = user_info.get('email')
         username = user_info['username']
         
-        # Try to find existing user by OAuth ID
-        try:
-            user = User.objects.get(
-                auth_provider='nycu-oauth',
-                username=username,
-                email=email
-            )
-            
-            # Update user info
-            if email:
-                user.email = email
-            user.username = username
-            user.email_verified = True
-            user.save()
-            return user
-        except User.DoesNotExist:
-            pass
+        # Try to find existing user by email and auth_provider
+        if email:
+            try:
+                user = User.objects.get(
+                    auth_provider='nycu-oauth',
+                    email=email
+                )
+                
+                # Update username if changed and available
+                if username and user.username != username:
+                    if not User.objects.filter(username=username).exclude(id=user.id).exists():
+                        user.username = username
+                user.email_verified = True
+                user.save()
+                return user
+            except User.DoesNotExist:
+                pass
         
         # Create new user
         counter = 1
@@ -233,7 +233,6 @@ class NYCUOAuthService:
             username=username,
             email=email,
             auth_provider='nycu-oauth',
-            oauth_id=oauth_id,
             email_verified=True,
             is_active=True,
         )

@@ -1,15 +1,5 @@
 @use "@carbon/react";
 
-// NYCU Brand Colors & Palette
-:root {
-  --nycu-primary: #0033a1;
-  --nycu-primary-hover: #00227a;
-  --nycu-secondary: #a5a5a5;
-  --nycu-dark-bg: #161616; // Carbon Gray 100
-  --nycu-gradient-start: #0033a1;
-  --nycu-gradient-end: #00154a;
-}
-
 // Ensure full viewport height for proper footer positioning
 html, body {
   height: 100%;

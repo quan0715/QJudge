@@ -13,6 +13,7 @@ export interface LanguageConfig {
   language: string;
   templateCode: string;
   isEnabled: boolean;
+  order?: number;
 }
 
 export interface TestCase {
@@ -20,6 +21,9 @@ export interface TestCase {
   output: string;
   isSample: boolean;
   explanation?: string;
+  score?: number;
+  order?: number;
+  isHidden?: boolean;
 }
 
 export interface Translation {

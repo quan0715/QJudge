@@ -65,6 +65,7 @@ export function mapProblemDetailDto(dto: any): ProblemDetail {
       input: tc.input_data,
       output: tc.output_data,
       isSample: tc.is_sample,
+      isHidden: tc.is_hidden,
       explanation: tc.explanation
     })) : [],
     languageConfigs: Array.isArray(dto.language_configs) ? dto.language_configs.map((lc: any) => ({

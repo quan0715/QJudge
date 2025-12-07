@@ -198,8 +198,9 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     translations = ProblemTranslationSerializer(many=True, required=False)
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
+    tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
     
-    # New Tag UX fields
+    # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,

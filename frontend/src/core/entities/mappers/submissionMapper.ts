@@ -4,11 +4,8 @@ import { mapProblemDto } from './problemMapper';
 export function mapTestResultDto(dto: any): TestResult {
   return {
     id: dto.id,
-    testCase: {
-      id: dto.test_case?.id,
-      order: dto.test_case?.order || 0,
-      isSample: !!dto.test_case?.is_sample
-    },
+    testCaseId: dto.test_case,  // API returns test_case as just the ID number
+    isHidden: !!dto.is_hidden,  // is_hidden is at top level, not inside test_case
     status: dto.status,
     execTime: dto.exec_time || 0,
     memoryUsage: dto.memory_usage || 0,
@@ -20,9 +17,19 @@ export function mapTestResultDto(dto: any): TestResult {
 }
 
 export function mapSubmissionDto(dto: any): Submission {
+  // Handle problem being either an ID or a full object
+  const problemId = typeof dto.problem === 'object' 
+    ? dto.problem?.id?.toString() 
+    : dto.problem?.toString() || dto.problem_id?.toString() || '';
+  
+  const problemTitle = typeof dto.problem === 'object'
+    ? dto.problem?.title
+    : undefined;
+
   return {
     id: dto.id?.toString() || '',
-    problemId: dto.problem?.toString() || dto.problem_id?.toString() || '',
+    problemId,
+    problemTitle,
     userId: dto.user?.id?.toString() || dto.user_id?.toString() || dto.user?.toString() || '',
     username: dto.user?.username || dto.username,
     language: dto.language || '',

@@ -5,14 +5,11 @@ export type SubmissionStatus = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'NS' 
 
 export interface TestResult {
   id: string | number;
-  testCase: {
-    id: string | number;
-    order: number;
-    isSample: boolean;
-  };
+  testCaseId: string | number;
   status: SubmissionStatus;
   execTime: number; // ms
   memoryUsage: number; // KB
+  isHidden: boolean;
   errorMessage?: string;
   input?: string;
   output?: string;
@@ -22,6 +19,7 @@ export interface TestResult {
 export interface Submission {
   id: string;
   problemId: string;
+  problemTitle?: string; // Added for list view display
   userId: string;
   username?: string; // Added for list view display
   language: string;
