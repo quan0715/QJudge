@@ -68,6 +68,21 @@ This project uses **pytest** for testing.
 pytest
 ```
 
+### Run Module-Specific Tests
+
+```bash
+# Authentication and permissions
+pytest tests/test_users.py
+
+# Problem and contest CRUD
+pytest tests/test_problems.py tests/test_contests.py
+
+# Judge status mapping (uses monkeypatched Docker runner)
+pytest tests/test_judge.py
+```
+
+> These commands expect a running PostgreSQL and Redis instance configured via `.env`. The `backend-tests` CI workflow runs the same suite with `pytest` after building the `oj-judge` image.
+
 ### Run Specific Test File
 
 ```bash
