@@ -45,17 +45,19 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
         setLoading(true);
         const { results: submissions } = await getSubmissions({ problemId: problem.id });
         
-        // Calculate status distribution
+        // Calculate last 7 days distribution
         const statusCounts: Record<string, number> = {};
-        const weeklySubmissions: Record<string, number> = {};
+        const dailySubmissions: Record<string, number> = {};
         
-        // Get last 7 weeks
+        // Get last 7 days
         const now = new Date();
+        const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+        
         for (let i = 6; i >= 0; i--) {
-          const weekStart = new Date(now);
-          weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
-          const weekKey = `W${7 - i}`;
-          weeklySubmissions[weekKey] = 0;
+          const date = new Date(now);
+          date.setDate(date.getDate() - i);
+          const dayKey = `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
+          dailySubmissions[dayKey] = 0;
         }
         
         submissions.forEach((sub: any) => {
@@ -63,13 +65,15 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
           const status = sub.status || 'Unknown';
           statusCounts[status] = (statusCounts[status] || 0) + 1;
           
-          // Count by week
+          // Count by day
           const subDate = new Date(sub.createdAt);
-          const weeksAgo = Math.floor((now.getTime() - subDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-          if (weeksAgo >= 0 && weeksAgo < 7) {
-            const weekKey = `W${7 - weeksAgo}`;
-            if (weeklySubmissions[weekKey] !== undefined) {
-              weeklySubmissions[weekKey]++;
+          const daysAgo = Math.floor((now.getTime() - subDate.getTime()) / (24 * 60 * 60 * 1000));
+          
+          if (daysAgo >= 0 && daysAgo < 7) {
+            const date = new Date(subDate);
+            const dayKey = `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
+            if (dailySubmissions[dayKey] !== undefined) {
+              dailySubmissions[dayKey]++;
             }
           }
         });
@@ -95,14 +99,14 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
         
         setStatusData(formattedStatusData);
         
-        // Format weekly data for BarChart
-        const formattedWeeklyData = Object.entries(weeklySubmissions).map(([week, count]) => ({
+        // Format daily data for BarChart
+        const formattedDailyData = Object.entries(dailySubmissions).map(([day, count]) => ({
           group: '提交次數',
-          key: week,
+          key: day,
           value: count
         }));
         
-        setWeeklyData(formattedWeeklyData);
+        setWeeklyData(formattedDailyData);
         
       } catch (error) {
         console.error('Failed to fetch submission stats:', error);
@@ -184,7 +188,7 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
       bottom: {
         mapsTo: 'key',
         scaleType: ScaleTypes.LABELS,
-        title: '最近7週'
+        title: '最近7天'
       }
     },
     bars: {
@@ -287,7 +291,7 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem }) => {
 
         {/* Weekly Submission Trend */}
         <Column lg={8} md={4} sm={4}>
-          <ContainerCard title="每週提交趨勢">
+          <ContainerCard title="最近7天提交趨勢">
             {loading ? (
               <div style={{ padding: '2rem' }}>
                 <SkeletonText heading />
