@@ -18,14 +18,18 @@ def user_factory():
             'email': 'test@example.com',
             'auth_provider': 'email',
         }
+        # Extract password before updating defaults
+        password = kwargs.pop('password', None)
         defaults.update(kwargs)
         
-        if defaults['auth_provider'] == 'email' and 'password' not in kwargs:
+        if defaults['auth_provider'] == 'email':
+            # For email auth, use create_user to properly hash password
             user = User.objects.create_user(
-                password='testpass123',
+                password=password or 'testpass123',
                 **defaults
             )
         else:
+            # For OAuth providers, no password needed
             user = User.objects.create(**defaults)
         
         return user
