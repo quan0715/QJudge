@@ -66,7 +66,17 @@ jobs:
         run: |
           docker images | grep oj-judge
           docker run --rm oj-judge:latest g++ --version
-      
+
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          SECRET_KEY: test-secret-key-for-ci
+        run: |
+          cd backend
+          python manage.py migrate --noinput
+
       - name: Run Backend Tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
@@ -78,6 +88,4 @@ jobs:
           DOCKER_IMAGE_JUDGE: oj-judge:latest
         run: |
           cd backend
-          # Run all tests EXCEPT apps.judge (which is handled by judge-tests.yml)
-          # But include apps.submissions which now has integration tests
-          python manage.py test --exclude-tag=judge_engine --verbosity=2
+          pytest
