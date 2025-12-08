@@ -19,7 +19,8 @@ import {
   Logout,
   Time,
   Settings,
-  Renew
+  Renew,
+  Locked
 } from '@carbon/icons-react';
 import { useTheme } from '@/ui/theme/ThemeContext';
 import { Light, Asleep } from '@carbon/icons-react';
@@ -50,6 +51,7 @@ const ContestLayout = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
+  const [unlockTimeLeft, setUnlockTimeLeft] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   // Detect if we're on a solve page - hide hero/tabs for cleaner UI
@@ -58,6 +60,13 @@ const ContestLayout = () => {
   const isExamActive = !!(
     contest?.examModeEnabled && 
     contest?.examStatus === 'in_progress'
+  );
+
+  // Should warn on exit: when exam is in_progress or paused (not yet submitted)
+  const shouldWarnOnExit = !!(
+    contest?.examModeEnabled &&
+    contest?.status === 'active' &&
+    (contest?.examStatus === 'in_progress' || contest?.examStatus === 'paused')
   );
 
   useEffect(() => {
@@ -146,6 +155,36 @@ const ContestLayout = () => {
     return () => clearInterval(timer);
   }, [contest]);
 
+  // Unlock countdown timer
+  useEffect(() => {
+    if (!contest || contest.examStatus !== 'locked' || !contest.autoUnlockAt) {
+      setUnlockTimeLeft(null);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const unlockTime = new Date(contest.autoUnlockAt!).getTime();
+      const diff = unlockTime - now;
+
+      if (diff <= 0) {
+        setUnlockTimeLeft('00:00:00');
+        clearInterval(timer);
+        // Auto-refresh to get updated status
+        refreshContest();
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setUnlockTimeLeft(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [contest]);
+
   const refreshContest = async () => {
     if (contestId) {
       const c = await getContest(contestId);
@@ -179,23 +218,33 @@ const ContestLayout = () => {
   const handleStartExam = async () => {
     if (!contest) return;
     try {
-      await startExam(contest.id);
+      // Call start exam API and wait for response
+      const response = await startExam(contest.id);
       
-      // Request fullscreen if exam mode is enabled
-      if (contest.examModeEnabled) {
-        try {
-          await document.documentElement.requestFullscreen();
-        } catch (err) {
-          console.error('Failed to enter fullscreen:', err);
+      // Only proceed if API call was successful
+      if (response && (response.status === 'started' || response.status === 'resumed')) {
+        // Request fullscreen if exam mode is enabled
+        if (contest.examModeEnabled) {
+          try {
+            await document.documentElement.requestFullscreen();
+          } catch (err) {
+            console.error('Failed to enter fullscreen:', err);
+          }
         }
-      }
 
-      await refreshContest();
-      // Navigate to problems after starting
-      navigate(`/contests/${contest.id}/problems`);
-    } catch (error) {
+        // Refresh contest data to get updated exam_status
+        await refreshContest();
+        // Navigate to problems after starting
+        navigate(`/contests/${contest.id}/problems`);
+      } else {
+        // If response indicates failure, show error
+        throw new Error(response?.error || 'Unknown error');
+      }
+    } catch (error: any) {
       console.error('Failed to start exam:', error);
-      alert('無法開始考試，請稍後再試');
+      // Show specific error message if available
+      const errorMessage = error?.response?.data?.error || error?.message || '無法開始考試，請稍後再試';
+      alert(errorMessage);
     }
   };
 
@@ -215,10 +264,19 @@ const ContestLayout = () => {
     if (!contestId || !contest) return;
 
     try {
-      // If exam mode is enabled and exam is active, end the exam first
-      if (contest.examModeEnabled && contest.status === 'active' && contest.examStatus !== 'submitted') {
-        // Use the new handleEndExam logic
+      // If exam mode is enabled and exam is in_progress or paused, end the exam first (submit)
+      if (contest.examModeEnabled && contest.status === 'active' && 
+          (contest.examStatus === 'in_progress' || contest.examStatus === 'paused')) {
         await handleEndExam();
+      }
+      
+      // Exit fullscreen if active
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch (e) {
+          console.error('Failed to exit fullscreen:', e);
+        }
       }
       
       // Then navigate away
@@ -275,15 +333,23 @@ const ContestLayout = () => {
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              color: 'var(--cds-text-primary)', 
+              color: contest?.examStatus === 'locked' ? 'var(--cds-support-error)' : 'var(--cds-text-primary)', 
               marginRight: '2rem',
               fontFamily: 'monospace',
               fontSize: '1rem',
               fontWeight: 'bold'
             }}>
-              <Time style={{ marginRight: '0.5rem' }} />
+              {contest?.examStatus === 'locked' ? (
+                <Locked style={{ marginRight: '0.5rem' }} />
+              ) : (
+                <Time style={{ marginRight: '0.5rem' }} />
+              )}
               {!contest ? (
                 <SkeletonText width="100px" />
+              ) : contest.examStatus === 'locked' && unlockTimeLeft ? (
+                <span title="解鎖倒數">
+                  🔓 {unlockTimeLeft}
+                </span>
               ) : (
                 <span>
                   {isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}
@@ -396,18 +462,15 @@ const ContestLayout = () => {
 
       <Modal
         open={isExitModalOpen}
-        modalHeading="確認離開競賽"
-        primaryButtonText="確認離開"
+        modalHeading={shouldWarnOnExit ? '確認交卷並離開' : '確認離開競賽'}
+        primaryButtonText={shouldWarnOnExit ? '交卷並離開' : '確認離開'}
         secondaryButtonText="取消"
         onRequestClose={() => {
-          // Reenter to full screen mode
-          if (!isFullscreen) {
-            toggleFullscreen()
-          }
-          setIsExitModalOpen(false)
+          // Just close the modal, don't force fullscreen
+          setIsExitModalOpen(false);
         }}
         onRequestSubmit={handleExit}
-        danger
+        danger={shouldWarnOnExit}
       >
         <p>
           {(() => {
@@ -422,24 +485,20 @@ const ContestLayout = () => {
             }
 
             // Student - Joined but exam not started (or submitted)
-            if (!contest?.status || contest.status === 'inactive' || contest.examStatus === 'submitted') {
+            if (!contest?.status || contest.status === 'inactive' || contest.examStatus === 'submitted' || contest.examStatus === 'not_started') {
               return '確定要離開競賽頁面嗎？';
             }
 
-            // Student - Exam in progress
+            // Student - Exam in progress or paused (warn about auto-submit)
             return (
               <span>
-                警告：競賽正在進行中。
+                <strong style={{ color: 'var(--cds-support-error)' }}>⚠️ 警告：離開將會自動交卷！</strong>
+                <br /><br />
+                您的考試狀態為「{contest?.examStatus === 'in_progress' ? '進行中' : '暫停中'}」。
                 <br />
-                {contest?.allowMultipleJoins ? (
-                  '您可以隨時重新進入繼續作答。'
-                ) : (
-                  <span style={{ color: 'var(--cds-support-error)' }}>
-                    注意：若離開競賽，計時器可能不會暫停（視競賽規則而定）。
-                  </span>
-                )}
-                <br />
-                確定要現在離開嗎？
+                確認離開後，系統將自動為您交卷，您將無法再作答。
+                <br /><br />
+                確定要交卷並離開嗎？
               </span>
             );
           })()}

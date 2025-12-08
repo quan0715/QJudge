@@ -41,20 +41,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [showWarning, setShowWarning] = useState(false);
   const [warningEventType, setWarningEventType] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isRecordingEvent = useRef(false);
   const isGracePeriod = useRef(false);
   
-  // Event deduplication and cooldown
-  const lastEventType = useRef<string | null>(null);
-  const lastEventTime = useRef<number>(0);
-  const COOLDOWN_PERIOD = 2000; // 2 seconds global cooldown
+  // Blocking modal flow states
+  const [isProcessingEvent, setIsProcessingEvent] = useState(false);
+  const [pendingApiResponse, setPendingApiResponse] = useState(false);
+  const [lastApiResponse, setLastApiResponse] = useState<any>(null);
   
-  // Event priority (higher number = higher priority)
-  const EVENT_PRIORITY: Record<string, number> = {
-    'exit_fullscreen': 3,
-    'tab_hidden': 2,
-    'window_blur': 1
-  };
+  // Unlock notification state
+  const [showUnlockNotification, setShowUnlockNotification] = useState(false);
+  const prevExamStatusRef = useRef(examStatus);
 
   // Admin/Teacher bypass
   const isBypassed = currentUserRole === 'admin' || currentUserRole === 'teacher';
@@ -71,6 +67,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       lockReason: lockReason || prev.lockReason
     }));
 
+    // Detect unlock transition: locked -> paused
+    if (prevExamStatusRef.current === 'locked' && examStatus === 'paused') {
+      setShowUnlockNotification(true);
+    }
+    prevExamStatusRef.current = examStatus;
+
     // Start grace period when exam becomes active
     if (effectiveIsActive && !prevIsActiveRef.current) {
       isGracePeriod.current = true;
@@ -78,7 +80,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         isGracePeriod.current = false;
       }, 3000); // 3 seconds grace period
       
-      // Auto enter fullscreen
+      // Auto enter fullscreen (mandatory when monitoring is active)
       if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(e => {
               console.warn('Failed to enter fullscreen automatically:', e);
@@ -94,51 +96,61 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Disable anti-cheat on dashboard check removed to ensure global protection
     if (!examModeEnabled || !examState.isActive || isBypassed) return;
 
-    // Shared event handler with deduplication and cooldown
+    // Blocking modal flow: detect -> pause -> show modal -> API -> wait -> close
     const handleCheatEvent = async (eventType: string, reason: string) => {
-      if (examState.isLocked || isGracePeriod.current || isRecordingEvent.current) return;
+      // Skip if already processing, locked, or in grace period
+      if (isProcessingEvent || examState.isLocked || isGracePeriod.current) return;
       
-      const now = Date.now();
-      const timeSinceLastEvent = now - lastEventTime.current;
+      // 1. Immediately pause detection
+      setIsProcessingEvent(true);
       
-      // Global cooldown check
-      if (timeSinceLastEvent < COOLDOWN_PERIOD) {
-        // Within cooldown period - check priority
-        const currentPriority = EVENT_PRIORITY[eventType] || 0;
-        const lastPriority = EVENT_PRIORITY[lastEventType.current || ''] || 0;
+      // 2. Show blocking modal and mark API as pending
+      setPendingApiResponse(true);
+      setWarningEventType(eventType);
+      setShowWarning(true);
+      
+      // 3. Send API request
+      try {
+        const response = await recordExamEvent(contestId, eventType, reason);
         
-        // Only record if current event has higher priority
-        if (currentPriority <= lastPriority) {
-          console.log(`[Anti-cheat] Ignoring ${eventType} due to cooldown (last: ${lastEventType.current})`);
-          return;
+        // 4. Store response for modal close handler
+        setLastApiResponse(response);
+        
+        // Update violation count in state
+        if (response && typeof response === 'object') {
+          const { violation_count, max_cheat_warnings, auto_unlock_at, bypass } = response;
+          if (!bypass) {
+            setExamState(prev => ({
+              ...prev,
+              violationCount: violation_count,
+              maxWarnings: max_cheat_warnings,
+              autoUnlockAt: auto_unlock_at
+            }));
+          }
         }
-        console.log(`[Anti-cheat] Override: ${eventType} (priority ${currentPriority}) > ${lastEventType.current} (priority ${lastPriority})`);
+      } catch (error) {
+        console.error('Failed to record event:', error);
+        setLastApiResponse({ error: true });
       }
       
-      // Record the event
-      isRecordingEvent.current = true;
-      lastEventType.current = eventType;
-      lastEventTime.current = now;
-      
-      await recordEvent(eventType, reason);
-      
-      isRecordingEvent.current = false;
+      // 5. Allow modal close
+      setPendingApiResponse(false);
     };
 
     // Event handlers
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'hidden') {
-        await handleCheatEvent('tab_hidden', '您已切換分頁，本次作答已被鎖定');
+        await handleCheatEvent('tab_hidden', '您已切換分頁');
       }
     };
 
     const handleBlur = async () => {
-      await handleCheatEvent('window_blur', '您已離開視窗，本次作答已被鎖定');
+      await handleCheatEvent('window_blur', '您已離開視窗');
     };
 
     const handleFullscreenChange = async () => {
       if (!document.fullscreenElement) {
-        await handleCheatEvent('exit_fullscreen', '您已退出全螢幕，本次作答已被鎖定');
+        await handleCheatEvent('exit_fullscreen', '您已退出全螢幕');
       }
     };
 
@@ -152,44 +164,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [examModeEnabled, examState.isActive, contestId, location.pathname]);
-
-  const recordEvent = async (type: string, reason: string) => {
-    try {
-      const res = await recordExamEvent(contestId, type, reason);
-      
-      if (res && typeof res === 'object') {
-        const { locked, violation_count, max_warnings, bypass, auto_unlock_at } = res;
-        
-        if (bypass) return;
-
-        setExamState(prev => ({
-          ...prev,
-          violationCount: violation_count,
-          maxWarnings: max_warnings,
-          autoUnlockAt: auto_unlock_at
-        }));
-
-        if (locked) {
-          lockExam(reason);
-        } else if (violation_count > 0) {
-          // Show warning if not locked but violation recorded
-          setWarningEventType(type);
-          setShowWarning(true);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to record event:', error);
-    }
-  };
-
-  const lockExam = (reason: string) => {
-    setExamState(prev => ({
-      ...prev,
-      isLocked: true,
-      lockReason: reason
-    }));
-  };
+  }, [examModeEnabled, examState.isActive, isProcessingEvent, contestId, location.pathname]);
 
   const isAllowedPath = () => {
     // Allow dashboard, standings, and submissions
@@ -240,20 +215,39 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, [shouldShowLockScreen, examState.autoUnlockAt]);
 
   const handleWarningClose = async () => {
+    // Block close if API response is still pending
+    if (pendingApiResponse) return;
+    
     setShowWarning(false);
     
-    // If the warning was due to exiting fullscreen, re-enter fullscreen
-    if (warningEventType === 'exit_fullscreen' && !examState.isLocked) {
-      try {
-        await document.body.requestFullscreen();
-        console.log('[Anti-cheat] Re-entering fullscreen after warning');
-      } catch (error) {
-        console.error('[Anti-cheat] Failed to re-enter fullscreen:', error);
+    // Check if locked based on API response
+    if (lastApiResponse?.locked) {
+      // Exit fullscreen
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch (e) {
+          console.error('Failed to exit fullscreen:', e);
+        }
+      }
+      // Reload page to show lock screen properly regardless of current path
+      window.location.reload();
+    } else {
+      // Resume monitoring - force fullscreen (mandatory)
+      setIsProcessingEvent(false);
+      if (!document.fullscreenElement) {
+        try {
+          await document.documentElement.requestFullscreen();
+          console.log('[Anti-cheat] Re-entering fullscreen after warning');
+        } catch (error) {
+          console.error('[Anti-cheat] Failed to re-enter fullscreen:', error);
+        }
       }
     }
     
-    // Reset warning event type
+    // Reset states
     setWarningEventType(null);
+    setLastApiResponse(null);
   };
 
   const handleBackToContest = async () => {
@@ -333,26 +327,33 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         </div>
       )}
 
-      {/* Warning Modal */}
+      {/* Warning Modal - blocks until API responds */}
       <Modal
         open={showWarning}
         modalHeading="⚠️ 違規警告"
-        primaryButtonText="我了解了"
+        primaryButtonText={pendingApiResponse ? "處理中..." : (lastApiResponse?.locked ? "確認" : "我了解了")}
+        primaryButtonDisabled={pendingApiResponse}
         onRequestSubmit={() => handleWarningClose()}
         onRequestClose={() => handleWarningClose()}
+        preventCloseOnClickOutside={pendingApiResponse}
         danger
         size="sm"
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <WarningAlt size={64} style={{ color: '#f1c21b', marginBottom: '1rem' }} />
+          <WarningAlt size={64} style={{ color: pendingApiResponse ? '#888' : '#f1c21b', marginBottom: '1rem' }} />
           <p style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            檢測到異常操作
+            {pendingApiResponse ? '正在記錄違規行為...' : '檢測到異常操作'}
+          </p>
+          <p style={{ marginBottom: '1rem', color: 'var(--cds-text-secondary)' }}>
+            {warningEventType === 'tab_hidden' && '您切換了分頁'}
+            {warningEventType === 'window_blur' && '您離開了視窗'}
+            {warningEventType === 'exit_fullscreen' && '您退出了全螢幕'}
           </p>
           <p style={{ marginBottom: '1rem' }}>
             請保持在考試頁面並維持全螢幕模式。
           </p>
           
-          {examState.violationCount !== undefined && examState.maxWarnings !== undefined && (
+          {!pendingApiResponse && examState.violationCount !== undefined && examState.maxWarnings !== undefined && (
             <div style={{ 
               width: '100%', 
               backgroundColor: 'var(--cds-layer-01)', 
@@ -366,15 +367,43 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>剩餘機會:</span>
-                <span style={{ fontWeight: 'bold', color: '#42be65' }}>
-                  {Math.max(0, (examState.maxWarnings + 1) - examState.violationCount)}
+                <span style={{ fontWeight: 'bold', color: lastApiResponse?.locked ? '#da1e28' : '#42be65' }}>
+                  {lastApiResponse?.locked ? '0 - 已鎖定' : Math.max(0, (examState.maxWarnings + 1) - examState.violationCount)}
                 </span>
               </div>
             </div>
           )}
           
-          <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem' }}>
-            若剩餘機會歸零，您將被自動鎖定！
+          {lastApiResponse?.locked ? (
+            <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem', fontWeight: 'bold' }}>
+              您的考試已被鎖定！請聯繫監考老師。
+            </p>
+          ) : (
+            <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem' }}>
+              若剩餘機會歸零，您將被自動鎖定！
+            </p>
+          )}
+        </div>
+      </Modal>
+
+      {/* Unlock Notification Modal */}
+      <Modal
+        open={showUnlockNotification}
+        modalHeading="🔓 已解鎖"
+        primaryButtonText="繼續考試"
+        onRequestSubmit={() => setShowUnlockNotification(false)}
+        onRequestClose={() => setShowUnlockNotification(false)}
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#42be65' }}>
+            您的考試已被解鎖！
+          </p>
+          <p style={{ marginBottom: '1rem' }}>
+            監考老師已解除您的鎖定狀態。點擊「繼續考試」重新進入考試模式。
+          </p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            提醒：請遵守考試規則，避免再次被鎖定。
           </p>
         </div>
       </Modal>

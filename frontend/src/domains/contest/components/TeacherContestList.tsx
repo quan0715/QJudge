@@ -16,7 +16,7 @@ import {
 } from '@carbon/react';
 import { Edit, TrashCan, Archive } from '@carbon/icons-react';
 import { getContests, deleteContest, archiveContest } from '@/services/contest';
-import { getContestState, getContestStateColor, getContestStateLabel } from '@/utils/contest';
+import { getContestState, getContestStateColor, getContestStateLabel } from '@/models/contest';
 import type { Contest } from '@/core/entities/contest.entity';
 
 interface TeacherContestListProps {

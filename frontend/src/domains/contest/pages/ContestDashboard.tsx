@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useOutletContext } from 'react-router-dom';
 import { Loading, Modal } from '@carbon/react';
 
-import { getScoreboard, recordExamEvent, registerContest } from '@/services/contest';
+import { getScoreboard, registerContest } from '@/services/contest';
 import { getSubmissions } from '@/services/submission';
 import type { ScoreboardRow } from '@/core/entities/contest.entity';
 import type { Submission } from '@/core/entities/submission.entity';
@@ -74,43 +74,7 @@ const ContestDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    // Anti-Cheat Logic
-    if (!contest || !contest.examModeEnabled || !contest.hasStarted || contest.examStatus === 'submitted' || contest.examStatus === 'locked') {
-      return;
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        logEvent('tab_hidden', { reason: 'visibility_hidden' });
-      }
-    };
-
-    const handleBlur = () => {
-      logEvent('window_blur', { reason: 'window_blur' });
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [contest]);
-
-  const logEvent = async (type: string, metadata: any) => {
-    if (!contestId) return;
-    try {
-      const res = await recordExamEvent(contestId, type, metadata);
-      if (res && res.locked) {
-        refreshContest();
-        setLockModalOpen(true);
-      }
-    } catch (error) {
-      console.error('Failed to log event', error);
-    }
-  };
+  // Note: Anti-cheat monitoring is handled exclusively by ExamModeWrapper
 
   const handleSubmissionClick = (submissionId: string) => {
     setSearchParams(prev => {

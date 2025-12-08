@@ -93,6 +93,26 @@ services:
     networks:
       - oj_network
 
+  # Celery Beat (Scheduler for periodic tasks)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_celery_beat
+    restart: always
+    command: celery -A config beat -l info
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oj_network
+
   # Frontend (React + Nginx)
   frontend:
     build:

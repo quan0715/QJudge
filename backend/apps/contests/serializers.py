@@ -75,6 +75,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     locked_at = serializers.SerializerMethodField()
     lock_reason = serializers.SerializerMethodField()
     exam_status = serializers.SerializerMethodField()
+    auto_unlock_at = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     
     rule = serializers.CharField(source='rules', read_only=True)
@@ -108,6 +109,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'locked_at',
             'lock_reason',
             'exam_status',
+            'auto_unlock_at',
             'problems',
             'allow_multiple_joins',
             'max_cheat_warnings',
@@ -138,6 +140,20 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return None
         registration = obj.registrations.filter(user=request.user).first()
         return registration.exam_status if registration else None
+    
+    def get_auto_unlock_at(self, obj):
+        """Calculate auto unlock time for current user if locked."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        if not registration or registration.exam_status != ExamStatus.LOCKED:
+            return None
+        if not registration.locked_at or not obj.allow_auto_unlock:
+            return None
+        
+        minutes = obj.auto_unlock_minutes or 0
+        return registration.locked_at + timezone.timedelta(minutes=minutes)
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
@@ -221,7 +237,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'exam_mode_enabled',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
-            'ban_tab_switching',
             'max_cheat_warnings',
             'allow_auto_unlock',
             'auto_unlock_minutes',

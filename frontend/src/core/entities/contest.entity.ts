@@ -21,6 +21,7 @@ export interface ContestProblemSummary {
   label: string;   // A, B, C...
   title: string;
   order?: number;
+  score?: number;  // Problem score/points
   userStatus?: SubmissionStatus;
   difficulty?: string;
 }
@@ -84,6 +85,7 @@ export interface ContestDetail extends Contest {
   lockedAt?: string;
   lockReason?: string;
   examStatus?: ExamStatusType;  // Primary state field
+  autoUnlockAt?: string;  // Auto-unlock time when locked
   
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
@@ -189,7 +191,6 @@ export interface ContestUpdateRequest {
   examModeEnabled?: boolean;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
-  banTabSwitching?: boolean;
   maxCheatWarnings?: number;
   allowAutoUnlock?: boolean;
   autoUnlockMinutes?: number;

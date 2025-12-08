@@ -87,6 +87,27 @@ services:
     networks:
       - oj_network_dev
 
+  # Celery Beat (Dev Mode - Scheduler for periodic tasks)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
+    container_name: oj_celery_beat_dev
+    command: celery -A config beat -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oj_network_dev
+
   # Frontend (Dev Mode with Hot Reload)
   frontend:
     build:

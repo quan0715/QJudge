@@ -20,7 +20,6 @@ import {
 } from '@carbon/react';
 import { Renew } from '@carbon/icons-react';
 import { getExamEvents } from '@/services/contest';
-import { mapExamEventDto } from '@/core/entities/mappers/contestMapper';
 import type { ExamEvent } from '@/core/entities/contest.entity';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import { PageHeader } from '@/ui/layout/PageHeader';
@@ -63,8 +62,8 @@ const ContestAdminLogsPage = () => {
   const loadLogs = async () => {
     try {
       setLoading(true);
-      const rawData = await getExamEvents(contestId!);
-      const data = rawData.map(mapExamEventDto);
+      // getExamEvents already returns mapped ExamEvent[] entities
+      const data = await getExamEvents(contestId!);
       // Sort by time desc
       data.sort((a: ExamEvent, b: ExamEvent) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setEvents(data);
@@ -94,11 +93,18 @@ const ContestAdminLogsPage = () => {
       
       // Cheat detection events
       'tab_switch': { label: '切換分頁', type: 'red' },
+      'tab_hidden': { label: '隱藏分頁', type: 'red' },
+      'window_blur': { label: '離開視窗', type: 'red' },
+      'exit_fullscreen': { label: '退出全螢幕', type: 'red' },
       'cheat_warning': { label: '違規警告', type: 'red' },
       'lock': { label: '鎖定', type: 'magenta' },
       'lock_user': { label: '鎖定用戶', type: 'red' },
       'unlock': { label: '解鎖', type: 'teal' },
       'unlock_user': { label: '解鎖用戶', type: 'teal' },
+      
+      // Exam state events
+      'resume_exam': { label: '繼續考試', type: 'cyan' },
+      'pause_exam': { label: '暫停考試', type: 'gray' },
       
       // Q&A events
       'ask_question': { label: '提問', type: 'blue' },

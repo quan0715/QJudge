@@ -19,6 +19,7 @@ export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
     label: dto.label || '',
     title: dto.title || '',
     order: dto.order,
+    score: dto.score,
     userStatus: dto.user_status,
     difficulty: dto.difficulty
   };
@@ -63,6 +64,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     lockedAt: dto.locked_at,
     lockReason: dto.lock_reason,
     examStatus: dto.exam_status,
+    autoUnlockAt: dto.auto_unlock_at,
     
     permissions: {
       canSwitchView: !!dto.permissions?.can_switch_view,
@@ -115,7 +117,8 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
       label: p.label,
       problemId: p.id?.toString() || p.problem_id?.toString(),
       title: p.title,
-      order: p.order
+      order: p.order,
+      score: p.score
     })) : [],
     rows: Array.isArray(standings) ? standings.map((s: any) => ({
       rank: s.rank || 0,
@@ -135,11 +138,11 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
 export function mapExamEventDto(dto: any): ExamEvent {
   return {
     id: dto.id?.toString() || '',
-    userId: dto.user_id?.toString() || '',
+    userId: (dto.user_id || dto.user)?.toString() || '',
     userName: dto.user_username || dto.user?.username || 'Unknown',
     eventType: dto.event_type,
     timestamp: dto.created_at || '',
-    reason: dto.metadata ? JSON.stringify(dto.metadata) : undefined
+    reason: dto.metadata ? (typeof dto.metadata === 'string' ? dto.metadata : JSON.stringify(dto.metadata)) : undefined
   };
 }
 
@@ -207,7 +210,6 @@ export function mapContestUpdateRequestToDto(request: any): any {
     exam_mode_enabled: request.examModeEnabled,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
-    ban_tab_switching: request.banTabSwitching,
     max_cheat_warnings: request.maxCheatWarnings,
     allow_auto_unlock: request.allowAutoUnlock,
     auto_unlock_minutes: request.autoUnlockMinutes

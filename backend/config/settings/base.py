@@ -181,6 +181,19 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+# Celery Beat Schedule (for periodic tasks)
+# Only effective when celery-beat service is running
+CELERY_BEAT_SCHEDULE = {
+    'check-contest-end-every-minute': {
+        'task': 'apps.contests.tasks.check_contest_end',
+        'schedule': 60.0,  # Every 60 seconds
+    },
+    'check-auto-unlock-every-30-seconds': {
+        'task': 'apps.contests.tasks.check_auto_unlock',
+        'schedule': 30.0,  # Every 30 seconds
+    },
+}
+
 # NYCU OAuth settings
 NYCU_OAUTH_CLIENT_ID = os.getenv('NYCU_OAUTH_CLIENT_ID', '')
 NYCU_OAUTH_CLIENT_SECRET = os.getenv('NYCU_OAUTH_CLIENT_SECRET', '')

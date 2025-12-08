@@ -7,7 +7,7 @@ import ContestTabs from './ContestTabs';
 import { Tag } from '@carbon/react';
 import { Time, UserMultiple, Catalog } from '@carbon/icons-react';
 import ReactMarkdown from 'react-markdown';
-import { ContestStatusBadge } from '@/ui/components/badges/ContestStatusBadge';
+import { getContestState, getContestStateLabel, getContestStateColor } from '@/models/contest';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
 import './ContestHero.css';
@@ -110,9 +110,15 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     });
   };
 
+  // Calculate time-based state for accurate badge display
+  const contestState = getContestState({ status: contest.status, startTime: contest.startTime, endTime: contest.endTime });
+  const isEnded = contestState === 'ended';
+
   const badges = (
     <>
-      <ContestStatusBadge status={contest.status} />
+      <Tag type={getContestStateColor(contestState)}>
+        {getContestStateLabel(contestState)}
+      </Tag>
       <Tag type={contest.visibility === 'public' ? 'green' : 'purple'}>
         {contest.visibility === 'public' ? '公開' : '私有'}
       </Tag>
@@ -181,6 +187,15 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   // We use handleJoinClick instead
 
   const renderActions = () => {
+    // Check if contest has ended (time-based)
+    if (isEnded) {
+      return (
+        <Button kind="secondary" disabled renderIcon={Flag}>
+          考試已結束 (Exam Ended)
+        </Button>
+      );
+    }
+
     // Step 0: Not registered
     if (!contest.hasJoined) {
       return (
@@ -237,6 +252,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         );
 
       case 'paused':
+        // Check if contest hasn't started yet (time-based)
+        const pausedContestNotStartedYet = new Date(contest.startTime) > new Date();
         // Step 1 (paused): Needs to resume - show resume button
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -245,11 +262,18 @@ const ContestHero: React.FC<ContestHeroProps> = ({
                 <WarningAltFilled /> 考試已暫停 (Paused)
               </div>
               <div style={{ fontSize: '0.9rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
-                請點擊繼續考試以重新進入考試模式
+                {pausedContestNotStartedYet 
+                  ? '考試尚未開始，請等待開始時間' 
+                  : '請點擊繼續考試以重新進入考試模式'}
               </div>
             </div>
-            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-              繼續考試 (Resume Exam)
+            <Button 
+              renderIcon={PlayFilled} 
+              onClick={handleStartClick}
+              disabled={pausedContestNotStartedYet}
+              kind={pausedContestNotStartedYet ? 'secondary' : 'primary'}
+            >
+              {pausedContestNotStartedYet ? '尚未開始 (Not Yet Started)' : '繼續考試 (Resume Exam)'}
             </Button>
           </div>
         );
@@ -268,6 +292,15 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
       case 'not_started':
       default:
+        // Check if contest hasn't started yet (time-based)
+        const contestNotStartedYet = new Date(contest.startTime) > new Date();
+        if (contestNotStartedYet) {
+          return (
+            <Button kind="secondary" disabled renderIcon={PlayFilled}>
+              尚未開始 (Not Yet Started)
+            </Button>
+          );
+        }
         // Step 1 (not started): Show start button
         return (
           <div style={{ display: 'flex', gap: '1rem' }}>

@@ -99,7 +99,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       return row;
   });
 
-  const renderCell = (cell: any) => {
+  const renderCell = (cell: any, problems: ProblemInfo[]) => {
     // Check if it's a problem column
     if (cell.info.header.startsWith('problem_')) {
       const stats = cell.value as ProblemStats | null;
@@ -113,6 +113,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       const statusColor = stats.status === 'AC' ? 'var(--cds-support-success)' :
                           stats.status === 'WA' ? 'var(--cds-support-error)' :
                           stats.pending ? 'var(--cds-support-warning)' : 'var(--cds-text-secondary)';
+
+      // Get problem score for AC display
+      const problemId = cell.info.header.replace('problem_', '');
+      const problem = problems.find(p => String(p.id) === problemId);
+      const problemScore = problem?.score || 0;
 
       return (
         <div style={{ 
@@ -130,7 +135,9 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
         }}>
           {stats.status === 'AC' && (
             <>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: statusColor }}> AC </div>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1em', color: statusColor }}>
+                {problemScore > 0 ? `${problemScore}` : 'AC'}
+              </div>
               <div style={{ fontSize: '0.8em', color: textColor }}>
                 {stats.tries === 1 ? '1 try' : `${stats.tries} tries`}
               </div>
@@ -249,7 +256,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                             textAlign: 'center'
                         }}
                       >
-                        {renderCell(cell)}
+                        {renderCell(cell, problems)}
                       </TableCell>
                     ))}
                   </TableRow>
