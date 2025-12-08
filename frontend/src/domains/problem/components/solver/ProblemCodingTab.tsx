@@ -19,6 +19,7 @@ interface ProblemCodingTabProps {
   onSubmit: () => void;
   running: boolean;
   theme: string;
+  submissionDisabled?: boolean;
 }
 
 const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
@@ -27,7 +28,8 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
   languageConfigs,
   testCases,
   onAddTestCase, onDeleteTestCase,
-  onRunTest, onSubmit, running
+  onRunTest, onSubmit, running,
+  submissionDisabled
 }) => {
   const [isAddingTestCase, setIsAddingTestCase] = useState(false);
 
@@ -75,8 +77,9 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
               kind="primary" 
               renderIcon={Send} 
               onClick={onSubmit}
-              disabled={running}
+              disabled={running || submissionDisabled}
               style={{ height: '100%', borderRadius: 0 }}
+              title={submissionDisabled ? 'Submission is disabled' : 'Submit Solution'}
             >
               繳交
             </Button>

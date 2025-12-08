@@ -31,7 +31,17 @@ const TeacherContestList = ({ contests: propContests, onRefresh }: TeacherContes
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [contestToDelete, setContestToDelete] = useState<string | null>(null);
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+
   const [contestToArchive, setContestToArchive] = useState<string | null>(null);
+
+  // Error Modal State
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setErrorModalOpen(true);
+  };
 
   const contests = propContests || localContests;
 
@@ -69,7 +79,7 @@ const TeacherContestList = ({ contests: propContests, onRefresh }: TeacherContes
         if (onRefresh) onRefresh();
         else loadContests();
       } catch (error) {
-        alert('刪除失敗');
+        showError('刪除失敗');
       }
     }
   };
@@ -88,7 +98,7 @@ const TeacherContestList = ({ contests: propContests, onRefresh }: TeacherContes
         if (onRefresh) onRefresh();
         else loadContests();
       } catch (error) {
-        alert('封存失敗');
+        showError('封存失敗');
       }
     }
   };
@@ -194,6 +204,16 @@ const TeacherContestList = ({ contests: propContests, onRefresh }: TeacherContes
         onRequestSubmit={confirmArchive}
       >
         <p>確定要封存此競賽嗎？封存後將移至封存列表。</p>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={errorModalOpen}
+        modalHeading="錯誤"
+        passiveModal
+        onRequestClose={() => setErrorModalOpen(false)}
+      >
+        <p>{errorMessage}</p>
       </Modal>
     </div>
   );

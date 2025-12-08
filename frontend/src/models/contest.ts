@@ -39,6 +39,10 @@ export interface ContestDetail {
   exam_mode_enabled: boolean;
   scoreboard_visible_during_contest: boolean;
   
+  // Anonymous mode settings
+  anonymous_mode_enabled: boolean;
+  my_nickname?: string;
+  
   // User specific
   current_user_role: UserRole;
   participant_count?: number; // Added to fix lint error in ContestHero
@@ -78,6 +82,7 @@ export interface ScoreboardProblemCell {
 export interface ScoreboardRow {
   user_id: string;
   display_name: string;
+  nickname?: string;
   solved_count: number;
   penalty: number;
   problems: Record<string, ScoreboardProblemCell>;  // Key is problem label (A, B, C...)
@@ -118,6 +123,7 @@ export interface Clarification {
   contest: number;
   author: number;
   author_username: string;
+  author_display_name?: string;
   problem?: number;  // null for general questions
   problem_title?: string;
   question: string;
@@ -130,6 +136,7 @@ export interface Clarification {
 
 export interface ContestRegistrationRequest {
   password?: string;
+  nickname?: string;
 }
 
 export interface ContestCreateRequest {
@@ -158,6 +165,7 @@ export interface ContestUpdateRequest {
   allow_auto_unlock?: boolean;
   auto_unlock_minutes?: number;
   status?: ContestStatus;
+  anonymous_mode_enabled?: boolean;
 }
 
 export interface ExamModeState {
@@ -221,6 +229,8 @@ export interface ContestParticipant {
   exam_status?: string;  // Using exam_status instead of legacy fields
   lock_reason?: string;
   violation_count: number;
+  nickname?: string;
+  display_name?: string;
 }
 
 // ============ Contest State Utilities ============

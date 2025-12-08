@@ -38,6 +38,9 @@ export interface ContestParticipant {
   // Legacy fields removed
   lockReason?: string;
   violationCount: number;
+  // Anonymous mode fields
+  nickname?: string;
+  displayName?: string;
 }
 
 export interface Contest {
@@ -71,6 +74,10 @@ export interface ContestDetail extends Contest {
   // Exam mode
   examModeEnabled: boolean;
   scoreboardVisibleDuringContest: boolean;
+  
+  // Anonymous mode
+  anonymousModeEnabled?: boolean;
+  myNickname?: string;
   
   // Advanced settings
   allowMultipleJoins: boolean;

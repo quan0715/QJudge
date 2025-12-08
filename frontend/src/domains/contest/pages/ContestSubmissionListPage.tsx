@@ -26,19 +26,15 @@ import ContainerCard from '@/ui/components/layout/ContainerCard';
 
 interface Submission {
   id: number;
-  user: {
-    id: number;
-    username: string;
-  };
-  problem: {
-    id: number;
-    title: string;
-  };
+  userId: string;
+  username: string; // Flattened by mapper
+  problemId: string;
+  problemTitle: string;
   language: string;
   status: string;
   score: number;
-  exec_time: number;
-  created_at: string;
+  execTime: number;
+  createdAt: string;
 }
 
 interface ContestSubmissionListPageProps {
@@ -104,7 +100,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
       const data: any = await getSubmissions(params);
       
       if (Array.isArray(data)) {
-          setSubmissions(data);
+          setSubmissions(data); // data is Submission[] (mapped)
           setTotalItems(data.length);
       } else {
           setSubmissions(data.results);
@@ -233,7 +229,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
           {sub.problemTitle || `Problem ${sub.problemId}`}
         </span>
       ),
-      username: sub.username || 'Unknown',
+      username: sub.username || 'Unknown', // Flattened by mapper
       language: getLanguageLabel(sub.language),
       score: sub.score ?? 0,
       time: sub.execTime !== undefined ? `${sub.execTime} ms` : '-',
@@ -356,8 +352,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
                                 }
                               }}
                               style={{ 
-                                cursor: row.canView ? 'pointer' : 'not-allowed',
-                                opacity: row.canView ? 1 : 0.7
+                                cursor: row.canView ? 'pointer' : 'default'
                               }}
                             >
                               {row.cells.map((cell: any) => (

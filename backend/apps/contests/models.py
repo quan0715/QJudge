@@ -84,6 +84,13 @@ class Contest(models.Model):
         help_text='False: 學生只能看自己成績；True: 學生可看完整排行榜'
     )
     
+    # Anonymous mode settings
+    anonymous_mode_enabled = models.BooleanField(
+        default=False,
+        verbose_name='啟用匿名模式',
+        help_text='啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
@@ -193,6 +200,15 @@ class ContestParticipant(models.Model):
     
     violation_count = models.IntegerField(default=0, verbose_name='違規次數')
     
+    # Anonymous mode nickname
+    nickname = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name='暱稱',
+        help_text='匿名模式下顯示的名稱，預設為用戶名'
+    )
+    
     # Explicit exam state (primary state field for UI)
     exam_status = models.CharField(
         max_length=20,
@@ -201,6 +217,10 @@ class ContestParticipant(models.Model):
         verbose_name='考試狀態',
         help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
     )
+
+    @property
+    def has_finished_exam(self):
+        return self.exam_status == ExamStatus.SUBMITTED
     
     class Meta:
         db_table = 'contest_participants'

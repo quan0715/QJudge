@@ -18,7 +18,6 @@ import {
   View,
   Logout,
   Time,
-  Settings,
   Renew,
   Locked
 } from '@carbon/icons-react';
@@ -48,7 +47,7 @@ const ContestLayout = () => {
   const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
   const [isCountdownToStart, setIsCountdownToStart] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [unlockTimeLeft, setUnlockTimeLeft] = useState<string | null>(null);
@@ -69,16 +68,7 @@ const ContestLayout = () => {
     (contest?.examStatus === 'in_progress' || contest?.examStatus === 'paused')
   );
 
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error('Failed to parse user from local storage', e);
-      }
-    }
-  }, []);
+
 
   useEffect(() => {
     if (contestId) {
@@ -136,10 +126,8 @@ const ContestLayout = () => {
       const diff = targetTime - now;
 
       if (diff <= 0) {
-        if (contestNotStartedYet) {
-          // Contest just started - refresh to update status
-          refreshContest();
-        }
+        // Timer expired (Start or End reached) - refresh to update status
+        refreshContest();
         setTimeLeft('00:00:00');
         clearInterval(timer);
       } else {
@@ -192,14 +180,22 @@ const ContestLayout = () => {
     }
   };
 
-  const handleJoin = async () => {
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setErrorModalOpen(true);
+  };
+
+  const handleJoin = async (data?: { nickname?: string; password?: string }) => {
     if (!contest) return;
     try {
-      await registerContest(contest.id);
+      await registerContest(contest.id, data);
       await refreshContest();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to join contest:', error);
-      alert('無法加入競賽，請稍後再試');
+      showError(error.message || '無法加入競賽，請檢查密碼或稍後再試');
     }
   };
 
@@ -211,7 +207,7 @@ const ContestLayout = () => {
       await refreshContest();
     } catch (error) {
       console.error('Failed to leave contest:', error);
-      alert('無法退出競賽，請稍後再試');
+      showError('無法退出競賽，請稍後再試');
     }
   };
 
@@ -244,7 +240,7 @@ const ContestLayout = () => {
       console.error('Failed to start exam:', error);
       // Show specific error message if available
       const errorMessage = error?.response?.data?.error || error?.message || '無法開始考試，請稍後再試';
-      alert(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -256,7 +252,7 @@ const ContestLayout = () => {
       await refreshContest();
     } catch (error) {
       console.error('Failed to end exam:', error);
-      alert('無法交卷，請稍後再試');
+      showError('無法交卷，請稍後再試');
     }
   };
 
@@ -283,7 +279,7 @@ const ContestLayout = () => {
       navigate('/contests');
     } catch (error) {
       console.error('Failed to leave contest', error);
-      alert('無法離開競賽，請稍後再試');
+      showError('無法離開競賽，請稍後再試');
     }
   };
 
@@ -381,16 +377,6 @@ const ContestLayout = () => {
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </HeaderGlobalAction>
 
-            {(contest?.currentUserRole === 'teacher' || contest?.currentUserRole === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
-              <HeaderGlobalAction 
-                aria-label="Manage Contest" 
-                tooltipAlignment="center" 
-                onClick={() => navigate(`/management/contests/${contestId}`)}
-              >
-                <Settings size={20} />
-              </HeaderGlobalAction>
-            )}
-
             <HeaderGlobalAction 
               aria-label="Exit Contest" 
               tooltipAlignment="center" 
@@ -440,6 +426,8 @@ const ContestLayout = () => {
                   onLeave={handleLeave}
                   onStartExam={handleStartExam}
                   onEndExam={handleEndExam}
+                  onRefreshContest={refreshContest}
+                  maxWidth="1056px"
                 />
               ) : undefined}
             >
@@ -451,6 +439,7 @@ const ContestLayout = () => {
                 lockReason={contest?.lockReason}
                 examStatus={contest?.examStatus}
                 currentUserRole={contest?.currentUserRole}
+                onRefresh={refreshContest}
               >
                 <ContestProvider initialContest={contest} onRefresh={refreshContest}>
                   <Outlet context={{ refreshContest }} />
@@ -503,6 +492,16 @@ const ContestLayout = () => {
             );
           })()}
         </p>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={errorModalOpen}
+        modalHeading="錯誤"
+        passiveModal
+        onRequestClose={() => setErrorModalOpen(false)}
+      >
+        <p>{errorMessage}</p>
       </Modal>
     </div>
   );

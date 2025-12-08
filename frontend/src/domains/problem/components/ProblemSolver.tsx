@@ -28,6 +28,7 @@ interface ProblemSolverProps {
   contestName?: string;
   problemScore?: number;
   problemLabel?: string;
+  submissionDisabled?: boolean;
   // Callbacks
   onProblemUpdate?: (problem: Problem) => void;
 }
@@ -41,6 +42,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   contestName,
   problemScore,
   problemLabel,
+  submissionDisabled,
   onProblemUpdate: _onProblemUpdate  // Will be used in Settings Tab
 }) => {
   const { user } = useAuth();
@@ -272,6 +274,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
                 onSubmit={() => setIsSubmitModalOpen(true)}
                 running={submitting}
                 theme={theme}
+                submissionDisabled={submissionDisabled}
             />
           );
           case 2: return <ProblemHistoryTab problemId={problem.id as string} contestId={contestId} />;

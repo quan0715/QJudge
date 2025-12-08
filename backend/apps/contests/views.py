@@ -443,7 +443,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
         
-        ContestParticipant.objects.create(contest=contest, user=user)
+        # Handle nickname (default to username if empty)
+        nickname = request.data.get('nickname', '').strip()
+        if not nickname:
+            nickname = user.username
+        
+        ContestParticipant.objects.create(
+            contest=contest, 
+            user=user,
+            nickname=nickname
+        )
         
         # Log activity
         ContestActivityViewSet.log_activity(
@@ -457,6 +466,46 @@ class ContestViewSet(viewsets.ModelViewSet):
             {'message': 'Successfully registered'},
             status=status.HTTP_201_CREATED
         )
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='update_nickname')
+    def update_nickname(self, request, pk=None):
+        """
+        Allow user to update their nickname in an anonymous contest.
+        """
+        contest = self.get_object()
+        user = request.user
+        
+        if not contest.anonymous_mode_enabled:
+            return Response(
+                {'error': 'Anonymous mode is not enabled for this contest'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=user)
+        except ContestParticipant.DoesNotExist:
+            return Response(
+                {'error': 'Not registered for this contest'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        nickname = request.data.get('nickname', '').strip()
+        if not nickname:
+            nickname = user.username
+        
+        if len(nickname) > 50:
+            return Response(
+                {'error': 'Nickname is too long (max 50 characters)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        participant.nickname = nickname
+        participant.save()
+        
+        return Response({
+            'status': 'updated',
+            'nickname': nickname
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def enter(self, request, pk=None):
@@ -726,9 +775,23 @@ class ContestViewSet(viewsets.ModelViewSet):
         # 4. Process Stats
         from apps.users.serializers import UserSerializer
         stats = {} 
+        
+        # Determine if current user can see real names
+        can_see_real_names = role in ['admin', 'teacher']
+        
         for p in participants:
+            # Calculate display_name based on anonymous mode and role
+            if not contest.anonymous_mode_enabled:
+                display_name = p.user.username
+            elif can_see_real_names:
+                display_name = p.user.username
+            else:
+                display_name = p.nickname or p.user.username
+            
             stats[p.user.id] = {
                 'user': UserSerializer(p.user).data,
+                'display_name': display_name,
+                'nickname': p.nickname,
                 'solved': 0,
                 'rank': p.rank,
                 'score': p.score,

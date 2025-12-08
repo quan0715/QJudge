@@ -65,8 +65,8 @@ export const deleteContest = async (id: string): Promise<void> => {
   if (!res.ok) throw new Error('Failed to delete contest');
 };
 
-export const registerContest = async (id: string, password?: string): Promise<any> => {
-  const res = await httpClient.post(`/api/v1/contests/${id}/register/`, { password });
+export const registerContest = async (id: string, data?: { password?: string; nickname?: string }): Promise<any> => {
+  const res = await httpClient.post(`/api/v1/contests/${id}/register/`, data);
   if (!res.ok) {
     const errorData = await res.json();
     throw new Error(errorData.message || 'Registration failed');
@@ -277,6 +277,15 @@ export const getContestParticipants = async (contestId: string): Promise<Contest
 export const unlockParticipant = async (contestId: string, userId: number): Promise<void> => {
   const res = await httpClient.post(`/api/v1/contests/${contestId}/unlock_participant/`, { user_id: userId });
   if (!res.ok) throw new Error('Failed to unlock participant');
+};
+
+export const updateNickname = async (contestId: string, nickname: string): Promise<any> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/update_nickname/`, { nickname });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || errorData.detail || 'Failed to update nickname');
+  }
+  return res.json();
 };
 
 export const updateParticipant = async (contestId: string, userId: number, data: any): Promise<void> => {

@@ -17,6 +17,7 @@ interface ExamModeWrapperProps {
   currentUserRole?: UserRole;
   onExamStart?: () => void;
   onExamEnd?: () => void;
+  onRefresh?: () => Promise<void>;
   children: ReactNode;
 }
 
@@ -28,6 +29,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   lockReason,
   examStatus,
   currentUserRole,
+  onRefresh,
   children
 }) => {
   const navigate = useNavigate();
@@ -199,8 +201,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       if (diff <= 0) {
         setTimeLeft('00:00:00');
         clearInterval(timer);
+        clearInterval(timer);
         // Optional: Auto-refresh or unlock
-        window.location.reload();
+        if (onRefresh) onRefresh();
       } else {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -231,7 +234,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         }
       }
       // Reload page to show lock screen properly regardless of current path
-      window.location.reload();
+      if (onRefresh) onRefresh();
     } else {
       // Resume monitoring - force fullscreen (mandatory)
       setIsProcessingEvent(false);
@@ -261,7 +264,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
     // Navigate to dashboard and refresh to ensure clean state
     navigate(`/contests/${contestId}`);
-    window.location.reload();
+    if (onRefresh) onRefresh();
   };
 
   return (
@@ -335,7 +338,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         primaryButtonDisabled={pendingApiResponse}
         onRequestSubmit={() => handleWarningClose()}
         onRequestClose={() => handleWarningClose()}
-        preventCloseOnClickOutside={pendingApiResponse}
+        preventCloseOnClickOutside
         danger
         size="sm"
       >

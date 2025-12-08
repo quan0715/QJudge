@@ -74,7 +74,8 @@ const ContestAdminSettingsPage = () => {
         max_cheat_warnings: data?.maxCheatWarnings || 0,
         allow_auto_unlock: data?.allowAutoUnlock || false,
         auto_unlock_minutes: data?.autoUnlockMinutes || 0,
-        status: (data?.status || 'inactive') as any
+        status: (data?.status || 'inactive') as any,
+        anonymous_mode_enabled: data?.anonymousModeEnabled || false,
       });
 
       if (data?.startTime) {
@@ -392,6 +393,20 @@ const ContestAdminSettingsPage = () => {
                     />
                     <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.5rem' }}>
                       允許參賽者在比賽進行中查看即時排行榜
+                    </p>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--cds-border-subtle)', margin: '1rem 0' }} />
+                  <div>
+                    <Toggle
+                      id="anonymous-mode"
+                      labelText="匿名模式"
+                      labelA="關閉"
+                      labelB="開啟"
+                      toggled={formData.anonymous_mode_enabled}
+                      onToggle={(checked) => setFormData({ ...formData, anonymous_mode_enabled: checked })}
+                    />
+                    <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.5rem' }}>
+                      開啟後，參賽者可設定暱稱，排行榜和提交列表將顯示暱稱
                     </p>
                   </div>
                 </ContainerCard>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Modal } from '@carbon/react';
+import { Button, Modal, TextInput } from '@carbon/react';
 import { PlayFilled, Login, Flag, WarningAltFilled } from '@carbon/icons-react';
 
 import type { ContestDetail } from '@/core/entities/contest.entity';
@@ -10,6 +10,8 @@ import ReactMarkdown from 'react-markdown';
 import { getContestState, getContestStateLabel, getContestStateColor } from '@/models/contest';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
+import { updateNickname } from '@/services/contest';
+import { Edit } from '@carbon/icons-react';
 import './ContestHero.css';
 
 const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => {
@@ -41,11 +43,12 @@ const MinimalProgressBar = ({ value, label, status }: { value: number, label?: s
 interface ContestHeroProps {
   contest: ContestDetail | null;
   loading?: boolean;
-  onJoin?: () => void;
+  onJoin?: (data?: { nickname?: string; password?: string }) => void;
   onLeave?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onTabChange?: (tab: string) => void;
+  onRefreshContest?: () => Promise<void>;
   maxWidth?: string;
 }
 
@@ -55,12 +58,30 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onJoin, 
   onStartExam, 
   onEndExam,
+  onRefreshContest,
   maxWidth
 }) => {
   const [progress, setProgress] = useState(0);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerNickname, setRegisterNickname] = useState('');
+  const [password, setPassword] = useState('');
   
+  // Update Nickname States
+  const [showUpdateNicknameModal, setShowUpdateNicknameModal] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
+  
+  // Error Modal State
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setErrorModalOpen(true);
+  };
+
   useEffect(() => {
     if (!contest) return;
 
@@ -198,24 +219,51 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
     // Step 0: Not registered
     if (!contest.hasJoined) {
+      const handleRegisterClick = () => {
+        if (contest.anonymousModeEnabled || contest.visibility === 'private') {
+          setShowRegisterModal(true);
+        } else {
+          onJoin?.();
+        }
+      };
       return (
-        <Button renderIcon={Login} onClick={onJoin}>
+        <Button renderIcon={Login} onClick={handleRegisterClick}>
           立即報名 (Register)
-        </Button>
-      );
-    }
-
-    // Contest must be active for exam actions
-    if (contest.status !== 'active') {
-      return (
-        <Button kind="secondary" disabled renderIcon={Flag}>
-          考試未啟用 (Contest Inactive)
         </Button>
       );
     }
 
     // Determine my status
     const examStatus = contest.examStatus || (contest.hasStarted ? 'in_progress' : 'not_started');
+
+    // Registered User Actions
+    const canEditNickname = contest.anonymousModeEnabled && examStatus !== 'in_progress';
+    const editNicknameButton = canEditNickname ? (
+      <Button 
+        kind="ghost" 
+        size="sm" 
+        renderIcon={Edit}
+        onClick={() => {
+          setNewNickname(contest.myNickname || '');
+          setShowUpdateNicknameModal(true);
+        }}
+        style={{ marginRight: '0.5rem' }}
+      >
+        {contest.myNickname ? `暱稱: ${contest.myNickname}` : '設定暱稱'}
+      </Button>
+    ) : null;
+
+    // Contest must be active for exam actions
+    if (contest.status !== 'active') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {editNicknameButton}
+          <Button kind="secondary" disabled renderIcon={Flag}>
+            考試未啟用 (Contest Inactive)
+          </Button>
+        </div>
+      );
+    }
 
     switch (examStatus) {
       case 'locked':
@@ -233,6 +281,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             ) : (
               <div style={{ fontSize: '0.9rem', color: '#8d8d8d' }}>請聯繫監考人員解鎖</div>
             )}
+            {/* Allow editing nickname even if locked? Maybe not necessary, but safe to allow view */}
           </div>
         );
 
@@ -240,15 +289,21 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         // Step 3: Submitted - show finished or allow restart
         if (contest.allowMultipleJoins) {
           return (
-            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-              重新開始考試 (Restart Exam)
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {editNicknameButton}
+              <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+                重新開始考試 (Restart Exam)
+              </Button>
+            </div>
           );
         }
         return (
-          <Button kind="secondary" disabled renderIcon={Flag}>
-            已交卷 (Finished)
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {editNicknameButton}
+            <Button kind="secondary" disabled renderIcon={Flag}>
+              已交卷 (Finished)
+            </Button>
+          </div>
         );
 
       case 'paused':
@@ -267,25 +322,34 @@ const ContestHero: React.FC<ContestHeroProps> = ({
                   : '請點擊繼續考試以重新進入考試模式'}
               </div>
             </div>
-            <Button 
-              renderIcon={PlayFilled} 
-              onClick={handleStartClick}
-              disabled={pausedContestNotStartedYet}
-              kind={pausedContestNotStartedYet ? 'secondary' : 'primary'}
-            >
-              {pausedContestNotStartedYet ? '尚未開始 (Not Yet Started)' : '繼續考試 (Resume Exam)'}
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+               {editNicknameButton}
+               <Button 
+                renderIcon={PlayFilled} 
+                onClick={handleStartClick}
+                disabled={pausedContestNotStartedYet}
+                kind={pausedContestNotStartedYet ? 'secondary' : 'primary'}
+               >
+                 {pausedContestNotStartedYet ? '尚未開始 (Not Yet Started)' : '繼續考試 (Resume Exam)'}
+               </Button>
+            </div>
           </div>
         );
 
       case 'in_progress':
         // Step 2: In progress - show end exam button
         return (
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {editNicknameButton}
             {onEndExam && (
               <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
                 結束考試 (Submit Exam)
               </Button>
+            )}
+            {!onEndExam && (
+               <Button kind="secondary" disabled>
+                  進行中 (In Progress)
+               </Button>
             )}
           </div>
         );
@@ -304,6 +368,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         // Step 1 (not started): Show start button
         return (
           <div style={{ display: 'flex', gap: '1rem' }}>
+            {editNicknameButton}
             <Button renderIcon={PlayFilled} onClick={handleStartClick}>
               開始考試 (Start Exam)
             </Button>
@@ -379,6 +444,122 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             交卷後將<strong>無法再進行作答</strong>，且無法撤銷此操作。請確認您已完成所有題目。
           </p>
         </div>
+      </Modal>
+
+      {/* Update Nickname Modal */}
+      <Modal
+        open={showUpdateNicknameModal}
+        modalHeading="修改匿名暱稱"
+        primaryButtonText={isUpdatingNickname ? "更新中..." : "確認修改"}
+        secondaryButtonText="取消"
+        onRequestClose={() => setShowUpdateNicknameModal(false)}
+        onRequestSubmit={async () => {
+          if (!contest) return;
+          setIsUpdatingNickname(true);
+          try {
+            await updateNickname(contest.id, newNickname);
+            setShowUpdateNicknameModal(false);
+            if (onRefreshContest) {
+              await onRefreshContest();
+            } else {
+               // Fallback if no refresh function provided (shouldn't happen in updated layout)
+               console.warn('No refresh function provided');
+            }
+          } catch (error: any) {
+            console.error('Failed to update nickname', error);
+            showError(error.message || '修改失敗，請稍後再試');
+          } finally {
+            setIsUpdatingNickname(false);
+          }
+        }}
+        primaryButtonDisabled={isUpdatingNickname}
+      >
+        <div style={{ marginBottom: '1rem' }}>
+          <p style={{ marginBottom: '1rem' }}>您可以隨時修改您在積分榜上顯示的暱稱。</p>
+          <TextInput
+            id="update-nickname"
+            labelText="暱稱 (選填)"
+            placeholder="請輸入新的暱稱"
+            value={newNickname}
+            onChange={(e: any) => setNewNickname(e.target.value)}
+          />
+        </div>
+      </Modal>
+
+      {/* Registration Modal */}
+      <Modal
+        open={showRegisterModal}
+        modalHeading="競賽報名"
+        primaryButtonText="確認報名"
+        secondaryButtonText="取消"
+        onRequestSubmit={() => {
+          setShowRegisterModal(false);
+          onJoin?.({ 
+            nickname: registerNickname || undefined,
+            password: password || undefined
+          });
+          setRegisterNickname('');
+          setPassword('');
+        }}
+        onRequestClose={() => {
+          setShowRegisterModal(false);
+          setRegisterNickname('');
+          setPassword('');
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={(e) => { e.preventDefault(); }}>
+          {contest.visibility === 'private' && (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>
+                此競賽為私有競賽，請輸入加入密碼。
+              </p>
+              <TextInput
+                id="password"
+                labelText="密碼 (Password)"
+                type="password"
+                placeholder="請輸入競賽密碼"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
+
+          {contest.anonymousModeEnabled && (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>
+                本競賽已啟用<strong>匿名模式</strong>，您可以設定一個暱稱。
+                排行榜和提交列表將顯示您的暱稱而非真實帳號。
+              </p>
+              <TextInput
+                id="nickname"
+                labelText="暱稱 (Nickname)"
+                placeholder="留空則使用預設帳號名稱"
+                value={registerNickname}
+                onChange={(e: any) => setRegisterNickname(e.target.value)}
+                maxLength={50}
+              />
+              <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginTop: '0.5rem' }}>
+                您可以在報名後隨時修改暱稱。
+              </p>
+            </div>
+          )}
+          
+          {/* Confirmation if no special inputs required but modal opened for some reason? 
+              Logic above ensures modal only opens if private or anonymous. 
+          */}
+          </form>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={errorModalOpen}
+        modalHeading="錯誤"
+        passiveModal
+        onRequestClose={() => setErrorModalOpen(false)}
+      >
+        <p>{errorMessage}</p>
       </Modal>
     </>
   );

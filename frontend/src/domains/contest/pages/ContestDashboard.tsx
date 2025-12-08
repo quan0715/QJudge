@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useOutletContext } from 'react-router-dom';
 import { Loading, Modal } from '@carbon/react';
 
-import { getScoreboard, registerContest } from '@/services/contest';
+import { getScoreboard } from '@/services/contest';
 import { getSubmissions } from '@/services/submission';
 import type { ScoreboardRow } from '@/core/entities/contest.entity';
 import type { Submission } from '@/core/entities/submission.entity';
@@ -133,14 +133,7 @@ const ContestDashboard = () => {
             mySubmissions={mySubmissions}
             onSubmissionClick={handleSubmissionClick}
             onViewAllSubmissions={() => setSearchParams({ tab: 'submissions' })}
-            onRegister={async () => {
-              if (handleJoin) {
-                handleJoin();
-              } else {
-                 await registerContest(contestId!);
-                 await refreshContest();
-              }
-            }}
+
             maxWidth={contentMaxWidth}
           />
         );

@@ -84,7 +84,7 @@ const ContestProblemPage = () => {
     fetchData();
   }, [contestId, problemId]);
 
-  const handleSubmit = async (code: string, language: string, isTest: boolean): Promise<Submission | void> => {
+  const handleSubmit = async (code: string, language: string, isTest: boolean, customTestCases?: any[]): Promise<Submission | void> => {
     if (!problem || !contestId) return;
 
     try {
@@ -93,7 +93,8 @@ const ContestProblemPage = () => {
         problem_id: problemId!,
         language: language,
         code: code,
-        is_test: isTest
+        is_test: isTest,
+        custom_test_cases: customTestCases
       });
 
       if (isTest) {
@@ -143,6 +144,11 @@ const ContestProblemPage = () => {
     );
   }
 
+  const isSubmissionDisabled = 
+    contest?.status === 'inactive' || 
+    contest?.status === 'paused' ||
+    (contest?.endTime && new Date(contest.endTime) < new Date());
+
   return (
     <div style={{ 
       height: '100%', 
@@ -155,6 +161,7 @@ const ContestProblemPage = () => {
         contestName={contest?.name}
         problemScore={contestProblemInfo?.score}
         problemLabel={contestProblemInfo?.label}
+        submissionDisabled={isSubmissionDisabled}
       />
     </div>
   );

@@ -52,11 +52,13 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     
     examModeEnabled: !!dto.exam_mode_enabled,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
+    anonymousModeEnabled: !!dto.anonymous_mode_enabled,
     
     allowMultipleJoins: !!dto.allow_multiple_joins,
     maxCheatWarnings: dto.max_cheat_warnings || 0,
     allowAutoUnlock: !!dto.allow_auto_unlock,
     autoUnlockMinutes: dto.auto_unlock_minutes || 0,
+    myNickname: dto.my_nickname,
     
     hasStarted: !!dto.has_started,
     startedAt: dto.started_at,
@@ -124,7 +126,9 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
       rank: s.rank || 0,
       user: s.user || { id: 0, username: 'Unknown' },
       userId: s.user?.id?.toString() || '',
-      displayName: s.user?.username || '',
+      displayName: s.display_name || s.nickname || s.user?.username || '',
+      nickname: s.nickname,
+      display_name: s.display_name, // Pass original for compatibility if needed
       solved: s.solved || 0,
       solvedCount: s.solved || 0,
       total_score: s.total_score || 0,

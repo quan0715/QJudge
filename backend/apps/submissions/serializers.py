@@ -72,8 +72,45 @@ class ScreenEventSerializer(serializers.ModelSerializer):
 
 class SubmissionListSerializer(serializers.ModelSerializer):
     """Serializer for submission list."""
-    user = UserSerializer(read_only=True)
+    user = serializers.SerializerMethodField()
     problem = ProblemListSerializer(read_only=True)
+    
+    def get_user(self, obj):
+        from apps.users.serializers import UserSerializer
+        
+        # Default data
+        data = UserSerializer(obj.user).data
+        
+        # If no contest or not anonymous, return real user data
+        if not obj.contest or not obj.contest.anonymous_mode_enabled:
+            return data
+
+        request = self.context.get('request')
+        viewer = request.user if request else None
+        
+        is_privileged = viewer and (viewer.is_staff or getattr(viewer, 'role', '') in ['teacher', 'admin'])
+        is_owner = viewer and viewer == obj.user
+        
+        # If privileged or owner, they see real data (frontend can decide to show nickname too if added, but for now we keep username as real)
+        # Actually, for consistency with scoreboard, we might want to return real username but maybe add a display_name field?
+        # But replacing username is the safest for now.
+        if is_privileged or is_owner:
+            return data
+            
+        # For others, mask username with nickname
+        from apps.contests.models import ContestParticipant
+        try:
+             participant = ContestParticipant.objects.get(contest=obj.contest, user=obj.user)
+             nickname = participant.nickname
+             if nickname:
+                 data['username'] = nickname
+                 # Remove sensitive info if any
+                 if 'email' in data:
+                     del data['email']
+        except ContestParticipant.DoesNotExist:
+             pass
+        
+        return data
     
     class Meta:
         model = Submission

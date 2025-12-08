@@ -59,6 +59,15 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
 
+  // Error Modal State
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setErrorModalOpen(true);
+  };
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000); // Poll every 30s
@@ -109,7 +118,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       fetchData();
     } catch (error) {
       console.error('Failed to create clarification', error);
-      alert('發布失敗，請檢查輸入內容');
+      showError('發布失敗，請檢查輸入內容');
     }
   };
 
@@ -127,7 +136,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       fetchData();
     } catch (error) {
       console.error('Failed to create announcement', error);
-      alert('發布公告失敗');
+      showError('發布公告失敗');
     }
   };
 
@@ -453,6 +462,16 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
           checked={replyIsPublic}
           onChange={(e) => setReplyIsPublic(e.target.checked)}
         />
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={errorModalOpen}
+        modalHeading="錯誤"
+        passiveModal
+        onRequestClose={() => setErrorModalOpen(false)}
+      >
+        <p>{errorMessage}</p>
       </Modal>
     </div>
   );

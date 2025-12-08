@@ -24,7 +24,7 @@ import {
   Loading
 } from '@carbon/react';
 import { useNavigate } from 'react-router-dom';
-import { getContests, registerContest, enterContest } from '@/services/contest';
+import { getContests } from '@/services/contest';
 import { useAuth } from '@/domains/auth/contexts/AuthContext';
 import type { Contest } from '@/core/entities/contest.entity';
 import { PageHeader } from '@/ui/layout/PageHeader';
@@ -35,11 +35,6 @@ const ContestListPage: React.FC = () => {
   const { user } = useAuth();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
-  const [password, setPassword] = useState('');
-
-  // Generic Notification Modal
   const [notificationModal, setNotificationModal] = useState({
     open: false,
     title: '',
@@ -62,47 +57,9 @@ const ContestListPage: React.FC = () => {
     }
   };
 
-  const handleRegister = async () => {
-    if (!selectedContest) return;
-    try {
-      await registerContest(selectedContest.id, password);
-      // Refresh contests to update status
-      fetchContests();
-      setRegisterModalOpen(false);
-      setPassword('');
-      setSelectedContest(null);
-    } catch (error) {
-      setNotificationModal({
-        open: true,
-        title: '報名失敗',
-        message: 'Registration failed',
-        kind: 'error'
-      });
-    }
-  };
 
-  const handleEnter = async (contestId: string) => {
-    try {
-      await enterContest(contestId);
-      navigate(`/contests/${contestId}`);
-    } catch (error: any) {
-        if (error.message.includes('Not registered')) {
-           setNotificationModal({
-             open: true,
-             title: '尚未報名',
-             message: 'Please register first',
-             kind: 'warning'
-           });
-        } else {
-           setNotificationModal({
-             open: true,
-             title: '無法進入',
-             message: error.message,
-             kind: 'error'
-           });
-        }
-    }
-  };
+
+
 
   const handleContestClick = async (contest: Contest) => {
     // Always navigate to contest page - registration can happen there
@@ -151,20 +108,25 @@ const ContestListPage: React.FC = () => {
                   <Table {...getTableProps()}>
                       <TableHead>
                           <TableRow>
-                              {headers.map((header: any) => (
-                                  <TableHeader {...getHeaderProps({ header })}>
-                                      {header.header}
-                                  </TableHeader>
-                              ))}
+                  {headers.map((header: any) => {
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                          <TableHeader key={key} {...headerProps}>
+                              {header.header}
+                          </TableHeader>
+                      );
+                  })}
                           </TableRow>
                       </TableHead>
                       <TableBody>
                           {rows.map((row: any) => {
                               const contest = contests.find(c => c.id.toString() === row.id);
                               if (!contest) return null;
+                                const { key, ...rowProps } = getRowProps({ row });
                               return (
                                   <TableRow 
-                                    {...getRowProps({ row })}
+                                    key={key}
+                                    {...rowProps}
                                     onClick={() => handleContestClick(contest)}
                                     style={{ cursor: 'pointer' }}
                                   >
@@ -194,22 +156,12 @@ const ContestListPage: React.FC = () => {
                                       </TableCell>
                                       <TableCell>
                                           {/* Action Buttons Logic */}
-                                          {!contest.isRegistered ? (
-                                              <Button size="sm" onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setSelectedContest(contest);
-                                                  setRegisterModalOpen(true);
-                                              }}>
-                                                  報名
-                                              </Button>
-                                          ) : (
-                                              <Button size="sm" kind="tertiary" onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleEnter(contest.id);
-                                              }}>
-                                                  進入
-                                              </Button>
-                                          )}
+                                          <Button size="sm" kind="tertiary" onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleContestClick(contest);
+                                          }}>
+                                              查看詳情
+                                          </Button>
                                       </TableCell>
                                   </TableRow>
                               );
@@ -269,29 +221,7 @@ const ContestListPage: React.FC = () => {
               </TabPanels>
             </Tabs>
 
-            {/* Registration Modal */}
-            <Modal
-                open={registerModalOpen}
-                onRequestClose={() => setRegisterModalOpen(false)}
-                modalHeading={`報名競賽: ${selectedContest?.name}`}
-                primaryButtonText="確認報名"
-                secondaryButtonText="取消"
-                onRequestSubmit={handleRegister}
-            >
-                <p style={{ marginBottom: '1rem' }}>
-                    確定要報名此競賽嗎？
-                    {selectedContest?.visibility === 'private' && " 此競賽需要密碼。"}
-                </p>
-                {selectedContest?.visibility === 'private' && (
-                    <input 
-                        type="password" 
-                        placeholder="輸入競賽密碼"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    />
-                )}
-            </Modal>
+
 
             {/* Generic Notification Modal */}
             <Modal
