@@ -129,7 +129,7 @@ const ContestProblemPage = () => {
     contest?.currentUserRole === 'admin' || 
     contest?.currentUserRole === 'teacher' || 
     contest?.permissions?.canEditContest ||
-    (contest?.status === 'active' && contest?.hasStarted && !contest?.isLocked);
+    (contest?.status === 'active' && contest?.hasStarted && contest?.examStatus !== 'locked');
 
   if (!canView) {
     return (

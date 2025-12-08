@@ -77,6 +77,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       setTimeout(() => {
         isGracePeriod.current = false;
       }, 3000); // 3 seconds grace period
+      
+      // Auto enter fullscreen
+      if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(e => {
+              console.warn('Failed to enter fullscreen automatically:', e);
+          });
+      }
     }
     prevIsActiveRef.current = effectiveIsActive;
   }, [isActive, isLocked, lockReason, examStatus]);

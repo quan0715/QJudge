@@ -199,14 +199,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
-    // Use examStatus as primary state (fallback to booleans for backward compatibility)
-    const examStatus = contest.examStatus || (
-      contest.isLocked ? 'locked' :
-      contest.hasFinishedExam ? 'submitted' :
-      contest.isPaused ? 'paused' :
-      contest.hasStarted ? 'in_progress' :
-      'not_started'
-    );
+    // Determine my status
+    const examStatus = contest.examStatus || (contest.hasStarted ? 'in_progress' : 'not_started');
 
     switch (examStatus) {
       case 'locked':
@@ -326,9 +320,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             <li>考試期間請保持<strong>全螢幕模式</strong>。</li>
             <li>禁止切換分頁或視窗，違規將被記錄。</li>
             <li>若違規次數超過 <strong>{contest.maxCheatWarnings}</strong> 次，系統將自動鎖定您的考試權限。</li>
-            {contest.banTabSwitching && (
-              <li style={{ color: '#da1e28' }}>嚴格禁止切換分頁 (Tab Switching is Banned)</li>
-            )}
           </ul>
           <p>點擊「確認開始」後將進入全螢幕模式。</p>
         </div>

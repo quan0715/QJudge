@@ -11,6 +11,7 @@ from .models import (
     Clarification,
     ExamEvent,
     ContestActivity,
+    ExamStatus,
 )
 from django.db.models import Sum
 from .permissions import get_user_role_in_contest, get_contest_permissions
@@ -71,10 +72,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     has_started = serializers.SerializerMethodField()
     started_at = serializers.SerializerMethodField()
     left_at = serializers.SerializerMethodField()
-    has_finished_exam = serializers.SerializerMethodField()
-    is_locked = serializers.SerializerMethodField()
     locked_at = serializers.SerializerMethodField()
-    is_paused = serializers.SerializerMethodField()
     lock_reason = serializers.SerializerMethodField()
     exam_status = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
@@ -98,6 +96,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'owner_username',
             'created_at',
             'updated_at',
+            'created_at',
+            'updated_at',
             # Computed fields
             'current_user_role',
             'permissions',
@@ -105,36 +105,15 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'has_started',
             'started_at',
             'left_at',
-            'has_finished_exam',
-            'has_finished_exam',
-            'is_locked',
             'locked_at',
-            'is_paused',
             'lock_reason',
             'exam_status',
             'problems',
             'allow_multiple_joins',
-            'ban_tab_switching',
             'max_cheat_warnings',
             'allow_auto_unlock',
             'auto_unlock_minutes',
         ]
-
-    def get_is_locked(self, obj):
-        """Check if current user is locked."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        registration = obj.registrations.filter(user=request.user).first()
-        return registration.is_locked if registration else False
-
-    def get_is_paused(self, obj):
-        """Check if current user is paused."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        registration = obj.registrations.filter(user=request.user).first()
-        return registration.is_paused if registration else False
 
     def get_lock_reason(self, obj):
         """Get lock reason for current user."""
@@ -215,7 +194,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         registration = obj.registrations.filter(user=request.user).first()
-        return registration.has_finished_exam if registration else False
+        return registration.exam_status == ExamStatus.SUBMITTED if registration else False
     
     def get_problems(self, obj):
         """Get contest problems with labels."""
@@ -513,13 +492,12 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         fields = [
             'user_id', 'username', 'user', 'score', 'rank', 
             'joined_at', 'exam_status',
-            'has_finished_exam', 'is_locked', 'is_paused', 
             'lock_reason', 'violation_count', 'auto_unlock_at', 'remaining_unlock_seconds'
         ]
 
     def get_auto_unlock_at(self, obj):
         """Calculate auto unlock time if applicable."""
-        if not obj.is_locked or not obj.locked_at or not obj.contest.allow_auto_unlock:
+        if obj.exam_status != ExamStatus.LOCKED or not obj.locked_at or not obj.contest.allow_auto_unlock:
             return None
         
         minutes = obj.contest.auto_unlock_minutes or 0

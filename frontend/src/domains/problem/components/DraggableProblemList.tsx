@@ -84,9 +84,7 @@ const SortableProblemRow: React.FC<SortableProblemRowProps> = ({
         <DifficultyBadge difficulty={problem.difficulty || 'medium'} />
       </div>
       
-      <div className="problem-score">
-        {problem.score || 0} pts
-      </div>
+
       
       {onRemove && (
         <div className="problem-actions">

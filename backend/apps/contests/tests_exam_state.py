@@ -52,12 +52,10 @@ class ExamStateTests(APITestCase):
         
         p.refresh_from_db()
         self.assertEqual(p.exam_status, ExamStatus.SUBMITTED)
-        self.assertTrue(p.has_finished_exam)
 
     def test_unlock_participant(self):
         # Lock user
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
-        p.is_locked = True
         p.exam_status = ExamStatus.LOCKED
         p.save()
         
@@ -73,14 +71,13 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         p.refresh_from_db()
-        self.assertFalse(p.is_locked)
-        self.assertTrue(p.is_paused)
+        self.assertFalse(p.exam_status == ExamStatus.LOCKED)
+        self.assertTrue(p.exam_status == ExamStatus.PAUSED)
         self.assertEqual(p.exam_status, ExamStatus.PAUSED)
         
     def test_resume_exam(self):
         # Pause user
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
-        p.is_paused = True
         p.exam_status = ExamStatus.PAUSED
         p.save()
         
@@ -90,13 +87,12 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         p.refresh_from_db()
-        self.assertFalse(p.is_paused)
+        self.assertFalse(p.exam_status == ExamStatus.PAUSED)
         self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
         
     def test_reopen_exam(self):
         # Submit exam
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
-        p.has_finished_exam = True
         p.exam_status = ExamStatus.SUBMITTED
         p.save()
         
@@ -107,14 +103,13 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         p.refresh_from_db()
-        self.assertFalse(p.has_finished_exam)
-        self.assertTrue(p.is_paused)
+        self.assertFalse(p.exam_status == ExamStatus.SUBMITTED)
+        self.assertTrue(p.exam_status == ExamStatus.PAUSED)
         self.assertEqual(p.exam_status, ExamStatus.PAUSED)
 
     def test_auto_unlock_retrieve(self):
         # Lock user with past timestamp
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
-        p.is_locked = True
         p.exam_status = ExamStatus.LOCKED
         p.locked_at = timezone.now() - timedelta(minutes=20) # 20 mins ago, auto unlock is 10 mins
         p.save()
@@ -126,6 +121,6 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         p.refresh_from_db()
-        self.assertFalse(p.is_locked)
-        self.assertTrue(p.is_paused)
+        self.assertFalse(p.exam_status == ExamStatus.LOCKED)
+        self.assertTrue(p.exam_status == ExamStatus.PAUSED)
         self.assertEqual(p.exam_status, ExamStatus.PAUSED)

@@ -18,7 +18,6 @@ export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
     problemId: dto.problem_id?.toString() || '',
     label: dto.label || '',
     title: dto.title || '',
-    score: dto.score,
     order: dto.order,
     userStatus: dto.user_status,
     difficulty: dto.difficulty
@@ -54,7 +53,6 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
     
     allowMultipleJoins: !!dto.allow_multiple_joins,
-    banTabSwitching: !!dto.ban_tab_switching,
     maxCheatWarnings: dto.max_cheat_warnings || 0,
     allowAutoUnlock: !!dto.allow_auto_unlock,
     autoUnlockMinutes: dto.auto_unlock_minutes || 0,
@@ -62,11 +60,8 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     hasStarted: !!dto.has_started,
     startedAt: dto.started_at,
     leftAt: dto.left_at,
-    hasFinishedExam: !!dto.has_finished_exam,
-    isLocked: !!dto.is_locked,
     lockedAt: dto.locked_at,
     lockReason: dto.lock_reason,
-    isPaused: !!dto.is_paused,
     examStatus: dto.exam_status,
     
     permissions: {
@@ -92,10 +87,7 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     rank: dto.rank,
     joinedAt: dto.joined_at || '',
     examStatus: dto.exam_status || 'not_started',
-    hasFinishedExam: !!dto.has_finished_exam,
-    isLocked: !!dto.is_locked,
     lockReason: dto.lock_reason,
-    isPaused: !!dto.is_paused,
     violationCount: dto.violation_count || 0
   };
 }
@@ -122,7 +114,6 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
       id: p.id,
       label: p.label,
       problemId: p.id?.toString() || p.problem_id?.toString(),
-      score: p.score,
       title: p.title,
       order: p.order
     })) : [],

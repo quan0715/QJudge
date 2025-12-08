@@ -133,14 +133,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         if user.is_authenticated:
             try:
                 participant = ContestParticipant.objects.get(contest=instance, user=user)
-                if participant.is_locked and instance.allow_auto_unlock and participant.locked_at:
+                if participant.exam_status == ExamStatus.LOCKED and instance.allow_auto_unlock and participant.locked_at:
                     minutes = instance.auto_unlock_minutes or 0
                     unlock_time = participant.locked_at + timezone.timedelta(minutes=minutes)
                     
                     if timezone.now() >= unlock_time:
-                        participant.is_locked = False
-                        participant.is_paused = True  # Auto-unlock to paused state
                         participant.exam_status = ExamStatus.PAUSED
+                        
+                        # Reset lock info
                         participant.locked_at = None
                         participant.violation_count = 0
                         participant.lock_reason = ""
@@ -238,10 +238,10 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         try:
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
-            participant.is_locked = False
+            participant.exam_status = ExamStatus.PAUSED # Auto-unlock to paused state
+            participant.locked_at = None
+            participant.violation_count = 0
             participant.lock_reason = ""
-            participant.is_paused = True # Require manual resume
-            participant.exam_status = ExamStatus.PAUSED
             participant.save()
             
             # Log activity
@@ -267,23 +267,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         try:
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
 
-            if 'is_locked' in request.data:
-                participant.is_locked = request.data['is_locked']
-                if request.data['is_locked']:
-                    participant.exam_status = ExamStatus.LOCKED
-            if 'lock_reason' in request.data:
-                participant.lock_reason = request.data['lock_reason']
-            if 'has_finished_exam' in request.data:
-                participant.has_finished_exam = request.data['has_finished_exam']
-                if request.data['has_finished_exam']:
-                    participant.exam_status = ExamStatus.SUBMITTED
-            if 'is_paused' in request.data:
-                participant.is_paused = request.data['is_paused']
-                if request.data['is_paused']:
-                    participant.exam_status = ExamStatus.PAUSED
+            # Legacy field support removed - rely on exam_status
             if 'exam_status' in request.data:
                 participant.exam_status = request.data['exam_status']
-
+            
+            if 'lock_reason' in request.data:
+                participant.lock_reason = request.data['lock_reason']
+                
             participant.save()
             
             # Log activity
@@ -309,15 +299,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         try:
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
             
-            if not participant.has_finished_exam and participant.exam_status != ExamStatus.SUBMITTED:
-                return Response(
-                    {'error': 'Participant has not submitted exam yet'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            participant.has_finished_exam = False
-            participant.is_paused = True  # Require student to click "Continue"
-            participant.exam_status = ExamStatus.PAUSED
+            if participant.exam_status != ExamStatus.SUBMITTED:
+                return Response({'error': 'Warning: User has not finished the exam.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Reopen to PAUSED state
+            participant.exam_status = ExamStatus.PAUSED  # Require student to click "Continue"
             participant.save()
             
             # Log activity
@@ -726,10 +712,13 @@ class ContestViewSet(viewsets.ModelViewSet):
             stats[p.user.id] = {
                 'user': UserSerializer(p.user).data,
                 'solved': 0,
+                'rank': p.rank,
+                'score': p.score,
+                'joined_at': p.joined_at,
+                'has_finished_exam': p.exam_status == ExamStatus.SUBMITTED,
+                'started_at': p.started_at,
                 'total_score': 0,
                 'time': 0, # Penalty
-                'joined_at': p.joined_at,
-                'has_finished_exam': p.has_finished_exam,
                 'problems': {}
             }
             for cp in contest_problems:
@@ -868,17 +857,16 @@ class ExamViewSet(viewsets.ViewSet):
             participant = ContestParticipant.objects.get(contest=contest, user=request.user)
             
             # Check if locked
-            if participant.is_locked or participant.exam_status == ExamStatus.LOCKED:
+            if participant.exam_status == ExamStatus.LOCKED:
                 return Response(
                     {'error': 'You have been locked out of this contest.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
             # Check if already submitted
-            if participant.has_finished_exam or participant.exam_status == ExamStatus.SUBMITTED:
+            if participant.exam_status == ExamStatus.SUBMITTED:
                 if contest.allow_multiple_joins:
                     # Reset for re-entry
-                    participant.has_finished_exam = False
                     participant.exam_status = ExamStatus.IN_PROGRESS
                     participant.save()
                 else:
@@ -888,8 +876,7 @@ class ExamViewSet(viewsets.ViewSet):
                     )
 
             # Handle resume from paused state
-            if participant.is_paused or participant.exam_status == ExamStatus.PAUSED:
-                participant.is_paused = False
+            if participant.exam_status == ExamStatus.PAUSED:
                 participant.exam_status = ExamStatus.IN_PROGRESS
                 participant.save()
                 
@@ -902,8 +889,8 @@ class ExamViewSet(viewsets.ViewSet):
                 )
                 return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
 
-            # First start
-            if not participant.started_at or participant.exam_status == ExamStatus.NOT_STARTED:
+            # Start exam for user if not already started
+            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
                 participant.started_at = timezone.now()
                 participant.exam_status = ExamStatus.IN_PROGRESS
                 participant.save()
@@ -935,7 +922,6 @@ class ExamViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            participant.has_finished_exam = True
             participant.left_at = timezone.now()
             participant.exam_status = ExamStatus.SUBMITTED
             participant.save()
@@ -992,15 +978,13 @@ class ExamViewSet(viewsets.ViewSet):
             participant.violation_count += 1
             
             # Check threshold
-            should_lock = False
-            if participant.violation_count > contest.max_cheat_warnings:
-                should_lock = True
-            
-            if should_lock and not participant.is_locked:
-                participant.is_locked = True
-                participant.locked_at = timezone.now()
+            # If should lock and not already locked
+            should_lock = participant.violation_count >= contest.max_cheat_warnings
+            if should_lock and participant.exam_status != ExamStatus.LOCKED:
                 participant.exam_status = ExamStatus.LOCKED
-                
+                participant.locked_at = timezone.now()
+                participant.lock_reason = "Exceeded maximum cheat warnings"
+                participant.save()
                 # Use provided lock reason or default
                 custom_reason = serializer.validated_data.get('lock_reason')
                 if custom_reason:
@@ -1020,16 +1004,14 @@ class ExamViewSet(viewsets.ViewSet):
             
             # Calculate auto unlock time
             auto_unlock_at = None
-            if participant.is_locked and participant.locked_at and contest.allow_auto_unlock:
+            if participant.exam_status == ExamStatus.LOCKED and participant.locked_at and contest.allow_auto_unlock:
                 minutes = contest.auto_unlock_minutes or 0
                 auto_unlock_at = participant.locked_at + timezone.timedelta(minutes=minutes)
             
             return Response({
-                'status': 'logged', 
-                'locked': participant.is_locked,
                 'violation_count': participant.violation_count,
-                'max_warnings': contest.max_cheat_warnings,
-                'remaining_chances': max(0, contest.max_cheat_warnings - participant.violation_count + 1),
+                'max_cheat_warnings': contest.max_cheat_warnings,
+                'locked': participant.exam_status == ExamStatus.LOCKED,
                 'auto_unlock_at': auto_unlock_at
             })
         except ContestParticipant.DoesNotExist:
@@ -1148,7 +1130,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 participant = ContestParticipant.objects.get(contest=contest, user=user)
                 
                 # Must have started exam or finished it to view problems
-                if not participant.started_at and not participant.has_finished_exam:
+                if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
                      return Response(
                         {'detail': 'You must start the contest to view problems.'}, 
                         status=status.HTTP_403_FORBIDDEN

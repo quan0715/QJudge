@@ -20,7 +20,6 @@ export interface ContestProblemSummary {
   problemId: string; // Actual Problem ID
   label: string;   // A, B, C...
   title: string;
-  score?: number;
   order?: number;
   userStatus?: SubmissionStatus;
   difficulty?: string;
@@ -35,11 +34,8 @@ export interface ContestParticipant {
   joinedAt: string;
   // Primary state field
   examStatus: ExamStatusType;
-  // Legacy fields (kept for backward compatibility during migration)
-  hasFinishedExam: boolean;
-  isLocked: boolean;
+  // Legacy fields removed
   lockReason?: string;
-  isPaused?: boolean;
   violationCount: number;
 }
 
@@ -77,7 +73,6 @@ export interface ContestDetail extends Contest {
   
   // Advanced settings
   allowMultipleJoins: boolean;
-  banTabSwitching: boolean;
   maxCheatWarnings: number;
   allowAutoUnlock: boolean;
   autoUnlockMinutes: number;
@@ -86,11 +81,8 @@ export interface ContestDetail extends Contest {
   hasStarted?: boolean;
   startedAt?: string;
   leftAt?: string;
-  hasFinishedExam: boolean;
-  isLocked?: boolean;
   lockedAt?: string;
   lockReason?: string;
-  isPaused?: boolean;
   examStatus?: ExamStatusType;  // Primary state field
   
   permissions: ContestPermissions;
@@ -119,7 +111,6 @@ export interface ScoreboardData {
   problems: Array<{
     label: string;
     problemId: string;
-    score?: number;
   }>;
   rows: ScoreboardRow[];
 }

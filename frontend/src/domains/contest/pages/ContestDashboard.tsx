@@ -76,7 +76,7 @@ const ContestDashboard = () => {
 
   useEffect(() => {
     // Anti-Cheat Logic
-    if (!contest || !contest.examModeEnabled || !contest.hasStarted || contest.hasFinishedExam || contest.isLocked) {
+    if (!contest || !contest.examModeEnabled || !contest.hasStarted || contest.examStatus === 'submitted' || contest.examStatus === 'locked') {
       return;
     }
 

@@ -57,10 +57,7 @@ const ContestLayout = () => {
 
   const isExamActive = !!(
     contest?.examModeEnabled && 
-    contest?.hasStarted && 
-    !contest?.isPaused && 
-    !contest?.isLocked &&
-    !contest?.hasFinishedExam
+    contest?.examStatus === 'in_progress'
   );
 
   useEffect(() => {
@@ -82,7 +79,7 @@ const ContestLayout = () => {
 
   // Redirect paused users to overview
   useEffect(() => {
-    if (contest?.isPaused) {
+    if (contest?.examStatus === 'paused') {
       const path = window.location.pathname;
       const restrictedPaths = ['/problems', '/submissions', '/standings'];
       if (restrictedPaths.some(p => path.includes(p))) {
@@ -219,7 +216,7 @@ const ContestLayout = () => {
 
     try {
       // If exam mode is enabled and exam is active, end the exam first
-      if (contest.examModeEnabled && contest.status === 'active' && !contest.hasFinishedExam) {
+      if (contest.examModeEnabled && contest.status === 'active' && contest.examStatus !== 'submitted') {
         // Use the new handleEndExam logic
         await handleEndExam();
       }
@@ -384,7 +381,7 @@ const ContestLayout = () => {
                 contestId={contestId || ''}
                 examModeEnabled={!!contest?.examModeEnabled}
                 isActive={!!isExamActive}
-                isLocked={contest?.isLocked}
+                isLocked={contest?.examStatus === 'locked'}
                 lockReason={contest?.lockReason}
                 examStatus={contest?.examStatus}
                 currentUserRole={contest?.currentUserRole}
@@ -424,8 +421,8 @@ const ContestLayout = () => {
               return '確定要離開競賽頁面嗎？';
             }
 
-            // Student - Joined but exam not started (or finished)
-            if (!contest?.status || contest.status === 'inactive' || contest.hasFinishedExam) {
+            // Student - Joined but exam not started (or submitted)
+            if (!contest?.status || contest.status === 'inactive' || contest.examStatus === 'submitted') {
               return '確定要離開競賽頁面嗎？';
             }
 

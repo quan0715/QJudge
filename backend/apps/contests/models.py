@@ -64,7 +64,6 @@ class Contest(models.Model):
     # Legacy settings - kept for backward compatibility
     allow_view_results = models.BooleanField(default=True, verbose_name='允許查看結果')
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
-    ban_tab_switching = models.BooleanField(default=False)
     max_cheat_warnings = models.IntegerField(default=3)
     
     # Auto-unlock settings
@@ -141,7 +140,7 @@ class ContestProblem(models.Model):
     
     # label = models.CharField(max_length=10, default='A', verbose_name='標籤', help_text='例如: A, B, C')
     order = models.IntegerField(default=0, verbose_name='排序')
-    score = models.IntegerField(default=100, verbose_name='分數')
+
 
     @property
     def label(self):
@@ -181,19 +180,7 @@ class ContestParticipant(models.Model):
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='開始時間')
     left_at = models.DateTimeField(null=True, blank=True, verbose_name='離開時間')
     
-    # Exam mode tracking
-    has_finished_exam = models.BooleanField(
-        default=False,
-        verbose_name='已完成考試',
-        help_text='學生按下「結束考試」後標記，用來控制是否還能繼續送出競賽提交'
-    )
-    
-    # Locking mechanism
-    is_locked = models.BooleanField(
-        default=False,
-        verbose_name='已鎖定',
-        help_text='是否因違規而被鎖定'
-    )
+    # Locking metadata (needed for auto-unlock and audit)
     locked_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -203,14 +190,8 @@ class ContestParticipant(models.Model):
         blank=True,
         verbose_name='鎖定原因'
     )
-    violation_count = models.IntegerField(default=0, verbose_name='違規次數')
     
-    # Paused state (for manual resume requirement)
-    is_paused = models.BooleanField(
-        default=False,
-        verbose_name='已暫停',
-        help_text='是否處於暫停狀態（需手動點擊繼續）'
-    )
+    violation_count = models.IntegerField(default=0, verbose_name='違規次數')
     
     # Explicit exam state (primary state field for UI)
     exam_status = models.CharField(

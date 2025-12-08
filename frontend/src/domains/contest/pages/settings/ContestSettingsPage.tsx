@@ -70,7 +70,7 @@ const ContestAdminSettingsPage = () => {
         exam_mode_enabled: data?.examModeEnabled || false,
         scoreboard_visible_during_contest: data?.scoreboardVisibleDuringContest || false,
         allow_multiple_joins: data?.allowMultipleJoins || false,
-        ban_tab_switching: data?.banTabSwitching || false,
+
         max_cheat_warnings: data?.maxCheatWarnings || 0,
         allow_auto_unlock: data?.allowAutoUnlock || false,
         auto_unlock_minutes: data?.autoUnlockMinutes || 0,
@@ -418,14 +418,7 @@ const ContestAdminSettingsPage = () => {
                         toggled={formData.allow_multiple_joins}
                         onToggle={(checked) => setFormData({ ...formData, allow_multiple_joins: checked })}
                       />
-                      <Toggle
-                        id="ban-tab-switching"
-                        labelText="禁止切換分頁 (Anti-Cheat)"
-                        labelA="不禁止"
-                        labelB="禁止"
-                        toggled={formData.ban_tab_switching}
-                        onToggle={(checked) => setFormData({ ...formData, ban_tab_switching: checked })}
-                      />
+
                       <NumberInput
                         id="max-warnings"
                         label="最大違規警告次數 (0 = 立即鎖定)"
