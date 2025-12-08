@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useOutletContext } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Loading, Modal } from '@carbon/react';
 
 import { getScoreboard } from '@/services/contest';
@@ -25,7 +25,7 @@ import ContestAdminLogsPage from '@/domains/contest/pages/settings/ContestLogsPa
 const ContestDashboard = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { handleJoin } = useOutletContext<{ refreshContest: () => void, handleJoin: () => void }>();
+
   
   // Use contest from context instead of local state
   const { contest, loading, refreshContest } = useContest();
