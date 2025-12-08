@@ -338,13 +338,9 @@ const ProblemForm = ({
       });
     }
 
-    // Populate keyword restrictions
-    if (yaml.forbidden_keywords) {
-      setForbiddenKeywords(yaml.forbidden_keywords);
-    }
-    if (yaml.required_keywords) {
-      setRequiredKeywords(yaml.required_keywords);
-    }
+    // Populate keyword restrictions (always set, even if empty, to allow clearing)
+    setForbiddenKeywords(yaml.forbidden_keywords || []);
+    setRequiredKeywords(yaml.required_keywords || []);
   };
 
   return (

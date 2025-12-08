@@ -81,12 +81,12 @@
 .markdown-body code {
   font-family: 'IBM Plex Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 0.875em;
-  background-color: rgba(175, 184, 193, 0.2);
+  background-color: rgba(218, 30, 40, 0.1);
   padding: 0.2em 0.4em;
   border-radius: 3px;
-  color: #eb6f92;
-  border: 1px solid rgba(175, 184, 193, 0.3);
-  font-weight: 500;
+  color: #da1e28;
+  border: 1px solid rgba(218, 30, 40, 0.2);
+  font-weight: 700;
 }
 
 .markdown-body pre {

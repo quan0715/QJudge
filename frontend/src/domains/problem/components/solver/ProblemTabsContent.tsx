@@ -24,6 +24,8 @@ export const ProblemDescriptionTab: React.FC<{ problem: any }> = ({ problem }) =
       tags={problem.tags}
       showLanguageToggle={problem.translations?.length > 1}
       compact={false}
+      forbiddenKeywords={problem.forbiddenKeywords}
+      requiredKeywords={problem.requiredKeywords}
     />
   </ContainerCard>
 );
