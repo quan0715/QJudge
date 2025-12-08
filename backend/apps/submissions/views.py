@@ -150,6 +150,43 @@ class SubmissionViewSet(viewsets.ModelViewSet):
                      from rest_framework.exceptions import PermissionDenied
                      raise PermissionDenied("You are not registered for this contest")
         
+        # === Keyword Restriction Validation ===
+        problem = serializer.validated_data.get('problem')
+        code = serializer.validated_data.get('code', '')
+        
+        forbidden_keywords = problem.forbidden_keywords or []
+        required_keywords = problem.required_keywords or []
+        
+        has_violation = False
+        violation_message = ""
+        
+        # Check forbidden keywords
+        for keyword in forbidden_keywords:
+            if keyword in code:
+                has_violation = True
+                violation_message = f"程式碼包含禁用關鍵字: {keyword}"
+                break
+        
+        # Check required keywords (if no forbidden violation)
+        if not has_violation:
+            for keyword in required_keywords:
+                if keyword not in code:
+                    has_violation = True
+                    violation_message = f"程式碼缺少必須關鍵字: {keyword}"
+                    break
+        
+        if has_violation:
+            # Create submission with KR status, skip judging
+            submission = serializer.save(
+                user=user,
+                source_type=source_type,
+                status='KR',
+                score=0,
+                error_message=violation_message
+            )
+            return  # Don't trigger judge task
+        
+        # Normal flow: save and judge
         submission = serializer.save(
             user=user,
             source_type=source_type

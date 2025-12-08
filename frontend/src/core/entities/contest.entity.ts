@@ -96,6 +96,9 @@ export interface ContestDetail extends Contest {
   
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
+  
+  // Multi-admin support
+  admins?: Array<{ id: string; username: string }>;
 }
 
 // Scoreboard Types

@@ -79,6 +79,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     my_nickname = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
+    admins = serializers.SerializerMethodField()
     
     rule = serializers.CharField(source='rules', read_only=True)
     
@@ -121,6 +122,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'anonymous_mode_enabled',
             'my_nickname',
             'participant_count',
+            'admins',
         ]
 
     def get_my_nickname(self, obj):
@@ -217,6 +219,11 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     def get_participant_count(self, obj):
         """Get total number of participants."""
         return obj.registrations.count()
+
+    def get_admins(self, obj):
+        """Get list of admin users for this contest."""
+        admins = obj.admins.all()
+        return [{'id': u.id, 'username': u.username} for u in admins]
 
     def get_has_finished_exam(self, obj):
         """Check if current user has finished the exam."""

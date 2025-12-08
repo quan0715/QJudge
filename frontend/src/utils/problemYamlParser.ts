@@ -30,6 +30,9 @@ export interface ProblemYAML {
     is_enabled?: boolean;
     order?: number;
   }[];
+  // Keyword restrictions
+  forbidden_keywords?: string[];
+  required_keywords?: string[];
 }
 
 export interface ValidationError {
@@ -144,6 +147,23 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
       }
     }
 
+    // Validate keyword restrictions (optional)
+    if (data.forbidden_keywords !== undefined) {
+      if (!Array.isArray(data.forbidden_keywords)) {
+        errors.push({ field: 'forbidden_keywords', message: 'forbidden_keywords must be an array of strings' });
+      } else if (!data.forbidden_keywords.every((k: any) => typeof k === 'string')) {
+        errors.push({ field: 'forbidden_keywords', message: 'All forbidden_keywords must be strings' });
+      }
+    }
+
+    if (data.required_keywords !== undefined) {
+      if (!Array.isArray(data.required_keywords)) {
+        errors.push({ field: 'required_keywords', message: 'required_keywords must be an array of strings' });
+      } else if (!data.required_keywords.every((k: any) => typeof k === 'string')) {
+        errors.push({ field: 'required_keywords', message: 'All required_keywords must be strings' });
+      }
+    }
+
     if (errors.length > 0) {
       return { success: false, errors };
     }
@@ -191,6 +211,9 @@ export function convertYAMLToProblemData(yaml: ProblemYAML) {
       template_code: lc.template_code,
       is_enabled: lc.is_enabled ?? true, // Default to true
       order: lc.order ?? index // Default to array index
-    })) || []
+    })) || [],
+    // Keyword restrictions
+    forbidden_keywords: yaml.forbidden_keywords || [],
+    required_keywords: yaml.required_keywords || []
   };
 }

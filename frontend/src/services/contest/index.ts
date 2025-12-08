@@ -308,6 +308,31 @@ export const removeParticipant = async (contestId: string, userId: number): Prom
   if (!res.ok) throw new Error('Failed to remove participant');
 };
 
+// ========== Admin Management ==========
+export const getContestAdmins = async (contestId: string): Promise<Array<{ id: string; username: string }>> => {
+  const res = await httpClient.get(`/api/v1/contests/${contestId}/admins/`);
+  if (!res.ok) throw new Error('Failed to fetch admins');
+  return res.json();
+};
+
+export const addContestAdmin = async (contestId: string, username: string): Promise<{ id: string; username: string }> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/add_admin/`, { username });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to add admin');
+  }
+  const data = await res.json();
+  return data.user;
+};
+
+export const removeContestAdmin = async (contestId: string, userId: string): Promise<void> => {
+  const res = await httpClient.post(`/api/v1/contests/${contestId}/remove_admin/`, { user_id: userId });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to remove admin');
+  }
+};
+
 export default {
   getContests,
   getContest,

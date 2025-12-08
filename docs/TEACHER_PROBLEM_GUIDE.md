@@ -360,17 +360,23 @@ python solution.py < input.txt > output.txt
 
 QJudge 支援使用 YAML 格式批量導入題目，詳細格式請參考 [題目導入格式文件](./problem-import-format.md)。
 
-#### 準備 YAML 檔案
-
 **基本結構**：
 ```yaml
 # problem.yaml
 title: "A + B Problem"
-difficulty: easy
-time_limit: 1000
-memory_limit: 256
-is_visible: true
+difficulty: easy           # easy | medium | hard
+time_limit: 1000           # 毫秒 (100-10000)
+memory_limit: 256          # MB (16-512)
+is_visible: true           # 是否公開
 
+# 程式碼限制 (可選)
+forbidden_keywords:        # 禁止使用的關鍵字
+  - "system"
+  - "exec"
+required_keywords:         # 必須包含的關鍵字
+  - "for"
+
+# 題目翻譯
 translations:
   - language: "zh-TW"
     title: "A + B 問題"
@@ -382,19 +388,29 @@ translations:
       一個整數，代表 A + B 的和。
     hint: ""
 
+# 測試案例
 test_cases:
+  # 範例測試 (公開給學生看)
   - input_data: "1 2"
     output_data: "3"
-    is_sample: true
-    score: 0
-    order: 0
+    is_sample: true        # 是否為範例
+    is_hidden: false       # 是否隱藏
+    score: 0               # 分數 (範例通常不計分)
     
+  # 隱藏測試 (不公開，計分)
   - input_data: "100 200"
     output_data: "300"
     is_sample: false
-    score: 100
-    order: 1
+    is_hidden: true
+    score: 50
+    
+  - input_data: "-999999999 999999999"
+    output_data: "0"
+    is_sample: false
+    is_hidden: true
+    score: 50
 
+# 語言設定
 language_configs:
   - language: "cpp"
     template_code: |
@@ -407,6 +423,12 @@ language_configs:
           cout << a + b << endl;
           return 0;
       }
+    is_enabled: true
+    
+  - language: "python"
+    template_code: |
+      a, b = map(int, input().split())
+      print(a + b)
     is_enabled: true
 ```
 

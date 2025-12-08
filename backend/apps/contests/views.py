@@ -221,6 +221,93 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'archived'})
 
+    # ========== Admin Management ==========
+    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
+    def admins(self, request, pk=None):
+        """
+        Get all admins for this contest.
+        """
+        contest = self.get_object()
+        admins = contest.admins.all()
+        return Response([{'id': u.id, 'username': u.username} for u in admins])
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_admin')
+    def add_admin(self, request, pk=None):
+        """
+        Add a user as admin for this contest.
+        Only owner can add admins.
+        """
+        contest = self.get_object()
+        
+        # Only owner can add admins
+        if request.user != contest.owner and not request.user.is_superuser:
+            return Response({'error': 'Only owner can add admins'}, status=status.HTTP_403_FORBIDDEN)
+        
+        username = request.data.get('username')
+        if not username:
+            return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from apps.users.models import User
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user == contest.owner:
+            return Response({'error': 'Owner is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if contest.admins.filter(pk=user.pk).exists():
+            return Response({'error': 'User is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        contest.admins.add(user)
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'other', 
+            f"Added admin: {username}"
+        )
+        
+        return Response({'status': 'added', 'user': {'id': user.id, 'username': user.username}})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='remove_admin')
+    def remove_admin(self, request, pk=None):
+        """
+        Remove a user from admins.
+        Only owner can remove admins.
+        """
+        contest = self.get_object()
+        
+        # Only owner can remove admins
+        if request.user != contest.owner and not request.user.is_superuser:
+            return Response({'error': 'Only owner can remove admins'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from apps.users.models import User
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not contest.admins.filter(pk=user.pk).exists():
+            return Response({'error': 'User is not an admin'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        contest.admins.remove(user)
+        
+        # Log activity
+        ContestActivityViewSet.log_activity(
+            contest, 
+            request.user, 
+            'other', 
+            f"Removed admin: {user.username}"
+        )
+        
+        return Response({'status': 'removed'})
+
     def destroy(self, request, *args, **kwargs):
         """
         Delete a contest. Only owner can delete.

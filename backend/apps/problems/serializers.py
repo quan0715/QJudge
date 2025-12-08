@@ -157,6 +157,8 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'test_cases',
             'language_configs',
             'tags',
+            'forbidden_keywords',
+            'required_keywords',
         ]
     
     def get_translation(self, obj):

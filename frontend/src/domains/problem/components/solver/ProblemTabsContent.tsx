@@ -80,7 +80,9 @@ export const ProblemSettingsTab: React.FC<ProblemSettingsTabProps> = ({ problem,
       order: lc.order || 0
     })) || [],
     existingTagIds: problem.tags?.map(t => Number(t.id)) || [],
-    newTagNames: []
+    newTagNames: [],
+    forbiddenKeywords: problem.forbiddenKeywords || [],
+    requiredKeywords: problem.requiredKeywords || []
   }), [problem]);
 
   const handleSubmit = async (data: ProblemFormData) => {
@@ -117,7 +119,9 @@ export const ProblemSettingsTab: React.FC<ProblemSettingsTabProps> = ({ problem,
           order: lc.order
         })),
         existing_tag_ids: data.existingTagIds,
-        new_tag_names: data.newTagNames
+        new_tag_names: data.newTagNames,
+        forbidden_keywords: data.forbiddenKeywords || [],
+        required_keywords: data.requiredKeywords || []
       };
 
       const updatedProblem = await updateProblem(problem.id, payload);

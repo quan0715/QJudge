@@ -21,6 +21,7 @@ class Submission(models.Model):
         ('MLE', 'Memory Limit Exceeded'),
         ('RE', 'Runtime Error'),
         ('CE', 'Compilation Error'),
+        ('KR', 'Keyword Restriction'),  # Code violates keyword requirements
         ('SE', 'System Error'),
     ]
     

@@ -78,7 +78,13 @@ export function mapContestDetailDto(dto: any): ContestDetail {
       canManageClarifications: !!dto.permissions?.can_manage_clarifications
     },
     
-    problems: Array.isArray(dto.problems) ? dto.problems.map(mapContestProblemSummaryDto) : []
+    problems: Array.isArray(dto.problems) ? dto.problems.map(mapContestProblemSummaryDto) : [],
+    
+    // Multi-admin support
+    admins: Array.isArray(dto.admins) ? dto.admins.map((a: any) => ({
+      id: a.id?.toString() || '',
+      username: a.username || ''
+    })) : []
   };
 }
 

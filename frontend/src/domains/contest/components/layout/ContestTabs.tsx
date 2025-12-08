@@ -45,6 +45,11 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
       tabs.push({ label: 'Participants', key: 'participants' });
       tabs.push({ label: 'Logs', key: 'logs' });
     }
+    
+    // Admins tab - only visible to those who can edit (owner/admins)
+    if (permissions?.canEditContest) {
+      tabs.push({ label: 'Admins', key: 'admins' });
+    }
 
     return tabs;
   };

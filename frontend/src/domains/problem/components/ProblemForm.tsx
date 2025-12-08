@@ -13,6 +13,7 @@ import Editor from '@monaco-editor/react';
 import { DEFAULT_TEMPLATES, LANGUAGE_OPTIONS } from '@/domains/problem/constants/codeTemplates';
 import { getTags } from '@/services/problem';
 import type { Tag, TestCase, Translation, LanguageConfig } from '@/core/entities/problem.entity';
+import ProblemPreview from './ProblemPreview';
 
 export interface ProblemFormData {
   title: string;
@@ -27,6 +28,9 @@ export interface ProblemFormData {
   languageConfigs: LanguageConfig[];
   existingTagIds?: number[]; // IDs of existing tags
   newTagNames?: string[]; // Names of new tags to create
+  // Keyword restrictions
+  forbiddenKeywords?: string[];
+  requiredKeywords?: string[];
 }
 
 interface ProblemFormProps {
@@ -90,6 +94,12 @@ const ProblemForm = ({
       order: index
     }))
   );
+
+  // Keyword Restrictions
+  const [forbiddenKeywords, setForbiddenKeywords] = useState<string[]>([]);
+  const [requiredKeywords, setRequiredKeywords] = useState<string[]>([]);
+  const [newForbiddenKeyword, setNewForbiddenKeyword] = useState('');
+  const [newRequiredKeyword, setNewRequiredKeyword] = useState('');
 
   // Load tags on mount
   const [tagsLoading, setTagsLoading] = useState(true);
@@ -156,6 +166,14 @@ const ProblemForm = ({
         } else {
           setSelectedExistingTagIds(tags.map((t: any) => Number(t.id)));
         }
+      }
+
+      // Load keyword restrictions
+      if ((initialData as any).forbiddenKeywords) {
+        setForbiddenKeywords((initialData as any).forbiddenKeywords);
+      }
+      if ((initialData as any).requiredKeywords) {
+        setRequiredKeywords((initialData as any).requiredKeywords);
       }
     }
   }, [initialData]);
@@ -246,7 +264,9 @@ const ProblemForm = ({
       }) as any),
       languageConfigs,
       existingTagIds: selectedExistingTagIds,
-      newTagNames: pendingNewTagNames
+      newTagNames: pendingNewTagNames,
+      forbiddenKeywords,
+      requiredKeywords
     };
 
     await onSubmit(payload);
@@ -282,13 +302,15 @@ const ProblemForm = ({
             <div style={{ marginBottom: '2rem' }}>
                 <ContentSwitcher 
                     size="lg"
-                    selectedIndex={['basic', 'content', 'testcases', 'languages'].indexOf(activeSection)}
+                    selectedIndex={['basic', 'content', 'testcases', 'languages', 'restrictions', 'preview'].indexOf(activeSection)}
                     onChange={({ name }) => setActiveSection(name as string)}
                 >
                     <Switch name="basic" text="基本資訊" />
                     <Switch name="content" text="題目內容" />
                     <Switch name="testcases" text="測試案例" />
                     <Switch name="languages" text="語言設定" />
+                    <Switch name="restrictions" text="程式碼限制" />
+                    <Switch name="preview" text="預覽" />
                 </ContentSwitcher>
             </div>
 
@@ -586,6 +608,204 @@ const ProblemForm = ({
                       );
                     })}
                  </div>
+            </div>
+
+            {/* Restrictions Section */}
+            <div style={{ display: activeSection === 'restrictions' ? 'block' : 'none' }}>
+                <div style={{ padding: '1rem' }}>
+                    <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>程式碼關鍵字限制</h4>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1.5rem' }}>
+                        設定學生提交的程式碼必須包含或禁止使用的關鍵字。常用於要求特定函式簽名或禁用標準庫函式。
+                    </p>
+
+                    {/* Required Keywords */}
+                    <div style={{ marginBottom: '2rem' }}>
+                        <FormLabel style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>
+                            必須包含的關鍵字
+                        </FormLabel>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                            程式碼中必須包含這些字串（子字串匹配）。例如：特定函式簽名 <code>void printRectangle(int w, int h, char c)</code>
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <TextInput
+                                id="new-required-keyword"
+                                labelText=""
+                                hideLabel
+                                placeholder="輸入必須關鍵字..."
+                                value={newRequiredKeyword}
+                                onChange={(e) => setNewRequiredKeyword(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newRequiredKeyword.trim()) {
+                                        e.preventDefault();
+                                        setRequiredKeywords(prev => [...prev, newRequiredKeyword.trim()]);
+                                        setNewRequiredKeyword('');
+                                    }
+                                }}
+                                style={{ flex: 1 }}
+                            />
+                            <Button
+                                kind="secondary"
+                                size="md"
+                                disabled={!newRequiredKeyword.trim()}
+                                onClick={() => {
+                                    if (newRequiredKeyword.trim()) {
+                                        setRequiredKeywords(prev => [...prev, newRequiredKeyword.trim()]);
+                                        setNewRequiredKeyword('');
+                                    }
+                                }}
+                            >
+                                新增
+                            </Button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {requiredKeywords.map((kw, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem',
+                                        padding: '0.25rem 0.5rem',
+                                        backgroundColor: 'var(--cds-tag-background-green)',
+                                        color: 'var(--cds-tag-color-green)',
+                                        borderRadius: '4px',
+                                        fontSize: '0.875rem'
+                                    }}
+                                >
+                                    <code style={{ fontFamily: 'monospace' }}>{kw}</code>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRequiredKeywords(prev => prev.filter((_, i) => i !== index))}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '0 0.25rem',
+                                            color: 'inherit',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Forbidden Keywords */}
+                    <div>
+                        <FormLabel style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>
+                            禁止使用的關鍵字
+                        </FormLabel>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
+                            程式碼中不可包含這些字串。例如：禁用 <code>sort</code>、<code>qsort</code> 等標準庫函式
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <TextInput
+                                id="new-forbidden-keyword"
+                                labelText=""
+                                hideLabel
+                                placeholder="輸入禁用關鍵字..."
+                                value={newForbiddenKeyword}
+                                onChange={(e) => setNewForbiddenKeyword(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newForbiddenKeyword.trim()) {
+                                        e.preventDefault();
+                                        setForbiddenKeywords(prev => [...prev, newForbiddenKeyword.trim()]);
+                                        setNewForbiddenKeyword('');
+                                    }
+                                }}
+                                style={{ flex: 1 }}
+                            />
+                            <Button
+                                kind="secondary"
+                                size="md"
+                                disabled={!newForbiddenKeyword.trim()}
+                                onClick={() => {
+                                    if (newForbiddenKeyword.trim()) {
+                                        setForbiddenKeywords(prev => [...prev, newForbiddenKeyword.trim()]);
+                                        setNewForbiddenKeyword('');
+                                    }
+                                }}
+                            >
+                                新增
+                            </Button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {forbiddenKeywords.map((kw, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem',
+                                        padding: '0.25rem 0.5rem',
+                                        backgroundColor: 'var(--cds-tag-background-red)',
+                                        color: 'var(--cds-tag-color-red)',
+                                        borderRadius: '4px',
+                                        fontSize: '0.875rem'
+                                    }}
+                                >
+                                    <code style={{ fontFamily: 'monospace' }}>{kw}</code>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForbiddenKeywords(prev => prev.filter((_, i) => i !== index))}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '0 0.25rem',
+                                            color: 'inherit',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Preview Section */}
+            <div style={{ display: activeSection === 'preview' ? 'block' : 'none' }}>
+              <div style={{ 
+                padding: '1.5rem',
+                backgroundColor: 'var(--cds-layer-01)',
+                borderRadius: '8px',
+                border: '1px solid var(--cds-border-subtle)'
+              }}>
+                <ProblemPreview
+                  title={title}
+                  difficulty={difficulty}
+                  timeLimit={timeLimit}
+                  memoryLimit={memoryLimit}
+                  translations={[
+                    ...(translationTitle || description ? [{
+                      language: 'zh-TW' as const,
+                      title: translationTitle,
+                      description,
+                      inputDescription,
+                      outputDescription,
+                      hint
+                    }] : []),
+                    ...(translationTitleEn || descriptionEn ? [{
+                      language: 'en' as const,
+                      title: translationTitleEn,
+                      description: descriptionEn,
+                      inputDescription: inputDescriptionEn,
+                      outputDescription: outputDescriptionEn,
+                      hint: hintEn
+                    }] : [])
+                  ]}
+                  testCases={testCases}
+                  forbiddenKeywords={forbiddenKeywords}
+                  requiredKeywords={requiredKeywords}
+                  showLanguageToggle={true}
+                  compact={false}
+                />
+              </div>
             </div>
 
             <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

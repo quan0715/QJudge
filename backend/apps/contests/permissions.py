@@ -17,8 +17,11 @@ def get_user_role_in_contest(user, contest):
         return 'admin'
     
     # Check if user is the contest owner
-    # Check if user is the contest owner
     if contest.owner_id == user.id:
+        return 'teacher'
+    
+    # Check if user is in the admins M2M relationship
+    if contest.admins.filter(pk=user.pk).exists():
         return 'teacher'
     
     return 'student'
@@ -73,7 +76,7 @@ def get_contest_permissions(user, contest):
 
 class IsContestOwnerOrAdmin(permissions.BasePermission):
     """
-    Permission class: only contest owner or admin can access.
+    Permission class: only contest owner, admins M2M, or system admin can access.
     """
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
@@ -83,12 +86,19 @@ class IsContestOwnerOrAdmin(permissions.BasePermission):
             return True
         
         # Check if user is the owner
-        if hasattr(obj, 'owner_id'):
-            return obj.owner_id == request.user.id
+        if hasattr(obj, 'owner_id') and obj.owner_id == request.user.id:
+            return True
+        
+        # Check if user is in admins M2M (contest or linked contest)
+        contest = obj if hasattr(obj, 'admins') else getattr(obj, 'contest', None)
+        if contest and hasattr(contest, 'admins'):
+            if contest.admins.filter(pk=request.user.pk).exists():
+                return True
         
         # Check if object is linked to a contest (e.g. Clarification)
         if hasattr(obj, 'contest') and hasattr(obj.contest, 'owner_id'):
-            return obj.contest.owner_id == request.user.id
+            if obj.contest.owner_id == request.user.id:
+                return True
             
         return False
 

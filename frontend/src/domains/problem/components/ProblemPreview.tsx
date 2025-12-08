@@ -22,6 +22,9 @@ interface ProblemPreviewProps {
   defaultLang?: 'zh-TW' | 'en';
   showLanguageToggle?: boolean;
   compact?: boolean;
+  // Keyword restrictions
+  forbiddenKeywords?: string[];
+  requiredKeywords?: string[];
 }
 
 const ProblemPreview = ({
@@ -31,11 +34,12 @@ const ProblemPreview = ({
   memoryLimit: _memoryLimit = 128,
   translations = [],
   testCases = [],
-
   tags: _tags = [],
   defaultLang = 'zh-TW',
   showLanguageToggle = true,
-  compact = false
+  compact = false,
+  forbiddenKeywords = [],
+  requiredKeywords = []
 }: ProblemPreviewProps) => {
   const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>(defaultLang);
 
@@ -239,6 +243,77 @@ const ProblemPreview = ({
                   {translation.hint}
                 </ReactMarkdown>
               </div>
+            </div>
+          )}
+
+          {/* Keyword Restrictions */}
+          {(requiredKeywords.length > 0 || forbiddenKeywords.length > 0) && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1rem' }}>
+                {currentLang === 'zh-TW' ? '程式碼限制' : 'Code Restrictions'}
+              </h4>
+              
+              {requiredKeywords.length > 0 && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    marginBottom: '0.5rem',
+                    fontSize: '0.875rem',
+                    color: 'var(--cds-text-secondary)'
+                  }}>
+                    {currentLang === 'zh-TW' ? '必須包含的關鍵字：' : 'Required Keywords:'}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {requiredKeywords.map((kw, index) => (
+                      <span
+                        key={index}
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.5rem',
+                          backgroundColor: 'var(--cds-tag-background-green, #a7f0ba)',
+                          color: 'var(--cds-tag-color-green, #044317)',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem',
+                          fontFamily: "'IBM Plex Mono', monospace"
+                        }}
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {forbiddenKeywords.length > 0 && (
+                <div>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    marginBottom: '0.5rem',
+                    fontSize: '0.875rem',
+                    color: 'var(--cds-text-secondary)'
+                  }}>
+                    {currentLang === 'zh-TW' ? '禁止使用的關鍵字：' : 'Forbidden Keywords:'}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {forbiddenKeywords.map((kw, index) => (
+                      <span
+                        key={index}
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.5rem',
+                          backgroundColor: 'var(--cds-tag-background-red, #ffd7d9)',
+                          color: 'var(--cds-tag-color-red, #750e13)',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem',
+                          fontFamily: "'IBM Plex Mono', monospace"
+                        }}
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

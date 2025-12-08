@@ -88,6 +88,20 @@ class Problem(models.Model):
         verbose_name='標籤'
     )
     
+    # Keyword restrictions for code validation
+    forbidden_keywords = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='禁用關鍵字',
+        help_text='提交代碼中不可出現的關鍵字列表 (substring match)'
+    )
+    required_keywords = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='必須關鍵字',
+        help_text='提交代碼中必須包含的關鍵字列表 (substring match)'
+    )
+    
     class Meta:
         db_table = 'problems'
         verbose_name = '題目'

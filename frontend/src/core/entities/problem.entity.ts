@@ -79,4 +79,8 @@ export interface ProblemDetail extends Problem {
   translations?: Translation[];
   testCases?: TestCase[];
   languageConfigs?: LanguageConfig[];
+  
+  // Keyword restrictions for code validation
+  forbiddenKeywords?: string[];
+  requiredKeywords?: string[];
 }

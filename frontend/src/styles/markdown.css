@@ -211,8 +211,39 @@
   overflow-y: hidden;
 }
 
-/* Inline code adjustments */
 .markdown-body p code,
 .markdown-body li code {
   white-space: nowrap;
 }
+
+/* Aside / Callout blocks */
+.markdown-body aside {
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  background-color: rgba(69, 137, 255, 0.1);
+  border-left: 4px solid var(--cds-support-info);
+  border-radius: 4px;
+  color: var(--cds-text-primary);
+}
+
+.markdown-body aside p:last-child {
+  margin-bottom: 0;
+}
+
+/* Aside variants using data-type attribute */
+.markdown-body aside[data-type="warning"] {
+  border-left-color: var(--cds-support-warning);
+  background-color: rgba(255, 213, 79, 0.1);
+}
+
+.markdown-body aside[data-type="error"],
+.markdown-body aside[data-type="danger"] {
+  border-left-color: var(--cds-support-error);
+  background-color: rgba(250, 77, 86, 0.1);
+}
+
+.markdown-body aside[data-type="success"] {
+  border-left-color: var(--cds-support-success);
+  background-color: rgba(36, 161, 72, 0.1);
+}
+

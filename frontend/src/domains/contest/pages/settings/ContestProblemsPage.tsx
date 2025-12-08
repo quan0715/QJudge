@@ -19,7 +19,6 @@ import DraggableProblemList from '@/domains/problem/components/DraggableProblemL
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import { PageHeader } from '@/ui/layout/PageHeader';
 import ProblemImportModal from '@/domains/problem/components/ProblemImportModal';
-import { addContestProblem as addProblemToContest } from '@/services/contest';
 import { getProblems } from '@/services/problem';
 import { useContest } from '@/domains/contest/contexts/ContestContext';
 
@@ -215,10 +214,9 @@ const ContestAdminProblemsPage = () => {
           open={importModalOpen}
           onClose={() => setImportModalOpen(false)}
           onImport={async (problemData) => {
-            // Create problem and add to contest
-            const { createProblem } = await import('@/services/problem');
-            const created = await createProblem(problemData);
-            await addProblemToContest(contestId!, { problem_id: created.id });
+            // Use createContestProblem to create problem ONLY in contest (not in public practice)
+            const { createContestProblem } = await import('@/services/contest');
+            const created = await createContestProblem(contestId!, problemData);
             await refreshContest();
             return { id: created.id, contest_id: contestId };
           }}

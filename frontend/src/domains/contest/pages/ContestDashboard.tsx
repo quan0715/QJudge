@@ -18,9 +18,9 @@ import ContestQAPage from '@/domains/contest/pages/ContestQAPage';
 
 // Admin Components (rendered as tabs)
 import ContestAdminSettingsPage from '@/domains/contest/pages/settings/ContestSettingsPage';
-
 import ContestAdminParticipantsPage from '@/domains/contest/pages/settings/ContestParticipantsPage';
 import ContestAdminLogsPage from '@/domains/contest/pages/settings/ContestLogsPage';
+import ContestAdminsPage from '@/domains/contest/pages/settings/ContestAdminsPage';
 
 const ContestDashboard = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -123,6 +123,8 @@ const ContestDashboard = () => {
         return <ContestAdminParticipantsPage />;
       case 'logs':
         return <ContestAdminLogsPage />;
+      case 'admins':
+        return <ContestAdminsPage />;
         
       case 'overview':
       default:

@@ -73,6 +73,10 @@ export function mapProblemDetailDto(dto: any): ProblemDetail {
       language: lc.language,
       templateCode: lc.template_code,
       isEnabled: lc.is_enabled
-    })) : []
+    })) : [],
+    
+    // Keyword restrictions
+    forbiddenKeywords: Array.isArray(dto.forbidden_keywords) ? dto.forbidden_keywords : [],
+    requiredKeywords: Array.isArray(dto.required_keywords) ? dto.required_keywords : []
   };
 }
