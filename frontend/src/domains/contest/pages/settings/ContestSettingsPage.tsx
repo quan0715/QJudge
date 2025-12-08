@@ -18,8 +18,8 @@ import {
   DatePicker,
   DatePickerInput
 } from '@carbon/react';
-import { Save } from '@carbon/icons-react';
-import { updateContest, getContest, archiveContest, deleteContest } from '@/services/contest';
+import { Save, Download } from '@carbon/icons-react';
+import { updateContest, getContest, archiveContest, deleteContest, exportContestResults } from '@/services/contest';
 import type { ContestDetail } from '@/core/entities/contest.entity';
 import type { ContestUpdateRequest } from '@/models/contest';
 
@@ -476,6 +476,39 @@ const ContestAdminSettingsPage = () => {
             </Button>
           </div>
         </Form>
+
+        {/* Export Section */}
+        <div style={{ marginTop: '2rem', borderTop: '1px solid var(--cds-border-subtle)', paddingTop: '2rem' }}>
+          <h4 style={{ marginBottom: '1rem' }}>匯出資料</h4>
+          <div style={{ 
+            border: '1px solid var(--cds-border-subtle)', 
+            borderRadius: '4px',
+            padding: '1rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h5 style={{ fontWeight: 600 }}>匯出成績 (Export Results)</h5>
+                <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+                  匯出競賽成績為 CSV 檔案，包含排名、帳號、解題數、總分、各題目狀態。
+                </p>
+              </div>
+              <Button 
+                kind="tertiary" 
+                renderIcon={Download}
+                onClick={async () => {
+                  try {
+                    await exportContestResults(contestId!);
+                    setNotification({ kind: 'success', message: '成績匯出成功' });
+                  } catch (error: any) {
+                    setNotification({ kind: 'error', message: error.message || '匯出失敗' });
+                  }
+                }}
+              >
+                匯出 CSV
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* Danger Zone */}
         <div style={{ marginTop: '3rem', borderTop: '1px solid var(--cds-border-subtle)', paddingTop: '2rem' }}>

@@ -1,7 +1,6 @@
 import { Button } from '@carbon/react';
 import { Time } from '@carbon/icons-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import { SubmissionStatusBadge } from '@/ui/components/badges/SubmissionStatusBadge';
@@ -35,11 +34,9 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
           <div className="cds--col-lg-10 cds--col-md-8">
             {contest.rules && (
               <ContainerCard title="競賽規則" style={{ marginBottom: '1.5rem' }}>
-                <div className="markdown-body" style={{ marginTop: '0.5rem' }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {contest.rules}
-                  </ReactMarkdown>
-                </div>
+                <MarkdownRenderer style={{ marginTop: '0.5rem' }}>
+                  {contest.rules}
+                </MarkdownRenderer>
               </ContainerCard>
             )}
           </div>

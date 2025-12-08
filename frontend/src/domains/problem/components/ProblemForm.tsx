@@ -6,7 +6,7 @@ import {
   ContentSwitcher, Switch,
   FormLabel, Accordion, AccordionItem
 } from '@carbon/react';
-import { Save } from '@carbon/icons-react';
+import { Save, Upload } from '@carbon/icons-react';
 import { TestCaseList } from './common/TestCaseList';
 import { TagSelect } from './common/TagSelect';
 import Editor from '@monaco-editor/react';
@@ -14,6 +14,8 @@ import { DEFAULT_TEMPLATES, LANGUAGE_OPTIONS } from '@/domains/problem/constants
 import { getTags } from '@/services/problem';
 import type { Tag, TestCase, Translation, LanguageConfig } from '@/core/entities/problem.entity';
 import ProblemPreview from './ProblemPreview';
+import ProblemImportModal from './ProblemImportModal';
+import type { ProblemYAML } from '@/utils/problemYamlParser';
 
 export interface ProblemFormData {
   title: string;
@@ -275,6 +277,76 @@ const ProblemForm = ({
   // Content Switcher State
   const [activeSection, setActiveSection] = useState('basic');
 
+  // YAML Import State
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Handle YAML Import from ProblemImportModal
+  const handleYamlPopulate = (yaml: ProblemYAML) => {
+    // Populate form fields
+    setTitle(yaml.title);
+    setDifficulty(yaml.difficulty);
+    setTimeLimit(yaml.time_limit);
+    setMemoryLimit(yaml.memory_limit);
+    if (yaml.is_visible !== undefined) setIsVisible(yaml.is_visible);
+
+    // Populate translations
+    const zhTrans = yaml.translations.find(t => t.language === 'zh-TW' || t.language === 'zh-hant');
+    if (zhTrans) {
+      setTranslationTitle(zhTrans.title);
+      setDescription(zhTrans.description);
+      setInputDescription(zhTrans.input_description);
+      setOutputDescription(zhTrans.output_description);
+      setHint(zhTrans.hint || '');
+    }
+
+    const enTrans = yaml.translations.find(t => t.language === 'en');
+    if (enTrans) {
+      setTranslationTitleEn(enTrans.title);
+      setDescriptionEn(enTrans.description);
+      setInputDescriptionEn(enTrans.input_description);
+      setOutputDescriptionEn(enTrans.output_description);
+      setHintEn(enTrans.hint || '');
+    }
+
+    // Populate test cases
+    if (yaml.test_cases && yaml.test_cases.length > 0) {
+      setTestCases(yaml.test_cases.map((tc, index) => ({
+        input: tc.input_data,
+        output: tc.output_data,
+        isSample: tc.is_sample,
+        isHidden: tc.is_hidden ?? false,
+        score: tc.score ?? 0,
+        order: tc.order ?? index
+      })));
+    }
+
+    // Populate language configs
+    if (yaml.language_configs && yaml.language_configs.length > 0) {
+      setLanguageConfigs(prev => {
+        const newConfigs = [...prev];
+        yaml.language_configs!.forEach(lc => {
+          const idx = newConfigs.findIndex(c => c.language === lc.language);
+          if (idx !== -1) {
+            newConfigs[idx] = {
+              ...newConfigs[idx],
+              templateCode: lc.template_code,
+              isEnabled: lc.is_enabled ?? true
+            };
+          }
+        });
+        return newConfigs;
+      });
+    }
+
+    // Populate keyword restrictions
+    if (yaml.forbidden_keywords) {
+      setForbiddenKeywords(yaml.forbidden_keywords);
+    }
+    if (yaml.required_keywords) {
+      setRequiredKeywords(yaml.required_keywords);
+    }
+  };
+
   return (
     <div style={{ width: '100%' }}>
       {externalError && (
@@ -300,18 +372,28 @@ const ProblemForm = ({
         <div style={{ flex: '1 1 100%' }}>
           <Form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '2rem' }}>
-                <ContentSwitcher 
-                    size="lg"
-                    selectedIndex={['basic', 'content', 'testcases', 'languages', 'restrictions', 'preview'].indexOf(activeSection)}
-                    onChange={({ name }) => setActiveSection(name as string)}
-                >
-                    <Switch name="basic" text="基本資訊" />
-                    <Switch name="content" text="題目內容" />
-                    <Switch name="testcases" text="測試案例" />
-                    <Switch name="languages" text="語言設定" />
-                    <Switch name="restrictions" text="程式碼限制" />
-                    <Switch name="preview" text="預覽" />
-                </ContentSwitcher>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <ContentSwitcher 
+                      size="lg"
+                      selectedIndex={['basic', 'content', 'testcases', 'languages', 'restrictions', 'preview'].indexOf(activeSection)}
+                      onChange={({ name }) => setActiveSection(name as string)}
+                  >
+                      <Switch name="basic" text="基本資訊" />
+                      <Switch name="content" text="題目內容" />
+                      <Switch name="testcases" text="測試案例" />
+                      <Switch name="languages" text="語言設定" />
+                      <Switch name="restrictions" text="程式碼限制" />
+                      <Switch name="preview" text="預覽" />
+                  </ContentSwitcher>
+                  <Button
+                    kind="ghost"
+                    size="sm"
+                    renderIcon={Upload}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    匯入 YAML
+                  </Button>
+                </div>
             </div>
 
             {/* Basic Info Section */}
@@ -830,6 +912,14 @@ const ProblemForm = ({
           </Form>
         </div>
     </div>
+
+    {/* YAML Import Modal */}
+    <ProblemImportModal
+      open={importModalOpen}
+      onClose={() => setImportModalOpen(false)}
+      mode="populateForm"
+      onPopulate={handleYamlPopulate}
+    />
     </div>
   );
 };

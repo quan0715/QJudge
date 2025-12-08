@@ -14,10 +14,21 @@ import { useNavigate } from 'react-router-dom';
 interface ProblemImportModalProps {
   open: boolean;
   onClose: () => void;
-  onImport: (problemData: any) => Promise<any>; // Returns problem ID or object
+  /** Called when importing in 'create' mode - creates problem via API */
+  onImport?: (problemData: any) => Promise<any>;
+  /** Called when importing in 'populateForm' mode - returns parsed YAML data */
+  onPopulate?: (yamlData: ProblemYAML) => void;
+  /** 'create' = call API + navigate, 'populateForm' = just return parsed data */
+  mode?: 'create' | 'populateForm';
 }
 
-const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, onImport }) => {
+const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ 
+  open, 
+  onClose, 
+  onImport, 
+  onPopulate,
+  mode = 'create' 
+}) => {
   const navigate = useNavigate();
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<ProblemYAML | null>(null);
@@ -61,10 +72,21 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, 
   const handleImport = async () => {
     if (!parsedData) return;
 
+    // Mode: populateForm - just return the parsed data
+    if (mode === 'populateForm' && onPopulate) {
+      onPopulate(parsedData);
+      onClose();
+      resetState();
+      return;
+    }
+
+    // Mode: create - call API and navigate
+    if (!onImport) return;
+
     setImporting(true);
     try {
       const problemData = convertYAMLToProblemData(parsedData);
-      const result: any = await onImport(problemData); // Changed to capture result
+      const result: any = await onImport(problemData);
       const problemId = typeof result === 'object' ? result.id : result;
       const contestId = typeof result === 'object' ? result.contest_id : undefined;
       
@@ -78,9 +100,9 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, 
         } else {
           navigate(`/problems/${problemId}`);
         }
-      }, 800); // Changed delay to 800ms
+      }, 800);
     } catch (error: any) {
-      setErrors([{ field: 'import', message: error.message || '匯入失敗' }]); // Translated error message
+      setErrors([{ field: 'import', message: error.message || '匯入失敗' }]);
     } finally {
       setImporting(false);
     }
@@ -101,8 +123,8 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, 
   return (
     <Modal
       open={open}
-      modalHeading="從 YAML 匯入題目"
-      primaryButtonText={parsedData ? "匯入題目" : "關閉"}
+      modalHeading={mode === 'populateForm' ? "匯入 YAML 覆寫表單" : "從 YAML 匯入題目"}
+      primaryButtonText={parsedData ? (mode === 'populateForm' ? "套用到表單" : "匯入題目") : "關閉"}
       secondaryButtonText={parsedData ? "取消" : undefined}
       onRequestClose={handleClose}
       onRequestSubmit={parsedData ? handleImport : handleClose}
@@ -111,7 +133,10 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({ open, onClose, 
     >
       <div style={{ marginBottom: '1rem' }}>
         <p style={{ marginBottom: '1rem' }}>
-          上傳包含題目定義、測試案例和元數據的 YAML 文件。
+          {mode === 'populateForm' 
+            ? '上傳或貼上 YAML 檔案，將會覆寫目前表單中的內容。'
+            : '上傳包含題目定義、測試案例和元數據的 YAML 文件。'
+          }
           <a 
             href="/docs/problem-import-format.md" 
             target="_blank" 

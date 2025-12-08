@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { Dropdown } from '@carbon/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
-import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github-dark.css';
-import '@/styles/markdown.css';
+import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import type { TestCase, Translation, Tag as TagType } from '@/core/entities/problem.entity';
 
 interface ProblemPreviewProps {
@@ -96,14 +88,9 @@ const ProblemPreview = ({
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '題目描述' : 'Description'}
               </h4>
-              <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]} 
-                  rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
-                >
-                  {translation.description}
-                </ReactMarkdown>
-              </div>
+              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+                {translation.description}
+              </MarkdownRenderer>
             </div>
           )}
 
@@ -112,14 +99,9 @@ const ProblemPreview = ({
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '輸入說明' : 'Input Description'}
               </h4>
-              <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]} 
-                  rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
-                >
-                  {translation.inputDescription}
-                </ReactMarkdown>
-              </div>
+              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+                {translation.inputDescription}
+              </MarkdownRenderer>
             </div>
           )}
 
@@ -128,14 +110,9 @@ const ProblemPreview = ({
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '輸出說明' : 'Output Description'}
               </h4>
-              <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]} 
-                  rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
-                >
-                  {translation.outputDescription}
-                </ReactMarkdown>
-              </div>
+              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+                {translation.outputDescription}
+              </MarkdownRenderer>
             </div>
           )}
 
@@ -235,14 +212,9 @@ const ProblemPreview = ({
               <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
                 {currentLang === 'zh-TW' ? '提示' : 'Hint'}
               </h4>
-              <div className="markdown-body" style={{ fontSize: '0.875rem' }}>
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]} 
-                  rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
-                >
-                  {translation.hint}
-                </ReactMarkdown>
-              </div>
+              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+                {translation.hint}
+              </MarkdownRenderer>
             </div>
           )}
 

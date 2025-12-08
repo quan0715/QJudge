@@ -6,7 +6,7 @@ import type { ContestDetail } from '@/core/entities/contest.entity';
 import ContestTabs from './ContestTabs';
 import { Tag } from '@carbon/react';
 import { Time, UserMultiple, Catalog } from '@carbon/icons-react';
-import ReactMarkdown from 'react-markdown';
+import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import { getContestState, getContestStateLabel, getContestStateColor } from '@/models/contest';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
@@ -328,7 +328,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     <>
       <HeroBase
         title={contest.name}
-        description={<ReactMarkdown>{contest.description || 'No description provided.'}</ReactMarkdown>}
+        description={<MarkdownRenderer>{contest.description || 'No description provided.'}</MarkdownRenderer>}
         badges={badges}
         metadata={metadata}
         actions={renderActions()}

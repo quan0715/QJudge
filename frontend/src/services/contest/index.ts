@@ -333,6 +333,36 @@ export const removeContestAdmin = async (contestId: string, userId: string): Pro
   }
 };
 
+/**
+ * Export contest results as CSV file download
+ */
+export const exportContestResults = async (contestId: string): Promise<void> => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`/api/v1/contests/${contestId}/export_results/`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    }
+  });
+  
+  if (!res.ok) {
+    if (res.status === 403) {
+      throw new Error('權限不足');
+    }
+    throw new Error('匯出失敗');
+  }
+  
+  // Create download
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `contest_${contestId}_results.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
 export default {
   getContests,
   getContest,
@@ -372,4 +402,7 @@ export default {
   addContestParticipant,
   reopenExam,
   reorderContestProblems,
+  exportContestResults,
 };
+
+

@@ -946,6 +946,144 @@ class ContestViewSet(viewsets.ModelViewSet):
             'standings': standings_list
         })
 
+    @action(detail=True, methods=['get'])
+    def export_results(self, request, pk=None):
+        """
+        Export contest results as CSV file.
+        Only accessible by admins and teachers.
+        """
+        import csv
+        from django.http import HttpResponse
+        
+        contest = self.get_object()
+        user = request.user
+        
+        # Only allow admins/teachers
+        role = get_user_role_in_contest(user, contest)
+        if role not in ['admin', 'teacher']:
+            return Response(
+                {'message': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get standings data (reuse standings logic)
+        # 1. Get Problems
+        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order').annotate(
+            problem_score_sum=Sum('problem__test_cases__score')
+        )
+        problems_data = list(contest_problems)
+        
+        # 2. Get Participants
+        participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
+        
+        # 3. Get Submissions
+        from apps.submissions.models import Submission
+        submissions = Submission.objects.filter(
+            contest=contest,
+            source_type='contest'
+        ).order_by('created_at')
+        
+        # 4. Process Stats
+        stats = {}
+        for p in participants:
+            stats[p.user.id] = {
+                'username': p.user.username,
+                'display_name': p.nickname or p.user.username,
+                'email': p.user.email,
+                'solved': 0,
+                'total_score': 0,
+                'time': 0,
+                'problems': {}
+            }
+            for cp in contest_problems:
+                stats[p.user.id]['problems'][cp.problem.id] = {
+                    'status': '-',
+                    'tries': 0,
+                    'time': 0
+                }
+        
+        for sub in submissions:
+            uid = sub.user.id
+            pid = sub.problem.id
+            if uid not in stats: 
+                continue
+            if pid not in stats[uid]['problems']: 
+                continue
+            
+            p_stat = stats[uid]['problems'][pid]
+            
+            if p_stat['status'] == 'AC':
+                continue
+            
+            if sub.status in ['pending', 'judging']:
+                continue
+            
+            p_stat['tries'] += 1
+            
+            if sub.status == 'AC':
+                p_stat['status'] = 'AC'
+                start_time = contest.start_time or contest.created_at
+                time_diff = sub.created_at - start_time
+                minutes = int(time_diff.total_seconds() / 60)
+                p_stat['time'] = minutes
+                
+                stats[uid]['solved'] += 1
+                penalty = minutes + 20 * (p_stat['tries'] - 1)
+                stats[uid]['time'] += penalty
+                
+                problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
+                stats[uid]['total_score'] += problem_score
+            else:
+                p_stat['status'] = sub.status
+        
+        # Sort by standings
+        standings_list = list(stats.values())
+        standings_list.sort(key=lambda x: (-x['solved'], x['time']))
+        
+        for i, item in enumerate(standings_list):
+            item['rank'] = i + 1
+        
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
+        
+        writer = csv.writer(response)
+        
+        # Header row
+        header = ['排名', '帳號', '顯示名稱', 'Email', '解題數', '總分', '罰時']
+        for cp in problems_data:
+            header.append(f'{cp.label or chr(65 + cp.order)} ({cp.problem.title})')
+        writer.writerow(header)
+        
+        # Data rows
+        for item in standings_list:
+            row = [
+                item['rank'],
+                item['username'],
+                item['display_name'],
+                item['email'],
+                item['solved'],
+                item['total_score'],
+                item['time']
+            ]
+            for cp in problems_data:
+                p_stat = item['problems'].get(cp.problem.id, {})
+                status_str = p_stat.get('status', '-')
+                tries = p_stat.get('tries', 0)
+                time_val = p_stat.get('time', 0)
+                
+                if status_str == 'AC':
+                    cell = f'AC ({tries} tries, {time_val}m)'
+                elif tries > 0:
+                    cell = f'{status_str} ({tries} tries)'
+                else:
+                    cell = '-'
+                row.append(cell)
+            
+            writer.writerow(row)
+        
+        return response
+
 
 class ClarificationViewSet(viewsets.ModelViewSet):
     """
