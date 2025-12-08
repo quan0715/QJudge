@@ -630,7 +630,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             contest=contest,
             problem=problem,
             order=new_order,
-            score=0, 
             # label=label, # Dynamic now
         )
         
