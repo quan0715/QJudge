@@ -60,6 +60,15 @@ const ContestAdminParticipantsPage = () => {
     { id: 'submitted', label: '已交卷' },
   ];
 
+  // Status filter options (includes "all")
+  const statusFilterOptions = [
+    { id: 'all', label: '全部狀態' },
+    ...examStatusOptions,
+  ];
+
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -166,10 +175,15 @@ const ContestAdminParticipantsPage = () => {
     { key: 'actions', header: '操作' }
   ];
 
-  // Client-side pagination for now as API returns all
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedParticipants = participants.slice(startIndex, endIndex);
+
+  // Apply status filter
+  const filteredParticipants = statusFilter === 'all' 
+    ? participants 
+    : participants.filter(p => (p.examStatus || 'not_started') === statusFilter);
+
+  const paginatedParticipants = filteredParticipants.slice(startIndex, endIndex);
 
   if (loading && participants.length === 0) return <Loading />;
 
@@ -203,6 +217,26 @@ const ContestAdminParticipantsPage = () => {
         )}
 
         <ContainerCard noPadding>
+            {/* Status Filter */}
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--cds-border-subtle)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <Dropdown
+                id="status-filter"
+                titleText="篩選狀態"
+                label="選擇狀態"
+                items={statusFilterOptions}
+                itemToString={(item: any) => item?.label || ''}
+                selectedItem={statusFilterOptions.find(opt => opt.id === statusFilter)}
+                onChange={({ selectedItem }: any) => {
+                  setStatusFilter(selectedItem?.id || 'all');
+                  setPage(1); // Reset to first page when filter changes
+                }}
+                size="sm"
+                style={{ minWidth: '150px' }}
+              />
+              <span style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                顯示 {filteredParticipants.length} / {participants.length} 位參賽者
+              </span>
+            </div>
             <DataTable
                 rows={paginatedParticipants.map(p => ({ ...p, id: p.userId.toString() }))}
                 headers={headers}
@@ -291,7 +325,7 @@ const ContestAdminParticipantsPage = () => {
                 )}
             </DataTable>
             <Pagination
-                totalItems={participants.length}
+                totalItems={filteredParticipants.length}
                 backwardText="上一頁"
                 forwardText="下一頁"
                 itemsPerPageText="每頁顯示"

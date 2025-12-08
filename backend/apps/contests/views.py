@@ -1014,8 +1014,9 @@ class ExamViewSet(viewsets.ViewSet):
         # Check if already submitted
         if participant.exam_status == ExamStatus.SUBMITTED:
             if contest.allow_multiple_joins:
-                # Reset for re-entry
+                # Reset for re-entry - clear violation count for fresh start
                 participant.exam_status = ExamStatus.IN_PROGRESS
+                participant.violation_count = 0
                 participant.save()
             else:
                 return Response(

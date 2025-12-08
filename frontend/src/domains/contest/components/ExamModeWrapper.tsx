@@ -44,6 +44,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [warningEventType, setWarningEventType] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isGracePeriod = useRef(false);
+  const isSubmitting = useRef(false);
+  const prevIsActiveRef = useRef(false);
   
   // Blocking modal flow states
   const [isProcessingEvent, setIsProcessingEvent] = useState(false);
@@ -53,6 +55,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Unlock notification state
   const [showUnlockNotification, setShowUnlockNotification] = useState(false);
   const prevExamStatusRef = useRef(examStatus);
+  
+  // Grace period countdown (in seconds)
+  const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
+  const GRACE_PERIOD_SECONDS = 3;
 
   // Admin/Teacher bypass
   const isBypassed = currentUserRole === 'admin' || currentUserRole === 'teacher';
@@ -73,14 +79,37 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (prevExamStatusRef.current === 'locked' && examStatus === 'paused') {
       setShowUnlockNotification(true);
     }
+    
+    // Exit fullscreen when exam is submitted
+    if (examStatus === 'submitted' && prevExamStatusRef.current !== 'submitted') {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(e => {
+          console.warn('Failed to exit fullscreen on submit:', e);
+        });
+      }
+    }
+    
     prevExamStatusRef.current = examStatus;
 
     // Start grace period when exam becomes active
     if (effectiveIsActive && !prevIsActiveRef.current) {
+      // Reset processing state for fresh start (important after unlock!)
+      setIsProcessingEvent(false);
+      
       isGracePeriod.current = true;
-      setTimeout(() => {
-        isGracePeriod.current = false;
-      }, 3000); // 3 seconds grace period
+      setGracePeriodCountdown(GRACE_PERIOD_SECONDS);
+      
+      // Countdown timer
+      const countdownInterval = setInterval(() => {
+        setGracePeriodCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            isGracePeriod.current = false;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
       
       // Auto enter fullscreen (mandatory when monitoring is active)
       if (!document.fullscreenElement) {
@@ -92,16 +121,32 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     prevIsActiveRef.current = effectiveIsActive;
   }, [isActive, isLocked, lockReason, examStatus]);
 
-  const prevIsActiveRef = useRef(isActive);
+  // Track last interaction time to debounce blur events during submit
+  const lastInteractionTime = useRef<number>(0);
+  
+  // Update interaction time on any user click (helps detect submit button clicks)
+  useEffect(() => {
+    const handleClick = () => {
+      lastInteractionTime.current = Date.now();
+    };
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, []);
+
+  // prevIsActiveRef moved to top with other refs
 
   useEffect(() => {
-    // Disable anti-cheat on dashboard check removed to ensure global protection
-    if (!examModeEnabled || !examState.isActive || isBypassed) return;
+    // Use examStatus prop directly to avoid React state batching delays
+    const isCurrentlyActive = examStatus === 'in_progress';
+    const isCurrentlyLocked = examStatus === 'locked';
+    
+    if (!examModeEnabled || !isCurrentlyActive || isBypassed) return;
 
     // Blocking modal flow: detect -> pause -> show modal -> API -> wait -> close
     const handleCheatEvent = async (eventType: string, reason: string) => {
-      // Skip if already processing, locked, or in grace period
-      if (isProcessingEvent || examState.isLocked || isGracePeriod.current) return;
+      // Skip if already processing, locked, in grace period, or submitting
+      // Use isCurrentlyLocked from closure instead of examState.isLocked
+      if (isProcessingEvent || isCurrentlyLocked || isGracePeriod.current || isSubmitting.current) return;
       
       // 1. Immediately pause detection
       setIsProcessingEvent(true);
@@ -147,6 +192,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     };
 
     const handleBlur = async () => {
+      // Skip blur events that happen within 100ms of a click (likely from submit button)
+      const timeSinceClick = Date.now() - lastInteractionTime.current;
+      if (timeSinceClick < 100) return;
       await handleCheatEvent('window_blur', '您已離開視窗');
     };
 
@@ -166,7 +214,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [examModeEnabled, examState.isActive, isProcessingEvent, contestId, location.pathname]);
+  }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
 
   const isAllowedPath = () => {
     // Allow dashboard, standings, and submissions
@@ -270,6 +318,51 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', flex: 1 }}>
       {children}
+
+      {/* Grace Period Countdown Overlay */}
+      {gracePeriodCountdown > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '1rem',
+            color: 'white',
+            animation: 'fadeIn 0.3s ease-in-out'
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#42be65' }}>
+              ✅ 考試模式已啟用
+            </div>
+            <div style={{ fontSize: '1.2rem', color: '#ccc', marginBottom: '2rem' }}>
+              防作弊監控將在倒數結束後開始運作
+            </div>
+            <div 
+              style={{ 
+                fontSize: '5rem', 
+                fontWeight: 'bold', 
+                fontFamily: 'monospace',
+                color: '#f1c21b',
+                textShadow: '0 0 20px rgba(241, 194, 27, 0.5)'
+              }}
+            >
+              {gracePeriodCountdown}
+            </div>
+            <div style={{ fontSize: '1rem', color: '#888', marginTop: '2rem' }}>
+              請勿切換分頁或離開視窗
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lock Overlay */}
       {shouldShowLockScreen && (
