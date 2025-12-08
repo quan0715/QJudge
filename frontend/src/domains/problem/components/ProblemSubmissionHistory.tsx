@@ -44,11 +44,11 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
   const submissionRows: SubmissionRow[] = submissions.map(sub => ({
     id: sub.id.toString(),
     status: sub.status,
-    username: sub.user?.username,
+    username: sub.username,  // Mapped from user.username by mapSubmissionDto
     language: sub.language,
     score: sub.score,
-    exec_time: sub.exec_time,
-    created_at: sub.created_at
+    exec_time: sub.execTime,  // camelCase from mapper
+    created_at: sub.createdAt // camelCase from mapper
   }));
 
   if (loading) {
