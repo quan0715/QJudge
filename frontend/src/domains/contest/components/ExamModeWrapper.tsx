@@ -5,7 +5,7 @@ import type { UserRole } from '@/core/entities/user.entity';
 import { endExam as serviceEndExam, recordExamEvent } from '@/services/contest';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Modal, Button } from '@carbon/react';
-import { WarningAlt } from '@carbon/icons-react';
+import { WarningAlt, Locked, CheckmarkFilled } from '@carbon/icons-react';
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -60,8 +60,34 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
   const GRACE_PERIOD_SECONDS = 3;
 
+  // Fullscreen exit confirmation modal state (for locked/paused/in_progress)
+  const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
+  const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] = useState(false);
+  const initialFullscreenCheckDone = useRef(false);
+
   // Admin/Teacher bypass
   const isBypassed = currentUserRole === 'admin' || currentUserRole === 'teacher';
+
+  // Initial check: if exam is active but not in fullscreen after page load, show confirmation
+  useEffect(() => {
+    // Only check once after initial render and exam status is known
+    if (initialFullscreenCheckDone.current || !examModeEnabled || isBypassed) return;
+    
+    const shouldBeInFullscreen = examStatus === 'in_progress' || examStatus === 'locked' || examStatus === 'paused';
+    
+    if (shouldBeInFullscreen && !document.fullscreenElement) {
+      // Give a small delay to allow user to manually enter fullscreen
+      const timer = setTimeout(() => {
+        if (!document.fullscreenElement && !isSubmittingFromFullscreenExit) {
+          setShowFullscreenExitConfirm(true);
+        }
+        initialFullscreenCheckDone.current = true;
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      initialFullscreenCheckDone.current = true;
+    }
+  }, [examStatus, examModeEnabled, isBypassed, isSubmittingFromFullscreenExit]);
 
   useEffect(() => {
     // Use examStatus as primary source if available
@@ -80,7 +106,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       setShowUnlockNotification(true);
     }
     
-    // Exit fullscreen when exam is submitted
+    // Exit fullscreen ONLY when exam is submitted (not for locked/paused)
     if (examStatus === 'submitted' && prevExamStatusRef.current !== 'submitted') {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(e => {
@@ -88,6 +114,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         });
       }
     }
+    
+    // Stay in fullscreen when transitioning to locked or paused (do NOT exit)
+    // Fullscreen is only allowed to exit after submission
     
     prevExamStatusRef.current = examStatus;
 
@@ -216,6 +245,27 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     };
   }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
 
+  // Monitor fullscreen exit for locked/paused states - treat as submit confirmation
+  useEffect(() => {
+    const shouldMonitorFullscreen = examModeEnabled && !isBypassed && 
+      (examStatus === 'locked' || examStatus === 'paused');
+    
+    if (!shouldMonitorFullscreen) return;
+
+    const handleFullscreenExitForLockedPaused = () => {
+      if (!document.fullscreenElement && !isSubmittingFromFullscreenExit) {
+        // User exited fullscreen while locked/paused - show confirmation
+        setShowFullscreenExitConfirm(true);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenExitForLockedPaused);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenExitForLockedPaused);
+    };
+  }, [examModeEnabled, examStatus, isBypassed, isSubmittingFromFullscreenExit]);
+
   const isAllowedPath = () => {
     // Allow dashboard, standings, and submissions
     const path = location.pathname;
@@ -273,15 +323,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     
     // Check if locked based on API response
     if (lastApiResponse?.locked) {
-      // Exit fullscreen
-      if (document.fullscreenElement) {
-        try {
-          await document.exitFullscreen();
-        } catch (e) {
-          console.error('Failed to exit fullscreen:', e);
-        }
-      }
-      // Reload page to show lock screen properly regardless of current path
+      // Stay in fullscreen when locked - don't exit
+      // Just refresh to show lock screen overlay
       if (onRefresh) onRefresh();
     } else {
       // Resume monitoring - force fullscreen (mandatory)
@@ -301,15 +344,42 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     setLastApiResponse(null);
   };
 
-  const handleBackToContest = async () => {
-    // Exit fullscreen if active
-    if (document.fullscreenElement) {
+  // Handle fullscreen exit confirmation for locked/paused states
+  const handleFullscreenExitConfirm = async () => {
+    setIsSubmittingFromFullscreenExit(true);
+    try {
+      // Submit the exam
+      await serviceEndExam(contestId);
+      if (onRefresh) await onRefresh();
+      setShowFullscreenExitConfirm(false);
+      // Fullscreen exit is now allowed (exam is submitted)
+    } catch (error) {
+      console.error('Failed to submit exam:', error);
+      // Still close the modal but try to re-enter fullscreen
+      setShowFullscreenExitConfirm(false);
       try {
-        await document.exitFullscreen();
+        await document.documentElement.requestFullscreen();
       } catch (e) {
-        console.error('Failed to exit fullscreen', e);
+        console.error('Failed to re-enter fullscreen:', e);
       }
+    } finally {
+      setIsSubmittingFromFullscreenExit(false);
     }
+  };
+
+  const handleFullscreenExitCancel = async () => {
+    setShowFullscreenExitConfirm(false);
+    // Re-enter fullscreen
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (error) {
+      console.error('Failed to re-enter fullscreen:', error);
+    }
+  };
+
+  const handleBackToContest = async () => {
+    // Do not exit fullscreen - stay in exam mode
+    // Navigate to dashboard and refresh to ensure clean state
     // Navigate to dashboard and refresh to ensure clean state
     navigate(`/contests/${contestId}`);
     if (onRefresh) onRefresh();
@@ -328,38 +398,60 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backgroundColor: 'var(--cds-background-inverse, #161616)',
             zIndex: 9998,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'column',
-            gap: '1rem',
-            color: 'white',
-            animation: 'fadeIn 0.3s ease-in-out'
+            gap: '1.5rem',
           }}
         >
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#42be65' }}>
-              ✅ 考試模式已啟用
+          <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '0.5rem',
+              marginBottom: '1rem'
+            }}>
+              <CheckmarkFilled size={28} style={{ color: 'var(--cds-support-success, #42be65)' }} />
+              <span style={{ 
+                fontSize: '1.25rem', 
+                fontWeight: 600, 
+                color: 'var(--cds-text-on-color, #fff)'
+              }}>
+                考試模式已啟用
+              </span>
             </div>
-            <div style={{ fontSize: '1.2rem', color: '#ccc', marginBottom: '2rem' }}>
+            <p style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--cds-text-on-color-disabled, #8d8d8d)', 
+              marginBottom: '2rem',
+              lineHeight: 1.5
+            }}>
               防作弊監控將在倒數結束後開始運作
-            </div>
+            </p>
             <div 
               style={{ 
-                fontSize: '5rem', 
-                fontWeight: 'bold', 
-                fontFamily: 'monospace',
-                color: '#f1c21b',
-                textShadow: '0 0 20px rgba(241, 194, 27, 0.5)'
+                fontSize: '6rem', 
+                fontWeight: 300, 
+                fontFamily: "'IBM Plex Mono', monospace",
+                color: 'var(--cds-text-on-color, #fff)',
+                lineHeight: 1
               }}
             >
               {gracePeriodCountdown}
             </div>
-            <div style={{ fontSize: '1rem', color: '#888', marginTop: '2rem' }}>
+            <p style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--cds-text-on-color-disabled, #8d8d8d)', 
+              marginTop: '2rem',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}>
               請勿切換分頁或離開視窗
-            </div>
+            </p>
           </div>
         </div>
       )}
@@ -373,50 +465,105 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            backgroundColor: 'var(--cds-background-inverse, #161616)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
             flexDirection: 'column',
-            gap: '2rem'
           }}
         >
-          <div style={{ textAlign: 'center', maxWidth: '600px', padding: '2rem' }}>
-            <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#ff4444' }}>
-              ⚠️ 作答已鎖定
-            </h1>
-            <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+          <div style={{ textAlign: 'center', maxWidth: '480px', padding: '2rem' }}>
+            {/* Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '0.75rem',
+              marginBottom: '1rem'
+            }}>
+              <Locked size={40} style={{ color: 'var(--cds-support-error, #fa4d56)' }} />
+              <h1 style={{ 
+                fontSize: '2rem', 
+                fontWeight: 400, 
+                margin: 0,
+                color: 'var(--cds-support-error, #fa4d56)'
+              }}>
+                作答已鎖定
+              </h1>
+            </div>
+            
+            {/* Lock reason */}
+            <p style={{ 
+              fontSize: '1rem', 
+              color: 'var(--cds-text-on-color-disabled, #8d8d8d)',
+              marginBottom: '2rem',
+              fontFamily: "'IBM Plex Mono', monospace"
+            }}>
               {examState.lockReason}
             </p>
             
+            {/* Countdown box */}
             {timeLeft ? (
-              <div style={{ margin: '2rem 0', padding: '1.5rem', border: '1px solid #555', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <p style={{ fontSize: '1rem', color: '#ccc', marginBottom: '0.5rem' }}>自動解鎖倒數</p>
-                <div style={{ fontSize: '2.5rem', fontFamily: 'monospace', fontWeight: 'bold', color: '#42be65' }}>
+              <div style={{ 
+                margin: '2rem 0', 
+                padding: '1.5rem 2rem', 
+                backgroundColor: 'var(--cds-layer-02, #262626)',
+                border: '1px solid var(--cds-border-subtle-01, #393939)'
+              }}>
+                <p style={{ 
+                  fontSize: '0.75rem', 
+                  color: 'var(--cds-text-on-color-disabled, #8d8d8d)', 
+                  marginBottom: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}>
+                  自動解鎖倒數
+                </p>
+                <div style={{ 
+                  fontSize: '2.5rem', 
+                  fontFamily: "'IBM Plex Mono', monospace", 
+                  fontWeight: 400, 
+                  color: 'var(--cds-support-success, #42be65)',
+                  letterSpacing: '2px'
+                }}>
                   {timeLeft}
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize: '1.2rem', color: '#ccc' }}>
+              <p style={{ 
+                fontSize: '1rem', 
+                color: 'var(--cds-text-on-color-disabled, #8d8d8d)',
+                marginBottom: '2rem'
+              }}>
                 請聯繫監考老師解除鎖定。
               </p>
             )}
 
-            <p style={{ fontSize: '1rem', marginTop: '2rem', color: '#999' }}>
+            <p style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--cds-text-on-color-disabled, #6f6f6f)',
+              marginTop: '1.5rem',
+              marginBottom: '2rem'
+            }}>
               此違規行為已被記錄。
             </p>
             
-            <div style={{ marginTop: '3rem' }}>
+            {/* Action */}
+            <div style={{ marginTop: '1.5rem' }}>
               <Button 
-                kind="tertiary" 
+                kind="ghost" 
                 onClick={handleBackToContest}
+                style={{ color: 'var(--cds-text-on-color, #fff)' }}
               >
                 回到競賽儀表板
               </Button>
-              <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#888' }}>
-                (您可以查看排行榜或提交記錄，但無法繼續作答)
+              <p style={{ 
+                marginTop: '0.5rem', 
+                fontSize: '0.75rem', 
+                color: 'var(--cds-text-on-color-disabled, #6f6f6f)'
+              }}>
+                您可以查看排行榜或提交記錄，但無法繼續作答
               </p>
             </div>
           </div>
@@ -426,7 +573,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       {/* Warning Modal - blocks until API responds */}
       <Modal
         open={showWarning}
-        modalHeading="⚠️ 違規警告"
+        modalHeading="違規警告"
         primaryButtonText={pendingApiResponse ? "處理中..." : (lastApiResponse?.locked ? "確認" : "我了解了")}
         primaryButtonDisabled={pendingApiResponse}
         onRequestSubmit={() => handleWarningClose()}
@@ -436,46 +583,96 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         size="sm"
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <WarningAlt size={64} style={{ color: pendingApiResponse ? '#888' : '#f1c21b', marginBottom: '1rem' }} />
-          <p style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          {/* Icon */}
+          <div style={{ 
+            padding: '1rem',
+            backgroundColor: pendingApiResponse ? 'var(--cds-layer-02)' : 'var(--cds-notification-background-warning)',
+            borderRadius: '50%',
+            marginBottom: '1.5rem'
+          }}>
+            <WarningAlt size={40} style={{ color: pendingApiResponse ? 'var(--cds-icon-disabled)' : 'var(--cds-support-warning)' }} />
+          </div>
+          
+          {/* Title */}
+          <p style={{ 
+            fontSize: '1.25rem', 
+            fontWeight: 600, 
+            marginBottom: '0.5rem',
+            color: 'var(--cds-text-primary)'
+          }}>
             {pendingApiResponse ? '正在記錄違規行為...' : '檢測到異常操作'}
           </p>
-          <p style={{ marginBottom: '1rem', color: 'var(--cds-text-secondary)' }}>
+          
+          {/* Event type */}
+          <p style={{ 
+            marginBottom: '1rem', 
+            color: 'var(--cds-text-secondary)',
+            fontSize: '0.875rem'
+          }}>
             {warningEventType === 'tab_hidden' && '您切換了分頁'}
             {warningEventType === 'window_blur' && '您離開了視窗'}
             {warningEventType === 'exit_fullscreen' && '您退出了全螢幕'}
           </p>
-          <p style={{ marginBottom: '1rem' }}>
+          
+          {/* Instruction */}
+          <p style={{ 
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            color: 'var(--cds-text-primary)'
+          }}>
             請保持在考試頁面並維持全螢幕模式。
           </p>
           
+          {/* Violation count box */}
           {!pendingApiResponse && examState.violationCount !== undefined && examState.maxWarnings !== undefined && (
             <div style={{ 
               width: '100%', 
               backgroundColor: 'var(--cds-layer-01)', 
-              padding: '1rem', 
-              borderRadius: '4px',
-              marginTop: '1rem' 
+              padding: '1rem',
+              border: '1px solid var(--cds-border-subtle)',
+              marginBottom: '1rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span>累積違規次數:</span>
-                <span style={{ fontWeight: 'bold', color: '#da1e28' }}>{examState.violationCount}</span>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                marginBottom: '0.75rem',
+                fontSize: '0.875rem'
+              }}>
+                <span style={{ color: 'var(--cds-text-secondary)' }}>累積違規次數</span>
+                <span style={{ fontWeight: 600, color: 'var(--cds-support-error)' }}>{examState.violationCount}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>剩餘機會:</span>
-                <span style={{ fontWeight: 'bold', color: lastApiResponse?.locked ? '#da1e28' : '#42be65' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                fontSize: '0.875rem'
+              }}>
+                <span style={{ color: 'var(--cds-text-secondary)' }}>剩餘機會</span>
+                <span style={{ 
+                  fontWeight: 600, 
+                  color: lastApiResponse?.locked ? 'var(--cds-support-error)' : 'var(--cds-support-success)'
+                }}>
                   {lastApiResponse?.locked ? '0 - 已鎖定' : Math.max(0, (examState.maxWarnings + 1) - examState.violationCount)}
                 </span>
               </div>
             </div>
           )}
           
+          {/* Warning message */}
           {lastApiResponse?.locked ? (
-            <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem', fontWeight: 'bold' }}>
+            <p style={{ 
+              marginTop: '0.5rem', 
+              color: 'var(--cds-support-error)', 
+              fontSize: '0.875rem', 
+              fontWeight: 600 
+            }}>
               您的考試已被鎖定！請聯繫監考老師。
             </p>
           ) : (
-            <p style={{ marginTop: '1rem', color: '#da1e28', fontSize: '0.875rem' }}>
+            <p style={{ 
+              marginTop: '0.5rem', 
+              color: 'var(--cds-support-error)', 
+              fontSize: '0.75rem'
+            }}>
               若剩餘機會歸零，您將被自動鎖定！
             </p>
           )}
@@ -485,22 +682,124 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       {/* Unlock Notification Modal */}
       <Modal
         open={showUnlockNotification}
-        modalHeading="🔓 已解鎖"
+        modalHeading="考試已解鎖"
         primaryButtonText="繼續考試"
         onRequestSubmit={() => setShowUnlockNotification(false)}
         onRequestClose={() => setShowUnlockNotification(false)}
         size="sm"
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <p style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#42be65' }}>
+          {/* Icon */}
+          <div style={{ 
+            padding: '1rem',
+            backgroundColor: 'var(--cds-notification-background-success)',
+            borderRadius: '50%',
+            marginBottom: '1.5rem'
+          }}>
+            <CheckmarkFilled size={40} style={{ color: 'var(--cds-support-success)' }} />
+          </div>
+          
+          {/* Title */}
+          <p style={{ 
+            fontSize: '1.25rem', 
+            fontWeight: 600, 
+            marginBottom: '0.75rem',
+            color: 'var(--cds-text-primary)'
+          }}>
             您的考試已被解鎖！
           </p>
-          <p style={{ marginBottom: '1rem' }}>
+          
+          {/* Description */}
+          <p style={{ 
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            color: 'var(--cds-text-primary)',
+            lineHeight: 1.5
+          }}>
             監考老師已解除您的鎖定狀態。點擊「繼續考試」重新進入考試模式。
           </p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-            提醒：請遵守考試規則，避免再次被鎖定。
+          
+          {/* Reminder */}
+          <div style={{ 
+            width: '100%',
+            padding: '0.75rem 1rem',
+            backgroundColor: 'var(--cds-layer-01)',
+            border: '1px solid var(--cds-border-subtle)',
+            textAlign: 'left'
+          }}>
+            <p style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--cds-text-secondary)',
+              margin: 0
+            }}>
+              提醒：請遵守考試規則，避免再次被鎖定。
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Fullscreen Exit Confirmation Modal (for locked/paused states) */}
+      <Modal
+        open={showFullscreenExitConfirm}
+        modalHeading="確認離開全螢幕並交卷"
+        primaryButtonText={isSubmittingFromFullscreenExit ? "交卷中..." : "確認交卷"}
+        secondaryButtonText="取消"
+        primaryButtonDisabled={isSubmittingFromFullscreenExit}
+        onRequestSubmit={handleFullscreenExitConfirm}
+        onRequestClose={handleFullscreenExitCancel}
+        preventCloseOnClickOutside
+        danger
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          {/* Icon */}
+          <div style={{ 
+            padding: '1rem',
+            backgroundColor: 'var(--cds-notification-background-warning)',
+            borderRadius: '50%',
+            marginBottom: '1.5rem'
+          }}>
+            <WarningAlt size={40} style={{ color: 'var(--cds-support-warning)' }} />
+          </div>
+          
+          {/* Title */}
+          <p style={{ 
+            fontSize: '1.25rem', 
+            fontWeight: 600, 
+            marginBottom: '0.75rem',
+            color: 'var(--cds-text-primary)'
+          }}>
+            您正在離開全螢幕模式
           </p>
+          
+          {/* Description */}
+          <p style={{ 
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            color: 'var(--cds-text-secondary)',
+            lineHeight: 1.5
+          }}>
+            在考試模式下離開全螢幕將視為交卷。
+            <br />
+            確認後系統將自動為您交卷，您將無法再作答。
+          </p>
+          
+          {/* Warning */}
+          <div style={{ 
+            width: '100%',
+            padding: '0.75rem 1rem',
+            backgroundColor: 'var(--cds-notification-background-error)',
+            textAlign: 'center'
+          }}>
+            <p style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--cds-support-error)',
+              margin: 0,
+              fontWeight: 600
+            }}>
+              此操作無法復原！
+            </p>
+          </div>
         </div>
       </Modal>
     </div>

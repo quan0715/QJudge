@@ -15,7 +15,7 @@ const ContestQAPage: React.FC<ContestQAPageProps> = ({ maxWidth }) => {
   if (!contest) return <div>Contest not found</div>;
 
   return (
-    <SurfaceSection maxWidth={maxWidth}>
+    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           <div className="cds--col-lg-16">

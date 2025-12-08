@@ -29,7 +29,7 @@ export const StickyTabs: React.FC<StickyTabsProps> = ({
   return (
     <div style={{ 
       position: 'sticky',
-      top: '3rem', // Stick below the 48px Navbar
+      top: 0, // Stick to the top of the scroll container (which starts below Navbar)
       zIndex: 90, 
       backgroundColor: 'var(--cds-background)',
       borderBottom: '1px solid var(--cds-border-subtle)',

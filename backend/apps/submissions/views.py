@@ -125,7 +125,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
                  raise PermissionDenied("Contest is not active")
                  
             # Validate registration
-            from apps.contests.models import ContestParticipant
+            from apps.contests.models import ContestParticipant, ExamStatus
             try:
                 participant = ContestParticipant.objects.get(contest=contest, user=user)
                 
@@ -133,6 +133,16 @@ class SubmissionViewSet(viewsets.ModelViewSet):
                 if participant.has_finished_exam:
                     from rest_framework.exceptions import PermissionDenied
                     raise PermissionDenied("You have finished the exam and cannot submit anymore")
+                
+                # Check if exam is paused - must resume before submitting
+                if participant.exam_status == ExamStatus.PAUSED:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("Your exam is paused. Please resume the exam before submitting.")
+                
+                # Check if exam is locked
+                if participant.exam_status == ExamStatus.LOCKED:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You have been locked out of this exam and cannot submit.")
                     
             except ContestParticipant.DoesNotExist:
                  # Allow if admin/owner

@@ -292,7 +292,13 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
 
   // Show full UI with hero and tabs for all modes
   return (
-    <div style={{ minHeight: '100vh', width: '100%', paddingBottom: 'var(--cds-spacing-09, 3rem)' }}>
+    <div style={{ 
+        minHeight: '100vh', 
+        width: '100%', 
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: 'var(--cds-spacing-09, 3rem)'
+    }}>
        {/* Hero with embedded Tabs */}
        <ProblemHero 
           problem={problem} 
@@ -326,7 +332,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
 
         {/* Content Area - Aligned with Hero */}
         <div style={{ 
-            minHeight: '400px',
+            flex: 1,
             width: '100%',
             backgroundColor: 'var(--cds-layer-01)',
         }}>

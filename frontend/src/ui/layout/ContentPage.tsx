@@ -50,7 +50,8 @@ export const ContentPage: React.FC<ContentPageProps> = ({
             backgroundColor: 'var(--cds-background)',
             position: 'relative',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            minHeight: '100%'
           }}>
             {/* Hero Section - Scrolls with content */}
             {hero && (
@@ -59,8 +60,13 @@ export const ContentPage: React.FC<ContentPageProps> = ({
               </div>
             )}
 
-            {/* Main Content Area */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Main Content Area - Fill remaining space */}
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              minHeight: 'calc(100vh - 3rem - 200px)' // At least fill screen minus header and hero estimate
+            }}>
               {children}
             </div>
           </div>

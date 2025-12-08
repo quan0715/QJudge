@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Button, InlineLoading } from '@carbon/react';
 import { SubmissionTable, type SubmissionRow } from '@/domains/submission/components/SubmissionTable';
 import { SubmissionDetailModal } from '@/domains/submission/components/SubmissionDetailModal';
-import { httpClient } from '@/services/api/httpClient';
+import { getSubmissions } from '@/services/submission';
 
 interface ProblemSubmissionHistoryProps {
   problemId: number | string;
@@ -22,14 +22,14 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      // Build query with optional contest filter
-      let url = `/api/v1/submissions/?problem=${problemId}&ordering=-created_at&is_test=false`;
-      if (contestId) {
-        url += `&contest=${contestId}`;
-      }
-      const res = await httpClient.get(url);
-      const data = await res.json();
-      setSubmissions(data.results || []);
+      const { results } = await getSubmissions({
+        problem: problemId,
+        ordering: '-created_at',
+        is_test: false,
+        contest: contestId,
+        source_type: contestId ? 'contest' : undefined
+      });
+      setSubmissions(results || []);
     } catch (error) {
       console.error('Error fetching submissions:', error);
     } finally {

@@ -28,7 +28,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
 
 
   return (
-    <SurfaceSection maxWidth={maxWidth}>
+    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           {/* Left Column: Description & Rules */}

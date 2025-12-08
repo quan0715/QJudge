@@ -63,7 +63,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({ maxWidth })
   if (loading && !refreshing && standings.length === 0) return <Loading />;
 
   return (
-    <SurfaceSection maxWidth={maxWidth}>
+    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
       <div className="cds--grid" style={{ padding: 0 }}>
         <div className="cds--row">
           <div className="cds--col-lg-16">

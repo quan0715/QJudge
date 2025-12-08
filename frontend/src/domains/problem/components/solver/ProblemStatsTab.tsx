@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Column, SkeletonText } from '@carbon/react';
-import { GaugeChart, DonutChart, SimpleBarChart } from '@carbon/charts-react';
+import { GaugeChart, DonutChart, AreaChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 import '@carbon/charts-react/styles.css';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import type { ProblemDetail } from '@/core/entities/problem.entity';
 import { getSubmissions } from '@/services/submission';
+import { useTheme } from '@/ui/theme/ThemeContext';
 
 interface ProblemStatsTabProps {
   problem: ProblemDetail;
@@ -17,9 +18,9 @@ interface StatusCount {
   value: number;
 }
 
-interface WeeklyData {
+interface TrendData {
   group: string;
-  key: string;
+  date: Date;
   value: number;
 }
 
@@ -28,9 +29,10 @@ interface WeeklyData {
  * Displays AC rate, result distribution, and weekly submission trend
  */
 const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId }) => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [statusData, setStatusData] = useState<StatusCount[]>([]);
-  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
+  const [trendData, setTrendData] = useState<TrendData[]>([]);
 
   // Calculate statistics from problem data
   const submissionCount = problem.submissionCount || 0;
@@ -47,40 +49,16 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId })
         const { results: submissions } = await getSubmissions({ 
           problem: problem.id,
           contest: contestId,
-          source_type: contestId ? 'contest' : 'practice'
+          source_type: contestId ? 'contest' : 'practice',
+          page_size: 10000 
         });
         
-        // Calculate last 7 days distribution
+        // Calculate status distribution
         const statusCounts: Record<string, number> = {};
-        const dailySubmissions: Record<string, number> = {};
-        
-        // Get last 7 days
-        const now = new Date();
-        const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-        
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(now);
-          date.setDate(date.getDate() - i);
-          const dayKey = `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
-          dailySubmissions[dayKey] = 0;
-        }
         
         submissions.forEach((sub: any) => {
-          // Count by status
           const status = sub.status || 'Unknown';
           statusCounts[status] = (statusCounts[status] || 0) + 1;
-          
-          // Count by day
-          const subDate = new Date(sub.createdAt);
-          const daysAgo = Math.floor((now.getTime() - subDate.getTime()) / (24 * 60 * 60 * 1000));
-          
-          if (daysAgo >= 0 && daysAgo < 7) {
-            const date = new Date(subDate);
-            const dayKey = `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
-            if (dailySubmissions[dayKey] !== undefined) {
-              dailySubmissions[dayKey]++;
-            }
-          }
         });
         
         // Format status data for DonutChart
@@ -104,18 +82,64 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId })
         
         setStatusData(formattedStatusData);
         
-        // Format daily data for BarChart
-        const formattedDailyData = Object.entries(dailySubmissions).map(([day, count]) => ({
-          group: '提交次數',
-          key: day,
-          value: count
-        }));
+        // Calculate Trend Data (Time-based area chart)
+        const formattedTrendData: TrendData[] = [];
+        const timestamps = submissions.map((s: any) => new Date(s.createdAt).getTime());
         
-        setWeeklyData(formattedDailyData);
+        if (timestamps.length > 0) {
+            const minT = Math.min(...timestamps);
+            const maxT = Math.max(...timestamps);
+            const durationMs = maxT - minT;
+            
+            // Determine bucket size
+            let bucketMs = 24 * 60 * 60 * 1000; // Default Daily
+            let start = minT;
+            let end = maxT;
+            
+            if (contestId) {
+                if (durationMs < 3 * 60 * 60 * 1000) {
+                    bucketMs = 15 * 60 * 1000; // 15 mins
+                } else if (durationMs < 24 * 60 * 60 * 1000) {
+                    bucketMs = 60 * 60 * 1000; // Hourly
+                }
+                
+                start = Math.floor(minT / bucketMs) * bucketMs;
+                end = Math.ceil(maxT / bucketMs) * bucketMs;
+            } else {
+                // Practice: Fix to last 7 days
+                const now = new Date();
+                end = now.getTime();
+                start = end - (7 * 24 * 60 * 60 * 1000); // 7 days ago
+                start = Math.floor(start / bucketMs) * bucketMs;
+            }
+            
+            // Initialize buckets
+            const buckets: Record<number, number> = {};
+            for (let t = start; t <= end; t += bucketMs) {
+                buckets[t] = 0;
+            }
+            
+            // Fill buckets
+            timestamps.forEach(ts => {
+                if (ts >= start && ts <= end + bucketMs) {
+                    const b = Math.floor(ts / bucketMs) * bucketMs;
+                    if (buckets[b] !== undefined) buckets[b]++;
+                }
+            });
+            
+            Object.entries(buckets).forEach(([t, count]) => {
+                formattedTrendData.push({
+                    group: '提交次數',
+                    date: new Date(parseInt(t)),
+                    value: count
+                });
+            });
+        }
+        
+        setTrendData(formattedTrendData);
         
       } catch (error) {
         console.error('Failed to fetch submission stats:', error);
-        // Use fallback data from problem
         setStatusData([
           { group: '通過 (AC)', value: acceptedCount },
           { group: '未通過', value: submissionCount - acceptedCount }
@@ -124,11 +148,12 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId })
         setLoading(false);
       }
     };
+
     
     if (problem.id) {
       fetchStats();
     }
-  }, [problem.id, submissionCount, acceptedCount]);
+  }, [problem.id, contestId, submissionCount, acceptedCount]);
 
   // Gauge chart options - fixed to show value correctly
   const gaugeData = [{ group: 'value', value: acRate }];
@@ -177,34 +202,6 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId })
         '未通過': '#da1e28'
       }
     },
-    toolbar: { enabled: false }
-  };
-
-  // Bar chart options
-  const barOptions = {
-    title: '',
-    resizable: true,
-    height: '280px',
-    axes: {
-      left: {
-        mapsTo: 'value',
-        title: '提交次數'
-      },
-      bottom: {
-        mapsTo: 'key',
-        scaleType: ScaleTypes.LABELS,
-        title: '最近7天'
-      }
-    },
-    bars: {
-      maxWidth: 40
-    },
-    color: {
-      scale: {
-        '提交次數': '#0f62fe'
-      }
-    },
-    legend: { enabled: false },
     toolbar: { enabled: false }
   };
 
@@ -294,18 +291,30 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({ problem, contestId })
           </ContainerCard>
         </Column>
 
-        {/* Weekly Submission Trend */}
+        {/* Weekly Submission Trend / Contest Status Distribution */}
         <Column lg={8} md={4} sm={4}>
-          <ContainerCard title="最近7天提交趨勢">
+          <ContainerCard title={contestId ? "競賽提交趨勢" : "最近7天提交趨勢"}>
             {loading ? (
               <div style={{ padding: '2rem' }}>
                 <SkeletonText heading />
                 <SkeletonText paragraph lineCount={5} />
               </div>
-            ) : weeklyData.some(d => d.value > 0) ? (
-              <SimpleBarChart
-                data={weeklyData}
-                options={barOptions}
+            ) : trendData.length > 0 ? (
+              <AreaChart
+                data={trendData}
+                options={{
+                  title: contestId ? '競賽提交趨勢' : '最近7天提交趨勢',
+                  axes: {
+                    bottom: { mapsTo: 'date', scaleType: ScaleTypes.TIME },
+                    left: { mapsTo: 'value', title: '提交數', scaleType: ScaleTypes.LINEAR }
+                  },
+                  curve: 'curveMonotoneX',
+                  height: '300px',
+                  color: {
+                    scale: { '提交次數': '#0f62fe' }
+                  },
+                  theme: theme
+                }}
               />
             ) : (
               <div style={{ 

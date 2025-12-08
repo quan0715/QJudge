@@ -12,7 +12,7 @@ import {
   SkeletonText,
   SkeletonPlaceholder
 } from '@carbon/react';
-import { Copy, Checkmark } from '@carbon/icons-react';
+import { Copy, Checkmark, Locked } from '@carbon/icons-react';
 import { TestCaseList } from '@/domains/problem/components/common/TestCaseList';
 import Editor from '@monaco-editor/react';
 import { getSubmission } from '@/services/submission';
@@ -162,7 +162,7 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
         </div>
       ) : error === 'permission_denied' ? (
         <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <div style={{ marginBottom: '1rem', fontSize: '4rem' }}>🔒</div>
+          <div style={{ marginBottom: '1rem' }}><Locked size={64} style={{ color: 'var(--cds-icon-secondary)' }} /></div>
           <h2 style={{ marginBottom: '1rem' }}>權限不足</h2>
           <p style={{ color: 'var(--cds-text-secondary)' }}>
             您沒有權限查看此提交的詳細內容。

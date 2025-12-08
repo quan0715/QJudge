@@ -35,9 +35,9 @@ export function mapSubmissionDto(dto: any): Submission {
     language: dto.language || '',
     status: dto.status || 'pending',
     score: dto.score,
-    execTime: dto.execution_time || dto.exec_time,
-    memoryUsage: dto.memory_usage,
-    createdAt: dto.created_at || '',
+    execTime: dto.execution_time ?? dto.exec_time ?? dto.execTime ?? 0,
+    memoryUsage: dto.memory_usage ?? dto.memoryUsage,
+    createdAt: dto.created_at ?? dto.createdAt ?? '',
     contestId: dto.contest?.toString(),
     isTest: !!dto.is_test
   };

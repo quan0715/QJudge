@@ -78,6 +78,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     auto_unlock_at = serializers.SerializerMethodField()
     my_nickname = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
+    participant_count = serializers.SerializerMethodField()
     
     rule = serializers.CharField(source='rules', read_only=True)
     
@@ -119,6 +120,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'auto_unlock_minutes',
             'anonymous_mode_enabled',
             'my_nickname',
+            'participant_count',
         ]
 
     def get_my_nickname(self, obj):
@@ -211,6 +213,10 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return None
         registration = obj.registrations.filter(user=request.user).first()
         return registration.left_at if registration else None
+
+    def get_participant_count(self, obj):
+        """Get total number of participants."""
+        return obj.registrations.count()
 
     def get_has_finished_exam(self, obj):
         """Check if current user has finished the exam."""

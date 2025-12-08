@@ -11,7 +11,6 @@ import { getContestState, getContestStateLabel, getContestStateColor } from '@/m
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
 import { updateNickname } from '@/services/contest';
-import { Edit } from '@carbon/icons-react';
 import './ContestHero.css';
 
 const MinimalProgressBar = ({ value, label, status }: { value: number, label?: string, status?: string }) => {
@@ -236,28 +235,10 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     // Determine my status
     const examStatus = contest.examStatus || (contest.hasStarted ? 'in_progress' : 'not_started');
 
-    // Registered User Actions
-    const canEditNickname = contest.anonymousModeEnabled && examStatus !== 'in_progress';
-    const editNicknameButton = canEditNickname ? (
-      <Button 
-        kind="ghost" 
-        size="sm" 
-        renderIcon={Edit}
-        onClick={() => {
-          setNewNickname(contest.myNickname || '');
-          setShowUpdateNicknameModal(true);
-        }}
-        style={{ marginRight: '0.5rem' }}
-      >
-        {contest.myNickname ? `暱稱: ${contest.myNickname}` : '設定暱稱'}
-      </Button>
-    ) : null;
-
     // Contest must be active for exam actions
     if (contest.status !== 'active') {
       return (
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {editNicknameButton}
           <Button kind="secondary" disabled renderIcon={Flag}>
             考試未啟用 (Contest Inactive)
           </Button>
@@ -267,21 +248,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
     switch (examStatus) {
       case 'locked':
-        // Step 2.5: Locked - show lock info
+        // Step 2.5: Locked - status is now shown in Navbar
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #da1e28' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#da1e28', fontWeight: 'bold' }}>
-              <WarningAltFilled /> 考試已鎖定 (Locked)
-            </div>
-            <div>{contest.lockReason}</div>
-            {contest.allowAutoUnlock && contest.autoUnlockMinutes && contest.lockedAt ? (
-              <div style={{ fontSize: '0.9rem', color: '#42be65' }}>
-                預計解鎖時間: {new Date(new Date(contest.lockedAt).getTime() + contest.autoUnlockMinutes * 60000).toLocaleTimeString()}
-              </div>
-            ) : (
-              <div style={{ fontSize: '0.9rem', color: '#8d8d8d' }}>請聯繫監考人員解鎖</div>
-            )}
-            {/* Allow editing nickname even if locked? Maybe not necessary, but safe to allow view */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+             <Button kind="secondary" disabled renderIcon={WarningAltFilled}>
+               考試已鎖定 (Exam Locked)
+             </Button>
           </div>
         );
 
@@ -290,8 +262,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         if (contest.allowMultipleJoins) {
           return (
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              {editNicknameButton}
-              <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+                  <Button renderIcon={PlayFilled} onClick={handleStartClick}>
                 重新開始考試 (Restart Exam)
               </Button>
             </div>
@@ -299,49 +270,26 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         }
         return (
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {editNicknameButton}
-            <Button kind="secondary" disabled renderIcon={Flag}>
+              <Button kind="secondary" disabled renderIcon={Flag}>
               已交卷 (Finished)
             </Button>
           </div>
         );
 
       case 'paused':
-        // Check if contest hasn't started yet (time-based)
-        const pausedContestNotStartedYet = new Date(contest.startTime) > new Date();
-        // Step 1 (paused): Needs to resume - show resume button
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ padding: '0.75rem', backgroundColor: 'var(--cds-layer-01)', borderLeft: '4px solid #f1c21b', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f1c21b', fontWeight: 'bold' }}>
-                <WarningAltFilled /> 考試已暫停 (Paused)
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
-                {pausedContestNotStartedYet 
-                  ? '考試尚未開始，請等待開始時間' 
-                  : '請點擊繼續考試以重新進入考試模式'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-               {editNicknameButton}
-               <Button 
-                renderIcon={PlayFilled} 
-                onClick={handleStartClick}
-                disabled={pausedContestNotStartedYet}
-                kind={pausedContestNotStartedYet ? 'secondary' : 'primary'}
-               >
-                 {pausedContestNotStartedYet ? '尚未開始 (Not Yet Started)' : '繼續考試 (Resume Exam)'}
-               </Button>
-            </div>
-          </div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+               繼續考試 (Resume Exam)
+             </Button>
+           </div>
         );
 
       case 'in_progress':
         // Step 2: In progress - show end exam button
         return (
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {editNicknameButton}
-            {onEndExam && (
+              {onEndExam && (
               <Button kind="danger--tertiary" renderIcon={Flag} onClick={handleEndClick}>
                 結束考試 (Submit Exam)
               </Button>
@@ -368,8 +316,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         // Step 1 (not started): Show start button
         return (
           <div style={{ display: 'flex', gap: '1rem' }}>
-            {editNicknameButton}
-            <Button renderIcon={PlayFilled} onClick={handleStartClick}>
+              <Button renderIcon={PlayFilled} onClick={handleStartClick}>
               開始考試 (Start Exam)
             </Button>
           </div>

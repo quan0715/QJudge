@@ -4,7 +4,7 @@ import {
     Button, TextArea, FormLabel, NumberInput,
     Accordion, AccordionItem, Tag, Toggle, Modal
 } from '@carbon/react';
-import { Add, TrashCan, Edit } from '@carbon/icons-react';
+import { Add, TrashCan, Edit, Locked } from '@carbon/icons-react';
 import { SubmissionStatusBadge } from '@/ui/components/badges/SubmissionStatusBadge';
 
 export interface TestCaseItem {
@@ -453,9 +453,13 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
                                                         <p style={{ 
                                                             color: 'var(--cds-text-secondary)',
                                                             fontSize: '0.875rem',
-                                                            margin: 0
+                                                            margin: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem'
                                                         }}>
-                                                            🔒 這是隱藏測資，無法查看詳細內容
+                                                            <Locked size={16} /> 這是隱藏測資，無法查看詳細內容
                                                         </p>
                                                     </div>
                                                 ) : (

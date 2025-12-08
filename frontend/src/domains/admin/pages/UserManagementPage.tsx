@@ -3,7 +3,8 @@ import {
   Search, 
   UserAdmin, 
   CheckmarkFilled,
-  TrashCan
+  TrashCan,
+  WarningAlt
 } from '@carbon/icons-react';
 import {
   TextInput,
@@ -386,8 +387,8 @@ const UserManagementPage = () => {
         danger
       >
         <p>確定要刪除用戶 <strong>{userToDelete?.email}</strong> 嗎？</p>
-        <p style={{ marginTop: '1rem', color: 'var(--cds-text-error)' }}>
-          ⚠️ 此操作無法復原！用戶的所有數據將被永久刪除。
+        <p style={{ marginTop: '1rem', color: 'var(--cds-text-error)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <WarningAlt size={16} /> 此操作無法復原！用戶的所有數據將被永久刪除。
         </p>
       </Modal>
     </div>

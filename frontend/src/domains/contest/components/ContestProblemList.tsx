@@ -182,7 +182,7 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   // ============================================
   if (canManage) {
     return (
-      <SurfaceSection maxWidth={maxWidth}>
+      <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
         <div className="cds--row">
           <div className="cds--col-lg-16">
             {notification && (
@@ -273,7 +273,7 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   }
 
   return (
-    <SurfaceSection maxWidth={maxWidth}>
+    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
       <div className="cds--row">
         <div className="cds--col-lg-16">
           <ContainerCard title="題目列表" noPadding>
