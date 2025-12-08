@@ -22,7 +22,7 @@ import { Renew } from '@carbon/icons-react';
 import { getExamEvents } from '@/services/contest';
 import type { ExamEvent } from '@/core/entities/contest.entity';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
-import { PageHeader } from '@/ui/layout/PageHeader';
+import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 
 const ContestAdminLogsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -133,19 +133,8 @@ const ContestAdminLogsPage = () => {
   const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
 
   return (
-    <div className="contest-admin-logs">
-      <PageHeader 
-        title="考試紀錄" 
-        subtitle="監控所有與考試相關的事件"
-        maxWidth="1056px"
-        action={
-            <Button size="md" kind="secondary" renderIcon={Renew} onClick={loadLogs}>
-                重新整理
-            </Button>
-        }
-      />
-
-      <div style={{ padding: '1rem', maxWidth: '1056px', margin: '0 auto', width: '100%' }}>
+    <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
+      <div style={{ padding: '0', maxWidth: '100%', margin: '0 auto', width: '100%' }}>
         {notification && (
             <InlineNotification
                 kind={notification.kind}
@@ -159,7 +148,13 @@ const ContestAdminLogsPage = () => {
         {loading && events.length === 0 ? (
             <Loading withOverlay={false} />
         ) : (
-            <ContainerCard noPadding>
+            <ContainerCard 
+                title="考試紀錄" 
+                noPadding
+                action={
+                    <Button size="sm" kind="ghost" renderIcon={Renew} onClick={loadLogs} hasIconOnly iconDescription="重新整理" />
+                }
+            >
                 <DataTable
                     rows={paginatedEvents.map((e, index) => ({ 
                         ...e, 
@@ -225,7 +220,7 @@ const ContestAdminLogsPage = () => {
             </ContainerCard>
         )}
       </div>
-    </div>
+    </SurfaceSection>
   );
 };
 

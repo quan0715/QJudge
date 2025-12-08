@@ -30,7 +30,7 @@ import {
 } from '@/services/contest';
 import type { ContestParticipant, ExamStatusType } from '@/core/entities/contest.entity';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
-import { PageHeader } from '@/ui/layout/PageHeader';
+import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 
 const ContestAdminParticipantsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -188,24 +188,8 @@ const ContestAdminParticipantsPage = () => {
   if (loading && participants.length === 0) return <Loading />;
 
   return (
-    <div className="contest-admin-participants">
-      <PageHeader 
-        title="參賽者管理" 
-        subtitle={`共 ${participants.length} 位參賽者`}
-        maxWidth="1056px"
-        action={
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Button size="md" kind="secondary" renderIcon={Renew} onClick={loadParticipants}>
-                    重新整理
-                </Button>
-                <Button size="md" renderIcon={Add} onClick={() => setAddModalOpen(true)}>
-                    新增參賽者
-                </Button>
-            </div>
-        }
-      />
-
-      <div style={{ padding: '1rem', maxWidth: '1056px', margin: '0 auto', width: '100%' }}>
+    <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
+      <div style={{ padding: '0', maxWidth: '100%', margin: '0 auto', width: '100%' }}>
         {notification && (
           <InlineNotification
             kind={notification.kind}
@@ -216,7 +200,18 @@ const ContestAdminParticipantsPage = () => {
           />
         )}
 
-        <ContainerCard noPadding>
+        <ContainerCard 
+            title="參賽者列表"
+            noPadding
+            action={
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Button size="sm" kind="ghost" renderIcon={Renew} onClick={loadParticipants} hasIconOnly iconDescription="重新整理" />
+                    <Button size="sm" renderIcon={Add} onClick={() => setAddModalOpen(true)}>
+                        新增
+                    </Button>
+                </div>
+            }
+        >
             {/* Status Filter */}
             <div style={{ padding: '1rem', borderBottom: '1px solid var(--cds-border-subtle)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <Dropdown
@@ -390,7 +385,7 @@ const ContestAdminParticipantsPage = () => {
             </div>
         </Modal>
       </div>
-    </div>
+    </SurfaceSection>
   );
 };
 

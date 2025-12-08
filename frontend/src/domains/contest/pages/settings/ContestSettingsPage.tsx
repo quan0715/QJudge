@@ -24,7 +24,7 @@ import type { ContestDetail } from '@/core/entities/contest.entity';
 import type { ContestUpdateRequest } from '@/models/contest';
 
 import ContainerCard from '@/ui/components/layout/ContainerCard';
-import { PageHeader } from '@/ui/layout/PageHeader';
+import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 
 const ContestAdminSettingsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -214,10 +214,8 @@ const ContestAdminSettingsPage = () => {
   if (!contest) return <div>Contest not found</div>;
 
   return (
-    <div className="contest-admin-settings">
-      <PageHeader title="競賽設定" subtitle={`管理 ${contest.name} 的基本資訊與規則`} maxWidth="1056px" />
-      
-      <div style={{ padding: '1rem', maxWidth: '1056px', margin: '0 auto', width: '100%' }}>
+    <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
+      <div style={{ padding: '0', maxWidth: '100%', margin: '0 auto', width: '100%' }}>
         {notification && (
           <InlineNotification
             kind={notification.kind}
@@ -515,7 +513,7 @@ const ContestAdminSettingsPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceSection>
   );
 };
 
