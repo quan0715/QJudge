@@ -108,7 +108,7 @@
   font-weight: normal;
 }
 
-/* Ensure inline code in paragraphs and lists keeps highlighting */
+/* Ensure inline code in paragraphs and lists keeps red bold highlighting */
 .markdown-body p code,
 .markdown-body li code,
 .markdown-body td code,
@@ -119,11 +119,11 @@
 .markdown-body h4 code,
 .markdown-body h5 code,
 .markdown-body h6 code {
-  background-color: rgba(175, 184, 193, 0.2);
-  color: #eb6f92;
-  border: 1px solid rgba(175, 184, 193, 0.3);
+  background-color: rgba(218, 30, 40, 0.1);
+  color: #da1e28;
+  border: 1px solid rgba(218, 30, 40, 0.2);
   padding: 0.2em 0.4em;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 /* Blockquotes */
