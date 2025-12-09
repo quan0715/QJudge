@@ -59,6 +59,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Grace period countdown (in seconds)
   const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
   const GRACE_PERIOD_SECONDS = 3;
+  
+  // Anti-cheat timing constants
+  const BLUR_DEBOUNCE_MS = 500; // Time to wait after user interaction before detecting blur
+  const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
 
   // Fullscreen exit confirmation modal state (for locked/paused/in_progress)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
@@ -227,11 +231,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       }
     };
 
-    const handleBlur = async () => {
+    const handleBlur = () => {
       // Skip blur events that happen within 500ms of any user interaction
       // This prevents false positives from Chrome extensions or internal browser processes
       const timeSinceInteraction = Date.now() - lastInteractionTime.current;
-      if (timeSinceInteraction < 500) {
+      if (timeSinceInteraction < BLUR_DEBOUNCE_MS) {
         console.log('[Anti-cheat] Ignoring blur event - recent user interaction detected');
         return;
       }
@@ -244,7 +248,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         } else {
           console.log('[Anti-cheat] Ignoring blur event - document still has focus');
         }
-      }, 50);
+      }, FOCUS_CHECK_DELAY_MS);
     };
 
     const handleFullscreenChange = async () => {
