@@ -153,13 +153,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Track last interaction time to debounce blur events during submit
   const lastInteractionTime = useRef<number>(0);
   
-  // Update interaction time on any user click (helps detect submit button clicks)
+  // Update interaction time on any user interaction (helps detect button clicks and form interactions)
   useEffect(() => {
-    const handleClick = () => {
+    const handleInteraction = () => {
       lastInteractionTime.current = Date.now();
     };
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
+    // Track multiple interaction types to catch all user actions
+    document.addEventListener('mousedown', handleInteraction, true);
+    document.addEventListener('pointerdown', handleInteraction, true);
+    document.addEventListener('click', handleInteraction, true);
+    return () => {
+      document.removeEventListener('mousedown', handleInteraction, true);
+      document.removeEventListener('pointerdown', handleInteraction, true);
+      document.removeEventListener('click', handleInteraction, true);
+    };
   }, []);
 
   // prevIsActiveRef moved to top with other refs
@@ -221,10 +228,23 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     };
 
     const handleBlur = async () => {
-      // Skip blur events that happen within 100ms of a click (likely from submit button)
-      const timeSinceClick = Date.now() - lastInteractionTime.current;
-      if (timeSinceClick < 100) return;
-      await handleCheatEvent('window_blur', '您已離開視窗');
+      // Skip blur events that happen within 500ms of any user interaction
+      // This prevents false positives from Chrome extensions or internal browser processes
+      const timeSinceInteraction = Date.now() - lastInteractionTime.current;
+      if (timeSinceInteraction < 500) {
+        console.log('[Anti-cheat] Ignoring blur event - recent user interaction detected');
+        return;
+      }
+      
+      // Additional check: verify document actually lost focus
+      // Use setTimeout to check after the event loop, as focus state might not be updated yet
+      setTimeout(() => {
+        if (!document.hasFocus()) {
+          handleCheatEvent('window_blur', '您已離開視窗');
+        } else {
+          console.log('[Anti-cheat] Ignoring blur event - document still has focus');
+        }
+      }, 50);
     };
 
     const handleFullscreenChange = async () => {
