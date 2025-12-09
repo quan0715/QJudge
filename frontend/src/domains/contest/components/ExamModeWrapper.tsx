@@ -242,11 +242,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       }
       
       // Clear any pending blur check timeout (clearTimeout handles undefined gracefully)
-      window.clearTimeout(blurCheckTimeoutRef.current);
+      clearTimeout(blurCheckTimeoutRef.current);
       
       // Additional check: verify document actually lost focus
       // Use setTimeout to check after the event loop, as focus state might not be updated yet
-      blurCheckTimeoutRef.current = window.setTimeout(() => {
+      blurCheckTimeoutRef.current = setTimeout(() => {
         blurCheckTimeoutRef.current = undefined;
         if (!document.hasFocus()) {
           // Call async function and handle potential errors
@@ -276,7 +276,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       
       // Clean up any pending blur check timeout (clearTimeout handles undefined gracefully)
-      window.clearTimeout(blurCheckTimeoutRef.current);
+      clearTimeout(blurCheckTimeoutRef.current);
       blurCheckTimeoutRef.current = undefined;
     };
   }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
