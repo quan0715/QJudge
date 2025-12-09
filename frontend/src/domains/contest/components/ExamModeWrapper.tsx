@@ -7,6 +7,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Modal, Button } from '@carbon/react';
 import { WarningAlt, Locked, CheckmarkFilled } from '@carbon/icons-react';
 
+// Anti-cheat timing constants (module-level to avoid recreation on each render)
+const BLUR_DEBOUNCE_MS = 500; // Time to wait after user interaction before detecting blur
+const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
+const GRACE_PERIOD_SECONDS = 3; // Grace period countdown in seconds
+
 interface ExamModeWrapperProps {
   contestId: string;
   examModeEnabled: boolean;
@@ -59,11 +64,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   
   // Grace period countdown (in seconds)
   const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
-  const GRACE_PERIOD_SECONDS = 3;
-  
-  // Anti-cheat timing constants
-  const BLUR_DEBOUNCE_MS = 500; // Time to wait after user interaction before detecting blur
-  const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
 
   // Fullscreen exit confirmation modal state (for locked/paused/in_progress)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
@@ -241,10 +241,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         return;
       }
       
-      // Clear any pending blur check timeout
-      if (blurCheckTimeoutRef.current !== null) {
-        window.clearTimeout(blurCheckTimeoutRef.current);
-      }
+      // Clear any pending blur check timeout (clearTimeout handles null gracefully)
+      window.clearTimeout(blurCheckTimeoutRef.current!);
       
       // Additional check: verify document actually lost focus
       // Use setTimeout to check after the event loop, as focus state might not be updated yet
@@ -277,11 +275,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       
-      // Clean up any pending blur check timeout
-      if (blurCheckTimeoutRef.current !== null) {
-        window.clearTimeout(blurCheckTimeoutRef.current);
-        blurCheckTimeoutRef.current = null;
-      }
+      // Clean up any pending blur check timeout (clearTimeout handles null gracefully)
+      window.clearTimeout(blurCheckTimeoutRef.current!);
+      blurCheckTimeoutRef.current = null;
     };
   }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
 
