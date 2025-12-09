@@ -7,6 +7,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Modal, Button } from '@carbon/react';
 import { WarningAlt, Locked, CheckmarkFilled } from '@carbon/icons-react';
 
+// Anti-cheat timing constants (module-level to avoid recreation on each render)
+const BLUR_DEBOUNCE_MS = 500; // Time to wait after user interaction before detecting blur
+const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
+const GRACE_PERIOD_SECONDS = 3; // Grace period countdown in seconds
+
 interface ExamModeWrapperProps {
   contestId: string;
   examModeEnabled: boolean;
@@ -46,6 +51,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const isGracePeriod = useRef(false);
   const isSubmitting = useRef(false);
   const prevIsActiveRef = useRef(false);
+  const blurCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
   // Blocking modal flow states
   const [isProcessingEvent, setIsProcessingEvent] = useState(false);
@@ -58,7 +64,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   
   // Grace period countdown (in seconds)
   const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
-  const GRACE_PERIOD_SECONDS = 3;
 
   // Fullscreen exit confirmation modal state (for locked/paused/in_progress)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
@@ -153,13 +158,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Track last interaction time to debounce blur events during submit
   const lastInteractionTime = useRef<number>(0);
   
-  // Update interaction time on any user click (helps detect submit button clicks)
+  // Update interaction time on any user interaction (helps detect button clicks and form interactions)
   useEffect(() => {
-    const handleClick = () => {
+    const handleInteraction = () => {
       lastInteractionTime.current = Date.now();
     };
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
+    // Track multiple interaction types to catch all user actions
+    document.addEventListener('mousedown', handleInteraction, true);
+    document.addEventListener('pointerdown', handleInteraction, true);
+    document.addEventListener('click', handleInteraction, true);
+    return () => {
+      document.removeEventListener('mousedown', handleInteraction, true);
+      document.removeEventListener('pointerdown', handleInteraction, true);
+      document.removeEventListener('click', handleInteraction, true);
+    };
   }, []);
 
   // prevIsActiveRef moved to top with other refs
@@ -220,11 +232,31 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       }
     };
 
-    const handleBlur = async () => {
-      // Skip blur events that happen within 100ms of a click (likely from submit button)
-      const timeSinceClick = Date.now() - lastInteractionTime.current;
-      if (timeSinceClick < 100) return;
-      await handleCheatEvent('window_blur', '您已離開視窗');
+    const handleBlur = () => {
+      // Skip blur events that happen within 500ms of any user interaction
+      // This prevents false positives from Chrome extensions or internal browser processes
+      const timeSinceInteraction = Date.now() - lastInteractionTime.current;
+      if (timeSinceInteraction < BLUR_DEBOUNCE_MS) {
+        console.log('[Anti-cheat] Ignoring blur event - recent user interaction detected');
+        return;
+      }
+      
+      // Clear any pending blur check timeout (clearTimeout handles undefined gracefully)
+      clearTimeout(blurCheckTimeoutRef.current);
+      
+      // Additional check: verify document actually lost focus
+      // Use setTimeout to check after the event loop, as focus state might not be updated yet
+      blurCheckTimeoutRef.current = setTimeout(() => {
+        blurCheckTimeoutRef.current = undefined;
+        if (!document.hasFocus()) {
+          // Call async function and handle potential errors
+          handleCheatEvent('window_blur', '您已離開視窗').catch((error) => {
+            console.error('[Anti-cheat] Failed to record window blur event:', error);
+          });
+        } else {
+          console.log('[Anti-cheat] Ignoring blur event - document still has focus');
+        }
+      }, FOCUS_CHECK_DELAY_MS);
     };
 
     const handleFullscreenChange = async () => {
@@ -242,6 +274,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      
+      // Clean up any pending blur check timeout (clearTimeout handles undefined gracefully)
+      clearTimeout(blurCheckTimeoutRef.current);
+      blurCheckTimeoutRef.current = undefined;
     };
   }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
 

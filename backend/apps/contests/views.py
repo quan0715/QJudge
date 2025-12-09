@@ -1084,6 +1084,64 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return response
 
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """
+        Download contest files in PDF or Markdown format.
+        Accessible by participants and managers.
+        """
+        from django.http import HttpResponse
+        from .exporters import MarkdownExporter, PDFExporter, sanitize_filename
+        
+        contest = self.get_object()
+        user = request.user
+        
+        # Check permissions: user must be participant, owner, or admin
+        role = get_user_role_in_contest(user, contest)
+        is_participant = ContestParticipant.objects.filter(contest=contest, user=user).exists()
+        
+        if not (role in ['admin', 'teacher'] or is_participant):
+            return Response(
+                {'message': 'You must be a participant or manager to download contest files'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get format and language from query params
+        file_format = request.query_params.get('format', 'markdown').lower()
+        language = request.query_params.get('language', 'zh-TW')
+        
+        if file_format not in ['markdown', 'pdf']:
+            return Response(
+                {'error': 'Invalid format. Choose "markdown" or "pdf"'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Sanitize contest name for safe filename
+        safe_name = sanitize_filename(contest.name)
+        
+        try:
+            if file_format == 'markdown':
+                exporter = MarkdownExporter(contest, language)
+                content = exporter.export()
+                
+                response = HttpResponse(content, content_type='text/markdown; charset=utf-8')
+                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
+                
+            else:  # pdf
+                exporter = PDFExporter(contest, language)
+                pdf_file = exporter.export()
+                
+                response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.pdf"'
+            
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to generate file: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class ClarificationViewSet(viewsets.ModelViewSet):
     """
