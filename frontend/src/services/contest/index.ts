@@ -403,6 +403,26 @@ export default {
   reopenExam,
   reorderContestProblems,
   exportContestResults,
+  downloadContestFile,
 };
 
+/**
+ * Download contest file in specified format (PDF or Markdown)
+ */
+export const downloadContestFile = async (
+  contestId: string, 
+  format: 'pdf' | 'markdown' = 'markdown',
+  language: string = 'zh-TW'
+): Promise<Blob> => {
+  const res = await httpClient.get(
+    `/api/v1/contests/${contestId}/download/?format=${format}&language=${language}`
+  );
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to download contest file');
+  }
+  
+  return res.blob();
+};
 

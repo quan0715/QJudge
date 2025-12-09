@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Button } from '@carbon/react';
-import { Time } from '@carbon/icons-react';
+import { Time, Download } from '@carbon/icons-react';
 import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import { SubmissionStatusBadge } from '@/ui/components/badges/SubmissionStatusBadge';
+import { ContestDownloadModal } from './ContestDownloadModal';
 import type { ContestDetail, ScoreboardRow } from '@/core/entities/contest.entity';
 import type { Submission } from '@/core/entities/submission.entity';
 
@@ -24,6 +26,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   onViewAllSubmissions,
   maxWidth
 }) => {
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
 
   return (
@@ -32,6 +35,25 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
         <div className="cds--row">
           {/* Left Column: Description & Rules */}
           <div className="cds--col-lg-10 cds--col-md-8">
+            {/* Download Contest Files Section */}
+            {(contest.hasJoined || contest.isRegistered || contest.userRole === 'teacher' || contest.userRole === 'admin') && (
+              <ContainerCard title="Contest Files" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                    Download all contest problems in PDF or Markdown format
+                  </div>
+                  <Button
+                    kind="primary"
+                    size="md"
+                    renderIcon={Download}
+                    onClick={() => setDownloadModalOpen(true)}
+                  >
+                    Download
+                  </Button>
+                </div>
+              </ContainerCard>
+            )}
+            
             {contest.rules && (
               <ContainerCard title="競賽規則" style={{ marginBottom: '1.5rem' }}>
                 <MarkdownRenderer style={{ marginTop: '0.5rem' }}>
@@ -106,6 +128,13 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
             </div>
         </div>
       </div>
+      
+      <ContestDownloadModal
+        contestId={contest.id.toString()}
+        contestName={contest.name}
+        open={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+      />
     </SurfaceSection>
   );
 };
