@@ -1091,7 +1091,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Accessible by participants and managers.
         """
         from django.http import HttpResponse
-        from .exporters import MarkdownExporter, PDFExporter
+        from .exporters import MarkdownExporter, PDFExporter, sanitize_filename
         
         contest = self.get_object()
         user = request.user
@@ -1116,20 +1116,23 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Sanitize contest name for safe filename
+        safe_name = sanitize_filename(contest.name)
+        
         try:
             if file_format == 'markdown':
                 exporter = MarkdownExporter(contest, language)
                 content = exporter.export()
                 
                 response = HttpResponse(content, content_type='text/markdown; charset=utf-8')
-                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{contest.name}.md"'
+                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
                 
             else:  # pdf
                 exporter = PDFExporter(contest, language)
                 pdf_file = exporter.export()
                 
                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{contest.name}.pdf"'
+                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.pdf"'
             
             return response
             

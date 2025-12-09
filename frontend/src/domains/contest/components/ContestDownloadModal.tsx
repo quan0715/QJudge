@@ -18,6 +18,20 @@ interface ContestDownloadModalProps {
   onClose: () => void;
 }
 
+/**
+ * Sanitize a string to be safe for use as a filename.
+ */
+const sanitizeFilename = (filename: string): string => {
+  // Remove or replace invalid characters
+  const sanitized = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  // Remove leading/trailing dots and spaces
+  const trimmed = sanitized.trim().replace(/^[\s.]+|[\s.]+$/g, '');
+  // Limit length
+  const limited = trimmed.length > 200 ? trimmed.substring(0, 200) : trimmed;
+  // Ensure not empty
+  return limited || 'contest';
+};
+
 export const ContestDownloadModal = ({ 
   contestId, 
   contestName,
@@ -45,7 +59,8 @@ export const ContestDownloadModal = ({
       link.href = url;
       
       const extension = format === 'pdf' ? 'pdf' : 'md';
-      const filename = `contest_${contestId}_${contestName}.${extension}`;
+      const safeName = sanitizeFilename(contestName);
+      const filename = `contest_${contestId}_${safeName}.${extension}`;
       link.setAttribute('download', filename);
       
       document.body.appendChild(link);

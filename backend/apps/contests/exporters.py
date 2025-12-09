@@ -2,13 +2,31 @@
 Exporters for contest data to various formats (Markdown, PDF).
 """
 import markdown
+import re
 from io import BytesIO
 from typing import List, Optional
-from weasyprint import HTML, CSS
-from django.template.loader import render_to_string
+from weasyprint import HTML
 
 from .models import Contest, ContestProblem
 from apps.problems.models import Problem
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize a string to be safe for use as a filename.
+    Removes or replaces characters that are not allowed in filenames.
+    """
+    # Remove or replace invalid characters
+    filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', filename)
+    # Remove leading/trailing dots and spaces
+    filename = filename.strip('. ')
+    # Limit length
+    if len(filename) > 200:
+        filename = filename[:200]
+    # Ensure not empty
+    if not filename:
+        filename = 'contest'
+    return filename
 
 
 class ContestExporter:
