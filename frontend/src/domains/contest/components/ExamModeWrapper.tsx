@@ -241,7 +241,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         return;
       }
       
-      // Clear any pending blur check timeout (clearTimeout handles null gracefully)
+      // Clear any pending blur check timeout (clearTimeout handles undefined gracefully)
       window.clearTimeout(blurCheckTimeoutRef.current);
       
       // Additional check: verify document actually lost focus
