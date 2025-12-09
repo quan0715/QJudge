@@ -36,9 +36,9 @@ export const ContestDownloadModal = ({
   contestId, 
   contestName,
   open, 
-  onClose 
+  onClose
 }: ContestDownloadModalProps) => {
-  const [format, setFormat] = useState<'pdf' | 'markdown'>('markdown');
+  const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [language, setLanguage] = useState<string>('zh-TW');
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
@@ -100,7 +100,8 @@ export const ContestDownloadModal = ({
     >
       <div style={{ marginBottom: '1.5rem' }}>
         <p style={{ marginBottom: '1rem', color: 'var(--cds-text-secondary)' }}>
-          Download the complete contest file including all problems and their descriptions.
+          Download the complete contest file including contest information, all problems, and their descriptions as a
+          PDF-ready package.
         </p>
         
         <div style={{ marginBottom: '1.5rem' }}>
