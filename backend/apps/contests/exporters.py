@@ -45,6 +45,10 @@ class ContestExporter:
             'problem__test_cases',
             'problem__tags'
         ).order_by('order')
+
+    def get_problem_label(self, contest_problem: ContestProblem) -> str:
+        """Return the display label for a contest problem (A, B, ...)."""
+        return contest_problem.label or chr(65 + contest_problem.order)
     
     def format_problem_content(self, problem: Problem, label: str) -> dict:
         """Format a problem's content for export."""
@@ -85,40 +89,52 @@ class MarkdownExporter(ContestExporter):
     def export(self) -> str:
         """Generate markdown content for the contest."""
         lines = []
-        
+
         # Contest header
         lines.append(f"# {self.contest.name}")
         lines.append("")
-        
-        if self.contest.description:
-            lines.append(self.contest.description)
-            lines.append("")
-        
+
         # Contest info
         lines.append("## Contest Information")
         lines.append("")
+        lines.append(f"**Name:** {self.contest.name}")
+
+        lines.append("")
+        lines.append("### Description")
+        lines.append("")
+        if self.contest.description:
+            lines.append(self.contest.description)
+        else:
+            lines.append("_No description provided._")
+        lines.append("")
+
         if self.contest.start_time:
             lines.append(f"**Start Time:** {self.contest.start_time.strftime('%Y-%m-%d %H:%M')}")
         if self.contest.end_time:
             lines.append(f"**End Time:** {self.contest.end_time.strftime('%Y-%m-%d %H:%M')}")
         lines.append("")
-        
+
+        lines.append("### Rules")
+        lines.append("")
         if self.contest.rules:
-            lines.append("## Rules")
-            lines.append("")
             lines.append(self.contest.rules)
-            lines.append("")
-        
+        else:
+            lines.append("_No rules provided._")
+        lines.append("")
+
         # Problems
         contest_problems = self.get_contest_problems()
-        
+
         if contest_problems:
             lines.append("---")
             lines.append("")
-            
-            for cp in contest_problems:
-                problem_data = self.format_problem_content(cp.problem, cp.label)
-                
+            lines.append("## Problems")
+            lines.append("")
+
+            for idx, cp in enumerate(contest_problems):
+                label = self.get_problem_label(cp)
+                problem_data = self.format_problem_content(cp.problem, label)
+
                 # Problem header
                 lines.append(f"## Problem {problem_data['label']}: {problem_data['title']}")
                 lines.append("")
@@ -180,7 +196,12 @@ class MarkdownExporter(ContestExporter):
                     lines.append("")
                     lines.append(problem_data['hint'])
                     lines.append("")
-                
+
+                # Insert an explicit page break between problems for PDF output
+                if idx < len(contest_problems) - 1:
+                    lines.append("<div class=\"page-break\"></div>")
+                    lines.append("")
+
                 lines.append("---")
                 lines.append("")
         
@@ -259,6 +280,10 @@ class PDFExporter(ContestExporter):
                     border: none;
                     border-top: 1px solid #ccc;
                     margin: 20px 0;
+                }}
+                .page-break {{
+                    page-break-after: always;
+                    height: 1px;
                 }}
                 table {{
                     border-collapse: collapse;

@@ -77,14 +77,48 @@ class TestContestExporters:
         """Test markdown export."""
         exporter = MarkdownExporter(contest, 'zh-TW')
         content = exporter.export()
-        
+
         # Check that the content contains expected elements
         assert 'Test Contest' in content
+        assert '**Name:** Test Contest' in content
+        assert '### Description' in content
+        assert 'Test Rules' in content
         assert '測試題目' in content
         assert '這是一個測試題目描述' in content
         assert 'Example 1' in content
         assert '1 2' in content
         assert '3' in content
+
+    def test_markdown_exporter_includes_all_problems_with_page_breaks(self, contest, problem):
+        """Ensure multiple problems are exported with separators for PDF pagination."""
+        second_problem = Problem.objects.create(
+            title='Second Problem',
+            time_limit=2000,
+            memory_limit=256,
+            difficulty='easy',
+            is_visible=True
+        )
+
+        Translation.objects.create(
+            problem=second_problem,
+            language='zh-TW',
+            title='第二題',
+            description='第二題描述'
+        )
+
+        ContestProblem.objects.create(
+            contest=contest,
+            problem=second_problem,
+            order=1
+        )
+
+        exporter = MarkdownExporter(contest, 'zh-TW')
+        content = exporter.export()
+
+        assert '## Problems' in content
+        assert 'Problem A' in content
+        assert 'Problem B' in content
+        assert '<div class="page-break"></div>' in content
     
     def test_markdown_exporter_english(self, contest, problem):
         """Test markdown export with English language."""
