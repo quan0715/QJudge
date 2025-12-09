@@ -46,6 +46,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const isGracePeriod = useRef(false);
   const isSubmitting = useRef(false);
   const prevIsActiveRef = useRef(false);
+  const blurCheckTimeoutRef = useRef<number | null>(null);
   
   // Blocking modal flow states
   const [isProcessingEvent, setIsProcessingEvent] = useState(false);
@@ -240,11 +241,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         return;
       }
       
+      // Clear any pending blur check timeout
+      if (blurCheckTimeoutRef.current !== null) {
+        window.clearTimeout(blurCheckTimeoutRef.current);
+      }
+      
       // Additional check: verify document actually lost focus
       // Use setTimeout to check after the event loop, as focus state might not be updated yet
-      setTimeout(() => {
+      blurCheckTimeoutRef.current = window.setTimeout(() => {
+        blurCheckTimeoutRef.current = null;
         if (!document.hasFocus()) {
-          handleCheatEvent('window_blur', '您已離開視窗');
+          // Call async function and handle potential errors
+          handleCheatEvent('window_blur', '您已離開視窗').catch((error) => {
+            console.error('[Anti-cheat] Failed to record window blur event:', error);
+          });
         } else {
           console.log('[Anti-cheat] Ignoring blur event - document still has focus');
         }
@@ -266,6 +276,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      
+      // Clean up any pending blur check timeout
+      if (blurCheckTimeoutRef.current !== null) {
+        window.clearTimeout(blurCheckTimeoutRef.current);
+        blurCheckTimeoutRef.current = null;
+      }
     };
   }, [examModeEnabled, examStatus, isProcessingEvent, contestId, location.pathname, isBypassed]);
 
