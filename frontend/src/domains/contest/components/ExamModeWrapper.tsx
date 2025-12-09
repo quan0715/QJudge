@@ -46,7 +46,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const isGracePeriod = useRef(false);
   const isSubmitting = useRef(false);
   const prevIsActiveRef = useRef(false);
-  const blurCheckTimeoutRef = useRef<number | null>(null);
+  const blurCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Blocking modal flow states
   const [isProcessingEvent, setIsProcessingEvent] = useState(false);
