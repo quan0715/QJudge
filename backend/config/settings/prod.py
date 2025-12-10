@@ -11,22 +11,39 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # =============================================================================
 # Production Database Configuration
 # =============================================================================
-# In production, we use Cloud (Supabase) as the primary database.
-# Local database can be used as backup target.
+# In production, we use Cloud (Supabase) as the primary database by default.
+# Set USE_LOCAL_DB=True to use local database instead.
 
-# Override default database to use cloud
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
-    'USER': os.getenv('CLOUD_DB_USER', ''),
-    'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
-    'HOST': os.getenv('CLOUD_DB_HOST', ''),
-    'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
-    'CONN_MAX_AGE': 60,  # Connection pooling
-    'OPTIONS': {
-        'connect_timeout': 10,
-    },
-}
+USE_LOCAL_DB = os.getenv('USE_LOCAL_DB', 'False') == 'True'
+
+if USE_LOCAL_DB:
+    # Use local Docker PostgreSQL
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'online_judge'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+        'HOST': os.getenv('DB_HOST', 'postgres'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    }
+else:
+    # Use Cloud (Supabase) PostgreSQL
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
+        'USER': os.getenv('CLOUD_DB_USER', ''),
+        'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
+        'HOST': os.getenv('CLOUD_DB_HOST', ''),
+        'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    }
 
 # Keep local database as backup target (optional)
 if os.getenv('BACKUP_DB_HOST'):
