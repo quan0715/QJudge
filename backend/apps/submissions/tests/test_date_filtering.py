@@ -27,7 +27,6 @@ class DateRangeFilteringTestCase(TestCase):
         
         cls.problem = Problem.objects.create(
             title='Test Problem',
-            description='Test',
             difficulty='easy',
             time_limit=1000,
             memory_limit=256,
@@ -49,9 +48,11 @@ class DateRangeFilteringTestCase(TestCase):
                 code='print("recent")',
                 status='AC',
                 source_type='practice',
-                is_test=False,
-                created_at=created_at
+                is_test=False
             )
+            # Update created_at after creation (to bypass auto_now_add)
+            Submission.objects.filter(id=submission.id).update(created_at=created_at)
+            submission.refresh_from_db()
             cls.recent_submissions.append(submission)
         
         # Old submissions (more than 3 months ago)
@@ -66,9 +67,11 @@ class DateRangeFilteringTestCase(TestCase):
                 code='print("old")',
                 status='AC',
                 source_type='practice',
-                is_test=False,
-                created_at=created_at
+                is_test=False
             )
+            # Update created_at after creation (to bypass auto_now_add)
+            Submission.objects.filter(id=submission.id).update(created_at=created_at)
+            submission.refresh_from_db()
             cls.old_submissions.append(submission)
     
     def setUp(self):

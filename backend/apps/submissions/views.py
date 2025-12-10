@@ -49,49 +49,51 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         
-        # Optimize based on action
-        if self.action == 'list':
-            # Only load necessary fields for list view
-            queryset = queryset.only(
-                'id',
-                'user_id',
-                'problem_id',
-                'contest_id',
-                'source_type',
-                'language',
-                'status',
-                'score',
-                'exec_time',
-                'memory_usage',
-                'created_at',
-                # Related fields
-                'user__id',
-                'user__username',
-                'problem__id',
-                'problem__title',
-                'contest__id',
-                'contest__anonymous_mode_enabled',
-            ).select_related('user', 'problem', 'contest')
-            
-            # Prefetch contest participants if needed for anonymous mode
-            contest_id = self.request.query_params.get('contest')
-            if contest_id:
-                from django.db.models import Prefetch
-                from apps.contests.models import ContestParticipant
-                
-                queryset = queryset.prefetch_related(
-                    Prefetch(
-                        'user__contest_participants',
-                        queryset=ContestParticipant.objects.filter(
-                            contest_id=contest_id
-                        ).only('nickname', 'user_id', 'contest_id'),
-                        to_attr='_prefetched_contest_participants'
-                    )
-                )
+        # For non-list actions (retrieve, create, update, destroy), 
+        # return queryset without any filters
+        if self.action != 'list':
+            return queryset.select_related('user', 'problem', 'contest')
         
-        elif self.action == 'retrieve':
-            # Detail view loads all fields
-            queryset = queryset.select_related('user', 'problem', 'contest')
+        # === LIST VIEW ONLY ===
+        # The following optimizations and filters only apply to list action
+        
+        # Only load necessary fields for list view
+        queryset = queryset.only(
+            'id',
+            'user_id',
+            'problem_id',
+            'contest_id',
+            'source_type',
+            'language',
+            'status',
+            'score',
+            'exec_time',
+            'memory_usage',
+            'created_at',
+            # Related fields
+            'user__id',
+            'user__username',
+            'problem__id',
+            'problem__title',
+            'contest__id',
+            'contest__anonymous_mode_enabled',
+        ).select_related('user', 'problem', 'contest')
+        
+        # For anonymous mode, annotate nickname to avoid N+1 queries
+        contest_id = self.request.query_params.get('contest')
+        if contest_id:
+            from django.db.models import Subquery, OuterRef
+            from apps.contests.models import ContestParticipant
+            
+            # Annotate nickname from ContestParticipant
+            nickname_subquery = ContestParticipant.objects.filter(
+                contest_id=contest_id,
+                user_id=OuterRef('user_id')
+            ).values('nickname')[:1]
+            
+            queryset = queryset.annotate(
+                _contest_nickname=Subquery(nickname_subquery)
+            )
         
         # Apply date range filter (performance optimization)
         # By default, only show submissions from the last 3 months
@@ -115,7 +117,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         if source_type == 'practice':
             # Practice: Show ALL practice submissions (Public)
             # Exclude contest submissions and test submissions
-            return queryset.filter(source_type='practice', is_test=False)
+            queryset = queryset.filter(source_type='practice', is_test=False)
             
         elif source_type == 'contest':
             # Contest: See all (for scoreboard), but filter by contest if provided
@@ -123,10 +125,12 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             if contest_id:
                 queryset = queryset.filter(contest_id=contest_id)
             
-            return queryset.filter(source_type='contest')
-            
-        # Fallback
-        return queryset.filter(user=user)
+            queryset = queryset.filter(source_type='contest')
+        else:
+            # Fallback
+            queryset = queryset.filter(user=user)
+        
+        return queryset
     
     def get_serializer_class(self):
         if self.action == 'create':

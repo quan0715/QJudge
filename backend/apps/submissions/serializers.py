@@ -84,7 +84,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     
     def get_username(self, obj):
         """Handle anonymous mode for contests."""
-        # If no contest or not anonymous, return real username
+        # If no contest or anonymous mode not enabled, return real username
         if not obj.contest or not obj.contest.anonymous_mode_enabled:
             return obj.user.username
         
@@ -99,17 +99,12 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             return obj.user.username
         
         # For others, return nickname if available
-        # Use prefetched data if available to avoid N+1
-        if hasattr(obj, '_contest_participant_nickname'):
-            return obj._contest_participant_nickname or obj.user.username
+        # Use annotated field from queryset (added via Subquery in ViewSet)
+        if hasattr(obj, '_contest_nickname') and obj._contest_nickname:
+            return obj._contest_nickname
         
-        # Fallback: query (should be avoided via prefetch)
-        from apps.contests.models import ContestParticipant
-        try:
-            participant = ContestParticipant.objects.get(contest=obj.contest, user=obj.user)
-            return participant.nickname or obj.user.username
-        except ContestParticipant.DoesNotExist:
-            return obj.user.username
+        # Fallback to real username
+        return obj.user.username
     
     class Meta:
         model = Submission

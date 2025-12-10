@@ -37,7 +37,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         # Create a problem
         cls.problem = Problem.objects.create(
             title='Test Problem',
-            description='Test description',
             difficulty='easy',
             time_limit=1000,
             memory_limit=256,
@@ -181,6 +180,35 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         # All results should be practice type
         for submission in response.data.get('results', []):
             self.assertEqual(submission.get('source_type'), 'practice')
+    
+    def test_retrieve_not_affected_by_filters(self):
+        """Test that retrieve action is not affected by date/source filters."""
+        # Create a contest submission
+        from apps.contests.models import Contest
+        contest = Contest.objects.create(
+            name='Test Contest',
+            owner=self.admin_user
+        )
+        
+        contest_submission = Submission.objects.create(
+            user=self.student_user,
+            problem=self.problem,
+            contest=contest,
+            language='python',
+            code='print("test")',
+            status='AC',
+            source_type='contest'
+        )
+        
+        # Should be able to retrieve even with practice filter
+        response = self.client.get(
+            f'/api/v1/submissions/{contest_submission.id}/',
+            {'source_type': 'practice'}  # This should not affect retrieve
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], contest_submission.id)
+        self.assertEqual(response.data['source_type'], 'contest')
 
 
 class SubmissionIndexTestCase(TestCase):
