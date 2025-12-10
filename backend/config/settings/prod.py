@@ -11,82 +11,91 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # =============================================================================
 # Production Database Configuration
 # =============================================================================
-# In production, we use Cloud (Supabase) as the primary database by default.
-# Set USE_LOCAL_DB=True to use local database instead.
+# Production environment supports both local and cloud databases.
+# Admin users can switch between them via the Environment Management page.
+#
+# - 'default': Primary database (controlled by USE_LOCAL_DB)
+# - 'cloud': Supabase Cloud PostgreSQL (always available for sync)
+# - 'local': Local Docker PostgreSQL (always available for sync)
 
 USE_LOCAL_DB = os.getenv('USE_LOCAL_DB', 'False') == 'True'
 
-if USE_LOCAL_DB:
-    # Use local Docker PostgreSQL
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'online_judge'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-        'HOST': os.getenv('DB_HOST', 'postgres'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'CONN_MAX_AGE': 60,
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
-    }
+# Cloud database connection settings
+# Supabase Pooler 連接優化設置
+# 
+# 重要: Supabase 有兩種 Pooler 模式:
+#
+# 1. Transaction Mode (port 6543) - 推薦！
+#    - 每個 transaction 後連接回到池，支援更多併發連接
+#    - CONN_MAX_AGE 必須設為 0（每次請求後釋放連接）
+#    - 不支援 prepared statements，但對大多數應用沒影響
+#
+# 2. Session Mode (port 5432) - 不推薦用於多 worker 場景
+#    - 連接數受限於 pool_size（通常 15-20）
+#    - 使用 CONN_MAX_AGE=None 會讓每個 worker 佔用一個連接
+#    - 容易出現 "MaxClientsInSessionMode: max clients reached" 錯誤
+#
+# 預設使用 Transaction Mode (CONN_MAX_AGE=0)
+
+conn_max_age_str = os.getenv('CLOUD_DB_CONN_MAX_AGE', '0')
+if conn_max_age_str.lower() == 'none':
+    conn_max_age = None  # 持久連接 (僅適用於直連或 Session Mode 少量連接)
 else:
-    # Use Cloud (Supabase) PostgreSQL
-    # Supabase Pooler 連接優化設置
-    # 
-    # 重要: Supabase 有兩種 Pooler 模式:
-    #
-    # 1. Transaction Mode (port 6543) - 推薦！
-    #    - 每個 transaction 後連接回到池，支援更多併發連接
-    #    - CONN_MAX_AGE 必須設為 0（每次請求後釋放連接）
-    #    - 不支援 prepared statements，但對大多數應用沒影響
-    #
-    # 2. Session Mode (port 5432) - 不推薦用於多 worker 場景
-    #    - 連接數受限於 pool_size（通常 15-20）
-    #    - 使用 CONN_MAX_AGE=None 會讓每個 worker 佔用一個連接
-    #    - 容易出現 "MaxClientsInSessionMode: max clients reached" 錯誤
-    #
-    # 預設使用 Transaction Mode (CONN_MAX_AGE=0)
-    
-    conn_max_age_str = os.getenv('CLOUD_DB_CONN_MAX_AGE', '0')
-    if conn_max_age_str.lower() == 'none':
-        conn_max_age = None  # 持久連接 (僅適用於直連或 Session Mode 少量連接)
-    else:
-        conn_max_age = int(conn_max_age_str)
-    
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
-        'USER': os.getenv('CLOUD_DB_USER', ''),
-        'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
-        'HOST': os.getenv('CLOUD_DB_HOST', ''),
-        'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
-        'CONN_MAX_AGE': conn_max_age,
-        'OPTIONS': {
-            'connect_timeout': 5,
-            # TCP Keepalive 設置 - 保持連接活躍，防止被防火牆/NAT 中斷
-            'keepalives': 1,
-            'keepalives_idle': 30,      # 30 秒無活動後開始發送 keepalive
-            'keepalives_interval': 10,  # 每 10 秒發送一次 keepalive
-            'keepalives_count': 5,      # 5 次無回應後視為斷線
-            # SSL 設置 (Supabase 需要 SSL)
-            'sslmode': os.getenv('CLOUD_DB_SSLMODE', 'require'),
-        },
-    }
+    conn_max_age = int(conn_max_age_str)
 
-# Keep local database as backup target (optional)
-if os.getenv('BACKUP_DB_HOST'):
-    DATABASES['backup'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('BACKUP_DB_NAME', 'online_judge'),
-        'USER': os.getenv('BACKUP_DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('BACKUP_DB_PASSWORD', 'postgres'),
-        'HOST': os.getenv('BACKUP_DB_HOST', 'postgres'),
-        'PORT': os.getenv('BACKUP_DB_PORT', '5432'),
-    }
+# Local database configuration
+_local_db_config = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': os.getenv('DB_NAME', 'online_judge'),
+    'USER': os.getenv('DB_USER', 'postgres'),
+    'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+    'HOST': os.getenv('DB_HOST', 'postgres'),
+    'PORT': os.getenv('DB_PORT', '5432'),
+    'CONN_MAX_AGE': 60,
+    'OPTIONS': {
+        'connect_timeout': 10,
+    },
+}
 
-# Disable database router in production (always use default)
-DATABASE_ROUTERS = []
+# Cloud database configuration
+_cloud_db_config = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
+    'USER': os.getenv('CLOUD_DB_USER', ''),
+    'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
+    'HOST': os.getenv('CLOUD_DB_HOST', ''),
+    'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
+    'CONN_MAX_AGE': conn_max_age,
+    'OPTIONS': {
+        'connect_timeout': 5,
+        # TCP Keepalive 設置 - 保持連接活躍，防止被防火牆/NAT 中斷
+        'keepalives': 1,
+        'keepalives_idle': 30,      # 30 秒無活動後開始發送 keepalive
+        'keepalives_interval': 10,  # 每 10 秒發送一次 keepalive
+        'keepalives_count': 5,      # 5 次無回應後視為斷線
+        # SSL 設置 (Supabase 需要 SSL)
+        'sslmode': os.getenv('CLOUD_DB_SSLMODE', 'require'),
+    },
+}
+
+# Set default database based on USE_LOCAL_DB
+if USE_LOCAL_DB:
+    DATABASES['default'] = _local_db_config.copy()
+    DATABASES['cloud'] = _cloud_db_config.copy()
+else:
+    DATABASES['default'] = _cloud_db_config.copy()
+    # Only add local DB if configured (DB_HOST is set)
+    if os.getenv('DB_HOST'):
+        DATABASES['local'] = _local_db_config.copy()
+
+# Enable database router for dynamic switching (admin feature)
+DATABASE_ROUTERS = ['apps.core.db_router.DynamicDatabaseRouter']
+
+# Add Database Switch Middleware (after SessionMiddleware)
+MIDDLEWARE.insert(
+    MIDDLEWARE.index('django.contrib.sessions.middleware.SessionMiddleware') + 1,
+    'apps.core.db_middleware.DatabaseSwitchMiddleware'
+)
 
 # Security settings
 SECURE_SSL_REDIRECT = True
