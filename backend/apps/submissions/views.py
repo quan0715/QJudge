@@ -5,6 +5,7 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 
 from .models import Submission
 from .serializers import (
@@ -28,6 +29,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     filterset_fields = ['problem', 'contest', 'status', 'language', 'source_type']
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
+    
+    # Date range filtering (default: last 3 months)
+    DEFAULT_DATE_RANGE_DAYS = 90
     
     def get_queryset(self):
         """
@@ -87,7 +91,23 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         
         elif self.action == 'retrieve':
             # Detail view loads all fields
-            return queryset.select_related('user', 'problem', 'contest')
+            queryset = queryset.select_related('user', 'problem', 'contest')
+        
+        # Apply date range filter (performance optimization)
+        # By default, only show submissions from the last 3 months
+        # This significantly reduces query time for large datasets
+        include_all = self.request.query_params.get('include_all', 'false').lower() == 'true'
+        created_after = self.request.query_params.get('created_after')
+        
+        if not include_all:
+            if created_after:
+                # Custom date range
+                queryset = queryset.filter(created_at__gte=created_after)
+            else:
+                # Default: last 3 months
+                from datetime import timedelta
+                cutoff_date = timezone.now() - timedelta(days=self.DEFAULT_DATE_RANGE_DAYS)
+                queryset = queryset.filter(created_at__gte=cutoff_date)
         
         # Filter by source_type (default to practice if not specified)
         source_type = self.request.query_params.get('source_type', 'practice')

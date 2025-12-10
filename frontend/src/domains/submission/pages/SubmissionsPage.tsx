@@ -39,6 +39,7 @@ const SubmissionsPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<string>("3months");
 
   // Read submission_id from URL
   const submissionIdFromUrl = searchParams.get("submission_id");
@@ -56,9 +57,16 @@ const SubmissionsPage = () => {
     { id: "judging", label: "評測中" },
   ];
 
+  const dateRangeOptions = [
+    { id: "1month", label: "最近 1 個月" },
+    { id: "3months", label: "最近 3 個月（預設）" },
+    { id: "6months", label: "最近 6 個月" },
+    { id: "all", label: "所有歷史記錄" },
+  ];
+
   useEffect(() => {
     fetchSubmissions();
-  }, [page, pageSize, statusFilter]);
+  }, [page, pageSize, statusFilter, dateRange]);
 
   const fetchSubmissions = async () => {
     if (!refreshing) setLoading(true);
@@ -69,9 +77,24 @@ const SubmissionsPage = () => {
         is_test: false,
         source_type: 'practice'  // Default to practice submissions only
       };
+      
       if (statusFilter !== "all") {
         params.status = statusFilter;
       }
+      
+      // Date range filter (performance optimization)
+      if (dateRange === "all") {
+        params.include_all = "true";
+      } else if (dateRange === "1month") {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        params.created_after = oneMonthAgo.toISOString();
+      } else if (dateRange === "6months") {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        params.created_after = sixMonthsAgo.toISOString();
+      }
+      // Default is 3 months (handled by backend)
 
       const { results, count } = await getSubmissions(params);
 
@@ -203,6 +226,22 @@ const SubmissionsPage = () => {
               onChange={({ selectedItem }: any) => {
                 if (selectedItem) {
                   setStatusFilter(selectedItem.id);
+                  setPage(1);
+                }
+              }}
+            />
+          </div>
+          <div style={{ width: "220px" }}>
+            <Dropdown
+              id="date-range-filter"
+              titleText=""
+              label="時間範圍"
+              items={dateRangeOptions}
+              itemToString={(item: any) => (item ? item.label : "")}
+              selectedItem={dateRangeOptions.find((d) => d.id === dateRange)}
+              onChange={({ selectedItem }: any) => {
+                if (selectedItem) {
+                  setDateRange(selectedItem.id);
                   setPage(1);
                 }
               }}
