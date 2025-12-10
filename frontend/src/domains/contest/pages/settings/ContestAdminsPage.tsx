@@ -10,10 +10,9 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  Modal,
-  TextInput,
   InlineNotification,
 } from '@carbon/react';
+import { AddAdminModal } from '../../components/modals/AddAdminModal';
 import { Add, TrashCan, Renew } from '@carbon/icons-react';
 
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
@@ -32,7 +31,6 @@ const ContestAdminsPage: React.FC = () => {
   
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
   const [notification, setNotification] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -52,17 +50,17 @@ const ContestAdminsPage: React.FC = () => {
     }
   };
 
-  const handleAddAdmin = async () => {
-    if (!contestId || !newUsername.trim()) return;
+  const handleAddAdmin = async (username: string) => {
+    if (!contestId) return;
     
     try {
-      await addContestAdmin(contestId, newUsername.trim());
-      setNotification({ kind: 'success', message: `成功新增管理員: ${newUsername}` });
+      await addContestAdmin(contestId, username);
+      setNotification({ kind: 'success', message: `成功新增管理員: ${username}` });
       setAddModalOpen(false);
-      setNewUsername('');
       loadAdmins();
     } catch (error: any) {
       setNotification({ kind: 'error', message: error.message || '新增失敗' });
+      throw error;
     }
   };
 
@@ -166,30 +164,11 @@ const ContestAdminsPage: React.FC = () => {
         </ContainerCard>
 
         {/* Add Admin Modal */}
-        <Modal
-          open={addModalOpen}
-          modalHeading="新增管理員"
-          primaryButtonText="新增"
-          secondaryButtonText="取消"
-          onRequestClose={() => {
-            setAddModalOpen(false);
-            setNewUsername('');
-          }}
-          onRequestSubmit={handleAddAdmin}
-          primaryButtonDisabled={!newUsername.trim()}
-        >
-          <TextInput
-            id="admin-username"
-            labelText="用戶名"
-            placeholder="輸入用戶名"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            style={{ marginBottom: '1rem' }}
-          />
-          <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-            管理員可以管理競賽設定、參賽者和題目，但無法新增或移除其他管理員。
-          </p>
-        </Modal>
+        <AddAdminModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSubmit={handleAddAdmin}
+        />
       </div>
     </SurfaceSection>
   );

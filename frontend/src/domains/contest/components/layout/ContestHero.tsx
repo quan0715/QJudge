@@ -7,7 +7,7 @@ import ContestTabs from './ContestTabs';
 import { Tag } from '@carbon/react';
 import { Time, UserMultiple, Catalog } from '@carbon/icons-react';
 import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
-import { getContestState, getContestStateLabel, getContestStateColor } from '@/models/contest';
+import { getContestState, getContestStateLabel, getContestStateColor } from '@/core/entities/contest.entity';
 import { HeroBase } from '@/ui/components/layout/HeroBase';
 import { DataCard } from '@/ui/components/DataCard';
 import { updateNickname } from '@/services/contest';

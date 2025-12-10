@@ -5,7 +5,7 @@ import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import { SubmissionStatusBadge } from '@/ui/components/badges/SubmissionStatusBadge';
-import { ContestDownloadModal } from './ContestDownloadModal';
+import { ContestDownloadModal } from './modals/ContestDownloadModal';
 import type { ContestDetail, ScoreboardRow } from '@/core/entities/contest.entity';
 import type { Submission } from '@/core/entities/submission.entity';
 

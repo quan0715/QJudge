@@ -52,16 +52,30 @@ def preprocess_markdown_html(text: str) -> str:
     return text
 
 
+def ensure_markdown_lists(text: str) -> str:
+    """
+    Ensure that list items (starting with - or *) are preceded by a blank line.
+    This fixes issues where lists are rendered as inline text.
+    """
+    if not text:
+        return ""
+    # Look for non-empty line followed immediately by a list item on the next line
+    return re.sub(r'([^\n])\n(\s*[\-\*]\s+)', r'\1\n\n\2', text)
+
+
+
 def render_markdown(text: str) -> str:
     """
     Full markdown rendering with proper handling of HTML blocks.
     """
     if not text:
         return ""
+    # Ensure lists are preceded by blank lines
+    text = ensure_markdown_lists(text)
     # Preprocess to enable markdown inside HTML blocks
     text = preprocess_markdown_html(text)
     # Render with all necessary extensions
-    return markdown.markdown(text, extensions=['extra', 'tables', 'sane_lists', 'md_in_html'])
+    return markdown.markdown(text, extensions=['extra', 'tables', 'sane_lists', 'md_in_html', 'nl2br'])
 
 
 def sanitize_filename(filename: str) -> str:
@@ -499,6 +513,10 @@ class PDFExporter(ContestExporter):
                 margin: 12px 0;
                 page-break-inside: avoid;
             }
+            aside.warning {
+                background-color: #fdf6dd;
+                border-left-color: #f1c21b;
+            }
             aside p:first-child {
                 margin-top: 0;
             }
@@ -783,30 +801,28 @@ class PDFExporter(ContestExporter):
         # Exam mode notice
         exam_notice_html = ""
         if self.contest.exam_mode_enabled:
+            # First box: Warning (Yellow)
+            # Second box: Anti-cheating (Gray/Blue)
+            
             if lang.startswith('zh'):
-                exam_title = "QJudge 防作弊機制"
-                exam_notice = """
-                    <p>本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。</p>
-                    <p class="warning-text">⚠️ 若被系統偵測到可疑行為，且監考助教判定<strong>並非誤觸</strong>，將會<strong>直接鎖定至考試結束</strong>，無法繼續作答！</p>
-                    <p>請專心作答，避免不必要的視窗切換。</p>
+                # Warning content
+                exam_notice_html = """
+                <aside class="warning">
+                    ⚠️ <strong>重要提醒</strong> - 🚫 禁止使用手機 - 🚫 禁止上網查資料 - 🚫 禁止使用 AI 工具（ChatGPT、Copilot 等） - 🚫 禁止抄襲或分享程式碼 - ✅ 可以攜帶<strong>紙本小抄</strong>（A4 單面一張）
+                </aside>
+                <aside>
+                    🔒 <strong>QJudge 防作弊機制</strong> 本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。 ⚠️ 若被系統偵測到可疑行為，且監考助教判定<strong>並非誤觸</strong>，將會<strong>直接鎖定至考試結束</strong>，無法繼續作答！請專心作答，避免不必要的視窗切換。
+                </aside>
                 """
             else:
-                exam_title = "QJudge Anti-Cheating Policy"
-                exam_notice = """
-                    <p>This exam uses <strong>QJudge OJ</strong> with automatic monitoring for suspicious behavior such as switching browser tabs.</p>
-                    <p class="warning-text">⚠️ If suspicious behavior is detected and confirmed by the proctor, your exam will be <strong>locked until the end</strong> and you will not be able to continue.</p>
-                    <p>Please focus on the exam and avoid unnecessary window switching.</p>
+                exam_notice_html = """
+                <aside class="warning">
+                    ⚠️ <strong>IMPORTANT</strong> - 🚫 No Phones - 🚫 No Internet Search - 🚫 No AI Tools (ChatGPT, Copilot etc.) - 🚫 No Plagiarism - ✅ <strong>One A4 cheat sheet</strong> allowed
+                </aside>
+                <aside>
+                    🔒 <strong>QJudge Anti-Cheating Policy</strong> This exam uses <strong>QJudge OJ</strong> with automatic monitoring. Suspicious behavior like switching windows will be detected. ⚠️ If confirmed as intentional, your exam will be <strong>locked immediately</strong> and you will not be able to continue. Please stay focused.
+                </aside>
                 """
-            
-            exam_notice_html = f"""
-                <div class="exam-notice">
-                    <div class="exam-notice-icon">🔒</div>
-                    <div class="exam-notice-content">
-                        <div class="exam-notice-title">{exam_title}</div>
-                        {exam_notice}
-                    </div>
-                </div>
-            """
         
         # Rules section
         rules_html = ""

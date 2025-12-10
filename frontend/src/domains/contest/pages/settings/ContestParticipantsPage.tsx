@@ -11,14 +11,14 @@ import {
   TableContainer,
   Button,
   InlineNotification,
-  Modal,
-  Tag,
-  TextInput,
   Pagination,
   TextArea,
-  Dropdown
+  Dropdown,
+  Modal,
+  Tag
 } from '@carbon/react';
 import { Add, Edit, TrashCan, Unlocked, Renew, Restart } from '@carbon/icons-react';
+import { AddParticipantModal } from '../../components/modals/AddParticipantModal';
 import { 
   getContestParticipants, 
   addContestParticipant,
@@ -39,8 +39,6 @@ const ContestAdminParticipantsPage = () => {
 
   // Add Participant State
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [addUsername, setAddUsername] = useState('');
-  const [adding, setAdding] = useState(false);
 
   // Edit Participant State
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -87,19 +85,15 @@ const ContestAdminParticipantsPage = () => {
     }
   };
 
-  const handleAddParticipant = async () => {
-    if (!contestId || !addUsername) return;
+  const handleAddParticipant = async (username: string) => {
+    if (!contestId) return;
     try {
-      setAdding(true);
-      await addContestParticipant(contestId, addUsername);
-      setAddModalOpen(false);
-      setAddUsername('');
+      await addContestParticipant(contestId, username);
       await loadParticipants();
       setNotification({ kind: 'success', message: '參賽者已新增' });
     } catch (error: any) {
       setNotification({ kind: 'error', message: error.message || '新增參賽者失敗' });
-    } finally {
-      setAdding(false);
+      throw error; // Propagate to modal
     }
   };
 
@@ -330,23 +324,11 @@ const ContestAdminParticipantsPage = () => {
         </ContainerCard>
 
         {/* Add Participant Modal */}
-        <Modal
-            open={addModalOpen}
-            modalHeading="新增參賽者"
-            primaryButtonText={adding ? "新增中..." : "新增"}
-            secondaryButtonText="取消"
-            onRequestSubmit={handleAddParticipant}
-            onRequestClose={() => setAddModalOpen(false)}
-            primaryButtonDisabled={adding || !addUsername}
-        >
-            <TextInput
-                id="username"
-                labelText="使用者名稱 (Username)"
-                placeholder="輸入要加入的使用者名稱"
-                value={addUsername}
-                onChange={(e) => setAddUsername(e.target.value)}
-            />
-        </Modal>
+        <AddParticipantModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSubmit={handleAddParticipant}
+        />
 
         {/* Edit Participant Modal */}
         <Modal

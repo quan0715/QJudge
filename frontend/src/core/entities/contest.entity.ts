@@ -179,6 +179,7 @@ export interface ContestAnnouncement {
   createdAt: string;
   updatedAt: string;
 }
+
 export interface ExamModeState {
   isActive: boolean;
   isLocked: boolean;
@@ -205,3 +206,62 @@ export interface ContestUpdateRequest {
   allowAutoUnlock?: boolean;
   autoUnlockMinutes?: number;
 }
+
+// ============ Contest State Utilities ============
+
+export type ContestDisplayState = 'upcoming' | 'running' | 'ended' | 'inactive';
+
+export const getContestState = (
+  contest: { status?: string; startTime?: string; endTime?: string; start_time?: string; end_time?: string }
+): ContestDisplayState => {
+  if (contest.status === 'inactive') {
+    return 'inactive';
+  }
+
+  const now = new Date().getTime();
+  const startTime = new Date(contest.startTime || contest.start_time || '').getTime();
+  const endTime = new Date(contest.endTime || contest.end_time || '').getTime();
+
+  if (now < startTime) {
+    return 'upcoming';
+  } else if (now >= startTime && now <= endTime) {
+    return 'running';
+  } else {
+    return 'ended';
+  }
+};
+
+export const getContestStateLabel = (state: ContestDisplayState): string => {
+  switch (state) {
+    case 'upcoming':
+      return '即將開始';
+    case 'running':
+      return '進行中';
+    case 'ended':
+      return '已結束';
+    case 'inactive':
+      return '未開放';
+    default:
+      return '未知';
+  }
+};
+
+export const getContestStateColor = (state: ContestDisplayState): "red" | "magenta" | "purple" | "blue" | "cyan" | "teal" | "green" | "gray" | "cool-gray" | "warm-gray" | "high-contrast" | "outline" => {
+  switch (state) {
+    case 'upcoming':
+      return 'blue';
+    case 'running':
+      return 'green';
+    case 'ended':
+      return 'gray';
+    case 'inactive':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
+
+export const isContestEnded = (contest: { endTime?: string; end_time?: string }): boolean => {
+  const endTime = new Date(contest.endTime || contest.end_time || '').getTime();
+  return new Date().getTime() > endTime;
+};
