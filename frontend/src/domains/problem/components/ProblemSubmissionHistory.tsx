@@ -1,24 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Button, InlineLoading, Pagination } from '@carbon/react';
-import { Renew } from '@carbon/icons-react';
-import { SubmissionTable, type SubmissionRow } from '@/domains/submission/components/SubmissionTable';
-import { SubmissionDetailModal } from '@/domains/submission/components/SubmissionDetailModal';
-import { getSubmissions } from '@/services/submission';
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  Button,
+  InlineLoading,
+  Pagination,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableContainer,
+  SkeletonText,
+} from "@carbon/react";
+import { Renew } from "@carbon/icons-react";
+import {
+  SubmissionTable,
+  type SubmissionRow,
+} from "@/domains/submission/components/SubmissionTable";
+import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
+import { getSubmissions } from "@/services/submission";
 
 interface ProblemSubmissionHistoryProps {
   problemId: number | string;
   contestId?: string;
 }
 
-const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ problemId, contestId }) => {
+const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({
+  problemId,
+  contestId,
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Read submission_id from URL
-  const submissionIdFromUrl = searchParams.get('submission_id');
+  const submissionIdFromUrl = searchParams.get("submission_id");
   const isModalOpen = !!submissionIdFromUrl;
 
   // Pagination state
@@ -31,17 +49,17 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
     try {
       const { results, count } = await getSubmissions({
         problem: problemId,
-        ordering: '-created_at',
+        ordering: "-created_at",
         is_test: false,
         contest: contestId,
-        source_type: contestId ? 'contest' : undefined,
+        source_type: contestId ? "contest" : undefined,
         page: page,
-        page_size: pageSize
+        page_size: pageSize,
       });
       setSubmissions(results || []);
       setTotalItems(count || 0);
     } catch (error) {
-      console.error('Error fetching submissions:', error);
+      console.error("Error fetching submissions:", error);
     } finally {
       setLoading(false);
     }
@@ -51,37 +69,89 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
     fetchSubmissions();
   }, [problemId, page, pageSize]);
 
-  const submissionRows: SubmissionRow[] = submissions.map(sub => ({
+  const submissionRows: SubmissionRow[] = submissions.map((sub) => ({
     id: sub.id.toString(),
     status: sub.status,
     username: sub.username,
     language: sub.language,
     score: sub.score,
     exec_time: sub.execTime,
-    created_at: sub.createdAt
+    created_at: sub.createdAt,
   }));
+
+  // Skeleton loading headers
+  const skeletonHeaders = [
+    { key: "id", header: "ID" },
+    { key: "status", header: "狀態" },
+    { key: "language", header: "語言" },
+    { key: "score", header: "得分" },
+    { key: "time", header: "時間" },
+    { key: "created_at", header: "提交時間" },
+  ];
 
   if (loading && submissions.length === 0) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <InlineLoading description="載入中..." />
-        {/* Placeholder to prevent layout shift */}
-        <div style={{ height: '400px' }}></div>
+      <div>
+        <div
+          style={{
+            marginBottom: "1rem",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Button kind="ghost" size="sm" renderIcon={Renew} disabled>
+            重新整理
+          </Button>
+        </div>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {skeletonHeaders.map((header) => (
+                  <TableHeader key={header.key}>{header.header}</TableHeader>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={`skeleton-${index}`}>
+                  {skeletonHeaders.map((header) => (
+                    <TableCell key={header.key}>
+                      <SkeletonText
+                        width={header.key === "status" ? "50px" : "80%"}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
     );
   }
 
   return (
     <div>
-      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
-        {refreshing && <InlineLoading description="更新中..." status="active" />}
+      <div
+        style={{
+          marginBottom: "1rem",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "1rem",
+        }}
+      >
+        {refreshing && (
+          <InlineLoading description="更新中..." status="active" />
+        )}
         <Button
           kind="ghost"
           size="sm"
           renderIcon={Renew}
           onClick={() => {
-             setRefreshing(true);
-             fetchSubmissions().finally(() => setRefreshing(false));
+            setRefreshing(true);
+            fetchSubmissions().finally(() => setRefreshing(false));
           }}
           disabled={refreshing}
         >
@@ -96,21 +166,21 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({ pro
         showUser={false}
         showScore={true}
       />
-      
+
       {/* Pagination */}
       <Pagination
-         totalItems={totalItems}
-         backwardText="上一頁"
-         forwardText="下一頁"
-         itemsPerPageText="每頁顯示"
-         page={page}
-         pageSize={pageSize}
-         pageSizes={[10, 20, 50]}
-         size="md"
-         onChange={({ page: newPage, pageSize: newPageSize }: any) => {
-           setPage(newPage);
-           setPageSize(newPageSize);
-         }}
+        totalItems={totalItems}
+        backwardText="上一頁"
+        forwardText="下一頁"
+        itemsPerPageText="每頁顯示"
+        page={page}
+        pageSize={pageSize}
+        pageSizes={[10, 20, 50]}
+        size="md"
+        onChange={({ page: newPage, pageSize: newPageSize }: any) => {
+          setPage(newPage);
+          setPageSize(newPageSize);
+        }}
       />
 
       <SubmissionDetailModal

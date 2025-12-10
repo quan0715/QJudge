@@ -204,6 +204,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.contests.tasks.check_auto_unlock',
         'schedule': 30.0,  # Every 30 seconds
     },
+    # Database backup task (production only)
+    # Runs every 6 hours to backup cloud data to local
+    'backup-cloud-to-local': {
+        'task': 'apps.core.tasks.backup_cloud_to_local',
+        'schedule': 60 * 60 * 6,  # Every 6 hours
+    },
 }
 
 # NYCU OAuth settings

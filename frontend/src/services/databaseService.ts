@@ -3,16 +3,19 @@
  * Only available in development mode for admin users
  */
 
-import { httpClient } from './api/httpClient';
+import { httpClient } from "./api/httpClient";
 
 export type DatabaseStatus = {
   current: string;
   available: string[];
-  status: Record<string, {
-    connected: boolean;
-    host?: string;
-    error?: string;
-  }>;
+  status: Record<
+    string,
+    {
+      connected: boolean;
+      host?: string;
+      error?: string;
+    }
+  >;
 };
 
 export type DatabaseSwitchResponse = {
@@ -27,7 +30,7 @@ export type DatabaseSyncResponse = {
   target: string;
 };
 
-const API_BASE = '/api/admin/database/';
+const API_BASE = "/api/admin/database/";
 
 export const databaseService = {
   /**
@@ -37,7 +40,7 @@ export const databaseService = {
     const response = await httpClient.get(API_BASE);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to get database status');
+      throw new Error(error.error || "Failed to get database status");
     }
     return response.json();
   },
@@ -49,7 +52,7 @@ export const databaseService = {
     const response = await httpClient.post(API_BASE, { database });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to switch database');
+      throw new Error(error.error || "Failed to switch database");
     }
     return response.json();
   },
@@ -57,11 +60,19 @@ export const databaseService = {
   /**
    * Sync data between databases
    */
-  async syncDatabase(source: string, target: string, apps?: string[]): Promise<DatabaseSyncResponse> {
-    const response = await httpClient.post(`${API_BASE}/sync/`, { source, target, apps });
+  async syncDatabase(
+    source: string,
+    target: string,
+    apps?: string[]
+  ): Promise<DatabaseSyncResponse> {
+    const response = await httpClient.post(`${API_BASE}sync/`, {
+      source,
+      target,
+      apps,
+    });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to sync database');
+      throw new Error(error.error || "Failed to sync database");
     }
     return response.json();
   },

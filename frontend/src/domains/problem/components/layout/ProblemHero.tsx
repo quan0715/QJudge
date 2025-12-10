@@ -1,69 +1,106 @@
-import React from 'react';
-import { Tag } from '@carbon/react';
-import { HeroBase } from '@/ui/components/layout/HeroBase';
-import { DataCard } from '@/ui/components/DataCard';
-import { Checkmark, Percentage, Document, Trophy } from '@carbon/icons-react';
-import type { ProblemDetail } from '@/core/entities/problem.entity';
+import React from "react";
+import { Tag } from "@carbon/react";
+import { HeroBase } from "@/ui/components/layout/HeroBase";
+import { DataCard } from "@/ui/components/DataCard";
+import { Checkmark, Percentage, Document, Trophy } from "@carbon/icons-react";
+import type { ProblemDetail } from "@/core/entities/problem.entity";
 
 interface ProblemHeroProps {
   problem: ProblemDetail | null;
   loading?: boolean;
-  bottomContent?: React.ReactNode;
   // Contest mode props
   contestMode?: boolean;
   contestId?: string;
   contestName?: string;
   problemScore?: number;
-  problemLabel?: string;  // e.g., "A", "B", "C"
+  problemLabel?: string; // e.g., "A", "B", "C"
   // Layout
   maxWidth?: string;
 }
 
-const ProblemHero: React.FC<ProblemHeroProps> = ({ 
-  problem, 
+const ProblemHero: React.FC<ProblemHeroProps> = ({
+  problem,
   loading,
-  bottomContent,
   contestMode = false,
   contestId: _contestId,
   contestName: _contestName,
   problemScore,
   problemLabel,
-  maxWidth
+  maxWidth,
 }) => {
   if (loading || !problem) {
-     return <HeroBase title="" loading={true} maxWidth={maxWidth} />;
+    return <HeroBase title="" loading={true} maxWidth={maxWidth} />;
   }
 
   // Title with optional label prefix in contest mode
-  const displayTitle = contestMode && problemLabel 
-    ? `${problemLabel}. ${problem.title}`
-    : problem.title;
+  const displayTitle =
+    contestMode && problemLabel
+      ? `${problemLabel}. ${problem.title}`
+      : problem.title;
 
   const badges = (
     <>
-      <Tag type={
-          problem.difficulty === 'easy' ? 'green' : 
-          problem.difficulty === 'medium' ? 'blue' : 
-          'red'
-      }>
+      <Tag
+        type={
+          problem.difficulty === "easy"
+            ? "green"
+            : problem.difficulty === "medium"
+            ? "blue"
+            : "red"
+        }
+      >
         {problem.difficulty.toUpperCase()}
       </Tag>
       {problem.tags?.map((tag: any) => (
-        <Tag key={tag.id} type="gray">{tag.name}</Tag>
+        <Tag key={tag.id} type="gray">
+          {tag.name}
+        </Tag>
       ))}
     </>
   );
 
   const metadata = (
     <>
-        <div>
-            <div style={{ marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>Time Limit</div>
-            <div style={{ color: 'var(--cds-text-primary)', fontWeight: 600, fontSize: '1rem' }}>{problem.timeLimit} ms</div>
+      <div>
+        <div
+          style={{
+            marginBottom: "0.25rem",
+            fontSize: "0.875rem",
+            color: "var(--cds-text-secondary)",
+          }}
+        >
+          Time Limit
         </div>
-        <div>
-            <div style={{ marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>Memory Limit</div>
-            <div style={{ color: 'var(--cds-text-primary)', fontWeight: 600, fontSize: '1rem' }}>{problem.memoryLimit} KB</div>
+        <div
+          style={{
+            color: "var(--cds-text-primary)",
+            fontWeight: 600,
+            fontSize: "1rem",
+          }}
+        >
+          {problem.timeLimit} ms
         </div>
+      </div>
+      <div>
+        <div
+          style={{
+            marginBottom: "0.25rem",
+            fontSize: "0.875rem",
+            color: "var(--cds-text-secondary)",
+          }}
+        >
+          Memory Limit
+        </div>
+        <div
+          style={{
+            color: "var(--cds-text-primary)",
+            fontWeight: 600,
+            fontSize: "1rem",
+          }}
+        >
+          {problem.memoryLimit} KB
+        </div>
+      </div>
     </>
   );
 
@@ -84,45 +121,44 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   // );
 
   // Calculate AC rate from problem statistics
-  const acRate = problem.submissionCount && problem.submissionCount > 0
-    ? Math.round((problem.acceptedCount || 0) / problem.submissionCount * 100)
-    : 0;
+  const acRate =
+    problem.submissionCount && problem.submissionCount > 0
+      ? Math.round(
+          ((problem.acceptedCount || 0) / problem.submissionCount) * 100
+        )
+      : 0;
 
   // KPI Cards: adapt based on mode
   const kpiCards = contestMode ? (
     <>
-      <DataCard 
-        icon={Trophy} 
-        value={problemScore !== undefined ? `${problemScore} pts` : '-'} 
-        label="Score" 
+      <DataCard
+        icon={Trophy}
+        value={problemScore !== undefined ? `${problemScore} pts` : "-"}
+        label="Score"
       />
-      <DataCard 
-        icon={Document} 
-        value={problem.submissionCount || 0} 
-        label="Submissions" 
+      <DataCard
+        icon={Document}
+        value={problem.submissionCount || 0}
+        label="Submissions"
       />
-      <DataCard 
-        icon={Checkmark} 
-        value={problem.acceptedCount || 0} 
-        label="Accepted" 
+      <DataCard
+        icon={Checkmark}
+        value={problem.acceptedCount || 0}
+        label="Accepted"
       />
     </>
   ) : (
     <>
-      <DataCard 
-        icon={Percentage} 
-        value={`${acRate}%`} 
-        label="AC Rate" 
+      <DataCard icon={Percentage} value={`${acRate}%`} label="AC Rate" />
+      <DataCard
+        icon={Document}
+        value={problem.submissionCount || 0}
+        label="Submissions"
       />
-      <DataCard 
-        icon={Document} 
-        value={problem.submissionCount || 0} 
-        label="Submissions" 
-      />
-      <DataCard 
-        icon={Checkmark} 
-        value={problem.acceptedCount || 0} 
-        label="Accepted" 
+      <DataCard
+        icon={Checkmark}
+        value={problem.acceptedCount || 0}
+        label="Accepted"
       />
     </>
   );
@@ -134,7 +170,6 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
       badges={badges}
       metadata={metadata}
       kpiCards={kpiCards}
-      bottomContent={bottomContent}
       maxWidth={maxWidth}
     />
   );

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, useParams, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Outlet, useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Header,
   HeaderName,
@@ -14,8 +14,8 @@ import {
   InlineLoading,
   Popover,
   PopoverContent,
-  Button // Added Button
-} from '@carbon/react';
+  Button, // Added Button
+} from "@carbon/react";
 import {
   Maximize,
   Minimize,
@@ -26,31 +26,37 @@ import {
   Locked,
   WarningAlt,
   WarningAltFilled,
-  Edit
-} from '@carbon/icons-react';
-import { useTheme } from '@/ui/theme/ThemeContext';
-import { Light, Asleep } from '@carbon/icons-react';
-import ExamModeWrapper from '@/domains/contest/components/ExamModeWrapper';
-import { 
-  getContest, 
-  registerContest, 
+  Edit,
+} from "@carbon/icons-react";
+import { useTheme } from "@/ui/theme/ThemeContext";
+import { Light, Asleep } from "@carbon/icons-react";
+import ExamModeWrapper from "@/domains/contest/components/ExamModeWrapper";
+import {
+  getContest,
+  registerContest,
   leaveContest,
-  startExam, 
+  startExam,
   endExam,
-  updateNickname
-} from '@/services/contest';
-import type { ContestDetail } from '@/core/entities/contest.entity';
-import ContestHero from '@/domains/contest/components/layout/ContestHero';
-import { ContentPage } from '@/ui/layout/ContentPage';
-import { UserAvatarDisplay } from '@/ui/components/UserAvatarDisplay';
-import { ContestProvider } from '@/domains/contest/contexts/ContestContext';
-import { ExamModeMonitorModel } from '@/domains/contest/components/Model/ExamModeMonitorModel';
+  updateNickname,
+} from "@/services/contest";
+import type { ContestDetail } from "@/core/entities/contest.entity";
+import ContestHero from "@/domains/contest/components/layout/ContestHero";
+import ContestTabs from "@/domains/contest/components/layout/ContestTabs";
+import { ContentPage } from "@/ui/layout/ContentPage";
+import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
+import { ContestProvider } from "@/domains/contest/contexts/ContestContext";
+import { ExamModeMonitorModel } from "@/domains/contest/components/Model/ExamModeMonitorModel";
 
-
-const UserAvatarDisplayWithEdit = ({ contest, onRefresh }: { contest: ContestDetail, onRefresh: () => void }) => {
+const UserAvatarDisplayWithEdit = ({
+  contest,
+  onRefresh,
+}: {
+  contest: ContestDetail;
+  onRefresh: () => void;
+}) => {
   const [open, setOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [nickname, setNickname] = useState(contest.myNickname || '');
+  const [nickname, setNickname] = useState(contest.myNickname || "");
   const [loading, setLoading] = useState(false);
 
   // Use a ref to anchor the popover
@@ -64,24 +70,34 @@ const UserAvatarDisplayWithEdit = ({ contest, onRefresh }: { contest: ContestDet
       setShowEditModal(false);
       setOpen(false);
     } catch (error) {
-      console.error('Failed to update nickname', error);
-      alert('更新暱稱失敗，請稍後再試');
+      console.error("Failed to update nickname", error);
+      alert("更新暱稱失敗，請稍後再試");
     } finally {
       setLoading(false);
     }
   };
 
-  const currentNickname = contest.myNickname || '參賽者';
-  const role = contest.currentUserRole === 'admin' || contest.currentUserRole === 'teacher' ? '管理員' : '學生';
-  
+  const currentNickname = contest.myNickname || "參賽者";
+  const role =
+    contest.currentUserRole === "admin" || contest.currentUserRole === "teacher"
+      ? "管理員"
+      : "學生";
+
   // Can edit if registered, anonymous mode is enabled, and exam not in progress (unless admin)
-  const canEdit = (contest.anonymousModeEnabled && contest.examStatus !== 'in_progress') || contest.currentUserRole === 'admin';
+  const canEdit =
+    (contest.anonymousModeEnabled && contest.examStatus !== "in_progress") ||
+    contest.currentUserRole === "admin";
 
   return (
     <>
-      <div 
+      <div
         ref={avatarRef}
-        style={{ cursor: 'pointer', height: '100%', display: 'flex', alignItems: 'center' }}
+        style={{
+          cursor: "pointer",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+        }}
         onClick={() => setOpen(!open)}
       >
         <UserAvatarDisplay />
@@ -89,23 +105,31 @@ const UserAvatarDisplayWithEdit = ({ contest, onRefresh }: { contest: ContestDet
 
       <Popover open={open} align="bottom-right" isTabTip>
         <PopoverContent className="p-3">
-          <div style={{ minWidth: '200px', padding: '1rem' }}>
-             <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{currentNickname}</div>
-             <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>
-               {role}
-             </div>
-             
-             {canEdit && (
-               <Button 
-                 kind="ghost" 
-                 size="sm"
-                 renderIcon={Edit}
-                 onClick={() => setShowEditModal(true)}
-                 style={{ width: '100%' }}
-               >
-                 編輯暱稱
-               </Button>
-             )}
+          <div style={{ minWidth: "200px", padding: "1rem" }}>
+            <div style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>
+              {currentNickname}
+            </div>
+            <div
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--cds-text-secondary)",
+                marginBottom: "1rem",
+              }}
+            >
+              {role}
+            </div>
+
+            {canEdit && (
+              <Button
+                kind="ghost"
+                size="sm"
+                renderIcon={Edit}
+                onClick={() => setShowEditModal(true)}
+                style={{ width: "100%" }}
+              >
+                編輯暱稱
+              </Button>
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -113,7 +137,9 @@ const UserAvatarDisplayWithEdit = ({ contest, onRefresh }: { contest: ContestDet
       <Modal
         open={showEditModal}
         modalHeading="編輯比賽暱稱"
-        primaryButtonText={loading ? <InlineLoading description="更新中..." /> : "儲存"}
+        primaryButtonText={
+          loading ? <InlineLoading description="更新中..." /> : "儲存"
+        }
         secondaryButtonText="取消"
         primaryButtonDisabled={loading}
         onRequestClose={() => setShowEditModal(false)}
@@ -137,7 +163,7 @@ const ContestLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [contest, setContest] = useState<ContestDetail | null>(null);
-  const [timeLeft, setTimeLeft] = useState<string>('00:00:00');
+  const [timeLeft, setTimeLeft] = useState<string>("00:00:00");
   const [isCountdownToStart, setIsCountdownToStart] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
@@ -148,48 +174,52 @@ const ContestLayout = () => {
   const { theme, toggleTheme } = useTheme();
 
   // Detect if we're on a solve page - hide hero/tabs for cleaner UI
-  const isSolvePage = location.pathname.includes('/solve/');
+  const isSolvePage = location.pathname.includes("/solve/");
 
   const isExamActive = !!(
-    contest?.examModeEnabled && 
-    contest?.examStatus === 'in_progress'
+    contest?.examModeEnabled && contest?.examStatus === "in_progress"
   );
 
   // Should warn on exit: when exam is in_progress, paused, or locked (not yet submitted)
   const shouldWarnOnExit = !!(
     contest?.examModeEnabled &&
-    contest?.status === 'active' &&
-    (contest?.examStatus === 'in_progress' || contest?.examStatus === 'paused' || contest?.examStatus === 'locked')
+    contest?.status === "active" &&
+    (contest?.examStatus === "in_progress" ||
+      contest?.examStatus === "paused" ||
+      contest?.examStatus === "locked")
   );
-
-
 
   useEffect(() => {
     if (contestId) {
-      getContest(contestId).then(c => setContest(c || null));
+      getContest(contestId).then((c) => setContest(c || null));
     }
   }, [contestId]);
 
   // Beforeunload warning for exam mode
   useEffect(() => {
     if (!shouldWarnOnExit) return;
-    
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = '考試進行中，離開或刷新頁面將自動交卷。';
+      e.returnValue = "考試進行中，離開或刷新頁面將自動交卷。";
       return e.returnValue;
     };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [shouldWarnOnExit]);
 
   // Redirect paused users to overview
   useEffect(() => {
-    if (contest?.examStatus === 'paused') {
+    if (contest?.examStatus === "paused") {
       const path = window.location.pathname;
-      const restrictedPaths = ['/problems', '/solve', '/submissions', '/standings'];
-      if (restrictedPaths.some(p => path.includes(p))) {
+      const restrictedPaths = [
+        "/problems",
+        "/solve",
+        "/submissions",
+        "/standings",
+      ];
+      if (restrictedPaths.some((p) => path.includes(p))) {
         navigate(`/contests/${contestId}`);
       }
     }
@@ -203,11 +233,11 @@ const ContestLayout = () => {
     };
 
     if (isExamActive) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener("beforeunload", handleBeforeUnload);
     }
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [isExamActive]);
 
@@ -215,8 +245,9 @@ const ContestLayout = () => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   // Track whether we've already refreshed for timer expiration to prevent infinite loops
@@ -232,7 +263,7 @@ const ContestLayout = () => {
       const now = new Date().getTime();
       const start = new Date(contest.startTime).getTime();
       const end = new Date(contest.endTime).getTime();
-      
+
       // Determine which target time to countdown to
       const contestNotStartedYet = now < start;
       setIsCountdownToStart(contestNotStartedYet);
@@ -241,9 +272,9 @@ const ContestLayout = () => {
 
       if (diff <= 0) {
         // Timer expired (Start or End reached) - refresh only once
-        setTimeLeft('00:00:00');
+        setTimeLeft("00:00:00");
         clearInterval(timer);
-        
+
         // Only refresh once to prevent infinite loop
         if (!hasRefreshedForTimerExpiration.current) {
           hasRefreshedForTimerExpiration.current = true;
@@ -254,7 +285,9 @@ const ContestLayout = () => {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeLeft(
-          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+          `${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
         );
       }
     }, 1000);
@@ -264,9 +297,9 @@ const ContestLayout = () => {
 
   // Unlock countdown timer
   const hasRefreshedForUnlock = React.useRef(false);
-  
+
   useEffect(() => {
-    if (!contest || contest.examStatus !== 'locked' || !contest.autoUnlockAt) {
+    if (!contest || contest.examStatus !== "locked" || !contest.autoUnlockAt) {
       setUnlockTimeLeft(null);
       hasRefreshedForUnlock.current = false;
       return;
@@ -278,7 +311,7 @@ const ContestLayout = () => {
       const diff = unlockTime - now;
 
       if (diff <= 0) {
-        setUnlockTimeLeft('00:00:00');
+        setUnlockTimeLeft("00:00:00");
         clearInterval(timer);
         // Auto-refresh to get updated status - only once
         if (!hasRefreshedForUnlock.current) {
@@ -290,7 +323,9 @@ const ContestLayout = () => {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setUnlockTimeLeft(
-          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+          `${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
         );
       }
     }, 1000);
@@ -311,33 +346,36 @@ const ContestLayout = () => {
   };
 
   const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
     setErrorModalOpen(true);
   };
 
-  const handleJoin = async (data?: { nickname?: string; password?: string }) => {
+  const handleJoin = async (data?: {
+    nickname?: string;
+    password?: string;
+  }) => {
     if (!contest) return;
     try {
       await registerContest(contest.id, data);
       await refreshContest();
     } catch (error: any) {
-      console.error('Failed to join contest:', error);
-      showError(error.message || '無法加入競賽，請檢查密碼或稍後再試');
+      console.error("Failed to join contest:", error);
+      showError(error.message || "無法加入競賽，請檢查密碼或稍後再試");
     }
   };
 
   const handleLeave = async () => {
     if (!contest) return;
-    if (!confirm('確定要退出此競賽嗎？')) return;
+    if (!confirm("確定要退出此競賽嗎？")) return;
     try {
       await leaveContest(contest.id);
       await refreshContest();
     } catch (error) {
-      console.error('Failed to leave contest:', error);
-      showError('無法退出競賽，請稍後再試');
+      console.error("Failed to leave contest:", error);
+      showError("無法退出競賽，請稍後再試");
     }
   };
 
@@ -346,15 +384,18 @@ const ContestLayout = () => {
     try {
       // Call start exam API and wait for response
       const response = await startExam(contest.id);
-      
+
       // Only proceed if API call was successful
-      if (response && (response.status === 'started' || response.status === 'resumed')) {
+      if (
+        response &&
+        (response.status === "started" || response.status === "resumed")
+      ) {
         // Request fullscreen if exam mode is enabled
         if (contest.examModeEnabled) {
           try {
             await document.documentElement.requestFullscreen();
           } catch (err) {
-            console.error('Failed to enter fullscreen:', err);
+            console.error("Failed to enter fullscreen:", err);
           }
         }
 
@@ -364,12 +405,15 @@ const ContestLayout = () => {
         navigate(`/contests/${contest.id}/problems`);
       } else {
         // If response indicates failure, show error
-        throw new Error(response?.error || 'Unknown error');
+        throw new Error(response?.error || "Unknown error");
       }
     } catch (error: any) {
-      console.error('Failed to start exam:', error);
+      console.error("Failed to start exam:", error);
       // Show specific error message if available
-      const errorMessage = error?.response?.data?.error || error?.message || '無法開始考試，請稍後再試';
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.message ||
+        "無法開始考試，請稍後再試";
       showError(errorMessage);
     }
   };
@@ -381,8 +425,8 @@ const ContestLayout = () => {
       await endExam(contest.id);
       await refreshContest();
     } catch (error) {
-      console.error('Failed to end exam:', error);
-      showError('無法交卷，請稍後再試');
+      console.error("Failed to end exam:", error);
+      showError("無法交卷，請稍後再試");
     }
   };
 
@@ -391,25 +435,30 @@ const ContestLayout = () => {
 
     try {
       // If exam mode is enabled and exam is in_progress, paused, or locked, end the exam first (submit)
-      if (contest.examModeEnabled && contest.status === 'active' && 
-          (contest.examStatus === 'in_progress' || contest.examStatus === 'paused' || contest.examStatus === 'locked')) {
+      if (
+        contest.examModeEnabled &&
+        contest.status === "active" &&
+        (contest.examStatus === "in_progress" ||
+          contest.examStatus === "paused" ||
+          contest.examStatus === "locked")
+      ) {
         await handleEndExam();
       }
-      
+
       // Exit fullscreen if active
       if (document.fullscreenElement) {
         try {
           await document.exitFullscreen();
         } catch (e) {
-          console.error('Failed to exit fullscreen:', e);
+          console.error("Failed to exit fullscreen:", e);
         }
       }
-      
+
       // Then navigate away
-      navigate('/contests');
+      navigate("/contests");
     } catch (error) {
-      console.error('Failed to leave contest', error);
-      showError('無法離開競賽，請稍後再試');
+      console.error("Failed to leave contest", error);
+      showError("無法離開競賽，請稍後再試");
     }
   };
 
@@ -423,16 +472,16 @@ const ContestLayout = () => {
         }
       }
     } catch (err) {
-      console.error('Error toggling fullscreen:', err);
+      console.error("Error toggling fullscreen:", err);
     }
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Theme theme={theme}>
         <Header aria-label="Contest Platform">
-          <HeaderName 
-            href={`/contests/${contestId}`} 
+          <HeaderName
+            href={`/contests/${contestId}`}
             prefix="QJudge"
             onClick={(e) => {
               e.preventDefault();
@@ -440,47 +489,62 @@ const ContestLayout = () => {
               navigate(`/contests/${contestId}`);
             }}
           >
-            {contest?.name || '競賽模式'}
+            {contest?.name || "競賽模式"}
           </HeaderName>
 
           <HeaderNavigation aria-label="Contest Navigation">
             {/* Contest Timer for non-exam mode or before start */}
-            {contest && (!contest.examModeEnabled || contest.examStatus === 'not_started' || contest.examStatus === 'submitted') && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  height: '100%',
-                  padding: '0 1rem',
-                  color: 'var(--cds-text-primary)',
-                  fontFamily: 'var(--cds-code-font-family, monospace)',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <Time size={16} />
-                <span>{isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}</span>
-              </div>
-            )}
+            {contest &&
+              (!contest.examModeEnabled ||
+                contest.examStatus === "not_started" ||
+                contest.examStatus === "submitted") && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    height: "100%",
+                    padding: "0 1rem",
+                    color: "var(--cds-text-primary)",
+                    fontFamily: "var(--cds-code-font-family, monospace)",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  <Time size={16} />
+                  <span>
+                    {isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}
+                  </span>
+                </div>
+              )}
 
             {/* Problem Menu - For Solve Page */}
-            {isSolvePage && contest?.problems && contest.problems.length > 0 && (
-              <HeaderMenu aria-label="Problems" menuLinkName="題目列表">
-                {contest.problems.map((problem, index) => (
-                  <HeaderMenuItem
-                    key={problem.id}
-                    onClick={() => navigate(`/contests/${contestId}/solve/${problem.problemId}`)}
-                    style={{ minWidth: '300px', whiteSpace: 'normal' }}
-                  >
-                    {problem.label || String.fromCharCode(65 + index)}. {problem.title}
-                  </HeaderMenuItem>
-                ))}
-              </HeaderMenu>
-            )}
+            {isSolvePage &&
+              contest?.problems &&
+              contest.problems.length > 0 && (
+                <HeaderMenu aria-label="Problems" menuLinkName="題目列表">
+                  {contest.problems.map((problem, index) => (
+                    <HeaderMenuItem
+                      key={problem.id}
+                      onClick={() =>
+                        navigate(
+                          `/contests/${contestId}/solve/${problem.problemId}`
+                        )
+                      }
+                      style={{ minWidth: "300px", whiteSpace: "normal" }}
+                    >
+                      {problem.label || String.fromCharCode(65 + index)}.{" "}
+                      {problem.title}
+                    </HeaderMenuItem>
+                  ))}
+                </HeaderMenu>
+              )}
 
             {/* User Avatar - Left side */}
             {contest && (
-              <UserAvatarDisplayWithEdit contest={contest} onRefresh={refreshContest} />
+              <UserAvatarDisplayWithEdit
+                contest={contest}
+                onRefresh={refreshContest}
+              />
             )}
             {!contest && <UserAvatarDisplay />}
           </HeaderNavigation>
@@ -489,30 +553,38 @@ const ContestLayout = () => {
             {contest && contest.examModeEnabled && (
               <>
                 {/* Locked State - Combined with countdown */}
-                {contest.examStatus === 'locked' && (
-                  <div 
-                    title={`${contest.lockReason || '違規行為'}${contest.autoUnlockAt ? `\n預計解鎖: ${new Date(contest.autoUnlockAt).toLocaleTimeString()}` : '\n請聯繫監考人員'}`}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem',
-                      height: '100%',
-                      padding: '0 1rem',
-                      backgroundColor: 'var(--cds-support-error)',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: '0.875rem',
-                      cursor: 'help'
+                {contest.examStatus === "locked" && (
+                  <div
+                    title={`${contest.lockReason || "違規行為"}${
+                      contest.autoUnlockAt
+                        ? `\n預計解鎖: ${new Date(
+                            contest.autoUnlockAt
+                          ).toLocaleTimeString()}`
+                        : "\n請聯繫監考人員"
+                    }`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      height: "100%",
+                      padding: "0 1rem",
+                      backgroundColor: "var(--cds-support-error)",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      fontSize: "0.875rem",
+                      cursor: "help",
                     }}
                   >
                     <Locked size={16} />
                     <span>鎖定中</span>
                     {unlockTimeLeft && (
-                      <span style={{ 
-                        fontFamily: 'var(--cds-code-font-family, monospace)',
-                        marginLeft: '0.5rem',
-                        opacity: 0.9
-                      }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--cds-code-font-family, monospace)",
+                          marginLeft: "0.5rem",
+                          opacity: 0.9,
+                        }}
+                      >
                         {unlockTimeLeft}
                       </span>
                     )}
@@ -520,20 +592,20 @@ const ContestLayout = () => {
                 )}
 
                 {/* Paused State */}
-                {contest.examStatus === 'paused' && (
-                  <div 
+                {contest.examStatus === "paused" && (
+                  <div
                     title="請點擊繼續考試以重新進入考試模式"
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem',
-                      height: '100%',
-                      padding: '0 1rem',
-                      backgroundColor: 'var(--cds-support-warning)',
-                      color: '#000',
-                      fontWeight: 'bold',
-                      fontSize: '0.875rem',
-                      cursor: 'help'
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      height: "100%",
+                      padding: "0 1rem",
+                      backgroundColor: "var(--cds-support-warning)",
+                      color: "#000",
+                      fontWeight: "bold",
+                      fontSize: "0.875rem",
+                      cursor: "help",
                     }}
                   >
                     <WarningAltFilled size={16} />
@@ -542,43 +614,49 @@ const ContestLayout = () => {
                 )}
 
                 {/* In Progress State - Click to show Exam Mode info */}
-                {contest.examStatus === 'in_progress' && (
-                  <div 
+                {contest.examStatus === "in_progress" && (
+                  <div
                     title="考試監控中 - 點擊查看詳情"
                     onClick={() => setMonitoringModalOpen(true)}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem',
-                      height: '100%',
-                      padding: '0 1rem',
-                      backgroundColor: 'var(--cds-support-success)',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: '0.875rem',
-                      cursor: 'pointer'
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      height: "100%",
+                      padding: "0 1rem",
+                      backgroundColor: "var(--cds-support-success)",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      fontSize: "0.875rem",
+                      cursor: "pointer",
                     }}
                   >
                     <View size={16} />
                     <span>監控中</span>
-                    <span style={{ 
-                      fontFamily: 'var(--cds-code-font-family, monospace)',
-                      marginLeft: '0.5rem',
-                      opacity: 0.9
-                    }}>
+                    <span
+                      style={{
+                        fontFamily: "var(--cds-code-font-family, monospace)",
+                        marginLeft: "0.5rem",
+                        opacity: 0.9,
+                      }}
+                    >
                       {timeLeft}
                     </span>
                   </div>
                 )}
               </>
             )}
-            
-            <HeaderGlobalAction 
-              aria-label={theme === 'white' ? 'Switch to Dark Mode' : 'Switch to Light Mode'} 
+
+            <HeaderGlobalAction
+              aria-label={
+                theme === "white"
+                  ? "Switch to Dark Mode"
+                  : "Switch to Light Mode"
+              }
               tooltipAlignment="center"
               onClick={toggleTheme}
             >
-              {theme === 'white' ? <Asleep size={20} /> : <Light size={20} />}
+              {theme === "white" ? <Asleep size={20} /> : <Light size={20} />}
             </HeaderGlobalAction>
 
             <HeaderGlobalAction
@@ -586,11 +664,11 @@ const ContestLayout = () => {
               tooltipAlignment="center"
               onClick={isRefreshing ? undefined : refreshContest}
             >
-              <Renew 
-                size={20} 
-                style={{ 
-                  animation: isRefreshing ? 'spin 1s linear infinite' : 'none'
-                }} 
+              <Renew
+                size={20}
+                style={{
+                  animation: isRefreshing ? "spin 1s linear infinite" : "none",
+                }}
               />
             </HeaderGlobalAction>
 
@@ -617,31 +695,49 @@ const ContestLayout = () => {
               size="sm"
               renderIcon={Logout}
               onClick={() => setIsExitModalOpen(true)}
-              style={{ 
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center'
+              style={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
               }}
             >
               離開
             </Button>
             {/* User Info Display moved to HeaderNavigation (left side) */}
-      </HeaderGlobalBar>
+          </HeaderGlobalBar>
         </Header>
 
-      {/* Monitoring Warning Modal */}
+        {/* Monitoring Warning Modal */}
         <ExamModeMonitorModel
           open={monitoringModalOpen}
           onRequestClose={() => setMonitoringModalOpen(false)}
         />
       </Theme>
 
-        <Theme theme={theme} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--cds-background)' }}>
-            <ContentPage
-              hero={!isSolvePage ? (
-                <ContestHero 
-                  contest={contest} 
+      <Theme
+        theme={theme}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            marginTop: "3rem",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            backgroundColor: "var(--cds-background)",
+          }}
+        >
+          <ContentPage
+            hero={
+              !isSolvePage ? (
+                <ContestHero
+                  contest={contest}
                   onJoin={handleJoin}
                   onLeave={handleLeave}
                   onStartExam={handleStartExam}
@@ -649,30 +745,39 @@ const ContestLayout = () => {
                   onRefreshContest={refreshContest}
                   maxWidth="1056px"
                 />
-              ) : undefined}
+              ) : undefined
+            }
+            stickyHeader={
+              !isSolvePage && contest ? (
+                <ContestTabs contest={contest} maxWidth="1056px" />
+              ) : undefined
+            }
+          >
+            <ExamModeWrapper
+              contestId={contestId || ""}
+              examModeEnabled={!!contest?.examModeEnabled}
+              isActive={!!isExamActive}
+              isLocked={contest?.examStatus === "locked"}
+              lockReason={contest?.lockReason}
+              examStatus={contest?.examStatus}
+              currentUserRole={contest?.currentUserRole}
+              onRefresh={refreshContest}
             >
-              <ExamModeWrapper
-                contestId={contestId || ''}
-                examModeEnabled={!!contest?.examModeEnabled}
-                isActive={!!isExamActive}
-                isLocked={contest?.examStatus === 'locked'}
-                lockReason={contest?.lockReason}
-                examStatus={contest?.examStatus}
-                currentUserRole={contest?.currentUserRole}
+              <ContestProvider
+                initialContest={contest}
                 onRefresh={refreshContest}
               >
-                <ContestProvider initialContest={contest} onRefresh={refreshContest}>
-                  <Outlet context={{ refreshContest }} />
-                </ContestProvider>
-              </ExamModeWrapper>
-            </ContentPage>
-          </div>
-        </Theme>
+                <Outlet context={{ refreshContest }} />
+              </ContestProvider>
+            </ExamModeWrapper>
+          </ContentPage>
+        </div>
+      </Theme>
 
       <Modal
         open={isExitModalOpen}
-        modalHeading={shouldWarnOnExit ? '確認交卷並離開' : '確認離開競賽'}
-        primaryButtonText={shouldWarnOnExit ? '交卷並離開' : '確認離開'}
+        modalHeading={shouldWarnOnExit ? "確認交卷並離開" : "確認離開競賽"}
+        primaryButtonText={shouldWarnOnExit ? "交卷並離開" : "確認離開"}
         secondaryButtonText="取消"
         onRequestClose={() => {
           // Just close the modal, don't force fullscreen
@@ -684,29 +789,54 @@ const ContestLayout = () => {
         <p>
           {(() => {
             // Teacher/Admin
-            if (contest?.currentUserRole === 'teacher' || contest?.currentUserRole === 'admin') {
-              return '確定要離開競賽管理頁面嗎？';
+            if (
+              contest?.currentUserRole === "teacher" ||
+              contest?.currentUserRole === "admin"
+            ) {
+              return "確定要離開競賽管理頁面嗎？";
             }
 
             // Student - Not joined
             if (!contest?.hasJoined && !contest?.isRegistered) {
-              return '確定要離開競賽頁面嗎？';
+              return "確定要離開競賽頁面嗎？";
             }
 
             // Student - Joined but exam not started (or submitted)
-            if (!contest?.status || contest.status === 'inactive' || contest.examStatus === 'submitted' || contest.examStatus === 'not_started') {
-              return '確定要離開競賽頁面嗎？';
+            if (
+              !contest?.status ||
+              contest.status === "inactive" ||
+              contest.examStatus === "submitted" ||
+              contest.examStatus === "not_started"
+            ) {
+              return "確定要離開競賽頁面嗎？";
             }
 
             // Student - Exam in progress, paused, or locked (warn about auto-submit)
             return (
               <span>
-                <strong style={{ color: 'var(--cds-support-error)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><WarningAlt size={16} /> 警告：離開將會自動交卷！</strong>
-                <br /><br />
-                您的考試狀態為「{contest?.examStatus === 'in_progress' ? '進行中' : contest?.examStatus === 'paused' ? '暫停中' : '已鎖定'}」。
+                <strong
+                  style={{
+                    color: "var(--cds-support-error)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <WarningAlt size={16} /> 警告：離開將會自動交卷！
+                </strong>
+                <br />
+                <br />
+                您的考試狀態為「
+                {contest?.examStatus === "in_progress"
+                  ? "進行中"
+                  : contest?.examStatus === "paused"
+                  ? "暫停中"
+                  : "已鎖定"}
+                」。
                 <br />
                 確認離開後，系統將自動為您交卷，您將無法再作答。
-                <br /><br />
+                <br />
+                <br />
                 確定要交卷並離開嗎？
               </span>
             );

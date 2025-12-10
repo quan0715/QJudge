@@ -8,6 +8,40 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
+# =============================================================================
+# Production Database Configuration
+# =============================================================================
+# In production, we use Cloud (Supabase) as the primary database.
+# Local database can be used as backup target.
+
+# Override default database to use cloud
+DATABASES['default'] = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
+    'USER': os.getenv('CLOUD_DB_USER', ''),
+    'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
+    'HOST': os.getenv('CLOUD_DB_HOST', ''),
+    'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
+    'CONN_MAX_AGE': 60,  # Connection pooling
+    'OPTIONS': {
+        'connect_timeout': 10,
+    },
+}
+
+# Keep local database as backup target (optional)
+if os.getenv('BACKUP_DB_HOST'):
+    DATABASES['backup'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('BACKUP_DB_NAME', 'online_judge'),
+        'USER': os.getenv('BACKUP_DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('BACKUP_DB_PASSWORD', 'postgres'),
+        'HOST': os.getenv('BACKUP_DB_HOST', 'postgres'),
+        'PORT': os.getenv('BACKUP_DB_PORT', '5432'),
+    }
+
+# Disable database router in production (always use default)
+DATABASE_ROUTERS = []
+
 # Security settings
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

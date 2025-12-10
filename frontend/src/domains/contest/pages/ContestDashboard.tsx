@@ -1,25 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { Loading, Modal } from '@carbon/react';
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
-import { getSubmissions } from '@/services/submission';
-import type { ScoreboardRow } from '@/core/entities/contest.entity';
-import type { Submission } from '@/core/entities/submission.entity';
-import { SubmissionDetailModal } from '@/domains/submission/components/SubmissionDetailModal';
-import { useContest } from '@/domains/contest/contexts/ContestContext';
+import { getSubmissions } from "@/services/submission";
+import type { ScoreboardRow } from "@/core/entities/contest.entity";
+import type { Submission } from "@/core/entities/submission.entity";
+import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
+import { useContest } from "@/domains/contest/contexts/ContestContext";
 
 // Student Components
-import { ContestOverview } from '@/domains/contest/components/ContestOverview';
-import { ContestProblemList } from '@/domains/contest/components/ContestProblemList';
-import ContestSubmissionListPage from '@/domains/contest/pages/ContestSubmissionListPage';
-import ContestStandingsPage from '@/domains/contest/pages/ContestStandingsPage';
-import ContestQAPage from '@/domains/contest/pages/ContestQAPage';
+import { ContestOverview } from "@/domains/contest/components/ContestOverview";
+import { ContestProblemList } from "@/domains/contest/components/ContestProblemList";
+import ContestSubmissionListPage from "@/domains/contest/pages/ContestSubmissionListPage";
+import ContestStandingsPage from "@/domains/contest/pages/ContestStandingsPage";
+import ContestQAPage from "@/domains/contest/pages/ContestQAPage";
 
 // Admin Components (rendered as tabs)
-import ContestAdminSettingsPage from '@/domains/contest/pages/settings/ContestSettingsPage';
-import ContestAdminParticipantsPage from '@/domains/contest/pages/settings/ContestParticipantsPage';
-import ContestAdminLogsPage from '@/domains/contest/pages/settings/ContestLogsPage';
-import ContestAdminsPage from '@/domains/contest/pages/settings/ContestAdminsPage';
+import ContestAdminSettingsPage from "@/domains/contest/pages/settings/ContestSettingsPage";
+import ContestAdminParticipantsPage from "@/domains/contest/pages/settings/ContestParticipantsPage";
+import ContestAdminLogsPage from "@/domains/contest/pages/settings/ContestLogsPage";
+import ContestAdminsPage from "@/domains/contest/pages/settings/ContestAdminsPage";
 
 const ContestDashboard = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -27,7 +27,7 @@ const ContestDashboard = () => {
 
   // Use contest and standings from context
   const { contest, loading, scoreboardData } = useContest();
-  
+
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
   const [mySubmissions, setMySubmissions] = useState<Submission[]>([]);
@@ -35,12 +35,12 @@ const ContestDashboard = () => {
   const [lockModalOpen, setLockModalOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
         setCurrentUser(JSON.parse(userStr));
       } catch (e) {
-        console.error('Failed to parse user', e);
+        console.error("Failed to parse user", e);
       }
     }
   }, []);
@@ -48,7 +48,9 @@ const ContestDashboard = () => {
   // Find my rank from context standings
   useEffect(() => {
     if (currentUser && scoreboardData?.rows?.length) {
-      const myEntry = scoreboardData.rows.find((s) => s.displayName === currentUser.username);
+      const myEntry = scoreboardData.rows.find(
+        (s) => s.displayName === currentUser.username
+      );
       setMyRank(myEntry || null);
     }
   }, [currentUser, scoreboardData]);
@@ -66,51 +68,93 @@ const ContestDashboard = () => {
       const submissions = await getSubmissions({ contest: contestId });
       // @ts-ignore
       const submissionList = submissions.results || [];
-      const mySubs = submissionList.filter((s: Submission) => s.username === currentUser.username || s.userId === currentUser.id?.toString());
+      const mySubs = submissionList.filter(
+        (s: Submission) =>
+          s.username === currentUser.username ||
+          s.userId === currentUser.id?.toString()
+      );
       setMySubmissions(mySubs.slice(0, 5)); // Show top 5 recent
     } catch (error) {
-      console.error('Failed to load submissions', error);
+      console.error("Failed to load submissions", error);
     }
   };
 
   const handleSubmissionClick = (submissionId: string) => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      newParams.set('submissionId', submissionId);
+      newParams.set("submissionId", submissionId);
       return newParams;
     });
   };
 
   const handleSubmissionClose = () => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      newParams.delete('submissionId');
+      newParams.delete("submissionId");
       return newParams;
     });
   };
 
   const handleViewAllSubmissions = () => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      newParams.set('tab', 'submissions');
+      newParams.set("tab", "submissions");
       return newParams;
     });
   };
 
   // Get selected tab from URL (default to 'overview')
-  const selectedTab = searchParams.get('tab') || 'overview';
-  const selectedSubmissionId = searchParams.get('submissionId');
+  const selectedTab = searchParams.get("tab") || "overview";
+  const selectedSubmissionId = searchParams.get("submissionId");
 
-  // Show loading only on initial load
-  if (loading && !contest) return <Loading />;
-  
+  // Skeleton loading component
+  const renderSkeleton = () => (
+    <div style={{ padding: "2rem", maxWidth: "1056px", margin: "0 auto" }}>
+      <Grid>
+        <Column lg={16} md={8} sm={4}>
+          <Tile style={{ marginBottom: "1rem" }}>
+            <SkeletonText
+              heading
+              width="40%"
+              style={{ marginBottom: "1rem" }}
+            />
+            <SkeletonText paragraph lineCount={3} />
+          </Tile>
+        </Column>
+        <Column lg={8} md={4} sm={4}>
+          <Tile style={{ marginBottom: "1rem" }}>
+            <SkeletonText
+              heading
+              width="30%"
+              style={{ marginBottom: "0.5rem" }}
+            />
+            <SkeletonText paragraph lineCount={4} />
+          </Tile>
+        </Column>
+        <Column lg={8} md={4} sm={4}>
+          <Tile style={{ marginBottom: "1rem" }}>
+            <SkeletonText
+              heading
+              width="30%"
+              style={{ marginBottom: "0.5rem" }}
+            />
+            <SkeletonText paragraph lineCount={4} />
+          </Tile>
+        </Column>
+      </Grid>
+    </div>
+  );
+
+  // Show skeleton on initial load
+  if (loading && !contest) return renderSkeleton();
+
   // Guard against null contest
-  if (!contest) return <Loading />;
+  if (!contest) return renderSkeleton();
   const renderTabContent = () => {
     switch (selectedTab) {
-      case 'overview':
+      case "overview":
         return (
-          <ContestOverview 
+          <ContestOverview
             contest={contest!}
             myRank={myRank}
             mySubmissions={mySubmissions}
@@ -119,34 +163,34 @@ const ContestDashboard = () => {
             maxWidth="1056px"
           />
         );
-      case 'problems':
+      case "problems":
         return (
-          <ContestProblemList 
-            contest={contest} 
-            problems={contest.problems || []} 
-            myRank={myRank} 
+          <ContestProblemList
+            contest={contest}
+            problems={contest.problems || []}
+            myRank={myRank}
             currentUser={currentUser}
             maxWidth="1056px"
           />
         );
-      case 'submissions':
+      case "submissions":
         return <ContestSubmissionListPage maxWidth="1056px" />;
-      case 'standings':
+      case "standings":
         return <ContestStandingsPage maxWidth="1056px" />;
-      case 'clarifications':
+      case "clarifications":
         return <ContestQAPage maxWidth="1056px" />;
       // Admin tabs
-      case 'settings':
+      case "settings":
         return <ContestAdminSettingsPage />;
-      case 'participants':
+      case "participants":
         return <ContestAdminParticipantsPage />;
-      case 'logs':
+      case "logs":
         return <ContestAdminLogsPage />;
-      case 'admins':
+      case "admins":
         return <ContestAdminsPage />;
       default:
         return (
-          <ContestOverview 
+          <ContestOverview
             contest={contest!}
             myRank={myRank}
             mySubmissions={mySubmissions}
@@ -161,10 +205,10 @@ const ContestDashboard = () => {
   return (
     <>
       {renderTabContent()}
-      
+
       {/* Submission Detail Modal */}
       {selectedSubmissionId && (
-        <SubmissionDetailModal 
+        <SubmissionDetailModal
           isOpen={!!selectedSubmissionId}
           submissionId={selectedSubmissionId}
           onClose={handleSubmissionClose}

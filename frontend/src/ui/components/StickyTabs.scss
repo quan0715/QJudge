@@ -1,0 +1,54 @@
+.sticky-tabs-container {
+  background-color: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  width: 100%;
+
+  &--sticky {
+    position: sticky;
+    z-index: 90;
+  }
+}
+
+.sticky-tabs-inner {
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.sticky-tabs-wrapper {
+  position: relative;
+}
+
+// Tab item transitions
+.sticky-tabs-container .cds--tabs__nav-item {
+  transition: color 0.2s ease;
+}
+
+.sticky-tabs-container .cds--tabs__nav-link {
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+  }
+}
+
+// Hide the default Carbon tab indicator
+.sticky-tabs-container .cds--tabs__nav-item--selected::after {
+  display: none;
+}
+
+// Custom sliding indicator
+.sticky-tabs-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background-color: var(--cds-border-interactive);
+  pointer-events: none;
+  z-index: 1;
+  // No transition initially - prevents jump on first render
+}
+
+// Enable smooth transition after initialization
+.sticky-tabs-indicator--animated {
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
