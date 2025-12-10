@@ -11,7 +11,6 @@ import {
   TableContainer,
   TableToolbarSearch,
   Pagination,
-  Loading,
   Button,
   Dropdown,
   InlineLoading
@@ -45,7 +44,6 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -84,7 +82,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
   }, [contestId, page, pageSize, statusFilter]);
 
   const fetchSubmissions = async () => {
-    if (!refreshing) setLoading(true);
+    setRefreshing(true);
     try {
       const params: any = {
         source_type: 'contest',
@@ -110,7 +108,6 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
     } catch (error) {
       console.error('Failed to fetch submissions:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -253,14 +250,6 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({ m
       canView // Pass to row for click handling
     };
   });
-
-  if (loading && !refreshing && submissions.length === 0) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <Loading />
-      </div>
-    );
-  }
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>

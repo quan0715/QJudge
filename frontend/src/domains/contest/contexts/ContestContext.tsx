@@ -1,14 +1,41 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { getContest } from '@/services/contest';
-import type { ContestDetail } from '@/core/entities/contest.entity';
+import { 
+  getContest, 
+  getContestStandings, 
+  getContestParticipants, 
+  getExamEvents 
+} from '@/services/contest';
+import type { 
+  ContestDetail, 
+  ScoreboardData, 
+  ContestParticipant, 
+  ExamEvent 
+} from '@/core/entities/contest.entity';
 
 interface ContestContextType {
+  // Core contest data
   contest: ContestDetail | null;
   loading: boolean;
   error: string | null;
+  
+  // Standings data (for all users)
+  // ScoreboardData contains problems + rows as returned by API
+  scoreboardData: ScoreboardData | null;
+  
+  // Admin-only data
+  participants: ContestParticipant[];
+  examEvents: ExamEvent[];
+  
+  // Refresh state (for button animation, not blocking)
+  isRefreshing: boolean;
+  
+  // Granular refresh functions
   refreshContest: () => Promise<void>;
+  refreshStandings: () => Promise<void>;
+  refreshAdminData: () => Promise<void>; // participants + events
+  refreshAll: () => Promise<void>;
 }
 
 const ContestContext = createContext<ContestContextType | undefined>(undefined);
@@ -31,10 +58,27 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   const params = useParams<{ contestId: string }>();
   const contestId = propContestId || params.contestId;
   
+  // Core state
   const [contest, setContest] = useState<ContestDetail | null>(initialContest || null);
   const [loading, setLoading] = useState(!initialContest);
   const [error, setError] = useState<string | null>(null);
+  
+  // Standings state - store the whole ScoreboardData
+  const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
+  
+  // Admin data state
+  const [participants, setParticipants] = useState<ContestParticipant[]>([]);
+  const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
+  
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Check if current user is admin/teacher
+  const isAdmin = useMemo(() => {
+    return contest?.permissions?.canEditContest === true;
+  }, [contest?.permissions?.canEditContest]);
+
+  // Fetch contest details
   const fetchContest = useCallback(async () => {
     if (!contestId) {
       setLoading(false);
@@ -42,27 +86,87 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
     
     try {
-      setLoading(true);
       setError(null);
       const data = await getContest(contestId);
       setContest(data || null);
     } catch (err: any) {
       setError(err.message || 'Failed to load contest');
       setContest(null);
-    } finally {
-      setLoading(false);
     }
   }, [contestId]);
 
+  // Fetch standings (for all users)
+  const fetchStandings = useCallback(async () => {
+    if (!contestId) return;
+    
+    try {
+      const data = await getContestStandings(contestId);
+      setScoreboardData(data);
+    } catch (err) {
+      console.error('Failed to fetch standings:', err);
+    }
+  }, [contestId]);
+
+  // Fetch admin data (participants + events) - only for admins
+  const fetchAdminData = useCallback(async () => {
+    if (!contestId || !isAdmin) return;
+    
+    try {
+      const [participantsData, eventsData] = await Promise.all([
+        getContestParticipants(contestId),
+        getExamEvents(contestId)
+      ]);
+      setParticipants(participantsData);
+      setExamEvents(eventsData);
+    } catch (err) {
+      console.error('Failed to fetch admin data:', err);
+    }
+  }, [contestId, isAdmin]);
+
+  // Public refresh functions (non-blocking)
   const refreshContest = useCallback(async () => {
-    // If parent provides refresh function, use it
     if (onRefresh) {
       await onRefresh();
-      // Parent should update initialContest which will sync via useEffect
     } else {
       await fetchContest();
     }
   }, [onRefresh, fetchContest]);
+
+  const refreshStandings = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchStandings();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchStandings]);
+
+  const refreshAdminData = useCallback(async () => {
+    if (!isAdmin) return;
+    setIsRefreshing(true);
+    try {
+      await fetchAdminData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchAdminData, isAdmin]);
+
+  const refreshAll = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Fetch contest first to get updated permissions
+      await fetchContest();
+      // Then fetch other data in parallel
+      const promises: Promise<void>[] = [fetchStandings()];
+      // Only fetch admin data if user has permissions
+      if (isAdmin) {
+        promises.push(fetchAdminData());
+      }
+      await Promise.all(promises);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchContest, fetchStandings, fetchAdminData, isAdmin]);
 
   // Sync with initialContest from parent
   useEffect(() => {
@@ -72,15 +176,52 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [initialContest]);
 
-  // Only fetch if no initialContest provided
+  // Initial fetch if no initialContest provided
   useEffect(() => {
     if (initialContest === undefined && contestId) {
-      fetchContest();
+      const init = async () => {
+        setLoading(true);
+        await fetchContest();
+        setLoading(false);
+      };
+      init();
     }
   }, [contestId, initialContest, fetchContest]);
 
+  // Fetch standings when contest is loaded
+  useEffect(() => {
+    if (contest?.id) {
+      fetchStandings();
+    }
+  }, [contest?.id, fetchStandings]);
+
+  // Fetch admin data when contest is loaded AND user is admin
+  useEffect(() => {
+    if (contest?.id && isAdmin) {
+      fetchAdminData();
+    }
+  }, [contest?.id, isAdmin, fetchAdminData]);
+
+  const value = useMemo(() => ({
+    contest,
+    loading,
+    error,
+    scoreboardData,
+    participants,
+    examEvents,
+    isRefreshing,
+    refreshContest,
+    refreshStandings,
+    refreshAdminData,
+    refreshAll
+  }), [
+    contest, loading, error, scoreboardData, 
+    participants, examEvents, isRefreshing,
+    refreshContest, refreshStandings, refreshAdminData, refreshAll
+  ]);
+
   return (
-    <ContestContext.Provider value={{ contest, loading, error, refreshContest }}>
+    <ContestContext.Provider value={value}>
       {children}
     </ContestContext.Provider>
   );

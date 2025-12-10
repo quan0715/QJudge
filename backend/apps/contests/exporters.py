@@ -10,6 +10,60 @@ from .models import Contest, ContestProblem
 from apps.problems.models import Problem
 
 
+def inline_markdown(text: str) -> str:
+    """
+    Parse inline markdown (bold, italic, code) and return HTML without block-level wrappers.
+    Useful for titles and single-line text that should support formatting.
+    """
+    if not text:
+        return ""
+    # Parse markdown
+    html = markdown.markdown(text, extensions=['extra'])
+    # Remove paragraph tags for inline use
+    html = re.sub(r'^<p>(.*)</p>$', r'\1', html.strip(), flags=re.DOTALL)
+    return html
+
+
+def preprocess_markdown_html(text: str) -> str:
+    """
+    Preprocess markdown text to add 'markdown=1' attribute to HTML block tags.
+    This enables markdown parsing inside HTML blocks when using md_in_html extension.
+    """
+    if not text:
+        return ""
+    # Add markdown="1" to common block-level HTML tags that should allow markdown inside
+    # Match opening tags like <aside>, <div>, <section> etc. and add markdown="1"
+    html_block_tags = ['aside', 'div', 'section', 'article', 'blockquote', 'details', 'summary']
+    for tag in html_block_tags:
+        # Replace <tag> with <tag markdown="1"> (only if no markdown attr already)
+        text = re.sub(
+            rf'<({tag})(\s*)>',
+            rf'<\1 markdown="1">',
+            text,
+            flags=re.IGNORECASE
+        )
+        # Also handle tags with existing attributes
+        text = re.sub(
+            rf'<({tag})\s+(?!markdown=)([\w\s="\']+)>',
+            rf'<\1 markdown="1" \2>',
+            text,
+            flags=re.IGNORECASE
+        )
+    return text
+
+
+def render_markdown(text: str) -> str:
+    """
+    Full markdown rendering with proper handling of HTML blocks.
+    """
+    if not text:
+        return ""
+    # Preprocess to enable markdown inside HTML blocks
+    text = preprocess_markdown_html(text)
+    # Render with all necessary extensions
+    return markdown.markdown(text, extensions=['extra', 'tables', 'sane_lists', 'md_in_html'])
+
+
 def sanitize_filename(filename: str) -> str:
     """
     Sanitize a string to be safe for use as a filename.
@@ -36,13 +90,16 @@ class ContestExporter:
         self.language = language
     
     def get_contest_problems(self) -> List[ContestProblem]:
-        """Get all problems in the contest, ordered."""
+        """Get all problems in the contest, ordered, with score annotation."""
+        from django.db.models import Sum
         return ContestProblem.objects.filter(
             contest=self.contest
         ).select_related('problem').prefetch_related(
             'problem__translations',
             'problem__test_cases',
             'problem__tags'
+        ).annotate(
+            problem_score_sum=Sum('problem__test_cases__score')
         ).order_by('order')
 
     def get_problem_label(self, contest_problem: ContestProblem) -> str:
@@ -215,7 +272,7 @@ class PDFExporter(ContestExporter):
         return """
             @page {
                 size: A4;
-                margin: 1.5cm;
+                margin: 1cm;
             }
             * {
                 box-sizing: border-box;
@@ -258,23 +315,20 @@ class PDFExporter(ContestExporter):
                 color: #525252;
             }
             
-            /* Container card */
+            /* Container card - minimal borders */
             .container-card {
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
                 margin-bottom: 16px;
-                overflow: hidden;
                 page-break-inside: avoid;
             }
             .container-card-header {
-                background-color: #f4f4f4;
-                padding: 10px 16px;
-                border-bottom: 1px solid #e0e0e0;
                 font-weight: 600;
                 font-size: 11pt;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+                border-bottom: 1px solid #e0e0e0;
             }
             .container-card-body {
-                padding: 16px;
+                padding: 0;
             }
             
             /* Problem table */
@@ -414,22 +468,18 @@ class PDFExporter(ContestExporter):
                 page-break-after: always;
             }
             
-            /* Problem section */
+            /* Problem section - left line decoration */
             .problem-section {
                 margin-bottom: 24px;
             }
             .problem-header {
-                background: linear-gradient(135deg, #0f62fe 0%, #0043ce 100%);
-                color: white;
-                padding: 12px 16px;
-                border-radius: 4px 4px 0 0;
-                margin-bottom: 0;
+                border-left: 4px solid #0f62fe;
+                padding-left: 12px;
+                margin-bottom: 12px;
+                font-size: 14pt;
             }
             .problem-body {
-                border: 1px solid #e0e0e0;
-                border-top: none;
-                border-radius: 0 0 4px 4px;
-                padding: 16px;
+                padding: 0 0 0 16px;
             }
             
             /* Lists in markdown */
@@ -439,6 +489,85 @@ class PDFExporter(ContestExporter):
             }
             li {
                 margin-bottom: 4px;
+            }
+            
+            /* Aside callout boxes */
+            aside {
+                background-color: #f4f4f4;
+                border-left: 4px solid #0f62fe;
+                padding: 12px 16px;
+                margin: 12px 0;
+                page-break-inside: avoid;
+            }
+            aside p:first-child {
+                margin-top: 0;
+            }
+            aside p:last-child {
+                margin-bottom: 0;
+            }
+            
+            /* Markdown tables */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 12px 0;
+                font-size: 10pt;
+            }
+            table th {
+                background-color: #f4f4f4;
+                border: 1px solid #e0e0e0;
+                padding: 8px 12px;
+                text-align: left;
+                font-weight: 600;
+            }
+            table td {
+                border: 1px solid #e0e0e0;
+                padding: 8px 12px;
+            }
+            table tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            
+            /* Exam mode notice */
+            .exam-notice {
+                background-color: #fcf4d6;
+                border-left: 4px solid #f1c21b;
+                padding: 16px;
+                margin-bottom: 16px;
+                display: table;
+                width: 100%;
+                page-break-inside: avoid;
+            }
+            .exam-notice-icon {
+                display: table-cell;
+                width: 40px;
+                font-size: 24pt;
+                vertical-align: top;
+            }
+            .exam-notice-content {
+                display: table-cell;
+                vertical-align: top;
+            }
+            .exam-notice-title {
+                font-weight: 600;
+                font-size: 11pt;
+                margin-bottom: 8px;
+            }
+            .exam-notice p {
+                margin: 6px 0;
+                font-size: 10pt;
+            }
+            .warning-text {
+                color: #8a3800;
+            }
+            
+            /* Exam time info */
+            .exam-time-info {
+                background-color: #e0e0e0;
+                padding: 10px 16px;
+                margin-bottom: 16px;
+                font-size: 10pt;
+                border-radius: 4px;
             }
         """
 
@@ -453,12 +582,15 @@ class PDFExporter(ContestExporter):
         for cp in contest_problems:
             label = self.get_problem_label(cp)
             problem_data = self.format_problem_content(cp.problem, label)
-            score = getattr(cp, 'score', 0) or 0
+            # Use annotated problem_score_sum from test cases
+            score = cp.problem_score_sum or 0
             total_score += score
+            # Use inline_markdown for title to support bold/italic formatting
+            title_html = inline_markdown(problem_data['title'])
             rows.append(f"""
                 <tr>
                     <td>{label}</td>
-                    <td>{problem_data['title']}</td>
+                    <td>{title_html}</td>
                     <td style="text-align: center;">{score}</td>
                 </tr>
             """)
@@ -587,11 +719,11 @@ class PDFExporter(ContestExporter):
         output_title = "輸出說明" if lang.startswith('zh') else "Output Description"
         hint_title = "提示" if lang.startswith('zh') else "Hint"
         
-        # Convert markdown descriptions to HTML
-        description_html = markdown.markdown(problem_data['description'] or '', extensions=['extra', 'tables'])
-        input_html = markdown.markdown(problem_data['input_description'] or '', extensions=['extra', 'tables'])
-        output_html = markdown.markdown(problem_data['output_description'] or '', extensions=['extra', 'tables'])
-        hint_html = markdown.markdown(problem_data['hint'] or '', extensions=['extra', 'tables'])
+        # Convert markdown descriptions to HTML using render_markdown for proper HTML block handling
+        description_html = render_markdown(problem_data['description'] or '')
+        input_html = render_markdown(problem_data['input_description'] or '')
+        output_html = render_markdown(problem_data['output_description'] or '')
+        hint_html = render_markdown(problem_data['hint'] or '')
         
         sections = []
         
@@ -644,14 +776,43 @@ class PDFExporter(ContestExporter):
         """Generate PDF content for the contest."""
         lang = self.language
         
-        # Contest header
-        contest_name = self.contest.name
+        # Contest header - parse inline markdown for formatting
+        contest_name = inline_markdown(self.contest.name)
+        contest_name_plain = self.contest.name  # For <title> tag
+        
+        # Exam mode notice
+        exam_notice_html = ""
+        if self.contest.exam_mode_enabled:
+            if lang.startswith('zh'):
+                exam_title = "QJudge 防作弊機制"
+                exam_notice = """
+                    <p>本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。</p>
+                    <p class="warning-text">⚠️ 若被系統偵測到可疑行為，且監考助教判定<strong>並非誤觸</strong>，將會<strong>直接鎖定至考試結束</strong>，無法繼續作答！</p>
+                    <p>請專心作答，避免不必要的視窗切換。</p>
+                """
+            else:
+                exam_title = "QJudge Anti-Cheating Policy"
+                exam_notice = """
+                    <p>This exam uses <strong>QJudge OJ</strong> with automatic monitoring for suspicious behavior such as switching browser tabs.</p>
+                    <p class="warning-text">⚠️ If suspicious behavior is detected and confirmed by the proctor, your exam will be <strong>locked until the end</strong> and you will not be able to continue.</p>
+                    <p>Please focus on the exam and avoid unnecessary window switching.</p>
+                """
+            
+            exam_notice_html = f"""
+                <div class="exam-notice">
+                    <div class="exam-notice-icon">🔒</div>
+                    <div class="exam-notice-content">
+                        <div class="exam-notice-title">{exam_title}</div>
+                        {exam_notice}
+                    </div>
+                </div>
+            """
         
         # Rules section
         rules_html = ""
         if self.contest.rules:
             rules_title = "競賽規則" if lang.startswith('zh') else "Contest Rules"
-            rules_content = markdown.markdown(self.contest.rules, extensions=['extra', 'tables'])
+            rules_content = render_markdown(self.contest.rules)
             rules_html = f"""
                 <div class="container-card">
                     <div class="container-card-header">{rules_title}</div>
@@ -677,17 +838,46 @@ class PDFExporter(ContestExporter):
                 {"".join(problem_sections)}
             """
         
-        # Full HTML
+        # Exam time info
+        exam_time_html = ""
+        if self.contest.start_time and self.contest.end_time:
+            from django.utils import timezone
+            start = timezone.localtime(self.contest.start_time)
+            end = timezone.localtime(self.contest.end_time)
+            duration = (self.contest.end_time - self.contest.start_time).total_seconds() / 60
+            
+            if lang.startswith('zh'):
+                time_label = "考試時間"
+                duration_label = "時長"
+                start_str = start.strftime('%Y/%m/%d %H:%M')
+                end_str = end.strftime('%H:%M')
+                duration_str = f"{int(duration)} 分鐘"
+            else:
+                time_label = "Exam Time"
+                duration_label = "Duration"
+                start_str = start.strftime('%Y/%m/%d %H:%M')
+                end_str = end.strftime('%H:%M')
+                duration_str = f"{int(duration)} minutes"
+            
+            exam_time_html = f"""
+                <div class="exam-time-info">
+                    <strong>{time_label}：</strong>{start_str} ~ {end_str}（{duration_label}：{duration_str}）
+                </div>
+            """
+        
+        # Full HTML - exam notice after rules
         full_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
-            <title>{contest_name}</title>
+            <title>{contest_name_plain}</title>
             <style>{self.get_css_styles()}</style>
         </head>
         <body>
             <h1>{contest_name}</h1>
+            {exam_time_html}
+            {exam_notice_html}
             {rules_html}
             {problem_table_html}
             {problems_html}

@@ -13,7 +13,6 @@ import {
   Modal,
   TextInput,
   InlineNotification,
-  Loading,
 } from '@carbon/react';
 import { Add, TrashCan, Renew } from '@carbon/icons-react';
 
@@ -32,7 +31,6 @@ const ContestAdminsPage: React.FC = () => {
   const { contest } = useContest();
   
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [loading, setLoading] = useState(true);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [notification, setNotification] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
@@ -46,14 +44,11 @@ const ContestAdminsPage: React.FC = () => {
   const loadAdmins = async () => {
     if (!contestId) return;
     try {
-      setLoading(true);
       const data = await getContestAdmins(contestId);
       setAdmins(data);
     } catch (error) {
       console.error('Failed to load admins', error);
       setNotification({ kind: 'error', message: '無法載入管理員列表' });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -84,7 +79,7 @@ const ContestAdminsPage: React.FC = () => {
     }
   };
 
-  if (loading && admins.length === 0) return <Loading />;
+  // Removed full-page loading guard - show empty table instead
 
   const rows = admins.map(admin => ({
     id: admin.id,

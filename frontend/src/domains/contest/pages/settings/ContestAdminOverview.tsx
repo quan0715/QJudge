@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Grid,
   Column,
@@ -7,58 +6,23 @@ import {
   Tile
 } from '@carbon/react';
 import { ArrowRight, User, Folder } from '@carbon/icons-react';
-import { getContestParticipants, getExamEvents } from '@/services/contest';
-import type { ExamEvent } from '@/core/entities/contest.entity';
-import { mapExamEventDto } from '@/core/entities/mappers/contestMapper';
 import { useContest } from '@/domains/contest/contexts/ContestContext';
-
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 
 const ContestAdminOverview = () => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const { contest, loading: contestLoading } = useContest();
+  // Use data from context - no local fetch needed
+  const { contest, loading, participants, examEvents } = useContest();
 
-  const [loading, setLoading] = useState(true);
-  const [participantCount, setParticipantCount] = useState(0);
-  const [recentEvents, setRecentEvents] = useState<ExamEvent[]>([]);
-
-  useEffect(() => {
-    if (contestId) {
-      loadData();
-    }
-  }, [contestId]);
-
-  const loadData = async () => {
-    if (!contestId) return;
-    try {
-      setLoading(true);
-      const [participantsData, eventsData] = await Promise.all([
-        getContestParticipants(contestId),
-        getExamEvents(contestId)
-      ]);
-      
-      setParticipantCount(participantsData.length);
-      
-      const mappedEvents = eventsData.map(mapExamEventDto);
-      mappedEvents.sort((a: ExamEvent, b: ExamEvent) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setRecentEvents(mappedEvents.slice(0, 5));
-
-    } catch (error) {
-      console.error('Failed to load dashboard data', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-
-  if (loading || contestLoading) return <Loading />;
+  if (loading) return <Loading />;
   if (!contest) return <div>Contest not found</div>;
+
+  // Sort events by timestamp (most recent first)
+  const recentEvents = [...examEvents]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 5);
 
   return (
     <div className="contest-admin-overview">
-
-      
       <div style={{ padding: '1rem', maxWidth: '1056px', margin: '0 auto', width: '100%' }}>
         <Grid>
             {/* Quick Stats */}
@@ -66,7 +30,7 @@ const ContestAdminOverview = () => {
                 <Tile style={{ height: '100%', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
                         <div>
-                            <h4 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>{participantCount}</h4>
+                            <h4 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>{participants.length}</h4>
                             <div style={{ color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <User /> 參賽者
                             </div>

@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import {
   DataTable,
   Table,
@@ -19,16 +18,15 @@ import {
   Tag
 } from '@carbon/react';
 import { Renew } from '@carbon/icons-react';
-import { getExamEvents } from '@/services/contest';
 import type { ExamEvent } from '@/core/entities/contest.entity';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 
 const ContestAdminLogsPage = () => {
-  const { contestId } = useParams<{ contestId: string }>();
+  // Use examEvents from context - no local fetch needed
+  const { examEvents, isRefreshing, refreshAdminData } = useContest();
 
-  const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState<ExamEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ExamEvent[]>([]);
   const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,19 +35,20 @@ const ContestAdminLogsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  useEffect(() => {
-    if (contestId) {
-      loadLogs();
-    }
-  }, [contestId]);
+  // Sort events by timestamp (most recent first)
+  const sortedEvents = useMemo(() => {
+    return [...examEvents].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [examEvents]);
 
   // Filter events when search term changes
   useEffect(() => {
     if (!searchTerm) {
-      setFilteredEvents(events);
+      setFilteredEvents(sortedEvents);
     } else {
       const lowerSearch = searchTerm.toLowerCase();
-      const filtered = events.filter(e => 
+      const filtered = sortedEvents.filter(e => 
         e.userName?.toLowerCase().includes(lowerSearch) ||
         e.eventType?.toLowerCase().includes(lowerSearch) ||
         e.reason?.toLowerCase().includes(lowerSearch)
@@ -57,26 +56,9 @@ const ContestAdminLogsPage = () => {
       setFilteredEvents(filtered);
     }
     setPage(1); // Reset to first page on search
-  }, [searchTerm, events]);
+  }, [searchTerm, sortedEvents]);
 
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      // getExamEvents already returns mapped ExamEvent[] entities
-      const data = await getExamEvents(contestId!);
-      // Sort by time desc
-      data.sort((a: ExamEvent, b: ExamEvent) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setEvents(data);
-      setFilteredEvents(data);
-    } catch (error) {
-      console.error('Failed to load logs', error);
-      setNotification({ kind: 'error', message: '無法載入考試紀錄' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Comprehensive event type mapping (merged from both files)
+  // Comprehensive event type mapping
   const getEventTag = (type: string) => {
     const eventMap: Record<string, { label: string; type: any }> = {
       // Exam/Contest events
@@ -132,6 +114,8 @@ const ContestAdminLogsPage = () => {
   const endIndex = startIndex + pageSize;
   const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
 
+  const loading = examEvents.length === 0 && isRefreshing;
+
   return (
     <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
       <div style={{ padding: '0', maxWidth: '100%', margin: '0 auto', width: '100%' }}>
@@ -145,14 +129,22 @@ const ContestAdminLogsPage = () => {
             />
         )}
         
-        {loading && events.length === 0 ? (
+        {loading ? (
             <Loading withOverlay={false} />
         ) : (
             <ContainerCard 
                 title="考試紀錄" 
                 noPadding
                 action={
-                    <Button size="sm" kind="ghost" renderIcon={Renew} onClick={loadLogs} hasIconOnly iconDescription="重新整理" />
+                    <Button 
+                      size="sm" 
+                      kind="ghost" 
+                      renderIcon={Renew} 
+                      onClick={refreshAdminData} 
+                      hasIconOnly 
+                      iconDescription="重新整理"
+                      disabled={isRefreshing}
+                    />
                 }
             >
                 <DataTable

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@carbon/react';
+import { Button, InlineNotification } from '@carbon/react';
 import { Time, Download } from '@carbon/icons-react';
 import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
@@ -35,12 +35,24 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
         <div className="cds--row">
           {/* Left Column: Description & Rules */}
           <div className="cds--col-lg-10 cds--col-md-8">
+            {/* Exam Mode Warning */}
+            {contest.examModeEnabled && (
+              <InlineNotification
+                kind="warning"
+                title="考試模式已啟用"
+                subtitle="此競賽啟用考試模式。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
+                lowContrast
+                hideCloseButton
+                style={{ marginBottom: '1.5rem', maxWidth: '100%' }}
+              />
+            )}
+
             {/* Download Contest Files Section */}
             {(contest.hasJoined || contest.isRegistered || contest.permissions?.canEditContest) && (
-              <ContainerCard title="Contest Files" style={{ marginBottom: '1.5rem' }}>
+              <ContainerCard title="競賽檔案" style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
-                    Download all contest problems in PDF or Markdown format
+                    下載所有競賽題目（PDF 或 Markdown 格式）
                   </div>
                   <Button
                     kind="primary"
@@ -48,7 +60,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                     renderIcon={Download}
                     onClick={() => setDownloadModalOpen(true)}
                   >
-                    Download
+                    下載
                   </Button>
                 </div>
               </ContainerCard>

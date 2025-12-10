@@ -20,8 +20,9 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libcairo2 \
     shared-mime-info \
-    # Fonts for Chinese characters
+    # Fonts for Chinese characters and emoji
     fonts-noto-cjk \
+    fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies

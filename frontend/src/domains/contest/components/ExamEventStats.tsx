@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   DataTable,
   Table,
@@ -10,66 +10,52 @@ import {
   TableContainer,
   InlineNotification
 } from '@carbon/react';
-import type { ExamEventStats } from '@/core/entities/contest.entity';
-import { getExamEvents } from '@/services/contest';
+import type { ExamEventStats, ExamEvent } from '@/core/entities/contest.entity';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
 
-interface ExamEventStatsProps {
-  contestId: string;
-}
+const ExamEventStatsComponent: React.FC = () => {
+  // Use examEvents from context - no local fetch needed, no timer
+  const { examEvents, isRefreshing } = useContest();
 
-const ExamEventStatsComponent: React.FC<ExamEventStatsProps> = ({ contestId }) => {
-  const [stats, setStats] = useState<ExamEventStats[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000); // Poll every 30s
-    return () => clearInterval(interval);
-  }, [contestId]);
-
-  const fetchStats = async () => {
-    try {
-      const events = await getExamEvents(contestId);
+  // Aggregate events by user
+  const stats = useMemo(() => {
+    const userMap = new Map<string, ExamEventStats>();
+    
+    examEvents.forEach((event: ExamEvent) => {
+      const eventRaw = event as any; // For access to raw fields
+      const userId = eventRaw.userId || eventRaw.user_id || 'unknown';
       
-      // Aggregate events by user
-      const userMap = new Map<string, ExamEventStats>();
+      if (!userMap.has(userId)) {
+        userMap.set(userId, {
+          userId: userId,
+          userName: event.userName || eventRaw.student_name || 'Unknown',
+          tabHiddenCount: 0,
+          windowBlurCount: 0,
+          exitFullscreenCount: 0,
+          totalViolations: 0
+        });
+      }
+
+      const userStats = userMap.get(userId)!;
       
-      events.forEach((event: any) => {
-        if (!userMap.has(event.user_id)) {
-          userMap.set(event.user_id, {
-            userId: event.user_id,
-            userName: event.user_name || event.student_name || 'Unknown',
-            tabHiddenCount: 0,
-            windowBlurCount: 0,
-            exitFullscreenCount: 0,
-            totalViolations: 0
-          });
-        }
+      switch (event.eventType) {
+        case 'tab_hidden':
+          userStats.tabHiddenCount++;
+          userStats.totalViolations++;
+          break;
+        case 'window_blur':
+          userStats.windowBlurCount++;
+          userStats.totalViolations++;
+          break;
+        case 'exit_fullscreen':
+          userStats.exitFullscreenCount++;
+          userStats.totalViolations++;
+          break;
+      }
+    });
 
-        const userStats = userMap.get(event.user_id)!;
-        
-        switch (event.event_type) {
-          case 'tab_hidden':
-            userStats.tabHiddenCount++;
-            break;
-          case 'window_blur':
-            userStats.windowBlurCount++;
-            break;
-          case 'exit_fullscreen':
-            userStats.exitFullscreenCount++;
-            break;
-        }
-        
-        userStats.totalViolations++;
-      });
-
-      setStats(Array.from(userMap.values()));
-    } catch (error) {
-      console.error('Failed to fetch exam event stats', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return Array.from(userMap.values());
+  }, [examEvents]);
 
   const headers = [
     { key: 'userName', header: '參賽者' },
@@ -88,7 +74,7 @@ const ExamEventStatsComponent: React.FC<ExamEventStatsProps> = ({ contestId }) =
     totalViolations: stat.totalViolations
   }));
 
-  if (loading) {
+  if (isRefreshing && stats.length === 0) {
     return <div>載入中...</div>;
   }
 

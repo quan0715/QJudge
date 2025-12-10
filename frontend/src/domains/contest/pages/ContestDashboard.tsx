@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Loading, Modal } from '@carbon/react';
 
-import { getScoreboard } from '@/services/contest';
 import { getSubmissions } from '@/services/submission';
 import type { ScoreboardRow } from '@/core/entities/contest.entity';
 import type { Submission } from '@/core/entities/submission.entity';
@@ -26,9 +25,8 @@ const ContestDashboard = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  
-  // Use contest from context instead of local state
-  const { contest, loading, refreshContest } = useContest();
+  // Use contest and standings from context
+  const { contest, loading, scoreboardData } = useContest();
   
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
@@ -47,76 +45,97 @@ const ContestDashboard = () => {
     }
   }, []);
 
+  // Find my rank from context standings
+  useEffect(() => {
+    if (currentUser && scoreboardData?.rows?.length) {
+      const myEntry = scoreboardData.rows.find((s) => s.displayName === currentUser.username);
+      setMyRank(myEntry || null);
+    }
+  }, [currentUser, scoreboardData]);
+
+  // Load submissions separately (user-specific, can't be shared)
   useEffect(() => {
     if (contestId && currentUser) {
-      loadPersonalStats();
+      loadMySubmissions();
     }
   }, [contestId, currentUser]);
 
-  const loadPersonalStats = async () => {
+  const loadMySubmissions = async () => {
     if (!contestId || !currentUser) return;
     try {
-      // Load standings to find rank
-      const standingsData = await getScoreboard(contestId);
-      if (standingsData && standingsData.rows && Array.isArray(standingsData.rows)) {
-        const myEntry = standingsData.rows.find((s: ScoreboardRow) => s.displayName === currentUser.username); 
-        setMyRank(myEntry || null);
-      }
-
-      // Load submissions
       const submissions = await getSubmissions({ contest: contestId });
       // @ts-ignore
       const submissionList = submissions.results || [];
       const mySubs = submissionList.filter((s: Submission) => s.username === currentUser.username || s.userId === currentUser.id?.toString());
       setMySubmissions(mySubs.slice(0, 5)); // Show top 5 recent
     } catch (error) {
-      console.error('Failed to load personal stats', error);
+      console.error('Failed to load submissions', error);
     }
   };
 
-  // Note: Anti-cheat monitoring is handled exclusively by ExamModeWrapper
-
   const handleSubmissionClick = (submissionId: string) => {
     setSearchParams(prev => {
-      prev.set('submission_id', submissionId);
-      return prev;
+      const newParams = new URLSearchParams(prev);
+      newParams.set('submissionId', submissionId);
+      return newParams;
     });
   };
 
-  const handleCloseModal = () => {
+  const handleSubmissionClose = () => {
     setSearchParams(prev => {
-      prev.delete('submission_id');
-      return prev;
+      const newParams = new URLSearchParams(prev);
+      newParams.delete('submissionId');
+      return newParams;
     });
   };
 
-  const currentTab = searchParams.get('tab') || 'overview';
-  const contentMaxWidth = '1056px';
+  const handleViewAllSubmissions = () => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('tab', 'submissions');
+      return newParams;
+    });
+  };
 
-  if (loading) return <Loading />;
-  if (!contest) return <div>Contest not found</div>;
+  // Get selected tab from URL (default to 'overview')
+  const selectedTab = searchParams.get('tab') || 'overview';
+  const selectedSubmissionId = searchParams.get('submissionId');
 
-  const renderContent = () => {
-    switch (currentTab) {
+  // Show loading only on initial load
+  if (loading && !contest) return <Loading />;
+  
+  // Guard against null contest
+  if (!contest) return <Loading />;
+  const renderTabContent = () => {
+    switch (selectedTab) {
+      case 'overview':
+        return (
+          <ContestOverview 
+            contest={contest!}
+            myRank={myRank}
+            mySubmissions={mySubmissions}
+            onSubmissionClick={handleSubmissionClick}
+            onViewAllSubmissions={handleViewAllSubmissions}
+            maxWidth="1056px"
+          />
+        );
       case 'problems':
         return (
           <ContestProblemList 
-            contest={contest}
-            problems={contest.problems}
-            myRank={myRank}
+            contest={contest} 
+            problems={contest.problems || []} 
+            myRank={myRank} 
             currentUser={currentUser}
-            maxWidth={contentMaxWidth}
-            onReload={refreshContest}
+            maxWidth="1056px"
           />
         );
       case 'submissions':
-        return <ContestSubmissionListPage maxWidth={contentMaxWidth} />;
+        return <ContestSubmissionListPage maxWidth="1056px" />;
       case 'standings':
-        return <ContestStandingsPage maxWidth={contentMaxWidth} />;
+        return <ContestStandingsPage maxWidth="1056px" />;
       case 'clarifications':
-        return <ContestQAPage maxWidth={contentMaxWidth} />;
-      
-      // Admin Tabs
+        return <ContestQAPage maxWidth="1056px" />;
+      // Admin tabs
       case 'settings':
         return <ContestAdminSettingsPage />;
       case 'participants':
@@ -125,18 +144,15 @@ const ContestDashboard = () => {
         return <ContestAdminLogsPage />;
       case 'admins':
         return <ContestAdminsPage />;
-        
-      case 'overview':
       default:
         return (
           <ContestOverview 
-            contest={contest}
+            contest={contest!}
             myRank={myRank}
             mySubmissions={mySubmissions}
             onSubmissionClick={handleSubmissionClick}
-            onViewAllSubmissions={() => setSearchParams({ tab: 'submissions' })}
-
-            maxWidth={contentMaxWidth}
+            onViewAllSubmissions={handleViewAllSubmissions}
+            maxWidth="1056px"
           />
         );
     }
@@ -144,24 +160,27 @@ const ContestDashboard = () => {
 
   return (
     <>
-      {renderContent()}
+      {renderTabContent()}
       
-      <SubmissionDetailModal
-        submissionId={searchParams.get('submission_id')}
-        isOpen={!!searchParams.get('submission_id')}
-        onClose={handleCloseModal}
-        contestId={contestId}
-      />
+      {/* Submission Detail Modal */}
+      {selectedSubmissionId && (
+        <SubmissionDetailModal 
+          isOpen={!!selectedSubmissionId}
+          submissionId={selectedSubmissionId}
+          onClose={handleSubmissionClose}
+        />
+      )}
 
+      {/* Lock Modal */}
       <Modal
         open={lockModalOpen}
-        modalHeading="考試鎖定通知"
-        passiveModal
+        modalHeading="作答已鎖定"
+        primaryButtonText="確定"
         onRequestClose={() => setLockModalOpen(false)}
+        onRequestSubmit={() => setLockModalOpen(false)}
+        size="sm"
       >
-        <p style={{ fontSize: '1rem', color: 'var(--cds-text-error)' }}>
-          您因多次違規已被鎖定，無法繼續考試。
-        </p>
+        <p>您的作答已被鎖定。請聯繫監考老師解除鎖定。</p>
       </Modal>
     </>
   );

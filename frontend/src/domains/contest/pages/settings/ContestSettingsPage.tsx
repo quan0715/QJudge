@@ -19,9 +19,10 @@ import {
   DatePickerInput
 } from '@carbon/react';
 import { Save, Download } from '@carbon/icons-react';
-import { updateContest, getContest, archiveContest, deleteContest, exportContestResults } from '@/services/contest';
+import { updateContest, archiveContest, deleteContest, exportContestResults } from '@/services/contest';
 import type { ContestDetail } from '@/core/entities/contest.entity';
 import type { ContestUpdateRequest } from '@/models/contest';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
 
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
@@ -29,12 +30,14 @@ import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 const ContestAdminSettingsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
+  
+  // Use contest from context - no full-page loading needed
+  const { contest: contextContest, loading: contextLoading, refreshContest } = useContest();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [contest, setContest] = useState<ContestDetail | null>(null);
   const [formData, setFormData] = useState<ContestUpdateRequest>({});
   const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
+  const [formInitialized, setFormInitialized] = useState(false);
   
   // Local state for time inputs
   const [startTimeInput, setStartTimeInput] = useState('');
@@ -47,50 +50,40 @@ const ContestAdminSettingsPage = () => {
   // const [archiveModalOpen, setArchiveModalOpen] = useState(false); 
   // const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
+  // Initialize form when context contest is available
   useEffect(() => {
-    if (contestId) {
-      loadContest();
+    if (contextContest && !formInitialized) {
+      initializeForm(contextContest);
+      setFormInitialized(true);
     }
-  }, [contestId]);
+  }, [contextContest, formInitialized]);
 
-  const loadContest = async () => {
-    try {
-      setLoading(true);
-      const data = await getContest(contestId!);
-      setContest(data || null);
-      
-      setFormData({
-        name: data?.name || '',
-        description: data?.description || '',
-        rules: data?.rules || '',
-        start_time: data?.startTime || '',
-        end_time: data?.endTime || '',
-        visibility: data?.visibility || 'public',
-        password: data?.password || '',
-        exam_mode_enabled: data?.examModeEnabled || false,
-        scoreboard_visible_during_contest: data?.scoreboardVisibleDuringContest || false,
-        allow_multiple_joins: data?.allowMultipleJoins || false,
+  const initializeForm = (data: ContestDetail) => {
+    setFormData({
+      name: data.name || '',
+      description: data.description || '',
+      rules: data.rules || '',
+      start_time: data.startTime || '',
+      end_time: data.endTime || '',
+      visibility: data.visibility || 'public',
+      password: data.password || '',
+      exam_mode_enabled: data.examModeEnabled || false,
+      scoreboard_visible_during_contest: data.scoreboardVisibleDuringContest || false,
+      allow_multiple_joins: data.allowMultipleJoins || false,
+      max_cheat_warnings: data.maxCheatWarnings || 0,
+      allow_auto_unlock: data.allowAutoUnlock || false,
+      auto_unlock_minutes: data.autoUnlockMinutes || 0,
+      status: (data.status || 'inactive') as any,
+      anonymous_mode_enabled: data.anonymousModeEnabled || false,
+    });
 
-        max_cheat_warnings: data?.maxCheatWarnings || 0,
-        allow_auto_unlock: data?.allowAutoUnlock || false,
-        auto_unlock_minutes: data?.autoUnlockMinutes || 0,
-        status: (data?.status || 'inactive') as any,
-        anonymous_mode_enabled: data?.anonymousModeEnabled || false,
-      });
-
-      if (data?.startTime) {
-        initTimeInput(data.startTime, setStartTimeInput);
-        initDateInput(data.startTime, setStartDateInput);
-      }
-      if (data?.endTime) {
-        initTimeInput(data.endTime, setEndTimeInput);
-        initDateInput(data.endTime, setEndDateInput);
-      }
-    } catch (error) {
-      console.error('Failed to load contest', error);
-      setNotification({ kind: 'error', message: '無法載入競賽設定' });
-    } finally {
-      setLoading(false);
+    if (data.startTime) {
+      initTimeInput(data.startTime, setStartTimeInput);
+      initDateInput(data.startTime, setStartDateInput);
+    }
+    if (data.endTime) {
+      initTimeInput(data.endTime, setEndTimeInput);
+      initDateInput(data.endTime, setEndDateInput);
     }
   };
 
@@ -126,7 +119,9 @@ const ContestAdminSettingsPage = () => {
 
       await updateContest(contestId, payload);
       setNotification({ kind: 'success', message: '設定已更新' });
-      await loadContest();
+      // Reset form initialized flag to pick up new data from context refresh
+      setFormInitialized(false);
+      await refreshContest();
     } catch (error) {
       console.error('Failed to update contest', error);
       setNotification({ kind: 'error', message: '更新失敗，請檢查欄位' });
@@ -140,7 +135,8 @@ const ContestAdminSettingsPage = () => {
     try {
       await archiveContest(contestId);
       setNotification({ kind: 'success', message: '競賽已封存' });
-      loadContest();
+      setFormInitialized(false);
+      refreshContest();
     } catch (error) {
         setNotification({ kind: 'error', message: '封存失敗' });
     }
@@ -210,8 +206,8 @@ const ContestAdminSettingsPage = () => {
       }
   };
 
-  if (loading) return <Loading />;
-  if (!contest) return <div>Contest not found</div>;
+  if (contextLoading && !formInitialized) return <Loading />;
+  if (!contextContest) return <div>Contest not found</div>;
 
   return (
     <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
@@ -525,8 +521,8 @@ const ContestAdminSettingsPage = () => {
                   封存後競賽將變為唯讀狀態，無法再被啟用。
                 </p>
               </div>
-              <Button kind="danger--ghost" onClick={handleArchive} disabled={contest?.status === 'archived'}>
-                {contest?.status === 'archived' ? '已封存' : '封存競賽'}
+              <Button kind="danger--ghost" onClick={handleArchive} disabled={contextContest?.status === 'archived'}>
+                {contextContest?.status === 'archived' ? '已封存' : '封存競賽'}
               </Button>
             </div>
             

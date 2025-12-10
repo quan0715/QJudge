@@ -1,13 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import {
-  Loading,
-  Button,
-  InlineLoading
-} from '@carbon/react';
+import { useMemo } from 'react';
+import { Loading, Button, InlineLoading } from '@carbon/react';
 import { Renew } from '@carbon/icons-react';
-import { getContestStandings } from '@/services/contest';
-import ContestScoreboard, { type ProblemInfo, type StandingRow } from '@/domains/contest/components/ContestScoreboard';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
+import ContestScoreboard from '@/domains/contest/components/ContestScoreboard';
+import type { ProblemInfo, StandingRow } from '@/domains/contest/components/ContestScoreboard';
 import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 import ContainerCard from '@/ui/components/layout/ContainerCard';
 
@@ -16,51 +12,55 @@ interface ContestStandingsPageProps {
 }
 
 const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({ maxWidth }) => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const [problems, setProblems] = useState<ProblemInfo[]>([]);
-  const [standings, setStandings] = useState<StandingRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use standings from context - no local fetch needed
+  const { 
+    contest, 
+    scoreboardData, 
+    isRefreshing, 
+    refreshStandings 
+  } = useContest();
 
-  useEffect(() => {
-    if (contestId) {
-      fetchStandings();
-      // Auto refresh every 30 seconds
-      const interval = setInterval(fetchStandings, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [contestId]);
+  // Transform ScoreboardData to ContestScoreboard format
+  const problems: ProblemInfo[] = useMemo(() => {
+    if (!scoreboardData?.problems) return [];
+    return scoreboardData.problems.map((p, index) => ({
+      id: parseInt(p.problemId) || index,
+      title: p.label, // fallback to label as title
+      order: index,
+      label: p.label,
+      problem_id: parseInt(p.problemId) || undefined
+    }));
+  }, [scoreboardData?.problems]);
 
-  const fetchStandings = async () => {
-    if (!refreshing && standings.length === 0) setLoading(true);
-    try {
-      const data = await getContestStandings(contestId!) as any;
-      // mapScoreboardDto returns { problems: [], rows: [] }
-      if (data.problems && data.rows) {
-        setProblems(data.problems);
-        setStandings(data.rows);
-      } else if (data.problems && data.standings) {
-        // Fallback for old API format
-        setProblems(data.problems);
-        setStandings(data.standings);
-      } else {
-        // Fallback for very old API (shouldn't happen)
-        setStandings(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch standings:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const standings: StandingRow[] = useMemo(() => {
+    if (!scoreboardData?.rows) return [];
+    return scoreboardData.rows.map(row => ({
+      rank: row.rank,
+      user: {
+        id: parseInt(row.userId) || 0,
+        username: row.displayName
+      },
+      displayName: row.displayName,
+      solved: row.solvedCount,
+      total_score: 0,
+      time: row.penalty,
+      problems: Object.fromEntries(
+        Object.entries(row.problems || {}).map(([key, cell]) => [
+          key,
+          {
+            status: cell?.status === 'AC' ? 'AC' : cell?.status === 'WA' ? 'WA' : null,
+            tries: cell?.attempts ?? 0,
+            time: cell?.time ?? 0,
+            pending: false
+          }
+        ])
+      )
+    }));
+  }, [scoreboardData?.rows]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchStandings();
-  };
+  const loading = !contest;
 
-  if (loading && !refreshing && standings.length === 0) return <Loading />;
+  if (loading) return <Loading />;
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: '100%', flex: 1 }}>
@@ -72,12 +72,12 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({ maxWidth })
               action={
                 <Button 
                   kind="ghost" 
-                  renderIcon={refreshing ? InlineLoading : Renew} 
-                  onClick={handleRefresh}
-                  disabled={refreshing}
+                  renderIcon={isRefreshing ? InlineLoading : Renew} 
+                  onClick={refreshStandings}
+                  disabled={isRefreshing}
                   size="sm"
                   hasIconOnly
-                  iconDescription={refreshing ? '更新中...' : '重新整理'}
+                  iconDescription={isRefreshing ? '更新中...' : '重新整理'}
                 />
               }
               noPadding
@@ -89,8 +89,8 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({ maxWidth })
                 <ContestScoreboard 
                   problems={problems} 
                   standings={standings} 
-                  loading={loading}
-                  contestId={contestId}
+                  loading={false}
+                  contestId={contest?.id}
                 />
               </div>
             </ContainerCard>

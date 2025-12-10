@@ -10,7 +10,6 @@ import {
   TableCell,
   TableContainer,
   Button,
-  Loading,
   InlineNotification,
   Modal,
   Tag,
@@ -35,7 +34,6 @@ import SurfaceSection from '@/ui/components/layout/SurfaceSection';
 const ContestAdminParticipantsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
 
-  const [loading, setLoading] = useState(true);
   const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [notification, setNotification] = useState<{ kind: 'success' | 'error', message: string } | null>(null);
 
@@ -81,14 +79,11 @@ const ContestAdminParticipantsPage = () => {
 
   const loadParticipants = async () => {
     try {
-      setLoading(true);
       const data = await getContestParticipants(contestId!);
       setParticipants(data);
     } catch (error) {
       console.error('Failed to load participants', error);
       setNotification({ kind: 'error', message: '無法載入參賽者列表' });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -185,7 +180,7 @@ const ContestAdminParticipantsPage = () => {
 
   const paginatedParticipants = filteredParticipants.slice(startIndex, endIndex);
 
-  if (loading && participants.length === 0) return <Loading />;
+  // Removed full-page loading guard - show empty table instead
 
   return (
     <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: '100%' }}>
