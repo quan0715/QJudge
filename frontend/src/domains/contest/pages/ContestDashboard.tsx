@@ -113,31 +113,25 @@ const ContestDashboard = () => {
       <Grid>
         <Column lg={16} md={8} sm={4}>
           <Tile style={{ marginBottom: "1rem" }}>
-            <SkeletonText
-              heading
-              width="40%"
-              style={{ marginBottom: "1rem" }}
-            />
+            <div style={{ marginBottom: "1rem" }}>
+              <SkeletonText heading width="40%" />
+            </div>
             <SkeletonText paragraph lineCount={3} />
           </Tile>
         </Column>
         <Column lg={8} md={4} sm={4}>
           <Tile style={{ marginBottom: "1rem" }}>
-            <SkeletonText
-              heading
-              width="30%"
-              style={{ marginBottom: "0.5rem" }}
-            />
+            <div style={{ marginBottom: "0.5rem" }}>
+              <SkeletonText heading width="30%" />
+            </div>
             <SkeletonText paragraph lineCount={4} />
           </Tile>
         </Column>
         <Column lg={8} md={4} sm={4}>
           <Tile style={{ marginBottom: "1rem" }}>
-            <SkeletonText
-              heading
-              width="30%"
-              style={{ marginBottom: "0.5rem" }}
-            />
+            <div style={{ marginBottom: "0.5rem" }}>
+              <SkeletonText heading width="30%" />
+            </div>
             <SkeletonText paragraph lineCount={4} />
           </Tile>
         </Column>

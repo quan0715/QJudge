@@ -8,7 +8,6 @@ import {
   Button,
   Dropdown,
   InlineLoading,
-  DataTable,
   Table,
   TableHead,
   TableRow,

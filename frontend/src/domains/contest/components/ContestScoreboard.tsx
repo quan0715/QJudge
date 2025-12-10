@@ -243,7 +243,9 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   if (loading) {
     return (
       <div style={{ padding: "1rem 0" }}>
-        <SkeletonText heading width="20%" style={{ marginBottom: "1rem" }} />
+        <div style={{ marginBottom: "1rem" }}>
+          <SkeletonText heading width="20%" />
+        </div>
         <SkeletonText paragraph lineCount={10} />
       </div>
     );

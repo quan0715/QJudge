@@ -98,11 +98,9 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                 </p>
                 {loading ? (
                   <div style={{ padding: "1rem 0" }}>
-                    <SkeletonText
-                      heading
-                      width="30%"
-                      style={{ marginBottom: "1rem" }}
-                    />
+                    <div style={{ marginBottom: "1rem" }}>
+                      <SkeletonText heading width="30%" />
+                    </div>
                     <SkeletonText paragraph lineCount={8} />
                   </div>
                 ) : (

@@ -59,7 +59,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   );
 
   // Blocking modal flow states
-  const [isProcessingEvent, setIsProcessingEvent] = useState(false);
+  // Note: isProcessingEvent state kept for potential future UI needs, using ref for real-time checks
+  const [, setIsProcessingEvent] = useState(false);
   const isProcessingEventRef = useRef(false); // Ref for real-time access in event handlers
   const [pendingApiResponse, setPendingApiResponse] = useState(false);
   const [lastApiResponse, setLastApiResponse] = useState<any>(null);
