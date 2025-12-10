@@ -63,7 +63,12 @@ const SubmissionsPage = () => {
   const fetchSubmissions = async () => {
     if (!refreshing) setLoading(true);
     try {
-      const params: any = { page, page_size: pageSize, is_test: false };
+      const params: any = { 
+        page, 
+        page_size: pageSize, 
+        is_test: false,
+        source_type: 'practice'  // Default to practice submissions only
+      };
       if (statusFilter !== "all") {
         params.status = statusFilter;
       }

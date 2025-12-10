@@ -96,6 +96,12 @@ class Submission(models.Model):
         indexes = [
             models.Index(fields=['user', 'problem']),
             models.Index(fields=['status']),
+            # Performance indexes for common query patterns
+            models.Index(fields=['source_type', 'is_test', '-created_at'], name='sub_src_test_created_idx'),
+            models.Index(fields=['contest', 'source_type', '-created_at'], name='sub_contest_src_created_idx'),
+            models.Index(fields=['problem', '-created_at'], name='sub_problem_created_idx'),
+            models.Index(fields=['status', '-created_at'], name='sub_status_created_idx'),
+            models.Index(fields=['user', '-created_at'], name='sub_user_created_idx'),
         ]
     
     def __str__(self):
