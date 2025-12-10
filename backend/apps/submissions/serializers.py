@@ -71,54 +71,55 @@ class ScreenEventSerializer(serializers.ModelSerializer):
 
 
 class SubmissionListSerializer(serializers.ModelSerializer):
-    """Serializer for submission list."""
-    user = serializers.SerializerMethodField()
-    problem = ProblemListSerializer(read_only=True)
+    """
+    Optimized serializer for submission list.
+    Uses flat fields instead of nested serializers to reduce query count and response size.
+    """
+    # Use direct field access instead of nested serializers
+    username = serializers.SerializerMethodField()
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    problem_id = serializers.IntegerField(source='problem.id', read_only=True)
+    problem_title = serializers.CharField(source='problem.title', read_only=True)
+    contest_id = serializers.IntegerField(source='contest.id', read_only=True, allow_null=True)
     
-    def get_user(self, obj):
-        from apps.users.serializers import UserSerializer
-        
-        # Default data
-        data = UserSerializer(obj.user).data
-        
-        # If no contest or not anonymous, return real user data
+    def get_username(self, obj):
+        """Handle anonymous mode for contests."""
+        # If no contest or not anonymous, return real username
         if not obj.contest or not obj.contest.anonymous_mode_enabled:
-            return data
-
+            return obj.user.username
+        
         request = self.context.get('request')
         viewer = request.user if request else None
         
+        # Privileged users or owners see real username
         is_privileged = viewer and (viewer.is_staff or getattr(viewer, 'role', '') in ['teacher', 'admin'])
         is_owner = viewer and viewer == obj.user
         
-        # If privileged or owner, they see real data (frontend can decide to show nickname too if added, but for now we keep username as real)
-        # Actually, for consistency with scoreboard, we might want to return real username but maybe add a display_name field?
-        # But replacing username is the safest for now.
         if is_privileged or is_owner:
-            return data
-            
-        # For others, mask username with nickname
+            return obj.user.username
+        
+        # For others, return nickname if available
+        # Use prefetched data if available to avoid N+1
+        if hasattr(obj, '_contest_participant_nickname'):
+            return obj._contest_participant_nickname or obj.user.username
+        
+        # Fallback: query (should be avoided via prefetch)
         from apps.contests.models import ContestParticipant
         try:
-             participant = ContestParticipant.objects.get(contest=obj.contest, user=obj.user)
-             nickname = participant.nickname
-             if nickname:
-                 data['username'] = nickname
-                 # Remove sensitive info if any
-                 if 'email' in data:
-                     del data['email']
+            participant = ContestParticipant.objects.get(contest=obj.contest, user=obj.user)
+            return participant.nickname or obj.user.username
         except ContestParticipant.DoesNotExist:
-             pass
-        
-        return data
+            return obj.user.username
     
     class Meta:
         model = Submission
         fields = [
             'id',
-            'user',
-            'problem',
-            'contest',
+            'user_id',
+            'username',
+            'problem_id',
+            'problem_title',
+            'contest_id',
             'source_type',
             'language',
             'status',

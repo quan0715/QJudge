@@ -5,6 +5,7 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 
 from .models import Submission
 from .serializers import (
@@ -29,9 +30,12 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
     
+    # Date range filtering (default: last 3 months)
+    DEFAULT_DATE_RANGE_DAYS = 90
+    
     def get_queryset(self):
         """
-        Filter submissions based on user role and context.
+        Optimized queryset with proper select_related and only() for list view.
         
         Rules:
         1. Practice Submissions (source_type='practice'):
@@ -45,21 +49,73 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         
-        # Admin/Teacher can see everything, but we still want to respect source_type filter if provided
-        # to avoid showing contest submissions in the global list by default.
-        
-        # For detail view (retrieve), do not filter by source_type
-        # The retrieve() method has strict permission checks (owner/admin/creator)
-        if self.action == 'retrieve':
-            return queryset.select_related('user', 'problem', 'contest')
+        # Optimize based on action
+        if self.action == 'list':
+            # Only load necessary fields for list view
+            queryset = queryset.only(
+                'id',
+                'user_id',
+                'problem_id',
+                'contest_id',
+                'source_type',
+                'language',
+                'status',
+                'score',
+                'exec_time',
+                'memory_usage',
+                'created_at',
+                # Related fields
+                'user__id',
+                'user__username',
+                'problem__id',
+                'problem__title',
+                'contest__id',
+                'contest__anonymous_mode_enabled',
+            ).select_related('user', 'problem', 'contest')
             
+            # Prefetch contest participants if needed for anonymous mode
+            contest_id = self.request.query_params.get('contest')
+            if contest_id:
+                from django.db.models import Prefetch
+                from apps.contests.models import ContestParticipant
+                
+                queryset = queryset.prefetch_related(
+                    Prefetch(
+                        'user__contest_participants',
+                        queryset=ContestParticipant.objects.filter(
+                            contest_id=contest_id
+                        ).only('nickname', 'user_id', 'contest_id'),
+                        to_attr='_prefetched_contest_participants'
+                    )
+                )
+        
+        elif self.action == 'retrieve':
+            # Detail view loads all fields
+            queryset = queryset.select_related('user', 'problem', 'contest')
+        
+        # Apply date range filter (performance optimization)
+        # By default, only show submissions from the last 3 months
+        # This significantly reduces query time for large datasets
+        include_all = self.request.query_params.get('include_all', 'false').lower() == 'true'
+        created_after = self.request.query_params.get('created_after')
+        
+        if not include_all:
+            if created_after:
+                # Custom date range
+                queryset = queryset.filter(created_at__gte=created_after)
+            else:
+                # Default: last 3 months
+                from datetime import timedelta
+                cutoff_date = timezone.now() - timedelta(days=self.DEFAULT_DATE_RANGE_DAYS)
+                queryset = queryset.filter(created_at__gte=cutoff_date)
+        
         # Filter by source_type (default to practice if not specified)
         source_type = self.request.query_params.get('source_type', 'practice')
         
         if source_type == 'practice':
             # Practice: Show ALL practice submissions (Public)
             # Exclude contest submissions and test submissions
-            return queryset.filter(source_type='practice', is_test=False).select_related('user', 'problem', 'contest')
+            return queryset.filter(source_type='practice', is_test=False)
             
         elif source_type == 'contest':
             # Contest: See all (for scoreboard), but filter by contest if provided
@@ -67,7 +123,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             if contest_id:
                 queryset = queryset.filter(contest_id=contest_id)
             
-            return queryset.filter(source_type='contest').select_related('user', 'problem', 'contest')
+            return queryset.filter(source_type='contest')
             
         # Fallback
         return queryset.filter(user=user)
