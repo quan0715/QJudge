@@ -3,7 +3,6 @@
  *
  * Admin-only page for managing database connections, viewing system status,
  * and performing database sync operations.
- * Only accessible in development mode.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -75,8 +74,6 @@ export const EnvironmentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [switchProgress, setSwitchProgress] = useState<string | null>(null);
-
-  const isDev = import.meta.env.DEV;
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -156,22 +153,6 @@ export const EnvironmentPage = () => {
     }
   };
 
-  // Show warning if not in dev mode
-  if (!isDev) {
-    return (
-      <Grid className="cds--grid--full-width" style={{ padding: "2rem" }}>
-        <Column lg={16} md={8} sm={4}>
-          <InlineNotification
-            kind="warning"
-            title="不可用"
-            subtitle="環境管理功能僅在開發模式下可用"
-            hideCloseButton
-          />
-        </Column>
-      </Grid>
-    );
-  }
-
   const isCloud = status?.current === "cloud";
   const localStatus = status?.status?.default;
   const cloudStatus = status?.status?.cloud;
@@ -183,7 +164,7 @@ export const EnvironmentPage = () => {
       <Column lg={16} md={8} sm={4}>
         <h1 style={{ marginBottom: "0.5rem" }}>環境管理</h1>
         <p style={{ color: "var(--cds-text-secondary)", marginBottom: "2rem" }}>
-          管理資料庫連接與同步操作（僅開發模式）
+          管理資料庫連接與同步操作
         </p>
       </Column>
 

@@ -1,8 +1,7 @@
 """
 API views for database management.
 
-These endpoints are only available in development mode (DEBUG=True)
-and require admin user permissions.
+These endpoints require admin user permissions (is_staff=True).
 """
 import time
 from rest_framework.views import APIView
@@ -26,12 +25,6 @@ class DatabaseStatusView(APIView):
     
     def get(self, request):
         """Get current database status."""
-        if not settings.DEBUG:
-            return Response(
-                {'error': 'Database switching is not available in production'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         current = request.session.get('db_alias', 'default')
         available = list(settings.DATABASES.keys())
         
@@ -73,12 +66,6 @@ class DatabaseStatusView(APIView):
     
     def post(self, request):
         """Switch to a different database."""
-        if not settings.DEBUG:
-            return Response(
-                {'error': 'Database switching is not available in production'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         db_alias = request.data.get('database', 'default')
         
         if db_alias not in settings.DATABASES:
@@ -110,18 +97,12 @@ class DatabaseSyncView(APIView):
     """
     Sync data between databases using Django's dumpdata/loaddata.
     
-    Only available in development mode (DEBUG=True).
+    Requires admin user permissions.
     """
     permission_classes = [IsAdminUser]
     
     def post(self, request):
         """Sync data from source to target database."""
-        if not settings.DEBUG:
-            return Response(
-                {'error': 'Database sync is not available in production'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         source = request.data.get('source', 'default')
         target = request.data.get('target', 'cloud')
         apps = request.data.get('apps', None)  # None = all apps

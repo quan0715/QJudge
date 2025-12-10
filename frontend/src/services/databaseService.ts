@@ -1,6 +1,6 @@
 /**
  * Database Service - API for database status, switching, and sync operations
- * Only available in development mode for admin users
+ * Requires admin user permissions
  */
 
 import { httpClient } from "./api/httpClient";
