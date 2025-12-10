@@ -1,51 +1,39 @@
-import { useState, useEffect, useRef, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useContestNavigationGuard } from '@/hooks/useContestNavigationGuard';
 import { Loading, Button } from '@carbon/react';
 import ProblemSolver from '@/domains/problem/components/ProblemSolver';
 import type { ProblemDetail as Problem } from '@/core/entities/problem.entity';
 import type { SubmissionDetail as Submission } from '@/core/entities/submission.entity';
-import { getContestProblem, getContest } from '@/services/contest';
+import { getContestProblem } from '@/services/contest';
+import { useContest } from '@/domains/contest/contexts/ContestContext';
 import { submitSolution } from '@/services/submission';
 
 const ContestProblemPage = () => {
   const { contestId, problemId } = useParams<{ contestId: string; problemId: string }>();
   const navigate = useNavigate();
+  const { contest } = useContest(); // Use context directly
+  
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [contest, setContest] = useState<any>(null);
   const [contestProblemInfo, setContestProblemInfo] = useState<{ score?: number; label?: string } | null>(null);
   const [_isPending, startTransition] = useTransition();
   
-  // Cache contest data by contestId
-  const contestCache = useRef<{ id: string; data: any } | null>(null);
-  
-  useContestNavigationGuard(contestId, contest?.status === 'ongoing');
+  useContestNavigationGuard(contestId, contest?.status === 'active');
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!contestId || !problemId) return;
+      // Wait for contest to be available from context
+      if (!contestId || !problemId || !contest) return;
       
       try {
-        // Use cached contest data if available
-        let contestData = contestCache.current?.id === contestId 
-          ? contestCache.current.data 
-          : null;
+        setLoading(true);
         
-        if (!contestData) {
-          setLoading(true);
-          contestData = await getContest(contestId);
-          if (!contestData) throw new Error('Contest not found');
-          contestCache.current = { id: contestId, data: contestData };
-        }
+        // Extract problem from contest data (now from context)
+        const contestProblems = (contest as any).problems || [];
         
-        setContest(contestData);
-        
-        // Extract problem from contest data
-        const contestProblems = (contestData as any).problems || [];
-        
-        // Find by problemId (camelCase after mapping from problem_id)
+        // Find by problemId
         const contestProblemRef = contestProblems.find((cp: any) => 
           cp.problemId?.toString() === problemId || 
           cp.problemId === Number(problemId) ||
@@ -54,17 +42,20 @@ const ContestProblemPage = () => {
         );
 
         if (!contestProblemRef) {
-          console.error('Available problem IDs:', contestProblems.map((cp: any) => cp.problemId || cp.problem_id));
-          throw new Error('Problem not found in this contest');
+          // If problem not found in list, it might be a permission issue or invalid ID
+          // But we continue to try fetching the specific problem anyway, 
+          // as the list in context might be partial or cached
+          console.warn('Problem reference not found in contest context list');
+        } else {
+          // Update contest problem info immediately for faster UI response
+          setContestProblemInfo({
+            score: contestProblemRef.score,
+            label: contestProblemRef.label
+          });
         }
 
-        // Update contest problem info immediately for faster UI response
-        setContestProblemInfo({
-          score: contestProblemRef.score,
-          label: contestProblemRef.label
-        });
-
-        // Fetch full problem details with transition for smoother update
+        // Fetch full problem details
+        // We still need this call because the context only has summary info
         const fullProblem = await getContestProblem(contestId, problemId);
         if (!fullProblem) {
             throw new Error('Failed to load problem details');
@@ -82,7 +73,7 @@ const ContestProblemPage = () => {
       }
     };
     fetchData();
-  }, [contestId, problemId]);
+  }, [contestId, problemId, contest]); // Re-run when contest is loaded
 
   const handleSubmit = async (code: string, language: string, isTest: boolean, customTestCases?: any[]): Promise<Submission | void> => {
     if (!problem || !contestId) return;
@@ -100,10 +91,6 @@ const ContestProblemPage = () => {
       if (isTest) {
         return response;
       } else {
-        // For official submission, we might want to stay on the page or go to dashboard
-        // Usually in contests, you stay on the problem page or go to status
-        // Let's redirect to contest dashboard or a submission list if available
-        // For now, let's redirect to the contest dashboard to see the status
         setTimeout(() => {
             navigate(`/contests/${contestId}`);
         }, 100);
@@ -125,7 +112,7 @@ const ContestProblemPage = () => {
   );
   if (!problem) return <div>題目不存在</div>;
 
-  // Check view permissions - use camelCase since contest is mapped via mapContestDetailDto
+  // Check view permissions
   const canView = 
     contest?.currentUserRole === 'admin' || 
     contest?.currentUserRole === 'teacher' || 
@@ -146,8 +133,8 @@ const ContestProblemPage = () => {
 
   const isSubmissionDisabled = 
     contest?.status === 'inactive' || 
-    contest?.status === 'paused' ||
-    (contest?.endTime && new Date(contest.endTime) < new Date());
+    contest?.status === 'ended' ||
+    (!!contest?.endTime && new Date(contest.endTime) < new Date());
 
   return (
     <div style={{ 
