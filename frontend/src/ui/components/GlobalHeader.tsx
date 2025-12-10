@@ -131,18 +131,18 @@ export const GlobalHeader = () => {
             )}
           </HeaderGlobalBar>
 
-          {/* @ts-ignore */}
-          {/* @ts-ignore */}
           <HeaderPanel
             aria-label="User Menu"
             expanded={isUserMenuExpanded}
-            style={{
-              position: "fixed",
-              right: 0,
-              top: "48px",
-              height: "auto",
-              maxHeight: "none",
-              bottom: "auto",
+            {...{
+              style: {
+                position: "fixed",
+                right: 0,
+                top: "48px",
+                height: "auto",
+                maxHeight: "none",
+                bottom: "auto",
+              },
             }}
           >
             <Switcher aria-label="User Menu Options">
@@ -194,11 +194,10 @@ export const GlobalHeader = () => {
             </Switcher>
           </HeaderPanel>
 
-          {/* @ts-ignore */}
           <HeaderPanel
             aria-label="Switcher Panel"
             expanded={isSwitcherExpanded}
-            style={{ position: "fixed", right: 0, top: "48px" }}
+            {...{ style: { position: "fixed", right: 0, top: "48px" } }}
           >
             <Switcher aria-label="Switcher Options">
               <SwitcherItem

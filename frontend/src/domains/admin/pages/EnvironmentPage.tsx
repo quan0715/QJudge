@@ -343,18 +343,20 @@ export const EnvironmentPage = () => {
                     ? `${localStatus.latency_ms} ms`
                     : "N/A"}
                 </div>
-                <ProgressBar
-                  value={
-                    localStatus?.latency_ms !== undefined
-                      ? Math.min(localStatus.latency_ms / 5, 100)
-                      : 0
-                  }
-                  max={100}
-                  status={localLatency.status}
-                  size="small"
-                  hideLabel
-                  style={{ marginTop: "0.5rem" }}
-                />
+                <div style={{ marginTop: "0.5rem" }}>
+                  <ProgressBar
+                    label="延遲"
+                    value={
+                      localStatus?.latency_ms !== undefined
+                        ? Math.min(localStatus.latency_ms / 5, 100)
+                        : 0
+                    }
+                    max={100}
+                    status={localLatency.status}
+                    size="small"
+                    hideLabel
+                  />
+                </div>
               </div>
 
               {/* Cloud Latency */}
@@ -398,18 +400,20 @@ export const EnvironmentPage = () => {
                     ? `${cloudStatus.latency_ms} ms`
                     : "N/A"}
                 </div>
-                <ProgressBar
-                  value={
-                    cloudStatus?.latency_ms !== undefined
-                      ? Math.min(cloudStatus.latency_ms / 5, 100)
-                      : 0
-                  }
-                  max={100}
-                  status={cloudLatency.status}
-                  size="small"
-                  hideLabel
-                  style={{ marginTop: "0.5rem" }}
-                />
+                <div style={{ marginTop: "0.5rem" }}>
+                  <ProgressBar
+                    label="延遲"
+                    value={
+                      cloudStatus?.latency_ms !== undefined
+                        ? Math.min(cloudStatus.latency_ms / 5, 100)
+                        : 0
+                    }
+                    max={100}
+                    status={cloudLatency.status}
+                    size="small"
+                    hideLabel
+                  />
+                </div>
               </div>
             </div>
           )}
