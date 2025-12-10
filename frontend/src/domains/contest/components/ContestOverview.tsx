@@ -36,7 +36,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
           {/* Left Column: Description & Rules */}
           <div className="cds--col-lg-10 cds--col-md-8">
             {/* Download Contest Files Section */}
-            {(contest.hasJoined || contest.isRegistered || contest.userRole === 'teacher' || contest.userRole === 'admin') && (
+            {(contest.hasJoined || contest.isRegistered || contest.permissions?.canEditContest) && (
               <ContainerCard title="Contest Files" style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
@@ -59,6 +59,81 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                 <MarkdownRenderer style={{ marginTop: '0.5rem' }}>
                   {contest.rules}
                 </MarkdownRenderer>
+              </ContainerCard>
+            )}
+
+            {/* Problem Structure Table */}
+            {contest.problems && contest.problems.length > 0 && (
+              <ContainerCard title="題目結構" style={{ marginBottom: '1.5rem' }}>
+                <table style={{ 
+                  width: '100%', 
+                  borderCollapse: 'collapse',
+                  fontSize: '0.875rem'
+                }}>
+                  <thead>
+                    <tr>
+                      <th style={{ 
+                        backgroundColor: 'var(--cds-layer-02)',
+                        border: '1px solid var(--cds-border-subtle)',
+                        padding: '0.75rem',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        width: '60px'
+                      }}>題目</th>
+                      <th style={{ 
+                        backgroundColor: 'var(--cds-layer-02)',
+                        border: '1px solid var(--cds-border-subtle)',
+                        padding: '0.75rem',
+                        textAlign: 'left',
+                        fontWeight: 600
+                      }}>主題</th>
+                      <th style={{ 
+                        backgroundColor: 'var(--cds-layer-02)',
+                        border: '1px solid var(--cds-border-subtle)',
+                        padding: '0.75rem',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        width: '80px'
+                      }}>配分</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contest.problems.map((problem) => (
+                      <tr key={problem.id}>
+                        <td style={{ 
+                          border: '1px solid var(--cds-border-subtle)',
+                          padding: '0.75rem'
+                        }}>{problem.label}</td>
+                        <td style={{ 
+                          border: '1px solid var(--cds-border-subtle)',
+                          padding: '0.75rem'
+                        }}>{problem.title}</td>
+                        <td style={{ 
+                          border: '1px solid var(--cds-border-subtle)',
+                          padding: '0.75rem',
+                          textAlign: 'center'
+                        }}>{problem.score ?? '-'}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td colSpan={2} style={{ 
+                        border: '1px solid var(--cds-border-subtle)',
+                        padding: '0.75rem',
+                        fontWeight: 600,
+                        backgroundColor: 'var(--cds-layer-02)'
+                      }}>Total</td>
+                      <td style={{ 
+                        border: '1px solid var(--cds-border-subtle)',
+                        padding: '0.75rem',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        backgroundColor: 'var(--cds-layer-02)'
+                      }}>
+                        {contest.problems.reduce((sum, p) => sum + (p.score || 0), 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </ContainerCard>
             )}
           </div>

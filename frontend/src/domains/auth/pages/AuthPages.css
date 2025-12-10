@@ -1,0 +1,155 @@
+/* Auth Pages - IBM Carbon Design System Compliant */
+
+.auth-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #161616; /* Always dark background for hacker theme */
+  overflow: hidden;
+  padding: 1rem;
+}
+
+/* Modal Card - Carbon Design: No unnecessary radius/shadow */
+.auth-modal {
+  position: relative;
+  z-index: 10;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle);
+  /* Strict Carbon: No border-radius, no box-shadow */
+  border-radius: 0;
+  box-shadow: none; 
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+}
+
+/* Header */
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-title {
+  font-size: 2rem; /* h2 size equivalent */
+  font-weight: 400; /* Regular weight per Carbon */
+  color: var(--cds-text-primary);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0;
+}
+
+.auth-subtitle {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+/* Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auth-form .cds--text-input-wrapper,
+.auth-form .cds--password-input-wrapper {
+  margin-bottom: 0;
+}
+
+/* Error Message */
+.auth-error {
+  color: var(--cds-support-error);
+  font-size: 0.875rem;
+  margin: 0;
+  padding: 1rem;
+  background: var(--cds-layer-01); /* Keep consistent bg */
+  border: 1px solid var(--cds-support-error);
+  /* No radius */
+}
+
+/* Actions */
+.auth-actions {
+  margin-top: 1rem;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  min-height: 48px;
+  /* Carbon buttons are already square-ish/standard */
+}
+
+/* Divider */
+.auth-divider {
+  position: relative;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--cds-border-subtle);
+}
+
+.auth-divider span {
+  position: relative;
+  background: var(--cds-layer-01);
+  padding: 0 1rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* OAuth Button */
+.auth-oauth-btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* Footer */
+.auth-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.auth-footer p {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.auth-link {
+  color: var(--cds-link-primary);
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 0;
+    align-items: stretch;
+  }
+  
+  .auth-modal {
+    max-width: 100%;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: none;
+  }
+}

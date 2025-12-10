@@ -363,6 +363,46 @@ export const exportContestResults = async (contestId: string): Promise<void> => 
   document.body.removeChild(a);
 };
 
+/**
+ * Download contest file in specified format (PDF or Markdown)
+ */
+export const downloadContestFile = async (
+  contestId: string, 
+  format: 'pdf' | 'markdown' = 'markdown',
+  language: string = 'zh-TW'
+): Promise<Blob> => {
+  const token = localStorage.getItem('token');
+  
+  // Use direct fetch instead of httpClient to set correct Accept header for binary downloads
+  const res = await fetch(
+    // Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
+    `/api/v1/contests/${contestId}/download/?file_format=${format}&language=${language}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        // Use */* to bypass DRF content negotiation (DRF doesn't have renderers for text/markdown or application/pdf)
+        'Accept': '*/*',
+      },
+    }
+  );
+  
+  if (!res.ok) {
+    // Try to parse error response
+    try {
+      const errorData = await res.json();
+      // Handle nested error format: { success: false, error: { code, message } }
+      const message = errorData.error?.message || errorData.message || errorData.detail || 'Failed to download contest file';
+      throw new Error(message);
+    } catch (parseError) {
+      // If can't parse JSON, throw generic error with status
+      throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+    }
+  }
+  
+  return res.blob();
+};
+
 export default {
   getContests,
   getContest,
@@ -404,25 +444,5 @@ export default {
   reorderContestProblems,
   exportContestResults,
   downloadContestFile,
-};
-
-/**
- * Download contest file in specified format (PDF or Markdown)
- */
-export const downloadContestFile = async (
-  contestId: string, 
-  format: 'pdf' | 'markdown' = 'markdown',
-  language: string = 'zh-TW'
-): Promise<Blob> => {
-  const res = await httpClient.get(
-    `/api/v1/contests/${contestId}/download/?format=${format}&language=${language}`
-  );
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.error || 'Failed to download contest file');
-  }
-  
-  return res.blob();
 };
 

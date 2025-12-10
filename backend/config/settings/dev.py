@@ -13,6 +13,12 @@ INSTALLED_APPS += [
     'django_extensions',
 ]
 
+# Add Database Switch Middleware (after SessionMiddleware)
+MIDDLEWARE.insert(
+    MIDDLEWARE.index('django.contrib.sessions.middleware.SessionMiddleware') + 1,
+    'apps.core.db_middleware.DatabaseSwitchMiddleware'
+)
+
 # Enable browsable API in development
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.JSONRenderer',

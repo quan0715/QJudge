@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Form, TextInput, PasswordInput, Button, InlineLoading } from '@carbon/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '@/services/auth';
-import loginBg from '@/assets/login_split_bg.png';
+import MatrixBackground from '../components/MatrixBackground';
+import './AuthPages.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const RegisterPage = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('密碼不一致');
       return;
     }
     setLoading(true);
@@ -28,14 +29,13 @@ const RegisterPage = () => {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/dashboard');
       } else {
-        setError('Registration failed');
+        setError('註冊失敗');
       }
     } catch (err: any) {
-      // Extract error message from backend response
       if (err.response?.data?.error?.message) {
         setError(err.response.data.error.message);
       } else {
-        setError('Registration failed. Please try again.');
+        setError('註冊失敗，請稍後再試');
       }
     } finally {
       setLoading(false);
@@ -43,76 +43,77 @@ const RegisterPage = () => {
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', minHeight: '100vh' }}>
-      {/* Left Side - Image */}
-      <div style={{ flex: 1, backgroundImage: `url(${loginBg})`, backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', color: 'white', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.6)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>Join the Community</h1>
-          <p style={{ fontSize: '1.25rem' }}>Start your journey to mastering algorithms today.</p>
+    <div className="auth-page">
+      <MatrixBackground />
+      
+      <div className="auth-modal">
+        {/* Title */}
+        <div className="auth-header">
+          <h1 className="auth-title">建立帳號</h1>
+          <p className="auth-subtitle">加入 QJudge，開始您的程式之旅</p>
         </div>
-      </div>
 
-      {/* Right Side - Register Form */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', paddingTop: '8rem', paddingLeft: '4rem', paddingRight: '4rem', paddingBottom: '4rem', backgroundColor: 'var(--cds-layer-01)' }}>
-        <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
-          <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Create Account</h2>
-            <p style={{ color: 'var(--cds-text-secondary)' }}>Fill in your details to register</p>
-          </div>
-
-          <div className="carbon-panel" style={{ padding: '2rem' }}>
-            <Form onSubmit={handleRegister}>
-              <TextInput
-                id="username"
-                labelText="Username"
-                placeholder="Choose a username"
-                style={{ marginBottom: '1rem' }}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <TextInput
-                id="email"
-                labelText="Email"
-                placeholder="Enter your email"
-                style={{ marginBottom: '1rem' }}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <div style={{ marginBottom: '1rem' }}>
-                <PasswordInput
-                  id="password"
-                  labelText="Password"
-                  placeholder="Create a password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div style={{ marginBottom: '2rem' }}>
-                <PasswordInput
-                  id="confirm-password"
-                  labelText="Confirm Password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-              {error && <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>}
-              <div style={{ marginBottom: '1rem' }}>
-                {loading ? <InlineLoading description="Registering..." /> : (
-                  <Button kind="primary" type="submit" style={{ width: '100%' }}>
-                    Register
-                  </Button>
-                )}
-              </div>
-            </Form>
-          </div>
+        {/* Form */}
+        <Form onSubmit={handleRegister} className="auth-form">
+          <TextInput
+            id="username"
+            labelText="使用者名稱"
+            placeholder="選擇一個使用者名稱"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
           
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <p style={{ color: 'var(--cds-text-secondary)' }}>
-              Already have an account? <Link to="/login" style={{ fontWeight: 'bold', color: 'var(--nycu-primary)' }}>Log in</Link>
-            </p>
+          <TextInput
+            id="email"
+            labelText="Email"
+            placeholder="輸入您的 Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          
+          <PasswordInput
+            id="password"
+            labelText="密碼"
+            placeholder="建立一個密碼"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          
+          <PasswordInput
+            id="confirm-password"
+            labelText="確認密碼"
+            placeholder="再次輸入密碼"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          
+          {error && (
+            <p className="auth-error">{error}</p>
+          )}
+          
+          <div className="auth-actions">
+            {loading ? (
+              <InlineLoading description="註冊中..." />
+            ) : (
+              <Button kind="primary" type="submit" className="auth-submit-btn">
+                註冊
+              </Button>
+            )}
           </div>
+        </Form>
+
+        {/* Footer */}
+        <div className="auth-footer">
+          <p>
+            已經有帳號？{' '}
+            <Link to="/login" className="auth-link">
+              登入
+            </Link>
+          </p>
         </div>
       </div>
     </div>

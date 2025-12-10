@@ -66,8 +66,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-# Database
+# Database Configuration
+# default: Local Docker PostgreSQL (development)
+# cloud: Supabase Cloud PostgreSQL (production/testing)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -76,8 +77,19 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+    },
+    'cloud': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
+        'USER': os.getenv('CLOUD_DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
+        'HOST': os.getenv('CLOUD_DB_HOST', ''),
+        'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
     }
 }
+
+# Database Router for dynamic switching (dev only)
+DATABASE_ROUTERS = ['apps.core.db_router.DynamicDatabaseRouter']
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'

@@ -4,12 +4,12 @@ import {
   RadioButton, 
   RadioButtonGroup, 
   Dropdown,
-  Button,
+  // Button,
   InlineLoading
 } from '@carbon/react';
-import { Download } from '@carbon/icons-react';
+// import { Download } from '@carbon/icons-react';
 import { downloadContestFile } from '@/services/contest';
-import { useToast } from '@/ui/components/common/Toast/useToast';
+// import { useToast } from '@/ui/components/common/Toast/useToast';
 
 interface ContestDownloadModalProps {
   contestId: string;
@@ -41,7 +41,7 @@ export const ContestDownloadModal = ({
   const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [language, setLanguage] = useState<string>('zh-TW');
   const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
 
   const languageOptions = [
     { id: 'zh-TW', label: '中文 (繁體)' },
@@ -49,6 +49,7 @@ export const ContestDownloadModal = ({
   ];
 
   const handleDownload = async () => {
+    console.log('Download requested with format:', format, 'language:', language);
     setLoading(true);
     try {
       const blob = await downloadContestFile(contestId, format, language);
@@ -68,20 +69,20 @@ export const ContestDownloadModal = ({
       link.remove();
       window.URL.revokeObjectURL(url);
       
-      showToast({
-        kind: 'success',
-        title: 'Download successful',
-        subtitle: `Contest file downloaded as ${format.toUpperCase()}`
-      });
+      // showToast({
+      //   kind: 'success',
+      //   title: 'Download successful',
+      //   subtitle: `Contest file downloaded as ${format.toUpperCase()}`
+      // });
       
       onClose();
     } catch (error) {
       console.error('Download failed:', error);
-      showToast({
-        kind: 'error',
-        title: 'Download failed',
-        subtitle: error instanceof Error ? error.message : 'An error occurred during download'
-      });
+      // showToast({
+      //   kind: 'error',
+      //   title: 'Download failed',
+      //   subtitle: error instanceof Error ? error.message : 'An error occurred during download'
+      // });
     } finally {
       setLoading(false);
     }

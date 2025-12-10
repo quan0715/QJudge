@@ -18,6 +18,7 @@ import { Login, Moon, Sun, Logout, UserAvatar, Switcher as SwitcherIcon } from '
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/domains/auth/contexts/AuthContext';
 import { useTheme } from '@/ui/theme/ThemeContext';
+import { DatabaseSwitcher } from './DatabaseSwitcher';
 import './GlobalHeader.scss'; // Assuming a SCSS file for component-specific styles
 
 export const GlobalHeader = () => {
@@ -189,6 +190,14 @@ export const GlobalHeader = () => {
                          <SwitcherItem aria-label="Announcements" onClick={() => navigate('/management/announcements')}>
                             Announcements
                         </SwitcherItem>
+                    </>
+                )}
+                
+                {/* Database Switcher - Only visible in dev mode for admin users */}
+                {user?.role === 'admin' && (
+                    <>
+                        <SwitcherDivider />
+                        <DatabaseSwitcher isAdmin={user?.role === 'admin'} />
                     </>
                 )}
             </Switcher>

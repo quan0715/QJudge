@@ -219,8 +219,14 @@ const ContestLayout = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Track whether we've already refreshed for timer expiration to prevent infinite loops
+  const hasRefreshedForTimerExpiration = React.useRef(false);
+
   useEffect(() => {
     if (!contest) return;
+
+    // Reset the flag when contest changes from a user-initiated refresh
+    hasRefreshedForTimerExpiration.current = false;
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
@@ -234,10 +240,15 @@ const ContestLayout = () => {
       const diff = targetTime - now;
 
       if (diff <= 0) {
-        // Timer expired (Start or End reached) - refresh to update status
-        refreshContest();
+        // Timer expired (Start or End reached) - refresh only once
         setTimeLeft('00:00:00');
         clearInterval(timer);
+        
+        // Only refresh once to prevent infinite loop
+        if (!hasRefreshedForTimerExpiration.current) {
+          hasRefreshedForTimerExpiration.current = true;
+          refreshContest();
+        }
       } else {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -249,12 +260,15 @@ const ContestLayout = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [contest]);
+  }, [contest?.id, contest?.startTime, contest?.endTime]);
 
   // Unlock countdown timer
+  const hasRefreshedForUnlock = React.useRef(false);
+  
   useEffect(() => {
     if (!contest || contest.examStatus !== 'locked' || !contest.autoUnlockAt) {
       setUnlockTimeLeft(null);
+      hasRefreshedForUnlock.current = false;
       return;
     }
 
@@ -266,8 +280,11 @@ const ContestLayout = () => {
       if (diff <= 0) {
         setUnlockTimeLeft('00:00:00');
         clearInterval(timer);
-        // Auto-refresh to get updated status
-        refreshContest();
+        // Auto-refresh to get updated status - only once
+        if (!hasRefreshedForUnlock.current) {
+          hasRefreshedForUnlock.current = true;
+          refreshContest();
+        }
       } else {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -279,7 +296,7 @@ const ContestLayout = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [contest]);
+  }, [contest?.id, contest?.examStatus, contest?.autoUnlockAt]);
 
   const refreshContest = async () => {
     if (contestId) {

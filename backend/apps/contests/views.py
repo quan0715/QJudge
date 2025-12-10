@@ -1106,8 +1106,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Get format and language from query params
-        file_format = request.query_params.get('format', 'markdown').lower()
+        # Get file_format and language from query params
+        # Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
+        file_format = request.query_params.get('file_format', 'markdown').lower()
         language = request.query_params.get('language', 'zh-TW')
         
         if file_format not in ['markdown', 'pdf']:

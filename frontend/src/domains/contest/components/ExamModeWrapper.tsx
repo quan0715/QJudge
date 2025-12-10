@@ -8,8 +8,8 @@ import { Modal, Button } from '@carbon/react';
 import { WarningAlt, Locked, CheckmarkFilled } from '@carbon/icons-react';
 
 // Anti-cheat timing constants (module-level to avoid recreation on each render)
-const BLUR_DEBOUNCE_MS = 500; // Time to wait after user interaction before detecting blur
-const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
+const BLUR_DEBOUNCE_MS = 1000; // Time to wait after user interaction before detecting blur (increased for Chrome extension compatibility)
+const FOCUS_CHECK_DELAY_MS = 150; // Delay for document.hasFocus() check to allow event loop to settle (increased for reliability)
 const GRACE_PERIOD_SECONDS = 3; // Grace period countdown in seconds
 
 interface ExamModeWrapperProps {
@@ -164,13 +164,28 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       lastInteractionTime.current = Date.now();
     };
     // Track multiple interaction types to catch all user actions
+    // Using capture phase (true) to ensure we catch events before they're handled
     document.addEventListener('mousedown', handleInteraction, true);
     document.addEventListener('pointerdown', handleInteraction, true);
     document.addEventListener('click', handleInteraction, true);
+    document.addEventListener('keydown', handleInteraction, true);
+    document.addEventListener('keyup', handleInteraction, true);
+    document.addEventListener('touchstart', handleInteraction, true);
+    document.addEventListener('touchend', handleInteraction, true);
+    document.addEventListener('focusin', handleInteraction, true);
+    document.addEventListener('focusout', handleInteraction, true);
+    document.addEventListener('input', handleInteraction, true);
     return () => {
       document.removeEventListener('mousedown', handleInteraction, true);
       document.removeEventListener('pointerdown', handleInteraction, true);
       document.removeEventListener('click', handleInteraction, true);
+      document.removeEventListener('keydown', handleInteraction, true);
+      document.removeEventListener('keyup', handleInteraction, true);
+      document.removeEventListener('touchstart', handleInteraction, true);
+      document.removeEventListener('touchend', handleInteraction, true);
+      document.removeEventListener('focusin', handleInteraction, true);
+      document.removeEventListener('focusout', handleInteraction, true);
+      document.removeEventListener('input', handleInteraction, true);
     };
   }, []);
 
@@ -434,7 +449,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'var(--cds-background-inverse, #161616)',
+            backgroundColor: '#161616', // Always dark background for cinema/focus mode
             zIndex: 9998,
             display: 'flex',
             alignItems: 'center',
@@ -501,7 +516,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'var(--cds-background-inverse, #161616)',
+            backgroundColor: '#161616', // Always dark background for lock screen
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
