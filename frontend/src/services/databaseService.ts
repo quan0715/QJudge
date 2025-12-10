@@ -13,7 +13,9 @@ export type DatabaseStatus = {
     {
       connected: boolean;
       host?: string;
+      database?: string;
       error?: string;
+      latency_ms?: number;
     }
   >;
 };

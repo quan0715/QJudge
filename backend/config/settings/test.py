@@ -13,11 +13,11 @@ SECRET_KEY = 'test-secret-key-not-for-production'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME', 'test_oj'),
+        'NAME': os.getenv('POSTGRES_DB', os.getenv('DATABASE_NAME', 'test_oj')),
         'USER': os.getenv('POSTGRES_USER', os.getenv('DATABASE_USER', 'test_user')),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', 'test_password')),
         'HOST': os.getenv('POSTGRES_HOST', os.getenv('DB_HOST', 'localhost')),
-        'PORT': os.getenv('DATABASE_PORT', '5432'),
+        'PORT': os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', '5432')),
     }
 }
 

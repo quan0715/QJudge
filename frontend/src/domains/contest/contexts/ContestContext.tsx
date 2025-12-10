@@ -1,36 +1,44 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import type { ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
-import { 
-  getContest, 
-  getContestStandings, 
-  getContestParticipants, 
-  getExamEvents 
-} from '@/services/contest';
-import type { 
-  ContestDetail, 
-  ScoreboardData, 
-  ContestParticipant, 
-  ExamEvent 
-} from '@/core/entities/contest.entity';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import type { ReactNode } from "react";
+import { useParams } from "react-router-dom";
+import {
+  getContest,
+  getContestStandings,
+  getContestParticipants,
+  getExamEvents,
+} from "@/services/contest";
+import type {
+  ContestDetail,
+  ScoreboardData,
+  ContestParticipant,
+  ExamEvent,
+} from "@/core/entities/contest.entity";
 
 interface ContestContextType {
   // Core contest data
   contest: ContestDetail | null;
   loading: boolean;
   error: string | null;
-  
+
   // Standings data (for all users)
   // ScoreboardData contains problems + rows as returned by API
   scoreboardData: ScoreboardData | null;
-  
+  standingsLoading: boolean;
+
   // Admin-only data
   participants: ContestParticipant[];
   examEvents: ExamEvent[];
-  
+
   // Refresh state (for button animation, not blocking)
   isRefreshing: boolean;
-  
+
   // Granular refresh functions
   refreshContest: () => Promise<void>;
   refreshStandings: () => Promise<void>;
@@ -49,27 +57,32 @@ interface ContestProviderProps {
   onRefresh?: () => Promise<void>;
 }
 
-export const ContestProvider: React.FC<ContestProviderProps> = ({ 
-  children, 
+export const ContestProvider: React.FC<ContestProviderProps> = ({
+  children,
   contestId: propContestId,
   initialContest,
-  onRefresh 
+  onRefresh,
 }) => {
   const params = useParams<{ contestId: string }>();
   const contestId = propContestId || params.contestId;
-  
+
   // Core state
-  const [contest, setContest] = useState<ContestDetail | null>(initialContest || null);
+  const [contest, setContest] = useState<ContestDetail | null>(
+    initialContest || null
+  );
   const [loading, setLoading] = useState(!initialContest);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Standings state - store the whole ScoreboardData
-  const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
-  
+  const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(
+    null
+  );
+  const [standingsLoading, setStandingsLoading] = useState(true);
+
   // Admin data state
   const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
-  
+
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -84,42 +97,50 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       setLoading(false);
       return;
     }
-    
+
     try {
       setError(null);
       const data = await getContest(contestId);
       setContest(data || null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load contest');
+      setError(err.message || "Failed to load contest");
       setContest(null);
     }
   }, [contestId]);
 
   // Fetch standings (for all users)
-  const fetchStandings = useCallback(async () => {
-    if (!contestId) return;
-    
-    try {
-      const data = await getContestStandings(contestId);
-      setScoreboardData(data);
-    } catch (err) {
-      console.error('Failed to fetch standings:', err);
-    }
-  }, [contestId]);
+  const fetchStandings = useCallback(
+    async (showLoading = true) => {
+      if (!contestId) return;
+
+      if (showLoading) {
+        setStandingsLoading(true);
+      }
+      try {
+        const data = await getContestStandings(contestId);
+        setScoreboardData(data);
+      } catch (err) {
+        console.error("Failed to fetch standings:", err);
+      } finally {
+        setStandingsLoading(false);
+      }
+    },
+    [contestId]
+  );
 
   // Fetch admin data (participants + events) - only for admins
   const fetchAdminData = useCallback(async () => {
     if (!contestId || !isAdmin) return;
-    
+
     try {
       const [participantsData, eventsData] = await Promise.all([
         getContestParticipants(contestId),
-        getExamEvents(contestId)
+        getExamEvents(contestId),
       ]);
       setParticipants(participantsData);
       setExamEvents(eventsData);
     } catch (err) {
-      console.error('Failed to fetch admin data:', err);
+      console.error("Failed to fetch admin data:", err);
     }
   }, [contestId, isAdmin]);
 
@@ -135,7 +156,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   const refreshStandings = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await fetchStandings();
+      await fetchStandings(false); // Don't show full loading on refresh
     } finally {
       setIsRefreshing(false);
     }
@@ -157,7 +178,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       // Fetch contest first to get updated permissions
       await fetchContest();
       // Then fetch other data in parallel
-      const promises: Promise<void>[] = [fetchStandings()];
+      const promises: Promise<void>[] = [fetchStandings(false)];
       // Only fetch admin data if user has permissions
       if (isAdmin) {
         promises.push(fetchAdminData());
@@ -202,35 +223,46 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [contest?.id, isAdmin, fetchAdminData]);
 
-  const value = useMemo(() => ({
-    contest,
-    loading,
-    error,
-    scoreboardData,
-    participants,
-    examEvents,
-    isRefreshing,
-    refreshContest,
-    refreshStandings,
-    refreshAdminData,
-    refreshAll
-  }), [
-    contest, loading, error, scoreboardData, 
-    participants, examEvents, isRefreshing,
-    refreshContest, refreshStandings, refreshAdminData, refreshAll
-  ]);
+  const value = useMemo(
+    () => ({
+      contest,
+      loading,
+      error,
+      scoreboardData,
+      standingsLoading,
+      participants,
+      examEvents,
+      isRefreshing,
+      refreshContest,
+      refreshStandings,
+      refreshAdminData,
+      refreshAll,
+    }),
+    [
+      contest,
+      loading,
+      error,
+      scoreboardData,
+      standingsLoading,
+      participants,
+      examEvents,
+      isRefreshing,
+      refreshContest,
+      refreshStandings,
+      refreshAdminData,
+      refreshAll,
+    ]
+  );
 
   return (
-    <ContestContext.Provider value={value}>
-      {children}
-    </ContestContext.Provider>
+    <ContestContext.Provider value={value}>{children}</ContestContext.Provider>
   );
 };
 
 export const useContest = (): ContestContextType => {
   const context = useContext(ContestContext);
   if (context === undefined) {
-    throw new Error('useContest must be used within a ContestProvider');
+    throw new Error("useContest must be used within a ContestProvider");
   }
   return context;
 };

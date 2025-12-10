@@ -9,7 +9,6 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableToolbarSearch,
   Pagination,
   Button,
   Dropdown,
@@ -17,44 +16,76 @@ import {
   SkeletonText,
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
-import { getSubmissions } from "@/services/submission";
 import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
 import { StatusBadge } from "@/ui/components/StatusBadge";
 import type { StatusType } from "@/ui/components/StatusBadge";
 import SurfaceSection from "@/ui/components/layout/SurfaceSection";
 import ContainerCard from "@/ui/components/layout/ContainerCard";
-
-interface Submission {
-  id: number;
-  userId: string;
-  username: string; // Flattened by mapper
-  problemId: string;
-  problemTitle: string;
-  language: string;
-  status: string;
-  score: number;
-  execTime: number;
-  createdAt: string;
-}
+import { useContest } from "@/domains/contest/contexts/ContestContext";
+import { useContestSubmissions } from "@/domains/contest/hooks/useContestSubmissions";
 
 interface ContestSubmissionListPageProps {
   maxWidth?: string;
 }
+
+// CSS keyframes for flip animation
+const flipAnimationStyles = `
+  @keyframes flipIn {
+    0% {
+      transform: perspective(400px) rotateX(-90deg);
+      opacity: 0;
+    }
+    40% {
+      transform: perspective(400px) rotateX(10deg);
+    }
+    70% {
+      transform: perspective(400px) rotateX(-5deg);
+    }
+    100% {
+      transform: perspective(400px) rotateX(0deg);
+      opacity: 1;
+    }
+  }
+`;
 
 const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   maxWidth,
 }) => {
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [totalItems, setTotalItems] = useState(0);
-  const [, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [problemFilter, setProblemFilter] = useState<string>("all");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [animationKey, setAnimationKey] = useState(0);
+
+  // Get contest problems from context
+  const { contest } = useContest();
+  const problems = contest?.problems || [];
+
+  // Use React Query hook for fetching submissions
+  const { data, isLoading, isFetching, refetch } = useContestSubmissions({
+    contestId: contestId || "",
+    page,
+    pageSize,
+    statusFilter,
+    problemFilter,
+  });
+
+  const submissions = data?.results || [];
+  const totalItems = data?.count || 0;
+
+  // Inject flip animation styles
+  useEffect(() => {
+    const existingStyle = document.getElementById("flip-animation-styles");
+    if (!existingStyle) {
+      const styleEl = document.createElement("style");
+      styleEl.id = "flip-animation-styles";
+      styleEl.textContent = flipAnimationStyles;
+      document.head.appendChild(styleEl);
+    }
+  }, []);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -66,6 +97,13 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
       }
     }
   }, []);
+
+  // Trigger animation when data changes
+  useEffect(() => {
+    if (data) {
+      setAnimationKey((prev) => prev + 1);
+    }
+  }, [data]);
 
   const statusOptions = [
     { id: "all", label: "全部狀態" },
@@ -79,49 +117,8 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
     { id: "judging", label: "評測中" },
   ];
 
-  useEffect(() => {
-    if (contestId) {
-      fetchSubmissions();
-    }
-  }, [contestId, page, pageSize, statusFilter]);
-
-  const fetchSubmissions = async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    try {
-      const params: any = {
-        source_type: "contest",
-        contest: contestId,
-        page: page,
-        page_size: pageSize,
-      };
-
-      if (statusFilter !== "all") {
-        params.status = statusFilter;
-      }
-
-      const data: any = await getSubmissions(params);
-
-      if (Array.isArray(data)) {
-        setSubmissions(data); // data is Submission[] (mapped)
-        setTotalItems(data.length);
-      } else {
-        setSubmissions(data.results);
-        setTotalItems(data.count);
-      }
-    } catch (error) {
-      console.error("Failed to fetch submissions:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   const handleRefresh = () => {
-    fetchSubmissions(true);
+    refetch();
   };
 
   const getStatusBadge = (status: string) => {
@@ -226,15 +223,21 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
       currentUser?.role === "admin" || currentUser?.role === "teacher";
     const canView = isOwner || isAdminOrTeacher;
 
+    // Find problem info from contest problems list
+    const problemInfo = problems.find((p) => p.problemId === sub.problemId);
+    const displayTitle =
+      sub.problemTitle || problemInfo?.title || `Problem ${sub.problemId}`;
+    const displayLabel = problemInfo?.label || "";
+
     return {
       id: sub.id.toString(),
       status: getStatusBadge(sub.status),
       problem: (
         <span style={{ fontWeight: 500 }}>
-          {sub.problemTitle || `Problem ${sub.problemId}`}
+          {displayLabel ? `${displayLabel}. ${displayTitle}` : displayTitle}
         </span>
       ),
-      username: sub.username || "Unknown", // Flattened by mapper
+      username: sub.username || "Unknown",
       language: getLanguageLabel(sub.language),
       score: sub.score ?? 0,
       time: sub.execTime !== undefined ? `${sub.execTime} ms` : "-",
@@ -255,9 +258,12 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
           }}
         />
       ),
-      canView, // Pass to row for click handling
+      canView,
     };
   });
+
+  // Show initial loading state
+  const showSkeleton = isLoading && submissions.length === 0;
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
@@ -273,11 +279,38 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                   gap: "1.5rem",
                 }}
               >
-                <TableToolbarSearch
-                  placeholder="搜尋用戶或題目..."
-                  onChange={(e: any) => setSearchQuery(e.target.value)}
-                  persistent
-                  size="lg"
+                <Dropdown
+                  id="problem-filter"
+                  titleText="題目"
+                  label="選擇題目"
+                  items={[
+                    { id: "all", label: "全部題目" },
+                    ...problems.map((p) => ({
+                      id: p.problemId,
+                      label: `${p.label}. ${p.title}`,
+                    })),
+                  ]}
+                  itemToString={(item: any) => (item ? item.label : "")}
+                  selectedItem={
+                    problemFilter === "all"
+                      ? { id: "all", label: "全部題目" }
+                      : {
+                          id: problemFilter,
+                          label: `${
+                            problems.find((p) => p.problemId === problemFilter)
+                              ?.label || ""
+                          }. ${
+                            problems.find((p) => p.problemId === problemFilter)
+                              ?.title || ""
+                          }`,
+                        }
+                  }
+                  onChange={({ selectedItem }: any) => {
+                    if (selectedItem) {
+                      setProblemFilter(selectedItem.id);
+                      setPage(1);
+                    }
+                  }}
                 />
 
                 <Dropdown
@@ -299,13 +332,13 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
 
                 <Button
                   kind="tertiary"
-                  renderIcon={refreshing ? InlineLoading : Renew}
+                  renderIcon={isFetching ? InlineLoading : Renew}
                   onClick={handleRefresh}
-                  disabled={refreshing}
+                  disabled={isFetching}
                   size="md"
                   style={{ width: "100%" }}
                 >
-                  {refreshing ? "更新中..." : "重新整理"}
+                  {isFetching ? "更新中..." : "重新整理"}
                 </Button>
               </div>
             </ContainerCard>
@@ -314,100 +347,108 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
           {/* Right Column: Table */}
           <div className="cds--col-lg-12 cds--col-md-8">
             <ContainerCard
-              title={loading ? "提交記錄" : `提交記錄 (${totalItems})`}
+              title={showSkeleton ? "提交記錄" : `提交記錄 (${totalItems})`}
               noPadding
             >
-              {loading && submissions.length === 0 ? (
-                // Skeleton loading table
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (
-                          <TableHeader key={header.key}>
-                            {header.header}
-                          </TableHeader>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {Array.from({ length: 10 }).map((_, index) => (
-                        <TableRow key={`skeleton-${index}`}>
+              <div style={{ minHeight: "200px" }}>
+                {showSkeleton ? (
+                  // Skeleton loading table for initial load
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
                           {headers.map((header) => (
-                            <TableCell key={header.key}>
-                              <SkeletonText
-                                width={header.key === "status" ? "50px" : "80%"}
-                              />
-                            </TableCell>
+                            <TableHeader key={header.key}>
+                              {header.header}
+                            </TableHeader>
                           ))}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <DataTable rows={rows} headers={headers}>
-                  {({
-                    rows,
-                    headers,
-                    getTableProps,
-                    getHeaderProps,
-                    getRowProps,
-                  }: any) => (
-                    <TableContainer
-                      title=""
-                      description=""
-                      style={{
-                        backgroundColor: "transparent",
-                        padding: "0",
-                        boxShadow: "none",
-                      }}
-                    >
-                      <Table {...getTableProps()}>
-                        <TableHead>
-                          <TableRow>
-                            {headers.map((header: any) => {
-                              const { key, ...headerProps } = getHeaderProps({
-                                header,
-                              });
+                      </TableHead>
+                      <TableBody>
+                        {Array.from({ length: 10 }).map((_, index) => (
+                          <TableRow key={`skeleton-${index}`}>
+                            {headers.map((header) => (
+                              <TableCell key={header.key}>
+                                <SkeletonText
+                                  width={
+                                    header.key === "status" ? "50px" : "80%"
+                                  }
+                                />
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <DataTable rows={rows} headers={headers}>
+                    {({
+                      rows,
+                      headers,
+                      getTableProps,
+                      getHeaderProps,
+                      getRowProps,
+                    }: any) => (
+                      <TableContainer
+                        title=""
+                        description=""
+                        style={{
+                          backgroundColor: "transparent",
+                          padding: "0",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Table {...getTableProps()}>
+                          <TableHead>
+                            <TableRow>
+                              {headers.map((header: any) => {
+                                const { key, ...headerProps } = getHeaderProps({
+                                  header,
+                                });
+                                return (
+                                  <TableHeader {...headerProps} key={key}>
+                                    {header.header}
+                                  </TableHeader>
+                                );
+                              })}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {rows.map((row: any, rowIndex: number) => {
+                              const { key, ...rowProps } = getRowProps({ row });
                               return (
-                                <TableHeader {...headerProps} key={key}>
-                                  {header.header}
-                                </TableHeader>
+                                <TableRow
+                                  {...rowProps}
+                                  key={`${key}-${animationKey}`}
+                                  onClick={() => {
+                                    if (row.canView) {
+                                      handleSubmissionClick(row.id);
+                                    }
+                                  }}
+                                  style={{
+                                    cursor: row.canView ? "pointer" : "default",
+                                    animation: "flipIn 0.5s ease-out forwards",
+                                    animationDelay: `${rowIndex * 50}ms`,
+                                    opacity: 0,
+                                    transformOrigin: "center top",
+                                  }}
+                                >
+                                  {row.cells.map((cell: any) => (
+                                    <TableCell key={cell.id}>
+                                      {cell.value}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
                               );
                             })}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {rows.map((row: any) => {
-                            const { key, ...rowProps } = getRowProps({ row });
-                            return (
-                              <TableRow
-                                {...rowProps}
-                                key={key}
-                                onClick={() => {
-                                  if (row.canView) {
-                                    handleSubmissionClick(row.id);
-                                  }
-                                }}
-                                style={{
-                                  cursor: row.canView ? "pointer" : "default",
-                                }}
-                              >
-                                {row.cells.map((cell: any) => (
-                                  <TableCell key={cell.id}>
-                                    {cell.value}
-                                  </TableCell>
-                                ))}
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </DataTable>
-              )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </DataTable>
+                )}
+              </div>
 
               <Pagination
                 totalItems={totalItems}

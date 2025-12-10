@@ -32,6 +32,28 @@ if USE_LOCAL_DB:
     }
 else:
     # Use Cloud (Supabase) PostgreSQL
+    # Supabase Pooler 連接優化設置
+    # 
+    # 重要: Supabase 有兩種 Pooler 模式:
+    #
+    # 1. Transaction Mode (port 6543) - 推薦！
+    #    - 每個 transaction 後連接回到池，支援更多併發連接
+    #    - CONN_MAX_AGE 必須設為 0（每次請求後釋放連接）
+    #    - 不支援 prepared statements，但對大多數應用沒影響
+    #
+    # 2. Session Mode (port 5432) - 不推薦用於多 worker 場景
+    #    - 連接數受限於 pool_size（通常 15-20）
+    #    - 使用 CONN_MAX_AGE=None 會讓每個 worker 佔用一個連接
+    #    - 容易出現 "MaxClientsInSessionMode: max clients reached" 錯誤
+    #
+    # 預設使用 Transaction Mode (CONN_MAX_AGE=0)
+    
+    conn_max_age_str = os.getenv('CLOUD_DB_CONN_MAX_AGE', '0')
+    if conn_max_age_str.lower() == 'none':
+        conn_max_age = None  # 持久連接 (僅適用於直連或 Session Mode 少量連接)
+    else:
+        conn_max_age = int(conn_max_age_str)
+    
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('CLOUD_DB_NAME', 'postgres'),
@@ -39,9 +61,16 @@ else:
         'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
         'HOST': os.getenv('CLOUD_DB_HOST', ''),
         'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
-        'CONN_MAX_AGE': 60,
+        'CONN_MAX_AGE': conn_max_age,
         'OPTIONS': {
-            'connect_timeout': 10,
+            'connect_timeout': 5,
+            # TCP Keepalive 設置 - 保持連接活躍，防止被防火牆/NAT 中斷
+            'keepalives': 1,
+            'keepalives_idle': 30,      # 30 秒無活動後開始發送 keepalive
+            'keepalives_interval': 10,  # 每 10 秒發送一次 keepalive
+            'keepalives_count': 5,      # 5 次無回應後視為斷線
+            # SSL 設置 (Supabase 需要 SSL)
+            'sslmode': os.getenv('CLOUD_DB_SSLMODE', 'require'),
         },
     }
 

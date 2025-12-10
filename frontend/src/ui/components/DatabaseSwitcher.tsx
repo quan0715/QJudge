@@ -1,15 +1,15 @@
 /**
  * DatabaseSwitcher Component
- * 
+ *
  * A compact toggle for switching between local and cloud databases.
  * Only visible in development mode for admin users.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Toggle, InlineNotification, InlineLoading, Button } from '@carbon/react';
-import { Renew, CloudUpload, Laptop } from '@carbon/icons-react';
-import { databaseService } from '@/services/databaseService';
-import type { DatabaseStatus } from '@/services/databaseService';
+import { useState, useEffect, useCallback } from "react";
+import { Toggle, InlineNotification, InlineLoading } from "@carbon/react";
+import { CloudUpload, Laptop } from "@carbon/icons-react";
+import { databaseService } from "@/services/databaseService";
+import type { DatabaseStatus } from "@/services/databaseService";
 
 interface DatabaseSwitcherProps {
   isAdmin: boolean;
@@ -19,7 +19,6 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -28,14 +27,14 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
 
   const fetchStatus = useCallback(async () => {
     if (!isDev || !isAdmin) return;
-    
+
     try {
       setLoading(true);
       setError(null);
       const data = await databaseService.getStatus();
       setStatus(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch status');
+      setError(err instanceof Error ? err.message : "Failed to fetch status");
     } finally {
       setLoading(false);
     }
@@ -46,40 +45,34 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
   }, [fetchStatus]);
 
   const handleToggle = async (checked: boolean) => {
-    const targetDb = checked ? 'cloud' : 'default';
-    
+    const targetDb = checked ? "cloud" : "default";
+    const sourceDb = checked ? "default" : "cloud";
+
     try {
       setSwitching(true);
       setError(null);
+
+      // 切換前先同步資料庫
+      setSuccessMessage("同步資料庫中...");
+      await databaseService.syncDatabase(sourceDb, targetDb);
+
+      // 同步完成後切換
+      setSuccessMessage("切換資料庫中...");
       const result = await databaseService.switchDatabase(targetDb);
-      setStatus(prev => prev ? { ...prev, current: result.current } : null);
-      setSuccessMessage(`Switched to ${targetDb === 'cloud' ? 'Cloud' : 'Local'} database`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-      // Reload page to reflect changes
-      window.location.reload();
+      setStatus((prev) => (prev ? { ...prev, current: result.current } : null));
+      setSuccessMessage(
+        `已切換至 ${targetDb === "cloud" ? "雲端" : "本地"} 資料庫`
+      );
+      setTimeout(() => {
+        setSuccessMessage(null);
+        // Reload page to reflect changes
+        window.location.reload();
+      }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to switch');
+      setError(err instanceof Error ? err.message : "Failed to switch");
+      setSuccessMessage(null);
     } finally {
       setSwitching(false);
-    }
-  };
-
-  const handleSync = async () => {
-    if (!status) return;
-    
-    const source = status.current;
-    const target = source === 'default' ? 'cloud' : 'default';
-    
-    try {
-      setSyncing(true);
-      setError(null);
-      const result = await databaseService.syncDatabase(source, target);
-      setSuccessMessage(result.message);
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sync');
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -90,15 +83,15 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
 
   if (loading) {
     return (
-      <div style={{ padding: '0.5rem 1rem' }}>
-        <InlineLoading description="Loading database status..." />
+      <div style={{ padding: "0.5rem 1rem" }}>
+        <InlineLoading description="載入中..." />
       </div>
     );
   }
 
   if (error && !status) {
     return (
-      <div style={{ padding: '0.5rem' }}>
+      <div style={{ padding: "0.5rem" }}>
         <InlineNotification
           kind="error"
           title="DB Error"
@@ -110,38 +103,46 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
     );
   }
 
-  const isCloud = status?.current === 'cloud';
+  const isCloud = status?.current === "cloud";
   const currentDbStatus = status?.status?.[status.current];
 
   return (
-    <div style={{ 
-      padding: '0.75rem 1rem',
-      borderBottom: '1px solid var(--cds-border-subtle)',
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '0.5rem',
-        marginBottom: '0.5rem'
-      }}>
+    <div
+      style={{
+        padding: "0.75rem 1rem",
+        borderBottom: "1px solid var(--cds-border-subtle)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          marginBottom: "0.5rem",
+        }}
+      >
         {isCloud ? <CloudUpload size={16} /> : <Laptop size={16} />}
-        <span style={{ 
-          fontSize: '0.75rem', 
-          fontWeight: 600,
-          color: 'var(--cds-text-secondary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.32px'
-        }}>
+        <span
+          style={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "var(--cds-text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.32px",
+          }}
+        >
           Database
         </span>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        gap: '0.5rem'
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.5rem",
+        }}
+      >
         <Toggle
           id="db-toggle"
           size="sm"
@@ -149,52 +150,43 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
           labelB="Cloud"
           toggled={isCloud}
           onToggle={handleToggle}
-          disabled={switching || syncing}
-        />
-        
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          renderIcon={Renew}
-          iconDescription="Sync databases"
-          onClick={handleSync}
-          disabled={switching || syncing}
+          disabled={switching}
         />
       </div>
 
       {/* Connection status indicator */}
-      <div style={{ 
-        marginTop: '0.5rem',
-        fontSize: '0.75rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.25rem'
-      }}>
-        <span style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          backgroundColor: currentDbStatus?.connected 
-            ? 'var(--cds-support-success)' 
-            : 'var(--cds-support-error)',
-        }} />
-        <span style={{ color: 'var(--cds-text-secondary)' }}>
-          {currentDbStatus?.connected ? 'Connected' : 'Disconnected'}
-          {currentDbStatus?.host && ` • ${currentDbStatus.host.substring(0, 20)}...`}
+      <div
+        style={{
+          marginTop: "0.5rem",
+          fontSize: "0.75rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.25rem",
+        }}
+      >
+        <span
+          style={{
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            backgroundColor: currentDbStatus?.connected
+              ? "var(--cds-support-success)"
+              : "var(--cds-support-error)",
+          }}
+        />
+        <span style={{ color: "var(--cds-text-secondary)" }}>
+          {currentDbStatus?.connected ? "Connected" : "Disconnected"}
         </span>
       </div>
 
-      {(switching || syncing) && (
-        <div style={{ marginTop: '0.5rem' }}>
-          <InlineLoading 
-            description={switching ? 'Switching...' : 'Syncing...'} 
-          />
+      {switching && (
+        <div style={{ marginTop: "0.5rem" }}>
+          <InlineLoading description={successMessage || "處理中..."} />
         </div>
       )}
 
       {error && (
-        <div style={{ marginTop: '0.5rem' }}>
+        <div style={{ marginTop: "0.5rem" }}>
           <InlineNotification
             kind="error"
             title="Error"
@@ -205,8 +197,8 @@ export const DatabaseSwitcher = ({ isAdmin }: DatabaseSwitcherProps) => {
         </div>
       )}
 
-      {successMessage && (
-        <div style={{ marginTop: '0.5rem' }}>
+      {successMessage && !switching && (
+        <div style={{ marginTop: "0.5rem" }}>
           <InlineNotification
             kind="success"
             title="Success"

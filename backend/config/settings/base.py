@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # Local apps
+    'apps.core',
     'apps.users',
     'apps.problems',
     'apps.submissions',
@@ -69,6 +70,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database Configuration
 # default: Local Docker PostgreSQL (development)
 # cloud: Supabase Cloud PostgreSQL (production/testing)
+
+# 雲端資料庫連接存活時間設置
+# 預設為 0（Transaction Mode），避免 Session Mode 的 MaxClientsInSessionMode 錯誤
+_cloud_conn_max_age_str = os.getenv('CLOUD_DB_CONN_MAX_AGE', '0')
+if _cloud_conn_max_age_str.lower() == 'none':
+    _cloud_conn_max_age = None  # 持久連接（僅適用於直連或低併發場景）
+else:
+    _cloud_conn_max_age = int(_cloud_conn_max_age_str)
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -85,6 +95,17 @@ DATABASES = {
         'PASSWORD': os.getenv('CLOUD_DB_PASSWORD', ''),
         'HOST': os.getenv('CLOUD_DB_HOST', ''),
         'PORT': os.getenv('CLOUD_DB_PORT', '5432'),
+        'CONN_MAX_AGE': _cloud_conn_max_age,
+        'OPTIONS': {
+            'connect_timeout': 5,
+            # TCP Keepalive - 保持連接活躍
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+            # SSL 設置
+            'sslmode': os.getenv('CLOUD_DB_SSLMODE', 'require'),
+        },
     }
 }
 

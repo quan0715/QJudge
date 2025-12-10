@@ -4,6 +4,7 @@ API views for database management.
 These endpoints are only available in development mode (DEBUG=True)
 and require admin user permissions.
 """
+import time
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
@@ -34,19 +35,33 @@ class DatabaseStatusView(APIView):
         current = request.session.get('db_alias', 'default')
         available = list(settings.DATABASES.keys())
         
-        # Check connection status for each database
+        # Check connection status and measure latency for each database
         db_status = {}
         for db_name in available:
             try:
                 conn = connections[db_name]
+                
+                # Measure connection + query latency
+                start_time = time.time()
                 conn.ensure_connection()
+                
+                # Execute a simple query to measure actual latency
+                with conn.cursor() as cursor:
+                    cursor.execute('SELECT 1')
+                    cursor.fetchone()
+                
+                latency_ms = round((time.time() - start_time) * 1000, 2)
+                
                 db_status[db_name] = {
                     'connected': True,
                     'host': settings.DATABASES[db_name].get('HOST', 'unknown'),
+                    'database': settings.DATABASES[db_name].get('NAME', 'unknown'),
+                    'latency_ms': latency_ms,
                 }
             except Exception as e:
                 db_status[db_name] = {
                     'connected': False,
+                    'host': settings.DATABASES[db_name].get('HOST', 'unknown'),
                     'error': str(e),
                 }
         

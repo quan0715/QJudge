@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Button, InlineLoading, SkeletonText } from "@carbon/react";
+import { Button, InlineLoading, DataTableSkeleton } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useContest } from "@/domains/contest/contexts/ContestContext";
 import ContestScoreboard from "@/domains/contest/components/ContestScoreboard";
@@ -18,8 +18,13 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   maxWidth,
 }) => {
   // Use standings from context - no local fetch needed
-  const { contest, scoreboardData, isRefreshing, refreshStandings } =
-    useContest();
+  const {
+    contest,
+    scoreboardData,
+    standingsLoading,
+    isRefreshing,
+    refreshStandings,
+  } = useContest();
 
   // Transform ScoreboardData to ContestScoreboard format
   const problems: ProblemInfo[] = useMemo(() => {
@@ -64,7 +69,26 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
     }));
   }, [scoreboardData?.rows]);
 
-  const loading = !contest;
+  const loading = !contest || standingsLoading;
+
+  // Skeleton for table loading
+  const renderSkeleton = () => (
+    <DataTableSkeleton
+      columnCount={7}
+      rowCount={10}
+      headers={[
+        { key: "rank", header: "排名" },
+        { key: "user", header: "參賽者" },
+        { key: "solved", header: "解題數" },
+        { key: "penalty", header: "罰時" },
+        { key: "p1", header: "A" },
+        { key: "p2", header: "B" },
+        { key: "p3", header: "C" },
+      ]}
+      showHeader
+      showToolbar={false}
+    />
+  );
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
@@ -97,12 +121,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                   20分鐘/錯誤嘗試）。
                 </p>
                 {loading ? (
-                  <div style={{ padding: "1rem 0" }}>
-                    <div style={{ marginBottom: "1rem" }}>
-                      <SkeletonText heading width="30%" />
-                    </div>
-                    <SkeletonText paragraph lineCount={8} />
-                  </div>
+                  renderSkeleton()
                 ) : (
                   <ContestScoreboard
                     problems={problems}
