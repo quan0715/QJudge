@@ -24,6 +24,7 @@ export interface ProblemInfo {
 
 export interface ProblemStats {
   status: "AC" | "WA" | "attempted" | null;
+  score?: number; // Score for AC submissions
   tries: number;
   time: number;
   pending: boolean;
@@ -60,7 +61,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
 }) => {
   const getCellColor = (stats: ProblemStats) => {
     if (stats.status === "AC") return "rgba(36, 161, 72, 0.2)"; // Green 20%
-    if (stats.status === "WA") return "rgba(218, 30, 40, 0.2)"; // Red 20%
+    if (stats.status === "WA") {
+      // Partial score: use yellow/orange tint
+      if (stats.score && stats.score > 0) return "rgba(241, 194, 27, 0.2)"; // Yellow 20%
+      return "rgba(218, 30, 40, 0.2)"; // Red 20%
+    }
     if (stats.pending) return "rgba(241, 194, 27, 0.2)"; // Yellow 20%
     if (stats.tries > 0) return "rgba(218, 30, 40, 0.1)"; // Red 10%
     return "transparent";
@@ -124,7 +129,9 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
         stats.status === "AC"
           ? "var(--cds-support-success)"
           : stats.status === "WA"
-          ? "var(--cds-support-error)"
+          ? stats.score && stats.score > 0
+            ? "var(--cds-support-warning)" // Partial score: warning color
+            : "var(--cds-support-error)"
           : stats.pending
           ? "var(--cds-support-warning)"
           : "var(--cds-text-secondary)";
@@ -159,10 +166,10 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                   color: statusColor,
                 }}
               >
-                {problemScore > 0 ? `${problemScore}` : "AC"}
+                AC
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {stats.tries === 1 ? "1 try" : `${stats.tries} tries`}
+                {stats.score || problemScore || 0} pts
               </div>
             </>
           )}
@@ -175,11 +182,14 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                   color: statusColor,
                 }}
               >
-                {" "}
-                WA{" "}
+                {stats.score && stats.score > 0 ? `${stats.score}` : "WA"}
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {stats.tries === 1 ? "1 try" : `${stats.tries} tries`}
+                {stats.score && stats.score > 0
+                  ? "partial"
+                  : stats.tries === 1
+                  ? "1 try"
+                  : `${stats.tries} tries`}
               </div>
             </>
           )}

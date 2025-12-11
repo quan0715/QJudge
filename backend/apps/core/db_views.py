@@ -67,6 +67,7 @@ class DatabaseStatusView(APIView):
     def post(self, request):
         """Switch to a different database."""
         db_alias = request.data.get('database', 'default')
+        run_migrations = request.data.get('run_migrations', True)  # Default: run migrations
         
         if db_alias not in settings.DATABASES:
             return Response(
@@ -84,13 +85,37 @@ class DatabaseStatusView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+        migration_output = None
+        
+        # Run migrations on target database before switching
+        if run_migrations:
+            try:
+                migrate_stdout = StringIO()
+                call_command(
+                    'migrate',
+                    database=db_alias,
+                    verbosity=1,
+                    stdout=migrate_stdout,
+                )
+                migration_output = migrate_stdout.getvalue()
+            except Exception as e:
+                return Response(
+                    {'error': f'Migration failed on {db_alias}: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
         # Store preference in session
         request.session['db_alias'] = db_alias
         
-        return Response({
+        response_data = {
             'current': db_alias,
             'message': f'Switched to {db_alias} database',
-        })
+        }
+        
+        if migration_output:
+            response_data['migrations'] = migration_output
+        
+        return Response(response_data)
 
 
 class DatabaseSyncView(APIView):
@@ -106,6 +131,7 @@ class DatabaseSyncView(APIView):
         source = request.data.get('source', 'default')
         target = request.data.get('target', 'cloud')
         apps = request.data.get('apps', None)  # None = all apps
+        run_migrations = request.data.get('run_migrations', True)  # Default: run migrations
         
         # Validate databases
         for db in [source, target]:
@@ -132,7 +158,19 @@ class DatabaseSyncView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         
+        migration_output = None
+        
         try:
+            # Run migrations on target database before syncing
+            if run_migrations:
+                migrate_stdout = StringIO()
+                call_command(
+                    'migrate',
+                    database=target,
+                    verbosity=1,
+                    stdout=migrate_stdout,
+                )
+                migration_output = migrate_stdout.getvalue()
             # Prepare app list
             if apps:
                 if isinstance(apps, str):
@@ -174,12 +212,18 @@ class DatabaseSyncView(APIView):
             finally:
                 os.unlink(temp_file)
             
-            return Response({
+            response_data = {
                 'message': f'Successfully synced {len(app_list)} apps from {source} to {target}',
                 'apps': app_list,
                 'source': source,
                 'target': target,
-            })
+            }
+            
+            # Include migration info if migrations were run
+            if migration_output:
+                response_data['migrations'] = migration_output
+            
+            return Response(response_data)
             
         except Exception as e:
             return Response(

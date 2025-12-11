@@ -9,6 +9,10 @@
 
 import { execSync } from "child_process";
 import * as path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function globalTeardown() {
   console.log("\n🧹 Cleaning up E2E test environment...\n");

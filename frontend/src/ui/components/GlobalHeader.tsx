@@ -237,10 +237,10 @@ export const GlobalHeader = () => {
                 Contests
               </SwitcherItem>
               <SwitcherItem
-                aria-label="Leaderboard"
-                onClick={() => navigate("/ranking")}
+                aria-label="Submissions"
+                onClick={() => navigate("/submissions")}
               >
-                Leaderboard
+                Submissions
               </SwitcherItem>
 
               {(user?.role === "admin" || user?.role === "teacher") && (
@@ -276,7 +276,7 @@ export const GlobalHeader = () => {
                 <>
                   <SwitcherItem
                     aria-label="User Management"
-                    onClick={() => navigate("/admin/users")}
+                    onClick={() => navigate("/system/users")}
                   >
                     User Management
                   </SwitcherItem>
@@ -289,8 +289,8 @@ export const GlobalHeader = () => {
                 </>
               )}
 
-              {/* Development Tools - Only visible in dev mode for admin users */}
-              {user?.role === "admin" && import.meta.env.DEV && (
+              {/* Admin Tools - Environment settings (available in all environments for admin) */}
+              {user?.role === "admin" && (
                 <>
                   <SwitcherDivider />
                   <li className="cds--switcher__item">
@@ -301,13 +301,13 @@ export const GlobalHeader = () => {
                         color: "var(--cds-text-secondary)",
                       }}
                     >
-                      Development
+                      System
                     </span>
                   </li>
                   {/* Environment Page Link */}
                   <SwitcherItem
                     aria-label="Environment"
-                    onClick={() => navigate("/admin/environment")}
+                    onClick={() => navigate("/system/environment")}
                   >
                     <div
                       style={{

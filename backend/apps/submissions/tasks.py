@@ -1,5 +1,8 @@
 """
 Celery tasks for submissions app.
+Supports priority queues:
+- high_priority: Contest submissions (processed first)
+- default: Practice submissions
 """
 import time
 from celery import shared_task
@@ -26,10 +29,29 @@ class MockTestCase:
         self.id = f"custom_{order}"
         self.order = order
 
-@shared_task
+
+@shared_task(queue='high_priority')
+def judge_contest_submission(submission_id):
+    """
+    High priority task to judge contest submissions.
+    Uses the high_priority queue for faster processing.
+    """
+    return _judge_submission_impl(submission_id)
+
+
+@shared_task(queue='default')
 def judge_submission(submission_id):
     """
-    Task to judge a submission using Docker-based C++ execution
+    Default priority task to judge practice submissions.
+    Uses the default queue.
+    """
+    return _judge_submission_impl(submission_id)
+
+
+def _judge_submission_impl(submission_id):
+    """
+    Internal implementation of submission judging using Docker-based execution.
+    Shared by both high_priority and default queue tasks.
     """
     try:
         submission = Submission.objects.get(id=submission_id)

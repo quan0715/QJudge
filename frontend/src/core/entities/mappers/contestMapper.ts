@@ -111,6 +111,7 @@ export function mapScoreboardRowDto(dto: any): ScoreboardRow {
     userId: dto.user_id?.toString() || "",
     displayName: dto.display_name || "",
     solvedCount: dto.solved_count || 0,
+    totalScore: dto.total_score || 0,
     penalty: dto.penalty || 0,
     rank: dto.rank || 0,
     problems: dto.problems || {},
@@ -144,6 +145,7 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
           display_name: s.display_name, // Pass original for compatibility if needed
           solved: s.solved || 0,
           solvedCount: s.solved || 0,
+          totalScore: s.total_score || 0,
           total_score: s.total_score || 0,
           time: s.time || 0,
           penalty: s.time || 0,

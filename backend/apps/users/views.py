@@ -1,5 +1,10 @@
 """
 Views for user authentication and management.
+
+Security:
+- JWT tokens are stored in HttpOnly cookies to prevent XSS attacks.
+- CSRF protection is enforced for cookie-authenticated state-changing requests.
+- Authorization header authentication is exempt from CSRF (tokens aren't sent automatically).
 """
 import secrets
 from rest_framework import status, generics
@@ -7,10 +12,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django_ratelimit.decorators import ratelimit
 
 from .serializers import (
     UserSerializer,
@@ -23,14 +30,17 @@ from .serializers import (
 )
 from .services import EmailAuthService, NYCUOAuthService, JWTService
 from .permissions import IsSuperAdmin
+from .authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
 
 User = get_user_model()
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
 class RegisterView(APIView):
     """
     User registration with email/password.
+    Rate limited to 5 requests per minute per IP.
     
     POST /api/v1/auth/email/register
     """
@@ -58,7 +68,7 @@ class RegisterView(APIView):
             # Generate tokens
             tokens = JWTService.generate_tokens(user)
             
-            return Response({
+            response = Response({
                 'success': True,
                 'data': {
                     **JWTService.get_user_response_data(user, tokens)['data'],
@@ -66,6 +76,11 @@ class RegisterView(APIView):
                 },
                 'message': '註冊成功,請檢查您的Email以驗證帳號'
             }, status=status.HTTP_201_CREATED)
+            
+            # Set tokens in HttpOnly cookies
+            set_jwt_cookies(response, tokens)
+            
+            return response
             
         except Exception as e:
             return Response({
@@ -78,11 +93,18 @@ class RegisterView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(APIView):
     """
     User login with email/password.
+    Rate limited to 10 requests per minute per IP.
     
     POST /api/v1/auth/email/login
+    
+    Response includes:
+    - JWT tokens in HttpOnly cookies (access_token, refresh_token)
+    - CSRF token in a readable cookie (csrftoken) for subsequent requests
     """
     permission_classes = [AllowAny]
     
@@ -114,7 +136,12 @@ class LoginView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         tokens = JWTService.generate_tokens(user)
-        return Response(JWTService.get_user_response_data(user, tokens))
+        response = Response(JWTService.get_user_response_data(user, tokens))
+        
+        # Set tokens in HttpOnly cookies
+        set_jwt_cookies(response, tokens)
+        
+        return response
 
 
 class NYCUOAuthLoginView(APIView):
@@ -143,12 +170,15 @@ class NYCUOAuthLoginView(APIView):
 
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator([csrf_exempt, ensure_csrf_cookie], name='dispatch')
 class NYCUOAuthCallbackView(APIView):
     """
     Handle NYCU OAuth callback.
     
     POST /api/v1/auth/nycu-oauth/callback
+    
+    Note: csrf_exempt is needed because this receives external OAuth callback.
+    ensure_csrf_cookie ensures the response includes CSRF token for subsequent requests.
     """
     permission_classes = [AllowAny]
     
@@ -178,7 +208,12 @@ class NYCUOAuthCallbackView(APIView):
             # Generate JWT tokens
             tokens = JWTService.generate_tokens(user)
             
-            return Response(JWTService.get_user_response_data(user, tokens))
+            response = Response(JWTService.get_user_response_data(user, tokens))
+            
+            # Set tokens in HttpOnly cookies
+            set_jwt_cookies(response, tokens)
+            
+            return response
             
         except Exception as e:
             return Response({
@@ -191,16 +226,24 @@ class NYCUOAuthCallbackView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class TokenRefreshView(APIView):
     """
     Refresh access token.
     
     POST /api/v1/auth/refresh
+    
+    Token can be provided via:
+    1. HttpOnly cookie (preferred, more secure)
+    2. Request body with 'refresh' field (for API clients)
+    
+    Note: ensure_csrf_cookie ensures updated CSRF token is provided.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        # Try to get refresh token from cookie first, then from body
+        refresh_token = get_refresh_token_from_cookie(request) or request.data.get('refresh')
         
         if not refresh_token:
             return Response({
@@ -215,20 +258,85 @@ class TokenRefreshView(APIView):
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
             
-            return Response({
+            # Create new tokens dict for cookie update
+            tokens = {
+                'access': access_token,
+                'refresh': str(refresh),  # Keep same refresh token
+            }
+            
+            response = Response({
                 'success': True,
                 'data': {
                     'access_token': access_token,
                 }
             })
+            
+            # Update access token in cookie
+            set_jwt_cookies(response, tokens)
+            
+            return response
         except Exception as e:
-            return Response({
+            response = Response({
                 'success': False,
                 'error': {
                     'code': 'INVALID_TOKEN',
                     'message': 'Refresh token 無效或已過期'
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Clear invalid cookies
+            clear_jwt_cookies(response)
+            
+            return response
+
+
+class LogoutView(APIView):
+    """
+    Logout user by blacklisting their refresh token and clearing cookies.
+    This invalidates both access and refresh tokens.
+    
+    POST /api/v1/auth/logout
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Try to get refresh token from cookie first, then from body
+            refresh_token = get_refresh_token_from_cookie(request) or request.data.get('refresh')
+            
+            if refresh_token:
+                # Blacklist the specific refresh token
+                try:
+                    token = RefreshToken(refresh_token)
+                    token.blacklist()
+                except Exception:
+                    pass
+            else:
+                # Blacklist all outstanding tokens for this user
+                tokens = OutstandingToken.objects.filter(user=request.user)
+                for token in tokens:
+                    try:
+                        BlacklistedToken.objects.get_or_create(token=token)
+                    except Exception:
+                        pass
+            
+            response = Response({
+                'success': True,
+                'message': '登出成功'
+            })
+            
+            # Clear JWT cookies
+            clear_jwt_cookies(response)
+            
+            return response
+        except Exception as e:
+            # Even if blacklisting fails, clear cookies and consider logout successful
+            response = Response({
+                'success': True,
+                'message': '登出成功'
+            })
+            clear_jwt_cookies(response)
+            return response
 
 
 class CurrentUserView(APIView):
