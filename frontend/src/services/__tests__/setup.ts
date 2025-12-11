@@ -9,7 +9,11 @@
  */
 
 // API Base URL for test environment
-export const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8001";
+// Use import.meta.env for Vite compatibility
+export const API_BASE_URL =
+  (import.meta.env?.VITE_API_BASE_URL as string) ||
+  (import.meta.env?.API_BASE_URL as string) ||
+  "http://localhost:8001";
 
 // Test credentials
 export const TEST_USERS = {
@@ -93,7 +97,7 @@ export async function authenticatedRequest(
  */
 export async function isBackendAvailable(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/auth/email/login`, {
+    await fetch(`${API_BASE_URL}/api/v1/auth/email/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: "test@test.com", password: "test" }),
