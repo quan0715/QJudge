@@ -47,6 +47,40 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 - PostgreSQL 資料庫存儲
 - Redis 快取和任務佇列
 
+### 畫面呈現 (文字等待補上)
+
+<img width="1916" height="983" alt="image" src="https://github.com/user-attachments/assets/767844d2-e6da-48dc-9e28-689fb3b266c6" />
+
+<img width="1912" height="988" alt="image" src="https://github.com/user-attachments/assets/db9ae66c-ab66-42db-ae6f-c89b03c49a1f" />
+
+<img width="1914" height="989" alt="image" src="https://github.com/user-attachments/assets/4f4ed108-93d1-41f7-9655-80ecc542370c" />
+
+<img width="1915" height="987" alt="image" src="https://github.com/user-attachments/assets/26b999a2-abde-45cc-a5c9-8eae913e194e" />
+
+<img width="1916" height="986" alt="image" src="https://github.com/user-attachments/assets/ffd51edb-1137-4cc4-b199-8b1d627cd501" />
+
+<img width="1912" height="987" alt="image" src="https://github.com/user-attachments/assets/c13ae157-30fd-41f9-ac54-81e6fde1a32d" />
+
+<img width="1914" height="989" alt="image" src="https://github.com/user-attachments/assets/705a32c4-3d9a-44d2-801d-f32ce105280e" />
+
+<img width="1911" height="988" alt="image" src="https://github.com/user-attachments/assets/caca0bb1-79c0-4f00-9032-9ba578548ef5" />
+<img width="1915" height="987" alt="image" src="https://github.com/user-attachments/assets/41366998-a9b1-4465-9e34-25b3edc48990" />
+
+<img width="1916" height="989" alt="image" src="https://github.com/user-attachments/assets/a40aa636-7bab-4336-be09-6002c051e4b3" />
+
+<img width="1914" height="985" alt="image" src="https://github.com/user-attachments/assets/d6fdf5ae-2c28-4959-a67c-ec25e83718c2" />
+
+<img width="1917" height="988" alt="image" src="https://github.com/user-attachments/assets/665e8f07-53ea-448d-9936-f6a4826f7b3a" />
+
+<img width="1913" height="988" alt="image" src="https://github.com/user-attachments/assets/4d7108ca-bbb7-4a1e-a356-7a3179be3159" />
+
+<img width="1916" height="1078" alt="image" src="https://github.com/user-attachments/assets/348ee3dd-137e-4620-ac65-b62441dbf516" />
+
+<img width="1918" height="986" alt="image" src="https://github.com/user-attachments/assets/9eebc9c0-f201-48a4-8673-75f04ce1c545" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f4ecc587-13c2-4ea0-a063-a67b9137de00" />
+
+<img width="1914" height="985" alt="image" src="https://github.com/user-attachments/assets/c89e3953-7ebf-4c00-b8a2-bcc611e93f97" />
 ---
 
 ## 📚 文件導覽
