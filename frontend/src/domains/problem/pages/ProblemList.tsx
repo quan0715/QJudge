@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Pagination,
   Grid,
@@ -12,6 +13,8 @@ import type { ProblemRowData } from '../components/ProblemTable';
 import { PageHeader } from '@/ui/layout/PageHeader';
 
 const ProblemList = () => {
+  const { t } = useTranslation('problem');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +51,8 @@ const ProblemList = () => {
          <Grid>
             <Column lg={16} md={8} sm={4}>
                  <PageHeader 
-                    title="題目列表"
-                    subtitle="挑戰各種難度的程式設計問題，提升你的演算法能力。"
+                    title={t('list.title')}
+                    subtitle={t('list.subtitle')}
                  />
 
                  <ProblemTable
@@ -65,9 +68,9 @@ const ProblemList = () => {
 
                   <Pagination
                     totalItems={problems.length}
-                    backwardText="上一頁"
-                    forwardText="下一頁"
-                    itemsPerPageText="每頁顯示"
+                    backwardText={tc('pagination.previous')}
+                    forwardText={tc('pagination.next')}
+                    itemsPerPageText={tc('pagination.itemsPerPage')}
                     page={page}
                     pageSize={pageSize}
                     pageSizes={[10, 20, 50]}

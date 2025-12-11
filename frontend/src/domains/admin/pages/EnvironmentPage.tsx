@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Grid,
   Column,
@@ -31,42 +32,45 @@ import type { DatabaseStatus } from "@/services/databaseService";
 
 // 延遲等級定義
 const getLatencyLevel = (
-  latency: number | undefined
+  latency: number | undefined,
+  t: (key: string) => string
 ): {
   label: string;
   color: string;
   status: "active" | "finished" | "error";
 } => {
   if (latency === undefined)
-    return { label: "未知", color: "gray", status: "active" };
+    return { label: t("environment.latencyLevel.unknown"), color: "gray", status: "active" };
   if (latency < 50)
     return {
-      label: "極佳",
+      label: t("environment.latencyLevel.excellent"),
       color: "var(--cds-support-success)",
       status: "finished",
     };
   if (latency < 100)
     return {
-      label: "良好",
+      label: t("environment.latencyLevel.good"),
       color: "var(--cds-support-success)",
       status: "finished",
     };
   if (latency < 200)
     return {
-      label: "普通",
+      label: t("environment.latencyLevel.normal"),
       color: "var(--cds-support-warning)",
       status: "active",
     };
   if (latency < 500)
     return {
-      label: "較慢",
+      label: t("environment.latencyLevel.slow"),
       color: "var(--cds-support-warning)",
       status: "active",
     };
-  return { label: "很慢", color: "var(--cds-support-error)", status: "error" };
+  return { label: t("environment.latencyLevel.verySlow"), color: "var(--cds-support-error)", status: "error" };
 };
 
 export const EnvironmentPage = () => {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
@@ -96,12 +100,11 @@ export const EnvironmentPage = () => {
     const targetDb = checked ? "cloud" : "default";
     const sourceDb = checked ? "default" : "cloud";
 
+    const sourceLabel = sourceDb === "default" ? t("environment.local") : t("environment.cloud");
+    const targetLabel = targetDb === "cloud" ? t("environment.cloud") : t("environment.local");
+    
     // 確認切換
-    const confirmMessage = `切換前會將資料從 ${
-      sourceDb === "default" ? "本地" : "雲端"
-    } 同步到 ${
-      targetDb === "cloud" ? "雲端" : "本地"
-    }。\n\n（自動執行資料庫遷移）\n\n確定要繼續嗎？`;
+    const confirmMessage = t("environment.confirmSwitch", { source: sourceLabel, target: targetLabel });
     if (!confirm(confirmMessage)) return;
 
     try {
@@ -109,20 +112,20 @@ export const EnvironmentPage = () => {
       setError(null);
 
       // Step 1: 同步資料庫 (includes migrations)
-      setSwitchProgress("執行資料庫遷移與同步中...");
+      setSwitchProgress(t("environment.switchProgress"));
       const syncResult = await databaseService.syncDatabase(sourceDb, targetDb);
 
       // Step 2: 切換資料庫
-      setSwitchProgress("切換資料庫中...");
+      setSwitchProgress(t("environment.switching"));
       const result = await databaseService.switchDatabase(targetDb);
       setStatus((prev) => (prev ? { ...prev, current: result.current } : null));
 
       setSwitchProgress(null);
 
       // Build success message with migration info
-      let message = `已切換至 ${targetDb === "cloud" ? "雲端" : "本地"} 資料庫`;
+      let message = t("environment.switchSuccess", { target: targetLabel });
       if (syncResult.migrations && syncResult.migrations.includes("Applying")) {
-        message += " (已執行資料庫遷移)";
+        message = t("environment.switchSuccessWithMigration", { target: targetLabel });
       }
       setSuccessMessage(message);
 
@@ -140,11 +143,10 @@ export const EnvironmentPage = () => {
   };
 
   const handleSync = async (source: string, target: string) => {
-    const confirmMessage = `確定要將資料從 ${
-      source === "default" ? "本地" : "雲端"
-    } 同步到 ${
-      target === "cloud" ? "雲端" : "本地"
-    } 嗎？\n\n（自動執行資料庫遷移）\n\n這會覆蓋目標資料庫的資料。`;
+    const sourceLabel = source === "default" ? t("environment.local") : t("environment.cloud");
+    const targetLabel = target === "cloud" ? t("environment.cloud") : t("environment.local");
+    
+    const confirmMessage = t("environment.confirmSync", { source: sourceLabel, target: targetLabel });
     if (!confirm(confirmMessage)) return;
 
     try {
@@ -155,7 +157,7 @@ export const EnvironmentPage = () => {
       // Build success message with migration info
       let message = result.message;
       if (result.migrations && result.migrations.includes("Applying")) {
-        message += " (已執行資料庫遷移)";
+        message = t("environment.switchSuccessWithMigration", { target: targetLabel });
       }
       setSuccessMessage(message);
       setTimeout(() => setSuccessMessage(null), 5000);
@@ -169,15 +171,15 @@ export const EnvironmentPage = () => {
   const isCloud = status?.current === "cloud";
   const localStatus = status?.status?.default;
   const cloudStatus = status?.status?.cloud;
-  const localLatency = getLatencyLevel(localStatus?.latency_ms);
-  const cloudLatency = getLatencyLevel(cloudStatus?.latency_ms);
+  const localLatency = getLatencyLevel(localStatus?.latency_ms, t);
+  const cloudLatency = getLatencyLevel(cloudStatus?.latency_ms, t);
 
   return (
     <Grid className="cds--grid--full-width" style={{ padding: "2rem" }}>
       <Column lg={16} md={8} sm={4}>
-        <h1 style={{ marginBottom: "0.5rem" }}>環境管理</h1>
+        <h1 style={{ marginBottom: "0.5rem" }}>{t("environment.title")}</h1>
         <p style={{ color: "var(--cds-text-secondary)", marginBottom: "2rem" }}>
-          管理資料庫連接與同步操作
+          {t("environment.subtitle")}
         </p>
       </Column>
 
@@ -186,7 +188,7 @@ export const EnvironmentPage = () => {
         <Column lg={16} md={8} sm={4} style={{ marginBottom: "1rem" }}>
           <InlineNotification
             kind="error"
-            title="錯誤"
+            title={tc("message.error")}
             subtitle={error}
             onCloseButtonClick={() => setError(null)}
           />
@@ -197,7 +199,7 @@ export const EnvironmentPage = () => {
         <Column lg={16} md={8} sm={4} style={{ marginBottom: "1rem" }}>
           <InlineNotification
             kind="success"
-            title="成功"
+            title={tc("message.success")}
             subtitle={successMessage}
             onCloseButtonClick={() => setSuccessMessage(null)}
           />
@@ -208,7 +210,7 @@ export const EnvironmentPage = () => {
       <Column lg={8} md={8} sm={4} style={{ marginBottom: "1rem" }}>
         <Tile style={{ height: "100%" }}>
           <div style={{ marginBottom: "1rem" }}>
-            <h4 style={{ marginBottom: "0.5rem" }}>目前使用的資料庫</h4>
+            <h4 style={{ marginBottom: "0.5rem" }}>{t("environment.currentDatabase")}</h4>
             {loading ? (
               <SkeletonText />
             ) : (
@@ -221,7 +223,7 @@ export const EnvironmentPage = () => {
               >
                 {isCloud ? <CloudUpload size={24} /> : <Laptop size={24} />}
                 <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-                  {isCloud ? "雲端資料庫 (Cloud)" : "本地資料庫 (Local)"}
+                  {isCloud ? t("environment.cloudDatabase") : t("environment.localDatabase")}
                 </span>
                 <Tag type={isCloud ? "blue" : "green"}>
                   {isCloud ? "Supabase" : "Docker"}
@@ -233,9 +235,9 @@ export const EnvironmentPage = () => {
           <div style={{ marginTop: "1.5rem" }}>
             <Toggle
               id="db-toggle"
-              labelText="資料庫切換（切換前會自動同步）"
-              labelA="本地"
-              labelB="雲端"
+              labelText={t("environment.databaseSwitch")}
+              labelA={t("environment.local")}
+              labelB={t("environment.cloud")}
               toggled={isCloud}
               onToggle={handleToggle}
               disabled={loading || switching || syncing}
@@ -256,14 +258,14 @@ export const EnvironmentPage = () => {
       {/* Refresh Button */}
       <Column lg={8} md={8} sm={4} style={{ marginBottom: "1rem" }}>
         <Tile style={{ height: "100%" }}>
-          <h4 style={{ marginBottom: "1rem" }}>操作</h4>
+          <h4 style={{ marginBottom: "1rem" }}>{t("environment.operations")}</h4>
           <Button
             kind="tertiary"
             renderIcon={Renew}
             onClick={fetchStatus}
             disabled={loading}
           >
-            重新整理狀態
+            {t("environment.refreshStatus")}
           </Button>
         </Tile>
       </Column>
@@ -280,7 +282,7 @@ export const EnvironmentPage = () => {
             }}
           >
             <Time size={20} />
-            <h4>連線延遲</h4>
+            <h4>{t("environment.connectionLatency")}</h4>
           </div>
 
           {loading ? (
@@ -317,7 +319,7 @@ export const EnvironmentPage = () => {
                     }}
                   >
                     <Laptop size={16} />
-                    <span style={{ fontWeight: 500 }}>本地資料庫</span>
+                    <span style={{ fontWeight: 500 }}>{t("environment.localDatabase")}</span>
                   </div>
                   <Tag
                     type={localStatus?.connected ? "green" : "red"}
@@ -339,7 +341,7 @@ export const EnvironmentPage = () => {
                 </div>
                 <div style={{ marginTop: "0.5rem" }}>
                   <ProgressBar
-                    label="延遲"
+                    label={t("environment.latency")}
                     value={
                       localStatus?.latency_ms !== undefined
                         ? Math.min(localStatus.latency_ms / 5, 100)
@@ -377,7 +379,7 @@ export const EnvironmentPage = () => {
                     }}
                   >
                     <CloudUpload size={16} />
-                    <span style={{ fontWeight: 500 }}>雲端資料庫</span>
+                    <span style={{ fontWeight: 500 }}>{t("environment.cloudDatabase")}</span>
                   </div>
                   <Tag type={cloudStatus?.connected ? "blue" : "red"} size="sm">
                     {cloudLatency.label}
@@ -396,7 +398,7 @@ export const EnvironmentPage = () => {
                 </div>
                 <div style={{ marginTop: "0.5rem" }}>
                   <ProgressBar
-                    label="延遲"
+                    label={t("environment.latency")}
                     value={
                       cloudStatus?.latency_ms !== undefined
                         ? Math.min(cloudStatus.latency_ms / 5, 100)
@@ -435,10 +437,10 @@ export const EnvironmentPage = () => {
             }}
           >
             <Laptop size={20} />
-            <h4>本地資料庫</h4>
+            <h4>{t("environment.localDatabase")}</h4>
             {!isCloud && (
               <Tag type="green" size="sm">
-                使用中
+                {t("environment.inUse")}
               </Tag>
             )}
           </div>
@@ -466,7 +468,7 @@ export const EnvironmentPage = () => {
                     style={{ color: "var(--cds-support-error)" }}
                   />
                 )}
-                <span>{localStatus?.connected ? "已連線" : "未連線"}</span>
+                <span>{localStatus?.connected ? tc("status.connected") : tc("status.disconnected")}</span>
               </div>
               {localStatus?.host && (
                 <p
@@ -514,10 +516,10 @@ export const EnvironmentPage = () => {
             }}
           >
             <CloudUpload size={20} />
-            <h4>雲端資料庫</h4>
+            <h4>{t("environment.cloudDatabase")}</h4>
             {isCloud && (
               <Tag type="blue" size="sm">
-                使用中
+                {t("environment.inUse")}
               </Tag>
             )}
           </div>
@@ -545,7 +547,7 @@ export const EnvironmentPage = () => {
                     style={{ color: "var(--cds-support-error)" }}
                   />
                 )}
-                <span>{cloudStatus?.connected ? "已連線" : "未連線"}</span>
+                <span>{cloudStatus?.connected ? tc("status.connected") : tc("status.disconnected")}</span>
               </div>
               {cloudStatus?.host && (
                 <p
@@ -615,14 +617,14 @@ export const EnvironmentPage = () => {
                 !cloudStatus?.connected
               }
             >
-              雲端 → 本地
+              {t("environment.syncCloudToLocal")}
             </Button>
           </div>
 
           {syncing && (
             <div style={{ marginTop: "1rem" }}>
               <ProgressBar
-                label="同步中，請稍候..."
+                label={t("environment.syncingPleaseWait")}
                 status="active"
                 size="small"
               />
@@ -632,8 +634,8 @@ export const EnvironmentPage = () => {
           {(!localStatus?.connected || !cloudStatus?.connected) && !loading && (
             <InlineNotification
               kind="warning"
-              title="無法同步"
-              subtitle="需要兩個資料庫都連線才能進行同步"
+              title={t("environment.cannotSync")}
+              subtitle={t("environment.needBothConnected")}
               lowContrast
               hideCloseButton
               style={{ marginTop: "1rem" }}

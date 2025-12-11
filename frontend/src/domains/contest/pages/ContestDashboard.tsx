@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
@@ -22,6 +23,8 @@ import ContestAdminLogsPage from "@/domains/contest/pages/settings/ContestLogsPa
 import ContestAdminsPage from "@/domains/contest/pages/settings/ContestAdminsPage";
 
 const ContestDashboard = () => {
+  const { t } = useTranslation('contest');
+  const { t: tc } = useTranslation('common');
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -212,13 +215,13 @@ const ContestDashboard = () => {
       {/* Lock Modal */}
       <Modal
         open={lockModalOpen}
-        modalHeading="作答已鎖定"
-        primaryButtonText="確定"
+        modalHeading={t('exam.answerLocked')}
+        primaryButtonText={tc('button.confirm')}
         onRequestClose={() => setLockModalOpen(false)}
         onRequestSubmit={() => setLockModalOpen(false)}
         size="sm"
       >
-        <p>您的作答已被鎖定。請聯繫監考老師解除鎖定。</p>
+        <p>{t('exam.contactProctorToUnlock')}</p>
       </Modal>
     </>
   );

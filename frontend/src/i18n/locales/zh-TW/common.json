@@ -175,5 +175,55 @@
       "failedRetry": "註冊失敗，請稍後再試",
       "passwordMismatch": "密碼不一致"
     }
+  },
+  "status": {
+    "public": "公開",
+    "private": "私有",
+    "published": "已發布",
+    "hidden": "隱藏",
+    "active": "啟用",
+    "inactive": "停用",
+    "connected": "已連線",
+    "disconnected": "未連線",
+    "enabled": "已啟用",
+    "disabled": "已停用"
+  },
+  "action": {
+    "adding": "新增中...",
+    "deleting": "刪除中...",
+    "uploading": "上傳中...",
+    "downloading": "下載中...",
+    "importing": "匯入中...",
+    "exporting": "匯出中...",
+    "syncing": "同步中...",
+    "processing": "處理中...",
+    "pleaseWait": "請稍候",
+    "refreshing": "更新中...",
+    "refresh": "重新整理"
+  },
+  "difficulty": {
+    "easy": "簡單",
+    "medium": "中等",
+    "hard": "困難"
+  },
+  "form": {
+    "title": "標題",
+    "name": "名稱",
+    "description": "描述",
+    "author": "作者",
+    "createdAt": "建立時間",
+    "updatedAt": "更新時間",
+    "startTime": "開始時間",
+    "endTime": "結束時間",
+    "startDate": "開始日期",
+    "endDate": "結束日期",
+    "password": "密碼",
+    "visibility": "可見性"
+  },
+  "filter": {
+    "all": "全部",
+    "allStatus": "全部狀態",
+    "search": "搜尋",
+    "searchPlaceholder": "搜尋..."
   }
 }

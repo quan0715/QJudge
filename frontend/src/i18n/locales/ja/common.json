@@ -175,5 +175,55 @@
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",
       "passwordMismatch": "パスワードが一致しません"
     }
+  },
+  "status": {
+    "public": "公開",
+    "private": "非公開",
+    "published": "公開済み",
+    "hidden": "非表示",
+    "active": "有効",
+    "inactive": "無効",
+    "connected": "接続済み",
+    "disconnected": "未接続",
+    "enabled": "有効",
+    "disabled": "無効"
+  },
+  "action": {
+    "adding": "追加中...",
+    "deleting": "削除中...",
+    "uploading": "アップロード中...",
+    "downloading": "ダウンロード中...",
+    "importing": "インポート中...",
+    "exporting": "エクスポート中...",
+    "syncing": "同期中...",
+    "processing": "処理中...",
+    "pleaseWait": "お待ちください",
+    "refreshing": "更新中...",
+    "refresh": "更新"
+  },
+  "difficulty": {
+    "easy": "簡単",
+    "medium": "普通",
+    "hard": "難しい"
+  },
+  "form": {
+    "title": "タイトル",
+    "name": "名前",
+    "description": "説明",
+    "author": "作成者",
+    "createdAt": "作成日時",
+    "updatedAt": "更新日時",
+    "startTime": "開始時刻",
+    "endTime": "終了時刻",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "password": "パスワード",
+    "visibility": "公開設定"
+  },
+  "filter": {
+    "all": "すべて",
+    "allStatus": "すべてのステータス",
+    "search": "検索",
+    "searchPlaceholder": "検索..."
   }
 }

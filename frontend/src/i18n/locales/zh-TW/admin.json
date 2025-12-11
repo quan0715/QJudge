@@ -74,5 +74,49 @@
       "hidden": "隱藏"
     },
     "confirmDelete": "您確定要刪除公告「{{title}}」嗎？此動作無法復原。"
+  },
+  "environment": {
+    "title": "環境管理",
+    "subtitle": "管理資料庫連接與同步操作",
+    "currentDatabase": "目前使用的資料庫",
+    "cloudDatabase": "雲端資料庫 (Cloud)",
+    "localDatabase": "本地資料庫 (Local)",
+    "operations": "操作",
+    "refreshStatus": "重新整理狀態",
+    "connectionLatency": "連線延遲",
+    "latency": "延遲",
+    "latencyLevel": {
+      "unknown": "未知",
+      "excellent": "極佳",
+      "good": "良好",
+      "normal": "普通",
+      "slow": "較慢",
+      "verySlow": "很慢"
+    },
+    "inUse": "使用中",
+    "databaseSwitch": "資料庫切換（切換前會自動同步）",
+    "local": "本地",
+    "cloud": "雲端",
+    "databaseSync": "資料庫同步",
+    "syncDescription": "將資料從一個資料庫同步到另一個。同步前會自動執行目標資料庫的遷移。注意：此操作會覆蓋目標資料庫的資料。",
+    "syncLocalToCloud": "本地 → 雲端",
+    "syncCloudToLocal": "雲端 → 本地",
+    "syncingPleaseWait": "同步中，請稍候...",
+    "cannotSync": "無法同步",
+    "needBothConnected": "需要兩個資料庫都連線才能進行同步",
+    "confirmSwitch": "切換前會將資料從 {{source}} 同步到 {{target}}。\n\n（自動執行資料庫遷移）\n\n確定要繼續嗎？",
+    "confirmSync": "確定要將資料從 {{source}} 同步到 {{target}} 嗎？\n\n（自動執行資料庫遷移）\n\n這會覆蓋目標資料庫的資料。",
+    "switchProgress": "執行資料庫遷移與同步中...",
+    "switching": "切換資料庫中...",
+    "switchSuccess": "已切換至 {{target}} 資料庫",
+    "switchSuccessWithMigration": "已切換至 {{target}} 資料庫 (已執行資料庫遷移)"
+  },
+  "problem": {
+    "management": {
+      "title": "題目管理",
+      "allProblems": "所有題目",
+      "practiceProblems": "練習題目",
+      "contestProblems": "競賽題目"
+    }
   }
 }

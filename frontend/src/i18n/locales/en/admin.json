@@ -74,5 +74,49 @@
       "hidden": "Hidden"
     },
     "confirmDelete": "Are you sure you want to delete the announcement \"{{title}}\"? This action cannot be undone."
+  },
+  "environment": {
+    "title": "Environment Management",
+    "subtitle": "Manage database connections and sync operations",
+    "currentDatabase": "Current Database",
+    "cloudDatabase": "Cloud Database",
+    "localDatabase": "Local Database",
+    "operations": "Operations",
+    "refreshStatus": "Refresh Status",
+    "connectionLatency": "Connection Latency",
+    "latency": "Latency",
+    "latencyLevel": {
+      "unknown": "Unknown",
+      "excellent": "Excellent",
+      "good": "Good",
+      "normal": "Normal",
+      "slow": "Slow",
+      "verySlow": "Very Slow"
+    },
+    "inUse": "In Use",
+    "databaseSwitch": "Database Switch (Auto-sync before switch)",
+    "local": "Local",
+    "cloud": "Cloud",
+    "databaseSync": "Database Sync",
+    "syncDescription": "Sync data from one database to another. Migrations will be applied automatically. Note: This will overwrite the target database.",
+    "syncLocalToCloud": "Local → Cloud",
+    "syncCloudToLocal": "Cloud → Local",
+    "syncingPleaseWait": "Syncing, please wait...",
+    "cannotSync": "Cannot Sync",
+    "needBothConnected": "Both databases need to be connected to sync",
+    "confirmSwitch": "Data will be synced from {{source}} to {{target}} before switching.\n\n(Database migrations will be applied automatically)\n\nContinue?",
+    "confirmSync": "Are you sure you want to sync data from {{source}} to {{target}}?\n\n(Database migrations will be applied automatically)\n\nThis will overwrite the target database.",
+    "switchProgress": "Applying migrations and syncing...",
+    "switching": "Switching database...",
+    "switchSuccess": "Switched to {{target}} database",
+    "switchSuccessWithMigration": "Switched to {{target}} database (migrations applied)"
+  },
+  "problem": {
+    "management": {
+      "title": "Problem Management",
+      "allProblems": "All Problems",
+      "practiceProblems": "Practice Problems",
+      "contestProblems": "Contest Problems"
+    }
   }
 }
