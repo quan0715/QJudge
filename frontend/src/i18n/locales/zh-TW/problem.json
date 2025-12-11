@@ -24,5 +24,14 @@
     "code": "程式碼",
     "submissions": "提交紀錄",
     "stats": "統計"
+  },
+  "modal": {
+    "confirmSubmit": "確認提交",
+    "submitting": "提交中...",
+    "submitConfirmTitle": "確認提交解答？",
+    "submitConfirmMessage": "此操作將會評測所有隱藏測試案例。",
+    "createTitle": "新增題目",
+    "createSuccess": "題目建立成功！",
+    "createError": "建立失敗，請稍後再試"
   }
 }

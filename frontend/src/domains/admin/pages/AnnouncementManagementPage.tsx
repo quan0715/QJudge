@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   DataTable,
   Table,
@@ -29,15 +30,18 @@ import {
   type CreateAnnouncementRequest,
 } from "@/services/announcement";
 
-const headers = [
-  { key: "title", header: "標題" },
-  { key: "author", header: "作者" },
-  { key: "visible", header: "狀態" },
-  { key: "created_at", header: "建立時間" },
-  { key: "actions", header: "操作" },
-];
-
 const AnnouncementManagementPage = () => {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
+
+  const headers = [
+    { key: "title", header: t("announcement.columns.title") },
+    { key: "author", header: t("announcement.columns.author") },
+    { key: "visible", header: t("announcement.columns.status") },
+    { key: "created_at", header: t("announcement.columns.createdAt") },
+    { key: "actions", header: t("announcement.columns.actions") },
+  ];
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [firstRowIndex, setFirstRowIndex] = useState(0);
@@ -107,7 +111,7 @@ const AnnouncementManagementPage = () => {
       fetchAnnouncements();
     } catch (error) {
       console.error("Failed to save announcement", error);
-      alert("儲存失敗");
+      alert(tc("message.saveFailed"));
     }
   };
 
@@ -121,7 +125,7 @@ const AnnouncementManagementPage = () => {
       fetchAnnouncements();
     } catch (error) {
       console.error("Failed to delete announcement", error);
-      alert("刪除失敗");
+      alert(tc("message.deleteFailed"));
     }
   };
 
@@ -138,13 +142,13 @@ const AnnouncementManagementPage = () => {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h2 style={{ marginBottom: "2rem" }}>公告管理</h2>
+      <h2 style={{ marginBottom: "2rem" }}>{t("announcement.management")}</h2>
 
       <DataTable rows={currentRows} headers={headers} isSortable>
         {({ rows, headers, getHeaderProps, getTableProps }) => (
           <TableContainer
-            title="系統公告列表"
-            description={loading ? "載入中..." : ""}
+            title={t("announcement.list")}
+            description={loading ? tc("message.loading") : ""}
           >
             <TableToolbar>
               <TableToolbarContent>
@@ -153,10 +157,10 @@ const AnnouncementManagementPage = () => {
                   onChange={(e: any) =>
                     setSearchTerm(e.target ? e.target.value : "")
                   }
-                  placeholder="搜尋公告"
+                  placeholder={t("announcement.search")}
                 />
                 <Button renderIcon={Add} onClick={handleOpenCreateModal}>
-                  新增公告
+                  {t("announcement.create")}
                 </Button>
               </TableToolbarContent>
             </TableToolbar>
@@ -186,9 +190,13 @@ const AnnouncementManagementPage = () => {
                       <TableCell>{announcement.author?.username}</TableCell>
                       <TableCell>
                         {announcement.visible ? (
-                          <Tag type="green">已發布</Tag>
+                          <Tag type="green">
+                            {t("announcement.status.published")}
+                          </Tag>
                         ) : (
-                          <Tag type="gray">隱藏</Tag>
+                          <Tag type="gray">
+                            {t("announcement.status.hidden")}
+                          </Tag>
                         )}
                       </TableCell>
                       <TableCell>
@@ -200,7 +208,7 @@ const AnnouncementManagementPage = () => {
                             kind="ghost"
                             size="sm"
                             renderIcon={Edit}
-                            iconDescription="編輯"
+                            iconDescription={tc("button.edit")}
                             hasIconOnly
                             onClick={() => handleOpenEditModal(announcement)}
                           />
@@ -208,7 +216,7 @@ const AnnouncementManagementPage = () => {
                             kind="danger--ghost"
                             size="sm"
                             renderIcon={TrashCan}
-                            iconDescription="刪除"
+                            iconDescription={tc("button.delete")}
                             hasIconOnly
                             onClick={() => handleOpenDeleteModal(announcement)}
                           />
@@ -225,11 +233,11 @@ const AnnouncementManagementPage = () => {
 
       <Pagination
         totalItems={filteredAnnouncements.length}
-        backwardText="上一頁"
-        forwardText="下一頁"
+        backwardText={tc("pagination.previous")}
+        forwardText={tc("pagination.next")}
         pageSize={currentPageSize}
         pageSizes={[10, 25, 50]}
-        itemsPerPageText="每頁顯示"
+        itemsPerPageText={tc("pagination.itemsPerPage")}
         onChange={({ page, pageSize }) => {
           if (pageSize !== currentPageSize) {
             setCurrentPageSize(pageSize);
@@ -241,24 +249,30 @@ const AnnouncementManagementPage = () => {
       {/* Create/Edit Modal */}
       <Modal
         open={isModalOpen}
-        modalHeading={editingAnnouncement ? "編輯公告" : "新增公告"}
-        primaryButtonText={editingAnnouncement ? "儲存" : "新增"}
-        secondaryButtonText="取消"
+        modalHeading={
+          editingAnnouncement
+            ? t("announcement.edit")
+            : t("announcement.create")
+        }
+        primaryButtonText={
+          editingAnnouncement ? tc("button.save") : tc("button.create")
+        }
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setIsModalOpen(false)}
         onRequestSubmit={handleSubmit}
       >
         <TextInput
           id="title"
-          labelText="標題"
-          placeholder="請輸入公告標題"
+          labelText={t("announcement.form.title")}
+          placeholder={t("announcement.form.titlePlaceholder")}
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           style={{ marginBottom: "1rem" }}
         />
         <TextArea
           id="content"
-          labelText="內容"
-          placeholder="請輸入公告內容"
+          labelText={t("announcement.form.content")}
+          placeholder={t("announcement.form.contentPlaceholder")}
           value={formData.content}
           onChange={(e) =>
             setFormData({ ...formData, content: e.target.value })
@@ -268,9 +282,9 @@ const AnnouncementManagementPage = () => {
         />
         <Toggle
           id="visible"
-          labelText="是否發布"
-          labelA="隱藏"
-          labelB="發布"
+          labelText={t("announcement.form.publishLabel")}
+          labelA={t("announcement.form.hidden")}
+          labelB={t("announcement.form.published")}
           toggled={formData.visible}
           onToggle={(toggled) => setFormData({ ...formData, visible: toggled })}
         />
@@ -280,14 +294,16 @@ const AnnouncementManagementPage = () => {
       <Modal
         open={isDeleteModalOpen}
         danger
-        modalHeading="刪除公告"
-        primaryButtonText="刪除"
-        secondaryButtonText="取消"
+        modalHeading={t("announcement.delete")}
+        primaryButtonText={tc("button.delete")}
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setIsDeleteModalOpen(false)}
         onRequestSubmit={handleDelete}
       >
         <p>
-          您確定要刪除公告「{deletingAnnouncement?.title}」嗎？此動作無法復原。
+          {t("announcement.confirmDelete", {
+            title: deletingAnnouncement?.title,
+          })}
         </p>
       </Modal>
     </div>

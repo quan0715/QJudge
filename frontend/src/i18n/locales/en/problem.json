@@ -24,5 +24,14 @@
     "code": "Code",
     "submissions": "Submissions",
     "stats": "Statistics"
+  },
+  "modal": {
+    "confirmSubmit": "Confirm Submission",
+    "submitting": "Submitting...",
+    "submitConfirmTitle": "Are you sure you want to submit?",
+    "submitConfirmMessage": "This will be evaluated against all hidden test cases.",
+    "createTitle": "Create Problem",
+    "createSuccess": "Problem created successfully!",
+    "createError": "Failed to create. Please try again later."
   }
 }

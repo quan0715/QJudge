@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   DataTable,
   Table,
@@ -33,6 +34,8 @@ const TeacherContestList = ({
   onRefresh,
 }: TeacherContestListProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const [localContests, setLocalContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -86,7 +89,7 @@ const TeacherContestList = ({
         if (onRefresh) onRefresh();
         else loadContests();
       } catch (error) {
-        showError("刪除失敗");
+        showError(t("delete.error"));
       }
     }
   };
@@ -105,17 +108,17 @@ const TeacherContestList = ({
         if (onRefresh) onRefresh();
         else loadContests();
       } catch (error) {
-        showError("封存失敗");
+        showError(t("archive.error"));
       }
     }
   };
 
   const headers = [
-    { key: "title", header: "標題" },
-    { key: "status", header: "狀態" },
-    { key: "time", header: "時間" },
-    { key: "visibility", header: "可見性" },
-    { key: "actions", header: "操作" },
+    { key: "title", header: tc("table.title") },
+    { key: "status", header: tc("table.status") },
+    { key: "time", header: tc("table.time") },
+    { key: "visibility", header: tc("table.visibility") },
+    { key: "actions", header: tc("table.actions") },
   ];
 
   const rows = contests.map((c) => ({
@@ -131,9 +134,9 @@ const TeacherContestList = ({
     ).toLocaleString()}`,
     visibility:
       c.visibility === "private" ? (
-        <Tag type="purple">私有 (密碼)</Tag>
+        <Tag type="purple">{tc("table.private")}</Tag>
       ) : (
-        <Tag type="teal">公開</Tag>
+        <Tag type="teal">{tc("table.public")}</Tag>
       ),
     actions: (
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -141,7 +144,7 @@ const TeacherContestList = ({
           kind="ghost"
           size="sm"
           renderIcon={Edit}
-          iconDescription="編輯"
+          iconDescription={tc("button.edit")}
           hasIconOnly
           onClick={() => navigate(`/contests/${c.id}`)}
         />
@@ -149,7 +152,7 @@ const TeacherContestList = ({
           kind="ghost"
           size="sm"
           renderIcon={Archive}
-          iconDescription="封存"
+          iconDescription={tc("button.archive")}
           hasIconOnly
           onClick={() => handleArchiveClick(c.id)}
           disabled={c.status === "archived"}
@@ -158,7 +161,7 @@ const TeacherContestList = ({
           kind="danger--ghost"
           size="sm"
           renderIcon={TrashCan}
-          iconDescription="刪除"
+          iconDescription={tc("button.delete")}
           hasIconOnly
           onClick={() => handleDeleteClick(c.id)}
         />
@@ -172,7 +175,7 @@ const TeacherContestList = ({
     <div>
       <DataTable rows={rows} headers={headers}>
         {({ rows, headers, getHeaderProps, getTableProps }) => (
-          <TableContainer title="我的競賽管理">
+          <TableContainer title={t("myContestManagement")}>
             <Table {...getTableProps()}>
               <TableHead>
                 <TableRow>
@@ -202,31 +205,31 @@ const TeacherContestList = ({
 
       <Modal
         open={deleteModalOpen}
-        modalHeading="刪除競賽"
-        primaryButtonText="刪除"
-        secondaryButtonText="取消"
+        modalHeading={t("delete.title")}
+        primaryButtonText={tc("button.delete")}
+        secondaryButtonText={tc("button.cancel")}
         danger
         onRequestClose={() => setDeleteModalOpen(false)}
         onRequestSubmit={confirmDelete}
       >
-        <p>確定要刪除此競賽嗎？此動作無法復原。</p>
+        <p>{t("delete.confirm")}</p>
       </Modal>
 
       <Modal
         open={archiveModalOpen}
-        modalHeading="封存競賽"
-        primaryButtonText="封存"
-        secondaryButtonText="取消"
+        modalHeading={t("archive.title")}
+        primaryButtonText={tc("button.archive")}
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setArchiveModalOpen(false)}
         onRequestSubmit={confirmArchive}
       >
-        <p>確定要封存此競賽嗎？封存後將移至封存列表。</p>
+        <p>{t("archive.confirm")}</p>
       </Modal>
 
       {/* Error Modal */}
       <Modal
         open={errorModalOpen}
-        modalHeading="錯誤"
+        modalHeading={tc("message.error")}
         passiveModal
         onRequestClose={() => setErrorModalOpen(false)}
       >

@@ -1,4 +1,82 @@
 {
+  "nav": {
+    "dashboard": "Dashboard",
+    "problems": "Problems",
+    "contests": "Contests",
+    "submissions": "Submissions",
+    "ranking": "Ranking",
+    "backToProblemList": "Back to Problems",
+    "problemList": "Problem List"
+  },
+  "page": {
+    "dashboard": "Dashboard",
+    "problems": "Problem List",
+    "problemDetail": "Problem Detail",
+    "contests": "Contest List",
+    "contestDetail": "Contest Detail",
+    "submissions": "Submissions",
+    "login": "Login",
+    "register": "Register",
+    "userManagement": "User Management",
+    "problemManagement": "Problem Management",
+    "contestManagement": "Contest Management",
+    "announcements": "Announcements",
+    "environment": "Environment",
+    "createContest": "Create Contest",
+    "createProblem": "Create Problem",
+    "editProblem": "Edit Problem"
+  },
+  "tab": {
+    "overview": "Overview",
+    "problems": "Problems",
+    "submissions": "Submissions",
+    "standings": "Standings",
+    "clarifications": "Clarifications",
+    "settings": "Settings",
+    "participants": "Participants",
+    "logs": "Logs",
+    "manageProblems": "Manage Problems",
+    "description": "Description",
+    "solver": "Solve",
+    "history": "History",
+    "stats": "Statistics"
+  },
+  "header": {
+    "appSwitcher": "App Switcher",
+    "userMenu": "User Menu",
+    "management": "Management",
+    "system": "System",
+    "problemManagement": "Problem Management",
+    "createContest": "Create Contest",
+    "userManagement": "User Management",
+    "announcements": "Announcements",
+    "environmentSettings": "Environment Settings"
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back, {{name}}",
+    "subtitle": "NYCU Online Judge",
+    "stats": {
+      "title": "Problem Statistics",
+      "problems": "problems",
+      "noStats": "Unable to load statistics"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "contests": {
+      "title": "Upcoming Contests",
+      "noContests": "No upcoming contests",
+      "upcoming": "Upcoming",
+      "ongoing": "Ongoing",
+      "ended": "Ended"
+    },
+    "announcements": {
+      "title": "Announcements",
+      "noAnnouncements": "No announcements"
+    }
+  },
   "button": {
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -9,14 +87,24 @@
     "back": "Back",
     "submit": "Submit",
     "create": "Create",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "login": "Login",
+    "register": "Register",
+    "archive": "Archive",
+    "updating": "Updating...",
+    "search": "Search",
+    "searching": "Searching...",
+    "clear": "Clear"
   },
   "message": {
     "loading": "Loading...",
     "error": "An error occurred",
     "success": "Action completed successfully",
     "noData": "No data available",
-    "notFound": "Resource not found"
+    "notFound": "Resource not found",
+    "comingSoon": "Coming Soon",
+    "saveFailed": "Save failed",
+    "deleteFailed": "Delete failed"
   },
   "pagination": {
     "previous": "Previous",
@@ -24,6 +112,68 @@
     "itemsPerPage": "Items per page"
   },
   "language": {
-    "switchTo": "Switch Language"
+    "switchTo": "Switch Language",
+    "switchedTitle": "Language Changed",
+    "switchedTo": "Switched to {{language}}",
+    "selectLanguage": "Select Language"
+  },
+  "theme": {
+    "switchToLight": "Switch to Light Mode",
+    "switchToDark": "Switch to Dark Mode"
+  },
+  "table": {
+    "title": "Title",
+    "status": "Status",
+    "time": "Time",
+    "visibility": "Visibility",
+    "actions": "Actions",
+    "private": "Private (Password)",
+    "public": "Public"
+  },
+  "user": {
+    "role": {
+      "student": "Student",
+      "teacher": "Teacher",
+      "admin": "Admin",
+      "adminTA": "Admin (TA)"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "QJudge",
+      "subtitle": "Welcome back, please login to your account",
+      "email": "Email",
+      "emailPlaceholder": "student@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Login",
+      "loading": "Logging in...",
+      "or": "or",
+      "ssoLogin": "Login with SSO",
+      "noAccount": "Don't have an account?",
+      "registerNow": "Register now",
+      "failed": "Login failed",
+      "invalidCredentials": "Invalid email or password",
+      "oauthFailed": "Failed to initiate login"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join QJudge, start your coding journey",
+      "username": "Username",
+      "usernamePlaceholder": "Choose a username",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Create a password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submit": "Register",
+      "loading": "Registering...",
+      "hasAccount": "Already have an account?",
+      "loginNow": "Login",
+      "failed": "Registration failed",
+      "failedRetry": "Registration failed, please try again later",
+      "passwordMismatch": "Passwords do not match"
+    }
   }
 }

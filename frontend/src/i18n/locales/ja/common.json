@@ -1,0 +1,179 @@
+{
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "problems": "問題",
+    "contests": "コンテスト",
+    "submissions": "提出履歴",
+    "ranking": "ランキング",
+    "backToProblemList": "問題一覧に戻る",
+    "problemList": "問題一覧"
+  },
+  "page": {
+    "dashboard": "ダッシュボード",
+    "problems": "問題一覧",
+    "problemDetail": "問題詳細",
+    "contests": "コンテスト一覧",
+    "contestDetail": "コンテスト詳細",
+    "submissions": "提出履歴",
+    "login": "ログイン",
+    "register": "登録",
+    "userManagement": "ユーザー管理",
+    "problemManagement": "問題管理",
+    "contestManagement": "コンテスト管理",
+    "announcements": "お知らせ管理",
+    "environment": "環境設定",
+    "createContest": "コンテスト作成",
+    "createProblem": "問題作成",
+    "editProblem": "問題編集"
+  },
+  "tab": {
+    "overview": "概要",
+    "problems": "問題",
+    "submissions": "提出履歴",
+    "standings": "順位表",
+    "clarifications": "質問",
+    "settings": "設定",
+    "participants": "参加者",
+    "logs": "ログ",
+    "manageProblems": "問題管理",
+    "description": "問題文",
+    "solver": "解答",
+    "history": "履歴",
+    "stats": "統計"
+  },
+  "header": {
+    "appSwitcher": "機能メニュー",
+    "userMenu": "ユーザーメニュー",
+    "management": "管理",
+    "system": "システム",
+    "problemManagement": "問題管理",
+    "createContest": "コンテスト作成",
+    "userManagement": "ユーザー管理",
+    "announcements": "お知らせ管理",
+    "environmentSettings": "環境設定"
+  },
+  "dashboard": {
+    "welcomeBack": "おかえりなさい、{{name}}",
+    "subtitle": "NYCU Online Judge",
+    "stats": {
+      "title": "解答統計",
+      "problems": "問",
+      "noStats": "統計データを読み込めません"
+    },
+    "difficulty": {
+      "easy": "簡単",
+      "medium": "普通",
+      "hard": "難しい"
+    },
+    "contests": {
+      "title": "近日のコンテスト",
+      "noContests": "近日のコンテストはありません",
+      "upcoming": "開催予定",
+      "ongoing": "開催中",
+      "ended": "終了"
+    },
+    "announcements": {
+      "title": "お知らせ",
+      "noAnnouncements": "お知らせはありません"
+    }
+  },
+  "button": {
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "back": "戻る",
+    "submit": "提出",
+    "create": "新規作成",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "register": "登録",
+    "archive": "アーカイブ",
+    "updating": "更新中...",
+    "search": "検索",
+    "searching": "検索中...",
+    "clear": "クリア"
+  },
+  "message": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "success": "操作が完了しました",
+    "noData": "データがありません",
+    "notFound": "リソースが見つかりません",
+    "comingSoon": "近日公開",
+    "saveFailed": "保存に失敗しました",
+    "deleteFailed": "削除に失敗しました"
+  },
+  "pagination": {
+    "previous": "前へ",
+    "next": "次へ",
+    "itemsPerPage": "表示件数"
+  },
+  "language": {
+    "switchTo": "言語を切り替え",
+    "switchedTitle": "言語が変更されました",
+    "switchedTo": "{{language}}に切り替えました",
+    "selectLanguage": "言語を選択"
+  },
+  "theme": {
+    "switchToLight": "ライトモードに切り替え",
+    "switchToDark": "ダークモードに切り替え"
+  },
+  "table": {
+    "title": "タイトル",
+    "status": "状態",
+    "time": "時間",
+    "visibility": "公開設定",
+    "actions": "操作",
+    "private": "非公開（パスワード）",
+    "public": "公開"
+  },
+  "user": {
+    "role": {
+      "student": "学生",
+      "teacher": "教員",
+      "admin": "管理者",
+      "adminTA": "管理者（TA）"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "QJudge",
+      "subtitle": "おかえりなさい、アカウントにログインしてください",
+      "email": "メールアドレス",
+      "emailPlaceholder": "student@example.com",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "submit": "ログイン",
+      "loading": "ログイン中...",
+      "or": "または",
+      "ssoLogin": "SSOでログイン",
+      "noAccount": "アカウントをお持ちでない方は",
+      "registerNow": "新規登録",
+      "failed": "ログインに失敗しました",
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "oauthFailed": "ログインを開始できませんでした"
+    },
+    "register": {
+      "title": "アカウント作成",
+      "subtitle": "QJudgeに参加して、プログラミングの旅を始めましょう",
+      "username": "ユーザー名",
+      "usernamePlaceholder": "ユーザー名を選択",
+      "email": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワードを作成",
+      "confirmPassword": "パスワード確認",
+      "confirmPasswordPlaceholder": "パスワードを再入力",
+      "submit": "登録",
+      "loading": "登録中...",
+      "hasAccount": "すでにアカウントをお持ちの方は",
+      "loginNow": "ログイン",
+      "failed": "登録に失敗しました",
+      "failedRetry": "登録に失敗しました。後でもう一度お試しください",
+      "passwordMismatch": "パスワードが一致しません"
+    }
+  }
+}

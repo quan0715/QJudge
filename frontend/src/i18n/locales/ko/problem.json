@@ -1,0 +1,37 @@
+{
+  "section": {
+    "description": "문제 설명",
+    "inputDescription": "입력 형식",
+    "outputDescription": "출력 형식",
+    "sampleTestCases": "샘플 테스트",
+    "hint": "힌트",
+    "codeRestrictions": "코드 제한",
+    "requiredKeywords": "필수 키워드:",
+    "forbiddenKeywords": "금지 키워드:"
+  },
+  "sample": {
+    "example": "예제 {{index}}",
+    "input": "입력",
+    "output": "출력",
+    "empty": "(비어있음)"
+  },
+  "list": {
+    "title": "문제 목록",
+    "subtitle": "다양한 난이도의 프로그래밍 문제에 도전하여 알고리즘 능력을 향상시키세요."
+  },
+  "tabs": {
+    "description": "문제 설명",
+    "code": "코드",
+    "submissions": "제출 기록",
+    "stats": "통계"
+  },
+  "modal": {
+    "confirmSubmit": "제출 확인",
+    "submitting": "제출 중...",
+    "submitConfirmTitle": "답안을 제출하시겠습니까?",
+    "submitConfirmMessage": "이 작업은 모든 숨겨진 테스트 케이스를 평가합니다.",
+    "createTitle": "문제 생성",
+    "createSuccess": "문제가 생성되었습니다!",
+    "createError": "생성 실패. 나중에 다시 시도해 주세요"
+  }
+}

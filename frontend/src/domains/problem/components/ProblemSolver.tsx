@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { InlineNotification, Modal } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import type {
@@ -67,6 +68,8 @@ const ProblemSolverInner: React.FC<
 }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslation("problem");
+  const { t: tc } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get problem from context
@@ -361,7 +364,7 @@ const ProblemSolverInner: React.FC<
         <div style={{ padding: "var(--cds-spacing-05, 1rem)" }}>
           <InlineNotification
             kind="error"
-            title="Error"
+            title={tc("message.error")}
             subtitle={error}
             onClose={() => setError(null)}
           />
@@ -391,15 +394,17 @@ const ProblemSolverInner: React.FC<
 
       <Modal
         open={isSubmitModalOpen}
-        modalHeading="Confirm Submission"
-        primaryButtonText={submitting ? "Submitting..." : "Submit"}
-        secondaryButtonText="Cancel"
+        modalHeading={t("modal.confirmSubmit")}
+        primaryButtonText={
+          submitting ? t("modal.submitting") : tc("button.submit")
+        }
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setIsSubmitModalOpen(false)}
         onRequestSubmit={handleFullSubmit}
         danger
       >
-        <p>Are you sure you want to submit your solution?</p>
-        <p>This will be evaluated against all hidden test cases.</p>
+        <p>{t("modal.submitConfirmTitle")}</p>
+        <p>{t("modal.submitConfirmMessage")}</p>
       </Modal>
 
       <SubmissionDetailModal

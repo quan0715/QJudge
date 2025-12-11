@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Modal, InlineNotification } from '@carbon/react';
-import ProblemForm from './ProblemForm';
-import type { ProblemFormData } from './ProblemForm';
-import { createProblem } from '@/services/problem';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Modal, InlineNotification } from "@carbon/react";
+import { useTranslation } from "react-i18next";
+import ProblemForm from "./ProblemForm";
+import type { ProblemFormData } from "./ProblemForm";
+import { createProblem } from "@/services/problem";
 
 interface CreateProblemModalProps {
   open: boolean;
@@ -14,17 +15,19 @@ interface CreateProblemModalProps {
 export const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
   open,
   onClose,
-  onCreated
+  onCreated,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation("problem");
+  const { t: tc } = useTranslation("common");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (data: ProblemFormData) => {
     setLoading(true);
-    setError('');
-    
+    setError("");
+
     try {
       // Map Form Data (CamelCase) to API DTO (snake_case)
       const payload = {
@@ -33,35 +36,35 @@ export const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
         time_limit: data.timeLimit,
         memory_limit: data.memoryLimit,
         is_visible: data.isVisible,
-        translations: data.translations.map(t => ({
+        translations: data.translations.map((t) => ({
           language: t.language,
           title: t.title,
           description: t.description,
           input_description: t.inputDescription,
           output_description: t.outputDescription,
-          hint: t.hint
+          hint: t.hint,
         })),
-        test_cases: data.testCases.map(tc => ({
+        test_cases: data.testCases.map((tc) => ({
           input_data: tc.input,
           output_data: tc.output,
           is_sample: tc.isSample,
           score: tc.score,
           order: tc.order,
-          is_hidden: tc.isHidden
+          is_hidden: tc.isHidden,
         })),
-        language_configs: data.languageConfigs.map(lc => ({
+        language_configs: data.languageConfigs.map((lc) => ({
           language: lc.language,
           template_code: lc.templateCode,
           is_enabled: lc.isEnabled,
-          order: lc.order
+          order: lc.order,
         })),
         existing_tag_ids: data.existingTagIds,
-        new_tag_names: data.newTagNames
+        new_tag_names: data.newTagNames,
       };
 
       const createdProblem = await createProblem(payload);
-      setSuccess('題目建立成功！');
-      
+      setSuccess(t("modal.createSuccess"));
+
       setTimeout(() => {
         onClose();
         if (onCreated) {
@@ -71,7 +74,7 @@ export const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
         navigate(`/problems/${createdProblem.id}?tab=settings`);
       }, 1000);
     } catch (err: any) {
-      setError(err.message || '建立失敗，請稍後再試');
+      setError(err.message || t("modal.createError"));
     } finally {
       setLoading(false);
     }
@@ -79,8 +82,8 @@ export const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
 
   const handleClose = () => {
     if (!loading) {
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
       onClose();
     }
   };
@@ -89,31 +92,37 @@ export const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
     <Modal
       open={open}
       onRequestClose={handleClose}
-      modalHeading="新增題目"
+      modalHeading={t("modal.createTitle")}
       passiveModal
       size="lg"
-      style={{ maxHeight: '90vh' }}
+      style={{ maxHeight: "90vh" }}
     >
-      <div style={{ maxHeight: 'calc(90vh - 100px)', overflowY: 'auto', padding: '1rem' }}>
+      <div
+        style={{
+          maxHeight: "calc(90vh - 100px)",
+          overflowY: "auto",
+          padding: "1rem",
+        }}
+      >
         {error && (
           <InlineNotification
             kind="error"
-            title="錯誤"
+            title={tc("message.error")}
             subtitle={error}
             lowContrast
-            style={{ marginBottom: '1rem' }}
+            style={{ marginBottom: "1rem" }}
           />
         )}
         {success && (
           <InlineNotification
             kind="success"
-            title="成功"
+            title={tc("message.success")}
             subtitle={success}
             lowContrast
-            style={{ marginBottom: '1rem' }}
+            style={{ marginBottom: "1rem" }}
           />
         )}
-        
+
         <ProblemForm
           onSubmit={handleSubmit}
           onCancel={handleClose}
