@@ -3,6 +3,7 @@ Test settings for CI/CD environments
 """
 from .base import *
 import os
+from urllib.parse import urlparse
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -10,16 +11,40 @@ DEBUG = False
 SECRET_KEY = 'test-secret-key-not-for-production'
 
 # Test database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', os.getenv('DATABASE_NAME', 'test_oj')),
-        'USER': os.getenv('POSTGRES_USER', os.getenv('DATABASE_USER', 'test_user')),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', 'test_password')),
-        'HOST': os.getenv('POSTGRES_HOST', os.getenv('DB_HOST', 'localhost')),
-        'PORT': os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', '5432')),
+# 優先使用 DATABASE_URL（CI 標準格式）
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    # Parse DATABASE_URL (e.g., postgresql://user:pass@host:port/dbname)
+    url = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],  # Remove leading '/'
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port or '5432',
+        }
     }
-}
+else:
+    # 回退到個別環境變數
+    # 注意：postgres_test 是 Docker 內部服務名，本地應使用 localhost
+    db_host = os.getenv('POSTGRES_HOST', os.getenv('DB_HOST', 'localhost'))
+    # 如果是 Docker 服務名但不在 Docker 網路內，回退到 localhost
+    if db_host in ('postgres_test', 'postgres') and not os.path.exists('/.dockerenv'):
+        db_host = 'localhost'
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', os.getenv('DATABASE_NAME', 'test_oj')),
+            'USER': os.getenv('POSTGRES_USER', os.getenv('DATABASE_USER', 'test_user')),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', 'test_password')),
+            'HOST': db_host,
+            'PORT': os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', '5432')),
+        }
+    }
 
 # Use Redis cache for tests (required by django_ratelimit)
 # CI environment provides Redis service

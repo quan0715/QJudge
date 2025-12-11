@@ -1,7 +1,7 @@
 # QJudge 部署與測試文件
 
-> **版本**: 1.0  
-> **最後更新**: 2025-12-10
+> **版本**: 1.1  
+> **最後更新**: 2025-12-11
 
 ## 目錄
 
@@ -17,12 +17,14 @@
 ### 1.1 環境需求
 
 **硬體需求** (最低配置):
+
 - CPU: 2 核心
 - RAM: 4GB
 - 硬碟: 20GB SSD
 - 網路: 100Mbps
 
 **軟體需求**:
+
 - Docker: 24.0+
 - Docker Compose: 2.20+
 - Git: 2.40+
@@ -55,6 +57,7 @@ docker exec -it oj_backend_dev python manage.py createsuperuser
 #### 1.2.2 本地開發（不使用 Docker）
 
 **後端**:
+
 ```bash
 cd backend
 
@@ -84,6 +87,7 @@ python manage.py runserver
 ```
 
 **前端**:
+
 ```bash
 cd frontend
 
@@ -95,12 +99,14 @@ npm run dev
 ```
 
 **Celery Worker**:
+
 ```bash
 cd backend
 celery -A config worker -l info
 ```
 
 **Celery Beat**:
+
 ```bash
 cd backend
 celery -A config beat -l info
@@ -181,7 +187,7 @@ docker-compose up -d cloudflared
 server {
     listen 80;
     server_name nycu-coding-lab.quan.wtf;
-    
+
     # Redirect to HTTPS
     return 301 https://$server_name$request_uri;
 }
@@ -189,11 +195,11 @@ server {
 server {
     listen 443 ssl http2;
     server_name nycu-coding-lab.quan.wtf;
-    
+
     # SSL 證書
     ssl_certificate /etc/letsencrypt/live/nycu-coding-lab.quan.wtf/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/nycu-coding-lab.quan.wtf/privkey.pem;
-    
+
     # 前端
     location / {
         proxy_pass http://localhost:80;
@@ -202,7 +208,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    
+
     # 後端 API
     location /api/ {
         proxy_pass http://localhost:8000;
@@ -211,19 +217,19 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    
+
     # Django Admin
     location /django-admin/ {
         proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
-    
+
     # 靜態檔案
     location /static/ {
         alias /path/to/qjudge/backend/staticfiles/;
     }
-    
+
     location /media/ {
         alias /path/to/qjudge/backend/media/;
     }
@@ -233,6 +239,7 @@ server {
 ### 1.4 環境變數說明
 
 **必要設定**:
+
 ```bash
 # Django
 SECRET_KEY=<strong-random-key>
@@ -322,7 +329,7 @@ docker-compose restart backend celery celery-beat frontend
 celery:
   # ... existing config
   deploy:
-    replicas: 3  # 3 個 worker
+    replicas: 3 # 3 個 worker
 ```
 
 或手動啟動多個 Worker:
@@ -358,12 +365,12 @@ server {
 ```
 tests/
 ├── backend/
-│   ├── unit/           # 單元測試
+│   ├── unit/           # 單元測試 (pytest)
 │   ├── integration/    # 整合測試
-│   └── e2e/            # E2E 測試
+│   └── judge/          # Judge 系統測試
 └── frontend/
-    ├── unit/           # 單元測試
-    ├── integration/    # 整合測試
+    ├── unit/           # 單元測試 (Vitest)
+    ├── api/            # API 整合測試
     └── e2e/            # E2E 測試（Playwright）
 ```
 
@@ -394,6 +401,7 @@ pytest --lf
 **目標覆蓋率**: 80%
 
 **測試範圍**:
+
 - ✅ Users (認證、角色管理)
 - ✅ Problems (CRUD、權限)
 - ✅ Submissions (評測流程)
@@ -415,6 +423,7 @@ python manage.py test apps.judge.CppJudgeTestCase.test_fork_bomb_protection
 ```
 
 **測試案例**:
+
 - AC (Accepted): 正確答案
 - WA (Wrong Answer): 答案錯誤
 - TLE (Time Limit Exceeded): 超時
@@ -440,7 +449,48 @@ docker-compose -f docker-compose.test.yml down -v
 
 ### 2.3 前端測試
 
-#### 2.3.1 E2E 測試（Playwright）
+#### 2.3.1 單元測試（Vitest）
+
+**配置**: `frontend/vitest.config.ts`
+
+```bash
+cd frontend
+
+# 執行所有單元測試
+npm run test
+
+# 監聽模式（開發時使用）
+npm run test:watch
+
+# 執行測試並產生覆蓋率報告
+npm run test:coverage
+```
+
+**測試範圍**:
+
+- ✅ 工具函數 (`src/utils/*.test.ts`)
+- ✅ 配置驗證 (`src/core/config/*.test.ts`)
+- ✅ Entity Mappers (`src/core/entities/mappers/*.test.ts`)
+- ✅ React Components
+
+#### 2.3.2 API 整合測試
+
+**配置**: `frontend/vitest.config.api.ts`
+
+```bash
+cd frontend
+
+# 需要先啟動後端環境
+docker-compose -f docker-compose.test.yml up -d
+
+# 執行 API 整合測試
+npm run test:api
+
+# 監聽模式
+npm run test:api:watch
+```
+
+#### 2.3.3 E2E 測試（Playwright）
 
 **配置**: `frontend/playwright.config.e2e.ts`
 
@@ -453,11 +503,14 @@ npx playwright install
 # 執行 E2E 測試
 npm run test:e2e
 
-# UI 模式
+# UI 模式（互動式除錯）
 npm run test:e2e:ui
 
 # Debug 模式
 npm run test:e2e:debug
+
+# 有頭模式（可視化）
+npm run test:e2e:headed
 
 # 指定瀏覽器
 npm run test:e2e -- --project=chromium
@@ -467,18 +520,20 @@ npm run test:e2e:report
 ```
 
 **測試範圍**:
+
 - ✅ 認證流程（登入、註冊）
 - ✅ 題目瀏覽與提交
 - ✅ 競賽參與流程
 - ✅ 考試模式防作弊
 
 **測試檔案**:
+
 - `tests/e2e/auth.e2e.spec.ts`
 - `tests/e2e/problems.e2e.spec.ts`
 - `tests/e2e/contest.e2e.spec.ts`
 - `tests/e2e/submission.e2e.spec.ts`
 
-#### 2.3.2 測試資料設置
+#### 2.3.4 測試資料設置
 
 ```bash
 # 設置 E2E 測試資料
@@ -487,6 +542,7 @@ python manage.py seed_e2e_data
 ```
 
 這會建立:
+
 - 測試使用者（student, teacher, admin）
 - 測試題目
 - 測試競賽
@@ -503,15 +559,15 @@ from locust import HttpUser, task, between
 
 class WebsiteUser(HttpUser):
     wait_time = between(1, 3)
-    
+
     @task
     def view_problems(self):
         self.client.get("/api/v1/problems/")
-    
+
     @task
     def view_problem_detail(self):
         self.client.get("/api/v1/problems/1/")
-    
+
     @task
     def submit_code(self):
         self.client.post("/api/v1/submissions/", json={
@@ -534,6 +590,7 @@ python scripts/analyze_submission_queries.py
 ```
 
 這會分析:
+
 - 提交列表查詢效能
 - 索引使用情況
 - N+1 查詢問題
@@ -549,11 +606,13 @@ python scripts/analyze_submission_queries.py
 **檔案**: `.github/workflows/backend-tests.yml`
 
 **觸發條件**:
+
 - Push to `main` or `develop`
 - Pull Request to `main` or `develop`
 - 變更 `backend/**`
 
 **步驟**:
+
 1. ✅ Checkout 程式碼
 2. ✅ 設置 Python 3.11
 3. ✅ 啟動 PostgreSQL & Redis services
@@ -568,43 +627,297 @@ python scripts/analyze_submission_queries.py
 **檔案**: `.github/workflows/judge-tests.yml`
 
 **觸發條件**:
+
 - Push to `main` or `develop`
-- 變更 `backend/apps/judge/**`
+- 變更 `backend/**`
 
 **步驟**:
+
 1. ✅ 建立 Judge Image
 2. ✅ 執行 Judge 單元測試
 3. ✅ 執行多語言測試
 4. ✅ 生成覆蓋率報告
 5. ✅ 上傳到 Codecov
 
-#### 3.1.3 前端 E2E 測試 (計劃中)
+#### 3.1.3 前端單元測試 Workflow
+
+**檔案**: `.github/workflows/frontend-tests.yml`
+
+**觸發條件**:
+
+- Push to `main` or `develop`
+- Pull Request to `main` or `develop`
+- 變更 `frontend/**`
+
+**步驟**:
+
+1. ✅ Checkout 程式碼
+2. ✅ 設置 Node.js 20
+3. ✅ 安裝 dependencies (npm ci)
+4. ✅ 執行 ESLint 檢查
+5. ✅ 執行 Vitest 單元測試
+6. ✅ 產生覆蓋率報告
+7. ✅ 上傳覆蓋率報告 artifact
+
+#### 3.1.4 前端 E2E 測試 Workflow
 
 **檔案**: `.github/workflows/frontend-e2e.yml`
 
 **觸發條件**:
-- Push to `main`
-- Pull Request to `main`
-- 變更 `frontend/**`
+
+- Push to `main` or `develop`
+- Pull Request to `main` or `develop`
+- 變更 `frontend/**` 或 `backend/**`
 
 **步驟**:
-1. Checkout 程式碼
-2. 啟動測試環境 (docker-compose.test.yml)
-3. 安裝 Playwright
-4. 執行 E2E 測試
-5. 上傳測試報告與截圖
 
-### 3.2 手動測試檢查清單
+1. ✅ Checkout 程式碼
+2. ✅ 設置 Python 3.11 & Node.js 20
+3. ✅ 啟動 PostgreSQL & Redis services
+4. ✅ 快取 Playwright 瀏覽器
+5. ✅ 快取 Docker 層（BuildX）
+6. ✅ 安裝 Backend & Frontend dependencies
+7. ✅ 建立 Judge Docker Image
+8. ✅ 執行資料庫遷移 & seed 測試資料
+9. ✅ 啟動 Backend & Frontend servers
+10. ✅ 執行 Playwright E2E 測試
+11. ✅ 上傳測試報告與截圖
 
-#### 3.2.1 功能測試
+**效能優化**:
+
+- Playwright 瀏覽器快取 (~250MB)
+- Docker BuildX 層快取
+- 智慧等待迴圈取代固定 sleep
+
+### 3.2 Git Hooks（Pre-push 檢查）
+
+在 push 前自動執行檢查，確保程式碼品質：
+
+#### 3.2.1 安裝 Git Hooks
+
+```bash
+# 執行一次即可
+./scripts/setup-git-hooks.sh
+```
+
+#### 3.2.2 Pre-push 檢查項目
+
+安裝後，每次 `git push` 會自動執行：
+
+1. ✅ **ESLint 檢查** - 前端程式碼風格
+2. ✅ **TypeScript 編譯檢查** - 型別檢查
+3. ✅ **前端 Build** - 確保能成功建置
+4. ✅ **Docker Compose 配置驗證** - 確保配置有效
+5. ✅ **Docker 服務啟動測試** - 測試核心服務能啟動
+
+#### 3.2.3 跳過檢查
+
+```bash
+# 跳過 Docker 啟動測試（較快）
+SKIP_DOCKER_START=true git push
+
+# 跳過所有檢查（緊急情況）
+git push --no-verify
+```
+
+#### 3.2.4 手動執行檢查
+
+```bash
+# 不需要 push 也可以手動執行
+./scripts/pre-push-check.sh
+```
+
+### 3.3 手動觸發測試指令
+
+以下是在本地開發環境中手動執行各種測試的完整指令：
+
+#### 3.3.1 後端測試
+
+```bash
+# ==================== 前置準備 ====================
+# 確保 PostgreSQL 和 Redis 運行中
+docker-compose -f docker-compose.dev.yml up -d postgres redis
+
+# 建立 Judge Docker Image（如果尚未建立）
+docker build -t oj-judge:latest -f backend/judge/Dockerfile.judge backend/judge
+
+# ==================== 執行測試 ====================
+cd backend
+
+# 執行所有後端測試
+pytest
+
+# 執行特定 app 的測試
+pytest apps/users/
+pytest apps/problems/
+pytest apps/submissions/
+pytest apps/contests/
+
+# 顯示詳細輸出
+pytest -v
+
+# 顯示覆蓋率報告
+pytest --cov=apps --cov-report=html
+# 報告位於 backend/htmlcov/index.html
+
+# 只執行失敗的測試
+pytest --lf
+
+# 執行含有特定關鍵字的測試
+pytest -k "test_login"
+```
+
+#### 3.3.2 Judge 系統測試
+
+```bash
+cd backend
+
+# 執行所有 Judge 測試
+python manage.py test apps.judge --verbosity=2
+
+# 測試多語言支援
+python manage.py test apps.judge.test_multilang --verbosity=2
+
+# 測試特定功能
+python manage.py test apps.judge.CppJudgeTestCase.test_fork_bomb_protection
+python manage.py test apps.judge.CppJudgeTestCase.test_memory_limit_exceeded
+```
+
+#### 3.3.3 前端單元測試 (Vitest)
+
+```bash
+cd frontend
+
+# 執行所有單元測試
+npm run test
+
+# 監聽模式（檔案變更時自動重新執行）
+npm run test:watch
+
+# 產生覆蓋率報告
+npm run test:coverage
+# 報告位於 frontend/coverage/index.html
+
+# 執行特定檔案的測試
+npx vitest run src/utils/format.test.ts
+
+# 執行符合 pattern 的測試
+npx vitest run --grep "formatDate"
+```
+
+#### 3.3.4 前端 API 整合測試
+
+```bash
+# ==================== 前置準備 ====================
+# 啟動完整測試環境
+docker-compose -f docker-compose.test.yml up -d
+
+# 等待服務就緒
+sleep 10
+
+# ==================== 執行測試 ====================
+cd frontend
+
+# 執行 API 整合測試
+npm run test:api
+
+# 監聽模式
+npm run test:api:watch
+```
+
+#### 3.3.5 前端 E2E 測試 (Playwright)
+
+```bash
+# ==================== 前置準備 ====================
+# 安裝 Playwright 瀏覽器（只需執行一次）
+cd frontend
+npx playwright install
+
+# 啟動完整測試環境
+docker-compose -f docker-compose.test.yml up -d
+
+# 或手動啟動服務
+# Terminal 1: 後端
+cd backend && python manage.py runserver
+
+# Terminal 2: 前端
+cd frontend && npm run dev
+
+# ==================== 執行測試 ====================
+cd frontend
+
+# 執行所有 E2E 測試
+npm run test:e2e
+
+# 使用 UI 模式（互動式除錯，推薦）
+npm run test:e2e:ui
+
+# Debug 模式（逐步執行）
+npm run test:e2e:debug
+
+# 有頭模式（顯示瀏覽器視窗）
+npm run test:e2e:headed
+
+# 執行特定測試檔案
+npx playwright test tests/e2e/auth.e2e.spec.ts -c playwright.config.e2e.ts
+
+# 指定瀏覽器
+npm run test:e2e -- --project=chromium
+npm run test:e2e -- --project=firefox
+
+# 查看測試報告
+npm run test:e2e:report
+```
+
+#### 3.3.6 完整測試流程（模擬 CI）
+
+```bash
+# ==================== 後端完整測試 ====================
+cd backend
+
+# 1. 設定環境變數
+export DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_oj
+export REDIS_URL=redis://localhost:6379/0
+export DJANGO_SETTINGS_MODULE=config.settings.test
+export SECRET_KEY=test-secret-key
+export JUDGE_ENGINE_ENABLED=true
+export DOCKER_IMAGE_JUDGE=oj-judge:latest
+
+# 2. 執行遷移
+python manage.py migrate --noinput
+
+# 3. 執行測試
+pytest
+
+# ==================== 前端完整測試 ====================
+cd frontend
+
+# 1. Linting
+npm run lint
+
+# 2. 單元測試
+npm run test
+
+# 3. 覆蓋率
+npm run test:coverage
+
+# 4. E2E 測試（需要後端運行）
+npm run test:e2e
+```
+
+### 3.4 手動測試檢查清單
+
+#### 3.4.1 功能測試
 
 **認證系統**:
+
 - [ ] Email 註冊與登入
 - [ ] NYCU OAuth 登入
 - [ ] Token 刷新
 - [ ] 密碼重設
 
 **題目系統**:
+
 - [ ] 瀏覽題目列表
 - [ ] 查看題目詳情
 - [ ] 建立題目（Teacher）
@@ -612,12 +925,14 @@ python scripts/analyze_submission_queries.py
 - [ ] 批量導入題目（YAML）
 
 **提交系統**:
+
 - [ ] 提交程式碼（C++）
 - [ ] 查看提交歷史
 - [ ] 查看評測結果
 - [ ] 測試執行
 
 **競賽系統**:
+
 - [ ] 建立競賽（Teacher）
 - [ ] 註冊競賽（密碼保護）
 - [ ] 開始考試
@@ -626,21 +941,24 @@ python scripts/analyze_submission_queries.py
 - [ ] 考試模式防作弊
 - [ ] 結束考試（交卷）
 
-#### 3.2.2 安全測試
+#### 3.4.2 安全測試
 
 **權限控制**:
+
 - [ ] Student 無法建立題目
 - [ ] Student 無法管理競賽
 - [ ] Teacher 無法查看其他 Teacher 的私密競賽
 - [ ] Admin 可以管理所有資源
 
 **資料驗證**:
+
 - [ ] SQL 注入防護
 - [ ] XSS 防護
 - [ ] CSRF 防護
 - [ ] 檔案上傳驗證
 
 **評測安全**:
+
 - [ ] Fork bomb 防護
 - [ ] 網路隔離
 - [ ] 檔案系統限制
@@ -674,6 +992,7 @@ docker-compose logs --since="2025-12-10T10:00:00"
 **開發環境**: Console 輸出
 
 **生產環境**:
+
 ```
 backend/logs/
 ├── django.log
