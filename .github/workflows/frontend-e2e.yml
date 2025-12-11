@@ -5,16 +5,18 @@ on:
     branches: [ main, develop ]
     paths:
       - 'frontend/**'
+      - 'backend/**'
       - '.github/workflows/frontend-e2e.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'frontend/**'
+      - 'backend/**'
 
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
 
     services:
       postgres:
@@ -45,8 +47,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Setup Python and Node.js in parallel
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -59,26 +62,61 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
+      # Cache Playwright browsers
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      # Cache Judge Docker image layers
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-judge-${{ runner.os }}-${{ hashFiles('backend/judge/Dockerfile.judge') }}
+          restore-keys: |
+            docker-judge-${{ runner.os }}-
+
+      # Install dependencies in parallel
       - name: Install Backend dependencies
-        run: |
-          cd backend
-          pip install -r requirements/dev.txt
+        run: pip install -r backend/requirements/dev.txt
 
       - name: Install Frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+        run: npm ci --prefix frontend
 
       - name: Install Playwright Browsers
-        run: |
-          cd frontend
-          npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Install Playwright Dependencies (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: frontend
+
+      # Build Judge Docker image with BuildX for caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Judge Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/judge
+          file: backend/judge/Dockerfile.judge
+          tags: oj-judge:latest
+          load: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Move cache to avoid growing indefinitely
+      - name: Move Docker cache
         run: |
-          docker build -t oj-judge:latest \
-            -f backend/judge/Dockerfile.judge \
-            backend/judge
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Setup Backend Database
         env:
@@ -102,16 +140,29 @@ jobs:
         run: |
           cd backend
           python manage.py runserver 0.0.0.0:8000 &
-          # Wait for server to be ready
-          sleep 10
-          curl -f http://localhost:8000/api/v1/health/ || echo "Health check endpoint not available, continuing..."
+          # Wait for server with retry loop instead of fixed sleep
+          for i in {1..30}; do
+            if curl -sf http://localhost:8000/api/v1/health/ > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 1
+          done
 
       - name: Start Frontend Dev Server
         run: |
           cd frontend
           npm run dev &
-          # Wait for frontend to be ready
-          sleep 15
+          # Wait for frontend with retry loop
+          for i in {1..30}; do
+            if curl -sf http://localhost:5173/ > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            echo "Waiting for frontend... ($i/30)"
+            sleep 1
+          done
 
       - name: Run Playwright E2E Tests
         env:

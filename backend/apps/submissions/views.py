@@ -33,6 +33,15 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     # Date range filtering (default: last 3 months)
     DEFAULT_DATE_RANGE_DAYS = 90
     
+    def filter_queryset(self, queryset):
+        """
+        Override to disable filtering for non-list actions.
+        This ensures retrieve/update/delete can access any submission by ID.
+        """
+        if self.action != 'list':
+            return queryset
+        return super().filter_queryset(queryset)
+    
     def get_queryset(self):
         """
         Optimized queryset with proper select_related and only() for list view.
