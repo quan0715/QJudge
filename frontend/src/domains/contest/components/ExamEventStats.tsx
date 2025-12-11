@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   DataTable,
   Table,
@@ -8,10 +8,10 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  InlineNotification
-} from '@carbon/react';
-import type { ExamEventStats, ExamEvent } from '@/core/entities/contest.entity';
-import { useContest } from '@/domains/contest/contexts/ContestContext';
+  InlineNotification,
+} from "@carbon/react";
+import type { ExamEventStats, ExamEvent } from "@/core/entities/contest.entity";
+import { useContest } from "@/domains/contest/contexts/ContestContext";
 
 const ExamEventStatsComponent: React.FC = () => {
   // Use examEvents from context - no local fetch needed, no timer
@@ -20,34 +20,34 @@ const ExamEventStatsComponent: React.FC = () => {
   // Aggregate events by user
   const stats = useMemo(() => {
     const userMap = new Map<string, ExamEventStats>();
-    
+
     examEvents.forEach((event: ExamEvent) => {
       const eventRaw = event as any; // For access to raw fields
-      const userId = eventRaw.userId || eventRaw.user_id || 'unknown';
-      
+      const userId = eventRaw.userId || eventRaw.user_id || "unknown";
+
       if (!userMap.has(userId)) {
         userMap.set(userId, {
           userId: userId,
-          userName: event.userName || eventRaw.student_name || 'Unknown',
+          userName: event.userName || eventRaw.student_name || "Unknown",
           tabHiddenCount: 0,
           windowBlurCount: 0,
           exitFullscreenCount: 0,
-          totalViolations: 0
+          totalViolations: 0,
         });
       }
 
       const userStats = userMap.get(userId)!;
-      
+
       switch (event.eventType) {
-        case 'tab_hidden':
+        case "tab_hidden":
           userStats.tabHiddenCount++;
           userStats.totalViolations++;
           break;
-        case 'window_blur':
+        case "window_blur":
           userStats.windowBlurCount++;
           userStats.totalViolations++;
           break;
-        case 'exit_fullscreen':
+        case "exit_fullscreen":
           userStats.exitFullscreenCount++;
           userStats.totalViolations++;
           break;
@@ -58,20 +58,20 @@ const ExamEventStatsComponent: React.FC = () => {
   }, [examEvents]);
 
   const headers = [
-    { key: 'userName', header: '參賽者' },
-    { key: 'tabHiddenCount', header: '切換分頁' },
-    { key: 'windowBlurCount', header: '視窗失焦' },
-    { key: 'exitFullscreenCount', header: '退出全螢幕' },
-    { key: 'totalViolations', header: '總違規次數' }
+    { key: "userName", header: "參賽者" },
+    { key: "tabHiddenCount", header: "切換分頁" },
+    { key: "windowBlurCount", header: "視窗失焦" },
+    { key: "exitFullscreenCount", header: "退出全螢幕" },
+    { key: "totalViolations", header: "總違規次數" },
   ];
 
-  const rows = stats.map(stat => ({
+  const rows = stats.map((stat) => ({
     id: stat.userId,
     userName: stat.userName,
     tabHiddenCount: stat.tabHiddenCount,
     windowBlurCount: stat.windowBlurCount,
     exitFullscreenCount: stat.exitFullscreenCount,
-    totalViolations: stat.totalViolations
+    totalViolations: stat.totalViolations,
   }));
 
   if (isRefreshing && stats.length === 0) {
@@ -96,21 +96,29 @@ const ExamEventStatsComponent: React.FC = () => {
           <Table {...getTableProps()} size="md">
             <TableHead>
               <TableRow>
-                {headers.map((header) => (
-                  <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                    {header.header}
-                  </TableHeader>
-                ))}
+                {headers.map((header) => {
+                  const { key, ...headerProps } = getHeaderProps({ header });
+                  return (
+                    <TableHeader key={key} {...headerProps}>
+                      {header.header}
+                    </TableHeader>
+                  );
+                })}
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((row) => {
                 const hasViolations = parseInt(row.cells[4].value) > 0;
+                const { key, ...rowProps } = getRowProps({ row });
                 return (
                   <TableRow
-                    {...getRowProps({ row })}
-                    key={row.id}
-                    style={hasViolations ? { backgroundColor: 'var(--cds-layer-accent-01)' } : {}}
+                    key={key}
+                    {...rowProps}
+                    style={
+                      hasViolations
+                        ? { backgroundColor: "var(--cds-layer-accent-01)" }
+                        : {}
+                    }
                   >
                     {row.cells.map((cell) => (
                       <TableCell key={cell.id}>{cell.value}</TableCell>

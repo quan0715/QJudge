@@ -343,23 +343,26 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row: any) => (
-                  <TableRow {...getRowProps({ row })} key={row.id}>
-                    {row.cells.map((cell: any) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{
-                          padding: cell.info.header.startsWith("problem_")
-                            ? 0
-                            : "1rem",
-                          textAlign: "center",
-                        }}
-                      >
-                        {renderCell(cell, problems)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
+                {rows.map((row: any) => {
+                  const { key, ...rowProps } = getRowProps({ row });
+                  return (
+                    <TableRow key={key} {...rowProps}>
+                      {row.cells.map((cell: any) => (
+                        <TableCell
+                          key={cell.id}
+                          style={{
+                            padding: cell.info.header.startsWith("problem_")
+                              ? 0
+                              : "1rem",
+                            textAlign: "center",
+                          }}
+                        >
+                          {renderCell(cell, problems)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

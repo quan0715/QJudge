@@ -1,7 +1,11 @@
-import { useState } from 'react';
-import { Dropdown } from '@carbon/react';
-import MarkdownRenderer from '@/ui/components/common/MarkdownRenderer';
-import type { TestCase, Translation, Tag as TagType } from '@/core/entities/problem.entity';
+import MarkdownRenderer from "@/ui/components/common/MarkdownRenderer";
+import type {
+  TestCase,
+  Translation,
+  Tag as TagType,
+} from "@/core/entities/problem.entity";
+import { useContentLanguage } from "@/contexts/ContentLanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface ProblemPreviewProps {
   title?: string;
@@ -11,194 +15,226 @@ interface ProblemPreviewProps {
   translations?: Translation[];
   testCases?: TestCase[];
   tags?: TagType[];
-  defaultLang?: 'zh-TW' | 'en';
   showLanguageToggle?: boolean;
   compact?: boolean;
-  // Keyword restrictions
   forbiddenKeywords?: string[];
   requiredKeywords?: string[];
 }
 
 const ProblemPreview = ({
   title,
-  difficulty: _difficulty = 'medium',
+  difficulty: _difficulty = "medium",
   timeLimit: _timeLimit = 1000,
   memoryLimit: _memoryLimit = 128,
   translations = [],
   testCases = [],
   tags: _tags = [],
-  defaultLang = 'zh-TW',
-  showLanguageToggle = true,
+  showLanguageToggle: _showLanguageToggle = true,
   compact = false,
   forbiddenKeywords = [],
-  requiredKeywords = []
+  requiredKeywords = [],
 }: ProblemPreviewProps) => {
-  const [currentLang, setCurrentLang] = useState<'zh-TW' | 'en'>(defaultLang);
+  const { contentLanguage } = useContentLanguage();
+  const { t } = useTranslation(["problem", "common"]);
+  const currentLang = contentLanguage;
 
-  // Find translation with backward compatibility for zh-hant
-  const translation = translations.find(t => t.language === currentLang) || 
-                      (currentLang === 'zh-TW' ? translations.find(t => t.language === 'zh-hant') : null) ||
-                      translations[0];
+  const translation =
+    translations.find((trans) => trans.language === currentLang) ||
+    (currentLang === "zh-TW"
+      ? translations.find((trans) => trans.language === "zh-hant")
+      : null) ||
+    translations[0];
 
-  const languageOptions = [
-    { id: 'zh-TW', label: '中文' },
-    { id: 'en', label: 'English' }
-  ].filter(lang => {
-    if (lang.id === 'zh-TW') {
-      // Accept both zh-TW and zh-hant for Chinese
-      return translations.some(t => t.language === 'zh-TW' || t.language === 'zh-hant');
-    }
-    return translations.some(t => t.language === lang.id);
-  });
-
-  const sampleCases = testCases.filter(tc => tc.isSample);
+  const sampleCases = testCases.filter((tc) => tc.isSample);
 
   return (
     <div className="problem-preview">
-      {/* Header */}
       {!compact && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-              {translation?.title || title || '未命名題目'}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
+              {translation?.title || title || t("common:message.noData")}
             </h3>
-            {showLanguageToggle && languageOptions.length > 1 && (
-              <div style={{ width: '150px' }}>
-                <Dropdown
-                  id="language-selector"
-                  label="選擇語言"
-                  titleText=""
-                  items={languageOptions}
-                  itemToString={(item) => (item ? item.label : '')}
-                  selectedItem={languageOptions.find(l => l.id === currentLang)}
-                  onChange={({ selectedItem }) => selectedItem && setCurrentLang(selectedItem.id as 'zh-TW' | 'en')}
-                  size="sm"
-                />
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Content */}
       {translation && (
         <>
           {translation.description && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '題目描述' : 'Description'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "0.5rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.description")}
               </h4>
-              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+              <MarkdownRenderer
+                enableMath
+                enableHighlight
+                style={{ fontSize: "0.875rem" }}
+              >
                 {translation.description}
               </MarkdownRenderer>
             </div>
           )}
 
           {translation.inputDescription && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '輸入說明' : 'Input Description'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "0.5rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.inputDescription")}
               </h4>
-              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+              <MarkdownRenderer
+                enableMath
+                enableHighlight
+                style={{ fontSize: "0.875rem" }}
+              >
                 {translation.inputDescription}
               </MarkdownRenderer>
             </div>
           )}
 
           {translation.outputDescription && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '輸出說明' : 'Output Description'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "0.5rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.outputDescription")}
               </h4>
-              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+              <MarkdownRenderer
+                enableMath
+                enableHighlight
+                style={{ fontSize: "0.875rem" }}
+              >
                 {translation.outputDescription}
               </MarkdownRenderer>
             </div>
           )}
 
           {sampleCases.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '1rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '範例測試' : 'Sample Test Cases'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "1rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.sampleTestCases")}
               </h4>
               {sampleCases.map((tc, index) => (
-                <div key={index} style={{ 
-                  marginBottom: '1.25rem',
-                  border: '1px solid var(--cds-border-subtle)',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  backgroundColor: 'var(--cds-layer-01)'
-                }}>
-                  {/* Header */}
-                  <div style={{ 
-                    padding: '0.75rem 1rem',
-                    backgroundColor: 'var(--cds-layer-02)',
-                    borderBottom: '1px solid var(--cds-border-subtle)',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    color: 'var(--cds-text-primary)'
-                  }}>
-                    {currentLang === 'zh-TW' ? `範例 ${index + 1}` : `Example ${index + 1}`}
+                <div
+                  key={index}
+                  style={{
+                    marginBottom: "1.25rem",
+                    border: "1px solid var(--cds-border-subtle)",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    backgroundColor: "var(--cds-layer-01)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "0.75rem 1rem",
+                      backgroundColor: "var(--cds-layer-02)",
+                      borderBottom: "1px solid var(--cds-border-subtle)",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      color: "var(--cds-text-primary)",
+                    }}
+                  >
+                    {t("problem:sample.example", { index: index + 1 })}
                   </div>
-                  
-                  {/* Content */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-                    {/* Input */}
-                    <div style={{ 
-                      padding: '1rem',
-                      borderRight: '1px solid var(--cds-border-subtle)'
-                    }}>
-                      <div style={{ 
-                        fontWeight: 600, 
-                        marginBottom: '0.5rem',
-                        fontSize: '0.8125rem',
-                        color: 'var(--cds-text-secondary)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        {currentLang === 'zh-TW' ? '輸入' : 'Input'}
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "1rem",
+                        borderRight: "1px solid var(--cds-border-subtle)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          fontSize: "0.8125rem",
+                          color: "var(--cds-text-secondary)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        {t("problem:sample.input")}
                       </div>
-                      <pre style={{ 
-                        background: 'var(--cds-field)',
-                        padding: '0.75rem', 
-                        borderRadius: '4px',
-                        margin: 0,
-                        overflowX: 'auto',
-                        fontSize: '0.8125rem',
-                        lineHeight: '1.5',
-                        border: '1px solid var(--cds-border-subtle)',
-                        fontFamily: "'IBM Plex Mono', monospace"
-                      }}>
-                        {tc.input || '(空)'}
+                      <pre
+                        style={{
+                          background: "var(--cds-field)",
+                          padding: "0.75rem",
+                          borderRadius: "4px",
+                          margin: 0,
+                          overflowX: "auto",
+                          fontSize: "0.8125rem",
+                          lineHeight: "1.5",
+                          border: "1px solid var(--cds-border-subtle)",
+                          fontFamily: "'IBM Plex Mono', monospace",
+                        }}
+                      >
+                        {tc.input || t("problem:sample.empty")}
                       </pre>
                     </div>
-                    
-                    {/* Output */}
-                    <div style={{ 
-                      padding: '1rem'
-                    }}>
-                      <div style={{ 
-                        fontWeight: 600, 
-                        marginBottom: '0.5rem',
-                        fontSize: '0.8125rem',
-                        color: 'var(--cds-text-secondary)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        {currentLang === 'zh-TW' ? '輸出' : 'Output'}
+
+                    <div style={{ padding: "1rem" }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          fontSize: "0.8125rem",
+                          color: "var(--cds-text-secondary)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        {t("problem:sample.output")}
                       </div>
-                      <pre style={{ 
-                        background: 'var(--cds-field)',
-                        padding: '0.75rem', 
-                        borderRadius: '4px',
-                        margin: 0,
-                        overflowX: 'auto',
-                        fontSize: '0.8125rem',
-                        lineHeight: '1.5',
-                        border: '1px solid var(--cds-border-subtle)',
-                        fontFamily: "'IBM Plex Mono', monospace"
-                      }}>
-                        {tc.output || '(空)'}
+                      <pre
+                        style={{
+                          background: "var(--cds-field)",
+                          padding: "0.75rem",
+                          borderRadius: "4px",
+                          margin: 0,
+                          overflowX: "auto",
+                          fontSize: "0.8125rem",
+                          lineHeight: "1.5",
+                          border: "1px solid var(--cds-border-subtle)",
+                          fontFamily: "'IBM Plex Mono', monospace",
+                        }}
+                      >
+                        {tc.output || t("problem:sample.empty")}
                       </pre>
                     </div>
                   </div>
@@ -208,45 +244,65 @@ const ProblemPreview = ({
           )}
 
           {translation.hint && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '提示' : 'Hint'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "0.5rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.hint")}
               </h4>
-              <MarkdownRenderer enableMath enableHighlight style={{ fontSize: '0.875rem' }}>
+              <MarkdownRenderer
+                enableMath
+                enableHighlight
+                style={{ fontSize: "0.875rem" }}
+              >
                 {translation.hint}
               </MarkdownRenderer>
             </div>
           )}
 
-          {/* Keyword Restrictions */}
           {(requiredKeywords.length > 0 || forbiddenKeywords.length > 0) && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1rem' }}>
-                {currentLang === 'zh-TW' ? '程式碼限制' : 'Code Restrictions'}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <h4
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "0.75rem",
+                  fontSize: "1rem",
+                }}
+              >
+                {t("problem:section.codeRestrictions")}
               </h4>
-              
+
               {requiredKeywords.length > 0 && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ 
-                    fontWeight: 600, 
-                    marginBottom: '0.5rem',
-                    fontSize: '0.875rem',
-                    color: 'var(--cds-text-secondary)'
-                  }}>
-                    {currentLang === 'zh-TW' ? '必須包含的關鍵字：' : 'Required Keywords:'}
+                <div style={{ marginBottom: "0.75rem" }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      color: "var(--cds-text-secondary)",
+                    }}
+                  >
+                    {t("problem:section.requiredKeywords")}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
+                  >
                     {requiredKeywords.map((kw, index) => (
                       <span
                         key={index}
                         style={{
-                          display: 'inline-block',
-                          padding: '0.25rem 0.5rem',
-                          backgroundColor: 'var(--cds-tag-background-green, #a7f0ba)',
-                          color: 'var(--cds-tag-color-green, #044317)',
-                          borderRadius: '4px',
-                          fontSize: '0.875rem',
-                          fontFamily: "'IBM Plex Mono', monospace"
+                          display: "inline-block",
+                          padding: "0.25rem 0.5rem",
+                          backgroundColor:
+                            "var(--cds-tag-background-green, #a7f0ba)",
+                          color: "var(--cds-tag-color-green, #044317)",
+                          borderRadius: "4px",
+                          fontSize: "0.875rem",
+                          fontFamily: "'IBM Plex Mono', monospace",
                         }}
                       >
                         {kw}
@@ -255,29 +311,34 @@ const ProblemPreview = ({
                   </div>
                 </div>
               )}
-              
+
               {forbiddenKeywords.length > 0 && (
                 <div>
-                  <div style={{ 
-                    fontWeight: 600, 
-                    marginBottom: '0.5rem',
-                    fontSize: '0.875rem',
-                    color: 'var(--cds-text-secondary)'
-                  }}>
-                    {currentLang === 'zh-TW' ? '禁止使用的關鍵字：' : 'Forbidden Keywords:'}
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      color: "var(--cds-text-secondary)",
+                    }}
+                  >
+                    {t("problem:section.forbiddenKeywords")}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
+                  >
                     {forbiddenKeywords.map((kw, index) => (
                       <span
                         key={index}
                         style={{
-                          display: 'inline-block',
-                          padding: '0.25rem 0.5rem',
-                          backgroundColor: 'var(--cds-tag-background-red, #ffd7d9)',
-                          color: 'var(--cds-tag-color-red, #750e13)',
-                          borderRadius: '4px',
-                          fontSize: '0.875rem',
-                          fontFamily: "'IBM Plex Mono', monospace"
+                          display: "inline-block",
+                          padding: "0.25rem 0.5rem",
+                          backgroundColor:
+                            "var(--cds-tag-background-red, #ffd7d9)",
+                          color: "var(--cds-tag-color-red, #750e13)",
+                          borderRadius: "4px",
+                          fontSize: "0.875rem",
+                          fontFamily: "'IBM Plex Mono', monospace",
                         }}
                       >
                         {kw}
@@ -292,8 +353,14 @@ const ProblemPreview = ({
       )}
 
       {!translation && (
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--cds-text-secondary)' }}>
-          暫無內容
+        <div
+          style={{
+            padding: "2rem",
+            textAlign: "center",
+            color: "var(--cds-text-secondary)",
+          }}
+        >
+          {t("common:message.noData")}
         </div>
       )}
     </div>

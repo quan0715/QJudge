@@ -1,0 +1,179 @@
+{
+  "nav": {
+    "dashboard": "儀表板",
+    "problems": "題目",
+    "contests": "競賽",
+    "submissions": "提交紀錄",
+    "ranking": "排行榜",
+    "backToProblemList": "返回題目列表",
+    "problemList": "題目列表"
+  },
+  "page": {
+    "dashboard": "儀表板",
+    "problems": "題目列表",
+    "problemDetail": "題目詳情",
+    "contests": "競賽列表",
+    "contestDetail": "競賽詳情",
+    "submissions": "提交紀錄",
+    "login": "登入",
+    "register": "註冊",
+    "userManagement": "使用者管理",
+    "problemManagement": "題目管理",
+    "contestManagement": "競賽管理",
+    "announcements": "公告管理",
+    "environment": "環境設定",
+    "createContest": "建立競賽",
+    "createProblem": "新增題目",
+    "editProblem": "編輯題目"
+  },
+  "tab": {
+    "overview": "總覽",
+    "problems": "題目",
+    "submissions": "提交紀錄",
+    "standings": "排名",
+    "clarifications": "問答",
+    "settings": "設定",
+    "participants": "參賽者",
+    "logs": "日誌",
+    "manageProblems": "管理題目",
+    "description": "題目描述",
+    "solver": "解題",
+    "history": "歷史紀錄",
+    "stats": "統計"
+  },
+  "header": {
+    "appSwitcher": "功能選單",
+    "userMenu": "使用者選單",
+    "management": "管理",
+    "system": "系統",
+    "problemManagement": "題目管理",
+    "createContest": "建立競賽",
+    "userManagement": "使用者管理",
+    "announcements": "公告管理",
+    "environmentSettings": "環境設定"
+  },
+  "dashboard": {
+    "welcomeBack": "歡迎回來，{{name}}",
+    "subtitle": "NYCU Online Judge",
+    "stats": {
+      "title": "解題統計",
+      "problems": "題",
+      "noStats": "無法載入統計資料"
+    },
+    "difficulty": {
+      "easy": "簡單",
+      "medium": "中等",
+      "hard": "困難"
+    },
+    "contests": {
+      "title": "近期比賽",
+      "noContests": "目前沒有近期比賽",
+      "upcoming": "即將開始",
+      "ongoing": "進行中",
+      "ended": "已結束"
+    },
+    "announcements": {
+      "title": "公告",
+      "noAnnouncements": "目前沒有公告"
+    }
+  },
+  "button": {
+    "confirm": "確認",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "close": "關閉",
+    "back": "返回",
+    "submit": "提交",
+    "create": "新增",
+    "logout": "登出",
+    "login": "登入",
+    "register": "註冊",
+    "archive": "封存",
+    "updating": "更新中...",
+    "search": "搜尋",
+    "searching": "搜尋中...",
+    "clear": "清除"
+  },
+  "message": {
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "success": "操作成功",
+    "noData": "暫無資料",
+    "notFound": "找不到該資源",
+    "comingSoon": "即將推出",
+    "saveFailed": "儲存失敗",
+    "deleteFailed": "刪除失敗"
+  },
+  "pagination": {
+    "previous": "上一頁",
+    "next": "下一頁",
+    "itemsPerPage": "每頁顯示"
+  },
+  "language": {
+    "switchTo": "切換語言",
+    "switchedTitle": "語言已切換",
+    "switchedTo": "已切換至 {{language}}",
+    "selectLanguage": "選擇語言"
+  },
+  "theme": {
+    "switchToLight": "切換至淺色模式",
+    "switchToDark": "切換至深色模式"
+  },
+  "table": {
+    "title": "標題",
+    "status": "狀態",
+    "time": "時間",
+    "visibility": "可見性",
+    "actions": "操作",
+    "private": "私有 (密碼)",
+    "public": "公開"
+  },
+  "user": {
+    "role": {
+      "student": "學生",
+      "teacher": "教師",
+      "admin": "管理員",
+      "adminTA": "管理員 (TA)"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "QJudge",
+      "subtitle": "歡迎回來，請登入您的帳號",
+      "email": "Email",
+      "emailPlaceholder": "student@example.com",
+      "password": "密碼",
+      "passwordPlaceholder": "輸入您的密碼",
+      "submit": "登入",
+      "loading": "登入中...",
+      "or": "或",
+      "ssoLogin": "使用 SSO 登入",
+      "noAccount": "還沒有帳號？",
+      "registerNow": "立即註冊",
+      "failed": "登入失敗",
+      "invalidCredentials": "帳號或密碼錯誤",
+      "oauthFailed": "無法啟動登入流程"
+    },
+    "register": {
+      "title": "建立帳號",
+      "subtitle": "加入 QJudge，開始您的程式之旅",
+      "username": "使用者名稱",
+      "usernamePlaceholder": "選擇一個使用者名稱",
+      "email": "Email",
+      "emailPlaceholder": "輸入您的 Email",
+      "password": "密碼",
+      "passwordPlaceholder": "建立一個密碼",
+      "confirmPassword": "確認密碼",
+      "confirmPasswordPlaceholder": "再次輸入密碼",
+      "submit": "註冊",
+      "loading": "註冊中...",
+      "hasAccount": "已經有帳號？",
+      "loginNow": "登入",
+      "failed": "註冊失敗",
+      "failedRetry": "註冊失敗，請稍後再試",
+      "passwordMismatch": "密碼不一致"
+    }
+  }
+}

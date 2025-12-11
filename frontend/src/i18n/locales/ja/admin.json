@@ -1,0 +1,78 @@
+{
+  "user": {
+    "role": {
+      "student": "学生",
+      "teacher": "教員",
+      "admin": "管理者",
+      "adminTA": "管理者（TA）"
+    },
+    "management": {
+      "title": "ユーザー管理",
+      "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
+      "searchLabel": "ユーザー検索（任意）",
+      "searchPlaceholder": "ユーザー名またはメールアドレスでフィルタリング...",
+      "minSearchLength": "検索には2文字以上入力してください",
+      "noUsersFound": "該当するユーザーが見つかりません",
+      "searchFailed": "検索に失敗しました",
+      "searchFailedRetry": "検索に失敗しました。後でもう一度お試しください",
+      "loadFailed": "ユーザーを読み込めません",
+      "updateFailed": "更新に失敗しました",
+      "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください",
+      "searchResults": "検索結果（{{count}}件）",
+      "columns": {
+        "username": "ユーザー名",
+        "email": "メールアドレス",
+        "currentRole": "現在の役割",
+        "loginMethod": "ログイン方法",
+        "emailVerified": "メール認証",
+        "actions": "操作"
+      },
+      "loginMethods": {
+        "email": "メール/パスワード",
+        "sso": "SSO",
+        "google": "Google",
+        "github": "GitHub",
+        "unknown": "不明"
+      },
+      "notVerified": "未認証",
+      "deleteUser": "ユーザー削除",
+      "confirmRoleChange": "役割変更の確認",
+      "confirmRoleChangeMessage": "{{username}}の役割を{{oldRole}}から{{newRole}}に変更してもよろしいですか？",
+      "adminPermissionNote": "管理者に設定すると、そのユーザーには完全なシステム管理権限が付与されます。",
+      "confirmDeleteUser": "ユーザー削除の確認",
+      "confirmDeleteMessage": "ユーザー{{email}}を削除してもよろしいですか？",
+      "deleteWarning": "この操作は取り消せません！ユーザーのすべてのデータが完全に削除されます。",
+      "userDeleted": "ユーザー{{email}}を削除しました",
+      "deleteError": "ユーザーの削除中にエラーが発生しました"
+    }
+  },
+  "announcement": {
+    "management": "お知らせ管理",
+    "list": "システムお知らせ一覧",
+    "create": "お知らせ作成",
+    "edit": "お知らせ編集",
+    "delete": "お知らせ削除",
+    "search": "お知らせ検索",
+    "columns": {
+      "title": "タイトル",
+      "author": "作成者",
+      "status": "状態",
+      "createdAt": "作成日時",
+      "actions": "操作"
+    },
+    "form": {
+      "title": "タイトル",
+      "titlePlaceholder": "お知らせのタイトルを入力",
+      "content": "内容",
+      "contentPlaceholder": "お知らせの内容を入力",
+      "publishLabel": "公開するか",
+      "hidden": "非公開",
+      "published": "公開"
+    },
+    "status": {
+      "published": "公開中",
+      "hidden": "非公開"
+    },
+    "confirmDelete": "お知らせ「{{title}}」を削除してもよろしいですか？この操作は取り消せません。"
+  }
+}

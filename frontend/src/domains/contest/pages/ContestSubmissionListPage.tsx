@@ -17,6 +17,7 @@ import {
   SkeletonText,
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
 import { StatusBadge } from "@/ui/components/StatusBadge";
 import type { StatusType } from "@/ui/components/StatusBadge";
@@ -52,6 +53,8 @@ const flipAnimationStyles = `
 const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   maxWidth,
 }) => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
@@ -109,15 +112,15 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   }, [data]);
 
   const statusOptions = [
-    { id: "all", label: "全部狀態" },
-    { id: "AC", label: "通過 (AC)" },
-    { id: "WA", label: "答案錯誤 (WA)" },
-    { id: "TLE", label: "超時 (TLE)" },
-    { id: "MLE", label: "記憶體超限 (MLE)" },
-    { id: "RE", label: "執行錯誤 (RE)" },
-    { id: "CE", label: "編譯錯誤 (CE)" },
-    { id: "pending", label: "等待中" },
-    { id: "judging", label: "評測中" },
+    { id: "all", label: t("submissions.allStatus") },
+    { id: "AC", label: t("submissions.ac") },
+    { id: "WA", label: t("submissions.wa") },
+    { id: "TLE", label: t("submissions.tle") },
+    { id: "MLE", label: t("submissions.mle") },
+    { id: "RE", label: t("submissions.re") },
+    { id: "CE", label: t("submissions.ce") },
+    { id: "pending", label: t("submissions.pending") },
+    { id: "judging", label: t("submissions.judging") },
   ];
 
   const handleRefresh = () => {
@@ -210,14 +213,14 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   };
 
   const headers = [
-    { key: "status", header: "狀態" },
-    { key: "problem", header: "題目" },
-    { key: "username", header: "用戶" },
-    { key: "language", header: "語言" },
-    { key: "score", header: "得分" },
-    { key: "time", header: "耗時" },
-    { key: "created_at", header: "提交時間" },
-    { key: "actions", header: "操作" },
+    { key: "status", header: t("submissions.status") },
+    { key: "problem", header: t("submissions.problem") },
+    { key: "username", header: t("submissions.user") },
+    { key: "language", header: t("submissions.language") },
+    { key: "score", header: t("submissions.score") },
+    { key: "time", header: t("submissions.time") },
+    { key: "created_at", header: t("submissions.submittedAt") },
+    { key: "actions", header: t("submissions.actions") },
   ];
 
   const rows = submissions.map((sub: any) => {
@@ -250,7 +253,11 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
           kind="ghost"
           size="sm"
           renderIcon={View}
-          iconDescription={canView ? "查看詳情" : "無權限查看"}
+          iconDescription={
+            canView
+              ? t("submissions.viewDetails")
+              : t("submissions.noPermission")
+          }
           hasIconOnly
           disabled={!canView}
           onClick={(e) => {
@@ -274,7 +281,10 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
         <div className="cds--row">
           {/* Left Column: Filters */}
           <div className="cds--col-lg-4 cds--col-md-8">
-            <ContainerCard title="篩選條件" style={{ marginBottom: "1rem" }}>
+            <ContainerCard
+              title={t("submissions.filters")}
+              style={{ marginBottom: "1rem" }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -284,10 +294,10 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
               >
                 <Dropdown
                   id="problem-filter"
-                  titleText="題目"
-                  label="選擇題目"
+                  titleText={t("submissions.problemLabel")}
+                  label={t("submissions.selectProblem")}
                   items={[
-                    { id: "all", label: "全部題目" },
+                    { id: "all", label: t("submissions.allProblems") },
                     ...problems.map((p) => ({
                       id: p.problemId,
                       label: `${p.label}. ${p.title}`,
@@ -296,7 +306,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                   itemToString={(item: any) => (item ? item.label : "")}
                   selectedItem={
                     problemFilter === "all"
-                      ? { id: "all", label: "全部題目" }
+                      ? { id: "all", label: t("submissions.allProblems") }
                       : {
                           id: problemFilter,
                           label: `${
@@ -318,8 +328,8 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
 
                 <Dropdown
                   id="status-filter"
-                  titleText="狀態"
-                  label="選擇狀態"
+                  titleText={t("submissions.statusLabel")}
+                  label={t("submissions.selectStatus")}
                   items={statusOptions}
                   itemToString={(item: any) => (item ? item.label : "")}
                   selectedItem={
@@ -342,14 +352,14 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                         marginBottom: "0.5rem",
                       }}
                     >
-                      提交者
+                      {t("submissions.submitter")}
                     </div>
                     <Toggle
                       id="only-mine-toggle"
                       size="sm"
                       labelText=""
-                      labelA="全部"
-                      labelB="我的"
+                      labelA={t("submissions.all")}
+                      labelB={t("submissions.mine")}
                       toggled={onlyMine}
                       onToggle={(checked: boolean) => {
                         setOnlyMine(checked);
@@ -367,7 +377,9 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                   size="md"
                   style={{ width: "100%" }}
                 >
-                  {isFetching ? "更新中..." : "重新整理"}
+                  {isFetching
+                    ? t("submissions.refreshing")
+                    : t("submissions.refresh")}
                 </Button>
               </div>
             </ContainerCard>
@@ -376,7 +388,11 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
           {/* Right Column: Table */}
           <div className="cds--col-lg-12 cds--col-md-8">
             <ContainerCard
-              title={showSkeleton ? "提交記錄" : `提交記錄 (${totalItems})`}
+              title={
+                showSkeleton
+                  ? t("submissions.title")
+                  : t("submissions.titleWithCount", { count: totalItems })
+              }
               noPadding
             >
               <div style={{ minHeight: "200px" }}>
@@ -481,9 +497,9 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
 
               <Pagination
                 totalItems={totalItems}
-                backwardText="上一頁"
-                forwardText="下一頁"
-                itemsPerPageText="每頁顯示"
+                backwardText={tc("pagination.previous")}
+                forwardText={tc("pagination.next")}
+                itemsPerPageText={tc("pagination.itemsPerPage")}
                 page={page}
                 pageSize={pageSize}
                 pageSizes={[10, 20, 50, 100]}

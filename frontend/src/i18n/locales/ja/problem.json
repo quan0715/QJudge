@@ -1,0 +1,37 @@
+{
+  "section": {
+    "description": "問題文",
+    "inputDescription": "入力形式",
+    "outputDescription": "出力形式",
+    "sampleTestCases": "サンプルテスト",
+    "hint": "ヒント",
+    "codeRestrictions": "コード制限",
+    "requiredKeywords": "必須キーワード：",
+    "forbiddenKeywords": "禁止キーワード："
+  },
+  "sample": {
+    "example": "例 {{index}}",
+    "input": "入力",
+    "output": "出力",
+    "empty": "（空）"
+  },
+  "list": {
+    "title": "問題一覧",
+    "subtitle": "様々な難易度のプログラミング問題に挑戦して、アルゴリズム能力を向上させましょう。"
+  },
+  "tabs": {
+    "description": "問題文",
+    "code": "コード",
+    "submissions": "提出履歴",
+    "stats": "統計"
+  },
+  "modal": {
+    "confirmSubmit": "提出確認",
+    "submitting": "提出中...",
+    "submitConfirmTitle": "解答を提出しますか？",
+    "submitConfirmMessage": "この操作により、すべての非公開テストケースが評価されます。",
+    "createTitle": "問題作成",
+    "createSuccess": "問題が作成されました！",
+    "createError": "作成に失敗しました。後でもう一度お試しください"
+  }
+}

@@ -331,14 +331,16 @@ const ProblemStatsTab: React.FC = () => {
                   <Table {...getTableProps()} size="md">
                     <TableHead>
                       <TableRow>
-                        {headers.map((header) => (
-                          <TableHeader
-                            {...getHeaderProps({ header })}
-                            key={header.key}
-                          >
-                            {header.header}
-                          </TableHeader>
-                        ))}
+                        {headers.map((header) => {
+                          const { key, ...headerProps } = getHeaderProps({
+                            header,
+                          });
+                          return (
+                            <TableHeader key={key} {...headerProps}>
+                              {header.header}
+                            </TableHeader>
+                          );
+                        })}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -347,8 +349,11 @@ const ProblemStatsTab: React.FC = () => {
                           (c) => c.info.header === "rank"
                         );
                         const rank = rankCell?.value as number;
+                        const { key: rowKey, ...rowProps } = getRowProps({
+                          row,
+                        });
                         return (
-                          <TableRow {...getRowProps({ row })} key={row.id}>
+                          <TableRow key={rowKey} {...rowProps}>
                             {row.cells.map((cell) => (
                               <TableCell key={cell.id}>
                                 {cell.info.header === "rank" ? (
