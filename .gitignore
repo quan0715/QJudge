@@ -135,3 +135,4 @@ logs
 
 # OS
 Thumbs.db
+.cursor/

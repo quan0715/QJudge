@@ -111,6 +111,7 @@ export function mapScoreboardRowDto(dto: any): ScoreboardRow {
     userId: dto.user_id?.toString() || "",
     displayName: dto.display_name || "",
     solvedCount: dto.solved_count || 0,
+    totalScore: dto.total_score || 0,
     penalty: dto.penalty || 0,
     rank: dto.rank || 0,
     problems: dto.problems || {},
