@@ -225,5 +225,13 @@
     "allStatus": "すべてのステータス",
     "search": "検索",
     "searchPlaceholder": "検索..."
+  },
+  "toggle": {
+    "on": "オン",
+    "off": "オフ",
+    "show": "表示",
+    "hide": "非表示",
+    "allow": "許可",
+    "forbid": "禁止"
   }
 }

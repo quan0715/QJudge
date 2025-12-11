@@ -225,5 +225,13 @@
     "allStatus": "모든 상태",
     "search": "검색",
     "searchPlaceholder": "검색..."
+  },
+  "toggle": {
+    "on": "켜기",
+    "off": "끄기",
+    "show": "표시",
+    "hide": "숨기기",
+    "allow": "허용",
+    "forbid": "금지"
   }
 }

@@ -31,8 +31,8 @@ import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import type { Submission } from "@/core/entities/submission.entity";
 
 const SubmissionsPage = () => {
-  const { t } = useTranslation('contest');
-  const { t: tc } = useTranslation('common');
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -51,22 +51,22 @@ const SubmissionsPage = () => {
   const isModalOpen = !!submissionIdFromUrl;
 
   const statusOptions = [
-    { id: "all", label: t('submissions.allStatus') },
-    { id: "AC", label: t('submissions.ac') },
-    { id: "WA", label: t('submissions.wa') },
-    { id: "TLE", label: t('submissions.tle') },
-    { id: "MLE", label: t('submissions.mle') },
-    { id: "RE", label: t('submissions.re') },
-    { id: "CE", label: t('submissions.ce') },
-    { id: "pending", label: t('submissions.pending') },
-    { id: "judging", label: t('submissions.judging') },
+    { id: "all", label: t("submissions.allStatus") },
+    { id: "AC", label: t("submissions.ac") },
+    { id: "WA", label: t("submissions.wa") },
+    { id: "TLE", label: t("submissions.tle") },
+    { id: "MLE", label: t("submissions.mle") },
+    { id: "RE", label: t("submissions.re") },
+    { id: "CE", label: t("submissions.ce") },
+    { id: "pending", label: t("submissions.pending") },
+    { id: "judging", label: t("submissions.judging") },
   ];
 
   const dateRangeOptions = [
-    { id: "1month", label: "最近 1 個月" },
-    { id: "3months", label: "最近 3 個月（預設）" },
-    { id: "6months", label: "最近 6 個月" },
-    { id: "all", label: "所有歷史記錄" },
+    { id: "1month", label: t("submissions.dateRange1month") },
+    { id: "3months", label: t("submissions.dateRange3months") },
+    { id: "6months", label: t("submissions.dateRange6months") },
+    { id: "all", label: t("submissions.dateRangeAll") },
   ];
 
   useEffect(() => {
@@ -163,12 +163,12 @@ const SubmissionsPage = () => {
 
   // Skeleton table headers
   const skeletonHeaders = [
-    { key: "status", header: "狀態" },
-    { key: "problem", header: "題目" },
-    { key: "user", header: "用戶" },
-    { key: "language", header: "語言" },
-    { key: "time", header: "耗時" },
-    { key: "created_at", header: "提交時間" },
+    { key: "status", header: t("submissions.status") },
+    { key: "problem", header: t("submissions.problem") },
+    { key: "user", header: t("submissions.user") },
+    { key: "language", header: t("submissions.language") },
+    { key: "time", header: t("submissions.time") },
+    { key: "created_at", header: t("submissions.submittedAt") },
   ];
 
   // Render skeleton loading table
@@ -204,8 +204,8 @@ const SubmissionsPage = () => {
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
       <PageHeader
-        title="提交記錄"
-        subtitle="查看所有公開的程式碼提交狀態與結果。"
+        title={t("submissions.title")}
+        subtitle={t("submissions.subtitle")}
         extra={
           <Button
             kind="tertiary"
@@ -213,7 +213,9 @@ const SubmissionsPage = () => {
             onClick={handleRefresh}
             disabled={refreshing}
           >
-            {refreshing ? "更新中..." : "重新整理"}
+            {refreshing
+              ? t("submissions.refreshing")
+              : t("submissions.refresh")}
           </Button>
         }
       />
@@ -233,7 +235,7 @@ const SubmissionsPage = () => {
           }}
         >
           <TableToolbarSearch
-            placeholder="搜尋用戶或題目..."
+            placeholder={t("submissions.searchPlaceholder")}
             onChange={(e: any) => setSearchQuery(e.target.value)}
             persistent
           />
@@ -241,7 +243,7 @@ const SubmissionsPage = () => {
             <Dropdown
               id="status-filter"
               titleText=""
-              label="篩選狀態"
+              label={t("submissions.filterStatus")}
               size="sm"
               items={statusOptions}
               itemToString={(item: any) => (item ? item.label : "")}
@@ -258,7 +260,7 @@ const SubmissionsPage = () => {
             <Dropdown
               id="date-range-filter"
               titleText=""
-              label="時間範圍"
+              label={t("submissions.dateRange")}
               size="sm"
               items={dateRangeOptions}
               itemToString={(item: any) => (item ? item.label : "")}
@@ -276,8 +278,8 @@ const SubmissionsPage = () => {
               id="only-mine-toggle"
               size="sm"
               labelText=""
-              labelA="全部"
-              labelB="我的"
+              labelA={t("submissions.all")}
+              labelB={t("submissions.mine")}
               toggled={onlyMine}
               onToggle={(checked: boolean) => {
                 setOnlyMine(checked);
@@ -302,9 +304,9 @@ const SubmissionsPage = () => {
 
       <Pagination
         totalItems={totalItems}
-        backwardText="上一頁"
-        forwardText="下一頁"
-        itemsPerPageText="每頁顯示"
+        backwardText={tc("pagination.previous")}
+        forwardText={tc("pagination.next")}
+        itemsPerPageText={tc("pagination.itemsPerPage")}
         page={page}
         pageSize={pageSize}
         pageSizes={[10, 20, 50, 100]}

@@ -225,5 +225,13 @@
     "allStatus": "全部狀態",
     "search": "搜尋",
     "searchPlaceholder": "搜尋..."
+  },
+  "toggle": {
+    "on": "開啟",
+    "off": "關閉",
+    "show": "顯示",
+    "hide": "隱藏",
+    "allow": "允許",
+    "forbid": "禁止"
   }
 }

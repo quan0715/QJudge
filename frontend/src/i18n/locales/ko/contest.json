@@ -162,6 +162,7 @@
   },
   "submissions": {
     "title": "제출 기록",
+    "subtitle": "모든 공개 코드 제출 상태와 결과를 확인하세요.",
     "titleWithCount": "제출 기록 ({{count}})",
     "filters": "필터",
     "problemLabel": "문제",
@@ -169,6 +170,7 @@
     "allProblems": "모든 문제",
     "statusLabel": "상태",
     "selectStatus": "상태 선택",
+    "filterStatus": "상태 필터",
     "allStatus": "모든 상태",
     "ac": "정답 (AC)",
     "wa": "오답 (WA)",
@@ -192,7 +194,13 @@
     "submittedAt": "제출 시간",
     "actions": "작업",
     "viewDetails": "상세 보기",
-    "noPermission": "권한 없음"
+    "noPermission": "권한 없음",
+    "searchPlaceholder": "사용자 또는 문제 검색...",
+    "dateRange": "기간",
+    "dateRange1month": "최근 1개월",
+    "dateRange3months": "최근 3개월 (기본값)",
+    "dateRange6months": "최근 6개월",
+    "dateRangeAll": "전체 기록"
   },
   "standings": {
     "title": "실시간 순위표",

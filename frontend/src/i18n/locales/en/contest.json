@@ -162,6 +162,7 @@
   },
   "submissions": {
     "title": "Submissions",
+    "subtitle": "View all public code submissions and results.",
     "titleWithCount": "Submissions ({{count}})",
     "filters": "Filters",
     "problemLabel": "Problem",
@@ -169,6 +170,7 @@
     "allProblems": "All Problems",
     "statusLabel": "Status",
     "selectStatus": "Select Status",
+    "filterStatus": "Filter Status",
     "allStatus": "All Status",
     "ac": "Accepted (AC)",
     "wa": "Wrong Answer (WA)",
@@ -192,7 +194,13 @@
     "submittedAt": "Submitted At",
     "actions": "Actions",
     "viewDetails": "View Details",
-    "noPermission": "No Permission"
+    "noPermission": "No Permission",
+    "searchPlaceholder": "Search user or problem...",
+    "dateRange": "Date Range",
+    "dateRange1month": "Last 1 month",
+    "dateRange3months": "Last 3 months (default)",
+    "dateRange6months": "Last 6 months",
+    "dateRangeAll": "All history"
   },
   "standings": {
     "title": "Live Standings",

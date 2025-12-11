@@ -225,5 +225,13 @@
     "allStatus": "All Status",
     "search": "Search",
     "searchPlaceholder": "Search..."
+  },
+  "toggle": {
+    "on": "On",
+    "off": "Off",
+    "show": "Show",
+    "hide": "Hide",
+    "allow": "Allow",
+    "forbid": "Forbid"
   }
 }
