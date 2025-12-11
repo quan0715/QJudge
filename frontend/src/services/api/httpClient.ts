@@ -9,6 +9,26 @@ export const clearAuthStorage = () => {
   window.dispatchEvent(new Event("storage"));
 };
 
+/**
+ * Get CSRF token from cookie.
+ * The csrftoken cookie is NOT HttpOnly, so we can read it from JavaScript.
+ * This token must be included in the X-CSRFToken header for state-changing
+ * requests (POST, PUT, PATCH, DELETE) when using cookie-based authentication.
+ */
+const getCsrfToken = (): string | null => {
+  if (typeof document === "undefined") return null;
+
+  const name = "csrftoken";
+  const cookies = document.cookie.split(";");
+  for (const cookie of cookies) {
+    const [key, value] = cookie.trim().split("=");
+    if (key === name) {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+};
+
 const redirectToLogin = () => {
   if (
     typeof window !== "undefined" &&
@@ -28,21 +48,34 @@ const handleUnauthorized = (response: Response): boolean => {
 };
 
 /**
- * Base fetch wrapper with HttpOnly cookie support.
+ * Base fetch wrapper with HttpOnly cookie support and CSRF protection.
  *
- * Security: JWT tokens are stored in HttpOnly cookies by the backend.
- * The `credentials: 'include'` option ensures cookies are sent with requests.
+ * Security:
+ * - JWT tokens are stored in HttpOnly cookies by the backend (XSS protection)
+ * - CSRF token is included in X-CSRFToken header for state-changing requests
+ * - The `credentials: 'include'` option ensures cookies are sent with requests
  *
  * Fallback: For API clients that don't support cookies, the Authorization
- * header can still be used (reads from localStorage).
+ * header can still be used (reads from localStorage). In this case, no CSRF
+ * token is needed since the token is not sent automatically.
  */
 const customFetch = async (endpoint: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers || {});
+  const method = init.method?.toUpperCase() || "GET";
 
   // For API clients without cookie support, fall back to localStorage token
   const token = localStorage.getItem("token");
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  // Add CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
+  // This is required when using cookie-based authentication
+  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken && !headers.has("X-CSRFToken")) {
+      headers.set("X-CSRFToken", csrfToken);
+    }
   }
 
   // Ensure we accept JSON

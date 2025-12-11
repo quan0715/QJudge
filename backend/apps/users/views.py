@@ -1,7 +1,10 @@
 """
 Views for user authentication and management.
 
-Security: JWT tokens are stored in HttpOnly cookies to prevent XSS attacks.
+Security:
+- JWT tokens are stored in HttpOnly cookies to prevent XSS attacks.
+- CSRF protection is enforced for cookie-authenticated state-changing requests.
+- Authorization header authentication is exempt from CSRF (tokens aren't sent automatically).
 """
 import secrets
 from rest_framework import status, generics
@@ -13,7 +16,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, Bl
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
 
 from .serializers import (
@@ -91,12 +94,17 @@ class RegisterView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(APIView):
     """
     User login with email/password.
     Rate limited to 10 requests per minute per IP.
     
     POST /api/v1/auth/email/login
+    
+    Response includes:
+    - JWT tokens in HttpOnly cookies (access_token, refresh_token)
+    - CSRF token in a readable cookie (csrftoken) for subsequent requests
     """
     permission_classes = [AllowAny]
     
@@ -162,12 +170,15 @@ class NYCUOAuthLoginView(APIView):
 
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator([csrf_exempt, ensure_csrf_cookie], name='dispatch')
 class NYCUOAuthCallbackView(APIView):
     """
     Handle NYCU OAuth callback.
     
     POST /api/v1/auth/nycu-oauth/callback
+    
+    Note: csrf_exempt is needed because this receives external OAuth callback.
+    ensure_csrf_cookie ensures the response includes CSRF token for subsequent requests.
     """
     permission_classes = [AllowAny]
     
@@ -215,6 +226,7 @@ class NYCUOAuthCallbackView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class TokenRefreshView(APIView):
     """
     Refresh access token.
@@ -224,6 +236,8 @@ class TokenRefreshView(APIView):
     Token can be provided via:
     1. HttpOnly cookie (preferred, more secure)
     2. Request body with 'refresh' field (for API clients)
+    
+    Note: ensure_csrf_cookie ensures updated CSRF token is provided.
     """
     permission_classes = [AllowAny]
     

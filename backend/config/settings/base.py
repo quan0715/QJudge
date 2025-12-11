@@ -228,11 +228,18 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
 ]
 
-# Session cookie settings (for CSRF)
+# Session cookie settings
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = os.getenv('DJANGO_ENV', 'production') == 'production'
+
+# CSRF cookie settings
+# CSRF_COOKIE_HTTPONLY = False allows frontend to read the token via JavaScript
+# and include it in the X-CSRFToken header for cookie-authenticated requests
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = os.getenv('DJANGO_ENV', 'production') == 'production'
+CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken header
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
 # Frontend URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
