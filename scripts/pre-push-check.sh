@@ -1,23 +1,4 @@
 #!/bin/bash
-<<<<<<< HEAD
-# Pre-push check script
-# 在 push 前執行 TypeScript 檢查和單元測試
-
-set -e
-
-echo "🔍 執行 pre-push 檢查..."
-
-# 進入前端目錄
-cd "$(dirname "$0")/../frontend"
-
-echo "📝 TypeScript 類型檢查..."
-npx tsc --noEmit
-
-echo "🧪 執行單元測試..."
-npm run test:run
-
-echo "✅ 所有檢查通過！"
-=======
 # Pre-push 檢查腳本
 # 在 push 前確保前端 lint、build 和 Docker 環境正常
 
@@ -132,4 +113,3 @@ echo -e "${GREEN}       所有檢查通過！ (${DURATION}s)         ${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}\n"
 
 exit 0
->>>>>>> fc2d00fd491dc0eeb21c8253c6362d4ce466f2ce
