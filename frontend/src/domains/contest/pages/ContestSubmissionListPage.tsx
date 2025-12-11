@@ -12,6 +12,7 @@ import {
   Pagination,
   Button,
   Dropdown,
+  Toggle,
   InlineLoading,
   SkeletonText,
 } from "@carbon/react";
@@ -57,6 +58,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   const [pageSize, setPageSize] = useState(20);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [problemFilter, setProblemFilter] = useState<string>("all");
+  const [onlyMine, setOnlyMine] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [animationKey, setAnimationKey] = useState(0);
 
@@ -71,6 +73,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
     pageSize,
     statusFilter,
     problemFilter,
+    userId: onlyMine && currentUser?.id ? currentUser.id : undefined,
   });
 
   const submissions = data?.results || [];
@@ -329,6 +332,32 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                     }
                   }}
                 />
+
+                {currentUser && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "var(--cds-text-secondary)",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      提交者
+                    </div>
+                    <Toggle
+                      id="only-mine-toggle"
+                      size="sm"
+                      labelText=""
+                      labelA="全部"
+                      labelB="我的"
+                      toggled={onlyMine}
+                      onToggle={(checked: boolean) => {
+                        setOnlyMine(checked);
+                        setPage(1);
+                      }}
+                    />
+                  </div>
+                )}
 
                 <Button
                   kind="tertiary"

@@ -8,6 +8,7 @@ export interface ContestSubmissionsParams {
   pageSize: number;
   statusFilter?: string;
   problemFilter?: string;
+  userId?: number | string; // Filter by user ID (for "only mine" filter)
 }
 
 export interface ContestSubmissionsResult {
@@ -25,6 +26,7 @@ export const useContestSubmissions = ({
   pageSize,
   statusFilter = "all",
   problemFilter = "all",
+  userId,
 }: ContestSubmissionsParams) => {
   return useQuery<ContestSubmissionsResult>({
     queryKey: [
@@ -34,6 +36,7 @@ export const useContestSubmissions = ({
       pageSize,
       statusFilter,
       problemFilter,
+      userId,
     ],
     queryFn: async () => {
       const params: Record<string, string | number> = {
@@ -49,6 +52,10 @@ export const useContestSubmissions = ({
 
       if (problemFilter !== "all") {
         params.problem = problemFilter;
+      }
+
+      if (userId) {
+        params.user = userId;
       }
 
       const data = await getSubmissions(params);

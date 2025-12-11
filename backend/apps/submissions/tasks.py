@@ -162,8 +162,20 @@ def judge_submission(submission_id):
         if not submission.is_test:
             problem = submission.problem
             problem.submission_count += 1
-            if submission.status == 'AC':
+            # Update status-specific counts
+            status = submission.status
+            if status == 'AC':
                 problem.accepted_count += 1
+            elif status == 'WA':
+                problem.wa_count += 1
+            elif status == 'TLE':
+                problem.tle_count += 1
+            elif status == 'MLE':
+                problem.mle_count += 1
+            elif status == 'RE':
+                problem.re_count += 1
+            elif status == 'CE':
+                problem.ce_count += 1
             problem.save()
         
         return f"Submission {submission_id} judged: {submission.status}"

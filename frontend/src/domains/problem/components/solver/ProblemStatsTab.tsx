@@ -1,17 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { Grid, Column, SkeletonText } from "@carbon/react";
-import { GaugeChart, DonutChart, AreaChart } from "@carbon/charts-react";
+import React, { useMemo, useState } from "react";
+import {
+  Grid,
+  Column,
+  SkeletonText,
+  DataTable,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  Tag,
+} from "@carbon/react";
+import { DonutChart, AreaChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
+import { Trophy, Time, Analytics } from "@carbon/icons-react";
+import { IconButton } from "@carbon/react";
 import "@carbon/charts-react/styles.css";
 import ContainerCard from "@/ui/components/layout/ContainerCard";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
-import { getSubmissions } from "@/services/submission";
 import { useTheme } from "@/ui/theme/ThemeContext";
-
-interface ProblemStatsTabProps {
-  problem: ProblemDetail;
-  contestId?: string;
-}
+import {
+  useProblemStatistics,
+  useProblemLeaderboard,
+} from "@/domains/problem/hooks/useProblem";
 
 interface StatusCount {
   group: string;
@@ -24,183 +35,130 @@ interface TrendData {
   value: number;
 }
 
+// Nested donut chart data
+interface NestedDonutData {
+  outer: StatusCount[]; // AC vs Non-AC
+  inner: StatusCount[]; // Full distribution
+}
+
+// Helper to build nested donut data
+const buildNestedDonutData = (
+  ac: number,
+  wa: number,
+  tle: number,
+  mle: number,
+  re: number,
+  ce: number
+): NestedDonutData => {
+  const nonAc = wa + tle + mle + re + ce;
+
+  // Outer ring: AC vs Non-AC
+  const outer: StatusCount[] = [];
+  if (ac > 0) outer.push({ group: "通過 (AC)", value: ac });
+  if (nonAc > 0) outer.push({ group: "未通過", value: nonAc });
+
+  // Inner ring: Full distribution
+  const inner: StatusCount[] = [];
+  if (ac > 0) inner.push({ group: "通過 (AC)", value: ac });
+  if (wa > 0) inner.push({ group: "答案錯誤 (WA)", value: wa });
+  if (tle > 0) inner.push({ group: "時間超限 (TLE)", value: tle });
+  if (mle > 0) inner.push({ group: "記憶體超限 (MLE)", value: mle });
+  if (re > 0) inner.push({ group: "執行錯誤 (RE)", value: re });
+  if (ce > 0) inner.push({ group: "編譯錯誤 (CE)", value: ce });
+
+  return { outer, inner };
+};
+
+// Language label helper
+const getLanguageLabel = (lang: string) => {
+  const langMap: Record<string, string> = {
+    cpp: "C++",
+    python: "Python",
+    java: "Java",
+    javascript: "JS",
+    c: "C",
+  };
+  return langMap[lang] || lang;
+};
+
 /**
  * Problem Statistics Tab
- * Displays AC rate, result distribution, and weekly submission trend
+ * Displays AC rate, result distribution, and submission trend
+ * Uses the ProblemProvider context for data fetching via useQuery
  */
-const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({
-  problem,
-  contestId,
-}) => {
+const ProblemStatsTab: React.FC = () => {
   const { theme } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [statusData, setStatusData] = useState<StatusCount[]>([]);
-  const [trendData, setTrendData] = useState<TrendData[]>([]);
+  const [showDetailedView, setShowDetailedView] = useState(false);
 
-  // Real-time statistics from API (not from potentially stale problem data)
-  const [submissionCount, setSubmissionCount] = useState(0);
-  const [acceptedCount, setAcceptedCount] = useState(0);
-  const acRate =
-    submissionCount > 0
-      ? Math.round((acceptedCount / submissionCount) * 100)
-      : 0;
+  // Get data from ProblemProvider context
+  const { statistics, loading: statsLoading } = useProblemStatistics();
+  const { leaderboard, loading: leaderboardLoading } = useProblemLeaderboard();
 
-  // Fetch submissions for detailed stats
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const { results: submissions } = await getSubmissions({
-          problem: problem.id,
-          contest: contestId,
-          source_type: contestId ? "contest" : "practice",
-          page_size: 10000,
-        });
-
-        // Calculate status distribution from actual submissions
-        const statusCounts: Record<string, number> = {};
-        let acCount = 0;
-
-        submissions.forEach((sub: any) => {
-          const status = sub.status || "Unknown";
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-          if (status === "AC") {
-            acCount++;
-          }
-        });
-
-        // Update real statistics based on API data
-        setSubmissionCount(submissions.length);
-        setAcceptedCount(acCount);
-
-        // Format status data for DonutChart
-        const statusLabels: Record<string, string> = {
-          AC: "通過 (AC)",
-          WA: "答案錯誤 (WA)",
-          TLE: "時間超限 (TLE)",
-          MLE: "記憶體超限 (MLE)",
-          RE: "執行錯誤 (RE)",
-          CE: "編譯錯誤 (CE)",
-          pending: "等待中",
-          running: "執行中",
+  // Compute derived data from statistics
+  const { submissionCount, acceptedCount, acRate, nestedDonutData, trendData } =
+    useMemo(() => {
+      if (!statistics) {
+        return {
+          submissionCount: 0,
+          acceptedCount: 0,
+          acRate: 0,
+          nestedDonutData: { outer: [], inner: [] },
+          trendData: [],
         };
-
-        const formattedStatusData = Object.entries(statusCounts)
-          .map(([status, count]) => ({
-            group: statusLabels[status] || status,
-            value: count,
-          }))
-          .filter((item) => item.value > 0);
-
-        setStatusData(formattedStatusData);
-
-        // Calculate Trend Data (Time-based area chart)
-        const formattedTrendData: TrendData[] = [];
-        const timestamps = submissions.map((s: any) =>
-          new Date(s.createdAt).getTime()
-        );
-
-        if (timestamps.length > 0) {
-          const minT = Math.min(...timestamps);
-          const maxT = Math.max(...timestamps);
-          const durationMs = maxT - minT;
-
-          // Determine bucket size
-          let bucketMs = 24 * 60 * 60 * 1000; // Default Daily
-          let start = minT;
-          let end = maxT;
-
-          if (contestId) {
-            if (durationMs < 3 * 60 * 60 * 1000) {
-              bucketMs = 15 * 60 * 1000; // 15 mins
-            } else if (durationMs < 24 * 60 * 60 * 1000) {
-              bucketMs = 60 * 60 * 1000; // Hourly
-            }
-
-            start = Math.floor(minT / bucketMs) * bucketMs;
-            end = Math.ceil(maxT / bucketMs) * bucketMs;
-          } else {
-            // Practice: Fix to last 7 days
-            const now = new Date();
-            end = now.getTime();
-            start = end - 7 * 24 * 60 * 60 * 1000; // 7 days ago
-            start = Math.floor(start / bucketMs) * bucketMs;
-          }
-
-          // Initialize buckets
-          const buckets: Record<number, number> = {};
-          for (let t = start; t <= end; t += bucketMs) {
-            buckets[t] = 0;
-          }
-
-          // Fill buckets
-          timestamps.forEach((ts) => {
-            if (ts >= start && ts <= end + bucketMs) {
-              const b = Math.floor(ts / bucketMs) * bucketMs;
-              if (buckets[b] !== undefined) buckets[b]++;
-            }
-          });
-
-          Object.entries(buckets).forEach(([t, count]) => {
-            formattedTrendData.push({
-              group: "提交次數",
-              date: new Date(parseInt(t)),
-              value: count,
-            });
-          });
-        }
-
-        setTrendData(formattedTrendData);
-      } catch (error) {
-        console.error("Failed to fetch submission stats:", error);
-        // Fallback to problem data if API fails
-        const fallbackSubmissionCount = problem.submissionCount || 0;
-        const fallbackAcceptedCount = problem.acceptedCount || 0;
-        setSubmissionCount(fallbackSubmissionCount);
-        setAcceptedCount(fallbackAcceptedCount);
-        setStatusData([
-          { group: "通過 (AC)", value: fallbackAcceptedCount },
-          {
-            group: "未通過",
-            value: fallbackSubmissionCount - fallbackAcceptedCount,
-          },
-        ]);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    if (problem.id) {
-      fetchStats();
-    }
-  }, [problem.id, contestId]);
+      const ac = statistics.statusCounts["AC"] || 0;
+      const wa = statistics.statusCounts["WA"] || 0;
+      const tle = statistics.statusCounts["TLE"] || 0;
+      const mle = statistics.statusCounts["MLE"] || 0;
+      const re = statistics.statusCounts["RE"] || 0;
+      const ce = statistics.statusCounts["CE"] || 0;
 
-  // Gauge chart options - fixed to show value correctly
-  const gaugeData = [{ group: "value", value: acRate }];
+      // Format trend data for AreaChart
+      // Parse date string as local date to avoid timezone issues
+      // "2024-01-15" should be treated as local midnight, not UTC
+      const formattedTrendData: TrendData[] = statistics.trend.map((item) => {
+        // Split the ISO date string and create local date
+        const [year, month, day] = item.date.split("-").map(Number);
+        return {
+          group: "提交次數",
+          date: new Date(year, month - 1, day), // month is 0-indexed
+          value: item.count,
+        };
+      });
 
-  const gaugeOptions = {
-    title: "",
-    resizable: true,
-    height: "220px",
-    gauge: {
-      type: "semi" as const,
-      status: acRate >= 60 ? "success" : acRate >= 30 ? "warning" : "danger",
-      arcWidth: 24,
-    },
-    toolbar: { enabled: false },
-    theme: "g100" as const,
+      return {
+        submissionCount: statistics.submissionCount,
+        acceptedCount: statistics.acceptedCount,
+        acRate: Math.round(statistics.acRate),
+        nestedDonutData: buildNestedDonutData(ac, wa, tle, mle, re, ce),
+        trendData: formattedTrendData,
+      };
+    }, [statistics]);
+
+  // Color scale shared by both charts
+  const colorScale = {
+    "通過 (AC)": "#24a148",
+    未通過: "#da1e28",
+    "答案錯誤 (WA)": "#fa4d56",
+    "時間超限 (TLE)": "#f1c21b",
+    "記憶體超限 (MLE)": "#ff832b",
+    "執行錯誤 (RE)": "#a56eff",
+    "編譯錯誤 (CE)": "#0f62fe",
   };
 
-  // Donut chart options
-  const donutOptions = {
+  // Simple donut options (AC vs Non-AC only)
+  const simpleDonutOptions = {
     title: "",
     resizable: true,
-    height: "280px",
+    height: "260px",
     donut: {
       center: {
-        label: "總提交",
-        number: submissionCount,
+        label: "通過率",
+        number: submissionCount > 0 ? acRate : 0,
+        numberFormatter: (num: number) => `${num}%`,
       },
+      alignment: "center" as const,
     },
     pie: {
       alignment: "center" as const,
@@ -210,110 +168,131 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({
       position: "bottom" as const,
     },
     color: {
-      scale: {
-        "通過 (AC)": "#24a148",
-        "答案錯誤 (WA)": "#da1e28",
-        "時間超限 (TLE)": "#f1c21b",
-        "記憶體超限 (MLE)": "#ff832b",
-        "執行錯誤 (RE)": "#a56eff",
-        "編譯錯誤 (CE)": "#0f62fe",
-        等待中: "#8d8d8d",
-        執行中: "#0072c3",
-        未通過: "#da1e28",
-      },
+      scale: colorScale,
     },
     toolbar: { enabled: false },
   };
 
+  // Detailed donut options (Full distribution) - show AC rate in center
+  const detailedDonutOptions = {
+    title: "",
+    resizable: true,
+    height: "260px",
+    donut: {
+      center: {
+        label: "通過率",
+        number: submissionCount > 0 ? acRate : 0,
+        numberFormatter: (num: number) => `${num}%`,
+      },
+      alignment: "center" as const,
+    },
+    pie: {
+      alignment: "center" as const,
+    },
+    legend: {
+      alignment: "center" as const,
+      position: "bottom" as const,
+    },
+    color: {
+      scale: colorScale,
+    },
+    toolbar: { enabled: false },
+  };
+
+  // Check if we have any data
+  const hasData =
+    nestedDonutData.outer.length > 0 || nestedDonutData.inner.length > 0;
+
+  // Leaderboard table headers
+  const leaderboardHeaders = [
+    { key: "rank", header: "排名" },
+    { key: "username", header: "使用者" },
+    { key: "language", header: "語言" },
+    { key: "execTime", header: "執行時間" },
+  ];
+
+  // Transform leaderboard data for DataTable
+  const leaderboardRows = leaderboard.map((entry) => ({
+    id: entry.username,
+    rank: entry.rank,
+    username: entry.username,
+    language: entry.language,
+    execTime: entry.execTime,
+  }));
+
   return (
-    <div>
-      <Grid narrow>
-        {/* AC Rate Gauge */}
-        <Column lg={8} md={4} sm={4}>
-          <ContainerCard title="通過率 (AC Rate)">
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <GaugeChart data={gaugeData} options={gaugeOptions} />
-              <div
-                style={{
-                  marginTop: "0.5rem",
-                  textAlign: "center",
-                  color: "var(--cds-text-secondary)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "2rem",
-                    fontWeight: 600,
-                    color:
-                      acRate >= 60
-                        ? "var(--cds-support-success)"
-                        : acRate >= 30
-                        ? "var(--cds-support-warning)"
-                        : "var(--cds-support-error)",
-                  }}
+    <div style={{ minHeight: "100%" }}>
+      <Grid narrow style={{ gap: "1rem" }}>
+        {/* Donut Chart: Toggle between simple and detailed view */}
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: "1rem" }}>
+          <ContainerCard
+            title="提交結果分佈"
+            style={{ minHeight: "380px" }}
+            action={
+              hasData ? (
+                <IconButton
+                  kind={showDetailedView ? "primary" : "ghost"}
+                  size="lg"
+                  label={showDetailedView ? "簡化視圖" : "詳細分析"}
+                  onClick={() => setShowDetailedView(!showDetailedView)}
+                  align="bottom"
                 >
-                  {acRate}%
-                </span>
-                <div style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                  {acceptedCount} / {submissionCount} 次通過
-                </div>
-              </div>
-            </div>
-          </ContainerCard>
-        </Column>
-
-        {/* Summary Statistics */}
-        <Column lg={8} md={4} sm={4}>
-          <ContainerCard title="提交統計">
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-                padding: "1rem 0",
-              }}
-            >
-              <StatItem
-                label="總提交次數"
-                value={submissionCount}
-                color="var(--cds-text-primary)"
-              />
-              <StatItem
-                label="通過次數"
-                value={acceptedCount}
-                color="var(--cds-support-success)"
-              />
-              <StatItem
-                label="未通過次數"
-                value={submissionCount - acceptedCount}
-                color="var(--cds-support-error)"
-              />
-            </div>
-          </ContainerCard>
-        </Column>
-
-        {/* Result Distribution Donut Chart */}
-        <Column lg={8} md={4} sm={4}>
-          <ContainerCard title="提交結果分佈">
-            {loading ? (
+                  <Analytics size={20} />
+                </IconButton>
+              ) : undefined
+            }
+          >
+            {statsLoading ? (
               <div style={{ padding: "2rem" }}>
                 <SkeletonText heading />
                 <SkeletonText paragraph lineCount={5} />
               </div>
-            ) : statusData.length > 0 ? (
-              <DonutChart data={statusData} options={donutOptions} />
+            ) : hasData ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                }}
+              >
+                {showDetailedView ? (
+                  /* Detailed View: Full distribution */
+                  <DonutChart
+                    data={nestedDonutData.inner}
+                    options={detailedDonutOptions}
+                  />
+                ) : (
+                  /* Simple View: AC vs Non-AC */
+                  <DonutChart
+                    data={nestedDonutData.outer}
+                    options={simpleDonutOptions}
+                  />
+                )}
+
+                {/* Summary below the chart */}
+                <div
+                  style={{
+                    marginTop: "0.5rem",
+                    textAlign: "center",
+                    color: "var(--cds-text-secondary)",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  {acceptedCount} / {submissionCount} 次通過
+                </div>
+              </div>
             ) : (
               <div
                 style={{
                   padding: "3rem",
                   textAlign: "center",
                   color: "var(--cds-text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
                 }}
               >
                 尚無提交資料
@@ -322,41 +301,186 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({
           </ContainerCard>
         </Column>
 
-        {/* Weekly Submission Trend / Contest Status Distribution */}
-        <Column lg={8} md={4} sm={4}>
-          <ContainerCard title={contestId ? "競賽提交趨勢" : "最近7天提交趨勢"}>
-            {loading ? (
+        {/* Leaderboard using DataTable */}
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: "1rem" }}>
+          <ContainerCard
+            title={
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <Trophy size={16} />
+                <span>排行榜</span>
+              </div>
+            }
+            style={{ minHeight: "380px" }}
+            noPadding
+          >
+            {leaderboardLoading ? (
+              <div style={{ padding: "1rem" }}>
+                <SkeletonText paragraph lineCount={5} />
+              </div>
+            ) : leaderboard.length > 0 ? (
+              <DataTable rows={leaderboardRows} headers={leaderboardHeaders}>
+                {({
+                  rows,
+                  headers,
+                  getTableProps,
+                  getHeaderProps,
+                  getRowProps,
+                }) => (
+                  <Table {...getTableProps()} size="md">
+                    <TableHead>
+                      <TableRow>
+                        {headers.map((header) => (
+                          <TableHeader
+                            {...getHeaderProps({ header })}
+                            key={header.key}
+                          >
+                            {header.header}
+                          </TableHeader>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {rows.map((row) => {
+                        const rankCell = row.cells.find(
+                          (c) => c.info.header === "rank"
+                        );
+                        const rank = rankCell?.value as number;
+                        return (
+                          <TableRow {...getRowProps({ row })} key={row.id}>
+                            {row.cells.map((cell) => (
+                              <TableCell key={cell.id}>
+                                {cell.info.header === "rank" ? (
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      fontWeight: 700,
+                                      fontSize: "0.75rem",
+                                      backgroundColor:
+                                        cell.value === 1
+                                          ? "#ffd700"
+                                          : cell.value === 2
+                                          ? "#c0c0c0"
+                                          : cell.value === 3
+                                          ? "#cd7f32"
+                                          : "var(--cds-layer-accent-01)",
+                                      color:
+                                        (cell.value as number) <= 3
+                                          ? "#000"
+                                          : "var(--cds-text-primary)",
+                                    }}
+                                  >
+                                    {cell.value}
+                                  </span>
+                                ) : cell.info.header === "language" ? (
+                                  <Tag size="sm" type="cool-gray">
+                                    {getLanguageLabel(cell.value as string)}
+                                  </Tag>
+                                ) : cell.info.header === "execTime" ? (
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "0.25rem",
+                                      fontWeight: 600,
+                                      color:
+                                        rank === 1
+                                          ? "#24a148"
+                                          : "var(--cds-text-primary)",
+                                    }}
+                                  >
+                                    <Time size={14} />
+                                    {cell.value} ms
+                                  </span>
+                                ) : (
+                                  cell.value
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </DataTable>
+            ) : (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: "var(--cds-text-secondary)",
+                  fontSize: "0.875rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                }}
+              >
+                尚無通過記錄
+              </div>
+            )}
+          </ContainerCard>
+        </Column>
+
+        {/* Submission Trend */}
+        <Column lg={16} md={8} sm={4}>
+          <ContainerCard title="最近提交趨勢" style={{ minHeight: "300px" }}>
+            {statsLoading ? (
               <div style={{ padding: "2rem" }}>
                 <SkeletonText heading />
                 <SkeletonText paragraph lineCount={5} />
               </div>
             ) : trendData.length > 0 ? (
-              <AreaChart
-                data={trendData}
-                options={{
-                  title: contestId ? "競賽提交趨勢" : "最近7天提交趨勢",
-                  axes: {
-                    bottom: { mapsTo: "date", scaleType: ScaleTypes.TIME },
-                    left: {
-                      mapsTo: "value",
-                      title: "提交數",
-                      scaleType: ScaleTypes.LINEAR,
-                    },
-                  },
-                  curve: "curveMonotoneX",
-                  height: "300px",
-                  color: {
-                    scale: { 提交次數: "#0f62fe" },
-                  },
-                  theme: theme,
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
                 }}
-              />
+              >
+                <AreaChart
+                  data={trendData}
+                  options={{
+                    title: "",
+                    axes: {
+                      bottom: {
+                        mapsTo: "date",
+                        scaleType: ScaleTypes.TIME,
+                      },
+                      left: {
+                        mapsTo: "value",
+                        title: "提交數",
+                        scaleType: ScaleTypes.LINEAR,
+                      },
+                    },
+                    curve: "curveMonotoneX",
+                    height: "220px",
+                    color: {
+                      scale: { 提交次數: "#0f62fe" },
+                    },
+                    theme: theme,
+                    toolbar: { enabled: false },
+                  }}
+                />
+              </div>
             ) : (
               <div
                 style={{
                   padding: "3rem",
                   textAlign: "center",
                   color: "var(--cds-text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
                 }}
               >
                 尚無提交資料
@@ -368,27 +492,5 @@ const ProblemStatsTab: React.FC<ProblemStatsTabProps> = ({
     </div>
   );
 };
-
-// Helper component for stat items
-const StatItem: React.FC<{ label: string; value: number; color: string }> = ({
-  label,
-  value,
-  color,
-}) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "0.5rem 0",
-      borderBottom: "1px solid var(--cds-border-subtle)",
-    }}
-  >
-    <span style={{ fontSize: "0.875rem", color: "var(--cds-text-secondary)" }}>
-      {label}
-    </span>
-    <span style={{ fontSize: "1.25rem", fontWeight: 600, color }}>{value}</span>
-  </div>
-);
 
 export default ProblemStatsTab;

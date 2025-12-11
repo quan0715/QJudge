@@ -61,15 +61,23 @@ export const TEST_PROBLEMS = {
 
 /**
  * Test contests
+ * Note: These should match the data created by seed_e2e_data.py
  */
 export const TEST_CONTESTS = {
   active: {
     name: "E2E Test Contest",
     description: "這是一個用於 E2E 測試的競賽",
+    // Contest settings (camelCase for frontend entity)
+    scoreboardVisibleDuringContest: true,
+    anonymousModeEnabled: false,
+    examModeEnabled: false,
   },
   upcoming: {
     name: "Upcoming Contest",
     description: "即將開始的競賽",
+    scoreboardVisibleDuringContest: false,
+    anonymousModeEnabled: false,
+    examModeEnabled: false,
   },
 } as const;
 
@@ -119,6 +127,7 @@ export const API_ENDPOINTS = {
   problems: {
     list: "/api/v1/problems/",
     detail: (id: string | number) => `/api/v1/problems/${id}/`,
+    statistics: (id: string | number) => `/api/v1/problems/${id}/statistics/`,
   },
   submissions: {
     list: "/api/v1/submissions/",
@@ -129,5 +138,6 @@ export const API_ENDPOINTS = {
     list: "/api/v1/contests/",
     detail: (id: string | number) => `/api/v1/contests/${id}/`,
     join: (id: string | number) => `/api/v1/contests/${id}/join/`,
+    register: (id: string | number) => `/api/v1/contests/${id}/register/`,
   },
 } as const;

@@ -26,7 +26,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import { Settings } from "@carbon/icons-react";
-import { DatabaseSwitcher } from "./DatabaseSwitcher";
 import "./GlobalHeader.scss"; // Assuming a SCSS file for component-specific styles
 
 export const GlobalHeader = () => {
@@ -286,8 +285,6 @@ export const GlobalHeader = () => {
                       Development
                     </span>
                   </li>
-                  {/* Database Switcher - Quick toggle */}
-                  <DatabaseSwitcher isAdmin={user?.role === "admin"} />
                   {/* Environment Page Link */}
                   <SwitcherItem
                     aria-label="Environment"

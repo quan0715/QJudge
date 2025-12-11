@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Button,
-  InlineLoading,
   Pagination,
   Table,
   TableHead,
@@ -13,62 +11,40 @@ import {
   TableContainer,
   SkeletonText,
 } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
 import {
   SubmissionTable,
   type SubmissionRow,
+  type StatusFilterType,
 } from "@/domains/submission/components/SubmissionTable";
 import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
-import { getSubmissions } from "@/services/submission";
+import {
+  useProblemSubmissions,
+  useProblem,
+} from "@/domains/problem/hooks/useProblem";
 
-interface ProblemSubmissionHistoryProps {
-  problemId: number | string;
-  contestId?: string;
-}
-
-const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({
-  problemId,
-  contestId,
-}) => {
+/**
+ * Problem Submission History Component
+ * Uses ProblemProvider context for data fetching via useQuery
+ */
+const ProblemSubmissionHistory: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { contestId } = useProblem();
+
+  // Get submissions data from context
+  const {
+    submissions,
+    count: totalItems,
+    loading,
+    params,
+    setParams,
+    refetch,
+  } = useProblemSubmissions();
 
   // Read submission_id from URL
   const submissionIdFromUrl = searchParams.get("submission_id");
   const isModalOpen = !!submissionIdFromUrl;
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
-
-  const fetchSubmissions = async () => {
-    setLoading(true);
-    try {
-      const { results, count } = await getSubmissions({
-        problem: problemId,
-        ordering: "-created_at",
-        is_test: false,
-        contest: contestId,
-        source_type: contestId ? "contest" : undefined,
-        page: page,
-        page_size: pageSize,
-      });
-      setSubmissions(results || []);
-      setTotalItems(count || 0);
-    } catch (error) {
-      console.error("Error fetching submissions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSubmissions();
-  }, [problemId, page, pageSize]);
-
+  // Map submissions to SubmissionRow format
   const submissionRows: SubmissionRow[] = submissions.map((sub) => ({
     id: sub.id.toString(),
     status: sub.status,
@@ -92,17 +68,6 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({
   if (loading && submissions.length === 0) {
     return (
       <div>
-        <div
-          style={{
-            marginBottom: "1rem",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Button kind="ghost" size="sm" renderIcon={Renew} disabled>
-            重新整理
-          </Button>
-        </div>
         <TableContainer>
           <Table>
             <TableHead>
@@ -131,40 +96,44 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({
     );
   }
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
+  const handleStatusFilterChange = (status: StatusFilterType) => {
+    setParams({ statusFilter: status });
+  };
+
+  const handleOnlyMineChange = (value: boolean) => {
+    setParams({ onlyMine: value });
+  };
+
+  const handlePageChange = ({
+    page: newPage,
+    pageSize: newPageSize,
+  }: {
+    page: number;
+    pageSize: number;
+  }) => {
+    setParams({ page: newPage, pageSize: newPageSize });
+  };
+
   return (
     <div>
-      <div
-        style={{
-          marginBottom: "1rem",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
-        {refreshing && (
-          <InlineLoading description="更新中..." status="active" />
-        )}
-        <Button
-          kind="ghost"
-          size="sm"
-          renderIcon={Renew}
-          onClick={() => {
-            setRefreshing(true);
-            fetchSubmissions().finally(() => setRefreshing(false));
-          }}
-          disabled={refreshing}
-        >
-          重新整理
-        </Button>
-      </div>
-
       <SubmissionTable
         submissions={submissionRows}
         onViewDetails={(id) => setSearchParams({ submission_id: id })}
         showProblem={false}
         showUser={false}
         showScore={true}
+        // Enable built-in toolbar
+        showToolbar={true}
+        statusFilter={(params.statusFilter as StatusFilterType) || "all"}
+        onStatusFilterChange={handleStatusFilterChange}
+        onlyMine={params.onlyMine}
+        onOnlyMineChange={handleOnlyMineChange}
+        onRefresh={handleRefresh}
+        isRefreshing={loading}
       />
 
       {/* Pagination */}
@@ -173,14 +142,11 @@ const ProblemSubmissionHistory: React.FC<ProblemSubmissionHistoryProps> = ({
         backwardText="上一頁"
         forwardText="下一頁"
         itemsPerPageText="每頁顯示"
-        page={page}
-        pageSize={pageSize}
+        page={params.page}
+        pageSize={params.pageSize}
         pageSizes={[10, 20, 50]}
         size="md"
-        onChange={({ page: newPage, pageSize: newPageSize }: any) => {
-          setPage(newPage);
-          setPageSize(newPageSize);
-        }}
+        onChange={handlePageChange}
       />
 
       <SubmissionDetailModal
