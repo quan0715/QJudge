@@ -1,4 +1,4 @@
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty = "easy" | "medium" | "hard";
 
 export interface Tag {
   id: string;
@@ -43,16 +43,21 @@ export interface Problem {
   acceptanceRate: number;
   submissionCount: number;
   acceptedCount: number;
+  waCount: number;
+  tleCount: number;
+  mleCount: number;
+  reCount: number;
+  ceCount: number;
   createdBy?: string;
   tags: Tag[];
-  
+
   // Visibility flags
   isPracticeVisible: boolean;
   isVisible: boolean;
-  
+
   // User specific
   isSolved: boolean;
-  
+
   // Context
   createdInContest?: {
     id: string;
@@ -60,7 +65,7 @@ export interface Problem {
     startTime: string;
     endTime: string;
   } | null;
-  
+
   createdAt?: string;
 }
 
@@ -79,7 +84,7 @@ export interface ProblemDetail extends Problem {
   translations?: Translation[];
   testCases?: TestCase[];
   languageConfigs?: LanguageConfig[];
-  
+
   // Keyword restrictions for code validation
   forbiddenKeywords?: string[];
   requiredKeywords?: string[];

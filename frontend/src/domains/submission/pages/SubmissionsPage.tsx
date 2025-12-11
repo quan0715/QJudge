@@ -7,6 +7,7 @@ import {
   Pagination,
   Button,
   Dropdown,
+  Toggle,
   InlineLoading,
   Table,
   TableHead,
@@ -40,6 +41,7 @@ const SubmissionsPage = () => {
   const [, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("3months");
+  const [onlyMine, setOnlyMine] = useState(false);
 
   // Read submission_id from URL
   const submissionIdFromUrl = searchParams.get("submission_id");
@@ -66,22 +68,27 @@ const SubmissionsPage = () => {
 
   useEffect(() => {
     fetchSubmissions();
-  }, [page, pageSize, statusFilter, dateRange]);
+  }, [page, pageSize, statusFilter, dateRange, onlyMine, user?.id]);
 
   const fetchSubmissions = async () => {
     if (!refreshing) setLoading(true);
     try {
-      const params: any = { 
-        page, 
-        page_size: pageSize, 
+      const params: any = {
+        page,
+        page_size: pageSize,
         is_test: false,
-        source_type: 'practice'  // Default to practice submissions only
+        source_type: "practice", // Default to practice submissions only
       };
-      
+
       if (statusFilter !== "all") {
         params.status = statusFilter;
       }
-      
+
+      // Only my submissions filter
+      if (onlyMine && user?.id) {
+        params.user = user.id;
+      }
+
       // Date range filter (performance optimization)
       if (dateRange === "all") {
         params.include_all = "true";
@@ -208,18 +215,31 @@ const SubmissionsPage = () => {
         }
       />
 
-      <TableToolbar>
-        <TableToolbarContent>
+      <TableToolbar
+        style={{
+          backgroundColor: "var(--cds-layer-01)",
+          borderBottom: "1px solid var(--cds-border-subtle)",
+        }}
+      >
+        <TableToolbarContent
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            padding: "0.5rem 1rem",
+          }}
+        >
           <TableToolbarSearch
             placeholder="搜尋用戶或題目..."
             onChange={(e: any) => setSearchQuery(e.target.value)}
             persistent
           />
-          <div style={{ width: "200px" }}>
+          <div style={{ minWidth: "160px" }}>
             <Dropdown
               id="status-filter"
               titleText=""
               label="篩選狀態"
+              size="sm"
               items={statusOptions}
               itemToString={(item: any) => (item ? item.label : "")}
               selectedItem={statusOptions.find((s) => s.id === statusFilter)}
@@ -231,11 +251,12 @@ const SubmissionsPage = () => {
               }}
             />
           </div>
-          <div style={{ width: "220px" }}>
+          <div style={{ minWidth: "180px" }}>
             <Dropdown
               id="date-range-filter"
               titleText=""
               label="時間範圍"
+              size="sm"
               items={dateRangeOptions}
               itemToString={(item: any) => (item ? item.label : "")}
               selectedItem={dateRangeOptions.find((d) => d.id === dateRange)}
@@ -247,6 +268,20 @@ const SubmissionsPage = () => {
               }}
             />
           </div>
+          {user && (
+            <Toggle
+              id="only-mine-toggle"
+              size="sm"
+              labelText=""
+              labelA="全部"
+              labelB="我的"
+              toggled={onlyMine}
+              onToggle={(checked: boolean) => {
+                setOnlyMine(checked);
+                setPage(1);
+              }}
+            />
+          )}
         </TableToolbarContent>
       </TableToolbar>
 

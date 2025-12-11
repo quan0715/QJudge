@@ -146,7 +146,7 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
           solved: s.solved || 0,
           solvedCount: s.solved || 0,
           totalScore: s.total_score || 0,
-          total_score: s.total_score || 0, // Keep for backward compatibility
+          total_score: s.total_score || 0,
           time: s.time || 0,
           penalty: s.time || 0,
           problems: s.problems || {},
@@ -234,6 +234,7 @@ export function mapContestUpdateRequestToDto(request: any): any {
     password: request.password,
     exam_mode_enabled: request.examModeEnabled,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
+    anonymous_mode_enabled: request.anonymousModeEnabled,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,
     allow_auto_unlock: request.allowAutoUnlock,

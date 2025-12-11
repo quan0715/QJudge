@@ -285,7 +285,7 @@ export const GlobalHeader = () => {
                       System
                     </span>
                   </li>
-                  {/* Environment Page Link - Full environment management */}
+                  {/* Environment Page Link */}
                   <SwitcherItem
                     aria-label="Environment"
                     onClick={() => navigate("/system/environment")}

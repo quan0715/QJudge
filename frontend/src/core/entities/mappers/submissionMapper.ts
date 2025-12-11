@@ -22,9 +22,9 @@ export function mapSubmissionDto(dto: any): Submission {
     ? dto.problem?.id?.toString() 
     : dto.problem?.toString() || dto.problem_id?.toString() || '';
   
-  const problemTitle = typeof dto.problem === 'object'
-    ? dto.problem?.title
-    : undefined;
+  // Handle problem_title: can be a direct field or nested inside problem object
+  const problemTitle = dto.problem_title 
+    || (typeof dto.problem === 'object' ? dto.problem?.title : undefined);
 
   return {
     id: dto.id?.toString() || '',

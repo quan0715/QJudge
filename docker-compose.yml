@@ -1,4 +1,3 @@
-
 services:
   # PostgreSQL Database
   postgres:
@@ -17,7 +16,11 @@ services:
     networks:
       - oj_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

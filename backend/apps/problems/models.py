@@ -79,6 +79,11 @@ class Problem(models.Model):
     # Statistics (denormalized for performance)
     submission_count = models.IntegerField(default=0, verbose_name='提交次數')
     accepted_count = models.IntegerField(default=0, verbose_name='通過次數')
+    wa_count = models.IntegerField(default=0, verbose_name='答案錯誤次數')
+    tle_count = models.IntegerField(default=0, verbose_name='超時次數')
+    mle_count = models.IntegerField(default=0, verbose_name='記憶體超限次數')
+    re_count = models.IntegerField(default=0, verbose_name='執行錯誤次數')
+    ce_count = models.IntegerField(default=0, verbose_name='編譯錯誤次數')
     
     # Tags for categorization
     tags = models.ManyToManyField(

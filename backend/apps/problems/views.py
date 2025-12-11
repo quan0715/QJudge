@@ -2,7 +2,7 @@
 Views for problems app.
 """
 from django.db.models import Case, ExpressionWrapper, F, FloatField, Value, When
-from rest_framework import viewsets, permissions, filters, status
+from rest_framework import viewsets, permissions, filters, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -174,7 +174,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def test_run(self, request, pk=None):
+    def test_run(self, request, id=None):
         """
         Execute code with custom input without creating a submission.
         Returns execution results immediately.
@@ -229,7 +229,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             })
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrTeacherOrReadOnly])
-    def import_yaml(self, request, pk=None):
+    def import_yaml(self, request, id=None):
         """
         Update existing problem from YAML data.
         Uses merge strategy: only updates provided fields.
@@ -277,12 +277,102 @@ class ProblemViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def submit(self, request, pk=None):
+    def submit(self, request, id=None):
         """Submit endpoint placeholder."""
         return Response(
             {'message': 'Submission endpoint not implemented yet'},
             status=status.HTTP_501_NOT_IMPLEMENTED
         )
+    
+    @action(detail=True, methods=['get'])
+    def statistics(self, request, id=None):
+        """
+        Get problem statistics including status distribution and submission trend.
+        
+        Query params:
+        - contest: Contest ID to filter submissions (optional)
+        - limit: Number of recent submissions for trend data (default: 100)
+        """
+        from django.db.models import Count
+        from django.db.models.functions import TruncDate
+        from apps.submissions.models import Submission
+        
+        problem = self.get_object()
+        contest_id = request.query_params.get('contest')
+        limit = int(request.query_params.get('limit', 100))
+        
+        # Base queryset
+        submissions_qs = Submission.objects.filter(
+            problem=problem,
+            is_test=False
+        )
+        
+        # Filter by contest if provided
+        if contest_id:
+            submissions_qs = submissions_qs.filter(contest_id=contest_id)
+            # For contest, use actual submission data
+            status_counts = dict(
+                submissions_qs.values('status')
+                .annotate(count=Count('id'))
+                .values_list('status', 'count')
+            )
+            submission_count = sum(status_counts.values())
+            accepted_count = status_counts.get('AC', 0)
+        else:
+            # For practice, use denormalized fields from Problem model
+            status_counts = {
+                'AC': problem.accepted_count,
+                'WA': problem.wa_count,
+                'TLE': problem.tle_count,
+                'MLE': problem.mle_count,
+                'RE': problem.re_count,
+                'CE': problem.ce_count,
+            }
+            submission_count = problem.submission_count
+            accepted_count = problem.accepted_count
+        
+        # Get last N submissions for trend data
+        # First get the IDs of the last N submissions
+        recent_submission_ids = list(
+            submissions_qs
+            .order_by('-created_at')
+            .values_list('id', flat=True)[:limit]
+        )
+        
+        # Then aggregate by date from those submissions
+        # Use local timezone for date truncation to match user expectations
+        from django.utils import timezone as tz
+        local_tz = tz.get_current_timezone()
+        
+        trend_qs = Submission.objects.filter(id__in=recent_submission_ids)
+        
+        trend_data = list(
+            trend_qs
+            .annotate(date=TruncDate('created_at', tzinfo=local_tz))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+        
+        # Format trend data
+        formatted_trend = [
+            {
+                'date': item['date'].isoformat() if item['date'] else None,
+                'count': item['count']
+            }
+            for item in trend_data
+        ]
+        
+        # Calculate AC rate
+        ac_rate = round((accepted_count / submission_count * 100), 2) if submission_count > 0 else 0
+        
+        return Response({
+            'submission_count': submission_count,
+            'accepted_count': accepted_count,
+            'ac_rate': ac_rate,
+            'status_counts': status_counts,
+            'trend': formatted_trend,
+        })
 
 
 # TagViewSet - API endpoints for managing tags

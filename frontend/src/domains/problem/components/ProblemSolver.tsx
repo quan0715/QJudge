@@ -27,6 +27,10 @@ import {
 } from "./solver/ProblemTabsContent";
 import { type TestCaseItem } from "@/domains/problem/components/common/TestCaseList";
 import { SubmissionDetailModal } from "@/domains/submission/components/SubmissionDetailModal";
+import {
+  ProblemProvider,
+  useProblem,
+} from "@/domains/problem/hooks/useProblem";
 
 interface ProblemSolverProps {
   problem: Problem;
@@ -44,12 +48,14 @@ interface ProblemSolverProps {
   problemScore?: number;
   problemLabel?: string;
   submissionDisabled?: boolean;
-  // Callbacks
-  onProblemUpdate?: (problem: Problem) => void;
 }
 
-const ProblemSolver: React.FC<ProblemSolverProps> = ({
-  problem,
+/**
+ * Internal ProblemSolver component that uses context
+ */
+const ProblemSolverInner: React.FC<
+  Omit<ProblemSolverProps, "problem"> & { contestId?: string }
+> = ({
   initialCode = "",
   initialLanguage = "",
   onSubmit,
@@ -58,11 +64,13 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   problemScore,
   problemLabel,
   submissionDisabled,
-  onProblemUpdate: _onProblemUpdate, // Will be used in Settings Tab
 }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get problem from context
+  const { problem } = useProblem();
 
   // Tab key to index mapping
   const TAB_KEYS = ["description", "solver", "history", "stats", "settings"];
@@ -111,9 +119,9 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
 
   // -- Persistence Keys --
   const getCodeKey = (lang: string) =>
-    `qjudge:problem:${problem.id}:code:${lang}`;
+    `qjudge:problem:${problem?.id}:code:${lang}`;
   const getCustomCasesKey = () =>
-    `qjudge:problem:${problem.id}:custom_test_cases`;
+    `qjudge:problem:${problem?.id}:custom_test_cases`;
 
   // -- Init Logic --
   useEffect(() => {
@@ -162,8 +170,6 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
         enabled: true,
       }));
 
-    // Also include problem.samples if available
-
     let customCases: TestCaseItem[] = [];
     if (typeof window !== "undefined") {
       try {
@@ -180,14 +186,14 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
     }
 
     setTestCases([...publicCases, ...customCases]);
-  }, [problem.id]); // Re-run if problem changes
+  }, [problem?.id]); // Re-run if problem changes
 
   // -- Code Change & Persistence --
   useEffect(() => {
-    if (activeLanguage && code && typeof window !== "undefined") {
+    if (activeLanguage && code && typeof window !== "undefined" && problem) {
       localStorage.setItem(getCodeKey(activeLanguage), code);
     }
-  }, [code, activeLanguage, problem.id]);
+  }, [code, activeLanguage, problem?.id]);
 
   // -- Language Change Handler --
   const handleLanguageChange = (newLang: string) => {
@@ -262,7 +268,7 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await onSubmit(code, activeLanguage, false); // isTest=False, no custom cases
+      const result = await onSubmit(code, activeLanguage, false);
       if (result) {
         setIsSubmitModalOpen(false);
         setResultSubmissionId((result as SubmissionDetail).id);
@@ -277,10 +283,12 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
 
   // -- Render Tab Content --
   const renderTabContent = () => {
+    if (!problem) return null;
+
     // 0: Description, 1: Solver, 2: History, 3: Stats, 4: Settings
     switch (activeTab) {
       case 0:
-        return <ProblemDescriptionTab problem={problem} />;
+        return <ProblemDescriptionTab />;
       case 1:
         return (
           <ProblemCodingTab
@@ -300,20 +308,17 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
           />
         );
       case 2:
-        return (
-          <ProblemHistoryTab
-            problemId={problem.id as string}
-            contestId={contestId}
-          />
-        );
+        return <ProblemHistoryTab />;
       case 3:
-        return <ProblemStatsTab problem={problem} contestId={contestId} />;
+        return <ProblemStatsTab />;
       case 4:
-        return <ProblemSettingsTab problem={problem} />;
+        return <ProblemSettingsTab />;
       default:
         return null;
     }
   };
+
+  if (!problem) return null;
 
   const isAdmin = user && (user.role === "admin" || user.role === "teacher");
   const isContestMode = !!contestId;
@@ -321,7 +326,6 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
   // Consistent content width for alignment
   const contentMaxWidth = "1056px";
 
-  // Show full UI with hero and tabs for all modes
   return (
     <div
       style={{
@@ -405,6 +409,26 @@ const ProblemSolver: React.FC<ProblemSolverProps> = ({
         contestId={contestId}
       />
     </div>
+  );
+};
+
+/**
+ * ProblemSolver - Main component wrapped with ProblemProvider
+ * Provides problem context to all child components
+ */
+const ProblemSolver: React.FC<ProblemSolverProps> = ({
+  problem,
+  contestId,
+  ...props
+}) => {
+  return (
+    <ProblemProvider
+      problemId={problem.id}
+      contestId={contestId}
+      initialProblem={problem}
+    >
+      <ProblemSolverInner contestId={contestId} {...props} />
+    </ProblemProvider>
   );
 };
 
