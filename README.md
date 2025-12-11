@@ -2,6 +2,8 @@
 
 QJudge 是一個專為 NYCU（國立陽明交通大學）設計的現代化線上評測系統（Online Judge），提供完整的程式競賽與教學功能。
 
+[Demo Link](https://q-judge.quan.wtf/contests/3?tab=overview)
+
 **域名**: `nycu-coding-lab.quan.wtf`
 
 **技術棧**: React + Django + PostgreSQL + Celery + Docker
