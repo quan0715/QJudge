@@ -1,10 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import {
-  Button,
-  InlineNotification,
-  Theme,
-} from '@carbon/react';
-import { Renew, Home, Warning } from '@carbon/icons-react';
+import React, { Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
+import { Button, InlineNotification, Theme } from "@carbon/react";
+import { Renew, Home, Warning } from "@carbon/icons-react";
 
 interface Props {
   children: ReactNode;
@@ -21,18 +18,18 @@ interface State {
 /**
  * Error Boundary component that catches JavaScript errors anywhere in the child
  * component tree, logs those errors, and displays a fallback UI.
- * 
+ *
  * Usage:
  * ```tsx
  * <ErrorBoundary>
  *   <YourComponent />
  * </ErrorBoundary>
- * 
+ *
  * // With custom fallback
  * <ErrorBoundary fallback={<CustomErrorUI />}>
  *   <YourComponent />
  * </ErrorBoundary>
- * 
+ *
  * // With error callback (for logging to Sentry, etc.)
  * <ErrorBoundary onError={(error, info) => logToSentry(error, info)}>
  *   <YourComponent />
@@ -55,16 +52,16 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+
     // Update state with error info
     this.setState({ errorInfo });
-    
+
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-    
+
     // TODO: Send to error tracking service (Sentry, etc.)
     // if (typeof window !== 'undefined' && window.Sentry) {
     //   window.Sentry.captureException(error, { extra: errorInfo });
@@ -76,7 +73,7 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   handleGoHome = (): void => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   handleReset = (): void => {
@@ -99,46 +96,46 @@ class ErrorBoundary extends Component<Props, State> {
         <Theme theme="white">
           <div
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '100vh',
-              padding: '2rem',
-              backgroundColor: 'var(--cds-background)',
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "100vh",
+              padding: "2rem",
+              backgroundColor: "var(--cds-background)",
             }}
           >
             <div
               style={{
-                maxWidth: '600px',
-                width: '100%',
-                textAlign: 'center',
+                maxWidth: "600px",
+                width: "100%",
+                textAlign: "center",
               }}
             >
               <Warning
                 size={64}
                 style={{
-                  color: 'var(--cds-support-error)',
-                  marginBottom: '1rem',
+                  color: "var(--cds-support-error)",
+                  marginBottom: "1rem",
                 }}
               />
-              
+
               <h1
                 style={{
-                  fontSize: '1.75rem',
-                  fontWeight: '600',
-                  marginBottom: '1rem',
-                  color: 'var(--cds-text-primary)',
+                  fontSize: "1.75rem",
+                  fontWeight: "600",
+                  marginBottom: "1rem",
+                  color: "var(--cds-text-primary)",
                 }}
               >
                 Oops! 發生錯誤
               </h1>
-              
+
               <p
                 style={{
-                  fontSize: '1rem',
-                  marginBottom: '1.5rem',
-                  color: 'var(--cds-text-secondary)',
+                  fontSize: "1rem",
+                  marginBottom: "1.5rem",
+                  color: "var(--cds-text-secondary)",
                 }}
               >
                 很抱歉，應用程式遇到了意外錯誤。請嘗試重新整理頁面或返回首頁。
@@ -147,39 +144,39 @@ class ErrorBoundary extends Component<Props, State> {
               <InlineNotification
                 kind="error"
                 title="錯誤詳情"
-                subtitle={this.state.error?.message || '未知錯誤'}
+                subtitle={this.state.error?.message || "未知錯誤"}
                 hideCloseButton
-                style={{ marginBottom: '1.5rem', textAlign: 'left' }}
+                style={{ marginBottom: "1.5rem", textAlign: "left" }}
               />
 
-              {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+              {import.meta.env.DEV && this.state.errorInfo && (
                 <details
                   style={{
-                    marginBottom: '1.5rem',
-                    textAlign: 'left',
-                    padding: '1rem',
-                    backgroundColor: 'var(--cds-layer-01)',
-                    borderRadius: '4px',
-                    border: '1px solid var(--cds-border-subtle)',
+                    marginBottom: "1.5rem",
+                    textAlign: "left",
+                    padding: "1rem",
+                    backgroundColor: "var(--cds-layer-01)",
+                    borderRadius: "4px",
+                    border: "1px solid var(--cds-border-subtle)",
                   }}
                 >
                   <summary
                     style={{
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                      marginBottom: '0.5rem',
+                      cursor: "pointer",
+                      fontWeight: "500",
+                      marginBottom: "0.5rem",
                     }}
                   >
                     Stack Trace (Development Only)
                   </summary>
                   <pre
                     style={{
-                      fontSize: '0.75rem',
-                      overflow: 'auto',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontFamily: 'var(--cds-code-font-family, monospace)',
-                      color: 'var(--cds-text-secondary)',
+                      fontSize: "0.75rem",
+                      overflow: "auto",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      fontFamily: "var(--cds-code-font-family, monospace)",
+                      color: "var(--cds-text-secondary)",
                     }}
                   >
                     {this.state.errorInfo.componentStack}
@@ -189,10 +186,10 @@ class ErrorBoundary extends Component<Props, State> {
 
               <div
                 style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  justifyContent: 'center',
-                  flexWrap: 'wrap',
+                  display: "flex",
+                  gap: "1rem",
+                  justifyContent: "center",
+                  flexWrap: "wrap",
                 }}
               >
                 <Button
@@ -202,7 +199,7 @@ class ErrorBoundary extends Component<Props, State> {
                 >
                   重新整理
                 </Button>
-                
+
                 <Button
                   kind="secondary"
                   renderIcon={Home}
@@ -237,10 +234,10 @@ export const withErrorBoundary = <P extends object>(
       <WrappedComponent {...props} />
     </ErrorBoundary>
   );
-  
+
   WithErrorBoundary.displayName = `WithErrorBoundary(${
-    WrappedComponent.displayName || WrappedComponent.name || 'Component'
+    WrappedComponent.displayName || WrappedComponent.name || "Component"
   })`;
-  
+
   return WithErrorBoundary;
 };

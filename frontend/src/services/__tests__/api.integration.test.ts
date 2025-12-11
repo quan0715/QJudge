@@ -7,6 +7,11 @@
  * 執行前需要：
  * 1. 啟動測試環境: docker compose -f docker-compose.test.yml up -d
  * 2. 執行測試: npm run test:api
+ *
+ * API Response Format (snake_case from backend):
+ * - Auth: { success, data: { access_token, refresh_token, user } }
+ * - Problem: { id, title, difficulty, acceptance_rate, submission_count, ... }
+ * - Submission: { id, problem, user, language, status, execution_time, ... }
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -32,7 +37,28 @@ const TEST_USERS = {
 };
 
 // Track if test users exist
-let testUsersExist = false;
+let _testUsersExist = false;
+
+/**
+ * DTO type definitions for reference (snake_case from API)
+ * These types document the expected API response format.
+ *
+ * AuthResponseDto = {
+ *   success: boolean;
+ *   data: { access_token, refresh_token?, user: { id, username, email?, role } };
+ *   message?: string;
+ * }
+ *
+ * ProblemDto = {
+ *   id, title, difficulty, acceptance_rate?, submission_count?,
+ *   accepted_count?, is_practice_visible?, is_solved?, tags?, created_at?
+ * }
+ *
+ * SubmissionDto = {
+ *   id, problem, user, language, status, execution_time?,
+ *   memory_usage?, created_at, contest?, is_test?
+ * }
+ */
 
 // Helper to make API requests
 async function apiRequest(
@@ -114,10 +140,18 @@ describe("API Integration Tests", () => {
 
       const data = await res.json();
       if (res.status === 200) {
-        testUsersExist = true;
+        _testUsersExist = true;
+        // Validate AuthResponseDto structure
         expect(data.success).toBe(true);
         expect(data.data).toHaveProperty("access_token");
+        expect(typeof data.data.access_token).toBe("string");
         expect(data.data).toHaveProperty("refresh_token");
+        expect(typeof data.data.refresh_token).toBe("string");
+        // Validate user object in response
+        expect(data.data).toHaveProperty("user");
+        expect(data.data.user).toHaveProperty("id");
+        expect(data.data.user).toHaveProperty("username");
+        expect(data.data.user).toHaveProperty("role");
       } else {
         expect(data.success).toBe(false);
       }
@@ -236,7 +270,7 @@ describe("API Integration Tests", () => {
       console.log(`Problems API without auth: ${res.status}`);
     });
 
-    it("GET /:id - should return problem detail", async () => {
+    it("GET /:id - should return problem detail matching ProblemDto", async () => {
       const shouldSkip = await skipIfNoBackend();
       if (shouldSkip || !authToken) return;
 
@@ -261,8 +295,27 @@ describe("API Integration Tests", () => {
 
       expect(res.status).toBe(200);
       const data = await res.json();
+
+      // Validate ProblemDto structure (snake_case from API)
       expect(data).toHaveProperty("id");
       expect(data).toHaveProperty("title");
+      expect(typeof data.title).toBe("string");
+      expect(data).toHaveProperty("difficulty");
+      expect(["easy", "medium", "hard"]).toContain(data.difficulty);
+
+      // Optional fields should use snake_case
+      if (data.acceptance_rate !== undefined) {
+        expect(typeof data.acceptance_rate).toBe("number");
+      }
+      if (data.submission_count !== undefined) {
+        expect(typeof data.submission_count).toBe("number");
+      }
+      if (data.is_practice_visible !== undefined) {
+        expect(typeof data.is_practice_visible).toBe("boolean");
+      }
+      if (data.tags !== undefined) {
+        expect(Array.isArray(data.tags)).toBe(true);
+      }
     });
   });
 
@@ -281,7 +334,7 @@ describe("API Integration Tests", () => {
       authToken = data.data?.access_token;
     });
 
-    it("GET / - should list submissions with source_type filter", async () => {
+    it("GET / - should list submissions matching SubmissionDto", async () => {
       const shouldSkip = await skipIfNoBackend();
       if (shouldSkip || !authToken) return;
 
@@ -294,6 +347,28 @@ describe("API Integration Tests", () => {
       const data = await res.json();
       const submissions = data.results || data;
       expect(Array.isArray(submissions)).toBe(true);
+
+      // If there are submissions, validate SubmissionDto structure
+      if (submissions.length > 0) {
+        const submission = submissions[0];
+        expect(submission).toHaveProperty("id");
+        expect(submission).toHaveProperty("problem");
+        expect(submission).toHaveProperty("user");
+        expect(submission).toHaveProperty("language");
+        expect(submission).toHaveProperty("status");
+        expect(submission).toHaveProperty("created_at");
+
+        // Optional fields should use snake_case
+        if (submission.execution_time !== undefined) {
+          expect(typeof submission.execution_time).toBe("number");
+        }
+        if (submission.memory_usage !== undefined) {
+          expect(typeof submission.memory_usage).toBe("number");
+        }
+        if (submission.is_test !== undefined) {
+          expect(typeof submission.is_test).toBe("boolean");
+        }
+      }
     });
 
     it("GET / - should reject unauthenticated requests", async () => {
@@ -366,6 +441,371 @@ describe("API Integration Tests", () => {
 
       const contentType = res.headers.get("content-type");
       expect(contentType).toContain("application/json");
+    });
+  });
+
+  /**
+   * Role-Based Access Control (RBAC) Tests
+   *
+   * Permission Matrix:
+   * | Endpoint                  | Student | Teacher | Admin |
+   * |---------------------------|---------|---------|-------|
+   * | GET /problems/            | ✓       | ✓       | ✓     |
+   * | POST /problems/           | ✗       | ✓       | ✓     |
+   * | PUT /problems/:id         | ✗       | owner   | ✓     |
+   * | DELETE /problems/:id      | ✗       | owner   | ✓     |
+   * | GET /submissions/         | own     | own+    | all   |
+   * | POST /submissions/        | ✓       | ✓       | ✓     |
+   * | GET /contests/            | ✓       | ✓       | ✓     |
+   * | POST /contests/           | ✗       | ✓       | ✓     |
+   * | GET /auth/search          | ✗       | ✗       | ✓     |
+   * | PATCH /auth/:id/role      | ✗       | ✗       | ✓     |
+   */
+  describe("Role-Based Access Control (RBAC)", () => {
+    // Store tokens for each role
+    const tokens: Record<string, string | null> = {
+      student: null,
+      teacher: null,
+      admin: null,
+    };
+
+    // Login all test users before RBAC tests
+    beforeAll(async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip) return;
+
+      // Login each user type
+      for (const [role, credentials] of Object.entries(TEST_USERS)) {
+        try {
+          const res = await apiRequest("/api/v1/auth/email/login", {
+            method: "POST",
+            body: JSON.stringify(credentials),
+          });
+          if (res.status === 200) {
+            const data = await res.json();
+            tokens[role] = data.data?.access_token || null;
+          }
+        } catch {
+          console.log(`⚠️ Could not login as ${role}`);
+        }
+      }
+    });
+
+    describe("Problems API Permissions", () => {
+      it("Student should NOT be able to create problems (POST /problems/)", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.student) {
+          console.log("⚠️ Skipping: Student token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/problems/",
+          tokens.student,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: "Test Problem",
+              description: "Test Description",
+              difficulty: "easy",
+            }),
+          }
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+
+      it("Teacher should be able to create problems (POST /problems/)", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.teacher) {
+          console.log("⚠️ Skipping: Teacher token not available");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const res = await authenticatedRequest(
+          "/api/v1/problems/",
+          tokens.teacher,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: `Test Problem ${timestamp}`,
+              description: "Test Description for RBAC test",
+              difficulty: "easy",
+              time_limit: 1000,
+              memory_limit: 256,
+            }),
+          }
+        );
+
+        // Should be 201 Created or 200 OK
+        expect([200, 201]).toContain(res.status);
+      });
+
+      it("Admin should be able to create problems (POST /problems/)", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.admin) {
+          console.log("⚠️ Skipping: Admin token not available");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const res = await authenticatedRequest(
+          "/api/v1/problems/",
+          tokens.admin,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: `Admin Test Problem ${timestamp}`,
+              description: "Test Description from Admin",
+              difficulty: "medium",
+              time_limit: 1000,
+              memory_limit: 256,
+            }),
+          }
+        );
+
+        // Should be 201 Created or 200 OK
+        expect([200, 201]).toContain(res.status);
+      });
+    });
+
+    describe("Contests API Permissions", () => {
+      it("Student should NOT be able to create contests (POST /contests/)", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.student) {
+          console.log("⚠️ Skipping: Student token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/contests/",
+          tokens.student,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: "Test Contest",
+              description: "Test Description",
+              start_time: new Date(Date.now() + 86400000).toISOString(),
+              end_time: new Date(Date.now() + 172800000).toISOString(),
+            }),
+          }
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+
+      it("Teacher should be able to create contests (POST /contests/)", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.teacher) {
+          console.log("⚠️ Skipping: Teacher token not available");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const res = await authenticatedRequest(
+          "/api/v1/contests/",
+          tokens.teacher,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: `Teacher Test Contest ${timestamp}`,
+              description: "Test Description",
+              start_time: new Date(Date.now() + 86400000).toISOString(),
+              end_time: new Date(Date.now() + 172800000).toISOString(),
+            }),
+          }
+        );
+
+        // Should be 201 Created or 200 OK
+        expect([200, 201]).toContain(res.status);
+      });
+    });
+
+    describe("User Management API Permissions (Admin Only)", () => {
+      it("Student should NOT be able to search users", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.student) {
+          console.log("⚠️ Skipping: Student token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/auth/search?q=test",
+          tokens.student
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+
+      it("Teacher should NOT be able to search users", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.teacher) {
+          console.log("⚠️ Skipping: Teacher token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/auth/search?q=test",
+          tokens.teacher
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+
+      it("Admin should be able to search users", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.admin) {
+          console.log("⚠️ Skipping: Admin token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/auth/search?q=test",
+          tokens.admin
+        );
+
+        // Should be 200 OK
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        expect(Array.isArray(data.results || data)).toBe(true);
+      });
+
+      it("Student should NOT be able to change user roles", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.student) {
+          console.log("⚠️ Skipping: Student token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/auth/1/role",
+          tokens.student,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ role: "teacher" }),
+          }
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+
+      it("Teacher should NOT be able to change user roles", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.teacher) {
+          console.log("⚠️ Skipping: Teacher token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/auth/1/role",
+          tokens.teacher,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ role: "admin" }),
+          }
+        );
+
+        // Should be 403 Forbidden
+        expect(res.status).toBe(403);
+      });
+    });
+
+    describe("Submission Access Control", () => {
+      it("Student can only see their own submissions", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.student) {
+          console.log("⚠️ Skipping: Student token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/submissions/",
+          tokens.student
+        );
+
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        const submissions = data.results || data;
+
+        // All returned submissions should belong to the authenticated user
+        // (We can't verify user ID without knowing it, but the API should filter)
+        expect(Array.isArray(submissions)).toBe(true);
+      });
+
+      it("Admin can see all submissions", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip || !tokens.admin) {
+          console.log("⚠️ Skipping: Admin token not available");
+          return;
+        }
+
+        const res = await authenticatedRequest(
+          "/api/v1/submissions/",
+          tokens.admin
+        );
+
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        const submissions = data.results || data;
+        expect(Array.isArray(submissions)).toBe(true);
+      });
+    });
+
+    describe("Unauthenticated Access", () => {
+      it("Should reject unauthenticated POST to /problems/", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip) return;
+
+        const res = await apiRequest("/api/v1/problems/", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "Unauthorized Problem",
+            description: "Should fail",
+            difficulty: "easy",
+          }),
+        });
+
+        expect(res.status).toBe(401);
+      });
+
+      it("Should reject unauthenticated POST to /contests/", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip) return;
+
+        const res = await apiRequest("/api/v1/contests/", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "Unauthorized Contest",
+            description: "Should fail",
+            start_time: new Date().toISOString(),
+            end_time: new Date().toISOString(),
+          }),
+        });
+
+        expect(res.status).toBe(401);
+      });
+
+      it("Should reject unauthenticated POST to /submissions/", async () => {
+        const shouldSkip = await skipIfNoBackend();
+        if (shouldSkip) return;
+
+        const res = await apiRequest("/api/v1/submissions/", {
+          method: "POST",
+          body: JSON.stringify({
+            problem: 1,
+            language: "cpp",
+            code: "int main() {}",
+          }),
+        });
+
+        expect(res.status).toBe(401);
+      });
     });
   });
 });

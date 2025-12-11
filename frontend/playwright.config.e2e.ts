@@ -59,8 +59,8 @@ export default defineConfig({
   },
 
   /* Global setup and teardown */
-  globalSetup: require.resolve("./tests/helpers/setup.ts"),
-  globalTeardown: require.resolve("./tests/helpers/teardown.ts"),
+  globalSetup: "./tests/helpers/setup.ts",
+  globalTeardown: "./tests/helpers/teardown.ts",
 
   /* Configure projects for major browsers */
   projects: [
