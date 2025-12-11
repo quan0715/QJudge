@@ -29,18 +29,19 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   // Transform ScoreboardData to ContestScoreboard format
   const problems: ProblemInfo[] = useMemo(() => {
     if (!scoreboardData?.problems) return [];
-    return scoreboardData.problems.map((p, index) => ({
+    return scoreboardData.problems.map((p: any, index) => ({
       id: parseInt(p.problemId) || index,
-      title: p.label, // fallback to label as title
-      order: index,
+      title: p.title || p.label, // fallback to label as title
+      order: p.order ?? index,
       label: p.label,
       problem_id: parseInt(p.problemId) || undefined,
+      score: p.score || 0, // Include problem score
     }));
   }, [scoreboardData?.problems]);
 
   const standings: StandingRow[] = useMemo(() => {
     if (!scoreboardData?.rows) return [];
-    return scoreboardData.rows.map((row) => ({
+    return scoreboardData.rows.map((row: any) => ({
       rank: row.rank,
       user: {
         id: parseInt(row.userId) || 0,
@@ -48,10 +49,10 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
       },
       displayName: row.displayName,
       solved: row.solvedCount,
-      total_score: 0,
+      total_score: row.totalScore || row.total_score || 0,
       time: row.penalty,
       problems: Object.fromEntries(
-        Object.entries(row.problems || {}).map(([key, cell]) => [
+        Object.entries(row.problems || {}).map(([key, cell]: [string, any]) => [
           key,
           {
             status:
@@ -60,6 +61,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                 : cell?.status === "WA"
                 ? "WA"
                 : null,
+            score: cell?.score ?? 0, // Include score for AC display
             tries: cell?.attempts ?? 0,
             time: cell?.time ?? 0,
             pending: false,
