@@ -4,7 +4,7 @@ QJudge 是一個專為 NYCU（國立陽明交通大學）設計的現代化線�
 
 [Demo Link](https://q-judge.quan.wtf/contests/3?tab=overview)
 
-**域名**: `nycu-coding-lab.quan.wtf`
+**域名**: `q-judge.quan.wtf`
 
 **技術棧**: React + Django + PostgreSQL + Celery + Docker
 
