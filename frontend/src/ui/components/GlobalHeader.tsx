@@ -23,24 +23,31 @@ import {
   Switcher as SwitcherIcon,
   Language,
   Settings,
+  Checkmark,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
-import "./GlobalHeader.scss"; // Assuming a SCSS file for component-specific styles
+import "./GlobalHeader.scss";
 
 export const GlobalHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { contentLanguage, toggleLanguage } = useContentLanguage();
+  const {
+    contentLanguage,
+    setContentLanguage,
+    supportedLanguages,
+    getCurrentLanguageShortLabel,
+  } = useContentLanguage();
   const { t } = useTranslation();
 
   const [isUserMenuExpanded, setIsUserMenuExpanded] = useState(false);
   const [isSwitcherExpanded, setIsSwitcherExpanded] = useState(false);
+  const [isLanguageMenuExpanded, setIsLanguageMenuExpanded] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -51,11 +58,29 @@ export const GlobalHeader = () => {
   const handleUserMenuClick = () => {
     setIsUserMenuExpanded(!isUserMenuExpanded);
     setIsSwitcherExpanded(false);
+    setIsLanguageMenuExpanded(false);
   };
 
   const handleSwitcherClick = () => {
     setIsSwitcherExpanded(!isSwitcherExpanded);
     setIsUserMenuExpanded(false);
+    setIsLanguageMenuExpanded(false);
+  };
+
+  const handleLanguageMenuClick = () => {
+    setIsLanguageMenuExpanded(!isLanguageMenuExpanded);
+    setIsUserMenuExpanded(false);
+    setIsSwitcherExpanded(false);
+  };
+
+  const handleLanguageSelect = (langId: string) => {
+    setContentLanguage(langId as typeof contentLanguage);
+    setIsLanguageMenuExpanded(false);
+  };
+
+  const getRoleLabel = (role: string | undefined) => {
+    if (!role) return t("user.role.student");
+    return t(`user.role.${role}`);
   };
 
   return (
@@ -76,33 +101,33 @@ export const GlobalHeader = () => {
               isCurrentPage={location.pathname.startsWith("/dashboard")}
               onClick={() => navigate("/dashboard")}
             >
-              Dashboard
+              {t("nav.dashboard")}
             </HeaderMenuItem>
             <HeaderMenuItem
               isCurrentPage={location.pathname.startsWith("/problems")}
               onClick={() => navigate("/problems")}
             >
-              Problems
+              {t("nav.problems")}
             </HeaderMenuItem>
             <HeaderMenuItem
               isCurrentPage={location.pathname.startsWith("/contests")}
               onClick={() => navigate("/contests")}
             >
-              Contests
+              {t("nav.contests")}
             </HeaderMenuItem>
             <HeaderMenuItem
               isCurrentPage={location.pathname.startsWith("/submissions")}
               onClick={() => navigate("/submissions")}
             >
-              Submissions
+              {t("nav.submissions")}
             </HeaderMenuItem>
           </HeaderNavigation>
           <HeaderGlobalBar>
             <HeaderGlobalAction
               aria-label={
                 theme === "g100"
-                  ? "Switch to Light Mode"
-                  : "Switch to Dark Mode"
+                  ? t("theme.switchToLight")
+                  : t("theme.switchToDark")
               }
               onClick={toggleTheme}
             >
@@ -111,20 +136,21 @@ export const GlobalHeader = () => {
 
             <HeaderGlobalAction
               aria-label={t("language.switchTo")}
-              onClick={toggleLanguage}
+              isActive={isLanguageMenuExpanded}
+              onClick={handleLanguageMenuClick}
             >
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >
                 <Language size={20} />
                 <span style={{ fontSize: "12px", fontWeight: 500 }}>
-                  {contentLanguage === "zh-TW" ? "中" : "EN"}
+                  {getCurrentLanguageShortLabel()}
                 </span>
               </div>
             </HeaderGlobalAction>
 
             <HeaderGlobalAction
-              aria-label="App Switcher"
+              aria-label={t("header.appSwitcher")}
               isActive={isSwitcherExpanded}
               onClick={handleSwitcherClick}
             >
@@ -133,7 +159,7 @@ export const GlobalHeader = () => {
 
             {user ? (
               <HeaderGlobalAction
-                aria-label="User Menu"
+                aria-label={t("header.userMenu")}
                 isActive={isUserMenuExpanded}
                 onClick={handleUserMenuClick}
               >
@@ -141,7 +167,7 @@ export const GlobalHeader = () => {
               </HeaderGlobalAction>
             ) : (
               <HeaderGlobalAction
-                aria-label="Login"
+                aria-label={t("button.login")}
                 onClick={() => navigate("/login")}
               >
                 <Login size={20} />
@@ -150,7 +176,7 @@ export const GlobalHeader = () => {
           </HeaderGlobalBar>
 
           <HeaderPanel
-            aria-label="User Menu"
+            aria-label={t("header.userMenu")}
             expanded={isUserMenuExpanded}
             {...{
               style: {
@@ -163,7 +189,7 @@ export const GlobalHeader = () => {
               },
             }}
           >
-            <Switcher aria-label="User Menu Options">
+            <Switcher aria-label={t("header.userMenu")}>
               <li className="cds--switcher__item" style={{ cursor: "default" }}>
                 <div
                   style={{
@@ -189,14 +215,15 @@ export const GlobalHeader = () => {
                       fontWeight: 400,
                     }}
                   >
-                    {user?.role
-                      ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-                      : "Student"}
+                    {getRoleLabel(user?.role)}
                   </span>
                 </div>
               </li>
               <SwitcherDivider />
-              <SwitcherItem aria-label="Logout" onClick={handleLogout}>
+              <SwitcherItem
+                aria-label={t("button.logout")}
+                onClick={handleLogout}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -206,41 +233,95 @@ export const GlobalHeader = () => {
                   }}
                 >
                   <Logout size={20} />
-                  <span style={{ fontWeight: 500 }}>Logout</span>
+                  <span style={{ fontWeight: 500 }}>{t("button.logout")}</span>
                 </div>
               </SwitcherItem>
             </Switcher>
           </HeaderPanel>
 
           <HeaderPanel
-            aria-label="Switcher Panel"
+            aria-label={t("language.selectLanguage")}
+            expanded={isLanguageMenuExpanded}
+            {...{
+              style: {
+                position: "fixed",
+                right: 0,
+                top: "48px",
+                height: "auto",
+                maxHeight: "none",
+                bottom: "auto",
+              },
+            }}
+          >
+            <Switcher aria-label={t("language.selectLanguage")}>
+              <li className="cds--switcher__item" style={{ cursor: "default" }}>
+                <span
+                  style={{
+                    padding: "0.5rem 1rem",
+                    fontSize: "0.75rem",
+                    color: "var(--cds-text-secondary)",
+                  }}
+                >
+                  {t("language.selectLanguage")}
+                </span>
+              </li>
+              <SwitcherDivider />
+              {supportedLanguages.map((lang) => (
+                <SwitcherItem
+                  key={lang.id}
+                  aria-label={lang.label}
+                  onClick={() => handleLanguageSelect(lang.id)}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                    }}
+                  >
+                    <span>{lang.label}</span>
+                    {contentLanguage === lang.id && (
+                      <Checkmark
+                        size={16}
+                        style={{ color: "var(--cds-icon-primary)" }}
+                      />
+                    )}
+                  </div>
+                </SwitcherItem>
+              ))}
+            </Switcher>
+          </HeaderPanel>
+
+          <HeaderPanel
+            aria-label={t("header.appSwitcher")}
             expanded={isSwitcherExpanded}
             {...{ style: { position: "fixed", right: 0, top: "48px" } }}
           >
-            <Switcher aria-label="Switcher Options">
+            <Switcher aria-label={t("header.appSwitcher")}>
               <SwitcherItem
-                aria-label="Dashboard"
+                aria-label={t("nav.dashboard")}
                 onClick={() => navigate("/dashboard")}
               >
-                Dashboard
+                {t("nav.dashboard")}
               </SwitcherItem>
               <SwitcherItem
-                aria-label="Problems"
+                aria-label={t("nav.problems")}
                 onClick={() => navigate("/problems")}
               >
-                Problems
+                {t("nav.problems")}
               </SwitcherItem>
               <SwitcherItem
-                aria-label="Contests"
+                aria-label={t("nav.contests")}
                 onClick={() => navigate("/contests")}
               >
-                Contests
+                {t("nav.contests")}
               </SwitcherItem>
               <SwitcherItem
-                aria-label="Submissions"
+                aria-label={t("nav.submissions")}
                 onClick={() => navigate("/submissions")}
               >
-                Submissions
+                {t("nav.submissions")}
               </SwitcherItem>
 
               {(user?.role === "admin" || user?.role === "teacher") && (
@@ -254,20 +335,20 @@ export const GlobalHeader = () => {
                         color: "var(--cds-text-secondary)",
                       }}
                     >
-                      Management
+                      {t("header.management")}
                     </span>
                   </li>
                   <SwitcherItem
-                    aria-label="Problem Management"
+                    aria-label={t("header.problemManagement")}
                     onClick={() => navigate("/management/problems")}
                   >
-                    Problem Management
+                    {t("header.problemManagement")}
                   </SwitcherItem>
                   <SwitcherItem
-                    aria-label="Contest Creation"
+                    aria-label={t("header.createContest")}
                     onClick={() => navigate("/contests/new")}
                   >
-                    Create Contest
+                    {t("header.createContest")}
                   </SwitcherItem>
                 </>
               )}
@@ -275,21 +356,20 @@ export const GlobalHeader = () => {
               {user?.role === "admin" && (
                 <>
                   <SwitcherItem
-                    aria-label="User Management"
+                    aria-label={t("header.userManagement")}
                     onClick={() => navigate("/system/users")}
                   >
-                    User Management
+                    {t("header.userManagement")}
                   </SwitcherItem>
                   <SwitcherItem
-                    aria-label="Announcements"
+                    aria-label={t("header.announcements")}
                     onClick={() => navigate("/management/announcements")}
                   >
-                    Announcements
+                    {t("header.announcements")}
                   </SwitcherItem>
                 </>
               )}
 
-              {/* Admin Tools - Environment settings (available in all environments for admin) */}
               {user?.role === "admin" && (
                 <>
                   <SwitcherDivider />
@@ -301,12 +381,11 @@ export const GlobalHeader = () => {
                         color: "var(--cds-text-secondary)",
                       }}
                     >
-                      System
+                      {t("header.system")}
                     </span>
                   </li>
-                  {/* Environment Page Link */}
                   <SwitcherItem
-                    aria-label="Environment"
+                    aria-label={t("header.environmentSettings")}
                     onClick={() => navigate("/system/environment")}
                   >
                     <div
@@ -317,7 +396,7 @@ export const GlobalHeader = () => {
                       }}
                     >
                       <Settings size={16} />
-                      Environment Settings
+                      {t("header.environmentSettings")}
                     </div>
                   </SwitcherItem>
                 </>

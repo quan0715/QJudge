@@ -1,0 +1,78 @@
+{
+  "user": {
+    "role": {
+      "student": "Student",
+      "teacher": "Teacher",
+      "admin": "Admin",
+      "adminTA": "Admin (TA)"
+    },
+    "management": {
+      "title": "User Management",
+      "description": "View all users and manage roles (use search to filter)",
+      "searchLabel": "Search users (optional)",
+      "searchPlaceholder": "Enter username or email to filter...",
+      "minSearchLength": "Please enter at least 2 characters to search",
+      "noUsersFound": "No matching users found",
+      "searchFailed": "Search failed",
+      "searchFailedRetry": "Search failed. Please try again later.",
+      "loadFailed": "Failed to load users",
+      "updateFailed": "Update failed",
+      "updateFailedRetry": "Update failed. Please try again later.",
+      "searchResults": "Search Results ({{count}})",
+      "columns": {
+        "username": "Username",
+        "email": "Email",
+        "currentRole": "Current Role",
+        "loginMethod": "Login Method",
+        "emailVerified": "Email Verified",
+        "actions": "Actions"
+      },
+      "loginMethods": {
+        "email": "Email/Password",
+        "sso": "SSO",
+        "google": "Google",
+        "github": "GitHub",
+        "unknown": "Unknown"
+      },
+      "notVerified": "Not Verified",
+      "deleteUser": "Delete User",
+      "confirmRoleChange": "Confirm Role Change",
+      "confirmRoleChangeMessage": "Are you sure you want to change {{username}}'s role from {{oldRole}} to {{newRole}}?",
+      "adminPermissionNote": "After setting as admin, this user will have full system management permissions.",
+      "confirmDeleteUser": "Confirm Delete User",
+      "confirmDeleteMessage": "Are you sure you want to delete user {{email}}?",
+      "deleteWarning": "This action cannot be undone! All user data will be permanently deleted.",
+      "userDeleted": "User {{email}} has been deleted",
+      "deleteError": "An error occurred while deleting user"
+    }
+  },
+  "announcement": {
+    "management": "Announcement Management",
+    "list": "System Announcements",
+    "create": "Create Announcement",
+    "edit": "Edit Announcement",
+    "delete": "Delete Announcement",
+    "search": "Search Announcements",
+    "columns": {
+      "title": "Title",
+      "author": "Author",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Enter announcement title",
+      "content": "Content",
+      "contentPlaceholder": "Enter announcement content",
+      "publishLabel": "Publish Status",
+      "hidden": "Hidden",
+      "published": "Published"
+    },
+    "status": {
+      "published": "Published",
+      "hidden": "Hidden"
+    },
+    "confirmDelete": "Are you sure you want to delete the announcement \"{{title}}\"? This action cannot be undone."
+  }
+}

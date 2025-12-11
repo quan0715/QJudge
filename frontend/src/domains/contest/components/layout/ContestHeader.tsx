@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Header,
   HeaderName,
@@ -18,10 +18,14 @@ import {
   Locked,
   WarningAltFilled,
   View,
+  Language,
+  Checkmark,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { Light, Asleep } from "@carbon/icons-react";
 import { useTheme } from "@/ui/theme/ThemeContext";
+import { useContentLanguage } from "@/contexts/ContentLanguageContext";
+import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
 import UserAvatarDisplayWithEdit from "./UserAvatarDisplayWithEdit";
@@ -61,6 +65,36 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const {
+    contentLanguage,
+    setContentLanguage,
+    supportedLanguages,
+    getCurrentLanguageShortLabel,
+  } = useContentLanguage();
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
+
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        languageMenuRef.current &&
+        !languageMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLanguageSelect = (langId: string) => {
+    setContentLanguage(langId as typeof contentLanguage);
+    setIsLanguageMenuOpen(false);
+  };
 
   return (
     <Header aria-label="Contest Platform">
@@ -72,7 +106,7 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
           navigate(`/contests/${contestId}`);
         }}
       >
-        {contest?.name || "競賽模式"}
+        {contest?.name || t("mode")}
       </HeaderName>
 
       <HeaderNavigation aria-label="Contest Navigation">
@@ -95,32 +129,30 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
             >
               <Time size={16} />
               <span>
-                {isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}
+                {isCountdownToStart
+                  ? t("timeToStart", { time: timeLeft })
+                  : timeLeft}
               </span>
             </div>
           )}
 
         {/* Problem Menu - For Solve Page */}
-        {isSolvePage &&
-          contest?.problems &&
-          contest.problems.length > 0 && (
-            <HeaderMenu aria-label="Problems" menuLinkName="題目列表">
-              {contest.problems.map((problem, index) => (
-                <HeaderMenuItem
-                  key={problem.id}
-                  onClick={() =>
-                    navigate(
-                      `/contests/${contestId}/solve/${problem.problemId}`
-                    )
-                  }
-                  style={{ minWidth: "300px", whiteSpace: "normal" }}
-                >
-                  {problem.label || String.fromCharCode(65 + index)}.{" "}
-                  {problem.title}
-                </HeaderMenuItem>
-              ))}
-            </HeaderMenu>
-          )}
+        {isSolvePage && contest?.problems && contest.problems.length > 0 && (
+          <HeaderMenu aria-label="Problems" menuLinkName={t("problemList")}>
+            {contest.problems.map((problem, index) => (
+              <HeaderMenuItem
+                key={problem.id}
+                onClick={() =>
+                  navigate(`/contests/${contestId}/solve/${problem.problemId}`)
+                }
+                style={{ minWidth: "300px", whiteSpace: "normal" }}
+              >
+                {problem.label || String.fromCharCode(65 + index)}.{" "}
+                {problem.title}
+              </HeaderMenuItem>
+            ))}
+          </HeaderMenu>
+        )}
 
         {/* User Avatar - Left side */}
         {contest && (
@@ -143,11 +175,83 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
           />
         )}
 
+        <div ref={languageMenuRef} style={{ position: "relative" }}>
+          <HeaderGlobalAction
+            aria-label={tc("language.switchTo")}
+            tooltipAlignment="center"
+            isActive={isLanguageMenuOpen}
+            onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <Language size={20} />
+              <span style={{ fontSize: "12px", fontWeight: 500 }}>
+                {getCurrentLanguageShortLabel()}
+              </span>
+            </div>
+          </HeaderGlobalAction>
+          {isLanguageMenuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                backgroundColor: "var(--cds-layer-01)",
+                border: "1px solid var(--cds-border-subtle)",
+                borderRadius: "4px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                minWidth: "150px",
+                zIndex: 9999,
+              }}
+            >
+              <div
+                style={{
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.75rem",
+                  color: "var(--cds-text-secondary)",
+                  borderBottom: "1px solid var(--cds-border-subtle)",
+                }}
+              >
+                {tc("language.selectLanguage")}
+              </div>
+              {supportedLanguages.map((lang) => (
+                <div
+                  key={lang.id}
+                  onClick={() => handleLanguageSelect(lang.id)}
+                  style={{
+                    padding: "0.75rem 1rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor:
+                      contentLanguage === lang.id
+                        ? "var(--cds-layer-selected-01)"
+                        : "transparent",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      "var(--cds-layer-hover-01)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      contentLanguage === lang.id
+                        ? "var(--cds-layer-selected-01)"
+                        : "transparent")
+                  }
+                >
+                  <span>{lang.label}</span>
+                  {contentLanguage === lang.id && <Checkmark size={16} />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <HeaderGlobalAction
           aria-label={
             theme === "white"
-              ? "Switch to Dark Mode"
-              : "Switch to Light Mode"
+              ? tc("theme.switchToDark")
+              : tc("theme.switchToLight")
           }
           tooltipAlignment="center"
           onClick={toggleTheme}
@@ -156,7 +260,7 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
         </HeaderGlobalAction>
 
         <HeaderGlobalAction
-          aria-label={isRefreshing ? "更新中..." : "重新整理競賽資訊"}
+          aria-label={isRefreshing ? t("refreshing") : t("refresh")}
           tooltipAlignment="center"
           onClick={isRefreshing ? undefined : onRefreshContest}
         >
@@ -179,7 +283,7 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
         </style>
 
         <HeaderGlobalAction
-          aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
           tooltipAlignment="center"
           onClick={onToggleFullscreen}
         >
@@ -197,7 +301,7 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
             alignItems: "center",
           }}
         >
-          離開
+          {t("exit")}
         </Button>
       </HeaderGlobalBar>
     </Header>
@@ -220,17 +324,19 @@ const ContestExamStatusDisplay: React.FC<ContestExamStatusDisplayProps> = ({
   unlockTimeLeft,
   onMonitoringClick,
 }) => {
+  const { t } = useTranslation("contest");
+
   return (
     <>
       {/* Locked State */}
       {contest.examStatus === "locked" && (
         <div
-          title={`${contest.lockReason || "違規行為"}${
+          title={`${contest.lockReason || t("exam.lockedReason")}${
             contest.autoUnlockAt
-              ? `\n預計解鎖: ${new Date(
+              ? `\n${t("exam.expectedUnlock")}: ${new Date(
                   contest.autoUnlockAt
                 ).toLocaleTimeString()}`
-              : "\n請聯繫監考人員"
+              : `\n${t("exam.contactProctor")}`
           }`}
           style={{
             display: "flex",
@@ -246,7 +352,7 @@ const ContestExamStatusDisplay: React.FC<ContestExamStatusDisplayProps> = ({
           }}
         >
           <Locked size={16} />
-          <span>鎖定中</span>
+          <span>{t("exam.locked")}</span>
           {unlockTimeLeft && (
             <span
               style={{
@@ -264,7 +370,7 @@ const ContestExamStatusDisplay: React.FC<ContestExamStatusDisplayProps> = ({
       {/* Paused State */}
       {contest.examStatus === "paused" && (
         <div
-          title="請點擊繼續考試以重新進入考試模式"
+          title={t("exam.pausedHint")}
           style={{
             display: "flex",
             alignItems: "center",
@@ -279,14 +385,14 @@ const ContestExamStatusDisplay: React.FC<ContestExamStatusDisplayProps> = ({
           }}
         >
           <WarningAltFilled size={16} />
-          <span>已暫停</span>
+          <span>{t("exam.paused")}</span>
         </div>
       )}
 
       {/* In Progress State */}
       {contest.examStatus === "in_progress" && (
         <div
-          title="考試監控中 - 點擊查看詳情"
+          title={t("exam.monitoringHint")}
           onClick={onMonitoringClick}
           style={{
             display: "flex",
@@ -302,7 +408,7 @@ const ContestExamStatusDisplay: React.FC<ContestExamStatusDisplayProps> = ({
           }}
         >
           <View size={16} />
-          <span>監控中</span>
+          <span>{t("exam.monitoring")}</span>
           <span
             style={{
               fontFamily: "var(--cds-code-font-family, monospace)",

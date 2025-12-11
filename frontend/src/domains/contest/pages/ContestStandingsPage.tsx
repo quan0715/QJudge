@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Button, InlineLoading, DataTableSkeleton } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { useContest } from "@/domains/contest/contexts/ContestContext";
 import ContestScoreboard from "@/domains/contest/components/ContestScoreboard";
 import type {
@@ -17,6 +18,8 @@ interface ContestStandingsPageProps {
 const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   maxWidth,
 }) => {
+  const { t } = useTranslation("contest");
+
   // Use standings from context - no local fetch needed
   const {
     contest,
@@ -79,10 +82,10 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
       columnCount={7}
       rowCount={10}
       headers={[
-        { key: "rank", header: "排名" },
-        { key: "user", header: "參賽者" },
-        { key: "solved", header: "解題數" },
-        { key: "penalty", header: "罰時" },
+        { key: "rank", header: t("standings.rank") },
+        { key: "user", header: t("standings.participant") },
+        { key: "solved", header: t("standings.solved") },
+        { key: "penalty", header: t("standings.penalty") },
         { key: "p1", header: "A" },
         { key: "p2", header: "B" },
         { key: "p3", header: "C" },
@@ -98,7 +101,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
         <div className="cds--row">
           <div className="cds--col-lg-16">
             <ContainerCard
-              title="即時排行榜"
+              title={t("standings.title")}
               action={
                 <Button
                   kind="ghost"
@@ -107,7 +110,11 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                   disabled={isRefreshing || loading}
                   size="sm"
                   hasIconOnly
-                  iconDescription={isRefreshing ? "更新中..." : "重新整理"}
+                  iconDescription={
+                    isRefreshing
+                      ? t("standings.refreshing")
+                      : t("standings.refresh")
+                  }
                 />
               }
               noPadding
@@ -119,8 +126,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                     color: "var(--cds-text-secondary)",
                   }}
                 >
-                  ICPC 規則：排名優先依據解題數，其次為總罰時（解題時間 +
-                  20分鐘/錯誤嘗試）。
+                  {t("standings.icpcRules")}
                 </p>
                 {loading ? (
                   renderSkeleton()

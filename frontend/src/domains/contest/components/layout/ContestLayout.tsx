@@ -14,7 +14,7 @@ import {
   InlineLoading,
   Popover,
   PopoverContent,
-  Button, // Added Button
+  Button,
 } from "@carbon/react";
 import {
   Maximize,
@@ -27,8 +27,12 @@ import {
   WarningAlt,
   WarningAltFilled,
   Edit,
+  Language,
+  Checkmark,
 } from "@carbon/icons-react";
 import { useTheme } from "@/ui/theme/ThemeContext";
+import { useContentLanguage } from "@/contexts/ContentLanguageContext";
+import { useTranslation } from "react-i18next";
 import { Light, Asleep } from "@carbon/icons-react";
 import ExamModeWrapper from "@/domains/contest/components/ExamModeWrapper";
 import {
@@ -47,13 +51,15 @@ import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
 import { ContestProvider } from "@/domains/contest/contexts/ContestContext";
 import { ExamModeMonitorModel } from "@/domains/contest/components/Model/ExamModeMonitorModel";
 
-const UserAvatarDisplayWithEdit = ({
+const UserAvatarDisplayWithEditInline = ({
   contest,
   onRefresh,
 }: {
   contest: ContestDetail;
   onRefresh: () => void;
 }) => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [nickname, setNickname] = useState(contest.myNickname || "");
@@ -71,17 +77,17 @@ const UserAvatarDisplayWithEdit = ({
       setOpen(false);
     } catch (error) {
       console.error("Failed to update nickname", error);
-      alert("更新暱稱失敗，請稍後再試");
+      alert(t("avatar.updateFailed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const currentNickname = contest.myNickname || "參賽者";
+  const currentNickname = contest.myNickname || t("avatar.participant");
   const role =
     contest.currentUserRole === "admin" || contest.currentUserRole === "teacher"
-      ? "管理員"
-      : "學生";
+      ? t("avatar.admin")
+      : t("avatar.student");
 
   // Can edit if registered, anonymous mode is enabled, and exam not in progress (unless admin)
   const canEdit =
@@ -127,7 +133,7 @@ const UserAvatarDisplayWithEdit = ({
                 onClick={() => setShowEditModal(true)}
                 style={{ width: "100%" }}
               >
-                編輯暱稱
+                {t("avatar.editNickname")}
               </Button>
             )}
           </div>
@@ -136,11 +142,15 @@ const UserAvatarDisplayWithEdit = ({
 
       <Modal
         open={showEditModal}
-        modalHeading="編輯比賽暱稱"
+        modalHeading={t("avatar.editContestNickname")}
         primaryButtonText={
-          loading ? <InlineLoading description="更新中..." /> : "儲存"
+          loading ? (
+            <InlineLoading description={t("refreshing")} />
+          ) : (
+            t("avatar.save")
+          )
         }
-        secondaryButtonText="取消"
+        secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={loading}
         onRequestClose={() => setShowEditModal(false)}
         onRequestSubmit={handleUpdate}
@@ -148,10 +158,10 @@ const UserAvatarDisplayWithEdit = ({
       >
         <TextInput
           id="nickname-input"
-          labelText="暱稱 (Nickname)"
+          labelText={t("avatar.nicknameLabel")}
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          placeholder="請輸入新的暱稱"
+          placeholder={t("avatar.nicknamePlaceholder")}
         />
       </Modal>
     </>
@@ -171,7 +181,36 @@ const ContestLayout = () => {
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [unlockTimeLeft, setUnlockTimeLeft] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const languageMenuRef = React.useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
+  const {
+    contentLanguage,
+    setContentLanguage,
+    supportedLanguages,
+    getCurrentLanguageShortLabel,
+  } = useContentLanguage();
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        languageMenuRef.current &&
+        !languageMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLanguageSelect = (langId: string) => {
+    setContentLanguage(langId as typeof contentLanguage);
+    setIsLanguageMenuOpen(false);
+  };
 
   // Detect if we're on a solve page - hide hero/tabs for cleaner UI
   const isSolvePage = location.pathname.includes("/solve/");
@@ -489,7 +528,7 @@ const ContestLayout = () => {
               navigate(`/contests/${contestId}`);
             }}
           >
-            {contest?.name || "競賽模式"}
+            {contest?.name || t("mode")}
           </HeaderName>
 
           <HeaderNavigation aria-label="Contest Navigation">
@@ -512,7 +551,9 @@ const ContestLayout = () => {
                 >
                   <Time size={16} />
                   <span>
-                    {isCountdownToStart ? `距開始 ${timeLeft}` : timeLeft}
+                    {isCountdownToStart
+                      ? t("timeToStart", { time: timeLeft })
+                      : timeLeft}
                   </span>
                 </div>
               )}
@@ -521,7 +562,10 @@ const ContestLayout = () => {
             {isSolvePage &&
               contest?.problems &&
               contest.problems.length > 0 && (
-                <HeaderMenu aria-label="Problems" menuLinkName="題目列表">
+                <HeaderMenu
+                  aria-label="Problems"
+                  menuLinkName={t("problemList")}
+                >
                   {contest.problems.map((problem, index) => (
                     <HeaderMenuItem
                       key={problem.id}
@@ -541,7 +585,7 @@ const ContestLayout = () => {
 
             {/* User Avatar - Left side */}
             {contest && (
-              <UserAvatarDisplayWithEdit
+              <UserAvatarDisplayWithEditInline
                 contest={contest}
                 onRefresh={refreshContest}
               />
@@ -555,12 +599,12 @@ const ContestLayout = () => {
                 {/* Locked State - Combined with countdown */}
                 {contest.examStatus === "locked" && (
                   <div
-                    title={`${contest.lockReason || "違規行為"}${
+                    title={`${contest.lockReason || t("exam.lockedReason")}${
                       contest.autoUnlockAt
-                        ? `\n預計解鎖: ${new Date(
+                        ? `\n${t("exam.expectedUnlock")}: ${new Date(
                             contest.autoUnlockAt
                           ).toLocaleTimeString()}`
-                        : "\n請聯繫監考人員"
+                        : `\n${t("exam.contactProctor")}`
                     }`}
                     style={{
                       display: "flex",
@@ -576,7 +620,7 @@ const ContestLayout = () => {
                     }}
                   >
                     <Locked size={16} />
-                    <span>鎖定中</span>
+                    <span>{t("exam.locked")}</span>
                     {unlockTimeLeft && (
                       <span
                         style={{
@@ -594,7 +638,7 @@ const ContestLayout = () => {
                 {/* Paused State */}
                 {contest.examStatus === "paused" && (
                   <div
-                    title="請點擊繼續考試以重新進入考試模式"
+                    title={t("exam.pausedHint")}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -609,14 +653,14 @@ const ContestLayout = () => {
                     }}
                   >
                     <WarningAltFilled size={16} />
-                    <span>已暫停</span>
+                    <span>{t("exam.paused")}</span>
                   </div>
                 )}
 
                 {/* In Progress State - Click to show Exam Mode info */}
                 {contest.examStatus === "in_progress" && (
                   <div
-                    title="考試監控中 - 點擊查看詳情"
+                    title={t("exam.monitoringHint")}
                     onClick={() => setMonitoringModalOpen(true)}
                     style={{
                       display: "flex",
@@ -632,7 +676,7 @@ const ContestLayout = () => {
                     }}
                   >
                     <View size={16} />
-                    <span>監控中</span>
+                    <span>{t("exam.monitoring")}</span>
                     <span
                       style={{
                         fontFamily: "var(--cds-code-font-family, monospace)",
@@ -647,11 +691,85 @@ const ContestLayout = () => {
               </>
             )}
 
+            <div ref={languageMenuRef} style={{ position: "relative" }}>
+              <HeaderGlobalAction
+                aria-label={tc("language.switchTo")}
+                tooltipAlignment="center"
+                isActive={isLanguageMenuOpen}
+                onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <Language size={20} />
+                  <span style={{ fontSize: "12px", fontWeight: 500 }}>
+                    {getCurrentLanguageShortLabel()}
+                  </span>
+                </div>
+              </HeaderGlobalAction>
+              {isLanguageMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    backgroundColor: "var(--cds-layer-01)",
+                    border: "1px solid var(--cds-border-subtle)",
+                    borderRadius: "4px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                    minWidth: "150px",
+                    zIndex: 9999,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "0.5rem 1rem",
+                      fontSize: "0.75rem",
+                      color: "var(--cds-text-secondary)",
+                      borderBottom: "1px solid var(--cds-border-subtle)",
+                    }}
+                  >
+                    {tc("language.selectLanguage")}
+                  </div>
+                  {supportedLanguages.map((lang) => (
+                    <div
+                      key={lang.id}
+                      onClick={() => handleLanguageSelect(lang.id)}
+                      style={{
+                        padding: "0.75rem 1rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        backgroundColor:
+                          contentLanguage === lang.id
+                            ? "var(--cds-layer-selected-01)"
+                            : "transparent",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          "var(--cds-layer-hover-01)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          contentLanguage === lang.id
+                            ? "var(--cds-layer-selected-01)"
+                            : "transparent")
+                      }
+                    >
+                      <span>{lang.label}</span>
+                      {contentLanguage === lang.id && <Checkmark size={16} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <HeaderGlobalAction
               aria-label={
                 theme === "white"
-                  ? "Switch to Dark Mode"
-                  : "Switch to Light Mode"
+                  ? tc("theme.switchToDark")
+                  : tc("theme.switchToLight")
               }
               tooltipAlignment="center"
               onClick={toggleTheme}
@@ -660,7 +778,7 @@ const ContestLayout = () => {
             </HeaderGlobalAction>
 
             <HeaderGlobalAction
-              aria-label={isRefreshing ? "更新中..." : "重新整理競賽資訊"}
+              aria-label={isRefreshing ? t("refreshing") : t("refresh")}
               tooltipAlignment="center"
               onClick={isRefreshing ? undefined : refreshContest}
             >
@@ -683,7 +801,9 @@ const ContestLayout = () => {
             </style>
 
             <HeaderGlobalAction
-              aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              aria-label={
+                isFullscreen ? t("exitFullscreen") : t("enterFullscreen")
+              }
               tooltipAlignment="center"
               onClick={toggleFullscreen}
             >
@@ -701,7 +821,7 @@ const ContestLayout = () => {
                 alignItems: "center",
               }}
             >
-              離開
+              {t("exit")}
             </Button>
             {/* User Info Display moved to HeaderNavigation (left side) */}
           </HeaderGlobalBar>
@@ -776,9 +896,17 @@ const ContestLayout = () => {
 
       <Modal
         open={isExitModalOpen}
-        modalHeading={shouldWarnOnExit ? "確認交卷並離開" : "確認離開競賽"}
-        primaryButtonText={shouldWarnOnExit ? "交卷並離開" : "確認離開"}
-        secondaryButtonText="取消"
+        modalHeading={
+          shouldWarnOnExit
+            ? t("exitModal.confirmSubmitAndExit")
+            : t("exitModal.confirmExit")
+        }
+        primaryButtonText={
+          shouldWarnOnExit
+            ? t("exitModal.submitAndExit")
+            : t("exitModal.confirmExitBtn")
+        }
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => {
           // Just close the modal, don't force fullscreen
           setIsExitModalOpen(false);
@@ -793,12 +921,12 @@ const ContestLayout = () => {
               contest?.currentUserRole === "teacher" ||
               contest?.currentUserRole === "admin"
             ) {
-              return "確定要離開競賽管理頁面嗎？";
+              return t("exitModal.teacherAdminExit");
             }
 
             // Student - Not joined
             if (!contest?.hasJoined && !contest?.isRegistered) {
-              return "確定要離開競賽頁面嗎？";
+              return t("exitModal.studentNotJoined");
             }
 
             // Student - Joined but exam not started (or submitted)
@@ -808,10 +936,20 @@ const ContestLayout = () => {
               contest.examStatus === "submitted" ||
               contest.examStatus === "not_started"
             ) {
-              return "確定要離開競賽頁面嗎？";
+              return t("exitModal.studentNotJoined");
             }
 
             // Student - Exam in progress, paused, or locked (warn about auto-submit)
+            const getExamStatusLabel = () => {
+              if (contest?.examStatus === "in_progress") {
+                return t("exitModal.examStatusInProgress");
+              }
+              if (contest?.examStatus === "paused") {
+                return t("exitModal.examStatusPaused");
+              }
+              return t("exitModal.examStatusLocked");
+            };
+
             return (
               <span>
                 <strong
@@ -822,22 +960,18 @@ const ContestLayout = () => {
                     gap: "0.25rem",
                   }}
                 >
-                  <WarningAlt size={16} /> 警告：離開將會自動交卷！
+                  <WarningAlt size={16} /> {t("exitModal.warningAutoSubmit")}
                 </strong>
                 <br />
                 <br />
-                您的考試狀態為「
-                {contest?.examStatus === "in_progress"
-                  ? "進行中"
-                  : contest?.examStatus === "paused"
-                  ? "暫停中"
-                  : "已鎖定"}
-                」。
+                {t("exitModal.examStatusLabel", {
+                  status: getExamStatusLabel(),
+                })}
                 <br />
-                確認離開後，系統將自動為您交卷，您將無法再作答。
+                {t("exitModal.autoSubmitWarning")}
                 <br />
                 <br />
-                確定要交卷並離開嗎？
+                {t("exitModal.confirmSubmitAndExitQuestion")}
               </span>
             );
           })()}
@@ -847,7 +981,7 @@ const ContestLayout = () => {
       {/* Error Modal */}
       <Modal
         open={errorModalOpen}
-        modalHeading="錯誤"
+        modalHeading={tc("message.error")}
         passiveModal
         onRequestClose={() => setErrorModalOpen(false)}
       >
