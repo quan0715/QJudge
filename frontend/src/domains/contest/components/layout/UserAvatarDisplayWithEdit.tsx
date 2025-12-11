@@ -8,6 +8,7 @@ import {
   Button,
 } from "@carbon/react";
 import { Edit } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
 import { updateNickname } from "@/services/contest";
@@ -25,6 +26,8 @@ const UserAvatarDisplayWithEdit: React.FC<UserAvatarDisplayWithEditProps> = ({
   contest,
   onRefresh,
 }) => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [nickname, setNickname] = useState(contest.myNickname || "");
@@ -41,17 +44,17 @@ const UserAvatarDisplayWithEdit: React.FC<UserAvatarDisplayWithEditProps> = ({
       setOpen(false);
     } catch (error) {
       console.error("Failed to update nickname", error);
-      alert("更新暱稱失敗，請稍後再試");
+      alert(t("avatar.updateFailed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const currentNickname = contest.myNickname || "參賽者";
+  const currentNickname = contest.myNickname || t("avatar.participant");
   const role =
     contest.currentUserRole === "admin" || contest.currentUserRole === "teacher"
-      ? "管理員"
-      : "學生";
+      ? t("avatar.admin")
+      : t("avatar.student");
 
   // Can edit if registered, anonymous mode is enabled, and exam not in progress (unless admin)
   const canEdit =
@@ -97,7 +100,7 @@ const UserAvatarDisplayWithEdit: React.FC<UserAvatarDisplayWithEditProps> = ({
                 onClick={() => setShowEditModal(true)}
                 style={{ width: "100%" }}
               >
-                編輯暱稱
+                {t("avatar.editNickname")}
               </Button>
             )}
           </div>
@@ -106,11 +109,15 @@ const UserAvatarDisplayWithEdit: React.FC<UserAvatarDisplayWithEditProps> = ({
 
       <Modal
         open={showEditModal}
-        modalHeading="編輯比賽暱稱"
+        modalHeading={t("avatar.editContestNickname")}
         primaryButtonText={
-          loading ? <InlineLoading description="更新中..." /> : "儲存"
+          loading ? (
+            <InlineLoading description={t("refreshing")} />
+          ) : (
+            t("avatar.save")
+          )
         }
-        secondaryButtonText="取消"
+        secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={loading}
         onRequestClose={() => setShowEditModal(false)}
         onRequestSubmit={handleUpdate}
@@ -118,10 +125,10 @@ const UserAvatarDisplayWithEdit: React.FC<UserAvatarDisplayWithEditProps> = ({
       >
         <TextInput
           id="nickname-input"
-          labelText="暱稱 (Nickname)"
+          labelText={t("avatar.nicknameLabel")}
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          placeholder="請輸入新的暱稱"
+          placeholder={t("avatar.nicknamePlaceholder")}
         />
       </Modal>
     </>

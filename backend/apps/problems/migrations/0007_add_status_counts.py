@@ -42,6 +42,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('problems', '0006_problem_forbidden_keywords_problem_required_keywords'),
+        ('submissions', '0001_initial'),
     ]
 
     operations = [

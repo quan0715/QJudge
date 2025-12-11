@@ -9,6 +9,7 @@ import { endExam as serviceEndExam, recordExamEvent } from "@/services/contest";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Modal, Button } from "@carbon/react";
 import { WarningAlt, Locked, CheckmarkFilled } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 
 // Anti-cheat timing constants (module-level to avoid recreation on each render)
 const BLUR_DEBOUNCE_MS = 1500; // Time to wait after user interaction before detecting blur (increased for Chrome extension compatibility)
@@ -42,6 +43,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const [examState, setExamState] = useState<ExamModeState>({
     isActive: false,
     isLocked: false,
@@ -275,7 +278,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Event handlers
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "hidden") {
-        await handleCheatEvent("tab_hidden", "您已切換分頁");
+        await handleCheatEvent("tab_hidden", t("exam.tabHidden"));
       }
     };
 
@@ -326,12 +329,14 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           }
 
           // Call async function and handle potential errors
-          handleCheatEvent("window_blur", "您已離開視窗").catch((error) => {
-            console.error(
-              "[Anti-cheat] Failed to record window blur event:",
-              error
-            );
-          });
+          handleCheatEvent("window_blur", t("exam.windowBlur")).catch(
+            (error) => {
+              console.error(
+                "[Anti-cheat] Failed to record window blur event:",
+                error
+              );
+            }
+          );
         } else {
           console.log(
             "[Anti-cheat] Ignoring blur event - document still has focus"
@@ -342,7 +347,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     const handleFullscreenChange = async () => {
       if (!document.fullscreenElement) {
-        await handleCheatEvent("exit_fullscreen", "您已退出全螢幕");
+        await handleCheatEvent("exit_fullscreen", t("exam.exitedFullscreen"));
       }
     };
 
@@ -561,7 +566,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   color: "var(--cds-text-on-color, #fff)",
                 }}
               >
-                考試模式已啟用
+                {t("exam.modeEnabled")}
               </span>
             </div>
             <p
@@ -572,7 +577,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 lineHeight: 1.5,
               }}
             >
-              防作弊監控將在倒數結束後開始運作
+              {t("exam.antiCheatStarting")}
             </p>
             <div
               style={{
@@ -594,7 +599,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 letterSpacing: "1px",
               }}
             >
-              請勿切換分頁或離開視窗
+              {t("exam.doNotSwitchTabs")}
             </p>
           </div>
         </div>
@@ -642,7 +647,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   color: "var(--cds-support-error, #fa4d56)",
                 }}
               >
-                作答已鎖定
+                {t("exam.answerLocked")}
               </h1>
             </div>
 
@@ -677,7 +682,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                     letterSpacing: "1px",
                   }}
                 >
-                  自動解鎖倒數
+                  {t("exam.autoUnlockCountdown")}
                 </p>
                 <div
                   style={{
@@ -699,7 +704,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   marginBottom: "2rem",
                 }}
               >
-                請聯繫監考老師解除鎖定。
+                {t("exam.contactProctorToUnlock")}
               </p>
             )}
 
@@ -711,7 +716,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 marginBottom: "2rem",
               }}
             >
-              此違規行為已被記錄。
+              {t("exam.violationRecorded")}
             </p>
 
             {/* Action */}
@@ -721,7 +726,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 onClick={handleBackToContest}
                 style={{ color: "var(--cds-text-on-color, #fff)" }}
               >
-                回到競賽儀表板
+                {t("exam.backToDashboard")}
               </Button>
               <p
                 style={{
@@ -730,7 +735,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   color: "var(--cds-text-on-color-disabled, #6f6f6f)",
                 }}
               >
-                您可以查看排行榜或提交記錄，但無法繼續作答
+                {t("exam.canViewButNoAnswer")}
               </p>
             </div>
           </div>
@@ -740,13 +745,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       {/* Warning Modal - blocks until API responds */}
       <Modal
         open={showWarning}
-        modalHeading="違規警告"
+        modalHeading={t("exam.violationWarning")}
         primaryButtonText={
           pendingApiResponse
-            ? "處理中..."
+            ? t("exam.processing")
             : lastApiResponse?.locked
-            ? "確認"
-            : "我了解了"
+            ? tc("button.confirm")
+            : t("exam.iUnderstand")
         }
         primaryButtonDisabled={pendingApiResponse}
         onRequestSubmit={() => handleWarningClose()}
@@ -793,7 +798,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               color: "var(--cds-text-primary)",
             }}
           >
-            {pendingApiResponse ? "正在記錄違規行為..." : "檢測到異常操作"}
+            {pendingApiResponse
+              ? t("exam.recordingViolation")
+              : t("exam.abnormalBehavior")}
           </p>
 
           {/* Event type */}
@@ -804,9 +811,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               fontSize: "0.875rem",
             }}
           >
-            {warningEventType === "tab_hidden" && "您切換了分頁"}
-            {warningEventType === "window_blur" && "您離開了視窗"}
-            {warningEventType === "exit_fullscreen" && "您退出了全螢幕"}
+            {warningEventType === "tab_hidden" && t("exam.tabHidden")}
+            {warningEventType === "window_blur" && t("exam.windowBlur")}
+            {warningEventType === "exit_fullscreen" &&
+              t("exam.exitedFullscreen")}
           </p>
 
           {/* Instruction */}
@@ -817,7 +825,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               color: "var(--cds-text-primary)",
             }}
           >
-            請保持在考試頁面並維持全螢幕模式。
+            {t("exam.stayInExamPage")}
           </p>
 
           {/* Violation count box */}
@@ -842,7 +850,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   }}
                 >
                   <span style={{ color: "var(--cds-text-secondary)" }}>
-                    累積違規次數
+                    {t("exam.accumulatedViolations")}
                   </span>
                   <span
                     style={{
@@ -861,7 +869,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                   }}
                 >
                   <span style={{ color: "var(--cds-text-secondary)" }}>
-                    剩餘機會
+                    {t("exam.remainingChances")}
                   </span>
                   <span
                     style={{
@@ -872,7 +880,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                     }}
                   >
                     {lastApiResponse?.locked
-                      ? "0 - 已鎖定"
+                      ? t("exam.alreadyLocked")
                       : Math.max(
                           0,
                           examState.maxWarnings + 1 - examState.violationCount
@@ -892,7 +900,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 fontWeight: 600,
               }}
             >
-              您的考試已被鎖定！請聯繫監考老師。
+              {t("exam.examLocked")}
             </p>
           ) : (
             <p
@@ -902,7 +910,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 fontSize: "0.75rem",
               }}
             >
-              若剩餘機會歸零，您將被自動鎖定！
+              {t("exam.zeroChanceWarning")}
             </p>
           )}
         </div>
@@ -911,8 +919,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       {/* Unlock Notification Modal */}
       <Modal
         open={showUnlockNotification}
-        modalHeading="考試已解鎖"
-        primaryButtonText="繼續考試"
+        modalHeading={t("exam.unlocked")}
+        primaryButtonText={t("exam.continueExam")}
         onRequestSubmit={() => setShowUnlockNotification(false)}
         onRequestClose={() => setShowUnlockNotification(false)}
         size="sm"
@@ -949,7 +957,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               color: "var(--cds-text-primary)",
             }}
           >
-            您的考試已被解鎖！
+            {t("exam.examUnlockedTitle")}
           </p>
 
           {/* Description */}
@@ -961,7 +969,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               lineHeight: 1.5,
             }}
           >
-            監考老師已解除您的鎖定狀態。點擊「繼續考試」重新進入考試模式。
+            {t("exam.examUnlockedDesc")}
           </p>
 
           {/* Reminder */}
@@ -981,7 +989,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 margin: 0,
               }}
             >
-              提醒：請遵守考試規則，避免再次被鎖定。
+              {t("exam.followRulesReminder")}
             </p>
           </div>
         </div>
@@ -990,11 +998,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       {/* Fullscreen Exit Confirmation Modal (for locked/paused states) */}
       <Modal
         open={showFullscreenExitConfirm}
-        modalHeading="確認離開全螢幕並交卷"
+        modalHeading={t("exam.confirmExitFullscreenAndSubmit")}
         primaryButtonText={
-          isSubmittingFromFullscreenExit ? "交卷中..." : "確認交卷"
+          isSubmittingFromFullscreenExit
+            ? t("exam.submittingExam")
+            : t("exam.confirmSubmitExam")
         }
-        secondaryButtonText="取消"
+        secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={isSubmittingFromFullscreenExit}
         onRequestSubmit={handleFullscreenExitConfirm}
         onRequestClose={handleFullscreenExitCancel}
@@ -1034,7 +1044,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               color: "var(--cds-text-primary)",
             }}
           >
-            您正在離開全螢幕模式
+            {t("exam.leavingFullscreen")}
           </p>
 
           {/* Description */}
@@ -1046,9 +1056,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               lineHeight: 1.5,
             }}
           >
-            在考試模式下離開全螢幕將視為交卷。
+            {t("exam.leaveFullscreenWillSubmit")}
             <br />
-            確認後系統將自動為您交卷，您將無法再作答。
+            {t("exam.autoSubmitNoMoreAnswer")}
           </p>
 
           {/* Warning */}
@@ -1068,7 +1078,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
                 fontWeight: 600,
               }}
             >
-              此操作無法復原！
+              {t("exam.cannotUndo")}
             </p>
           </div>
         </div>

@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { I18nextProvider } from "react-i18next";
+import i18n from "@/i18n";
 import MainLayout from "@/ui/layout/MainLayout";
 import AuthLayout from "@/domains/auth/components/layout/AuthLayout";
 import LoginPage from "@/domains/auth/pages/LoginPage";
@@ -31,6 +33,7 @@ import {
 // Admin pages are now rendered as tabs in ContestDashboard
 
 import { ThemeProvider } from "@/ui/theme/ThemeContext";
+import { ToastProvider } from "@/contexts/ToastContext";
 import { ContentLanguageProvider } from "@/contexts/ContentLanguageContext";
 
 import { AuthProvider } from "@/domains/auth/contexts/AuthContext";
@@ -50,205 +53,222 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ContentLanguageProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <BrowserRouter>
-                <Routes>
-                  {/* Guest Routes (Login/Register) */}
-                  <Route element={<RequireGuest />}>
-                    <Route element={<AuthLayout />}>
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/register" element={<RegisterPage />} />
-                    </Route>
-                  </Route>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <ContentLanguageProvider>
+              <ThemeProvider>
+                <AuthProvider>
+                  <BrowserRouter>
+                    <Routes>
+                      {/* Guest Routes (Login/Register) */}
+                      <Route element={<RequireGuest />}>
+                        <Route element={<AuthLayout />}>
+                          <Route path="/login" element={<LoginPage />} />
+                          <Route path="/register" element={<RegisterPage />} />
+                        </Route>
+                      </Route>
 
-                  {/* OAuth Callback - not protected, handles its own auth flow */}
-                  <Route element={<AuthLayout />}>
-                    <Route
-                      path="/auth/nycu/callback"
-                      element={<OAuthCallbackPage />}
-                    />
-                  </Route>
+                      {/* OAuth Callback - not protected, handles its own auth flow */}
+                      <Route element={<AuthLayout />}>
+                        <Route
+                          path="/auth/nycu/callback"
+                          element={<OAuthCallbackPage />}
+                        />
+                      </Route>
 
-                  {/* Protected Routes (Dashboard, Problems, etc.) */}
-                  <Route element={<RequireAuth />}>
-                    <Route element={<MainLayout />}>
-                      <Route path="/dashboard" element={<DashboardPage />} />
-                      <Route path="/problems" element={<ProblemList />} />
+                      {/* Protected Routes (Dashboard, Problems, etc.) */}
+                      <Route element={<RequireAuth />}>
+                        <Route element={<MainLayout />}>
+                          <Route
+                            path="/dashboard"
+                            element={<DashboardPage />}
+                          />
+                          <Route path="/problems" element={<ProblemList />} />
 
-                      {/* Submissions */}
+                          {/* Submissions */}
+                          <Route
+                            path="/submissions"
+                            element={<SubmissionsPage />}
+                          />
+
+                          <Route
+                            path="/contests"
+                            element={<ContestListPage />}
+                          />
+                          <Route
+                            path="/ranking"
+                            element={<div>Ranking Page (Coming Soon)</div>}
+                          />
+                          {/* Redirect root to dashboard */}
+                          <Route
+                            path="/"
+                            element={<Navigate to="/dashboard" replace />}
+                          />
+                        </Route>
+
+                        {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
+                        <Route path="/problems/:id" element={<ProblemLayout />}>
+                          <Route index element={<ProblemDetail />} />
+                        </Route>
+
+                        {/* Contest Routes - Outside MainLayout with Custom Header */}
+                        <Route
+                          path="/contests/:contestId"
+                          element={<ContestLayout />}
+                        >
+                          <Route index element={<ContestDashboard />} />
+                          {/* Legacy route redirects to new query param structure */}
+                          <Route
+                            path="problems"
+                            element={<Navigate to="../?tab=problems" replace />}
+                          />
+                          <Route
+                            path="submissions"
+                            element={
+                              <Navigate to="../?tab=submissions" replace />
+                            }
+                          />
+                          <Route
+                            path="standings"
+                            element={
+                              <Navigate to="../?tab=standings" replace />
+                            }
+                          />
+                          <Route
+                            path="clarifications"
+                            element={
+                              <Navigate to="../?tab=clarifications" replace />
+                            }
+                          />
+
+                          {/* Problem Solving Page */}
+                          <Route
+                            path="solve/:problemId"
+                            element={<ContestProblemPage />}
+                          />
+                        </Route>
+                      </Route>
+
+                      {/* Teacher/Admin Routes */}
+                      <Route element={<RequireTeacherOrAdmin />}>
+                        <Route element={<MainLayout />}>
+                          <Route
+                            path="/management/problems"
+                            element={<ProblemManagementPage />}
+                          />
+                          <Route
+                            path="/management/problems/new"
+                            element={<ProblemFormPage />}
+                          />
+                          <Route
+                            path="/management/problems/:id/edit"
+                            element={<ProblemFormPage />}
+                          />
+
+                          {/* Teacher Contest Management - Redirect to unified view */}
+                          <Route
+                            path="/teacher/contests"
+                            element={<Navigate to="/contests" replace />}
+                          />
+                          <Route
+                            path="/contests/new"
+                            element={<ContestCreatePage />}
+                          />
+                          <Route
+                            path="/teacher/contests/new"
+                            element={<Navigate to="/contests/new" replace />}
+                          />
+                          <Route
+                            path="/teacher/contests/:id/edit"
+                            element={
+                              <Navigate
+                                to="/contests/:id?tab=settings"
+                                replace
+                              />
+                            }
+                          />
+
+                          {/* Redirect old management paths to unified contest view */}
+                          <Route
+                            path="/management/contests/:contestId"
+                            element={
+                              <Navigate
+                                to="/contests/:contestId?tab=settings"
+                                replace
+                              />
+                            }
+                          />
+                          <Route
+                            path="/management/contests/:contestId/settings"
+                            element={
+                              <Navigate
+                                to="/contests/:contestId?tab=settings"
+                                replace
+                              />
+                            }
+                          />
+                          <Route
+                            path="/management/contests/:contestId/problems"
+                            element={
+                              <Navigate
+                                to="/contests/:contestId?tab=manage-problems"
+                                replace
+                              />
+                            }
+                          />
+                          <Route
+                            path="/management/contests/:contestId/participants"
+                            element={
+                              <Navigate
+                                to="/contests/:contestId?tab=participants"
+                                replace
+                              />
+                            }
+                          />
+                          <Route
+                            path="/management/contests/:contestId/logs"
+                            element={
+                              <Navigate
+                                to="/contests/:contestId?tab=logs"
+                                replace
+                              />
+                            }
+                          />
+                        </Route>
+                      </Route>
+
+                      {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}
+                      <Route element={<RequireAdmin />}>
+                        <Route element={<MainLayout />}>
+                          <Route
+                            path="/system/users"
+                            element={<UserManagementPage />}
+                          />
+                          <Route
+                            path="/system/environment"
+                            element={<EnvironmentPage />}
+                          />
+                          <Route
+                            path="/management/announcements"
+                            element={<AnnouncementManagementPage />}
+                          />
+                        </Route>
+                      </Route>
+
+                      {/* Fallback */}
                       <Route
-                        path="/submissions"
-                        element={<SubmissionsPage />}
-                      />
-
-                      <Route path="/contests" element={<ContestListPage />} />
-                      <Route
-                        path="/ranking"
-                        element={<div>Ranking Page (Coming Soon)</div>}
-                      />
-                      {/* Redirect root to dashboard */}
-                      <Route
-                        path="/"
+                        path="*"
                         element={<Navigate to="/dashboard" replace />}
                       />
-                    </Route>
-
-                    {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
-                    <Route path="/problems/:id" element={<ProblemLayout />}>
-                      <Route index element={<ProblemDetail />} />
-                    </Route>
-
-                    {/* Contest Routes - Outside MainLayout with Custom Header */}
-                    <Route
-                      path="/contests/:contestId"
-                      element={<ContestLayout />}
-                    >
-                      <Route index element={<ContestDashboard />} />
-                      {/* Legacy route redirects to new query param structure */}
-                      <Route
-                        path="problems"
-                        element={<Navigate to="../?tab=problems" replace />}
-                      />
-                      <Route
-                        path="submissions"
-                        element={<Navigate to="../?tab=submissions" replace />}
-                      />
-                      <Route
-                        path="standings"
-                        element={<Navigate to="../?tab=standings" replace />}
-                      />
-                      <Route
-                        path="clarifications"
-                        element={
-                          <Navigate to="../?tab=clarifications" replace />
-                        }
-                      />
-
-                      {/* Problem Solving Page */}
-                      <Route
-                        path="solve/:problemId"
-                        element={<ContestProblemPage />}
-                      />
-                    </Route>
-                  </Route>
-
-                  {/* Teacher/Admin Routes */}
-                  <Route element={<RequireTeacherOrAdmin />}>
-                    <Route element={<MainLayout />}>
-                      <Route
-                        path="/management/problems"
-                        element={<ProblemManagementPage />}
-                      />
-                      <Route
-                        path="/management/problems/new"
-                        element={<ProblemFormPage />}
-                      />
-                      <Route
-                        path="/management/problems/:id/edit"
-                        element={<ProblemFormPage />}
-                      />
-
-                      {/* Teacher Contest Management - Redirect to unified view */}
-                      <Route
-                        path="/teacher/contests"
-                        element={<Navigate to="/contests" replace />}
-                      />
-                      <Route
-                        path="/contests/new"
-                        element={<ContestCreatePage />}
-                      />
-                      <Route
-                        path="/teacher/contests/new"
-                        element={<Navigate to="/contests/new" replace />}
-                      />
-                      <Route
-                        path="/teacher/contests/:id/edit"
-                        element={
-                          <Navigate to="/contests/:id?tab=settings" replace />
-                        }
-                      />
-
-                      {/* Redirect old management paths to unified contest view */}
-                      <Route
-                        path="/management/contests/:contestId"
-                        element={
-                          <Navigate
-                            to="/contests/:contestId?tab=settings"
-                            replace
-                          />
-                        }
-                      />
-                      <Route
-                        path="/management/contests/:contestId/settings"
-                        element={
-                          <Navigate
-                            to="/contests/:contestId?tab=settings"
-                            replace
-                          />
-                        }
-                      />
-                      <Route
-                        path="/management/contests/:contestId/problems"
-                        element={
-                          <Navigate
-                            to="/contests/:contestId?tab=manage-problems"
-                            replace
-                          />
-                        }
-                      />
-                      <Route
-                        path="/management/contests/:contestId/participants"
-                        element={
-                          <Navigate
-                            to="/contests/:contestId?tab=participants"
-                            replace
-                          />
-                        }
-                      />
-                      <Route
-                        path="/management/contests/:contestId/logs"
-                        element={
-                          <Navigate
-                            to="/contests/:contestId?tab=logs"
-                            replace
-                          />
-                        }
-                      />
-                    </Route>
-                  </Route>
-
-                  {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}
-                  <Route element={<RequireAdmin />}>
-                    <Route element={<MainLayout />}>
-                      <Route
-                        path="/system/users"
-                        element={<UserManagementPage />}
-                      />
-                      <Route
-                        path="/system/environment"
-                        element={<EnvironmentPage />}
-                      />
-                      <Route
-                        path="/management/announcements"
-                        element={<AnnouncementManagementPage />}
-                      />
-                    </Route>
-                  </Route>
-
-                  {/* Fallback */}
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </BrowserRouter>
-            </AuthProvider>
-          </ThemeProvider>
-        </ContentLanguageProvider>
-      </QueryClientProvider>
+                    </Routes>
+                  </BrowserRouter>
+                </AuthProvider>
+              </ThemeProvider>
+            </ContentLanguageProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </I18nextProvider>
     </ErrorBoundary>
   );
 }

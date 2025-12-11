@@ -1,15 +1,13 @@
-import { useState } from 'react';
-import { 
-  Modal, 
-  RadioButton, 
-  RadioButtonGroup, 
+import { useState } from "react";
+import {
+  Modal,
+  RadioButton,
+  RadioButtonGroup,
   Dropdown,
-  // Button,
-  InlineLoading
-} from '@carbon/react';
-// import { Download } from '@carbon/icons-react';
-import { downloadContestFile } from '@/services/contest';
-// import { useToast } from '@/ui/components/common/Toast/useToast';
+  InlineLoading,
+} from "@carbon/react";
+import { useTranslation } from "react-i18next";
+import { downloadContestFile } from "@/services/contest";
 
 interface ContestDownloadModalProps {
   contestId: string;
@@ -23,61 +21,67 @@ interface ContestDownloadModalProps {
  */
 const sanitizeFilename = (filename: string): string => {
   // Remove or replace invalid characters
-  const sanitized = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  const sanitized = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
   // Remove leading/trailing dots and spaces
-  const trimmed = sanitized.trim().replace(/^[\s.]+|[\s.]+$/g, '');
+  const trimmed = sanitized.trim().replace(/^[\s.]+|[\s.]+$/g, "");
   // Limit length
   const limited = trimmed.length > 200 ? trimmed.substring(0, 200) : trimmed;
   // Ensure not empty
-  return limited || 'contest';
+  return limited || "contest";
 };
 
-export const ContestDownloadModal = ({ 
-  contestId, 
+export const ContestDownloadModal = ({
+  contestId,
   contestName,
-  open, 
-  onClose
+  open,
+  onClose,
 }: ContestDownloadModalProps) => {
-  const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
-  const [language, setLanguage] = useState<string>('zh-TW');
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
+  const [format, setFormat] = useState<"pdf" | "markdown">("pdf");
+  const [language, setLanguage] = useState<string>("zh-TW");
   const [loading, setLoading] = useState(false);
-  // const { showToast } = useToast();
 
   const languageOptions = [
-    { id: 'zh-TW', label: '中文 (繁體)' },
-    { id: 'en', label: 'English' }
+    { id: "zh-TW", label: "中文 (繁體)" },
+    { id: "en", label: "English" },
   ];
 
   const handleDownload = async () => {
-    console.log('Download requested with format:', format, 'language:', language);
+    console.log(
+      "Download requested with format:",
+      format,
+      "language:",
+      language
+    );
     setLoading(true);
     try {
       const blob = await downloadContestFile(contestId, format, language);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      
-      const extension = format === 'pdf' ? 'pdf' : 'md';
+
+      const extension = format === "pdf" ? "pdf" : "md";
       const safeName = sanitizeFilename(contestName);
       const filename = `contest_${contestId}_${safeName}.${extension}`;
-      link.setAttribute('download', filename);
-      
+      link.setAttribute("download", filename);
+
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       // showToast({
       //   kind: 'success',
       //   title: 'Download successful',
       //   subtitle: `Contest file downloaded as ${format.toUpperCase()}`
       // });
-      
+
       onClose();
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error("Download failed:", error);
       // showToast({
       //   kind: 'error',
       //   title: 'Download failed',
@@ -92,43 +96,44 @@ export const ContestDownloadModal = ({
     <Modal
       open={open}
       onRequestClose={onClose}
-      modalHeading="Download Contest File"
-      primaryButtonText="Download"
-      secondaryButtonText="Cancel"
+      modalHeading={t("download.title")}
+      primaryButtonText={t("download.downloadBtn")}
+      secondaryButtonText={tc("button.cancel")}
       onRequestSubmit={handleDownload}
       primaryButtonDisabled={loading}
       size="sm"
     >
-      <div style={{ marginBottom: '1.5rem' }}>
-        <p style={{ marginBottom: '1rem', color: 'var(--cds-text-secondary)' }}>
-          Download the complete contest file including contest information, all problems, and their descriptions as a
-          PDF-ready package.
+      <div style={{ marginBottom: "1.5rem" }}>
+        <p style={{ marginBottom: "1rem", color: "var(--cds-text-secondary)" }}>
+          {t("download.description")}
         </p>
-        
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ 
-            display: 'block', 
-            marginBottom: '0.5rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: 'var(--cds-text-primary)'
-          }}>
-            File Format
+
+        <div style={{ marginBottom: "1.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "var(--cds-text-primary)",
+            }}
+          >
+            {t("download.fileFormat")}
           </label>
           <RadioButtonGroup
             name="format"
             valueSelected={format}
-            onChange={(value) => setFormat(value as 'pdf' | 'markdown')}
+            onChange={(value) => setFormat(value as "pdf" | "markdown")}
             orientation="vertical"
           >
             <RadioButton
               id="format-markdown"
-              labelText="Markdown (.md)"
+              labelText={t("download.markdown")}
               value="markdown"
             />
             <RadioButton
               id="format-pdf"
-              labelText="PDF (.pdf)"
+              labelText={t("download.pdf")}
               value="pdf"
             />
           </RadioButtonGroup>
@@ -137,11 +142,11 @@ export const ContestDownloadModal = ({
         <div>
           <Dropdown
             id="language-selector"
-            titleText="Language"
-            label="Select language"
+            titleText={t("download.language")}
+            label={t("download.selectLanguage")}
             items={languageOptions}
-            itemToString={(item) => (item ? item.label : '')}
-            selectedItem={languageOptions.find(l => l.id === language)}
+            itemToString={(item) => (item ? item.label : "")}
+            selectedItem={languageOptions.find((l) => l.id === language)}
             onChange={({ selectedItem }) => {
               if (selectedItem) {
                 setLanguage(selectedItem.id);
@@ -151,8 +156,8 @@ export const ContestDownloadModal = ({
         </div>
 
         {loading && (
-          <div style={{ marginTop: '1rem' }}>
-            <InlineLoading description="Generating file..." />
+          <div style={{ marginTop: "1rem" }}>
+            <InlineLoading description={t("download.generating")} />
           </div>
         )}
       </div>

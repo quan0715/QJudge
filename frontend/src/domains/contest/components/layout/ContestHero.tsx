@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Modal, TextInput } from "@carbon/react";
 import { PlayFilled, Login, Flag, WarningAltFilled } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { Tag } from "@carbon/react";
@@ -75,6 +76,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onRefreshContest,
   maxWidth,
 }) => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const [progress, setProgress] = useState(0);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -162,22 +165,22 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         {getContestStateLabel(contestState)}
       </Tag>
       <Tag type={contest.visibility === "public" ? "green" : "purple"}>
-        {contest.visibility === "public" ? "公開" : "私有"}
+        {contest.visibility === "public" ? t("public") : t("private")}
       </Tag>
-      {contest.examModeEnabled && <Tag type="red">考試模式</Tag>}
+      {contest.examModeEnabled && <Tag type="red">{t("examMode")}</Tag>}
     </>
   );
 
   const metadata = (
     <>
       <div>
-        <div style={{ marginBottom: "0.25rem" }}>Start Time</div>
+        <div style={{ marginBottom: "0.25rem" }}>{t("startTime")}</div>
         <div style={{ color: "var(--cds-text-primary)", fontWeight: 600 }}>
           {formatDate(startTime)}
         </div>
       </div>
       <div>
-        <div style={{ marginBottom: "0.25rem" }}>End Time</div>
+        <div style={{ marginBottom: "0.25rem" }}>{t("endTime")}</div>
         <div style={{ color: "var(--cds-text-primary)", fontWeight: 600 }}>
           {formatDate(endTime)}
         </div>
@@ -190,14 +193,14 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <DataCard
         icon={UserMultiple}
         value={contest.participantCount || 0}
-        label="Participants"
+        label={t("participants")}
       />
       <DataCard
         icon={Catalog}
         value={contest.problems.length}
-        label="Problems"
+        label={t("problems")}
       />
-      <DataCard icon={Time} value={getDuration()} label="Duration" />
+      <DataCard icon={Time} value={getDuration()} label={t("duration")} />
     </>
   );
 
@@ -206,8 +209,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       value={progress}
       label={
         contest.status === "active"
-          ? `考試進度 · ${Math.round(progress)}%`
-          : "考試未啟用"
+          ? `${t("progress")} · ${Math.round(progress)}%`
+          : t("notActive")
       }
       status={contest.status}
     />
@@ -235,7 +238,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     if (isEnded) {
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
-          考試已結束 (Exam Ended)
+          {t("hero.examEnded")}
         </Button>
       );
     }
@@ -251,7 +254,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       };
       return (
         <Button renderIcon={Login} onClick={handleRegisterClick}>
-          立即報名 (Register)
+          {t("hero.register")}
         </Button>
       );
     }
@@ -266,7 +269,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       return (
         <div style={{ display: "flex", alignItems: "center" }}>
           <Button kind="secondary" disabled renderIcon={Flag}>
-            考試未啟用 (Contest Inactive)
+            {t("hero.contestInactive")}
           </Button>
         </div>
       );
@@ -278,7 +281,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         return (
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <Button kind="secondary" disabled renderIcon={WarningAltFilled}>
-              考試已鎖定 (Exam Locked)
+              {t("hero.examLocked")}
             </Button>
           </div>
         );
@@ -289,7 +292,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
           return (
             <div style={{ display: "flex", alignItems: "center" }}>
               <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-                重新開始考試 (Restart Exam)
+                {t("hero.restartExam")}
               </Button>
             </div>
           );
@@ -297,7 +300,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         return (
           <div style={{ display: "flex", alignItems: "center" }}>
             <Button kind="secondary" disabled renderIcon={Flag}>
-              已交卷 (Finished)
+              {t("hero.finished")}
             </Button>
           </div>
         );
@@ -306,7 +309,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         return (
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-              繼續考試 (Resume Exam)
+              {t("hero.resumeExam")}
             </Button>
           </div>
         );
@@ -321,12 +324,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
                 renderIcon={Flag}
                 onClick={handleEndClick}
               >
-                結束考試 (Submit Exam)
+                {t("hero.submitExam")}
               </Button>
             )}
             {!onEndExam && (
               <Button kind="secondary" disabled>
-                進行中 (In Progress)
+                {t("hero.inProgress")}
               </Button>
             )}
           </div>
@@ -339,7 +342,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         if (contestNotStartedYet) {
           return (
             <Button kind="secondary" disabled renderIcon={PlayFilled}>
-              尚未開始 (Not Yet Started)
+              {t("hero.notYetStarted")}
             </Button>
           );
         }
@@ -347,7 +350,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         return (
           <div style={{ display: "flex", gap: "1rem" }}>
             <Button renderIcon={PlayFilled} onClick={handleStartClick}>
-              開始考試 (Start Exam)
+              {t("hero.startExam")}
             </Button>
           </div>
         );
@@ -375,9 +378,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       {/* Start Exam Confirmation Modal */}
       <Modal
         open={showStartConfirm}
-        modalHeading="開始考試確認"
-        primaryButtonText="確認開始"
-        secondaryButtonText="取消"
+        modalHeading={t("hero.startExamConfirm")}
+        primaryButtonText={t("hero.confirmStart")}
+        secondaryButtonText={tc("button.cancel")}
         onRequestSubmit={() => {
           setShowStartConfirm(false);
           onStartExam?.();
@@ -387,7 +390,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <p style={{ fontSize: "1rem", fontWeight: "bold" }}>
-            本場考試已啟用防作弊模式，請仔細閱讀以下規則：
+            {t("hero.antiCheatEnabled")}
           </p>
           <ul
             style={{
@@ -396,25 +399,22 @@ const ContestHero: React.FC<ContestHeroProps> = ({
               lineHeight: "1.6",
             }}
           >
+            <li>{t("hero.keepFullscreen")}</li>
+            <li>{t("hero.noSwitchTabs")}</li>
             <li>
-              考試期間請保持<strong>全螢幕模式</strong>。
-            </li>
-            <li>禁止切換分頁或視窗，違規將被記錄。</li>
-            <li>
-              若違規次數超過 <strong>{contest.maxCheatWarnings}</strong>{" "}
-              次，系統將自動鎖定您的考試權限。
+              {t("hero.maxWarnings", { count: contest.maxCheatWarnings })}
             </li>
           </ul>
-          <p>點擊「確認開始」後將進入全螢幕模式。</p>
+          <p>{t("hero.enterFullscreenOnStart")}</p>
         </div>
       </Modal>
 
       {/* End Exam Confirmation Modal */}
       <Modal
         open={showEndConfirm}
-        modalHeading="確認交卷"
-        primaryButtonText="確認交卷"
-        secondaryButtonText="取消"
+        modalHeading={t("hero.confirmSubmit")}
+        primaryButtonText={t("hero.confirmSubmit")}
+        secondaryButtonText={tc("button.cancel")}
         onRequestSubmit={() => {
           setShowEndConfirm(false);
           onEndExam?.();
@@ -424,21 +424,20 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <p style={{ fontSize: "1rem", fontWeight: "bold", color: "#da1e28" }}>
-            確定要結束考試並交卷嗎？
+            {t("hero.confirmSubmitQuestion")}
           </p>
-          <p>
-            交卷後將<strong>無法再進行作答</strong>
-            ，且無法撤銷此操作。請確認您已完成所有題目。
-          </p>
+          <p>{t("hero.noMoreAnswer")}</p>
         </div>
       </Modal>
 
       {/* Update Nickname Modal */}
       <Modal
         open={showUpdateNicknameModal}
-        modalHeading="修改匿名暱稱"
-        primaryButtonText={isUpdatingNickname ? "更新中..." : "確認修改"}
-        secondaryButtonText="取消"
+        modalHeading={t("hero.updateNickname")}
+        primaryButtonText={
+          isUpdatingNickname ? t("hero.updating") : t("hero.confirmUpdate")
+        }
+        secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setShowUpdateNicknameModal(false)}
         onRequestSubmit={async () => {
           if (!contest) return;
@@ -454,7 +453,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             }
           } catch (error: any) {
             console.error("Failed to update nickname", error);
-            showError(error.message || "修改失敗，請稍後再試");
+            showError(error.message || t("hero.updateFailed"));
           } finally {
             setIsUpdatingNickname(false);
           }
@@ -462,13 +461,11 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         primaryButtonDisabled={isUpdatingNickname}
       >
         <div style={{ marginBottom: "1rem" }}>
-          <p style={{ marginBottom: "1rem" }}>
-            您可以隨時修改您在積分榜上顯示的暱稱。
-          </p>
+          <p style={{ marginBottom: "1rem" }}>{t("hero.nicknameHint")}</p>
           <TextInput
             id="update-nickname"
-            labelText="暱稱 (選填)"
-            placeholder="請輸入新的暱稱"
+            labelText={t("hero.nicknameLabel")}
+            placeholder={t("hero.nicknamePlaceholder")}
             value={newNickname}
             onChange={(e: any) => setNewNickname(e.target.value)}
           />
@@ -478,9 +475,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       {/* Registration Modal */}
       <Modal
         open={showRegisterModal}
-        modalHeading="競賽報名"
-        primaryButtonText="確認報名"
-        secondaryButtonText="取消"
+        modalHeading={t("hero.contestRegister")}
+        primaryButtonText={t("hero.confirmRegister")}
+        secondaryButtonText={tc("button.cancel")}
         onRequestSubmit={() => {
           setShowRegisterModal(false);
           onJoin?.({
@@ -505,13 +502,13 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             {contest.visibility === "private" && (
               <div>
                 <p style={{ marginBottom: "0.5rem" }}>
-                  此競賽為私有競賽，請輸入加入密碼。
+                  {t("hero.privateContestHint")}
                 </p>
                 <TextInput
                   id="password"
-                  labelText="密碼 (Password)"
+                  labelText={t("hero.passwordLabel")}
                   type="password"
-                  placeholder="請輸入競賽密碼"
+                  placeholder={t("hero.passwordPlaceholder")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -521,13 +518,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             {contest.anonymousModeEnabled && (
               <div>
                 <p style={{ marginBottom: "0.5rem" }}>
-                  本競賽已啟用<strong>匿名模式</strong>，您可以設定一個暱稱。
-                  排行榜和提交列表將顯示您的暱稱而非真實帳號。
+                  {t("hero.anonymousModeHint")}
                 </p>
                 <TextInput
                   id="nickname"
-                  labelText="暱稱 (Nickname)"
-                  placeholder="留空則使用預設帳號名稱"
+                  labelText={t("hero.nicknameOptional")}
+                  placeholder={t("hero.leaveBlankForDefault")}
                   value={registerNickname}
                   onChange={(e: any) => setRegisterNickname(e.target.value)}
                   maxLength={50}
@@ -539,7 +535,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
                     marginTop: "0.5rem",
                   }}
                 >
-                  您可以在報名後隨時修改暱稱。
+                  {t("hero.canChangeNicknameLater")}
                 </p>
               </div>
             )}
@@ -554,7 +550,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       {/* Error Modal */}
       <Modal
         open={errorModalOpen}
-        modalHeading="錯誤"
+        modalHeading={tc("message.error")}
         passiveModal
         onRequestClose={() => setErrorModalOpen(false)}
       >

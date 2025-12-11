@@ -15,7 +15,11 @@ services:
     networks:
       - oj_network_dev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,7 +71,7 @@ services:
       args:
         DJANGO_ENV: development
     container_name: oj_celery_dev
-    command: celery -A config.celery worker --loglevel=info
+    command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
