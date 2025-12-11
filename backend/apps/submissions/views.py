@@ -13,7 +13,7 @@ from .serializers import (
     SubmissionDetailSerializer,
     CreateSubmissionSerializer,
 )
-from .tasks import judge_submission
+from .tasks import judge_submission, judge_contest_submission
 
 
 class SubmissionViewSet(viewsets.ModelViewSet):
@@ -253,5 +253,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         )
         
         # Trigger async judging task after transaction commits
+        # Use high_priority queue for contest submissions
         from django.db import transaction
-        transaction.on_commit(lambda: judge_submission.delay(submission.id))
+        if source_type == 'contest':
+            transaction.on_commit(lambda: judge_contest_submission.delay(submission.id))
+        else:
+            transaction.on_commit(lambda: judge_submission.delay(submission.id))

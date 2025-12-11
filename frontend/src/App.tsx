@@ -20,6 +20,7 @@ import EnvironmentPage from "@/domains/admin/pages/EnvironmentPage";
 import ProblemManagementPage from "@/domains/admin/pages/ProblemManagementPage";
 import ProblemFormPage from "@/domains/admin/pages/ProblemFormPage";
 import ContestCreatePage from "@/domains/contest/pages/ContestCreatePage";
+import ErrorBoundary from "@/ui/components/ErrorBoundary";
 import {
   RequireAuth,
   RequireGuest,
@@ -47,11 +48,12 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
               {/* Guest Routes (Login/Register) */}
               <Route element={<RequireGuest />}>
                 <Route element={<AuthLayout />}>
@@ -224,6 +226,7 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

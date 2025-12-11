@@ -1,0 +1,138 @@
+name: Frontend E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-e2e.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_oj
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements/dev.txt
+
+      - name: Install Frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Install Playwright Browsers
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Build Judge Docker Image
+        run: |
+          docker build -t oj-judge:latest \
+            -f backend/judge/Dockerfile.judge \
+            backend/judge
+
+      - name: Setup Backend Database
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          SECRET_KEY: test-secret-key-for-ci
+        run: |
+          cd backend
+          python manage.py migrate --noinput
+          python manage.py seed_e2e_data
+
+      - name: Start Backend Server
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          SECRET_KEY: test-secret-key-for-ci
+          JUDGE_ENGINE_ENABLED: 'true'
+          DOCKER_IMAGE_JUDGE: oj-judge:latest
+        run: |
+          cd backend
+          python manage.py runserver 0.0.0.0:8000 &
+          # Wait for server to be ready
+          sleep 10
+          curl -f http://localhost:8000/api/v1/health/ || echo "Health check endpoint not available, continuing..."
+
+      - name: Start Frontend Dev Server
+        run: |
+          cd frontend
+          npm run dev &
+          # Wait for frontend to be ready
+          sleep 15
+
+      - name: Run Playwright E2E Tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:5173
+          API_BASE_URL: http://localhost:8000
+        run: |
+          cd frontend
+          npx playwright test --reporter=html
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload Test Screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: frontend/test-results/
+          retention-days: 7

@@ -67,14 +67,14 @@ services:
     networks:
       - oj_network
 
-  # Celery Worker
-  celery:
+  # Celery Worker - High Priority (Contest submissions)
+  celery-high:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: oj_celery
+    container_name: oj_celery_high
     restart: always
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info -Q high_priority,default --concurrency=2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - judge_tmp:/judge_tmp
@@ -92,6 +92,42 @@ services:
         condition: service_started
     networks:
       - oj_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Celery Worker - Default (Practice submissions)
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_celery
+    restart: always
+    command: celery -A config worker -l info -Q default --concurrency=2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
+    env_file:
+      - .env
+    environment:
+      - JUDGE_TMP_DIR=/judge_tmp
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - oj_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
 
   # Celery Beat (Scheduler for periodic tasks)
   celery-beat:

@@ -1,7 +1,12 @@
+| col1 | col2 | col3 |
+| ---- | ---- | ---- |
+|      |      |      |
+|      |      |      |
+
 # QJudge 系統架構文件
 
-> **文件版本**: 1.0  
-> **最後更新**: 2025-12-10  
+> **文件版本**: 1.0
+> **最後更新**: 2025-12-10
 > **維護者**: NYCU 開發團隊
 
 ## 目錄
@@ -64,34 +69,34 @@ graph TB
         A --> C[Carbon Design System]
         A --> D[Monaco Editor]
     end
-    
+  
     subgraph "反向代理層"
         E[Nginx / Cloudflare Tunnel]
     end
-    
+  
     subgraph "應用層"
         F[Django REST API]
         F --> G[DRF Spectacular]
         F --> H[JWT Authentication]
     end
-    
+  
     subgraph "任務佇列層"
         I[Celery Workers]
         I --> J[Celery Beat]
         I --> K[Redis Broker]
     end
-    
+  
     subgraph "評測層"
         L[Judge Engine]
         L --> M[Docker Runner]
         M --> N[oj-judge:latest Image]
     end
-    
+  
     subgraph "資料層"
         O[(PostgreSQL)]
         P[(Redis Cache)]
     end
-    
+  
     A --> E
     E --> F
     F --> O
@@ -105,50 +110,50 @@ graph TB
 
 #### 前端技術
 
-| 技術 | 版本 | 用途 |
-|------|------|------|
-| **React** | 19.2.0 | 使用者介面框架 |
-| **TypeScript** | 5.9.3 | 型別安全 |
-| **Vite** | 7.2.4 | 建置工具 |
-| **Carbon Design System** | 1.96.0 | IBM 開源設計系統 |
-| **Monaco Editor** | 4.7.0 | 線上程式碼編輯器（VS Code 核心）|
-| **React Router** | 7.9.6 | 路由管理 |
-| **TanStack Query** | 5.90.12 | 資料獲取與快取 |
-| **React Markdown** | 10.1.0 | Markdown 渲染 |
-| **Playwright** | 1.57.0 | E2E 測試 |
+| 技術                           | 版本    | 用途                             |
+| ------------------------------ | ------- | -------------------------------- |
+| **React**                | 19.2.0  | 使用者介面框架                   |
+| **TypeScript**           | 5.9.3   | 型別安全                         |
+| **Vite**                 | 7.2.4   | 建置工具                         |
+| **Carbon Design System** | 1.96.0  | IBM 開源設計系統                 |
+| **Monaco Editor**        | 4.7.0   | 線上程式碼編輯器（VS Code 核心） |
+| **React Router**         | 7.9.6   | 路由管理                         |
+| **TanStack Query**       | 5.90.12 | 資料獲取與快取                   |
+| **React Markdown**       | 10.1.0  | Markdown 渲染                    |
+| **Playwright**           | 1.57.0  | E2E 測試                         |
 
 #### 後端技術
 
-| 技術 | 版本 | 用途 |
-|------|------|------|
-| **Django** | 4.2.x | Web 框架 |
-| **Django REST Framework** | 3.14.x | RESTful API |
-| **PostgreSQL** | 15 | 關聯式資料庫 |
-| **Redis** | 7 | 快取與任務佇列 |
-| **Celery** | 5.3.x | 分散式任務佇列 |
-| **Docker** | Latest | 容器化部署與程式碼沙箱 |
-| **Gunicorn** | 21.2.x | WSGI Server |
-| **JWT** | - | 無狀態身份驗證 |
-| **pytest** | 7.4.x | 單元測試 |
+| 技術                            | 版本   | 用途                   |
+| ------------------------------- | ------ | ---------------------- |
+| **Django**                | 4.2.x  | Web 框架               |
+| **Django REST Framework** | 3.14.x | RESTful API            |
+| **PostgreSQL**            | 15     | 關聯式資料庫           |
+| **Redis**                 | 7      | 快取與任務佇列         |
+| **Celery**                | 5.3.x  | 分散式任務佇列         |
+| **Docker**                | Latest | 容器化部署與程式碼沙箱 |
+| **Gunicorn**              | 21.2.x | WSGI Server            |
+| **JWT**                   | -      | 無狀態身份驗證         |
+| **pytest**                | 7.4.x  | 單元測試               |
 
 #### 評測系統
 
-| 技術 | 版本 | 用途 |
-|------|------|------|
-| **Docker Engine** | Latest | 隔離執行環境 |
-| **GCC** | 11.x | C++ 編譯器 |
-| **Python** | 3.11 | Python 直譯器 |
-| **OpenJDK** | 17 | Java 編譯與執行 |
-| **Seccomp** | - | 系統呼叫過濾 |
+| 技術                    | 版本   | 用途            |
+| ----------------------- | ------ | --------------- |
+| **Docker Engine** | Latest | 隔離執行環境    |
+| **GCC**           | 11.x   | C++ 編譯器      |
+| **Python**        | 3.11   | Python 直譯器   |
+| **OpenJDK**       | 17     | Java 編譯與執行 |
+| **Seccomp**       | -      | 系統呼叫過濾    |
 
 #### 部署技術
 
-| 技術 | 用途 |
-|------|------|
-| **Docker Compose** | 容器編排 |
-| **Cloudflare Tunnel** | 安全的網路連接 |
-| **GitHub Actions** | CI/CD 自動化 |
-| **Nginx** | 反向代理與靜態檔案服務 |
+| 技術                        | 用途                   |
+| --------------------------- | ---------------------- |
+| **Docker Compose**    | 容器編排               |
+| **Cloudflare Tunnel** | 安全的網路連接         |
+| **GitHub Actions**    | CI/CD 自動化           |
+| **Nginx**             | 反向代理與靜態檔案服務 |
 
 ---
 
@@ -201,6 +206,7 @@ backend/
 - **管理指令**: 資料同步、遷移等
 
 **主要檔案**:
+
 - `db_router.py`: 資料庫路由器
 - `db_middleware.py`: 資料庫切換中介層
 - `db_views.py`: 資料庫管理 API
@@ -211,6 +217,7 @@ backend/
 **職責**: 使用者認證與權限管理
 
 **功能**:
+
 - 📧 Email/密碼註冊登入
 - 🎓 NYCU OAuth 整合
 - 🔑 JWT Token 管理
@@ -219,6 +226,7 @@ backend/
 - 👥 角色管理（Admin/Teacher/Student）
 
 **API 端點**:
+
 ```
 POST   /api/v1/auth/email/register      # 註冊
 POST   /api/v1/auth/email/login         # 登入
@@ -233,6 +241,7 @@ PATCH  /api/v1/auth/{id}/role           # 更新角色（Admin）
 ```
 
 **資料模型**:
+
 - `User`: 使用者基礎資料（擴展 AbstractUser）
 - `UserProfile`: 使用者擴展資料（統計、偏好）
 
@@ -241,6 +250,7 @@ PATCH  /api/v1/auth/{id}/role           # 更新角色（Admin）
 **職責**: 題目管理與 CRUD 操作
 
 **功能**:
+
 - 📝 題目 CRUD 操作
 - 🌐 多語言題目描述
 - 📤 YAML 格式批量導入
@@ -249,6 +259,7 @@ PATCH  /api/v1/auth/{id}/role           # 更新角色（Admin）
 - 🔒 關鍵字限制（禁用/必須關鍵字）
 
 **API 端點**:
+
 ```
 GET    /api/v1/problems/                # 題目列表
 POST   /api/v1/problems/                # 建立題目（Teacher+）
@@ -260,6 +271,7 @@ POST   /api/v1/problems/{id}/test/      # 測試執行
 ```
 
 **資料模型**:
+
 - `Problem`: 題目核心資料
 - `ProblemTranslation`: 多語言翻譯
 - `LanguageConfig`: 語言特定設定
@@ -271,6 +283,7 @@ POST   /api/v1/problems/{id}/test/      # 測試執行
 **職責**: 程式碼提交與評測
 
 **功能**:
+
 - 📤 程式碼提交
 - ⚖️ 評測狀態管理
 - 📊 提交歷史
@@ -278,6 +291,7 @@ POST   /api/v1/problems/{id}/test/      # 測試執行
 - 🧪 自訂測資測試
 
 **API 端點**:
+
 ```
 GET    /api/v1/submissions/             # 提交列表
 POST   /api/v1/submissions/             # 提交程式碼
@@ -286,11 +300,13 @@ GET    /api/v1/submissions/{id}/results/ # 評測結果詳情
 ```
 
 **資料模型**:
+
 - `Submission`: 提交記錄
 - `SubmissionResult`: 測試案例結果
 - `ScreenEvent`: 螢幕監控事件（考試模式）
 
 **評測狀態**:
+
 ```
 pending   → judging → AC/WA/TLE/MLE/RE/CE/KR/SE
 ```
@@ -309,6 +325,7 @@ pending   → judging → AC/WA/TLE/MLE/RE/CE/KR/SE
 **職責**: 競賽管理與考試模式
 
 **功能**:
+
 - 🏆 競賽建立與管理
 - 👥 參賽者管理
 - 📊 即時排行榜
@@ -320,6 +337,7 @@ pending   → judging → AC/WA/TLE/MLE/RE/CE/KR/SE
 - 👨‍🏫 多管理員支援
 
 **API 端點**:
+
 ```
 GET    /api/v1/contests/                # 競賽列表
 POST   /api/v1/contests/                # 建立競賽（Teacher+）
@@ -334,6 +352,7 @@ GET    /api/v1/contests/{id}/clarifications/ # Clarification 列表
 ```
 
 **資料模型**:
+
 - `Contest`: 競賽基礎資料
 - `ContestProblem`: 競賽題目（多對多關聯）
 - `ContestParticipant`: 參賽者（註冊記錄）
@@ -343,11 +362,13 @@ GET    /api/v1/contests/{id}/clarifications/ # Clarification 列表
 - `ContestActivity`: 活動日誌
 
 **競賽狀態**:
+
 ```
 inactive → active → archived
 ```
 
 **參賽者考試狀態**:
+
 ```
 not_started → in_progress → paused/locked/submitted
 ```
@@ -357,6 +378,7 @@ not_started → in_progress → paused/locked/submitted
 **職責**: 程式碼編譯與執行
 
 **架構**:
+
 ```
 JudgeFactory
     ↓
@@ -369,12 +391,14 @@ BaseJudge (抽象基類)
 ```
 
 **主要檔案**:
+
 - `judge_factory.py`: Judge 工廠模式
 - `base_judge.py`: 抽象基類
 - `docker_runner.py`: Docker 執行器（C++ 實作）
 - `python_judge.py`: Python 實作
 
 **評測流程**:
+
 1. 接收 Celery 任務
 2. 根據語言選擇 Judge
 3. 在 Docker 容器中執行
@@ -438,6 +462,7 @@ frontend/
 **職責**: 使用者認證與授權
 
 **元件**:
+
 - `AuthContext.tsx`: 認證狀態管理
 - `LoginPage.tsx`: 登入頁面
 - `RegisterPage.tsx`: 註冊頁面
@@ -445,6 +470,7 @@ frontend/
 - `RouteGuards.tsx`: 路由守衛
 
 **路由守衛**:
+
 - `RequireAuth`: 需要登入
 - `RequireGuest`: 需要未登入
 - `RequireAdmin`: 需要 Admin 角色
@@ -455,6 +481,7 @@ frontend/
 **職責**: 題目瀏覽與解題
 
 **元件**:
+
 - `ProblemList.tsx`: 題目列表
 - `ProblemDetail.tsx`: 題目詳情
 - `ProblemSolver.tsx`: 解題介面
@@ -466,6 +493,7 @@ frontend/
 **職責**: 競賽參與與管理
 
 **元件**:
+
 - `ContestListPage.tsx`: 競賽列表
 - `ContestDashboard.tsx`: 競賽儀表板（統一入口）
 - `ContestProblemPage.tsx`: 競賽解題
@@ -474,6 +502,7 @@ frontend/
 - `ExamModeWrapper.tsx`: 考試模式監控
 
 **考試模式特色**:
+
 - 全螢幕鎖定
 - 視窗失焦檢測
 - 複製貼上監控
@@ -485,6 +514,7 @@ frontend/
 **職責**: 提交記錄查詢
 
 **元件**:
+
 - `SubmissionsPage.tsx`: 提交列表
 - `SubmissionTable.tsx`: 提交表格
 - `SubmissionDetailModal.tsx`: 提交詳情
@@ -580,12 +610,14 @@ const { mutate: submitCode } = useMutation({
 ### 5.1 資料庫選擇
 
 **Primary**: PostgreSQL 15
+
 - ✅ 關聯式資料完整性
 - ✅ 豐富的索引支援
 - ✅ JSONB 欄位支援
 - ✅ 成熟的生態系統
 
 **Cache**: Redis 7
+
 - ✅ Celery Broker
 - ✅ 快取層
 - ✅ 任務結果儲存
@@ -971,21 +1003,21 @@ CREATE INDEX idx_exam_events_created ON exam_events(created_at);
 ```python
 container = docker_client.containers.run(
     image='oj-judge:latest',
-    
+  
     # Memory
     mem_limit=f"{memory_limit_mb}m",
     memswap_limit=f"{memory_limit_mb}m",  # No swap
-    
+  
     # CPU
     cpu_period=100000,
     cpu_quota=100000,  # 1 core
-    
+  
     # Process
     pids_limit=64,  # Anti-fork bomb
-    
+  
     # Network
     network_disabled=True,
-    
+  
     # Tmpfs (executable)
     tmpfs={'/tmp': 'size=100M,mode=1777,exec'},
 )
@@ -1047,18 +1079,19 @@ WORKDIR /tmp
 ```
 
 **Build**:
+
 ```bash
 docker build -t oj-judge:latest -f backend/judge/Dockerfile.judge backend/judge
 ```
 
 ### 6.5 支援語言
 
-| 語言 | 版本 | 編譯器/直譯器 | 前端支援 |
-|------|------|--------------|---------|
-| **C++** | C++20 | g++ 11.x | ✅ 完整支援 |
-| **Python** | 3.11 | CPython | ✅ 後端支援，前端待整合 |
-| **Java** | 17 | OpenJDK | ⚠️ 後端支援，前端待整合 |
-| **C** | C11 | gcc | ⚠️ 後端支援，前端待整合 |
+| 語言             | 版本  | 編譯器/直譯器 | 前端支援                  |
+| ---------------- | ----- | ------------- | ------------------------- |
+| **C++**    | C++20 | g++ 11.x      | ✅ 完整支援               |
+| **Python** | 3.11  | CPython       | ✅ 後端支援，前端待整合   |
+| **Java**   | 17    | OpenJDK       | ⚠️ 後端支援，前端待整合 |
+| **C**      | C11   | gcc           | ⚠️ 後端支援，前端待整合 |
 
 **註**: 前端主要針對 C++ 優化，其他語言後端已實作但前端 UI 需進一步整合。
 
@@ -1142,6 +1175,7 @@ docker-compose -f docker-compose.dev.yml up
 ```
 
 **特色**:
+
 - 🔥 Hot reload (前後端)
 - 🐛 Debug mode
 - 📊 Browsable API
@@ -1158,6 +1192,7 @@ npm run test:e2e
 ```
 
 **特色**:
+
 - 🧪 獨立測試資料庫
 - 🎭 Playwright E2E
 - 🔄 Test fixtures
@@ -1169,6 +1204,7 @@ docker-compose up -d
 ```
 
 **特色**:
+
 - 🔒 SSL/TLS (Cloudflare)
 - 🚀 Gunicorn (4 workers)
 - 📈 Health checks
@@ -1225,6 +1261,7 @@ Algorithm: HS256
 ```
 
 **流程**:
+
 ```
 Login → Access Token + Refresh Token
       ↓
@@ -1244,14 +1281,14 @@ Admin    > Teacher   > Student
 
 **權限矩陣**:
 
-| 功能 | Admin | Teacher | Student |
-|------|-------|---------|---------|
-| 建立題目 | ✅ | ✅ | ❌ |
-| 編輯他人題目 | ✅ | ❌ | ❌ |
-| 建立競賽 | ✅ | ✅ | ❌ |
-| 管理使用者 | ✅ | ❌ | ❌ |
-| 參加競賽 | ✅ | ✅ | ✅ |
-| 提交程式碼 | ✅ | ✅ | ✅ |
+| 功能         | Admin | Teacher | Student |
+| ------------ | ----- | ------- | ------- |
+| 建立題目     | ✅    | ✅      | ❌      |
+| 編輯他人題目 | ✅    | ❌      | ❌      |
+| 建立競賽     | ✅    | ✅      | ❌      |
+| 管理使用者   | ✅    | ❌      | ❌      |
+| 參加競賽     | ✅    | ✅      | ✅      |
+| 提交程式碼   | ✅    | ✅      | ✅      |
 
 ### 8.2 程式碼執行安全
 
@@ -1266,6 +1303,7 @@ Admin    > Teacher   > Student
 #### 8.2.2 Seccomp
 
 過濾危險的系統呼叫：
+
 - `reboot`
 - `mount` / `umount`
 - `kexec_load`
@@ -1313,6 +1351,7 @@ CORS_ALLOWED_ORIGINS = [
 #### 8.3.4 CSRF Protection
 
 Django 內建 CSRF middleware
+
 - POST/PUT/PATCH/DELETE 需要 CSRF Token
 - API 使用 JWT，前端不需要額外處理
 
@@ -1341,6 +1380,7 @@ AUTH_PASSWORD_VALIDATORS = [
 #### 8.4.2 後端記錄
 
 所有事件記錄到 `ExamEvent` 表：
+
 ```sql
 exam_events
 ├── contest_id
@@ -1362,6 +1402,7 @@ if participant.violation_count >= contest.max_cheat_warnings:
 #### 8.4.4 教師介入
 
 教師可手動：
+
 - 鎖定學生
 - 解鎖學生
 - 查看違規記錄

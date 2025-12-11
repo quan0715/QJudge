@@ -13,6 +13,7 @@
 **總體評價**: ⭐⭐⭐⭐ (4/5)
 
 **優點**:
+
 - ✅ 完整的功能實作（認證、題目、競賽、評測）
 - ✅ 良好的專案結構（前後端分離、模組化設計）
 - ✅ 完善的測試覆蓋（後端 pytest、前端 Playwright）
@@ -21,6 +22,7 @@
 - ✅ 詳細的中文文件
 
 **需改進**:
+
 - ⚠️ 部分安全性問題需處理
 - ⚠️ 效能優化空間
 - ⚠️ 前端錯誤處理不夠完善
@@ -47,6 +49,7 @@
 ### 1.1 整體架構 ⭐⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ **前後端分離**: React (前端) + Django (後端)
 - ✅ **微服務導向**: 使用 Celery 異步處理評測任務
 - ✅ **容器化**: Docker Compose 編排所有服務
@@ -55,6 +58,7 @@
 - ✅ **OpenAPI 規範**: 使用 drf-spectacular 自動生成 API 文件
 
 **建議**:
+
 - 考慮引入 API Gateway（如 Kong、Traefik）統一管理 API
 - 未來可考慮將評測系統拆分為獨立微服務
 
@@ -75,12 +79,14 @@ apps/
 ```
 
 **優點**:
+
 - ✅ 職責清晰，模組解耦
 - ✅ 使用 Django REST Framework
 - ✅ JWT 認證
 - ✅ 資料庫 Router 實現動態切換
 
 **問題**:
+
 - ⚠️ `apps/core` 有些功能可以進一步拆分
 - ⚠️ 缺少統一的錯誤處理中介層
 
@@ -98,12 +104,14 @@ src/domains/
 ```
 
 **優點**:
+
 - ✅ 清晰的領域劃分
 - ✅ 使用 Carbon Design System（統一 UI）
 - ✅ TanStack Query 管理伺服器狀態
 - ✅ Monaco Editor 整合
 
 **問題**:
+
 - ⚠️ 部分元件過大（如 `ContestLayout.tsx` 超過 600 行）
 - ⚠️ 錯誤處理不夠統一
 - ⚠️ 缺少全域錯誤邊界（Error Boundary）
@@ -115,6 +123,7 @@ src/domains/
 ### 2.1 認證與授權 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ JWT Token 認證
 - ✅ RBAC 角色管理（Admin/Teacher/Student）
 - ✅ 密碼強度驗證（8 字元以上）
@@ -122,11 +131,13 @@ src/domains/
 - ✅ Token 刷新機制
 
 **問題**:
+
 - ⚠️ **缺少 Token 黑名單**: 當使用者登出時，Token 仍然有效（CRITICAL）
 - ⚠️ **缺少速率限制**: API 端點沒有速率限制，容易被暴力破解（HIGH）
 - ⚠️ **Session 超時**: 沒有強制 session 超時機制（MEDIUM）
 
 **建議**:
+
 ```python
 # 1. 實作 Token 黑名單
 # apps/users/models.py
@@ -146,6 +157,7 @@ def login_view(request):
 ### 2.2 程式碼執行安全 ⭐⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ Docker 容器隔離
 - ✅ 網路禁用 (`network_disabled=True`)
 - ✅ CPU/Memory 限制
@@ -155,18 +167,21 @@ def login_view(request):
 - ✅ Tmpfs（可執行）
 
 **測試驗證**:
+
 - ✅ Fork bomb 防護測試通過
 - ✅ 檔案寫入限制測試通過
 - ✅ 網路隔離測試通過
 - ✅ 時間/記憶體限制測試通過
 
 **建議**:
+
 - 考慮加入更嚴格的 Seccomp profile（白名單模式）
 - 定期更新 Judge Docker Image（安全性補丁）
 
 ### 2.3 Web 安全 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ HTTPS（生產環境）
 - ✅ CORS 配置
 - ✅ CSRF 保護
@@ -175,11 +190,13 @@ def login_view(request):
 - ✅ Security Headers（生產環境）
 
 **問題**:
+
 - ⚠️ **開發環境 CORS 允許所有來源**: `CORS_ALLOW_ALL_ORIGINS = True` (LOW)
 - ⚠️ **缺少 Content Security Policy (CSP)**: 可加強 XSS 防護（MEDIUM）
 - ⚠️ **Cloudflare Tunnel Token 明碼**: 建議使用 Secret 管理（HIGH）
 
 **建議**:
+
 ```python
 # config/settings/prod.py
 # 1. 新增 CSP
@@ -196,26 +213,29 @@ TUNNEL_TOKEN = env('TUNNEL_TOKEN')  # 從環境變數讀取
 ### 2.4 資料安全 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 敏感資料加密（密碼）
 - ✅ 資料庫連線使用 SSL（Cloud DB）
 - ✅ 定期備份（Celery Beat 每 6 小時）
 
 **問題**:
+
 - ⚠️ **程式碼明文儲存**: 使用者提交的程式碼沒有加密（LOW）
 - ⚠️ **備份未加密**: 資料庫備份檔案未加密（MEDIUM）
 
 **建議**:
+
 ```python
 # 1. 程式碼加密（可選）
 from cryptography.fernet import Fernet
 
 class Submission(models.Model):
     encrypted_code = models.BinaryField()
-    
+
     def set_code(self, code):
         cipher = Fernet(settings.CODE_ENCRYPTION_KEY)
         self.encrypted_code = cipher.encrypt(code.encode())
-    
+
     def get_code(self):
         cipher = Fernet(settings.CODE_ENCRYPTION_KEY)
         return cipher.decrypt(self.encrypted_code).decode()
@@ -227,16 +247,19 @@ gpg --symmetric --cipher-algo AES256 backup.sql
 ### 2.5 考試模式安全 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 前端監控（視窗失焦、Tab 切換、全螢幕退出）
 - ✅ 後端記錄（ExamEvent 表）
 - ✅ 自動鎖定機制
 - ✅ 違規計數
 
 **問題**:
+
 - ⚠️ **前端監控可繞過**: 使用者可透過瀏覽器開發工具停用監控（CRITICAL）
 - ⚠️ **缺少後端驗證**: 沒有後端定時心跳檢查（HIGH）
 
 **建議**:
+
 ```typescript
 // frontend: 定期發送心跳
 setInterval(() => {
@@ -274,6 +297,7 @@ def check_exam_heartbeat():
 ### 3.1 後端程式碼 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 遵循 PEP 8 規範
 - ✅ 清晰的註解與 Docstring
 - ✅ 合理的函數拆分
@@ -334,6 +358,7 @@ memory_usage_kb = DEFAULT_MEMORY_USAGE_KB
 部分 ViewSet 方法超過 100 行，建議拆分為 Service 層。
 
 **建議**:
+
 ```python
 # apps/contests/services.py
 class ContestService:
@@ -341,7 +366,7 @@ class ContestService:
     def register_participant(contest, user, password, nickname):
         """註冊參賽者"""
         ...
-    
+
     @staticmethod
     def calculate_scoreboard(contest):
         """計算排行榜"""
@@ -353,7 +378,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def register(self, request, pk=None):
         contest = self.get_object()
         result = ContestService.register_participant(
-            contest, request.user, 
+            contest, request.user,
             request.data.get('password'),
             request.data.get('nickname')
         )
@@ -363,6 +388,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 ### 3.2 前端程式碼 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ TypeScript 型別安全
 - ✅ 元件化設計
 - ✅ 使用 Custom Hooks
@@ -390,7 +416,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 ```typescript
 // ❌ 不好的做法
 const fetchData = async () => {
-  const response = await fetch('/api/v1/problems/');
+  const response = await fetch("/api/v1/problems/");
   const data = await response.json();
   setData(data);
 };
@@ -398,15 +424,15 @@ const fetchData = async () => {
 // ✅ 改進
 const fetchData = async () => {
   try {
-    const response = await fetch('/api/v1/problems/');
+    const response = await fetch("/api/v1/problems/");
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     const data = await response.json();
     setData(data);
   } catch (error) {
-    console.error('Failed to fetch problems:', error);
-    toast.error('無法載入題目列表，請重試');
+    console.error("Failed to fetch problems:", error);
+    toast.error("無法載入題目列表，請重試");
   }
 };
 ```
@@ -442,7 +468,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error("Error caught by boundary:", error, errorInfo);
     // 可以發送到錯誤追蹤服務 (Sentry)
   }
 
@@ -452,9 +478,7 @@ class ErrorBoundary extends React.Component {
         <div>
           <h1>Oops! 發生錯誤</h1>
           <p>{this.state.error?.message}</p>
-          <button onClick={() => window.location.reload()}>
-            重新載入
-          </button>
+          <button onClick={() => window.location.reload()}>重新載入</button>
         </div>
       );
     }
@@ -465,33 +489,38 @@ class ErrorBoundary extends React.Component {
 // App.tsx
 <ErrorBoundary>
   <App />
-</ErrorBoundary>
+</ErrorBoundary>;
 ```
 
 ### 3.3 程式碼註解與文件 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 後端有清晰的 Docstring
 - ✅ 複雜邏輯有註解說明
 - ✅ API 有 OpenAPI 規範
 
 **問題**:
+
 - ⚠️ 前端註解較少
 - ⚠️ 部分 TODO 註解未處理
 
 **TODO 清單**:
 
 1. **backend/apps/core/management/commands/seed_e2e_data.py:301**
+
    ```python
    // TODO: Calculate factorial
    ```
 
 2. **backend/apps/users/services.py:96**
+
    ```python
    # TODO: Implement actual email sending
    ```
 
 3. **backend/apps/submissions/management/commands/archive_old_submissions.py:129**
+
    ```python
    # TODO: 如果要實作真正的歸檔，需要：
    ```
@@ -511,6 +540,7 @@ class ErrorBoundary extends React.Component {
 ### 4.1 資料庫效能 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 合理的索引策略
 - ✅ 使用 `select_related` 和 `prefetch_related`
 - ✅ 統計欄位反正規化（避免即時計算）
@@ -538,6 +568,7 @@ submissions = Submission.objects.select_related('user', 'problem').all()
 #### 4.1.2 缺少資料庫連線池監控
 
 **建議**:
+
 ```python
 # config/settings/prod.py
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True  # Django 4.1+
@@ -552,18 +583,21 @@ print(connection.queries_log)  # DEBUG=True 時可用
 **問題**: 隨著提交量增加，`submissions` 表會變得非常大。
 
 **建議**:
+
 1. **分區表** (Partitioning): 按時間分區
+
    ```sql
    -- PostgreSQL 12+ 支援分區
    CREATE TABLE submissions (
        ...
    ) PARTITION BY RANGE (created_at);
-   
+
    CREATE TABLE submissions_2025_12 PARTITION OF submissions
    FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');
    ```
 
 2. **歸檔舊資料**: 將超過 6 個月的提交移到歸檔表
+
    ```python
    # apps/submissions/management/commands/archive_old_submissions.py
    # 已有框架，需完善實作
@@ -574,13 +608,16 @@ print(connection.queries_log)  # DEBUG=True 時可用
 ### 4.2 快取策略 ⭐⭐⭐
 
 **目前實作**:
+
 - ✅ Redis 用於 Celery Broker
 - ✅ TanStack Query 前端快取（1 分鐘）
 
 **問題**:
+
 - ⚠️ **未充分利用 Redis 快取**: 熱門題目、排行榜等應快取（HIGH）
 
 **建議**:
+
 ```python
 # 1. Django Cache Framework
 # config/settings/base.py
@@ -613,15 +650,18 @@ def scoreboard_view(request, contest_id):
 ### 4.3 Celery 效能 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ 異步處理評測任務
 - ✅ 定時任務（Celery Beat）
 - ✅ 任務重試機制
 
 **問題**:
+
 - ⚠️ **Worker 數量未配置**: 預設只有 1 個 worker（MEDIUM）
 - ⚠️ **缺少任務優先權**: 所有任務同等優先權（LOW）
 
 **建議**:
+
 ```yaml
 # docker-compose.yml
 celery:
@@ -647,15 +687,18 @@ def judge_practice_submission(submission_id):
 ### 4.4 前端效能 ⭐⭐⭐⭐
 
 **優點**:
+
 - ✅ Vite 建置（快速）
 - ✅ Code Splitting（按路由）
 - ✅ TanStack Query 快取
 
 **問題**:
+
 - ⚠️ **Monaco Editor bundle 很大**: 影響首次載入（MEDIUM）
 - ⚠️ **缺少圖片 Lazy Loading**: 影響效能（LOW）
 
 **建議**:
+
 ```typescript
 // 1. Monaco Editor 動態載入
 import { lazy, Suspense } from 'react';
@@ -685,6 +728,7 @@ const ProblemCard = React.memo(({ problem }) => {
 **覆蓋率目標**: 80%+
 
 **測試範圍**:
+
 - ✅ Users (認證、角色管理)
 - ✅ Problems (CRUD、權限)
 - ✅ Submissions (評測流程)
@@ -692,6 +736,7 @@ const ProblemCard = React.memo(({ problem }) => {
 - ✅ Judge (Docker 執行、安全性、多語言)
 
 **測試檔案**:
+
 ```
 backend/tests/
 ├── test_users.py
@@ -706,15 +751,18 @@ backend/apps/*/tests/
 **CI/CD**: ✅ GitHub Actions 自動執行
 
 **優點**:
+
 - ✅ 完整的 Judge 測試（包含安全性測試）
 - ✅ 使用 Factory Boy 產生測試資料
 - ✅ 測試資料庫隔離
 
 **問題**:
+
 - ⚠️ **缺少整合測試**: 跨模組的整合測試較少（MEDIUM）
 - ⚠️ **缺少效能測試**: 沒有負載測試（LOW）
 
 **建議**:
+
 ```python
 # tests/integration/test_submission_flow.py
 def test_complete_submission_flow():
@@ -722,17 +770,17 @@ def test_complete_submission_flow():
     # 1. 建立題目
     problem = ProblemFactory()
     TestCaseFactory(problem=problem, input_data="1 2", output_data="3")
-    
+
     # 2. 提交程式碼
     submission = SubmissionFactory(problem=problem, code="...")
-    
+
     # 3. 執行評測
     judge_submission(submission.id)
-    
+
     # 4. 驗證結果
     submission.refresh_from_db()
     assert submission.status == 'AC'
-    
+
     # 5. 驗證統計更新
     problem.refresh_from_db()
     assert problem.submission_count == 1
@@ -744,12 +792,14 @@ def test_complete_submission_flow():
 **測試框架**: Playwright (E2E)
 
 **測試範圍**:
+
 - ✅ 認證流程（登入、註冊）
 - ✅ 題目瀏覽與提交
 - ✅ 競賽參與流程
 - ✅ 考試模式
 
 **測試檔案**:
+
 ```
 frontend/tests/e2e/
 ├── auth.e2e.spec.ts
@@ -761,10 +811,12 @@ frontend/tests/e2e/
 **CI/CD**: ⚠️ 尚未整合到 GitHub Actions
 
 **問題**:
+
 - ⚠️ **缺少單元測試**: 元件、Hooks 沒有單元測試（HIGH）
 - ⚠️ **E2E 測試覆蓋率低**: 只有基本流程（MEDIUM）
 
 **建議**:
+
 ```bash
 # 1. 新增單元測試 (Vitest)
 npm install -D vitest @testing-library/react
@@ -817,6 +869,7 @@ jobs:
 **README.md**: ✅ 完整（專案概述、快速開始、技術棧）
 
 **docs/ 目錄**:
+
 - ✅ `STUDENT_GUIDE.md` - 學生使用指南
 - ✅ `TEACHER_CONTEST_GUIDE.md` - 教師競賽指南
 - ✅ `TEACHER_PROBLEM_GUIDE.md` - 教師題目管理
@@ -825,6 +878,7 @@ jobs:
 - ✅ `E2E_TESTING.md` - E2E 測試指南
 
 **本次新增文件** (2025-12-10):
+
 - ✅ `ARCHITECTURE.md` - 系統架構文件
 - ✅ `API.md` - API 文件
 - ✅ `DATABASE.md` - 資料模型文件
@@ -832,6 +886,7 @@ jobs:
 - ✅ `CODE_REVIEW_REPORT.md` - Code Review 報告
 
 **缺少的文件**:
+
 - ⚠️ `CONTRIBUTING.md` - 貢獻指南（如何提交 PR、程式碼規範）
 - ⚠️ `CHANGELOG.md` - 版本變更記錄
 - ⚠️ `TROUBLESHOOTING.md` - 常見問題排查
@@ -898,7 +953,7 @@ class StandardResponseMixin:
         if message:
             response_data['message'] = message
         return Response(response_data, status=status)
-    
+
     def error_response(self, code, message, details=None, status=400):
         response_data = {
             'success': False,
@@ -935,12 +990,15 @@ export const httpClient = {
       const response = await customFetch(endpoint, init);
       if (!response.ok) {
         const error = await response.json();
-        throw new ApiError(error.error?.message || 'Request failed', response.status);
+        throw new ApiError(
+          error.error?.message || "Request failed",
+          response.status
+        );
       }
       return await response.json();
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('Network error', 0);
+      throw new ApiError("Network error", 0);
     }
   },
   // ... get, post, put, patch, delete
@@ -948,7 +1006,7 @@ export const httpClient = {
 
 // 使用
 try {
-  const data = await httpClient.get('/api/v1/problems/');
+  const data = await httpClient.get("/api/v1/problems/");
 } catch (error) {
   if (error instanceof ApiError) {
     toast.error(error.message);
@@ -965,12 +1023,13 @@ try {
 #### 8.1.1 安全性改進
 
 1. **實作 Token 黑名單** (CRITICAL)
+
    ```python
    # apps/users/models.py
    class BlacklistedToken(models.Model):
        token = models.CharField(max_length=500, unique=True)
        blacklisted_at = models.DateTimeField(auto_now_add=True)
-   
+
    # apps/users/views.py
    class LogoutView(APIView):
        def post(self, request):
@@ -980,12 +1039,14 @@ try {
    ```
 
 2. **新增 API 速率限制** (HIGH)
+
    ```bash
    pip install django-ratelimit
    ```
+
    ```python
    from django_ratelimit.decorators import ratelimit
-   
+
    @ratelimit(key='ip', rate='5/m', method='POST')
    def login_view(request):
        ...
@@ -999,6 +1060,7 @@ try {
 #### 8.1.2 效能改進
 
 1. **實作 Redis 快取** (HIGH)
+
    ```python
    # 快取熱門題目
    # 快取排行榜
@@ -1006,6 +1068,7 @@ try {
    ```
 
 2. **資料庫查詢優化** (HIGH)
+
    - 檢查所有 View 是否使用 `select_related` / `prefetch_related`
    - 新增缺少的索引
    - 分析慢查詢（`pg_stat_statements`）
@@ -1020,11 +1083,13 @@ try {
 #### 8.1.3 測試改進
 
 1. **新增前端單元測試** (HIGH)
+
    ```bash
    npm install -D vitest @testing-library/react
    ```
 
 2. **E2E 測試整合到 CI** (HIGH)
+
    ```yaml
    # .github/workflows/frontend-e2e.yml
    ```
@@ -1039,14 +1104,17 @@ try {
 #### 8.2.1 程式碼品質
 
 1. **拆分大型元件**
+
    - `ContestLayout.tsx` (600+ 行)
    - `ContestDashboard.tsx`
 
 2. **統一錯誤處理**
+
    - 後端：`StandardResponseMixin`
    - 前端：`ErrorBoundary` + 統一 API 錯誤處理
 
 3. **清理 TODO 註解**
+
    - 建立 Issue 追蹤
    - 或標記為 WONTFIX
 
@@ -1067,6 +1135,7 @@ try {
 #### 8.2.3 監控與日誌
 
 1. **整合錯誤追蹤服務** (Sentry)
+
    ```python
    import sentry_sdk
    sentry_sdk.init(dsn="...")
@@ -1089,6 +1158,7 @@ try {
 #### 8.3.2 國際化
 
 1. **前端 i18n**
+
    ```bash
    npm install react-i18next i18next
    ```
@@ -1112,7 +1182,7 @@ try {
 ✅ **安全性高**: Docker 沙箱、安全評測、權限控制完善  
 ✅ **測試覆蓋**: 後端測試覆蓋率高、有 E2E 測試  
 ✅ **文件齊全**: 中文文件完整、新增架構與 API 文件  
-✅ **容器化部署**: Docker Compose 一鍵部署  
+✅ **容器化部署**: Docker Compose 一鍵部署
 
 ### 9.2 需改進
 
@@ -1120,23 +1190,26 @@ try {
 ⚠️ **效能**: Redis 快取、資料庫查詢優化、Celery 擴展  
 ⚠️ **測試**: 前端單元測試、整合測試、E2E CI 整合  
 ⚠️ **程式碼品質**: 拆分大型元件、統一錯誤處理、清理 TODO  
-⚠️ **監控**: 錯誤追蹤、效能監控、日誌聚合  
+⚠️ **監控**: 錯誤追蹤、效能監控、日誌聚合
 
 ### 9.3 建議開發路徑
 
 **Phase 1: 安全性與穩定性**（1-2 週）
+
 1. 實作 Token 黑名單
 2. 新增 API 速率限制
 3. 改進考試模式安全
 4. Redis 快取實作
 
 **Phase 2: 效能優化**（2-3 週）
+
 1. 資料庫查詢優化
 2. Celery Worker 擴展
 3. 前端效能優化
 4. 新增監控與日誌
 
 **Phase 3: 測試與品質**（2-3 週）
+
 1. 前端單元測試
 2. E2E 測試整合到 CI
 3. 拆分大型元件
@@ -1144,6 +1217,7 @@ try {
 5. 清理程式碼
 
 **Phase 4: 功能增強**（長期）
+
 1. 程式碼相似度檢測
 2. 即時排行榜
 3. 國際化
@@ -1158,40 +1232,46 @@ try {
 使用此清單追蹤改進進度：
 
 **安全性**:
-- [ ] 實作 Token 黑名單
-- [ ] 新增 API 速率限制
-- [ ] 考試模式後端心跳檢查
+
+- [x] 實作 Token 黑名單 _(2025-12-11 完成)_
+- [x] 新增 API 速率限制 _(2025-12-11 完成)_
+- [x] 考試模式後端心跳檢查 _(2025-12-11 完成)_
 - [ ] Content Security Policy
 - [ ] 備份加密
 
 **效能**:
-- [ ] Redis 快取（題目、排行榜、統計）
-- [ ] 所有查詢使用 select_related/prefetch_related
-- [ ] Celery Worker 擴展
+
+- [x] Redis 快取（題目、排行榜、統計） _(2025-12-11 完成)_
+- [x] 所有查詢使用 select_related/prefetch_related _(已優化)_
+- [x] Celery Worker 擴展 _(2025-12-11 完成 - 高優先/預設隊列)_
 - [ ] 前端 Monaco Editor 動態載入
 - [ ] 圖片 Lazy Loading
 
 **測試**:
+
 - [ ] 前端單元測試 (Vitest)
-- [ ] E2E 測試整合到 GitHub Actions
+- [x] E2E 測試整合到 GitHub Actions _(2025-12-11 完成)_
 - [ ] 整合測試
 - [ ] 效能測試 (Locust)
 
 **程式碼品質**:
-- [ ] 拆分 ContestLayout.tsx
-- [ ] 統一錯誤處理 (StandardResponseMixin)
-- [ ] 前端 Error Boundary
+
+- [x] 拆分 ContestLayout.tsx _(2025-12-11 完成)_
+- [x] 統一錯誤處理 (StandardResponseMixin) _(2025-12-11 完成)_
+- [x] 前端 Error Boundary _(2025-12-11 完成)_
 - [ ] 清理所有 TODO 註解
 - [ ] 清理未使用的 import
 
 **文件**:
-- [ ] CONTRIBUTING.md
+
+- [x] CONTRIBUTING.md _(2025-12-11 完成)_
 - [ ] CHANGELOG.md
 - [ ] TROUBLESHOOTING.md
-- [ ] SECURITY.md
+- [x] SECURITY.md _(2025-12-11 完成)_
 - [ ] API 使用範例
 
 **監控**:
+
 - [ ] 整合 Sentry
 - [ ] 效能監控 (New Relic / Datadog)
 - [ ] 日誌聚合 (ELK / Loki)
@@ -1199,6 +1279,7 @@ try {
 ### 10.2 聯絡資訊
 
 如有任何問題或建議，請聯絡：
+
 - **GitHub Issues**: [專案 Issues](https://github.com/quan0715/QJudge/issues)
 - **Email**: 專案維護者
 

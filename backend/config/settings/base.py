@@ -24,7 +24,9 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # Token 黑名單支援
     'corsheaders',
+    'django_ratelimit',  # API 速率限制
     
     # Local apps
     'apps.core',
@@ -206,6 +208,26 @@ CSRF_TRUSTED_ORIGINS = [
 # Frontend URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
+# Redis Cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'qjudge',
+        'TIMEOUT': 300,  # 5 minutes default
+    }
+}
+
+# Cache keys constants
+CACHE_KEYS = {
+    'POPULAR_PROBLEMS': 'popular_problems',
+    'CONTEST_STANDINGS': 'contest_standings_{contest_id}',
+    'USER_STATS': 'user_stats_{user_id}',
+}
+
 # Celery settings
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
@@ -223,6 +245,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     'check-auto-unlock-every-30-seconds': {
         'task': 'apps.contests.tasks.check_auto_unlock',
+        'schedule': 30.0,  # Every 30 seconds
+    },
+    'check-heartbeat-timeout-every-30-seconds': {
+        'task': 'apps.contests.tasks.check_heartbeat_timeout',
         'schedule': 30.0,  # Every 30 seconds
     },
     # Database backup task (production only)

@@ -7,10 +7,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django_ratelimit.decorators import ratelimit
 
 from .serializers import (
     UserSerializer,
@@ -28,9 +30,11 @@ User = get_user_model()
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
 class RegisterView(APIView):
     """
     User registration with email/password.
+    Rate limited to 5 requests per minute per IP.
     
     POST /api/v1/auth/email/register
     """
@@ -78,9 +82,11 @@ class RegisterView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
 class LoginView(APIView):
     """
     User login with email/password.
+    Rate limited to 10 requests per minute per IP.
     
     POST /api/v1/auth/email/login
     """
@@ -229,6 +235,44 @@ class TokenRefreshView(APIView):
                     'message': 'Refresh token 無效或已過期'
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutView(APIView):
+    """
+    Logout user by blacklisting their refresh token.
+    This invalidates both access and refresh tokens.
+    
+    POST /api/v1/auth/logout
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh')
+            
+            if refresh_token:
+                # Blacklist the specific refresh token
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            else:
+                # Blacklist all outstanding tokens for this user
+                tokens = OutstandingToken.objects.filter(user=request.user)
+                for token in tokens:
+                    try:
+                        BlacklistedToken.objects.get_or_create(token=token)
+                    except Exception:
+                        pass
+            
+            return Response({
+                'success': True,
+                'message': '登出成功'
+            })
+        except Exception as e:
+            # Even if blacklisting fails, consider logout successful from client perspective
+            return Response({
+                'success': True,
+                'message': '登出成功'
+            })
 
 
 class CurrentUserView(APIView):
