@@ -162,6 +162,7 @@
   },
   "submissions": {
     "title": "提出履歴",
+    "subtitle": "すべての公開コード提出状態と結果を確認できます。",
     "titleWithCount": "提出履歴 ({{count}})",
     "filters": "フィルター",
     "problemLabel": "問題",
@@ -169,6 +170,7 @@
     "allProblems": "すべての問題",
     "statusLabel": "状態",
     "selectStatus": "状態を選択",
+    "filterStatus": "状態でフィルター",
     "allStatus": "すべての状態",
     "ac": "正解 (AC)",
     "wa": "不正解 (WA)",
@@ -192,7 +194,13 @@
     "submittedAt": "提出時間",
     "actions": "操作",
     "viewDetails": "詳細を見る",
-    "noPermission": "権限がありません"
+    "noPermission": "権限がありません",
+    "searchPlaceholder": "ユーザーまたは問題を検索...",
+    "dateRange": "期間",
+    "dateRange1month": "過去1ヶ月",
+    "dateRange3months": "過去3ヶ月（デフォルト）",
+    "dateRange6months": "過去6ヶ月",
+    "dateRangeAll": "全履歴"
   },
   "standings": {
     "title": "リアルタイム順位表",

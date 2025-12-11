@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Form,
   TextInput,
@@ -33,8 +34,8 @@ import ContainerCard from "@/ui/components/layout/ContainerCard";
 import SurfaceSection from "@/ui/components/layout/SurfaceSection";
 
 const ContestAdminSettingsPage = () => {
-  const { t } = useTranslation('contest');
-  const { t: tc } = useTranslation('common');
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
 
@@ -139,34 +140,34 @@ const ContestAdminSettingsPage = () => {
 
       // 刷新完成後顯示成功通知
       // 注意：不需要重置 formInitialized，因為 formData 已經是用戶編輯的最新狀態
-      setNotification({ kind: "success", message: t('settings.updated') });
+      setNotification({ kind: "success", message: t("settings.updated") });
     } catch (error) {
       console.error("Failed to update contest", error);
-      setNotification({ kind: "error", message: t('settings.updateFailed') });
+      setNotification({ kind: "error", message: t("settings.updateFailed") });
     } finally {
       setSaving(false);
     }
   };
 
   const handleArchive = async () => {
-    if (!contestId || !confirm(t('settings.confirmArchive'))) return;
+    if (!contestId || !confirm(t("settings.confirmArchive"))) return;
     try {
       await archiveContest(contestId);
-      setNotification({ kind: "success", message: t('settings.archived') });
+      setNotification({ kind: "success", message: t("settings.archived") });
       setFormInitialized(false);
       refreshContest();
     } catch (error) {
-      setNotification({ kind: "error", message: t('settings.archiveFailed') });
+      setNotification({ kind: "error", message: t("settings.archiveFailed") });
     }
   };
 
   const handleDelete = async () => {
-    if (!contestId || !confirm(t('settings.confirmDelete'))) return;
+    if (!contestId || !confirm(t("settings.confirmDelete"))) return;
     try {
       await deleteContest(contestId);
       navigate("/contests");
     } catch (error) {
-      setNotification({ kind: "error", message: t('settings.deleteFailed') });
+      setNotification({ kind: "error", message: t("settings.deleteFailed") });
     }
   };
 
@@ -251,7 +252,11 @@ const ContestAdminSettingsPage = () => {
         {notification && (
           <InlineNotification
             kind={notification.kind}
-            title={notification.kind === "success" ? tc("message.success") : tc("message.error")}
+            title={
+              notification.kind === "success"
+                ? tc("message.success")
+                : tc("message.error")
+            }
             subtitle={notification.message}
             onClose={() => setNotification(null)}
             style={{ marginBottom: "1rem", maxWidth: "100%" }}
@@ -262,11 +267,11 @@ const ContestAdminSettingsPage = () => {
           <Grid>
             {/* Left Column: Basic Info */}
             <Column lg={10} md={8} sm={4} style={{ marginBottom: "1rem" }}>
-              <ContainerCard title={t('settings.basicInfo')}>
+              <ContainerCard title={t("settings.basicInfo")}>
                 <div style={{ marginBottom: "1.5rem" }}>
                   <TextInput
                     id="name"
-                    labelText={t('settings.contestName')}
+                    labelText={t("settings.contestName")}
                     value={formData.name || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -277,7 +282,7 @@ const ContestAdminSettingsPage = () => {
                 <div style={{ marginBottom: "1.5rem" }}>
                   <TextInput
                     id="description"
-                    labelText={t('settings.contestDescription')}
+                    labelText={t("settings.contestDescription")}
                     value={formData.description || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
@@ -287,8 +292,8 @@ const ContestAdminSettingsPage = () => {
                 <div style={{ marginBottom: "1.5rem" }}>
                   <TextArea
                     id="rules"
-                    labelText={t('settings.contestRules')}
-                    helperText={t('settings.rulesHelperText')}
+                    labelText={t("settings.contestRules")}
+                    helperText={t("settings.rulesHelperText")}
                     value={formData.rules || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, rules: e.target.value })
@@ -322,7 +327,7 @@ const ContestAdminSettingsPage = () => {
                       >
                         <DatePickerInput
                           id="start-date"
-                          labelText={tc('form.startDate')}
+                          labelText={tc("form.startDate")}
                           placeholder="mm/dd/yyyy"
                         />
                       </DatePicker>
@@ -330,7 +335,7 @@ const ContestAdminSettingsPage = () => {
                     <div style={{ flex: 1 }}>
                       <TimePicker
                         id="start-time"
-                        labelText={tc('form.startTime')}
+                        labelText={tc("form.startTime")}
                         type="text"
                         placeholder="hh:mm"
                         pattern="(0[1-9]|1[0-2]):[0-5][0-9]"
@@ -377,7 +382,7 @@ const ContestAdminSettingsPage = () => {
                       >
                         <DatePickerInput
                           id="end-date"
-                          labelText={tc('form.endDate')}
+                          labelText={tc("form.endDate")}
                           placeholder="mm/dd/yyyy"
                         />
                       </DatePicker>
@@ -385,7 +390,7 @@ const ContestAdminSettingsPage = () => {
                     <div style={{ flex: 1 }}>
                       <TimePicker
                         id="end-time"
-                        labelText={tc('form.endTime')}
+                        labelText={tc("form.endTime")}
                         type="text"
                         placeholder="hh:mm"
                         pattern="(0[1-9]|1[0-2]):[0-5][0-9]"
@@ -426,11 +431,11 @@ const ContestAdminSettingsPage = () => {
                   height: "100%",
                 }}
               >
-                <ContainerCard title={t('settings.accessControl')}>
+                <ContainerCard title={t("settings.accessControl")}>
                   <div style={{ marginBottom: "1.5rem" }}>
                     <Select
                       id="visibility"
-                      labelText={tc('form.visibility')}
+                      labelText={tc("form.visibility")}
                       value={formData.visibility || "public"}
                       onChange={(e) =>
                         setFormData({
@@ -439,15 +444,15 @@ const ContestAdminSettingsPage = () => {
                         })
                       }
                     >
-                      <SelectItem value="public" text={tc('status.public')} />
-                      <SelectItem value="private" text={tc('status.private')} />
+                      <SelectItem value="public" text={tc("status.public")} />
+                      <SelectItem value="private" text={tc("status.private")} />
                     </Select>
                   </div>
                   {formData.visibility === "private" && (
                     <div>
                       <TextInput
                         id="password"
-                        labelText={t('settings.joinPassword')}
+                        labelText={t("settings.joinPassword")}
                         type="password"
                         value={formData.password || ""}
                         onChange={(e) =>
@@ -458,13 +463,13 @@ const ContestAdminSettingsPage = () => {
                   )}
                 </ContainerCard>
 
-                <ContainerCard title={t('settings.contestStatus')}>
+                <ContainerCard title={t("settings.contestStatus")}>
                   <div style={{ marginBottom: "1.5rem" }}>
                     <Toggle
                       id="contest-status"
-                      labelText={t('settings.statusLabel')}
-                      labelA="Inactive"
-                      labelB="Active"
+                      labelText={t("settings.statusLabel")}
+                      labelA={tc("status.inactive")}
+                      labelB={tc("status.active")}
                       toggled={formData.status === "active"}
                       onToggle={(checked) =>
                         setFormData({
@@ -476,13 +481,13 @@ const ContestAdminSettingsPage = () => {
                   </div>
                 </ContainerCard>
 
-                <ContainerCard title="排行榜設定">
+                <ContainerCard title={t("settings.scoreboardSettings")}>
                   <div style={{ marginBottom: "1rem" }}>
                     <Toggle
                       id="scoreboard-visible-global"
-                      labelText="比賽期間顯示排行榜"
-                      labelA="隱藏"
-                      labelB="顯示"
+                      labelText={t("settings.showDuringContest")}
+                      labelA={tc("toggle.hide")}
+                      labelB={tc("toggle.show")}
                       toggled={formData.scoreboard_visible_during_contest}
                       onToggle={(checked) =>
                         setFormData({
@@ -498,7 +503,7 @@ const ContestAdminSettingsPage = () => {
                         marginTop: "0.5rem",
                       }}
                     >
-                      允許參賽者在比賽進行中查看即時排行榜
+                      {t("settings.showDuringContestHelp")}
                     </p>
                   </div>
                   <div
@@ -510,9 +515,9 @@ const ContestAdminSettingsPage = () => {
                   <div>
                     <Toggle
                       id="anonymous-mode"
-                      labelText="匿名模式"
-                      labelA="關閉"
-                      labelB="開啟"
+                      labelText={t("settings.anonymousMode")}
+                      labelA={tc("toggle.off")}
+                      labelB={tc("toggle.on")}
                       toggled={formData.anonymous_mode_enabled}
                       onToggle={(checked) =>
                         setFormData({
@@ -528,18 +533,18 @@ const ContestAdminSettingsPage = () => {
                         marginTop: "0.5rem",
                       }}
                     >
-                      開啟後，參賽者可設定暱稱，排行榜和提交列表將顯示暱稱
+                      {t("settings.anonymousModeHelp")}
                     </p>
                   </div>
                 </ContainerCard>
 
-                <ContainerCard title="考試模式設定">
+                <ContainerCard title={t("settings.examModeSettings")}>
                   <div style={{ marginBottom: "1.5rem" }}>
                     <Toggle
                       id="exam-mode"
-                      labelText="啟用考試模式"
-                      labelA="關閉"
-                      labelB="開啟"
+                      labelText={t("settings.enableExamMode")}
+                      labelA={tc("toggle.off")}
+                      labelB={tc("toggle.on")}
                       toggled={formData.exam_mode_enabled}
                       onToggle={(checked) =>
                         setFormData({ ...formData, exam_mode_enabled: checked })
@@ -557,9 +562,9 @@ const ContestAdminSettingsPage = () => {
                     >
                       <Toggle
                         id="allow-multiple-joins"
-                        labelText="允許多次加入"
-                        labelA="禁止"
-                        labelB="允許"
+                        labelText={t("settings.allowMultipleJoins")}
+                        labelA={tc("toggle.forbid")}
+                        labelB={tc("toggle.allow")}
                         toggled={formData.allow_multiple_joins}
                         onToggle={(checked) =>
                           setFormData({
@@ -571,7 +576,7 @@ const ContestAdminSettingsPage = () => {
 
                       <NumberInput
                         id="max-warnings"
-                        label="最大違規警告次數 (0 = 立即鎖定)"
+                        label={t("settings.maxWarnings")}
                         min={0}
                         max={10}
                         value={formData.max_cheat_warnings || 0}
@@ -592,9 +597,9 @@ const ContestAdminSettingsPage = () => {
 
                       <Toggle
                         id="allow-auto-unlock"
-                        labelText="允許自動解鎖 (Allow Auto-Unlock)"
-                        labelA="禁止"
-                        labelB="允許"
+                        labelText={t("settings.allowAutoUnlock")}
+                        labelA={tc("toggle.forbid")}
+                        labelB={tc("toggle.allow")}
                         toggled={formData.allow_auto_unlock}
                         onToggle={(checked) =>
                           setFormData({
@@ -607,8 +612,8 @@ const ContestAdminSettingsPage = () => {
                       {formData.allow_auto_unlock && (
                         <NumberInput
                           id="auto-unlock-minutes"
-                          label="自動解鎖時間 (分鐘)"
-                          helperText="鎖定後經過多少分鐘自動解鎖"
+                          label={t("settings.autoUnlockMinutes")}
+                          helperText={t("settings.autoUnlockHelperText")}
                           min={1}
                           max={1440}
                           value={formData.auto_unlock_minutes || 5}
@@ -640,7 +645,7 @@ const ContestAdminSettingsPage = () => {
               renderIcon={Save}
               disabled={saving}
             >
-              {saving ? "儲存中..." : "儲存設定"}
+              {saving ? t("settings.saving") : t("settings.saveSettings")}
             </Button>
           </div>
         </Form>
@@ -653,7 +658,7 @@ const ContestAdminSettingsPage = () => {
             paddingTop: "2rem",
           }}
         >
-          <h4 style={{ marginBottom: "1rem" }}>匯出資料</h4>
+          <h4 style={{ marginBottom: "1rem" }}>{t("settings.exportData")}</h4>
           <div
             style={{
               border: "1px solid var(--cds-border-subtle)",
@@ -669,15 +674,16 @@ const ContestAdminSettingsPage = () => {
               }}
             >
               <div>
-                <h5 style={{ fontWeight: 600 }}>匯出成績 (Export Results)</h5>
+                <h5 style={{ fontWeight: 600 }}>
+                  {t("settings.exportResults")}
+                </h5>
                 <p
                   style={{
                     fontSize: "0.875rem",
                     color: "var(--cds-text-secondary)",
                   }}
                 >
-                  匯出競賽成績為 CSV
-                  檔案，包含排名、帳號、解題數、總分、各題目狀態。
+                  {t("settings.exportResultsDesc")}
                 </p>
               </div>
               <Button
@@ -688,17 +694,17 @@ const ContestAdminSettingsPage = () => {
                     await exportContestResults(contestId!);
                     setNotification({
                       kind: "success",
-                      message: "成績匯出成功",
+                      message: t("settings.exportSuccess"),
                     });
                   } catch (error: any) {
                     setNotification({
                       kind: "error",
-                      message: error.message || "匯出失敗",
+                      message: error.message || t("settings.exportFailed"),
                     });
                   }
                 }}
               >
-                匯出 CSV
+                {t("settings.exportCSV")}
               </Button>
             </div>
           </div>
@@ -713,7 +719,7 @@ const ContestAdminSettingsPage = () => {
           }}
         >
           <h4 style={{ color: "var(--cds-text-error)", marginBottom: "1rem" }}>
-            危險區域 (Danger Zone)
+            {t("settings.dangerZone")}
           </h4>
           <div
             style={{
@@ -731,14 +737,16 @@ const ContestAdminSettingsPage = () => {
               }}
             >
               <div>
-                <h5 style={{ fontWeight: 600 }}>封存競賽 (Archive Contest)</h5>
+                <h5 style={{ fontWeight: 600 }}>
+                  {t("settings.archiveContest")}
+                </h5>
                 <p
                   style={{
                     fontSize: "0.875rem",
                     color: "var(--cds-text-secondary)",
                   }}
                 >
-                  封存後競賽將變為唯讀狀態，無法再被啟用。
+                  {t("settings.archiveDesc")}
                 </p>
               </div>
               <Button
@@ -746,7 +754,9 @@ const ContestAdminSettingsPage = () => {
                 onClick={handleArchive}
                 disabled={contextContest?.status === "archived"}
               >
-                {contextContest?.status === "archived" ? "已封存" : "封存競賽"}
+                {contextContest?.status === "archived"
+                  ? t("settings.alreadyArchived")
+                  : tc("button.archive")}
               </Button>
             </div>
 
@@ -765,18 +775,20 @@ const ContestAdminSettingsPage = () => {
               }}
             >
               <div>
-                <h5 style={{ fontWeight: 600 }}>刪除競賽 (Delete Contest)</h5>
+                <h5 style={{ fontWeight: 600 }}>
+                  {t("settings.deleteContest")}
+                </h5>
                 <p
                   style={{
                     fontSize: "0.875rem",
                     color: "var(--cds-text-secondary)",
                   }}
                 >
-                  此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。
+                  {t("settings.deleteDesc")}
                 </p>
               </div>
               <Button kind="danger" onClick={handleDelete}>
-                刪除競賽
+                {tc("button.delete")}
               </Button>
             </div>
           </div>

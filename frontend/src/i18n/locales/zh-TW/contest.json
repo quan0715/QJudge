@@ -162,6 +162,7 @@
   },
   "submissions": {
     "title": "提交記錄",
+    "subtitle": "查看所有公開的程式碼提交狀態與結果。",
     "titleWithCount": "提交記錄 ({{count}})",
     "filters": "篩選條件",
     "problemLabel": "題目",
@@ -169,6 +170,7 @@
     "allProblems": "全部題目",
     "statusLabel": "狀態",
     "selectStatus": "選擇狀態",
+    "filterStatus": "篩選狀態",
     "allStatus": "全部狀態",
     "ac": "通過 (AC)",
     "wa": "答案錯誤 (WA)",
@@ -192,7 +194,13 @@
     "submittedAt": "提交時間",
     "actions": "操作",
     "viewDetails": "查看詳情",
-    "noPermission": "無權限查看"
+    "noPermission": "無權限查看",
+    "searchPlaceholder": "搜尋用戶或題目...",
+    "dateRange": "時間範圍",
+    "dateRange1month": "最近 1 個月",
+    "dateRange3months": "最近 3 個月（預設）",
+    "dateRange6months": "最近 6 個月",
+    "dateRangeAll": "所有歷史記錄"
   },
   "standings": {
     "title": "即時排行榜",
