@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Tabs,
   TabList,
@@ -31,6 +32,8 @@ import { PageHeader } from "@/ui/layout/PageHeader";
 import TeacherContestList from "../components/TeacherContestList";
 
 const ContestListPage: React.FC = () => {
+  const { t } = useTranslation('contest');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [contests, setContests] = useState<Contest[]>([]);
@@ -63,12 +66,12 @@ const ContestListPage: React.FC = () => {
   };
 
   const headers = [
-    { key: "name", header: "名稱" },
-    { key: "startTime", header: "開始時間" },
-    { key: "endTime", header: "結束時間" },
-    { key: "status", header: "狀態" },
+    { key: "name", header: tc('form.name') },
+    { key: "startTime", header: tc('form.startTime') },
+    { key: "endTime", header: tc('form.endTime') },
+    { key: "status", header: tc('table.status') },
     { key: "userStatus", header: "您的狀態" },
-    { key: "action", header: "操作" },
+    { key: "action", header: tc('table.actions') },
   ];
 
   /* Processing logic for contest lists (ongoing, upcoming, past) */
@@ -170,7 +173,7 @@ const ContestListPage: React.FC = () => {
                       </Tag>
                     </TableCell>
                     <TableCell>
-                      {contest.isRegistered && <Tag type="green">已報名</Tag>}
+                      {contest.isRegistered && <Tag type="green">{t('hero.register')}ed</Tag>}
                       {!contest.isRegistered && <Tag type="gray">未報名</Tag>}
                     </TableCell>
                     <TableCell>
@@ -247,7 +250,7 @@ const ContestListPage: React.FC = () => {
         <Grid>
           <Column lg={16} md={8} sm={4} style={{ padding: 0 }}>
             <PageHeader
-              title="競賽列表"
+              title={tc('page.contests')}
               subtitle="參加競賽，與其他同學切磋程式解題技巧。"
             />
 
@@ -268,9 +271,9 @@ const ContestListPage: React.FC = () => {
             {/* Student/Public List */}
             <Tabs>
               <TabList aria-label="Contest types">
-                <Tab>進行中 {!loading && `(${ongoingContests.length})`}</Tab>
-                <Tab>即將開始 {!loading && `(${upcomingContests.length})`}</Tab>
-                <Tab>已結束 {!loading && `(${pastContests.length})`}</Tab>
+                <Tab>{tc('dashboard.contests.ongoing')} {!loading && `(${ongoingContests.length})`}</Tab>
+                <Tab>{tc('dashboard.contests.upcoming')} {!loading && `(${upcomingContests.length})`}</Tab>
+                <Tab>{tc('dashboard.contests.ended')} {!loading && `(${pastContests.length})`}</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel>
