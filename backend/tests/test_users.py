@@ -68,9 +68,9 @@ def test_token_refresh_flow(api_client, user_factory):
 
 @pytest.mark.django_db
 def test_superadmin_permission_required(api_client, user_factory):
-    # Non-admin should be forbidden
-    response = api_client.get("/api/v1/users/search")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    # Non-admin should be forbidden (401 for unauthenticated)
+    response = api_client.get("/api/v1/auth/search")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # Admin with correct flags should pass
     admin = user_factory(
@@ -82,6 +82,6 @@ def test_superadmin_permission_required(api_client, user_factory):
     )
     api_client.force_authenticate(user=admin)
 
-    response = api_client.get("/api/v1/users/search")
+    response = api_client.get("/api/v1/auth/search")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["success"] is True

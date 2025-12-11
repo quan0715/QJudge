@@ -24,7 +24,9 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # Token 黑名單支援
     'corsheaders',
+    'django_ratelimit',  # API 速率限制
     
     # Local apps
     'apps.core',
@@ -154,7 +156,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.users.authentication.CookieJWTAuthentication',  # Cookie-based JWT (more secure)
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Header-based JWT (fallback for API clients)
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -169,9 +172,10 @@ REST_FRAMEWORK = {
 }
 
 # Simple JWT settings
+# Extended token lifetime for exam scenarios (students shouldn't be logged out during exams)
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),  # Extended for exam sessions
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Extended for long-term sessions
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -180,6 +184,16 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
+
+# JWT Cookie settings (HttpOnly for security)
+JWT_AUTH_COOKIE = 'access_token'
+JWT_AUTH_REFRESH_COOKIE = 'refresh_token'
+# Secure flag is set based on environment (overridden in dev.py/prod.py if needed)
+JWT_AUTH_COOKIE_SECURE = os.getenv('DJANGO_ENV', 'production') == 'production'
+JWT_AUTH_COOKIE_HTTP_ONLY = True  # Prevent XSS attacks
+JWT_AUTH_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+JWT_AUTH_COOKIE_PATH = '/'
+JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {
@@ -190,11 +204,22 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
-# CORS settings
-CORS_ALLOW_CREDENTIALS = True
+# CORS settings (important for HttpOnly cookie authentication)
+CORS_ALLOW_CREDENTIALS = True  # Required for cookies to be sent/received
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:5173',  # Vite default port
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 # CSRF Trusted Origins (for POST/PATCH/DELETE requests)
@@ -203,8 +228,39 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
 ]
 
+# Session cookie settings
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = os.getenv('DJANGO_ENV', 'production') == 'production'
+
+# CSRF cookie settings
+# CSRF_COOKIE_HTTPONLY = False allows frontend to read the token via JavaScript
+# and include it in the X-CSRFToken header for cookie-authenticated requests
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = os.getenv('DJANGO_ENV', 'production') == 'production'
+CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken header
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+
 # Frontend URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
+# Redis Cache settings
+# Using Django's built-in Redis backend (Django 4.0+)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+        'KEY_PREFIX': 'qjudge',
+        'TIMEOUT': 300,  # 5 minutes default
+    }
+}
+
+# Cache keys constants
+CACHE_KEYS = {
+    'POPULAR_PROBLEMS': 'popular_problems',
+    'CONTEST_STANDINGS': 'contest_standings_{contest_id}',
+    'USER_STATS': 'user_stats_{user_id}',
+}
 
 # Celery settings
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
@@ -223,6 +279,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     'check-auto-unlock-every-30-seconds': {
         'task': 'apps.contests.tasks.check_auto_unlock',
+        'schedule': 30.0,  # Every 30 seconds
+    },
+    'check-heartbeat-timeout-every-30-seconds': {
+        'task': 'apps.contests.tasks.check_heartbeat_timeout',
         'schedule': 30.0,  # Every 30 seconds
     },
     # Database backup task (production only)

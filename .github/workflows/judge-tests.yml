@@ -1,20 +1,29 @@
 name: Judge System Tests
 
+# 第二種：Judge 模組測試（需要 Docker 環境）
+# - Judge Docker 鏡像構建
+# - 多語言編譯/執行測試
+# - 提交評測流程測試
+
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'backend/**'
-      - '.github/workflows/judge-tests.yml'
+      - "backend/apps/judge/**"
+      - "backend/apps/submissions/**"
+      - ".github/workflows/judge-tests.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'backend/**'
+      - "backend/apps/judge/**"
+      - "backend/apps/submissions/**"
 
 jobs:
   test-judge:
+    name: Judge Module Tests
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 20
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -29,7 +38,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -39,44 +48,42 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
           cache-dependency-path: backend/requirements/dev.txt
-      
+
       - name: Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements/dev.txt
-      
+        run: pip install -r requirements/dev.txt
+        working-directory: backend
+
       - name: Build Judge Docker Image
         run: |
           docker build -t oj-judge:latest \
             -f backend/judge/Dockerfile.judge \
             backend/judge
-      
+
       - name: Verify Judge Image
         run: |
           docker images | grep oj-judge
           docker run --rm oj-judge:latest g++ --version
-      
+
       - name: Run Database Migrations
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
           REDIS_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: config.settings.test
           SECRET_KEY: test-secret-key-for-ci
-        run: |
-          cd backend
-          python manage.py migrate --noinput
-      
+        run: python manage.py migrate --noinput
+        working-directory: backend
+
       - name: Run Judge Tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
@@ -84,12 +91,10 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.test
           SECRET_KEY: test-secret-key-for-ci
           DOCKER_IMAGE_JUDGE: oj-judge:latest
-          JUDGE_ENGINE_ENABLED: 'true'
-        run: |
-          cd backend
-          # 運行所有 judge 測試
-          python manage.py test apps.judge --verbosity=2
-      
+          JUDGE_ENGINE_ENABLED: "true"
+        run: python manage.py test apps.judge --verbosity=2
+        working-directory: backend
+
       - name: Run Multi-language Tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
@@ -97,10 +102,21 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.test
           SECRET_KEY: test-secret-key-for-ci
           DOCKER_IMAGE_JUDGE: oj-judge:latest
-        run: |
-          cd backend
-          python manage.py test apps.judge.test_multilang --verbosity=2
-      
+          JUDGE_ENGINE_ENABLED: "true"
+        run: python manage.py test apps.judge.test_multilang --verbosity=2
+        working-directory: backend
+
+      - name: Run Submission Integration Tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          SECRET_KEY: test-secret-key-for-ci
+          DOCKER_IMAGE_JUDGE: oj-judge:latest
+          JUDGE_ENGINE_ENABLED: "true"
+        run: pytest apps/submissions/tests/test_performance.py -v --tb=short
+        working-directory: backend
+
       - name: Generate Coverage Report
         if: always()
         env:
@@ -108,23 +124,24 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: config.settings.test
           SECRET_KEY: test-secret-key-for-ci
+          JUDGE_ENGINE_ENABLED: "true"
+          DOCKER_IMAGE_JUDGE: oj-judge:latest
         run: |
-          cd backend
           pip install coverage
           coverage run --source='apps.judge' manage.py test apps.judge
           coverage report
           coverage xml
-      
+        working-directory: backend
+
       - name: Upload Coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./backend/coverage.xml
           flags: judge
           name: judge-tests
           fail_ci_if_error: false
-      
+
       - name: Cleanup Docker Images
         if: always()
-        run: |
-          docker rmi oj-judge:latest || true
+        run: docker rmi oj-judge:latest || true
