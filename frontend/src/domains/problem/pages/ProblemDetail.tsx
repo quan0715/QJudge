@@ -58,7 +58,9 @@ const ProblemSolverSkeleton: React.FC = () => {
           </div>
 
           {/* Title skeleton */}
-          <SkeletonText heading width="40%" style={{ marginBottom: "1rem" }} />
+          <div style={{ marginBottom: "1rem" }}>
+            <SkeletonText heading width="40%" />
+          </div>
 
           {/* Metadata skeleton */}
           <div style={{ display: "flex", gap: "2rem" }}>
@@ -114,21 +116,23 @@ const ProblemSolverSkeleton: React.FC = () => {
           }}
         >
           {/* Description content skeleton */}
-          <SkeletonText heading width="20%" style={{ marginBottom: "1rem" }} />
-          <SkeletonText
-            paragraph
-            lineCount={4}
-            style={{ marginBottom: "2rem" }}
-          />
+          <div style={{ marginBottom: "1rem" }}>
+            <SkeletonText heading width="20%" />
+          </div>
+          <div style={{ marginBottom: "2rem" }}>
+            <SkeletonText paragraph lineCount={4} />
+          </div>
 
-          <SkeletonText heading width="15%" style={{ marginBottom: "1rem" }} />
-          <SkeletonText
-            paragraph
-            lineCount={3}
-            style={{ marginBottom: "2rem" }}
-          />
+          <div style={{ marginBottom: "1rem" }}>
+            <SkeletonText heading width="15%" />
+          </div>
+          <div style={{ marginBottom: "2rem" }}>
+            <SkeletonText paragraph lineCount={3} />
+          </div>
 
-          <SkeletonText heading width="15%" style={{ marginBottom: "1rem" }} />
+          <div style={{ marginBottom: "1rem" }}>
+            <SkeletonText heading width="15%" />
+          </div>
           <SkeletonPlaceholder style={{ width: "100%", height: "120px" }} />
         </div>
       </div>

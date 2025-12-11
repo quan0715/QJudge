@@ -145,12 +145,8 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
           display_name: s.display_name, // Pass original for compatibility if needed
           solved: s.solved || 0,
           solvedCount: s.solved || 0,
-<<<<<<< HEAD
-          total_score: s.total_score || 0,
-=======
           totalScore: s.total_score || 0,
-          total_score: s.total_score || 0, // Keep for backward compatibility
->>>>>>> fc2d00fd491dc0eeb21c8253c6362d4ce466f2ce
+          total_score: s.total_score || 0,
           time: s.time || 0,
           penalty: s.time || 0,
           problems: s.problems || {},

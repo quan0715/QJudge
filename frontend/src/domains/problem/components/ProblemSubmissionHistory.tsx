@@ -50,8 +50,8 @@ const ProblemSubmissionHistory: React.FC = () => {
     status: sub.status,
     username: sub.username,
     language: sub.language,
-    score: sub.score,
-    exec_time: sub.execTime,
+    score: sub.score ?? 0,
+    exec_time: sub.execTime ?? 0,
     created_at: sub.createdAt,
   }));
 
