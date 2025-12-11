@@ -113,7 +113,9 @@ export const GlobalHeader = () => {
               aria-label={t("language.switchTo")}
               onClick={toggleLanguage}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
                 <Language size={20} />
                 <span style={{ fontSize: "12px", fontWeight: 500 }}>
                   {contentLanguage === "zh-TW" ? "中" : "EN"}

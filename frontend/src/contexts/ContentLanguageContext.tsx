@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
-export type ContentLanguage = 'zh-TW' | 'en';
+export type ContentLanguage = "zh-TW" | "en";
 
 interface ContentLanguageContextType {
   contentLanguage: ContentLanguage;
@@ -9,11 +9,18 @@ interface ContentLanguageContextType {
   toggleLanguage: () => void;
 }
 
-const ContentLanguageContext = createContext<ContentLanguageContextType | undefined>(undefined);
+const ContentLanguageContext = createContext<
+  ContentLanguageContextType | undefined
+>(undefined);
 
-export const ContentLanguageProvider = ({ children }: { children: ReactNode }) => {
+export const ContentLanguageProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   const { i18n } = useTranslation();
-  const [contentLanguage, setContentLanguageState] = useState<ContentLanguage>('zh-TW');
+  const [contentLanguage, setContentLanguageState] =
+    useState<ContentLanguage>("zh-TW");
 
   const setContentLanguage = (lang: ContentLanguage) => {
     setContentLanguageState(lang);
@@ -21,12 +28,14 @@ export const ContentLanguageProvider = ({ children }: { children: ReactNode }) =
   };
 
   const toggleLanguage = () => {
-    const newLang = contentLanguage === 'zh-TW' ? 'en' : 'zh-TW';
+    const newLang = contentLanguage === "zh-TW" ? "en" : "zh-TW";
     setContentLanguage(newLang);
   };
 
   return (
-    <ContentLanguageContext.Provider value={{ contentLanguage, setContentLanguage, toggleLanguage }}>
+    <ContentLanguageContext.Provider
+      value={{ contentLanguage, setContentLanguage, toggleLanguage }}
+    >
       {children}
     </ContentLanguageContext.Provider>
   );
@@ -35,7 +44,9 @@ export const ContentLanguageProvider = ({ children }: { children: ReactNode }) =
 export const useContentLanguage = () => {
   const context = useContext(ContentLanguageContext);
   if (!context) {
-    throw new Error('useContentLanguage must be used within ContentLanguageProvider');
+    throw new Error(
+      "useContentLanguage must be used within ContentLanguageProvider"
+    );
   }
   return context;
 };
