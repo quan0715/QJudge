@@ -57,11 +57,11 @@ jobs:
 
       - name: Start Test Environment
         run: |
-          docker-compose -f docker-compose.test.yml up -d postgres_test redis_test
+          docker compose -f docker-compose.test.yml up -d postgres_test redis_test
           # 等待服務健康
           echo "Waiting for services..."
           sleep 10
-          docker-compose -f docker-compose.test.yml up -d backend_test
+          docker compose -f docker-compose.test.yml up -d backend_test
           sleep 30
 
       - name: Health Check
