@@ -1,0 +1,28 @@
+{
+  "section": {
+    "description": "Description",
+    "inputDescription": "Input Description",
+    "outputDescription": "Output Description",
+    "sampleTestCases": "Sample Test Cases",
+    "hint": "Hint",
+    "codeRestrictions": "Code Restrictions",
+    "requiredKeywords": "Required Keywords:",
+    "forbiddenKeywords": "Forbidden Keywords:"
+  },
+  "sample": {
+    "example": "Example {{index}}",
+    "input": "Input",
+    "output": "Output",
+    "empty": "(empty)"
+  },
+  "list": {
+    "title": "Problem List",
+    "subtitle": "Challenge yourself with problems of various difficulty levels."
+  },
+  "tabs": {
+    "description": "Description",
+    "code": "Code",
+    "submissions": "Submissions",
+    "stats": "Statistics"
+  }
+}

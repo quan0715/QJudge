@@ -30,6 +30,7 @@ import {
 // Admin pages are now rendered as tabs in ContestDashboard
 
 import { ThemeProvider } from "@/ui/theme/ThemeContext";
+import { ContentLanguageProvider } from "@/contexts/ContentLanguageContext";
 
 import { AuthProvider } from "@/domains/auth/contexts/AuthContext";
 
@@ -49,8 +50,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
+        <ContentLanguageProvider>
+          <AuthProvider>
+            <BrowserRouter>
             <Routes>
               {/* Guest Routes (Login/Register) */}
               <Route element={<RequireGuest />}>
@@ -220,8 +222,9 @@ function App() {
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </BrowserRouter>
-        </AuthProvider>
+            </BrowserRouter>
+          </AuthProvider>
+        </ContentLanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

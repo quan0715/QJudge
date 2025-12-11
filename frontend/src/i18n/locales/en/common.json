@@ -1,0 +1,29 @@
+{
+  "button": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "submit": "Submit",
+    "create": "Create",
+    "logout": "Log Out"
+  },
+  "message": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Action completed successfully",
+    "noData": "No data available",
+    "notFound": "Resource not found"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "itemsPerPage": "Items per page"
+  },
+  "language": {
+    "switchTo": "Switch Language"
+  }
+}

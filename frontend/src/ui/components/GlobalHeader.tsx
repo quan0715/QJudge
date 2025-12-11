@@ -21,11 +21,14 @@ import {
   Logout,
   UserAvatar,
   Switcher as SwitcherIcon,
+  Language,
+  Settings,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { useTheme } from "@/ui/theme/ThemeContext";
-import { Settings } from "@carbon/icons-react";
+import { useContentLanguage } from "@/contexts/ContentLanguageContext";
+import { useTranslation } from "react-i18next";
 import "./GlobalHeader.scss"; // Assuming a SCSS file for component-specific styles
 
 export const GlobalHeader = () => {
@@ -33,6 +36,8 @@ export const GlobalHeader = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { contentLanguage, toggleLanguage } = useContentLanguage();
+  const { t } = useTranslation();
 
   const [isUserMenuExpanded, setIsUserMenuExpanded] = useState(false);
   const [isSwitcherExpanded, setIsSwitcherExpanded] = useState(false);
@@ -102,6 +107,18 @@ export const GlobalHeader = () => {
               onClick={toggleTheme}
             >
               {theme === "g100" ? <Sun size={20} /> : <Moon size={20} />}
+            </HeaderGlobalAction>
+
+            <HeaderGlobalAction
+              aria-label={t("language.switchTo")}
+              onClick={toggleLanguage}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <Language size={20} />
+                <span style={{ fontSize: "12px", fontWeight: 500 }}>
+                  {contentLanguage === "zh-TW" ? "中" : "EN"}
+                </span>
+              </div>
             </HeaderGlobalAction>
 
             <HeaderGlobalAction

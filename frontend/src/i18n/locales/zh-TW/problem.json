@@ -1,0 +1,28 @@
+{
+  "section": {
+    "description": "題目描述",
+    "inputDescription": "輸入說明",
+    "outputDescription": "輸出說明",
+    "sampleTestCases": "範例測試",
+    "hint": "提示",
+    "codeRestrictions": "程式碼限制",
+    "requiredKeywords": "必須包含的關鍵字：",
+    "forbiddenKeywords": "禁止使用的關鍵字："
+  },
+  "sample": {
+    "example": "範例 {{index}}",
+    "input": "輸入",
+    "output": "輸出",
+    "empty": "(空)"
+  },
+  "list": {
+    "title": "題目列表",
+    "subtitle": "挑戰各種難度的程式設計問題，提升你的演算法能力。"
+  },
+  "tabs": {
+    "description": "題目描述",
+    "code": "程式碼",
+    "submissions": "提交紀錄",
+    "stats": "統計"
+  }
+}
