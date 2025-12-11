@@ -11,6 +11,7 @@
 ### 1. 架構與設計
 
 **[ARCHITECTURE.md](./ARCHITECTURE.md)** - 系統架構文件
+
 - 系統概述與技術棧
 - 前後端架構詳解
 - 資料庫設計概覽
@@ -21,6 +22,7 @@
 ### 2. API 規範
 
 **[API.md](./API.md)** - RESTful API 文件
+
 - 認證系統 API
 - 題目系統 API
 - 提交系統 API
@@ -31,6 +33,7 @@
 ### 3. 資料模型
 
 **[DATABASE.md](./DATABASE.md)** - 資料庫設計文件
+
 - 資料庫架構與連線設定
 - 完整的資料表結構（ER 圖）
 - 索引策略與效能優化
@@ -40,6 +43,7 @@
 ### 4. 部署與測試
 
 **[DEPLOYMENT_AND_TESTING.md](./DEPLOYMENT_AND_TESTING.md)** - 部署與測試指南
+
 - 開發環境快速啟動
 - 生產環境部署步驟
 - 測試策略與覆蓋率
@@ -50,6 +54,7 @@
 ### 5. Code Review 報告
 
 **[CODE_REVIEW_REPORT.md](./CODE_REVIEW_REPORT.md)** - 完整的程式碼審查報告
+
 - 架構與設計評價
 - 安全性分析（包含已識別的漏洞）
 - 程式碼品質評估
@@ -91,15 +96,15 @@
 
 ## 📊 文件概覽
 
-| 文件 | 類型 | 頁數 | 目標讀者 |
-|------|------|------|---------|
-| ARCHITECTURE.md | 技術 | 長 | 開發者、架構師 |
-| API.md | 參考 | 長 | 前端開發者、API 使用者 |
-| DATABASE.md | 參考 | 長 | 後端開發者、DBA |
-| DEPLOYMENT_AND_TESTING.md | 操作 | 長 | 維運人員、DevOps |
-| CODE_REVIEW_REPORT.md | 報告 | 超長 | 所有開發者 |
-| problem-import-format.md | 參考 | 短 | 教師、內容建立者 |
-| E2E_TESTING.md | 操作 | 短 | QA、測試工程師 |
+| 文件                      | 類型 | 頁數 | 目標讀者               |
+| ------------------------- | ---- | ---- | ---------------------- |
+| ARCHITECTURE.md           | 技術 | 長   | 開發者、架構師         |
+| API.md                    | 參考 | 長   | 前端開發者、API 使用者 |
+| DATABASE.md               | 參考 | 長   | 後端開發者、DBA        |
+| DEPLOYMENT_AND_TESTING.md | 操作 | 長   | 維運人員、DevOps       |
+| CODE_REVIEW_REPORT.md     | 報告 | 超長 | 所有開發者             |
+| problem-import-format.md  | 參考 | 短   | 教師、內容建立者       |
+| E2E_TESTING.md            | 操作 | 短   | QA、測試工程師         |
 
 ---
 
@@ -108,6 +113,7 @@
 ### 2025-12-10 - 大規模文件更新
 
 **新增**:
+
 - ✅ `ARCHITECTURE.md` - 完整的系統架構文件
 - ✅ `API.md` - 詳細的 API 規範與範例
 - ✅ `DATABASE.md` - 資料庫設計與索引策略
@@ -115,6 +121,7 @@
 - ✅ `CODE_REVIEW_REPORT.md` - 深度程式碼審查報告
 
 **改進**:
+
 - 📝 重新組織文件結構
 - 📝 新增此 README.md 作為文件導航
 - 📝 統一文件格式與樣式
@@ -148,6 +155,7 @@
 3. 聯絡專案維護者
 
 **文件風格指南**:
+
 - 使用 Markdown 格式
 - 標題層級不超過 4 層
 - 程式碼區塊指定語言（語法高亮）

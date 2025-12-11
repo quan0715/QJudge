@@ -27,12 +27,14 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 ### 主要功能
 
 #### 👨‍🎓 學生功能
+
 - 瀏覽和解決程式題目
 - 提交程式碼並即時查看評測結果
 - 參加線上競賽並查看排名
 - 查看歷史提交記錄和統計數據
 
 #### 👨‍🏫 教師功能
+
 - 創建和管理程式題目
 - 使用 YAML 格式批量導入題目
 - 舉辦和管理線上競賽
@@ -40,6 +42,7 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 - 自訂測試資料和評分標準
 
 #### 🔧 系統功能
+
 - JWT Token 身份驗證
 - RESTful API 設計
 - Docker 容器化部署
@@ -80,8 +83,7 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f4ecc587-13c2-4ea0-a063-a67b9137de00" />
 
-<img width="1914" height="985" alt="image" src="https://github.com/user-attachments/assets/c89e3953-7ebf-4c00-b8a2-bcc611e93f97" />
----
+## <img width="1914" height="985" alt="image" src="https://github.com/user-attachments/assets/c89e3953-7ebf-4c00-b8a2-bcc611e93f97" />
 
 ## 📚 文件導覽
 
@@ -90,23 +92,28 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 > 📖 **文件總覽**：請參閱 **[docs/README.md](./docs/README.md)** 獲取完整的文件導覽
 
 ### 🏗️ 架構與設計
+
 - **[系統架構](./docs/ARCHITECTURE.md)** - 系統概述、技術架構、前後端設計、評測系統
 - **[資料庫設計](./docs/DATABASE.md)** - 資料模型、ER 圖、索引策略
 
 ### 📡 API 文件
+
 - **[API 規範](./docs/API.md)** - 完整的 RESTful API 端點說明
 - **[Swagger UI](http://localhost:8000/api/schema/swagger-ui/)** - 線上 API 文件（需啟動後端）
 
 ### 🚀 部署與測試
+
 - **[部署與測試指南](./docs/DEPLOYMENT_AND_TESTING.md)** - 本地開發、生產部署、CI/CD
 - **[E2E 測試指南](./E2E_TESTING.md)** - Playwright 端對端測試
 
 ### 💻 開發指南
+
 - **[後端開發](./backend/README.md)** - Django 後端開發指南
 - **[前端開發](./frontend/README.md)** - React 前端開發指南
 - **[題目導入格式](./docs/problem-import-format.md)** - YAML 題目格式規範
 
 ### 🔍 程式碼品質
+
 - **[Code Review 報告](./docs/CODE_REVIEW_REPORT.md)** - 程式碼審查與改進建議
 
 ---
@@ -116,11 +123,13 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 ### 新手入門
 
 1. **選擇你的身份**：
+
    - 👨‍🎓 學生使用者：直接訪問 [Demo](https://q-judge.quan.wtf/contests/3?tab=overview) 體驗
    - 👨‍🏫 教師使用者：閱讀 [系統架構](./docs/ARCHITECTURE.md) 瞭解系統功能
    - 💻 開發者：閱讀 [部署與測試指南](./docs/DEPLOYMENT_AND_TESTING.md)
 
 2. **本地開發環境設置**：
+
 ```bash
 # 參考完整設置步驟請見 docs/DEPLOYMENT_AND_TESTING.md
 
@@ -139,6 +148,7 @@ npm run dev
 ```
 
 3. **使用 Docker 快速啟動**：
+
 ```bash
 # 開發環境
 docker-compose -f docker-compose.dev.yml up
@@ -169,13 +179,15 @@ graph TB
 ### 技術棧詳細說明
 
 #### 前端技術
+
 - **React 19**: 現代化的使用者介面框架
 - **Carbon Design System**: IBM 開源設計系統
 - **React Router**: 單頁應用路由管理
 - **Monaco Editor**: 線上程式碼編輯器（VS Code 核心）
 - **Vite**: 快速的前端建置工具
 
-#### 後端技術  
+#### 後端技術
+
 - **Django 4**: Python Web 框架
 - **Django REST Framework**: RESTful API 建構
 - **PostgreSQL 15**: 關聯式資料庫
@@ -184,12 +196,14 @@ graph TB
 - **JWT**: 無狀態身份驗證
 
 #### 評測系統
+
 - **Docker**: 安全的程式碼執行沙箱
 - **支援語言**: C++17、Python 3、Java 17、JavaScript (Node.js)
 - **資源限制**: CPU 時間、記憶體、輸出大小限制
 - **安全機制**: 網路隔離、檔案系統限制、系統呼叫過濾
 
 #### 部署技術
+
 - **Docker Compose**: 容器編排
 - **Cloudflare Tunnel**: 安全的網路連接
 - **GitHub Actions**: CI/CD 自動化
@@ -200,11 +214,13 @@ graph TB
 ## 📊 系統功能模組
 
 ### 1. 認證與授權模組
+
 - JWT Token 身份驗證
 - 使用者註冊與登入
 - 權限管理（學生、教師、管理員）
 
 ### 2. 題目管理模組
+
 - 題目的 CRUD 操作
 - 多語言題目描述支援
 - YAML 格式批量導入
@@ -212,6 +228,7 @@ graph TB
 - 範例測試與隱藏測試
 
 ### 3. 提交評測模組
+
 - 多語言編譯與執行
 - 即時評測狀態更新（WebSocket）
 - 評測結果詳細回饋
@@ -219,6 +236,7 @@ graph TB
 - 程式碼相似度檢測（計劃中）
 
 ### 4. 競賽系統模組
+
 - 競賽創建與管理
 - 競賽密碼保護
 - 即時排名系統
@@ -227,6 +245,7 @@ graph TB
 - 競賽公告系統
 
 ### 5. 通知系統模組
+
 - 系統通知
 - 競賽公告
 - 評測結果通知
@@ -237,6 +256,7 @@ graph TB
 ## 🎯 主要使用場景
 
 ### 學生使用流程
+
 1. 註冊並登入系統
 2. 瀏覽題目列表，選擇題目
 3. 閱讀題目描述與範例
@@ -245,6 +265,7 @@ graph TB
 6. 參加競賽並查看即時排名
 
 ### 教師使用流程
+
 1. 登入教師帳號
 2. 創建新題目或批量導入題目
 3. 設置題目的測試資料與評分
@@ -258,6 +279,7 @@ graph TB
 ## 🔒 安全性設計
 
 ### 程式碼執行安全
+
 - **Docker 容器隔離**: 每個提交在獨立容器中執行
 - **資源限制**: CPU、記憶體、磁碟空間限制
 - **網路隔離**: 禁止網路存取
@@ -265,6 +287,7 @@ graph TB
 - **執行時間限制**: 防止無窮迴圈
 
 ### 應用程式安全
+
 - **JWT Token 認證**: 無狀態、安全的身份驗證
 - **CORS 配置**: 跨域請求保護
 - **SQL 注入防護**: ORM 查詢防護
@@ -277,24 +300,28 @@ graph TB
 ## 🌟 專案特色
 
 ### 1. 教育友善設計
+
 - 清晰的題目描述與範例
 - 詳細的錯誤訊息回饋
 - 支援多種程式語言
 - 提供程式碼模板
 
 ### 2. 效能優化
+
 - Redis 快取減少資料庫查詢
 - Celery 非同步任務處理
 - 資料庫索引優化
 - 靜態檔案 CDN 加速
 
 ### 3. 可擴展性
+
 - 微服務架構設計
 - Docker 容器化部署
 - 水平擴展評測 Worker
 - 模組化程式碼設計
 
 ### 4. 開發友善
+
 - RESTful API 設計
 - 完整的 API 文件
 - 測試驅動開發
@@ -349,6 +376,7 @@ QJudge/
 歡迎提交 Issue 和 Pull Request！
 
 ### 開發流程
+
 1. Fork 本專案
 2. 創建功能分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
@@ -356,11 +384,13 @@ QJudge/
 5. 開啟 Pull Request
 
 ### 程式碼規範
+
 - 後端：遵循 PEP 8 Python 編碼規範
 - 前端：遵循 ESLint 和 Prettier 設定
 - 提交訊息：使用清晰的提交訊息描述變更
 
 ### 測試要求
+
 - 後端測試覆蓋率需達到 80% 以上
 - 前端關鍵功能需有單元測試
 - 提交 PR 前需確保所有測試通過
@@ -370,11 +400,13 @@ QJudge/
 ## 📞 聯絡資訊與資源
 
 ### 聯絡方式
+
 - **專案維護者**: NYCU 開發團隊
 - **專案網站**: [nycu-coding-lab.quan.wtf](https://nycu-coding-lab.quan.wtf)
 - **問題回報**: [GitHub Issues](https://github.com/quan0715/QJudge/issues)
 
 ### 相關資源
+
 - **Django REST Framework**: https://www.django-rest-framework.org/
 - **Carbon Design System**: https://carbondesignsystem.com/
 - **PostgreSQL 文件**: https://www.postgresql.org/docs/
@@ -401,6 +433,7 @@ QJudge/
 ## 📝 更新紀錄
 
 - **v1.2.0** (2025-12-11) - 文件整合更新
+
   - 整合所有技術文件至 `docs/` 目錄
   - 新增系統架構文件 (ARCHITECTURE.md)
   - 新增詳細 API 文件 (API.md)
@@ -409,6 +442,7 @@ QJudge/
   - 新增程式碼審查報告 (CODE_REVIEW_REPORT.md)
 
 - **v1.1.0** (2025-12-03) - 更新中文文件
+
   - 新增完整的中文 README
   - 新增使用者指南文件
   - 優化文件結構
