@@ -8,7 +8,6 @@ import ProblemStatsTabComponent from "./ProblemStatsTab";
 import ProblemForm from "../ProblemForm";
 import type { ProblemFormData } from "../ProblemForm";
 import { updateProblem, deleteProblem } from "@/services/problem";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
 import { useProblem } from "@/domains/problem/hooks/useProblem";
 
 // Description Tab - Uses context
@@ -30,7 +29,7 @@ export const ProblemDescriptionTab: React.FC = () => {
         translations={problem.translations}
         testCases={problem.testCases?.filter((tc: any) => tc.isSample)}
         tags={problem.tags}
-        showLanguageToggle={problem.translations?.length > 1}
+        showLanguageToggle={(problem.translations?.length ?? 0) > 1}
         compact={false}
         forbiddenKeywords={problem.forbiddenKeywords}
         requiredKeywords={problem.requiredKeywords}
@@ -139,7 +138,7 @@ export const ProblemSettingsTab: React.FC = () => {
         required_keywords: data.requiredKeywords || [],
       };
 
-      const updatedProblem = await updateProblem(problem.id, payload);
+      await updateProblem(problem.id, payload);
 
       setNotification({
         kind: "success",

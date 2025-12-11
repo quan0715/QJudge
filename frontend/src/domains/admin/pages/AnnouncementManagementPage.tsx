@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   DataTable,
   Table,
@@ -17,24 +17,24 @@ import {
   TextInput,
   TextArea,
   Toggle,
-  Tag
-} from '@carbon/react';
-import { Add, Edit, TrashCan } from '@carbon/icons-react';
-import { 
-  getAnnouncements, 
-  createAnnouncement, 
-  updateAnnouncement, 
-  deleteAnnouncement, 
-  type Announcement, 
-  type CreateAnnouncementRequest 
-} from '@/services/announcement';
+  Tag,
+} from "@carbon/react";
+import { Add, Edit, TrashCan } from "@carbon/icons-react";
+import {
+  getAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  type Announcement,
+  type CreateAnnouncementRequest,
+} from "@/services/announcement";
 
 const headers = [
-  { key: 'title', header: '標題' },
-  { key: 'author', header: '作者' },
-  { key: 'visible', header: '狀態' },
-  { key: 'created_at', header: '建立時間' },
-  { key: 'actions', header: '操作' },
+  { key: "title", header: "標題" },
+  { key: "author", header: "作者" },
+  { key: "visible", header: "狀態" },
+  { key: "created_at", header: "建立時間" },
+  { key: "actions", header: "操作" },
 ];
 
 const AnnouncementManagementPage = () => {
@@ -42,19 +42,21 @@ const AnnouncementManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [firstRowIndex, setFirstRowIndex] = useState(0);
   const [currentPageSize, setCurrentPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
-  
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<Announcement | null>(null);
+  const [deletingAnnouncement, setDeletingAnnouncement] =
+    useState<Announcement | null>(null);
+
   // Form State
   const [formData, setFormData] = useState<CreateAnnouncementRequest>({
-    title: '',
-    content: '',
-    visible: true
+    title: "",
+    content: "",
+    visible: true,
   });
 
   const fetchAnnouncements = async () => {
@@ -63,7 +65,7 @@ const AnnouncementManagementPage = () => {
       const data = await getAnnouncements();
       setAnnouncements(data);
     } catch (error) {
-      console.error('Failed to fetch announcements', error);
+      console.error("Failed to fetch announcements", error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ const AnnouncementManagementPage = () => {
 
   const handleOpenCreateModal = () => {
     setEditingAnnouncement(null);
-    setFormData({ title: '', content: '', visible: true });
+    setFormData({ title: "", content: "", visible: true });
     setIsModalOpen(true);
   };
 
@@ -84,7 +86,7 @@ const AnnouncementManagementPage = () => {
     setFormData({
       title: announcement.title,
       content: announcement.content,
-      visible: announcement.visible
+      visible: announcement.visible,
     });
     setIsModalOpen(true);
   };
@@ -104,8 +106,8 @@ const AnnouncementManagementPage = () => {
       setIsModalOpen(false);
       fetchAnnouncements();
     } catch (error) {
-      console.error('Failed to save announcement', error);
-      alert('儲存失敗');
+      console.error("Failed to save announcement", error);
+      alert("儲存失敗");
     }
   };
 
@@ -118,33 +120,41 @@ const AnnouncementManagementPage = () => {
       setDeletingAnnouncement(null);
       fetchAnnouncements();
     } catch (error) {
-      console.error('Failed to delete announcement', error);
-      alert('刪除失敗');
+      console.error("Failed to delete announcement", error);
+      alert("刪除失敗");
     }
   };
 
   // Filter and Pagination
-  const filteredAnnouncements = announcements.filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.content.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAnnouncements = announcements.filter(
+    (item) =>
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const currentRows = filteredAnnouncements.slice(
-    firstRowIndex,
-    firstRowIndex + currentPageSize
-  ).map(a => ({ ...a, id: a.id.toString() }));
+  const currentRows = filteredAnnouncements
+    .slice(firstRowIndex, firstRowIndex + currentPageSize)
+    .map((a) => ({ ...a, id: a.id.toString() }));
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2 style={{ marginBottom: '2rem' }}>公告管理</h2>
-      
+    <div style={{ padding: "2rem" }}>
+      <h2 style={{ marginBottom: "2rem" }}>公告管理</h2>
+
       <DataTable rows={currentRows} headers={headers} isSortable>
         {({ rows, headers, getHeaderProps, getTableProps }) => (
-          <TableContainer title="系統公告列表" description={loading ? '載入中...' : ''}>
+          <TableContainer
+            title="系統公告列表"
+            description={loading ? "載入中..." : ""}
+          >
             <TableToolbar>
               <TableToolbarContent>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <TableToolbarSearch onChange={(e: any) => setSearchTerm(e.target ? e.target.value : '')} placeholder="搜尋公告" />
+                <TableToolbarSearch
+                  onChange={(e: any) =>
+                    setSearchTerm(e.target ? e.target.value : "")
+                  }
+                  placeholder="搜尋公告"
+                />
                 <Button renderIcon={Add} onClick={handleOpenCreateModal}>
                   新增公告
                 </Button>
@@ -153,16 +163,21 @@ const AnnouncementManagementPage = () => {
             <Table {...getTableProps()}>
               <TableHead>
                 <TableRow>
-                  {headers.map((header) => (
-                    <TableHeader {...getHeaderProps({ header })}>
-                      {header.header}
-                    </TableHeader>
-                  ))}
+                  {headers.map((header) => {
+                    const { key, ...headerProps } = getHeaderProps({ header });
+                    return (
+                      <TableHeader key={key} {...headerProps}>
+                        {header.header}
+                      </TableHeader>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {rows.map((row) => {
-                  const announcement = announcements.find(a => a.id.toString() === row.id);
+                  const announcement = announcements.find(
+                    (a) => a.id.toString() === row.id
+                  );
                   if (!announcement) return null;
 
                   return (
@@ -176,23 +191,25 @@ const AnnouncementManagementPage = () => {
                           <Tag type="gray">隱藏</Tag>
                         )}
                       </TableCell>
-                      <TableCell>{new Date(announcement.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Button 
-                            kind="ghost" 
-                            size="sm" 
-                            renderIcon={Edit} 
-                            iconDescription="編輯" 
-                            hasIconOnly 
+                        {new Date(announcement.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <Button
+                            kind="ghost"
+                            size="sm"
+                            renderIcon={Edit}
+                            iconDescription="編輯"
+                            hasIconOnly
                             onClick={() => handleOpenEditModal(announcement)}
                           />
-                          <Button 
-                            kind="danger--ghost" 
-                            size="sm" 
-                            renderIcon={TrashCan} 
-                            iconDescription="刪除" 
-                            hasIconOnly 
+                          <Button
+                            kind="danger--ghost"
+                            size="sm"
+                            renderIcon={TrashCan}
+                            iconDescription="刪除"
+                            hasIconOnly
                             onClick={() => handleOpenDeleteModal(announcement)}
                           />
                         </div>
@@ -205,7 +222,7 @@ const AnnouncementManagementPage = () => {
           </TableContainer>
         )}
       </DataTable>
-      
+
       <Pagination
         totalItems={filteredAnnouncements.length}
         backwardText="上一頁"
@@ -236,15 +253,17 @@ const AnnouncementManagementPage = () => {
           placeholder="請輸入公告標題"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          style={{ marginBottom: '1rem' }}
+          style={{ marginBottom: "1rem" }}
         />
         <TextArea
           id="content"
           labelText="內容"
           placeholder="請輸入公告內容"
           value={formData.content}
-          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-          style={{ marginBottom: '1rem' }}
+          onChange={(e) =>
+            setFormData({ ...formData, content: e.target.value })
+          }
+          style={{ marginBottom: "1rem" }}
           rows={5}
         />
         <Toggle
@@ -267,7 +286,9 @@ const AnnouncementManagementPage = () => {
         onRequestClose={() => setIsDeleteModalOpen(false)}
         onRequestSubmit={handleDelete}
       >
-        <p>您確定要刪除公告「{deletingAnnouncement?.title}」嗎？此動作無法復原。</p>
+        <p>
+          您確定要刪除公告「{deletingAnnouncement?.title}」嗎？此動作無法復原。
+        </p>
       </Modal>
     </div>
   );

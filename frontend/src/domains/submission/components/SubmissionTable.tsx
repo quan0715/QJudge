@@ -302,27 +302,33 @@ export const SubmissionTable: React.FC<SubmissionTableProps> = ({
           <Table {...getTableProps()}>
             <TableHead>
               <TableRow>
-                {headers.map((header: any) => (
-                  <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                    {header.header}
-                  </TableHeader>
-                ))}
+                {headers.map((header: any) => {
+                  const { key, ...headerProps } = getHeaderProps({ header });
+                  return (
+                    <TableHeader key={key} {...headerProps}>
+                      {header.header}
+                    </TableHeader>
+                  );
+                })}
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row: any) => (
-                <TableRow
-                  {...getRowProps({ row })}
-                  key={row.id}
-                  onClick={() => onViewDetails(row.id)}
-                  style={{ cursor: "pointer" }}
-                  className="submission-row"
-                >
-                  {row.cells.map((cell: any) => (
-                    <TableCell key={cell.id}>{cell.value}</TableCell>
-                  ))}
-                </TableRow>
-              ))}
+              {rows.map((row: any) => {
+                const { key, ...rowProps } = getRowProps({ row });
+                return (
+                  <TableRow
+                    key={key}
+                    {...rowProps}
+                    onClick={() => onViewDetails(row.id)}
+                    style={{ cursor: "pointer" }}
+                    className="submission-row"
+                  >
+                    {row.cells.map((cell: any) => (
+                      <TableCell key={cell.id}>{cell.value}</TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
