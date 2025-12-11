@@ -87,25 +87,27 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 
 本專案提供完整的中文使用指南和技術文件，涵蓋開發、部署、使用等各個方面。
 
-### 🚀 快速開始
-- **[執行與部署指南](./docs/RUN_AND_DEPLOY.md)** - 本地開發環境設置與生產環境部署
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Docker Compose 與 Cloudflare Tunnel 詳細部署指南
+> 📖 **文件總覽**：請參閱 **[docs/README.md](./docs/README.md)** 獲取完整的文件導覽
 
-### 👥 使用者指南
-- **[學生使用指南](./docs/STUDENT_GUIDE.md)** - 如何參加競賽、提交程式碼
-- **[教師競賽指南](./docs/TEACHER_CONTEST_GUIDE.md)** - 如何舉辦和管理競賽
-- **[教師題目管理指南](./docs/TEACHER_PROBLEM_GUIDE.md)** - 如何創建和管理題目
+### 🏗️ 架構與設計
+- **[系統架構](./docs/ARCHITECTURE.md)** - 系統概述、技術架構、前後端設計、評測系統
+- **[資料庫設計](./docs/DATABASE.md)** - 資料模型、ER 圖、索引策略
 
-### 💻 開發者文件
-- **[後端 API 文件](./BACKEND_API.md)** - RESTful API 端點說明
+### 📡 API 文件
+- **[API 規範](./docs/API.md)** - 完整的 RESTful API 端點說明
+- **[Swagger UI](http://localhost:8000/api/schema/swagger-ui/)** - 線上 API 文件（需啟動後端）
+
+### 🚀 部署與測試
+- **[部署與測試指南](./docs/DEPLOYMENT_AND_TESTING.md)** - 本地開發、生產部署、CI/CD
+- **[E2E 測試指南](./E2E_TESTING.md)** - Playwright 端對端測試
+
+### 💻 開發指南
+- **[後端開發](./backend/README.md)** - Django 後端開發指南
+- **[前端開發](./frontend/README.md)** - React 前端開發指南
 - **[題目導入格式](./docs/problem-import-format.md)** - YAML 題目格式規範
-- **[資料庫設計](./DATABASE_DESIGN.md)** - 資料庫結構與關聯
-- **[前端使用案例](./FRONTEND_USECASE.md)** - 前端功能與使用流程
-- **[UI 設計指南](./UI_DESIGN.md)** - 介面設計規範
 
-### 🔧 技術文件
-- **[開發需求](./REQUIREMENTS.md)** - 系統需求與功能規劃
-- **[AI Agent 指南](./AGENT_GUIDE.md)** - AI 協作開發指引
+### 🔍 程式碼品質
+- **[Code Review 報告](./docs/CODE_REVIEW_REPORT.md)** - 程式碼審查與改進建議
 
 ---
 
@@ -114,13 +116,13 @@ QJudge 是一個功能完整的線上程式評測平台，專為程式設計課�
 ### 新手入門
 
 1. **選擇你的身份**：
-   - 👨‍🎓 學生使用者：閱讀 [學生使用指南](./docs/STUDENT_GUIDE.md)
-   - 👨‍🏫 教師使用者：閱讀 [教師競賽指南](./docs/TEACHER_CONTEST_GUIDE.md) 和 [題目管理指南](./docs/TEACHER_PROBLEM_GUIDE.md)
-   - 💻 開發者：閱讀 [執行與部署指南](./docs/RUN_AND_DEPLOY.md)
+   - 👨‍🎓 學生使用者：直接訪問 [Demo](https://q-judge.quan.wtf/contests/3?tab=overview) 體驗
+   - 👨‍🏫 教師使用者：閱讀 [系統架構](./docs/ARCHITECTURE.md) 瞭解系統功能
+   - 💻 開發者：閱讀 [部署與測試指南](./docs/DEPLOYMENT_AND_TESTING.md)
 
 2. **本地開發環境設置**：
 ```bash
-# 參考完整設置步驟請見 docs/RUN_AND_DEPLOY.md
+# 參考完整設置步驟請見 docs/DEPLOYMENT_AND_TESTING.md
 
 # 啟動後端
 cd backend
@@ -397,6 +399,14 @@ QJudge/
 ---
 
 ## 📝 更新紀錄
+
+- **v1.2.0** (2025-12-11) - 文件整合更新
+  - 整合所有技術文件至 `docs/` 目錄
+  - 新增系統架構文件 (ARCHITECTURE.md)
+  - 新增詳細 API 文件 (API.md)
+  - 新增資料庫設計文件 (DATABASE.md)
+  - 新增部署與測試指南 (DEPLOYMENT_AND_TESTING.md)
+  - 新增程式碼審查報告 (CODE_REVIEW_REPORT.md)
 
 - **v1.1.0** (2025-12-03) - 更新中文文件
   - 新增完整的中文 README

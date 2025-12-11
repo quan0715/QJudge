@@ -1,6 +1,6 @@
 # QJudge 文件目錄
 
-> **最後更新**: 2025-12-10
+> **最後更新**: 2025-12-11
 
 本目錄包含 QJudge 專案的完整技術文件，涵蓋架構、API、資料庫、部署、測試以及 Code Review 報告。
 
@@ -62,7 +62,7 @@
 
 **[problem-import-format.md](./problem-import-format.md)** - 題目 YAML 導入格式規範
 
-**[E2E_TESTING.md](./E2E_TESTING.md)** - E2E 測試指南
+**[E2E_TESTING.md](../E2E_TESTING.md)** - E2E 測試指南
 
 **[examples/a-plus-b-problem.yaml](./examples/a-plus-b-problem.yaml)** - 題目 YAML 範例
 
@@ -85,7 +85,7 @@
 - **部署到生產環境** → [DEPLOYMENT_AND_TESTING.md](./DEPLOYMENT_AND_TESTING.md)
 - **查看已知問題與改進建議** → [CODE_REVIEW_REPORT.md](./CODE_REVIEW_REPORT.md)
 - **導入題目** → [problem-import-format.md](./problem-import-format.md)
-- **執行 E2E 測試** → [E2E_TESTING.md](./E2E_TESTING.md)
+- **執行 E2E 測試** → [E2E_TESTING.md](../E2E_TESTING.md)
 
 ---
 
