@@ -1,12 +1,20 @@
+/**
+ * Clear auth storage (for logout or token expiry)
+ * Note: JWT tokens are now stored in HttpOnly cookies (more secure),
+ * but we keep localStorage for user info cache.
+ */
 export const clearAuthStorage = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  window.dispatchEvent(new Event('storage'));
+  localStorage.removeItem("token"); // Legacy support
+  localStorage.removeItem("user");
+  window.dispatchEvent(new Event("storage"));
 };
 
 const redirectToLogin = () => {
-  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login';
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/login")
+  ) {
+    window.location.href = "/login";
   }
 };
 
@@ -19,28 +27,38 @@ const handleUnauthorized = (response: Response): boolean => {
   return false;
 };
 
-// Base fetch wrapper
+/**
+ * Base fetch wrapper with HttpOnly cookie support.
+ *
+ * Security: JWT tokens are stored in HttpOnly cookies by the backend.
+ * The `credentials: 'include'` option ensures cookies are sent with requests.
+ *
+ * Fallback: For API clients that don't support cookies, the Authorization
+ * header can still be used (reads from localStorage).
+ */
 const customFetch = async (endpoint: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers || {});
-  const token = localStorage.getItem('token');
 
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+  // For API clients without cookie support, fall back to localStorage token
+  const token = localStorage.getItem("token");
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
-  
+
   // Ensure we accept JSON
-  if (!headers.has('Accept')) {
-    headers.set('Accept', 'application/json');
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
   }
 
-  // Auto-set Content-Type for POST/PUT if body is object? 
-  // Standard fetch doesn't do this, but often useful.
-  // For now, let's keep it simple or manual.
-
-  const response = await fetch(endpoint, { ...init, headers });
+  // Include credentials (cookies) in requests for HttpOnly cookie auth
+  const response = await fetch(endpoint, {
+    ...init,
+    headers,
+    credentials: "include", // Important: Send and receive cookies
+  });
 
   if (handleUnauthorized(response)) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   return response;
@@ -48,27 +66,29 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
 export const httpClient = {
   request: customFetch,
-  get: (url: string, init?: RequestInit) => customFetch(url, { ...init, method: 'GET' }),
-  post: (url: string, body?: any, init?: RequestInit) => 
-    customFetch(url, { 
-      ...init, 
-      method: 'POST', 
+  get: (url: string, init?: RequestInit) =>
+    customFetch(url, { ...init, method: "GET" }),
+  post: (url: string, body?: any, init?: RequestInit) =>
+    customFetch(url, {
+      ...init,
+      method: "POST",
       body: JSON.stringify(body),
-      headers: { ...init?.headers, 'Content-Type': 'application/json' } 
+      headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  put: (url: string, body?: any, init?: RequestInit) => 
-    customFetch(url, { 
-        ...init, 
-        method: 'PUT', 
-        body: JSON.stringify(body),
-        headers: { ...init?.headers, 'Content-Type': 'application/json' }
+  put: (url: string, body?: any, init?: RequestInit) =>
+    customFetch(url, {
+      ...init,
+      method: "PUT",
+      body: JSON.stringify(body),
+      headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  patch: (url: string, body?: any, init?: RequestInit) => 
-    customFetch(url, { 
-        ...init, 
-        method: 'PATCH', 
-        body: JSON.stringify(body),
-        headers: { ...init?.headers, 'Content-Type': 'application/json' }
+  patch: (url: string, body?: any, init?: RequestInit) =>
+    customFetch(url, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(body),
+      headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  delete: (url: string, init?: RequestInit) => customFetch(url, { ...init, method: 'DELETE' }),
+  delete: (url: string, init?: RequestInit) =>
+    customFetch(url, { ...init, method: "DELETE" }),
 };

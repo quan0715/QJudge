@@ -99,16 +99,18 @@ export const EnvironmentPage = () => {
     // 確認切換
     const confirmMessage = `切換前會將資料從 ${
       sourceDb === "default" ? "本地" : "雲端"
-    } 同步到 ${targetDb === "cloud" ? "雲端" : "本地"}。\n\n確定要繼續嗎？`;
+    } 同步到 ${
+      targetDb === "cloud" ? "雲端" : "本地"
+    }。\n\n（自動執行資料庫遷移）\n\n確定要繼續嗎？`;
     if (!confirm(confirmMessage)) return;
 
     try {
       setSwitching(true);
       setError(null);
 
-      // Step 1: 同步資料庫
-      setSwitchProgress("同步資料庫中...");
-      await databaseService.syncDatabase(sourceDb, targetDb);
+      // Step 1: 同步資料庫 (includes migrations)
+      setSwitchProgress("執行資料庫遷移與同步中...");
+      const syncResult = await databaseService.syncDatabase(sourceDb, targetDb);
 
       // Step 2: 切換資料庫
       setSwitchProgress("切換資料庫中...");
@@ -116,9 +118,14 @@ export const EnvironmentPage = () => {
       setStatus((prev) => (prev ? { ...prev, current: result.current } : null));
 
       setSwitchProgress(null);
-      setSuccessMessage(
-        `已切換至 ${targetDb === "cloud" ? "雲端" : "本地"} 資料庫`
-      );
+
+      // Build success message with migration info
+      let message = `已切換至 ${targetDb === "cloud" ? "雲端" : "本地"} 資料庫`;
+      if (syncResult.migrations && syncResult.migrations.includes("Applying")) {
+        message += " (已執行資料庫遷移)";
+      }
+      setSuccessMessage(message);
+
       setTimeout(() => {
         setSuccessMessage(null);
         // Reload to apply changes
@@ -137,14 +144,20 @@ export const EnvironmentPage = () => {
       source === "default" ? "本地" : "雲端"
     } 同步到 ${
       target === "cloud" ? "雲端" : "本地"
-    } 嗎？\n\n這會覆蓋目標資料庫的資料。`;
+    } 嗎？\n\n（自動執行資料庫遷移）\n\n這會覆蓋目標資料庫的資料。`;
     if (!confirm(confirmMessage)) return;
 
     try {
       setSyncing(true);
       setError(null);
       const result = await databaseService.syncDatabase(source, target);
-      setSuccessMessage(result.message);
+
+      // Build success message with migration info
+      let message = result.message;
+      if (result.migrations && result.migrations.includes("Applying")) {
+        message += " (已執行資料庫遷移)";
+      }
+      setSuccessMessage(message);
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sync");
@@ -571,7 +584,7 @@ export const EnvironmentPage = () => {
               fontSize: "0.875rem",
             }}
           >
-            將資料從一個資料庫同步到另一個。注意：此操作會覆蓋目標資料庫的資料。
+            將資料從一個資料庫同步到另一個。同步前會自動執行目標資料庫的遷移。注意：此操作會覆蓋目標資料庫的資料。
           </p>
 
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>

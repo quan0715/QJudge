@@ -1,5 +1,7 @@
 """
 Views for user authentication and management.
+
+Security: JWT tokens are stored in HttpOnly cookies to prevent XSS attacks.
 """
 import secrets
 from rest_framework import status, generics
@@ -25,6 +27,7 @@ from .serializers import (
 )
 from .services import EmailAuthService, NYCUOAuthService, JWTService
 from .permissions import IsSuperAdmin
+from .authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
 
 User = get_user_model()
 
@@ -62,7 +65,7 @@ class RegisterView(APIView):
             # Generate tokens
             tokens = JWTService.generate_tokens(user)
             
-            return Response({
+            response = Response({
                 'success': True,
                 'data': {
                     **JWTService.get_user_response_data(user, tokens)['data'],
@@ -70,6 +73,11 @@ class RegisterView(APIView):
                 },
                 'message': '註冊成功,請檢查您的Email以驗證帳號'
             }, status=status.HTTP_201_CREATED)
+            
+            # Set tokens in HttpOnly cookies
+            set_jwt_cookies(response, tokens)
+            
+            return response
             
         except Exception as e:
             return Response({
@@ -120,7 +128,12 @@ class LoginView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         tokens = JWTService.generate_tokens(user)
-        return Response(JWTService.get_user_response_data(user, tokens))
+        response = Response(JWTService.get_user_response_data(user, tokens))
+        
+        # Set tokens in HttpOnly cookies
+        set_jwt_cookies(response, tokens)
+        
+        return response
 
 
 class NYCUOAuthLoginView(APIView):
@@ -184,7 +197,12 @@ class NYCUOAuthCallbackView(APIView):
             # Generate JWT tokens
             tokens = JWTService.generate_tokens(user)
             
-            return Response(JWTService.get_user_response_data(user, tokens))
+            response = Response(JWTService.get_user_response_data(user, tokens))
+            
+            # Set tokens in HttpOnly cookies
+            set_jwt_cookies(response, tokens)
+            
+            return response
             
         except Exception as e:
             return Response({
@@ -202,11 +220,16 @@ class TokenRefreshView(APIView):
     Refresh access token.
     
     POST /api/v1/auth/refresh
+    
+    Token can be provided via:
+    1. HttpOnly cookie (preferred, more secure)
+    2. Request body with 'refresh' field (for API clients)
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        # Try to get refresh token from cookie first, then from body
+        refresh_token = get_refresh_token_from_cookie(request) or request.data.get('refresh')
         
         if not refresh_token:
             return Response({
@@ -221,25 +244,41 @@ class TokenRefreshView(APIView):
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
             
-            return Response({
+            # Create new tokens dict for cookie update
+            tokens = {
+                'access': access_token,
+                'refresh': str(refresh),  # Keep same refresh token
+            }
+            
+            response = Response({
                 'success': True,
                 'data': {
                     'access_token': access_token,
                 }
             })
+            
+            # Update access token in cookie
+            set_jwt_cookies(response, tokens)
+            
+            return response
         except Exception as e:
-            return Response({
+            response = Response({
                 'success': False,
                 'error': {
                     'code': 'INVALID_TOKEN',
                     'message': 'Refresh token 無效或已過期'
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Clear invalid cookies
+            clear_jwt_cookies(response)
+            
+            return response
 
 
 class LogoutView(APIView):
     """
-    Logout user by blacklisting their refresh token.
+    Logout user by blacklisting their refresh token and clearing cookies.
     This invalidates both access and refresh tokens.
     
     POST /api/v1/auth/logout
@@ -248,12 +287,16 @@ class LogoutView(APIView):
     
     def post(self, request):
         try:
-            refresh_token = request.data.get('refresh')
+            # Try to get refresh token from cookie first, then from body
+            refresh_token = get_refresh_token_from_cookie(request) or request.data.get('refresh')
             
             if refresh_token:
                 # Blacklist the specific refresh token
-                token = RefreshToken(refresh_token)
-                token.blacklist()
+                try:
+                    token = RefreshToken(refresh_token)
+                    token.blacklist()
+                except Exception:
+                    pass
             else:
                 # Blacklist all outstanding tokens for this user
                 tokens = OutstandingToken.objects.filter(user=request.user)
@@ -263,16 +306,23 @@ class LogoutView(APIView):
                     except Exception:
                         pass
             
-            return Response({
+            response = Response({
                 'success': True,
                 'message': '登出成功'
             })
+            
+            # Clear JWT cookies
+            clear_jwt_cookies(response)
+            
+            return response
         except Exception as e:
-            # Even if blacklisting fails, consider logout successful from client perspective
-            return Response({
+            # Even if blacklisting fails, clear cookies and consider logout successful
+            response = Response({
                 'success': True,
                 'message': '登出成功'
             })
+            clear_jwt_cookies(response)
+            return response
 
 
 class CurrentUserView(APIView):
