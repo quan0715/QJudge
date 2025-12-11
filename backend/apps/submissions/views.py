@@ -13,7 +13,7 @@ from .serializers import (
     SubmissionDetailSerializer,
     CreateSubmissionSerializer,
 )
-from .tasks import judge_submission
+from .tasks import judge_submission, judge_contest_submission
 
 
 class SubmissionViewSet(viewsets.ModelViewSet):
@@ -32,6 +32,15 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     
     # Date range filtering (default: last 3 months)
     DEFAULT_DATE_RANGE_DAYS = 90
+    
+    def filter_queryset(self, queryset):
+        """
+        Override to disable filtering for non-list actions.
+        This ensures retrieve/update/delete can access any submission by ID.
+        """
+        if self.action != 'list':
+            return queryset
+        return super().filter_queryset(queryset)
     
     def get_queryset(self):
         """
@@ -253,5 +262,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         )
         
         # Trigger async judging task after transaction commits
+        # Use high_priority queue for contest submissions
         from django.db import transaction
-        transaction.on_commit(lambda: judge_submission.delay(submission.id))
+        if source_type == 'contest':
+            transaction.on_commit(lambda: judge_contest_submission.delay(submission.id))
+        else:
+            transaction.on_commit(lambda: judge_submission.delay(submission.id))

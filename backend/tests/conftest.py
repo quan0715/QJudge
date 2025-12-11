@@ -20,9 +20,12 @@ def user_factory():
         }
         defaults.update(kwargs)
         
-        if defaults['auth_provider'] == 'email' and 'password' not in kwargs:
+        # Extract password before creating user
+        password = defaults.pop('password', 'testpass123')
+        
+        if defaults['auth_provider'] == 'email':
             user = User.objects.create_user(
-                password='testpass123',
+                password=password,
                 **defaults
             )
         else:

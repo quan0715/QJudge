@@ -1,9 +1,9 @@
-import type { UserRole } from './user.entity';
-import type { SubmissionStatus } from './submission.entity';
+import type { UserRole } from "./user.entity";
+import type { SubmissionStatus } from "./submission.entity";
 
-export type ContestStatus = 'inactive' | 'active' | 'archived' | 'ended';
-export type ContestVisibility = 'public' | 'private';
-export type ExamEventType = 'tab_hidden' | 'window_blur' | 'exit_fullscreen';
+export type ContestStatus = "inactive" | "active" | "archived" | "ended";
+export type ContestVisibility = "public" | "private";
+export type ExamEventType = "tab_hidden" | "window_blur" | "exit_fullscreen";
 
 export interface ContestPermissions {
   canSwitchView: boolean;
@@ -16,12 +16,12 @@ export interface ContestPermissions {
 }
 
 export interface ContestProblemSummary {
-  id: string;      // ContestProblem ID
+  id: string; // ContestProblem ID
   problemId: string; // Actual Problem ID
-  label: string;   // A, B, C...
+  label: string; // A, B, C...
   title: string;
   order?: number;
-  score?: number;  // Problem score/points
+  score?: number; // Problem score/points
   userStatus?: SubmissionStatus;
   difficulty?: string;
 }
@@ -52,7 +52,7 @@ export interface Contest {
   status: ContestStatus;
   visibility: ContestVisibility;
   password?: string;
-  
+
   // User state
   hasJoined: boolean;
   isRegistered: boolean;
@@ -61,42 +61,42 @@ export interface Contest {
 }
 
 // Explicit exam state for student participation
-export type ExamStatusType = 
-  | 'not_started' 
-  | 'in_progress' 
-  | 'paused' 
-  | 'locked' 
-  | 'submitted';
+export type ExamStatusType =
+  | "not_started"
+  | "in_progress"
+  | "paused"
+  | "locked"
+  | "submitted";
 
 export interface ContestDetail extends Contest {
   rules?: string;
-  
+
   // Exam mode
   examModeEnabled: boolean;
   scoreboardVisibleDuringContest: boolean;
-  
+
   // Anonymous mode
   anonymousModeEnabled?: boolean;
   myNickname?: string;
-  
+
   // Advanced settings
   allowMultipleJoins: boolean;
   maxCheatWarnings: number;
   allowAutoUnlock: boolean;
   autoUnlockMinutes: number;
-  
+
   // User specific extended state
   hasStarted?: boolean;
   startedAt?: string;
   leftAt?: string;
   lockedAt?: string;
   lockReason?: string;
-  examStatus?: ExamStatusType;  // Primary state field
-  autoUnlockAt?: string;  // Auto-unlock time when locked
-  
+  examStatus?: ExamStatusType; // Primary state field
+  autoUnlockAt?: string; // Auto-unlock time when locked
+
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
-  
+
   // Multi-admin support
   admins?: Array<{ id: string; username: string }>;
 }
@@ -112,6 +112,7 @@ export interface ScoreboardRow {
   userId: string;
   displayName: string;
   solvedCount: number;
+  totalScore: number;
   penalty: number;
   rank: number;
   problems: Record<string, ScoreboardProblemCell>;
@@ -209,59 +210,82 @@ export interface ContestUpdateRequest {
 
 // ============ Contest State Utilities ============
 
-export type ContestDisplayState = 'upcoming' | 'running' | 'ended' | 'inactive';
+export type ContestDisplayState = "upcoming" | "running" | "ended" | "inactive";
 
-export const getContestState = (
-  contest: { status?: string; startTime?: string; endTime?: string; start_time?: string; end_time?: string }
-): ContestDisplayState => {
-  if (contest.status === 'inactive') {
-    return 'inactive';
+export const getContestState = (contest: {
+  status?: string;
+  startTime?: string;
+  endTime?: string;
+  start_time?: string;
+  end_time?: string;
+}): ContestDisplayState => {
+  if (contest.status === "inactive") {
+    return "inactive";
   }
 
   const now = new Date().getTime();
-  const startTime = new Date(contest.startTime || contest.start_time || '').getTime();
-  const endTime = new Date(contest.endTime || contest.end_time || '').getTime();
+  const startTime = new Date(
+    contest.startTime || contest.start_time || ""
+  ).getTime();
+  const endTime = new Date(contest.endTime || contest.end_time || "").getTime();
 
   if (now < startTime) {
-    return 'upcoming';
+    return "upcoming";
   } else if (now >= startTime && now <= endTime) {
-    return 'running';
+    return "running";
   } else {
-    return 'ended';
+    return "ended";
   }
 };
 
 export const getContestStateLabel = (state: ContestDisplayState): string => {
   switch (state) {
-    case 'upcoming':
-      return '即將開始';
-    case 'running':
-      return '進行中';
-    case 'ended':
-      return '已結束';
-    case 'inactive':
-      return '未開放';
+    case "upcoming":
+      return "即將開始";
+    case "running":
+      return "進行中";
+    case "ended":
+      return "已結束";
+    case "inactive":
+      return "未開放";
     default:
-      return '未知';
+      return "未知";
   }
 };
 
-export const getContestStateColor = (state: ContestDisplayState): "red" | "magenta" | "purple" | "blue" | "cyan" | "teal" | "green" | "gray" | "cool-gray" | "warm-gray" | "high-contrast" | "outline" => {
+export const getContestStateColor = (
+  state: ContestDisplayState
+):
+  | "red"
+  | "magenta"
+  | "purple"
+  | "blue"
+  | "cyan"
+  | "teal"
+  | "green"
+  | "gray"
+  | "cool-gray"
+  | "warm-gray"
+  | "high-contrast"
+  | "outline" => {
   switch (state) {
-    case 'upcoming':
-      return 'blue';
-    case 'running':
-      return 'green';
-    case 'ended':
-      return 'gray';
-    case 'inactive':
-      return 'red';
+    case "upcoming":
+      return "blue";
+    case "running":
+      return "green";
+    case "ended":
+      return "gray";
+    case "inactive":
+      return "red";
     default:
-      return 'gray';
+      return "gray";
   }
 };
 
-export const isContestEnded = (contest: { endTime?: string; end_time?: string }): boolean => {
-  const endTime = new Date(contest.endTime || contest.end_time || '').getTime();
+export const isContestEnded = (contest: {
+  endTime?: string;
+  end_time?: string;
+}): boolean => {
+  const endTime = new Date(contest.endTime || contest.end_time || "").getTime();
   return new Date().getTime() > endTime;
 };

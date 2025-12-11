@@ -18,7 +18,7 @@ export default defineConfig({
   timeout: 60 * 1000,
 
   /* Run tests in files in parallel */
-  fullyParallel: false,
+  fullyParallel: true,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
@@ -26,8 +26,13 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests for E2E to avoid data conflicts */
-  workers: 1,
+  /* Run tests in parallel with multiple workers */
+  /* Each test file runs independently, data conflicts avoided by:
+   * - Unique timestamps for new user registrations
+   * - Idempotent operations (join contest if not joined)
+   * - Read-only tests for problems listing
+   */
+  workers: process.env.CI ? 4 : 2,
 
   /* Reporter to use */
   reporter: [["html", { outputFolder: "playwright-report-e2e" }], ["list"]],
@@ -54,8 +59,8 @@ export default defineConfig({
   },
 
   /* Global setup and teardown */
-  globalSetup: require.resolve("./tests/helpers/setup.ts"),
-  globalTeardown: require.resolve("./tests/helpers/teardown.ts"),
+  globalSetup: "./tests/helpers/setup.ts",
+  globalTeardown: "./tests/helpers/teardown.ts",
 
   /* Configure projects for major browsers */
   projects: [

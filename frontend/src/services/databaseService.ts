@@ -23,6 +23,7 @@ export type DatabaseStatus = {
 export type DatabaseSwitchResponse = {
   current: string;
   message: string;
+  migrations?: string; // Migration output if run
 };
 
 export type DatabaseSyncResponse = {
@@ -30,6 +31,7 @@ export type DatabaseSyncResponse = {
   apps: string[];
   source: string;
   target: string;
+  migrations?: string; // Migration output if run
 };
 
 const API_BASE = "/api/admin/database/";

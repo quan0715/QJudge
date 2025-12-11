@@ -1,10 +1,57 @@
 """
 Celery tasks for contest scheduled operations.
-Auto-submit participants when contest ends, auto-unlock locked participants.
+Auto-submit participants when contest ends, auto-unlock locked participants,
+and check for heartbeat timeouts.
 """
 from celery import shared_task
 from django.utils import timezone
-from .models import Contest, ContestParticipant, ExamStatus
+from datetime import timedelta
+from .models import Contest, ContestParticipant, ExamStatus, ExamEvent, ContestActivity
+
+# Heartbeat timeout in seconds (log warning if no heartbeat for this long)
+HEARTBEAT_TIMEOUT_SECONDS = 90  # 1.5 minutes
+
+
+@shared_task
+def check_heartbeat_timeout():
+    """
+    Periodic task: Check for participants with stale heartbeats during active exams.
+    
+    Runs every 30 seconds via Celery Beat. Finds participants whose last heartbeat
+    is older than HEARTBEAT_TIMEOUT_SECONDS and logs a warning event.
+    This helps detect:
+    - Students who closed their browser without proper logout
+    - Network disconnections
+    - Attempts to bypass monitoring
+    """
+    now = timezone.now()
+    timeout_threshold = now - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
+    
+    # Find in-progress participants with stale heartbeats
+    stale_participants = ContestParticipant.objects.filter(
+        exam_status=ExamStatus.IN_PROGRESS,
+        last_heartbeat__lt=timeout_threshold,
+        contest__status='active',
+        contest__exam_mode_enabled=True,
+        contest__end_time__gt=now  # Only active contests
+    ).select_related('contest', 'user')
+    
+    count = 0
+    for participant in stale_participants:
+        # Log heartbeat timeout event (don't auto-lock, just log)
+        ExamEvent.objects.create(
+            contest=participant.contest,
+            user=participant.user,
+            event_type='forbidden_focus_event',  # Use existing type
+            metadata={
+                'source': 'heartbeat_timeout',
+                'last_heartbeat': participant.last_heartbeat.isoformat() if participant.last_heartbeat else None,
+                'timeout_seconds': HEARTBEAT_TIMEOUT_SECONDS
+            }
+        )
+        count += 1
+    
+    return f"Logged {count} heartbeat timeout warnings"
 
 
 @shared_task

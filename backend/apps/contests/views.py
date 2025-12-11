@@ -893,7 +893,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                     'status': None,
                     'tries': 0,
                     'time': 0,
-                    'pending': False
+                    'pending': False,
+                    'score': 0,  # Score earned for this problem
+                    'max_score': cp.problem_score_sum or 0  # Max possible score
                 }
 
         for sub in submissions:
@@ -916,10 +918,12 @@ class ContestViewSet(viewsets.ModelViewSet):
 
             p_stat['tries'] += 1
             
+            # Get max possible score for this problem
+            max_problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
+            
             if sub.status == 'AC':
                 p_stat['status'] = 'AC'
                 # Calculate time in minutes from start_time
-                # If start_time is null (shouldn't happen in active contest), use created_at
                 start_time = contest.start_time or contest.created_at
                 time_diff = sub.created_at - start_time
                 minutes = int(time_diff.total_seconds() / 60)
@@ -929,11 +933,19 @@ class ContestViewSet(viewsets.ModelViewSet):
                 penalty = minutes + 20 * (p_stat['tries'] - 1)
                 stats[uid]['time'] += penalty
                 
-                # Add score
-                problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
-                stats[uid]['total_score'] += problem_score
+                # Full score for AC
+                new_score = max_problem_score
+                score_diff = new_score - p_stat['score']
+                p_stat['score'] = new_score
+                stats[uid]['total_score'] += score_diff
             else:
                 p_stat['status'] = sub.status
+                # Track partial score (highest score among all submissions)
+                submission_score = sub.score or 0
+                if submission_score > p_stat['score']:
+                    score_diff = submission_score - p_stat['score']
+                    p_stat['score'] = submission_score
+                    stats[uid]['total_score'] += score_diff
 
         standings_list = list(stats.values())
         standings_list.sort(key=lambda x: (-x['solved'], x['time']))
@@ -999,7 +1011,8 @@ class ContestViewSet(viewsets.ModelViewSet):
                 stats[p.user.id]['problems'][cp.problem.id] = {
                     'status': '-',
                     'tries': 0,
-                    'time': 0
+                    'time': 0,
+                    'score': 0
                 }
         
         for sub in submissions:
@@ -1020,6 +1033,9 @@ class ContestViewSet(viewsets.ModelViewSet):
             
             p_stat['tries'] += 1
             
+            # Get max possible score for this problem
+            max_problem_score = next(((cp.problem_score_sum or 0) for cp in problems_data if cp.problem.id == pid), 0)
+            
             if sub.status == 'AC':
                 p_stat['status'] = 'AC'
                 start_time = contest.start_time or contest.created_at
@@ -1031,10 +1047,19 @@ class ContestViewSet(viewsets.ModelViewSet):
                 penalty = minutes + 20 * (p_stat['tries'] - 1)
                 stats[uid]['time'] += penalty
                 
-                problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
-                stats[uid]['total_score'] += problem_score
+                # Full score for AC
+                new_score = max_problem_score
+                score_diff = new_score - p_stat['score']
+                p_stat['score'] = new_score
+                stats[uid]['total_score'] += score_diff
             else:
                 p_stat['status'] = sub.status
+                # Track partial score (highest score among all submissions)
+                submission_score = sub.score or 0
+                if submission_score > p_stat['score']:
+                    score_diff = submission_score - p_stat['score']
+                    p_stat['score'] = submission_score
+                    stats[uid]['total_score'] += score_diff
         
         # Sort by standings
         standings_list = list(stats.values())
@@ -1382,6 +1407,57 @@ class ExamViewSet(viewsets.ViewSet):
         )
         
         return Response({'status': 'finished', 'exam_status': ExamStatus.SUBMITTED})
+
+    @action(detail=False, methods=['post'], url_path='heartbeat', permission_classes=[permissions.IsAuthenticated])
+    def heartbeat(self, request, contest_pk=None):
+        """
+        Exam heartbeat to verify client connectivity.
+        Should be called every 30 seconds during exam.
+        
+        POST /api/v1/contests/{id}/exam/heartbeat
+        Body: { "is_focused": true, "is_fullscreen": true }
+        """
+        contest = Contest.objects.get(id=contest_pk)
+        user = request.user
+        
+        # Admin/Teacher bypass
+        role = get_user_role_in_contest(user, contest)
+        if role in ['admin', 'teacher']:
+            return Response({'status': 'ok', 'bypass': True})
+        
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=user)
+        except ContestParticipant.DoesNotExist:
+            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Only update heartbeat if exam is in progress
+        if participant.exam_status == ExamStatus.IN_PROGRESS:
+            participant.last_heartbeat = timezone.now()
+            participant.save(update_fields=['last_heartbeat'])
+            
+            # Check for violations reported in heartbeat
+            is_focused = request.data.get('is_focused', True)
+            is_fullscreen = request.data.get('is_fullscreen', True)
+            
+            if not is_focused or not is_fullscreen:
+                # Log potential violation (but don't auto-lock from heartbeat alone)
+                ExamEvent.objects.create(
+                    contest=contest,
+                    user=user,
+                    event_type='forbidden_focus_event' if not is_focused else 'exit_fullscreen',
+                    metadata={
+                        'source': 'heartbeat',
+                        'is_focused': is_focused,
+                        'is_fullscreen': is_fullscreen
+                    }
+                )
+        
+        return Response({
+            'status': 'ok',
+            'exam_status': participant.exam_status,
+            'violation_count': participant.violation_count,
+            'max_warnings': contest.max_cheat_warnings,
+        })
 
     @action(detail=False, methods=['post', 'get'], url_path='events', permission_classes=[permissions.IsAuthenticated])
     def events(self, request, contest_pk=None):

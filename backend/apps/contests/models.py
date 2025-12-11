@@ -226,6 +226,14 @@ class ContestParticipant(models.Model):
         verbose_name='考試狀態',
         help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
     )
+    
+    # Heartbeat tracking for exam mode security
+    last_heartbeat = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='最後心跳時間',
+        help_text='用於追蹤考試期間學生的連線狀態'
+    )
 
     @property
     def has_finished_exam(self):
