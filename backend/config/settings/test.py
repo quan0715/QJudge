@@ -21,12 +21,19 @@ DATABASES = {
     }
 }
 
-# Use in-memory cache for tests
+# Use Redis cache for tests (required by django_ratelimit)
+# CI environment provides Redis service
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        'KEY_PREFIX': 'qjudge_test',
+        'TIMEOUT': 300,
     }
 }
+
+# Disable ratelimit system checks in test (still functional, just no E003 error)
+SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
 
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
