@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import {
   TableToolbar,
@@ -30,6 +31,8 @@ import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import type { Submission } from "@/core/entities/submission.entity";
 
 const SubmissionsPage = () => {
+  const { t } = useTranslation('contest');
+  const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -48,15 +51,15 @@ const SubmissionsPage = () => {
   const isModalOpen = !!submissionIdFromUrl;
 
   const statusOptions = [
-    { id: "all", label: "全部狀態" },
-    { id: "AC", label: "通過 (AC)" },
-    { id: "WA", label: "答案錯誤 (WA)" },
-    { id: "TLE", label: "超時 (TLE)" },
-    { id: "MLE", label: "記憶體超限 (MLE)" },
-    { id: "RE", label: "執行錯誤 (RE)" },
-    { id: "CE", label: "編譯錯誤 (CE)" },
-    { id: "pending", label: "等待中" },
-    { id: "judging", label: "評測中" },
+    { id: "all", label: t('submissions.allStatus') },
+    { id: "AC", label: t('submissions.ac') },
+    { id: "WA", label: t('submissions.wa') },
+    { id: "TLE", label: t('submissions.tle') },
+    { id: "MLE", label: t('submissions.mle') },
+    { id: "RE", label: t('submissions.re') },
+    { id: "CE", label: t('submissions.ce') },
+    { id: "pending", label: t('submissions.pending') },
+    { id: "judging", label: t('submissions.judging') },
   ];
 
   const dateRangeOptions = [

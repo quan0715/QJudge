@@ -102,7 +102,7 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
         }
       }, 800);
     } catch (error: any) {
-      setErrors([{ field: 'import', message: error.message || '匯入失敗' }]);
+      setErrors([{ field: 'import', message: error.message || t('import.importFailed') }]);
     } finally {
       setImporting(false);
     }
@@ -123,9 +123,9 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
   return (
     <Modal
       open={open}
-      modalHeading={mode === 'populateForm' ? "匯入 YAML 覆寫表單" : "從 YAML 匯入題目"}
-      primaryButtonText={parsedData ? (mode === 'populateForm' ? "套用到表單" : "匯入題目") : "關閉"}
-      secondaryButtonText={parsedData ? "取消" : undefined}
+      modalHeading={mode === 'populateForm' ? t('import.populateFormTitle') : t('import.modalTitle')}
+      primaryButtonText={parsedData ? (mode === 'populateForm' ? t('import.applyToForm') : t('import.importProblem')) : t('import.close')}
+      secondaryButtonText={parsedData ? t('import.cancel') : undefined}
       onRequestClose={handleClose}
       onRequestSubmit={parsedData ? handleImport : handleClose}
       primaryButtonDisabled={!parsedData || importing || importSuccess}
@@ -134,23 +134,23 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
       <div style={{ marginBottom: '1rem' }}>
         <p style={{ marginBottom: '1rem' }}>
           {mode === 'populateForm' 
-            ? '上傳或貼上 YAML 檔案，將會覆寫目前表單中的內容。'
-            : '上傳包含題目定義、測試案例和元數據的 YAML 文件。'
+            ? t('import.uploadDesc')
+            : t('import.uploadDescCreate')
           }
           <a 
             href="/docs/problem-import-format.md" 
             target="_blank" 
             style={{ marginLeft: '0.5rem', color: 'var(--cds-link-primary)' }}
           >
-            查看格式規範 →
+            {t('import.viewFormat')}
           </a>
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <FileUploader
-            labelTitle="上傳 YAML 文件"
-            labelDescription="最大文件大小為 5MB。僅支援 .yaml 或 .yml 文件。"
-            buttonLabel="選擇文件"
+            labelTitle={t('import.uploadYAML')}
+            labelDescription={t('import.uploadHelperText')}
+            buttonLabel={t('import.chooseFile')}
             filenameStatus="edit"
             accept={['.yaml', '.yml']}
             onChange={handleFileChange}
@@ -162,8 +162,8 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
           </div>
 
           <TextArea
-            labelText="直接貼上 YAML 內容"
-            placeholder="在此貼上您的 YAML 內容..."
+            labelText={t('import.pasteYAML')}
+            placeholder={t('import.pastePlaceholder')}
             rows={10}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
               const content = e.target.value;
@@ -239,35 +239,35 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
           <h4 style={{ marginBottom: '1rem' }}>預覽</h4>
           
           <div style={{ marginBottom: '1rem' }}>
-            <strong>標題:</strong> {parsedData.title}
+            <strong>{tc('form.title')}:</strong> {parsedData.title}
             <br />
-            <strong>難度:</strong> <Tag type={
+            <strong>{tc('difficulty.easy')}:</strong> <Tag type={
               parsedData.difficulty === 'easy' ? 'green' : 
               parsedData.difficulty === 'medium' ? 'cyan' : 'red'
-            }>{parsedData.difficulty === 'easy' ? '簡單' : parsedData.difficulty === 'medium' ? '中等' : '困難'}</Tag>
+            }>{parsedData.difficulty === 'easy' ? tc('difficulty.easy') : parsedData.difficulty === 'medium' ? tc('difficulty.medium') : tc('difficulty.hard')}</Tag>
             <br />
-            <strong>時間限制:</strong> {parsedData.time_limit}ms
+            <strong>{t('import.timeLimit')}:</strong> {parsedData.time_limit}ms
             <br />
-            <strong>記憶體限制:</strong> {parsedData.memory_limit}MB
+            <strong>{t('import.memoryLimit')}:</strong> {parsedData.memory_limit}MB
             <br />
-            <strong>測試案例:</strong> {parsedData.test_cases?.length || 0} 個
+            <strong>{t('import.testCases')}:</strong> {parsedData.test_cases?.length || 0} {t('import.cases')}
             {parsedData.test_cases && parsedData.test_cases.length > 0 && (
               <>
-                {' '}({parsedData.test_cases.filter(tc => tc.is_sample).length} 範例)
+                {' '}({parsedData.test_cases.filter(tc => tc.is_sample).length} {t('import.samples')})
               </>
             )}
             <br />
-            <strong>翻譯:</strong> {parsedData.translations.length} 個語言
+            <strong>{t('import.translations')}:</strong> {parsedData.translations.length} {t('import.languages')}
             {parsedData.language_configs && parsedData.language_configs.length > 0 && (
               <>
                 <br />
-                <strong>程式語言模板:</strong> {parsedData.language_configs.map(lc => lc.language).join(', ')}
+                <strong>{t('import.codeTemplates')}:</strong> {parsedData.language_configs.map(lc => lc.language).join(', ')}
               </>
             )}
           </div>
 
           <Accordion>
-            <AccordionItem title={`翻譯 (${parsedData.translations.length})`}>
+            <AccordionItem title={`${t('import.translations')} (${parsedData.translations.length})`}>
               {parsedData.translations.map((trans, index) => (
                 <div key={index} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'var(--cds-layer-01)' }}>
                   <strong>{trans.language}</strong>: {trans.title}
@@ -280,11 +280,11 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
             </AccordionItem>
             
             {parsedData.test_cases && parsedData.test_cases.length > 0 && (
-              <AccordionItem title={`測試案例 (${parsedData.test_cases.length})`}>
+              <AccordionItem title={`${t('import.testCases')} (${parsedData.test_cases.length})`}>
                 {parsedData.test_cases.slice(0, 5).map((tc, index) => (
                   <div key={index} style={{ marginBottom: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--cds-layer-01)' }}>
-                    <strong>案例 {index + 1}</strong> 
-                    {tc.is_sample && <Tag size="sm" type="blue" style={{ marginLeft: '0.5rem' }}>範例</Tag>}
+                    <strong>{t('import.testCases')} {index + 1}</strong> 
+                    {tc.is_sample && <Tag size="sm" type="blue" style={{ marginLeft: '0.5rem' }}>{t('import.samples')}</Tag>}
                     <br />
                     <span style={{ fontSize: '0.875rem' }}>
                       分數: {tc.score} | 順序: {tc.order}

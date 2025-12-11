@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   DataTable,
   Table,
@@ -66,6 +67,8 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
   onRowClick,
   loading = false,
 }: ProblemTableProps) => {
+  const { t: tc } = useTranslation('common');
+  
   const getAcceptanceRate = (problem: ProblemRowData) => {
     if (!problem.submissionCount) return "0%";
     return `${(
@@ -77,7 +80,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
   const getHeaders = () => {
     if (mode === "student") {
       return [
-        { key: "title", header: "題目" },
+        { key: "title", header: tc('table.title') },
         { key: "tags", header: "標籤" },
         { key: "difficulty", header: "難度" },
         { key: "acceptance_rate", header: "通過率" },
@@ -86,13 +89,13 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
     if (mode === "contest") {
       const headers = [
         { key: "label", header: "標號" },
-        { key: "title", header: "標題" },
+        { key: "title", header: tc('table.title') },
         { key: "difficulty", header: "難度" },
         { key: "tags", header: "標籤" },
         { key: "score", header: "分數" },
       ];
       if (onAction) {
-        headers.push({ key: "actions", header: "操作" });
+        headers.push({ key: "actions", header: tc('table.actions') });
       }
       return headers;
     }
