@@ -8,17 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-<<<<<<< HEAD
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-=======
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:api": "vitest run --config vitest.config.api.ts",
     "test:api:watch": "vitest --config vitest.config.api.ts",
->>>>>>> fc2d00fd491dc0eeb21c8253c6362d4ce466f2ce
     "test:e2e": "playwright test -c playwright.config.e2e.ts",
     "test:e2e:ui": "playwright test -c playwright.config.e2e.ts --ui",
     "test:e2e:debug": "playwright test -c playwright.config.e2e.ts --debug",
@@ -54,11 +48,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
-<<<<<<< HEAD
-    "@testing-library/jest-dom": "^6.6.3",
-=======
     "@testing-library/jest-dom": "^6.9.1",
->>>>>>> fc2d00fd491dc0eeb21c8253c6362d4ce466f2ce
     "@testing-library/react": "^16.3.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
@@ -69,18 +59,10 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-<<<<<<< HEAD
-    "jsdom": "^26.1.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vitest": "^3.2.4"
-=======
     "jsdom": "^27.3.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vitest": "^4.0.15"
->>>>>>> fc2d00fd491dc0eeb21c8253c6362d4ce466f2ce
   }
 }
