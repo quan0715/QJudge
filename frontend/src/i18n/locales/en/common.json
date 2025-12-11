@@ -175,5 +175,55 @@
       "failedRetry": "Registration failed, please try again later",
       "passwordMismatch": "Passwords do not match"
     }
+  },
+  "status": {
+    "public": "Public",
+    "private": "Private",
+    "published": "Published",
+    "hidden": "Hidden",
+    "active": "Active",
+    "inactive": "Inactive",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "action": {
+    "adding": "Adding...",
+    "deleting": "Deleting...",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "importing": "Importing...",
+    "exporting": "Exporting...",
+    "syncing": "Syncing...",
+    "processing": "Processing...",
+    "pleaseWait": "Please wait",
+    "refreshing": "Refreshing...",
+    "refresh": "Refresh"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
+  },
+  "form": {
+    "title": "Title",
+    "name": "Name",
+    "description": "Description",
+    "author": "Author",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "password": "Password",
+    "visibility": "Visibility"
+  },
+  "filter": {
+    "all": "All",
+    "allStatus": "All Status",
+    "search": "Search",
+    "searchPlaceholder": "Search..."
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Tabs,
@@ -17,6 +18,7 @@ import ProblemTable from '@/domains/problem/components/ProblemTable';
 import type { Problem } from '@/core/entities/problem.entity';
 
 const ProblemManagementPage = () => {
+  const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,7 @@ const ProblemManagementPage = () => {
                 fontWeight: 400, 
                 color: 'var(--cds-text-primary)' 
               }}>
-                題目管理
+                {t('problem.management.title')}
               </h1>
             </div>
 
@@ -89,9 +91,9 @@ const ProblemManagementPage = () => {
 
             <Tabs selectedIndex={selectedTab} onChange={({ selectedIndex }: any) => setSelectedTab(selectedIndex)}>
               <TabList aria-label="Problem tabs">
-                <Tab>所有題目 ({problems.length})</Tab>
-                <Tab>練習題目 ({problems.filter(p => p.isPracticeVisible).length})</Tab>
-                <Tab>競賽題目 ({problems.filter(p => !p.isPracticeVisible).length})</Tab>
+                <Tab>{t('problem.management.allProblems')} ({problems.length})</Tab>
+                <Tab>{t('problem.management.practiceProblems')} ({problems.filter(p => p.isPracticeVisible).length})</Tab>
+                <Tab>{t('problem.management.contestProblems')} ({problems.filter(p => !p.isPracticeVisible).length})</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel>

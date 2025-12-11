@@ -74,5 +74,49 @@
       "hidden": "非公開"
     },
     "confirmDelete": "お知らせ「{{title}}」を削除してもよろしいですか？この操作は取り消せません。"
+  },
+  "environment": {
+    "title": "環境管理",
+    "subtitle": "データベース接続と同期操作を管理",
+    "currentDatabase": "現在のデータベース",
+    "cloudDatabase": "クラウドデータベース",
+    "localDatabase": "ローカルデータベース",
+    "operations": "操作",
+    "refreshStatus": "ステータスを更新",
+    "connectionLatency": "接続遅延",
+    "latency": "遅延",
+    "latencyLevel": {
+      "unknown": "不明",
+      "excellent": "優秀",
+      "good": "良好",
+      "normal": "普通",
+      "slow": "遅い",
+      "verySlow": "とても遅い"
+    },
+    "inUse": "使用中",
+    "databaseSwitch": "データベース切り替え（切り替え前に自動同期）",
+    "local": "ローカル",
+    "cloud": "クラウド",
+    "databaseSync": "データベース同期",
+    "syncDescription": "あるデータベースから別のデータベースにデータを同期します。マイグレーションは自動的に適用されます。注意：これによりターゲットデータベースが上書きされます。",
+    "syncLocalToCloud": "ローカル → クラウド",
+    "syncCloudToLocal": "クラウド → ローカル",
+    "syncingPleaseWait": "同期中、お待ちください...",
+    "cannotSync": "同期できません",
+    "needBothConnected": "同期するには両方のデータベースが接続されている必要があります",
+    "confirmSwitch": "切り替え前に{{source}}から{{target}}にデータを同期します。\n\n（データベースマイグレーションが自動的に実行されます）\n\n続行しますか？",
+    "confirmSync": "{{source}}から{{target}}にデータを同期してもよろしいですか？\n\n（データベースマイグレーションが自動的に実行されます）\n\nこれによりターゲットデータベースが上書きされます。",
+    "switchProgress": "マイグレーションと同期を実行中...",
+    "switching": "データベースを切り替え中...",
+    "switchSuccess": "{{target}}データベースに切り替えました",
+    "switchSuccessWithMigration": "{{target}}データベースに切り替えました（マイグレーションが実行されました）"
+  },
+  "problem": {
+    "management": {
+      "title": "問題管理",
+      "allProblems": "すべての問題",
+      "practiceProblems": "練習問題",
+      "contestProblems": "コンテスト問題"
+    }
   }
 }
