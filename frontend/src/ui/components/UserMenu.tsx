@@ -15,6 +15,11 @@ import {
   Asleep,
   Laptop,
   Language,
+  Settings,
+  DocumentAdd,
+  Events,
+  UserMultiple,
+  Bullhorn,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
@@ -219,6 +224,87 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               </button>
             ))}
           </SwitcherItem>
+
+          {/* Management Section (teacher/admin only) */}
+          {(user?.role === "admin" || user?.role === "teacher") && (
+            <>
+              <SwitcherDivider />
+              <SwitcherItem
+                className="section-label"
+                aria-label={t("header.management")}
+              >
+                <Settings size={16} />
+                <span>{t("header.management")}</span>
+              </SwitcherItem>
+              <SwitcherItem
+                className="action-item"
+                aria-label={t("header.problemManagement")}
+                onClick={() => {
+                  navigate("/management/problems");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <DocumentAdd size={20} />
+                <span>{t("header.problemManagement")}</span>
+              </SwitcherItem>
+              <SwitcherItem
+                className="action-item"
+                aria-label={t("header.createContest")}
+                onClick={() => {
+                  navigate("/contests/new");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Events size={20} />
+                <span>{t("header.createContest")}</span>
+              </SwitcherItem>
+            </>
+          )}
+
+          {/* Admin Section */}
+          {user?.role === "admin" && (
+            <>
+              <SwitcherItem
+                className="action-item"
+                aria-label={t("header.userManagement")}
+                onClick={() => {
+                  navigate("/system/users");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <UserMultiple size={20} />
+                <span>{t("header.userManagement")}</span>
+              </SwitcherItem>
+              <SwitcherItem
+                className="action-item"
+                aria-label={t("header.announcements")}
+                onClick={() => {
+                  navigate("/management/announcements");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Bullhorn size={20} />
+                <span>{t("header.announcements")}</span>
+              </SwitcherItem>
+              <SwitcherItem
+                className="action-item"
+                aria-label={t("header.environmentSettings")}
+                onClick={() => {
+                  navigate("/system/environment");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Settings size={20} />
+                <span>{t("header.environmentSettings")}</span>
+              </SwitcherItem>
+            </>
+          )}
+
           <SwitcherDivider />
 
           {/* Change Password (only for email users) */}

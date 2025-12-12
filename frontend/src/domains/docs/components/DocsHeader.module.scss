@@ -1,0 +1,48 @@
+/* DocsHeader styles */
+
+/* Hamburger menu - only show on mobile */
+:global(.cds--header__menu-toggle) {
+  display: none;
+
+  @media screen and (max-width: 768px) {
+    display: flex;
+  }
+}
+
+/* Search wrapper - fills available space */
+.searchWrapper {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1rem;
+  max-width: 600px;
+  margin-left: auto;
+
+  // Make ExpandableSearch fill width when expanded
+  :global(.cds--search) {
+    width: 100%;
+  }
+
+  :global(.cds--search--expandable) {
+    &:global(.cds--search--expanded) {
+      width: 100%;
+    }
+  }
+}
+
+/* Side navigation - full height with flex layout */
+:global(.cds--side-nav) {
+  z-index: 8999;
+  top: 3rem;
+  height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure SideNavItems fills the space with flex layout */
+:global(.cds--side-nav__items) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
