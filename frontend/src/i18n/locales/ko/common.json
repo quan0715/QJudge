@@ -5,6 +5,7 @@
     "contests": "대회",
     "submissions": "제출 기록",
     "ranking": "랭킹",
+    "documentation": "문서",
     "backToProblemList": "문제 목록으로 돌아가기",
     "problemList": "문제 목록"
   },
@@ -119,7 +120,28 @@
   },
   "theme": {
     "switchToLight": "라이트 모드로 전환",
-    "switchToDark": "다크 모드로 전환"
+    "switchToDark": "다크 모드로 전환",
+    "light": "라이트",
+    "dark": "다크",
+    "system": "시스템"
+  },
+  "preferences": {
+    "title": "환경설정",
+    "themeSection": "테마",
+    "languageSection": "언어",
+    "theme": "테마",
+    "language": "언어",
+    "editor": "에디터 설정",
+    "editorFontSize": "글꼴 크기",
+    "editorTabSize": "탭 너비",
+    "changePassword": "비밀번호 변경",
+    "currentPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호",
+    "confirmPassword": "새 비밀번호 확인",
+    "passwordChanged": "비밀번호가 변경되었습니다",
+    "passwordMismatch": "새 비밀번호가 일치하지 않습니다",
+    "wrongPassword": "현재 비밀번호가 올바르지 않습니다",
+    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다"
   },
   "table": {
     "title": "제목",

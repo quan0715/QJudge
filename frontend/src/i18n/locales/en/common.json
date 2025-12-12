@@ -5,6 +5,7 @@
     "contests": "Contests",
     "submissions": "Submissions",
     "ranking": "Ranking",
+    "documentation": "Documentation",
     "backToProblemList": "Back to Problems",
     "problemList": "Problem List"
   },
@@ -119,7 +120,28 @@
   },
   "theme": {
     "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode"
+    "switchToDark": "Switch to Dark Mode",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "themeSection": "Theme",
+    "languageSection": "Language",
+    "theme": "Theme",
+    "language": "Language",
+    "editor": "Editor Settings",
+    "editorFontSize": "Font Size",
+    "editorTabSize": "Tab Size",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "passwordChanged": "Password changed successfully",
+    "passwordMismatch": "New passwords do not match",
+    "wrongPassword": "Current password is incorrect",
+    "oauthUser": "OAuth users cannot change password"
   },
   "table": {
     "title": "Title",

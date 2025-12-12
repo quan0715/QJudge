@@ -26,7 +26,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         DjangoFilterBackend,
         filters.OrderingFilter
     ]
-    filterset_fields = ['problem', 'contest', 'status', 'language', 'source_type']
+    filterset_fields = [
+        'problem', 'contest', 'status', 'language', 'source_type', 'user'
+    ]
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
     

@@ -488,7 +488,9 @@ const ContestAdminSettingsPage = () => {
                       labelText={t("settings.showDuringContest")}
                       labelA={tc("toggle.hide")}
                       labelB={tc("toggle.show")}
-                      toggled={formData.scoreboard_visible_during_contest}
+                      toggled={
+                        formData.scoreboard_visible_during_contest ?? false
+                      }
                       onToggle={(checked) =>
                         setFormData({
                           ...formData,
@@ -518,7 +520,7 @@ const ContestAdminSettingsPage = () => {
                       labelText={t("settings.anonymousMode")}
                       labelA={tc("toggle.off")}
                       labelB={tc("toggle.on")}
-                      toggled={formData.anonymous_mode_enabled}
+                      toggled={formData.anonymous_mode_enabled ?? false}
                       onToggle={(checked) =>
                         setFormData({
                           ...formData,
@@ -545,14 +547,14 @@ const ContestAdminSettingsPage = () => {
                       labelText={t("settings.enableExamMode")}
                       labelA={tc("toggle.off")}
                       labelB={tc("toggle.on")}
-                      toggled={formData.exam_mode_enabled}
+                      toggled={formData.exam_mode_enabled ?? false}
                       onToggle={(checked) =>
                         setFormData({ ...formData, exam_mode_enabled: checked })
                       }
                     />
                   </div>
 
-                  {formData.exam_mode_enabled && (
+                  {(formData.exam_mode_enabled ?? false) && (
                     <div
                       style={{
                         display: "flex",
@@ -565,7 +567,7 @@ const ContestAdminSettingsPage = () => {
                         labelText={t("settings.allowMultipleJoins")}
                         labelA={tc("toggle.forbid")}
                         labelB={tc("toggle.allow")}
-                        toggled={formData.allow_multiple_joins}
+                        toggled={formData.allow_multiple_joins ?? false}
                         onToggle={(checked) =>
                           setFormData({
                             ...formData,
@@ -600,7 +602,7 @@ const ContestAdminSettingsPage = () => {
                         labelText={t("settings.allowAutoUnlock")}
                         labelA={tc("toggle.forbid")}
                         labelB={tc("toggle.allow")}
-                        toggled={formData.allow_auto_unlock}
+                        toggled={formData.allow_auto_unlock ?? false}
                         onToggle={(checked) =>
                           setFormData({
                             ...formData,
@@ -609,7 +611,7 @@ const ContestAdminSettingsPage = () => {
                         }
                       />
 
-                      {formData.allow_auto_unlock && (
+                      {(formData.allow_auto_unlock ?? false) && (
                         <NumberInput
                           id="auto-unlock-minutes"
                           label={t("settings.autoUnlockMinutes")}

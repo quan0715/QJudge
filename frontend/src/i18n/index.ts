@@ -6,24 +6,28 @@ import zhTWCommon from "./locales/zh-TW/common.json";
 import zhTWProblem from "./locales/zh-TW/problem.json";
 import zhTWContest from "./locales/zh-TW/contest.json";
 import zhTWAdmin from "./locales/zh-TW/admin.json";
+import zhTWDocs from "./locales/zh-TW/docs.json";
 
 // English
 import enCommon from "./locales/en/common.json";
 import enProblem from "./locales/en/problem.json";
 import enContest from "./locales/en/contest.json";
 import enAdmin from "./locales/en/admin.json";
+import enDocs from "./locales/en/docs.json";
 
 // Japanese
 import jaCommon from "./locales/ja/common.json";
 import jaProblem from "./locales/ja/problem.json";
 import jaContest from "./locales/ja/contest.json";
 import jaAdmin from "./locales/ja/admin.json";
+import jaDocs from "./locales/ja/docs.json";
 
 // Korean
 import koCommon from "./locales/ko/common.json";
 import koProblem from "./locales/ko/problem.json";
 import koContest from "./locales/ko/contest.json";
 import koAdmin from "./locales/ko/admin.json";
+import koDocs from "./locales/ko/docs.json";
 
 const resources = {
   "zh-TW": {
@@ -31,24 +35,28 @@ const resources = {
     problem: zhTWProblem,
     contest: zhTWContest,
     admin: zhTWAdmin,
+    docs: zhTWDocs,
   },
   en: {
     common: enCommon,
     problem: enProblem,
     contest: enContest,
     admin: enAdmin,
+    docs: enDocs,
   },
   ja: {
     common: jaCommon,
     problem: jaProblem,
     contest: jaContest,
     admin: jaAdmin,
+    docs: jaDocs,
   },
   ko: {
     common: koCommon,
     problem: koProblem,
     contest: koContest,
     admin: koAdmin,
+    docs: koDocs,
   },
 };
 
@@ -66,7 +74,7 @@ i18n.use(initReactI18next).init({
   resources,
   lng: "zh-TW",
   fallbackLng: "zh-TW",
-  ns: ["common", "problem", "contest", "admin"],
+  ns: ["common", "problem", "contest", "admin", "docs"],
   defaultNS: "common",
   interpolation: {
     escapeValue: false,

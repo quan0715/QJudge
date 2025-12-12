@@ -1,0 +1,29 @@
+{
+  "sections": [
+    {
+      "id": "getting-started",
+      "items": ["overview", "quick-start"]
+    },
+    {
+      "id": "user-guide",
+      "items": ["submission", "contests", "judge-system"]
+    },
+    {
+      "id": "reference",
+      "items": ["common-errors", "supported-languages"]
+    },
+    {
+      "id": "teacher-guide",
+      "items": ["teacher-overview", "problem-import"]
+    },
+    {
+      "id": "admin-guide",
+      "items": ["admin-overview"]
+    },
+    {
+      "id": "developer-guide",
+      "items": ["contributing", "dev-setup"]
+    }
+  ],
+  "defaultDoc": "overview"
+}

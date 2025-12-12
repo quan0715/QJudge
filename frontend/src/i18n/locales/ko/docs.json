@@ -1,0 +1,40 @@
+{
+  "page": {
+    "title": "문서",
+    "subtitle": "QJudge 플랫폼 사용 방법 알아보기"
+  },
+  "nav": {
+    "productLabel": "문서",
+    "searchPlaceholder": "문서 검색...",
+    "onThisPage": "이 페이지에서",
+    "lastUpdated": "마지막 업데이트",
+    "back": "뒤로",
+    "sections": {
+      "getting-started": "시작하기",
+      "user-guide": "사용자 가이드",
+      "reference": "참고 자료",
+      "teacher-guide": "교사 가이드",
+      "admin-guide": "관리자 가이드",
+      "developer-guide": "개발자 가이드"
+    },
+    "items": {
+      "overview": "플랫폼 개요",
+      "quick-start": "빠른 시작",
+      "submission": "코드 제출",
+      "contests": "대회 참가",
+      "judge-system": "채점 시스템",
+      "common-errors": "자주 발생하는 오류",
+      "supported-languages": "지원 언어",
+      "teacher-overview": "교사 기능",
+      "problem-import": "YAML 문제 생성",
+      "admin-overview": "관리자 기능",
+      "contributing": "기여하기",
+      "dev-setup": "개발 환경 설정"
+    }
+  },
+  "message": {
+    "loading": "문서 로딩 중...",
+    "notFound": "문서를 찾을 수 없습니다",
+    "loadError": "문서 로드 실패"
+  }
+}

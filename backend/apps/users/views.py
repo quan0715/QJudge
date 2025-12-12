@@ -27,6 +27,8 @@ from .serializers import (
     UserProfileSerializer,
     UserSearchSerializer,
     UserRoleUpdateSerializer,
+    UserPreferencesUpdateSerializer,
+    ChangePasswordSerializer,
 )
 from .services import EmailAuthService, NYCUOAuthService, JWTService
 from .permissions import IsSuperAdmin
@@ -565,4 +567,126 @@ class UserStatsView(APIView):
                 'total_medium': total_medium,
                 'total_hard': total_hard,
             }
+        })
+
+
+class UserPreferencesView(APIView):
+    """
+    Get and update current user preferences.
+    
+    GET /api/v1/auth/me/preferences - Get current preferences
+    PATCH /api/v1/auth/me/preferences - Update preferences
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get current user preferences."""
+        user = request.user
+        
+        # Ensure user has a profile
+        from .models import UserProfile
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        
+        serializer = UserProfileSerializer(profile)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+    
+    def patch(self, request):
+        """Update user preferences."""
+        user = request.user
+        
+        # Ensure user has a profile
+        from .models import UserProfile
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        
+        serializer = UserPreferencesUpdateSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '偏好設定驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update profile fields
+        validated_data = serializer.validated_data
+        
+        if 'preferred_language' in validated_data:
+            profile.preferred_language = validated_data['preferred_language']
+        if 'preferred_theme' in validated_data:
+            profile.preferred_theme = validated_data['preferred_theme']
+        if 'editor_font_size' in validated_data:
+            profile.editor_font_size = validated_data['editor_font_size']
+        if 'editor_tab_size' in validated_data:
+            profile.editor_tab_size = validated_data['editor_tab_size']
+        
+        profile.save()
+        
+        # Return updated profile
+        profile_serializer = UserProfileSerializer(profile)
+        
+        return Response({
+            'success': True,
+            'data': profile_serializer.data,
+            'message': '偏好設定已更新'
+        })
+
+
+class ChangePasswordView(APIView):
+    """
+    Change password for current user.
+    
+    POST /api/v1/auth/change-password
+    
+    Requires current password verification.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        # Only email users can change password
+        if user.auth_provider != 'email':
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'OAUTH_USER',
+                    'message': 'OAuth 使用者無法變更密碼，請透過原認證方式管理'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ChangePasswordSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '密碼驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify current password
+        if not user.check_password(serializer.validated_data['current_password']):
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'WRONG_PASSWORD',
+                    'message': '目前密碼錯誤'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Set new password
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        
+        return Response({
+            'success': True,
+            'message': '密碼已成功變更'
         })

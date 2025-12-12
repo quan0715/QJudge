@@ -1,6 +1,6 @@
 import pytest
 from rest_framework import status
-from apps.users.models import User
+from apps.users.models import User, UserProfile
 
 
 @pytest.mark.django_db
@@ -85,3 +85,215 @@ def test_superadmin_permission_required(api_client, user_factory):
     response = api_client.get("/api/v1/auth/search")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["success"] is True
+
+
+# User Preferences Tests
+@pytest.mark.django_db
+def test_get_user_preferences(api_client, user_factory):
+    """Test getting user preferences."""
+    user = user_factory(password="TestPass123")
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.get("/api/v1/auth/me/preferences")
+    
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["success"] is True
+    # Check default values
+    assert data["data"]["preferred_theme"] == "system"
+    assert data["data"]["preferred_language"] == "zh-TW"
+    assert data["data"]["editor_font_size"] == 14
+    assert data["data"]["editor_tab_size"] == 4
+
+
+@pytest.mark.django_db
+def test_update_user_preferences(api_client, user_factory):
+    """Test updating user preferences."""
+    user = user_factory(password="TestPass123")
+    api_client.force_authenticate(user=user)
+    
+    # Update preferences
+    response = api_client.patch(
+        "/api/v1/auth/me/preferences",
+        {
+            "preferred_theme": "dark",
+            "preferred_language": "en",
+            "editor_font_size": 16,
+            "editor_tab_size": 2,
+        },
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["preferred_theme"] == "dark"
+    assert data["data"]["preferred_language"] == "en"
+    assert data["data"]["editor_font_size"] == 16
+    assert data["data"]["editor_tab_size"] == 2
+
+
+@pytest.mark.django_db
+def test_update_preferences_partial(api_client, user_factory):
+    """Test updating only some preferences."""
+    user = user_factory(password="TestPass123")
+    api_client.force_authenticate(user=user)
+    
+    # Only update theme
+    response = api_client.patch(
+        "/api/v1/auth/me/preferences",
+        {"preferred_theme": "light"},
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["data"]["preferred_theme"] == "light"
+    # Other fields should remain default
+    assert data["data"]["preferred_language"] == "zh-TW"
+
+
+@pytest.mark.django_db
+def test_update_preferences_invalid_theme(api_client, user_factory):
+    """Test updating with invalid theme value."""
+    user = user_factory(password="TestPass123")
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.patch(
+        "/api/v1/auth/me/preferences",
+        {"preferred_theme": "invalid"},
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_update_preferences_invalid_font_size(api_client, user_factory):
+    """Test updating with invalid font size."""
+    user = user_factory(password="TestPass123")
+    api_client.force_authenticate(user=user)
+    
+    # Font size too small
+    response = api_client.patch(
+        "/api/v1/auth/me/preferences",
+        {"editor_font_size": 8},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    
+    # Font size too large
+    response = api_client.patch(
+        "/api/v1/auth/me/preferences",
+        {"editor_font_size": 30},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# Change Password Tests
+@pytest.mark.django_db
+def test_change_password_success(api_client, user_factory):
+    """Test successful password change."""
+    old_password = "OldPass123!"
+    new_password = "NewPass456!"
+    user = user_factory(password=old_password)
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.post(
+        "/api/v1/auth/change-password",
+        {
+            "current_password": old_password,
+            "new_password": new_password,
+            "new_password_confirm": new_password,
+        },
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["success"] is True
+    
+    # Verify new password works
+    user.refresh_from_db()
+    assert user.check_password(new_password)
+
+
+@pytest.mark.django_db
+def test_change_password_wrong_current(api_client, user_factory):
+    """Test password change with wrong current password."""
+    user = user_factory(password="CorrectPass123!")
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.post(
+        "/api/v1/auth/change-password",
+        {
+            "current_password": "WrongPass123!",
+            "new_password": "NewPass456!",
+            "new_password_confirm": "NewPass456!",
+        },
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json()["error"]["code"] == "WRONG_PASSWORD"
+
+
+@pytest.mark.django_db
+def test_change_password_mismatch(api_client, user_factory):
+    """Test password change with mismatched new passwords."""
+    user = user_factory(password="OldPass123!")
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.post(
+        "/api/v1/auth/change-password",
+        {
+            "current_password": "OldPass123!",
+            "new_password": "NewPass456!",
+            "new_password_confirm": "DifferentPass789!",
+        },
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_change_password_oauth_user(api_client, user_factory):
+    """Test that OAuth users cannot change password."""
+    user = user_factory(auth_provider="nycu-oauth")
+    api_client.force_authenticate(user=user)
+    
+    response = api_client.post(
+        "/api/v1/auth/change-password",
+        {
+            "current_password": "any",
+            "new_password": "NewPass456!",
+            "new_password_confirm": "NewPass456!",
+        },
+        format="json",
+    )
+    
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json()["error"]["code"] == "OAUTH_USER"
+
+
+@pytest.mark.django_db
+def test_preferences_unauthenticated(api_client):
+    """Test that unauthenticated users cannot access preferences."""
+    response = api_client.get("/api/v1/auth/me/preferences")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_change_password_unauthenticated(api_client):
+    """Test that unauthenticated users cannot change password."""
+    response = api_client.post(
+        "/api/v1/auth/change-password",
+        {
+            "current_password": "any",
+            "new_password": "NewPass456!",
+            "new_password_confirm": "NewPass456!",
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
