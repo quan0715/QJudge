@@ -33,7 +33,8 @@ const DocumentationPage: React.FC = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const res = await fetch("/docs/config.json");
+        const basePath = import.meta.env.BASE_URL || "/";
+        const res = await fetch(`${basePath}docs/config.json`);
         if (!res.ok) throw new Error("Failed to load config");
         const data = await res.json();
         setConfig(data);
@@ -62,13 +63,15 @@ const DocumentationPage: React.FC = () => {
       const currentLang = i18n.language;
       const fallbackLang = "zh-TW";
 
+      const basePath = import.meta.env.BASE_URL || "/";
+
       try {
         // Try current language first
-        let res = await fetch(`/docs/${currentLang}/${slug}.md`);
+        let res = await fetch(`${basePath}docs/${currentLang}/${slug}.md`);
 
         // Fallback to zh-TW if not found
         if (!res.ok && currentLang !== fallbackLang) {
-          res = await fetch(`/docs/${fallbackLang}/${slug}.md`);
+          res = await fetch(`${basePath}docs/${fallbackLang}/${slug}.md`);
         }
 
         if (!res.ok) {

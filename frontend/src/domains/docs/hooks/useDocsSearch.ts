@@ -33,7 +33,8 @@ export function useDocsSearch() {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const res = await fetch("/docs/config.json");
+        const basePath = import.meta.env.BASE_URL || "/";
+        const res = await fetch(`${basePath}docs/config.json`);
         if (res.ok) {
           const data = await res.json();
           setConfig(data);
@@ -53,12 +54,13 @@ export function useDocsSearch() {
       const currentLang = i18n.language;
       const fallbackLang = "zh-TW";
       const allSlugs = config.sections.flatMap((section) => section.items);
+      const basePath = import.meta.env.BASE_URL || "/";
 
       const indexPromises = allSlugs.map(async (slug) => {
         try {
-          let res = await fetch(`/docs/${currentLang}/${slug}.md`);
+          let res = await fetch(`${basePath}docs/${currentLang}/${slug}.md`);
           if (!res.ok && currentLang !== fallbackLang) {
-            res = await fetch(`/docs/${fallbackLang}/${slug}.md`);
+            res = await fetch(`${basePath}docs/${fallbackLang}/${slug}.md`);
           }
           if (res.ok) {
             const content = await res.text();
