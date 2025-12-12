@@ -1,0 +1,24 @@
+// SurfaceSection responsive styles
+
+.container {
+  background-color: var(--cds-layer-01);
+  width: 100%;
+}
+
+.inner {
+  padding: 1rem;
+}
+
+// Mobile responsive
+@media (max-width: 768px) {
+  .inner {
+    padding: 0.5rem; // Reduce padding on mobile
+  }
+}
+
+// Tablet responsive
+@media (min-width: 769px) and (max-width: 1024px) {
+  .inner {
+    padding: 0.75rem;
+  }
+}

@@ -9,6 +9,7 @@ import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
 import AIGeneratedBadge from "../components/AIGeneratedBadge";
+import styles from "./DocumentationPage.module.scss";
 
 interface DocConfig {
   sections: Array<{
@@ -118,32 +119,11 @@ const DocumentationPage: React.FC = () => {
   const currentTitle = currentSlug ? t(`nav.items.${currentSlug}`) : "";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "calc(100vh - 3rem)",
-      }}
-    >
+    <div className={styles.container}>
       {/* Left Sidebar - Navigation (Edge-to-edge) */}
-      <aside
-        style={{
-          width: "256px",
-          flexShrink: 0,
-          borderRight: "1px solid var(--cds-border-subtle-01)",
-          backgroundColor: "var(--cds-layer-01)",
-          position: "sticky",
-          top: "3rem",
-          height: "calc(100vh - 3rem)",
-          overflowY: "auto",
-        }}
-      >
+      <aside className={styles.leftSidebar}>
         {/* Product Title */}
-        <div
-          style={{
-            padding: "1.5rem 1rem 0.5rem 1rem",
-            borderBottom: "1px solid var(--cds-border-subtle-01)",
-          }}
-        >
+        <div className={styles.sidebarHeader}>
           <p className="cds--label" style={{ marginBottom: "0.25rem" }}>
             {t("nav.productLabel", "使用說明")}
           </p>
@@ -153,7 +133,7 @@ const DocumentationPage: React.FC = () => {
         </div>
 
         {/* Sidebar Navigation */}
-        <div style={{ flex: 1, paddingTop: "1rem" }}>
+        <div className={styles.sidebarContent}>
           {config ? (
             <DocSidebar config={config} currentSlug={currentSlug} />
           ) : (
@@ -165,14 +145,9 @@ const DocumentationPage: React.FC = () => {
       </aside>
 
       {/* Main Area (Header + Content + Right Menu) */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className={styles.mainArea}>
         {/* Header Title Area */}
-        <header
-          style={{
-            padding: "1.5rem 2rem",
-            borderBottom: "1px solid var(--cds-border-subtle-01)",
-          }}
-        >
+        <header className={styles.pageHeader}>
           {/* Back Button */}
           <IconButton
             kind="ghost"
@@ -219,22 +194,9 @@ const DocumentationPage: React.FC = () => {
         </header>
 
         {/* Content + Right Menu Area */}
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            alignItems: "stretch",
-          }}
-        >
+        <div className={styles.contentArea}>
           {/* Main Content */}
-          <main
-            style={{
-              flex: 1,
-              padding: "1.5rem 2rem",
-              minWidth: 0,
-              overflowY: "auto",
-            }}
-          >
+          <main className={styles.mainContent}>
             {loading ? (
               <SkeletonText paragraph lineCount={10} />
             ) : error ? (
@@ -270,13 +232,7 @@ const DocumentationPage: React.FC = () => {
           </main>
 
           {/* Right Sidebar - Table of Contents */}
-          <aside
-            style={{
-              width: "224px",
-              flexShrink: 0,
-              borderLeft: "1px solid var(--cds-border-subtle-01)",
-            }}
-          >
+          <aside className={styles.rightSidebar}>
             {!loading && !error && content && (
               <DocTableOfContents content={content} />
             )}

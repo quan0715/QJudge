@@ -1,0 +1,52 @@
+// Global responsive styles for mobile layout fixes
+
+// Ensure modals are properly centered on mobile
+.cds--modal-container {
+  @media (max-width: 768px) {
+    max-width: 90vw !important;
+    margin: 0 auto;
+  }
+}
+
+// Fix modal positioning on mobile
+.cds--modal {
+  @media (max-width: 768px) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+// Reduce excessive margins on mobile for main content areas
+@media (max-width: 768px) {
+  // Reduce padding for Carbon Content component
+  .cds--content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  // Reduce padding for tables on mobile
+  .cds--data-table-container {
+    padding: 0.5rem !important;
+  }
+
+  // Allow horizontal scrolling for wide tables
+  .cds--data-table-content {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // Prevent excessive text wrapping in table cells
+  .cds--data-table td {
+    white-space: nowrap;
+    min-width: fit-content;
+  }
+}
+
+// Tablet adjustments
+@media (min-width: 769px) and (max-width: 1024px) {
+  .cds--content {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}

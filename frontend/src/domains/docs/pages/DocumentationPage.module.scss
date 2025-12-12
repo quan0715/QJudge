@@ -1,0 +1,99 @@
+// DocumentationPage responsive styles
+
+.container {
+  display: flex;
+  min-height: calc(100vh - 3rem);
+}
+
+.leftSidebar {
+  width: 256px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-layer-01);
+  position: sticky;
+  top: 3rem;
+  height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.sidebarHeader {
+  padding: 1.5rem 1rem 0.5rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.sidebarContent {
+  flex: 1;
+  padding-top: 1rem;
+}
+
+.mainArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pageHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.contentArea {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.rightSidebar {
+  width: 224px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--cds-border-subtle-01);
+}
+
+// Mobile responsive styles
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .leftSidebar {
+    display: none; // Hide left sidebar on mobile
+  }
+
+  .rightSidebar {
+    display: none; // Hide right sidebar (TOC) on mobile
+  }
+
+  .pageHeader {
+    padding: 1rem; // Reduce padding on mobile
+  }
+
+  .mainContent {
+    padding: 1rem; // Reduce padding on mobile
+  }
+}
+
+// Tablet responsive styles
+@media (min-width: 769px) and (max-width: 1024px) {
+  .leftSidebar {
+    width: 200px; // Narrower sidebar on tablet
+  }
+
+  .rightSidebar {
+    display: none; // Hide TOC on tablet
+  }
+
+  .pageHeader {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .mainContent {
+    padding: 1.25rem 1.5rem;
+  }
+}

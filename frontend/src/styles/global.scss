@@ -1,5 +1,8 @@
 @use "@carbon/react";
 
+// Import responsive styles
+@import "./responsive.scss";
+
 // Ensure full viewport height for proper footer positioning
 html, body {
   height: 100%;
