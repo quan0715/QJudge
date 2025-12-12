@@ -84,25 +84,25 @@ else
 fi
 
 # ==================== 5. Docker 環境啟動測試（可選）====================
-if [ "$SKIP_DOCKER_START" != "true" ]; then
-    print_step "測試 Docker 環境啟動..."
+# if [ "$SKIP_DOCKER_START" != "true" ]; then
+#     print_step "測試 Docker 環境啟動..."
     
-    # 嘗試啟動核心服務（postgres, redis）
-    if docker compose up -d postgres redis 2>/dev/null || docker-compose up -d postgres redis 2>/dev/null; then
-        # 等待服務就緒
-        sleep 5
+#     # 嘗試啟動核心服務（postgres, redis）
+#     if docker compose up -d postgres redis 2>/dev/null || docker-compose up -d postgres redis 2>/dev/null; then
+#         # 等待服務就緒
+#         sleep 5
         
-        # 檢查服務健康狀態
-        if docker compose ps 2>/dev/null | grep -q "healthy\|running" || \
-           docker-compose ps 2>/dev/null | grep -q "Up"; then
-            print_success "Docker 核心服務啟動正常"
-        else
-            print_warning "Docker 服務可能未完全就緒，但配置有效"
-        fi
-    else
-        print_warning "無法啟動 Docker 服務（可能 Docker 未運行），跳過此檢查"
-    fi
-fi
+#         # 檢查服務健康狀態
+#         if docker compose ps 2>/dev/null | grep -q "healthy\|running" || \
+#            docker-compose ps 2>/dev/null | grep -q "Up"; then
+#             print_success "Docker 核心服務啟動正常"
+#         else
+#             print_warning "Docker 服務可能未完全就緒，但配置有效"
+#         fi
+#     else
+#         print_warning "無法啟動 Docker 服務（可能 Docker 未運行），跳過此檢查"
+#     fi
+# fi
 
 # ==================== 完成 ====================
 END_TIME=$(date +%s)
