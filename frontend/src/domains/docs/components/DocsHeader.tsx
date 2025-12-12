@@ -5,6 +5,11 @@ import {
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
+  HeaderMenuButton,
+  SideNav,
+  SideNavItems,
+  SideNavMenu,
+  SideNavMenuItem,
   Button,
 } from "@carbon/react";
 import {
@@ -13,17 +18,55 @@ import {
   Launch,
   Light,
   Asleep,
+  Document,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import DocsSearchDropdown from "./DocsSearchDropdown";
 
+interface DocConfig {
+  sections: Array<{
+    id: string;
+    items: string[];
+  }>;
+  defaultDoc: string;
+}
+
 const DocsHeader: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { t: tDocs } = useTranslation("docs");
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [isSideNavExpanded, setIsSideNavExpanded] = useState(false);
+  const [docsConfig, setDocsConfig] = useState<DocConfig | null>(null);
   const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  // Get current doc slug from URL
+  const currentDocSlug =
+    location.pathname.replace("/docs/", "").replace("/docs", "") ||
+    docsConfig?.defaultDoc ||
+    "";
+
+  // Load docs config
+  useEffect(() => {
+    const loadDocsConfig = async () => {
+      try {
+        const basePath = import.meta.env.BASE_URL || "/";
+        const res = await fetch(`${basePath}docs/config.json`);
+        if (res.ok) {
+          const data = await res.json();
+          setDocsConfig(data);
+        }
+      } catch (err) {
+        console.error("Failed to load docs config:", err);
+      }
+    };
+    loadDocsConfig();
+  }, []);
 
   // Close language menu when clicking outside
   useEffect(() => {
@@ -55,7 +98,16 @@ const DocsHeader: React.FC = () => {
     <HeaderContainer
       render={() => (
         <Header aria-label="QJudge Documentation">
-          <HeaderName href={import.meta.env.VITE_MAIN_APP_URL || "/"} prefix="QJudge">
+          <HeaderMenuButton
+            aria-label={t("header.menu", "選單")}
+            onClick={() => setIsSideNavExpanded(!isSideNavExpanded)}
+            isActive={isSideNavExpanded}
+            aria-expanded={isSideNavExpanded}
+          />
+          <HeaderName
+            href={import.meta.env.VITE_MAIN_APP_URL || "/"}
+            prefix="QJudge"
+          >
             DOCS
           </HeaderName>
 
@@ -167,6 +219,42 @@ const DocsHeader: React.FC = () => {
               {t("nav.dashboard")}
             </Button>
           </HeaderGlobalBar>
+
+          {/* Mobile Side Navigation with Docs Menu */}
+          <SideNav
+            aria-label={tDocs("nav.productLabel", "使用說明")}
+            expanded={isSideNavExpanded}
+            isPersistent={false}
+            onSideNavBlur={() => setIsSideNavExpanded(false)}
+          >
+            <SideNavItems>
+              {docsConfig && (
+                <SideNavMenu
+                  renderIcon={Document}
+                  title={tDocs("nav.productLabel", "使用說明")}
+                  defaultExpanded
+                  isActive
+                >
+                  {docsConfig.sections.map((section) =>
+                    section.items.map((item) => (
+                      <SideNavMenuItem
+                        key={item}
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          navigate(`/docs/${item}`);
+                          setIsSideNavExpanded(false);
+                        }}
+                        isActive={currentDocSlug === item}
+                      >
+                        {tDocs(`nav.items.${item}`, item)}
+                      </SideNavMenuItem>
+                    ))
+                  )}
+                </SideNavMenu>
+              )}
+            </SideNavItems>
+          </SideNav>
         </Header>
       )}
     />

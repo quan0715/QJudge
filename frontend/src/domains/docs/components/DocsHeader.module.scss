@@ -1,0 +1,16 @@
+/* DocsHeader styles */
+
+/* Mobile hamburger menu - only show on mobile */
+:global(.cds--header__menu-toggle) {
+  display: none;
+
+  @media screen and (max-width: 768px) {
+    display: flex;
+  }
+}
+
+/* Side navigation for mobile */
+:global(.cds--side-nav) {
+  z-index: 8999;
+}
+
