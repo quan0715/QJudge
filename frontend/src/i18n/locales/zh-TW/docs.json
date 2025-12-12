@@ -32,7 +32,8 @@
       "problem-import": "YAML 題目建立",
       "admin-overview": "管理員功能總覽",
       "contributing": "如何貢獻",
-      "dev-setup": "開發環境設定"
+      "dev-setup": "開發環境設定",
+      "e2e-testing": "E2E 測試指南"
     }
   },
   "quickLinks": {

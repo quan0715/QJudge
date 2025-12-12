@@ -29,7 +29,8 @@
       "problem-import": "YAML問題作成",
       "admin-overview": "管理者機能",
       "contributing": "コントリビュート",
-      "dev-setup": "開発環境セットアップ"
+      "dev-setup": "開発環境セットアップ",
+      "e2e-testing": "E2Eテストガイド"
     }
   },
   "message": {

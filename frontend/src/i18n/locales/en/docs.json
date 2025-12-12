@@ -32,7 +32,8 @@
       "problem-import": "YAML Problem Import",
       "admin-overview": "Admin Features",
       "contributing": "Contributing",
-      "dev-setup": "Development Setup"
+      "dev-setup": "Development Setup",
+      "e2e-testing": "E2E Testing Guide"
     }
   },
   "quickLinks": {
