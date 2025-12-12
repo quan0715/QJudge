@@ -1,20 +1,31 @@
-import { useState, useEffect, useRef } from "react";
 import {
   Header,
   HeaderName,
   HeaderNavigation,
   HeaderMenuItem,
   HeaderGlobalBar,
-  HeaderGlobalAction,
   SkipToContent,
   HeaderMenuButton,
   HeaderContainer,
-  HeaderPanel,
-  Switcher,
-  SwitcherItem,
-  SwitcherDivider,
+  SideNav,
+  SideNavItems,
+  SideNavLink,
+  SideNavDivider,
+  SideNavMenu,
+  SideNavMenuItem,
 } from "@carbon/react";
-import { Switcher as SwitcherIcon, Settings } from "@carbon/icons-react";
+import {
+  Home,
+  Code,
+  Trophy,
+  List,
+  Book,
+  DocumentAdd,
+  Events,
+  UserMultiple,
+  Bullhorn,
+  Settings,
+} from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -27,42 +38,8 @@ export const GlobalHeader = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const [isSwitcherExpanded, setIsSwitcherExpanded] = useState(false);
-
-  const switcherRef = useRef<HTMLDivElement>(null);
-
-  // Close switcher panel when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      if (
-        isSwitcherExpanded &&
-        switcherRef.current &&
-        !switcherRef.current.contains(target)
-      ) {
-        const switcherButton = document.querySelector(
-          '[aria-label="' + t("header.appSwitcher") + '"]'
-        );
-        if (!switcherButton?.contains(target)) {
-          setIsSwitcherExpanded(false);
-        }
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSwitcherExpanded, t]);
-
-  const handleSwitcherClick = () => {
-    setIsSwitcherExpanded(!isSwitcherExpanded);
-  };
-
-  const handleUserMenuExpandedChange = (expanded: boolean) => {
-    if (expanded) {
-      setIsSwitcherExpanded(false);
-    }
-  };
+  const isTeacherOrAdmin = user?.role === "admin" || user?.role === "teacher";
+  const isAdmin = user?.role === "admin";
 
   return (
     <>
@@ -71,7 +48,7 @@ export const GlobalHeader = () => {
           <Header aria-label="QJudge Platform">
             <SkipToContent />
             <HeaderMenuButton
-              aria-label="Open menu"
+              aria-label={t("header.menu", "選單")}
               onClick={onClickSideNavExpand}
               isActive={isSideNavExpanded}
             />
@@ -111,151 +88,178 @@ export const GlobalHeader = () => {
               </HeaderMenuItem>
             </HeaderNavigation>
             <HeaderGlobalBar>
-              <HeaderGlobalAction
-                aria-label={t("header.appSwitcher")}
-                isActive={isSwitcherExpanded}
-                onClick={handleSwitcherClick}
-              >
-                <SwitcherIcon size={20} />
-              </HeaderGlobalAction>
-
-              <UserMenu
-                otherPanelExpanded={isSwitcherExpanded}
-                onExpandedChange={handleUserMenuExpandedChange}
-              />
+              <UserMenu />
             </HeaderGlobalBar>
 
-            {/* App Switcher Panel */}
-            <HeaderPanel
-              aria-label={t("header.appSwitcher")}
-              expanded={isSwitcherExpanded}
+            {/* Mobile Side Navigation */}
+            <SideNav
+              aria-label={t("header.sideNav", "側邊導航")}
+              expanded={isSideNavExpanded}
+              isPersistent={false}
+              onSideNavBlur={onClickSideNavExpand}
             >
-              <div ref={switcherRef}>
-                <Switcher aria-label={t("header.appSwitcher")}>
-                  <SwitcherItem
-                    aria-label={t("nav.dashboard")}
-                    onClick={() => {
-                      navigate("/dashboard");
-                      setIsSwitcherExpanded(false);
-                    }}
-                  >
-                    {t("nav.dashboard")}
-                  </SwitcherItem>
-                  <SwitcherItem
-                    aria-label={t("nav.problems")}
-                    onClick={() => {
-                      navigate("/problems");
-                      setIsSwitcherExpanded(false);
-                    }}
-                  >
-                    {t("nav.problems")}
-                  </SwitcherItem>
-                  <SwitcherItem
-                    aria-label={t("nav.contests")}
-                    onClick={() => {
-                      navigate("/contests");
-                      setIsSwitcherExpanded(false);
-                    }}
-                  >
-                    {t("nav.contests")}
-                  </SwitcherItem>
-                  <SwitcherItem
-                    aria-label={t("nav.submissions")}
-                    onClick={() => {
-                      navigate("/submissions");
-                      setIsSwitcherExpanded(false);
-                    }}
-                  >
-                    {t("nav.submissions")}
-                  </SwitcherItem>
+              <SideNavItems>
+                {/* Main Navigation */}
+                <SideNavLink
+                  renderIcon={Home}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/dashboard");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/dashboard")}
+                >
+                  {t("nav.dashboard")}
+                </SideNavLink>
+                <SideNavLink
+                  renderIcon={Code}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/problems");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/problems")}
+                >
+                  {t("nav.problems")}
+                </SideNavLink>
+                <SideNavLink
+                  renderIcon={Trophy}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/contests");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/contests")}
+                >
+                  {t("nav.contests")}
+                </SideNavLink>
+                <SideNavLink
+                  renderIcon={List}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/submissions");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/submissions")}
+                >
+                  {t("nav.submissions")}
+                </SideNavLink>
+                <SideNavLink
+                  renderIcon={Book}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/docs");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/docs")}
+                >
+                  {t("nav.documentation")}
+                </SideNavLink>
 
-                  {(user?.role === "admin" || user?.role === "teacher") && (
-                    <>
-                      <SwitcherDivider />
-                      <li className="cds--switcher__item">
-                        <span
-                          style={{
-                            padding: "0.5rem 1rem",
-                            fontSize: "0.75rem",
-                            color: "var(--cds-text-secondary)",
-                          }}
-                        >
-                          {t("header.management")}
-                        </span>
-                      </li>
-                      <SwitcherItem
-                        aria-label={t("header.problemManagement")}
-                        onClick={() => {
+                {/* Management Section (teacher/admin only) */}
+                {isTeacherOrAdmin && (
+                  <>
+                    <SideNavDivider />
+                    <SideNavMenu
+                      renderIcon={Settings}
+                      title={t("header.management")}
+                      defaultExpanded={
+                        location.pathname.startsWith("/management") ||
+                        location.pathname.startsWith("/system")
+                      }
+                    >
+                      <SideNavMenuItem
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
                           navigate("/management/problems");
-                          setIsSwitcherExpanded(false);
+                          onClickSideNavExpand();
                         }}
+                        isActive={location.pathname === "/management/problems"}
                       >
+                        <DocumentAdd
+                          size={16}
+                          style={{ marginRight: "0.5rem" }}
+                        />
                         {t("header.problemManagement")}
-                      </SwitcherItem>
-                      <SwitcherItem
-                        aria-label={t("header.createContest")}
-                        onClick={() => {
+                      </SideNavMenuItem>
+                      <SideNavMenuItem
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
                           navigate("/contests/new");
-                          setIsSwitcherExpanded(false);
+                          onClickSideNavExpand();
                         }}
+                        isActive={location.pathname === "/contests/new"}
                       >
+                        <Events size={16} style={{ marginRight: "0.5rem" }} />
                         {t("header.createContest")}
-                      </SwitcherItem>
-                    </>
-                  )}
+                      </SideNavMenuItem>
 
-                  {user?.role === "admin" && (
-                    <>
-                      <SwitcherItem
-                        aria-label={t("header.userManagement")}
-                        onClick={() => {
-                          navigate("/system/users");
-                          setIsSwitcherExpanded(false);
-                        }}
-                      >
-                        {t("header.userManagement")}
-                      </SwitcherItem>
-                      <SwitcherItem
-                        aria-label={t("header.announcements")}
-                        onClick={() => {
-                          navigate("/management/announcements");
-                          setIsSwitcherExpanded(false);
-                        }}
-                      >
-                        {t("header.announcements")}
-                      </SwitcherItem>
-                    </>
-                  )}
-
-                  {user?.role === "admin" && (
-                    <>
-                      <SwitcherDivider />
-                      <li className="cds--switcher__item">
-                        <span
-                          style={{
-                            padding: "0.5rem 1rem",
-                            fontSize: "0.75rem",
-                            color: "var(--cds-text-secondary)",
-                          }}
-                        >
-                          {t("header.system")}
-                        </span>
-                      </li>
-                      <SwitcherItem
-                        aria-label={t("header.environmentSettings")}
-                        onClick={() => {
-                          navigate("/system/environment");
-                          setIsSwitcherExpanded(false);
-                        }}
-                      >
-                        <Settings size={16} style={{ marginRight: "0.5rem" }} />
-                        {t("header.environmentSettings")}
-                      </SwitcherItem>
-                    </>
-                  )}
-                </Switcher>
-              </div>
-            </HeaderPanel>
+                      {/* Admin only items */}
+                      {isAdmin && (
+                        <>
+                          <SideNavMenuItem
+                            href="#"
+                            onClick={(e: React.MouseEvent) => {
+                              e.preventDefault();
+                              navigate("/system/users");
+                              onClickSideNavExpand();
+                            }}
+                            isActive={location.pathname === "/system/users"}
+                          >
+                            <UserMultiple
+                              size={16}
+                              style={{ marginRight: "0.5rem" }}
+                            />
+                            {t("header.userManagement")}
+                          </SideNavMenuItem>
+                          <SideNavMenuItem
+                            href="#"
+                            onClick={(e: React.MouseEvent) => {
+                              e.preventDefault();
+                              navigate("/management/announcements");
+                              onClickSideNavExpand();
+                            }}
+                            isActive={
+                              location.pathname === "/management/announcements"
+                            }
+                          >
+                            <Bullhorn
+                              size={16}
+                              style={{ marginRight: "0.5rem" }}
+                            />
+                            {t("header.announcements")}
+                          </SideNavMenuItem>
+                          <SideNavMenuItem
+                            href="#"
+                            onClick={(e: React.MouseEvent) => {
+                              e.preventDefault();
+                              navigate("/system/environment");
+                              onClickSideNavExpand();
+                            }}
+                            isActive={
+                              location.pathname === "/system/environment"
+                            }
+                          >
+                            <Settings
+                              size={16}
+                              style={{ marginRight: "0.5rem" }}
+                            />
+                            {t("header.environmentSettings")}
+                          </SideNavMenuItem>
+                        </>
+                      )}
+                    </SideNavMenu>
+                  </>
+                )}
+              </SideNavItems>
+            </SideNav>
           </Header>
         )}
       />

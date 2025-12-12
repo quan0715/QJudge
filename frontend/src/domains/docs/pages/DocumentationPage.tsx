@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { SkeletonText, IconButton } from "@carbon/react";
-import { ArrowLeft } from "@carbon/icons-react";
+import { SkeletonText, IconButton, Select, SelectItem } from "@carbon/react";
+import { ArrowLeft, Light, Asleep, Laptop, Launch } from "@carbon/icons-react";
 import MarkdownRenderer from "@/ui/components/common/MarkdownRenderer";
 import DocSidebar from "../components/DocSidebar";
 import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
 import AIGeneratedBadge from "../components/AIGeneratedBadge";
-import MobileDocsMenu from "../components/MobileDocsMenu";
+import { useTheme } from "@/ui/theme/ThemeContext";
+import { SUPPORTED_LANGUAGES } from "@/i18n";
 import styles from "./DocumentationPage.module.scss";
 
 interface DocConfig {
@@ -20,16 +21,24 @@ interface DocConfig {
   defaultDoc: string;
 }
 
+type ThemeValue = "light" | "dark" | "system";
+
 const DocumentationPage: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("docs");
+  const { t: tCommon } = useTranslation();
+  const { setTheme } = useTheme();
 
   const [config, setConfig] = useState<DocConfig | null>(null);
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
+    const stored = localStorage.getItem("theme-preference");
+    return (stored as ThemeValue) || "system";
+  });
 
   // Load documentation config
   useEffect(() => {
@@ -119,9 +128,48 @@ const DocumentationPage: React.FC = () => {
   // Get current document title
   const currentTitle = currentSlug ? t(`nav.items.${currentSlug}`) : "";
 
+  // Theme handling
+  const handleThemeChange = (value: ThemeValue) => {
+    setCurrentTheme(value);
+    localStorage.setItem("theme-preference", value);
+
+    if (value === "system") {
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      setTheme(prefersDark ? "g100" : "white");
+    } else if (value === "dark") {
+      setTheme("g100");
+    } else {
+      setTheme("white");
+    }
+  };
+
+  const handleLanguageSelect = (langId: string) => {
+    i18n.changeLanguage(langId);
+  };
+
+  const themeOptions = [
+    {
+      value: "light" as ThemeValue,
+      label: tCommon("theme.light"),
+      icon: <Light size={16} />,
+    },
+    {
+      value: "dark" as ThemeValue,
+      label: tCommon("theme.dark"),
+      icon: <Asleep size={16} />,
+    },
+    {
+      value: "system" as ThemeValue,
+      label: tCommon("theme.system"),
+      icon: <Laptop size={16} />,
+    },
+  ];
+
   return (
     <div className={styles.container}>
-      {/* Left Sidebar - Navigation (Edge-to-edge) */}
+      {/* Left Sidebar - Navigation */}
       <aside className={styles.leftSidebar}>
         {/* Product Title */}
         <div className={styles.sidebarHeader}>
@@ -143,28 +191,78 @@ const DocumentationPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Settings Section - Theme & Language */}
+        <div className={styles.sidebarSettings}>
+          <div className={styles.settingsDivider} />
+
+          {/* Theme Section */}
+          <div className={styles.settingsSection}>
+            <div className={styles.settingsLabel}>
+              <Light size={16} />
+              <span>{tCommon("preferences.themeSection")}</span>
+            </div>
+            <div className={styles.themeButtons}>
+              {themeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleThemeChange(option.value)}
+                  className={`${styles.themeBtn} ${
+                    currentTheme === option.value ? styles.active : ""
+                  }`}
+                  title={option.label}
+                >
+                  {option.icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Language Section */}
+          <div className={styles.settingsSection}>
+            <Select
+              id="language-select"
+              labelText={tCommon("preferences.languageSection")}
+              value={i18n.language}
+              onChange={(e) => handleLanguageSelect(e.target.value)}
+              size="sm"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.id} value={lang.id} text={lang.label} />
+              ))}
+            </Select>
+          </div>
+
+          <div className={styles.settingsDivider} />
+
+          {/* Dashboard Link */}
+          <a
+            href={import.meta.env.VITE_MAIN_APP_URL || "/"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.dashboardLink}
+          >
+            <Launch size={16} />
+            <span>{tCommon("nav.dashboard")}</span>
+          </a>
+        </div>
       </aside>
 
       {/* Main Area (Header + Content + Right Menu) */}
       <div className={styles.mainArea}>
         {/* Header Title Area */}
         <header className={styles.pageHeader}>
-          {/* Mobile Menu Button and Back Button Row */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            {/* Mobile Navigation Menu */}
-            {config && <MobileDocsMenu config={config} currentSlug={currentSlug} />}
-            
-            {/* Back Button */}
-            <IconButton
-              kind="ghost"
-              size="sm"
-              label={t("nav.back", "返回")}
-              onClick={() => navigate(-1)}
-              style={{ marginLeft: "-0.5rem" }}
-            >
-              <ArrowLeft />
-            </IconButton>
-          </div>
+          {/* Back Button */}
+          <IconButton
+            kind="ghost"
+            size="sm"
+            label={t("nav.back", "返回")}
+            onClick={() => navigate(-1)}
+            style={{ marginBottom: "1rem", marginLeft: "-0.5rem" }}
+          >
+            <ArrowLeft />
+          </IconButton>
 
           {/* Page Title */}
           {!loading && !error && (

@@ -13,6 +13,8 @@
   position: sticky;
   top: 3rem;
   height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
 }
 
@@ -24,6 +26,79 @@
 .sidebarContent {
   flex: 1;
   padding-top: 1rem;
+  overflow-y: auto;
+}
+
+// Settings section at bottom of sidebar
+.sidebarSettings {
+  flex-shrink: 0;
+  padding-bottom: 0.5rem;
+}
+
+.settingsDivider {
+  height: 1px;
+  background-color: var(--cds-border-subtle-01);
+  margin: 0.5rem 1rem;
+}
+
+.settingsSection {
+  padding: 0.75rem 1rem;
+}
+
+.settingsLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.themeButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.themeBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+
+  &.active {
+    background: var(--cds-layer-selected-01);
+    border-color: var(--cds-border-interactive);
+    color: var(--cds-text-primary);
+  }
+}
+
+.dashboardLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--cds-link-primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
 }
 
 .mainArea {
@@ -57,22 +132,18 @@
   border-left: 1px solid var(--cds-border-subtle-01);
 }
 
-// Mobile responsive styles - using max-width for better compatibility
+// Mobile responsive styles
 @media screen and (max-width: 768px) {
   .container {
     flex-direction: column;
   }
 
   .leftSidebar {
-    display: none !important; // Hide left sidebar on mobile with !important to ensure it works
-    width: 0;
-    position: fixed; // Ensure it doesn't take up space
-    left: -100%; // Move it off-screen
+    display: none !important;
   }
 
   .rightSidebar {
-    display: none !important; // Hide right sidebar (TOC) on mobile
-    width: 0;
+    display: none !important;
   }
 
   .mainArea {
@@ -80,11 +151,11 @@
   }
 
   .pageHeader {
-    padding: 1rem; // Reduce padding on mobile
+    padding: 1rem;
   }
 
   .mainContent {
-    padding: 1rem; // Reduce padding on mobile
+    padding: 1rem;
     width: 100%;
   }
 }
@@ -92,11 +163,11 @@
 // Tablet responsive styles
 @media screen and (min-width: 769px) and (max-width: 1024px) {
   .leftSidebar {
-    width: 200px; // Narrower sidebar on tablet
+    width: 220px;
   }
 
   .rightSidebar {
-    display: none; // Hide TOC on tablet
+    display: none;
   }
 
   .pageHeader {
@@ -107,4 +178,3 @@
     padding: 1.25rem 1.5rem;
   }
 }
-

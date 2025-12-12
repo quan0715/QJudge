@@ -2,3 +2,24 @@
 .cds--header-panel {
   z-index: 9000; /* Ensure panel is above other content */
 }
+
+/* Mobile hamburger menu - only show on mobile */
+.cds--header__menu-toggle {
+  display: none;
+
+  @media screen and (max-width: 768px) {
+    display: flex;
+  }
+}
+
+/* Side navigation for mobile */
+.cds--side-nav {
+  z-index: 8999;
+}
+
+/* Hide header navigation on mobile */
+@media screen and (max-width: 768px) {
+  .cds--header__nav {
+    display: none;
+  }
+}
