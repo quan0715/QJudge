@@ -64,6 +64,17 @@ export interface UseUserPreferencesReturn {
   refresh: () => Promise<void>;
 }
 
+// Get initial theme preference from localStorage
+const getInitialThemePreference = (): ThemePreference => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("themePreference") as ThemePreference;
+    if (saved && ["light", "dark", "system"].includes(saved)) {
+      return saved;
+    }
+  }
+  return "system";
+};
+
 export const useUserPreferences = (): UseUserPreferencesReturn => {
   const { user } = useAuth();
   const { setTheme } = useTheme();
@@ -72,8 +83,10 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [themePreference, setThemePreference] =
-    useState<ThemePreference>("system");
+  // Initialize from localStorage instead of defaulting to "system"
+  const [themePreference, setThemePreference] = useState<ThemePreference>(
+    getInitialThemePreference
+  );
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(
     getSystemTheme()
   );

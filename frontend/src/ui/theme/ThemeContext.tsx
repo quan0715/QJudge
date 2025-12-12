@@ -80,13 +80,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const setTheme = (newTheme: ThemeType) => {
     setThemeState(newTheme);
-    // Save as preference format
-    localStorage.setItem(THEME_PREFERENCE_KEY, themeToPreference(newTheme));
+    // Note: Don't save to localStorage here!
+    // useUserPreferences handles saving the preference (including "system")
+    // If we save here, "system" preference would be lost (converted to "light"/"dark")
   };
 
   const toggleTheme = () => {
     const newTheme = theme === "white" ? "g100" : "white";
-    setTheme(newTheme);
+    setThemeState(newTheme);
+    // Save when using toggleTheme directly (not via useUserPreferences)
+    localStorage.setItem(THEME_PREFERENCE_KEY, themeToPreference(newTheme));
   };
 
   return (
