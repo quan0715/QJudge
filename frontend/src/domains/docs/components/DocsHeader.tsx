@@ -36,7 +36,8 @@ const DocsHeader: React.FC = () => {
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(false);
   const [docsConfig, setDocsConfig] = useState<DocConfig | null>(null);
   const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
-    const stored = localStorage.getItem("theme-preference");
+    // Use unified localStorage key (same as useUserPreferences)
+    const stored = localStorage.getItem("themePreference");
     return (stored as ThemeValue) || "system";
   });
 
@@ -69,7 +70,8 @@ const DocsHeader: React.FC = () => {
 
   const handleThemeChange = (value: ThemeValue) => {
     setCurrentTheme(value);
-    localStorage.setItem("theme-preference", value);
+    // Use unified localStorage key (same as useUserPreferences)
+    localStorage.setItem("themePreference", value);
 
     if (value === "system") {
       const prefersDark = window.matchMedia(
