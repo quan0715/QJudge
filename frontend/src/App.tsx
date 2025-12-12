@@ -22,6 +22,8 @@ import EnvironmentPage from "@/domains/admin/pages/EnvironmentPage";
 import ProblemManagementPage from "@/domains/admin/pages/ProblemManagementPage";
 import ProblemFormPage from "@/domains/admin/pages/ProblemFormPage";
 import ContestCreatePage from "@/domains/contest/pages/ContestCreatePage";
+import DocsLayout from "@/domains/docs/components/DocsLayout";
+import DocumentationPage from "@/domains/docs/pages/DocumentationPage";
 import ErrorBoundary from "@/ui/components/ErrorBoundary";
 import {
   RequireAuth,
@@ -74,6 +76,15 @@ function App() {
                         <Route
                           path="/auth/nycu/callback"
                           element={<OAuthCallbackPage />}
+                        />
+                      </Route>
+
+                      {/* Public Documentation Routes - no login required, custom layout */}
+                      <Route element={<DocsLayout />}>
+                        <Route path="/docs" element={<DocumentationPage />} />
+                        <Route
+                          path="/docs/:slug"
+                          element={<DocumentationPage />}
                         />
                       </Route>
 

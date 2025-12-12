@@ -161,8 +161,38 @@ class UserProfile(models.Model):
     # Preferences
     preferred_language = models.CharField(
         max_length=20,
-        default='zh-hant',
+        default='zh-TW',
         verbose_name='偏好語言'
+    )
+    
+    THEME_CHOICES = [
+        ('light', 'Light'),
+        ('dark', 'Dark'),
+        ('system', 'System'),
+    ]
+    
+    preferred_theme = models.CharField(
+        max_length=10,
+        choices=THEME_CHOICES,
+        default='system',
+        verbose_name='偏好主題'
+    )
+    
+    # Editor preferences
+    editor_font_size = models.IntegerField(
+        default=14,
+        verbose_name='編輯器字體大小'
+    )
+    
+    TAB_SIZE_CHOICES = [
+        (2, '2 spaces'),
+        (4, '4 spaces'),
+    ]
+    
+    editor_tab_size = models.IntegerField(
+        choices=TAB_SIZE_CHOICES,
+        default=4,
+        verbose_name='Tab 寬度'
     )
     
     # Timestamps

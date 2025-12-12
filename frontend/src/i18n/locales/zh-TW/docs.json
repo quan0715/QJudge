@@ -1,0 +1,84 @@
+{
+  "page": {
+    "title": "使用說明",
+    "subtitle": "了解如何使用 QJudge 平台"
+  },
+  "badge": {
+    "aiGenerated": "AI 生成"
+  },
+  "nav": {
+    "productLabel": "使用說明",
+    "searchPlaceholder": "搜尋文檔...",
+    "onThisPage": "在此頁面",
+    "lastUpdated": "前次更新",
+    "back": "返回",
+    "sections": {
+      "getting-started": "快速開始",
+      "user-guide": "使用指南",
+      "reference": "參考資料",
+      "teacher-guide": "教師指南",
+      "admin-guide": "管理員指南",
+      "developer-guide": "開發者指南"
+    },
+    "items": {
+      "overview": "平台概覽",
+      "quick-start": "快速入門",
+      "submission": "程式碼提交",
+      "contests": "參加競賽",
+      "judge-system": "評測系統說明",
+      "common-errors": "常見錯誤",
+      "supported-languages": "支援的程式語言",
+      "teacher-overview": "教師功能總覽",
+      "problem-import": "YAML 題目建立",
+      "admin-overview": "管理員功能總覽",
+      "contributing": "如何貢獻",
+      "dev-setup": "開發環境設定"
+    }
+  },
+  "quickLinks": {
+    "student": {
+      "tag": "學生",
+      "title": "解決程式題目",
+      "description": "學習如何瀏覽題庫、撰寫程式碼並提交評測"
+    },
+    "contestant": {
+      "tag": "競賽",
+      "title": "參加程式競賽",
+      "description": "了解競賽規則、計分方式與常見問題排解"
+    },
+    "teacher": {
+      "tag": "教師",
+      "title": "建立與管理競賽",
+      "description": "建立競賽、管理題目、查看學生成績與統計"
+    },
+    "admin": {
+      "tag": "管理員",
+      "title": "系統管理",
+      "description": "管理使用者、權限設定與系統配置"
+    },
+    "developer": {
+      "tag": "開發者",
+      "title": "貢獻程式碼",
+      "description": "設定開發環境、了解專案架構與貢獻流程"
+    }
+  },
+  "search": {
+    "label": "搜尋文檔",
+    "placeholder": "搜尋文檔內容...",
+    "searching": "搜尋中...",
+    "noResults": "找不到符合的內容",
+    "resultsCount": "找到 {{count}} 個結果",
+    "matches": "處符合"
+  },
+  "feedback": {
+    "title": "這篇文檔有幫助嗎？",
+    "helpful": "有幫助",
+    "notHelpful": "需改進",
+    "thanks": "感謝您的回饋！"
+  },
+  "message": {
+    "loading": "載入文檔中...",
+    "notFound": "找不到該文檔",
+    "loadError": "載入文檔失敗"
+  }
+}

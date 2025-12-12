@@ -17,6 +17,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'submission_count',
             'accept_rate',
             'preferred_language',
+            'preferred_theme',
+            'editor_font_size',
+            'editor_tab_size',
         ]
         read_only_fields = ['solved_count', 'submission_count', 'accept_rate']
 
@@ -199,3 +202,67 @@ class UserRoleUpdateSerializer(serializers.Serializer):
         if value not in ['student', 'teacher', 'admin']:
             raise serializers.ValidationError('無效的角色選擇')
         return value
+
+
+class UserPreferencesUpdateSerializer(serializers.Serializer):
+    """Serializer for updating user preferences."""
+    preferred_language = serializers.CharField(
+        max_length=20,
+        required=False
+    )
+    preferred_theme = serializers.ChoiceField(
+        choices=['light', 'dark', 'system'],
+        required=False
+    )
+    editor_font_size = serializers.IntegerField(
+        min_value=12,
+        max_value=20,
+        required=False
+    )
+    editor_tab_size = serializers.ChoiceField(
+        choices=[2, 4],
+        required=False
+    )
+    
+    def validate_preferred_language(self, value):
+        """Validate language choice."""
+        valid_languages = ['zh-TW', 'en', 'ja', 'ko']
+        if value not in valid_languages:
+            raise serializers.ValidationError(f'無效的語言選擇，請選擇: {", ".join(valid_languages)}')
+        return value
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for changing password."""
+    current_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    
+    def validate(self, attrs):
+        """Validate passwords match and new password strength."""
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({
+                'new_password_confirm': '新密碼不一致'
+            })
+        
+        # Validate new password strength
+        try:
+            validate_password(attrs['new_password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({
+                'new_password': list(e.messages)
+            })
+        
+        return attrs

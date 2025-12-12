@@ -1,0 +1,40 @@
+{
+  "page": {
+    "title": "ドキュメント",
+    "subtitle": "QJudgeプラットフォームの使い方を学ぶ"
+  },
+  "nav": {
+    "productLabel": "ドキュメント",
+    "searchPlaceholder": "ドキュメントを検索...",
+    "onThisPage": "このページの内容",
+    "lastUpdated": "最終更新日",
+    "back": "戻る",
+    "sections": {
+      "getting-started": "はじめに",
+      "user-guide": "ユーザーガイド",
+      "reference": "リファレンス",
+      "teacher-guide": "教師ガイド",
+      "admin-guide": "管理者ガイド",
+      "developer-guide": "開発者ガイド"
+    },
+    "items": {
+      "overview": "プラットフォーム概要",
+      "quick-start": "クイックスタート",
+      "submission": "コード提出",
+      "contests": "コンテストに参加",
+      "judge-system": "ジャッジシステム",
+      "common-errors": "よくあるエラー",
+      "supported-languages": "対応言語",
+      "teacher-overview": "教師機能",
+      "problem-import": "YAML問題作成",
+      "admin-overview": "管理者機能",
+      "contributing": "コントリビュート",
+      "dev-setup": "開発環境セットアップ"
+    }
+  },
+  "message": {
+    "loading": "ドキュメントを読み込み中...",
+    "notFound": "ドキュメントが見つかりません",
+    "loadError": "ドキュメントの読み込みに失敗しました"
+  }
+}

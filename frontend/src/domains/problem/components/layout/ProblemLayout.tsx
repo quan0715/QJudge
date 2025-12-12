@@ -12,7 +12,7 @@ import { Asleep, Light, Home, Language, Checkmark } from "@carbon/icons-react";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
-import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
+import { UserMenu } from "@/ui/components/UserMenu";
 
 const ProblemLayout = () => {
   const navigate = useNavigate();
@@ -162,8 +162,8 @@ const ProblemLayout = () => {
             {theme === "white" ? <Asleep size={20} /> : <Light size={20} />}
           </HeaderGlobalAction>
 
-          {/* User Info Display */}
-          <UserAvatarDisplay />
+          {/* User Menu */}
+          <UserMenu />
         </HeaderGlobalBar>
       </Header>
 

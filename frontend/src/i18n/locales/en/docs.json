@@ -1,0 +1,84 @@
+{
+  "page": {
+    "title": "Documentation",
+    "subtitle": "Learn how to use the QJudge platform"
+  },
+  "badge": {
+    "aiGenerated": "AI Generated"
+  },
+  "nav": {
+    "productLabel": "Documentation",
+    "searchPlaceholder": "Search docs...",
+    "onThisPage": "On this page",
+    "lastUpdated": "Last updated",
+    "back": "Back",
+    "sections": {
+      "getting-started": "Getting Started",
+      "user-guide": "User Guide",
+      "reference": "Reference",
+      "teacher-guide": "Teacher Guide",
+      "admin-guide": "Admin Guide",
+      "developer-guide": "Developer Guide"
+    },
+    "items": {
+      "overview": "Platform Overview",
+      "quick-start": "Quick Start",
+      "submission": "Code Submission",
+      "contests": "Joining Contests",
+      "judge-system": "Judge System",
+      "common-errors": "Common Errors",
+      "supported-languages": "Supported Languages",
+      "teacher-overview": "Teacher Features",
+      "problem-import": "YAML Problem Import",
+      "admin-overview": "Admin Features",
+      "contributing": "Contributing",
+      "dev-setup": "Development Setup"
+    }
+  },
+  "quickLinks": {
+    "student": {
+      "tag": "Student",
+      "title": "Solve Problems",
+      "description": "Learn how to browse problems, write code and submit for evaluation"
+    },
+    "contestant": {
+      "tag": "Contest",
+      "title": "Join Contests",
+      "description": "Understand contest rules, scoring systems and troubleshooting"
+    },
+    "teacher": {
+      "tag": "Teacher",
+      "title": "Manage Contests",
+      "description": "Create contests, manage problems and view student statistics"
+    },
+    "admin": {
+      "tag": "Admin",
+      "title": "System Administration",
+      "description": "Manage users, permissions and system configuration"
+    },
+    "developer": {
+      "tag": "Developer",
+      "title": "Contribute Code",
+      "description": "Set up development environment and learn contribution workflow"
+    }
+  },
+  "search": {
+    "label": "Search docs",
+    "placeholder": "Search documentation...",
+    "searching": "Searching...",
+    "noResults": "No results found",
+    "resultsCount": "Found {{count}} results",
+    "matches": "matches"
+  },
+  "feedback": {
+    "title": "Was this page helpful?",
+    "helpful": "Helpful",
+    "notHelpful": "Needs improvement",
+    "thanks": "Thanks for your feedback!"
+  },
+  "message": {
+    "loading": "Loading documentation...",
+    "notFound": "Document not found",
+    "loadError": "Failed to load document"
+  }
+}

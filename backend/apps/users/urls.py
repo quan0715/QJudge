@@ -14,6 +14,8 @@ from .views import (
     UserSearchView,
     UserRoleUpdateView,
     UserStatsView,
+    UserPreferencesView,
+    ChangePasswordView,
 )
 
 app_name = 'users'
@@ -35,6 +37,10 @@ urlpatterns = [
     # Current user
     path('me', CurrentUserView.as_view(), name='current-user'),
     path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
+    path('me/preferences', UserPreferencesView.as_view(), name='user-preferences'),
+    
+    # Password management
+    path('change-password', ChangePasswordView.as_view(), name='change-password'),
     
     # User management (admin only)
     path('search', UserSearchView.as_view(), name='user-search'),

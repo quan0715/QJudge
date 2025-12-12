@@ -27,7 +27,7 @@ import { useTheme } from "@/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
+import { UserMenu } from "@/ui/components/UserMenu";
 import UserAvatarDisplayWithEdit from "./UserAvatarDisplayWithEdit";
 
 interface ContestHeaderProps {
@@ -154,14 +154,13 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
           </HeaderMenu>
         )}
 
-        {/* User Avatar - Left side */}
+        {/* User Avatar with Edit - Left side (contest context) */}
         {contest && (
           <UserAvatarDisplayWithEdit
             contest={contest}
             onRefresh={onRefreshContest}
           />
         )}
-        {!contest && <UserAvatarDisplay />}
       </HeaderNavigation>
 
       <HeaderGlobalBar>
@@ -289,6 +288,9 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
         >
           {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
         </HeaderGlobalAction>
+
+        {/* User Menu */}
+        <UserMenu />
 
         <Button
           kind="danger--ghost"

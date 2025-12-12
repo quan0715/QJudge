@@ -68,5 +68,58 @@ describe("Submissions API - /api/v1/submissions", () => {
       const res = await apiRequest("/api/v1/submissions/");
       expect(res.status).toBe(401);
     });
+
+    it("should support filtering by user ID", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken) return;
+
+      // Get current user info first to get user ID
+      const userRes = await authenticatedRequest(
+        "/api/v1/users/me/",
+        authToken
+      );
+      if (userRes.status !== 200) return;
+
+      const userData = await userRes.json();
+      const userId = userData.id;
+
+      // Request submissions filtered by user ID
+      const res = await authenticatedRequest(
+        `/api/v1/submissions/?source_type=practice&user=${userId}`,
+        authToken
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      const submissions = data.results || data;
+      expect(Array.isArray(submissions)).toBe(true);
+
+      // All returned submissions should belong to the filtered user
+      submissions.forEach((submission: any) => {
+        // Check user field - can be user ID directly or nested object
+        const submissionUserId =
+          typeof submission.user === "object"
+            ? submission.user.id
+            : submission.user;
+        expect(submissionUserId).toBe(userId);
+      });
+    });
+
+    it("should return empty array when filtering by non-existent user", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken) return;
+
+      // Use a very large user ID that shouldn't exist
+      const res = await authenticatedRequest(
+        "/api/v1/submissions/?source_type=practice&user=999999",
+        authToken
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      const submissions = data.results || data;
+      expect(Array.isArray(submissions)).toBe(true);
+      expect(submissions.length).toBe(0);
+    });
   });
 });

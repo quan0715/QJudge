@@ -5,6 +5,7 @@
     "contests": "競賽",
     "submissions": "提交紀錄",
     "ranking": "排行榜",
+    "documentation": "文件",
     "backToProblemList": "返回題目列表",
     "problemList": "題目列表"
   },
@@ -119,7 +120,28 @@
   },
   "theme": {
     "switchToLight": "切換至淺色模式",
-    "switchToDark": "切換至深色模式"
+    "switchToDark": "切換至深色模式",
+    "light": "淺色",
+    "dark": "深色",
+    "system": "跟隨系統"
+  },
+  "preferences": {
+    "title": "偏好設定",
+    "themeSection": "主題",
+    "languageSection": "語言",
+    "theme": "主題",
+    "language": "語言",
+    "editor": "編輯器設定",
+    "editorFontSize": "字體大小",
+    "editorTabSize": "Tab 寬度",
+    "changePassword": "變更密碼",
+    "currentPassword": "目前密碼",
+    "newPassword": "新密碼",
+    "confirmPassword": "確認新密碼",
+    "passwordChanged": "密碼已成功變更",
+    "passwordMismatch": "新密碼不一致",
+    "wrongPassword": "目前密碼錯誤",
+    "oauthUser": "OAuth 使用者無法變更密碼"
   },
   "table": {
     "title": "標題",

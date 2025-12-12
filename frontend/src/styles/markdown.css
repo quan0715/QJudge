@@ -1,32 +1,86 @@
+/* 
+ * Markdown Styles - Following Carbon Design System Typography
+ * https://carbondesignsystem.com/guidelines/typography/overview
+ */
+
 .markdown-body {
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Use Carbon's default body font */
+  font-family: var(
+    --cds-body-compact-01-font-family,
+    "IBM Plex Sans",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif
+  );
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-weight: var(--cds-body-compact-01-font-weight, 400);
+  line-height: var(--cds-body-compact-01-line-height, 1.42857);
+  letter-spacing: var(--cds-body-compact-01-letter-spacing, 0.16px);
   color: var(--cds-text-primary);
-  line-height: 1.6;
 }
 
-/* Headings */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3,
-.markdown-body h4,
-.markdown-body h5,
-.markdown-body h6 {
-  font-weight: 600;
-  color: var(--cds-text-primary);
+/* Headings - Using Carbon productive heading tokens */
+.markdown-body h1 {
+  font-size: var(--cds-productive-heading-05-font-size, 2rem);
+  font-weight: var(--cds-productive-heading-05-font-weight, 400);
+  line-height: var(--cds-productive-heading-05-line-height, 1.25);
+  letter-spacing: var(--cds-productive-heading-05-letter-spacing, 0);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-body h2 {
+  font-size: var(--cds-productive-heading-04-font-size, 1.75rem);
+  font-weight: var(--cds-productive-heading-04-font-weight, 400);
+  line-height: var(--cds-productive-heading-04-line-height, 1.28572);
+  letter-spacing: var(--cds-productive-heading-04-letter-spacing, 0);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
-  line-height: 1.3;
 }
 
-.markdown-body h1 { font-size: 2rem; }
-.markdown-body h2 { font-size: 1.5rem; }
-.markdown-body h3 { font-size: 1.25rem; }
-.markdown-body h4 { font-size: 1.1rem; }
-.markdown-body h5 { font-size: 1rem; }
-.markdown-body h6 { font-size: 0.9rem; }
+.markdown-body h3 {
+  font-size: var(--cds-productive-heading-03-font-size, 1.25rem);
+  font-weight: var(--cds-productive-heading-03-font-weight, 400);
+  line-height: var(--cds-productive-heading-03-line-height, 1.4);
+  letter-spacing: var(--cds-productive-heading-03-letter-spacing, 0);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
 
-/* Paragraphs */
+.markdown-body h4 {
+  font-size: var(--cds-productive-heading-02-font-size, 1rem);
+  font-weight: var(--cds-productive-heading-02-font-weight, 600);
+  line-height: var(--cds-productive-heading-02-line-height, 1.375);
+  letter-spacing: var(--cds-productive-heading-02-letter-spacing, 0);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-body h5 {
+  font-size: var(--cds-productive-heading-01-font-size, 0.875rem);
+  font-weight: var(--cds-productive-heading-01-font-weight, 600);
+  line-height: var(--cds-productive-heading-01-line-height, 1.28572);
+  letter-spacing: var(--cds-productive-heading-01-letter-spacing, 0.16px);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-body h6 {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: var(--cds-label-01-font-weight, 400);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  color: var(--cds-text-secondary);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Paragraphs - Using Carbon body-long-01 */
 .markdown-body p {
+  font-size: var(--cds-body-long-01-font-size, 0.875rem);
+  line-height: var(--cds-body-long-01-line-height, 1.42857);
+  letter-spacing: var(--cds-body-long-01-letter-spacing, 0.16px);
   margin-bottom: 1rem;
   color: var(--cds-text-primary);
 }
@@ -65,30 +119,84 @@
 }
 
 .markdown-body li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   display: list-item;
+  font-size: var(--cds-body-long-01-font-size, 0.875rem);
+  line-height: var(--cds-body-long-01-line-height, 1.42857);
 }
 
 .markdown-body ul ul,
 .markdown-body ol ol,
 .markdown-body ul ol,
 .markdown-body ol ul {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
-/* Code blocks */
+/* Inline Code - Red text only, no border */
 .markdown-body code {
-  font-family: 'IBM Plex Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 0.875em;
-  background-color: rgba(218, 30, 40, 0.1);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  color: #da1e28;
-  border: 1px solid rgba(218, 30, 40, 0.2);
-  font-weight: 700;
+  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  font-size: var(--cds-code-01-font-size, 0.75rem);
+  line-height: var(--cds-code-01-line-height, 1.33333);
+  letter-spacing: var(--cds-code-01-letter-spacing, 0.32px);
+  background-color: var(--cds-layer-01);
+  padding: 0.125rem 0.25rem;
+  border-radius: 2px;
+  color: var(--cds-support-error, #da1e28);
+  font-weight: 400;
 }
 
+/* Code block wrapper with header */
+.markdown-body .code-block-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #3c3c3c;
+  background-color: #1e1e1e;
+}
+
+.markdown-body .code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  min-height: 2.5rem;
+}
+
+.markdown-body .code-block-header .cds--tag {
+  margin: 0;
+  background-color: #3c3c3c;
+  color: #d4d4d4;
+}
+
+.markdown-body .code-copy-button {
+  background-color: transparent;
+  color: #a0a0a0;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.markdown-body .code-copy-button:hover {
+  background-color: #3c3c3c;
+  color: #ffffff;
+}
+
+.markdown-body .code-copy-button.copied {
+  background-color: #89d185;
+  color: #1e1e1e;
+}
+
+.markdown-body .code-block-wrapper pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Code blocks without wrapper (fallback) */
 .markdown-body pre {
   background-color: var(--cds-layer-02);
   padding: 1rem;
@@ -103,12 +211,12 @@
   padding: 0;
   border-radius: 0;
   color: inherit;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: normal;
+  font-size: var(--cds-code-02-font-size, 0.875rem);
+  line-height: var(--cds-code-02-line-height, 1.42857);
+  font-weight: 400;
 }
 
-/* Ensure inline code in paragraphs and lists keeps red bold highlighting */
+/* Ensure inline code keeps red text styling */
 .markdown-body p code,
 .markdown-body li code,
 .markdown-body td code,
@@ -119,11 +227,10 @@
 .markdown-body h4 code,
 .markdown-body h5 code,
 .markdown-body h6 code {
-  background-color: rgba(218, 30, 40, 0.1);
-  color: #da1e28;
-  border: 1px solid rgba(218, 30, 40, 0.2);
-  padding: 0.2em 0.4em;
-  font-weight: 700;
+  background-color: var(--cds-layer-01);
+  color: var(--cds-support-error, #da1e28);
+  padding: 0.125rem 0.25rem;
+  font-weight: 400;
 }
 
 /* Blockquotes */
@@ -133,10 +240,14 @@
   margin-left: 0;
   margin-bottom: 1rem;
   color: var(--cds-text-secondary);
-  font-style: italic;
+  font-style: normal;
 }
 
-/* Links */
+.markdown-body blockquote p {
+  color: var(--cds-text-secondary);
+}
+
+/* Links - Using Carbon link tokens */
 .markdown-body a {
   color: var(--cds-link-primary);
   text-decoration: none;
@@ -147,27 +258,47 @@
   color: var(--cds-link-primary-hover);
 }
 
-/* Tables */
+.markdown-body a:visited {
+  color: var(--cds-link-visited);
+}
+
+/* Tables - IBM Cloud Docs style */
 .markdown-body table {
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 1rem;
+  border: none;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 .markdown-body table th,
 .markdown-body table td {
-  border: 1px solid var(--cds-border-subtle);
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
 }
 
 .markdown-body table th {
-  background-color: var(--cds-layer-01);
+  background-color: transparent;
   font-weight: 600;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--cds-border-strong-01, #8d8d8d);
+}
+
+.markdown-body table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.markdown-body table tbody tr:hover {
+  background-color: var(--cds-layer-hover-01, #e8e8e8);
 }
 
 .markdown-body table tr:nth-child(even) {
-  background-color: var(--cds-layer-01);
+  background-color: transparent;
 }
 
 /* Horizontal rules */
@@ -220,9 +351,9 @@
 .markdown-body aside {
   padding: 1rem 1.25rem;
   margin: 1rem 0;
-  background-color: rgba(69, 137, 255, 0.1);
+  background-color: var(--cds-background-selected);
   border-left: 4px solid var(--cds-support-info);
-  border-radius: 4px;
+  border-radius: 0;
   color: var(--cds-text-primary);
 }
 
@@ -233,17 +364,344 @@
 /* Aside variants using data-type attribute */
 .markdown-body aside[data-type="warning"] {
   border-left-color: var(--cds-support-warning);
-  background-color: rgba(255, 213, 79, 0.1);
+  background-color: var(--cds-notification-background-warning);
 }
 
 .markdown-body aside[data-type="error"],
 .markdown-body aside[data-type="danger"] {
   border-left-color: var(--cds-support-error);
-  background-color: rgba(250, 77, 86, 0.1);
+  background-color: var(--cds-notification-background-error);
 }
 
 .markdown-body aside[data-type="success"] {
   border-left-color: var(--cds-support-success);
-  background-color: rgba(36, 161, 72, 0.1);
+  background-color: var(--cds-notification-background-success);
 }
 
+/* First heading in document - no top margin */
+.markdown-body > h1:first-child,
+.markdown-body > h2:first-child,
+.markdown-body > h3:first-child {
+  margin-top: 0;
+}
+
+/* ============================================
+   Custom Syntax Highlighting for Code Blocks
+   High contrast colors for better readability
+   ============================================ */
+
+/* Base code styling in pre blocks */
+.markdown-body pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1rem;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+/* Ensure pre block uses dark background for code */
+.markdown-body .code-block-wrapper pre,
+.markdown-body pre:has(code.hljs) {
+  background-color: #1e1e1e;
+}
+
+/* Keywords: if, else, for, while, return, function, const, let, var, class, import, export, etc. */
+.markdown-body pre code .hljs-keyword,
+.markdown-body pre code .hljs-selector-tag,
+.markdown-body pre code .hljs-built_in,
+.markdown-body pre code .hljs-type {
+  color: #569cd6;
+  font-weight: 500;
+}
+
+/* Strings */
+.markdown-body pre code .hljs-string,
+.markdown-body pre code .hljs-attr,
+.markdown-body pre code .hljs-symbol,
+.markdown-body pre code .hljs-bullet {
+  color: #ce9178;
+}
+
+/* Numbers */
+.markdown-body pre code .hljs-number,
+.markdown-body pre code .hljs-literal {
+  color: #b5cea8;
+}
+
+/* Comments */
+.markdown-body pre code .hljs-comment,
+.markdown-body pre code .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+/* Function names */
+.markdown-body pre code .hljs-title,
+.markdown-body pre code .hljs-section {
+  color: #dcdcaa;
+}
+
+/* Variables and parameters */
+.markdown-body pre code .hljs-variable,
+.markdown-body pre code .hljs-params {
+  color: #9cdcfe;
+}
+
+/* Class names and types */
+.markdown-body pre code .hljs-class .hljs-title,
+.markdown-body pre code .hljs-title.class_ {
+  color: #4ec9b0;
+}
+
+/* Attributes in HTML/XML */
+.markdown-body pre code .hljs-attr,
+.markdown-body pre code .hljs-attribute {
+  color: #9cdcfe;
+}
+
+/* Tags in HTML/XML */
+.markdown-body pre code .hljs-tag {
+  color: #808080;
+}
+
+.markdown-body pre code .hljs-name {
+  color: #569cd6;
+}
+
+/* YAML/JSON keys */
+.markdown-body pre code .hljs-attr {
+  color: #9cdcfe;
+}
+
+/* Operators and punctuation */
+.markdown-body pre code .hljs-operator,
+.markdown-body pre code .hljs-punctuation {
+  color: #d4d4d4;
+}
+
+/* Meta and preprocessor */
+.markdown-body pre code .hljs-meta,
+.markdown-body pre code .hljs-meta .hljs-keyword {
+  color: #c586c0;
+}
+
+/* Regex */
+.markdown-body pre code .hljs-regexp {
+  color: #d16969;
+}
+
+/* Deletion (diff) */
+.markdown-body pre code .hljs-deletion {
+  color: #f44747;
+  background-color: rgba(244, 71, 71, 0.1);
+}
+
+/* Addition (diff) */
+.markdown-body pre code .hljs-addition {
+  color: #89d185;
+  background-color: rgba(137, 209, 133, 0.1);
+}
+
+/* Selection highlight */
+.markdown-body pre code ::selection {
+  background-color: #264f78;
+}
+
+/* Link in code */
+.markdown-body pre code .hljs-link {
+  color: #3794ff;
+  text-decoration: underline;
+}
+
+/* Template literals */
+.markdown-body pre code .hljs-template-variable,
+.markdown-body pre code .hljs-subst {
+  color: #9cdcfe;
+}
+
+/* ============================================
+   Light Theme Syntax Highlighting
+   VS Code Light+ inspired colors
+   ============================================ */
+
+/* Light theme code block wrapper */
+[data-carbon-theme="white"] .markdown-body .code-block-wrapper,
+[data-carbon-theme="g10"] .markdown-body .code-block-wrapper {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-header,
+[data-carbon-theme="g10"] .markdown-body .code-block-header {
+  background-color: #e8e8e8;
+  border-bottom-color: #e0e0e0;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-header .cds--tag,
+[data-carbon-theme="g10"] .markdown-body .code-block-header .cds--tag {
+  background-color: #d0d0d0;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button {
+  color: #666666;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button:hover,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button:hover {
+  background-color: #d0d0d0;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button.copied,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button.copied {
+  background-color: #198038;
+  color: #ffffff;
+}
+
+/* Light theme base code styling */
+[data-carbon-theme="white"] .markdown-body pre code.hljs,
+[data-carbon-theme="g10"] .markdown-body pre code.hljs {
+  background: #f5f5f5;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-wrapper pre,
+[data-carbon-theme="g10"] .markdown-body .code-block-wrapper pre,
+[data-carbon-theme="white"] .markdown-body pre:has(code.hljs),
+[data-carbon-theme="g10"] .markdown-body pre:has(code.hljs) {
+  background-color: #f5f5f5;
+}
+
+/* Light theme keywords */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-keyword,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-keyword,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-selector-tag,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-selector-tag,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-built_in,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-built_in,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-type,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-type {
+  color: #0000ff;
+  font-weight: 500;
+}
+
+/* Light theme strings */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-string,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-string,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-symbol,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-symbol,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-bullet,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-bullet {
+  color: #a31515;
+}
+
+/* Light theme numbers */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-number,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-number,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-literal,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-literal {
+  color: #098658;
+}
+
+/* Light theme comments */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-comment,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-comment,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-quote,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-quote {
+  color: #008000;
+  font-style: italic;
+}
+
+/* Light theme function names */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-title,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-title,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-section,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-section {
+  color: #795e26;
+}
+
+/* Light theme variables and parameters */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-variable,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-variable,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-params,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-params {
+  color: #001080;
+}
+
+/* Light theme class names */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-class .hljs-title,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-class .hljs-title,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-title.class_,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-title.class_ {
+  color: #267f99;
+}
+
+/* Light theme attributes */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-attr,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-attr,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-attribute,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-attribute {
+  color: #ff0000;
+}
+
+/* Light theme tags */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-tag,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-tag {
+  color: #800000;
+}
+
+[data-carbon-theme="white"] .markdown-body pre code .hljs-name,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-name {
+  color: #800000;
+}
+
+/* Light theme operators */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-operator,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-operator,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-punctuation,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-punctuation {
+  color: #333333;
+}
+
+/* Light theme meta/preprocessor */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-meta,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-meta,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-meta .hljs-keyword,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-meta .hljs-keyword {
+  color: #af00db;
+}
+
+/* Light theme regex */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-regexp,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-regexp {
+  color: #811f3f;
+}
+
+/* Light theme diff */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-deletion,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-deletion {
+  color: #a31515;
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+[data-carbon-theme="white"] .markdown-body pre code .hljs-addition,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-addition {
+  color: #098658;
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* Light theme selection */
+[data-carbon-theme="white"] .markdown-body pre code ::selection,
+[data-carbon-theme="g10"] .markdown-body pre code ::selection {
+  background-color: #add6ff;
+}
+
+/* Light theme template literals */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-template-variable,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-template-variable,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-subst,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-subst {
+  color: #001080;
+}

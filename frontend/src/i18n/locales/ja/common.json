@@ -5,6 +5,7 @@
     "contests": "コンテスト",
     "submissions": "提出履歴",
     "ranking": "ランキング",
+    "documentation": "ドキュメント",
     "backToProblemList": "問題一覧に戻る",
     "problemList": "問題一覧"
   },
@@ -119,7 +120,28 @@
   },
   "theme": {
     "switchToLight": "ライトモードに切り替え",
-    "switchToDark": "ダークモードに切り替え"
+    "switchToDark": "ダークモードに切り替え",
+    "light": "ライト",
+    "dark": "ダーク",
+    "system": "システム"
+  },
+  "preferences": {
+    "title": "設定",
+    "themeSection": "テーマ",
+    "languageSection": "言語",
+    "theme": "テーマ",
+    "language": "言語",
+    "editor": "エディター設定",
+    "editorFontSize": "フォントサイズ",
+    "editorTabSize": "タブ幅",
+    "changePassword": "パスワード変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "新しいパスワード（確認）",
+    "passwordChanged": "パスワードが変更されました",
+    "passwordMismatch": "新しいパスワードが一致しません",
+    "wrongPassword": "現在のパスワードが間違っています",
+    "oauthUser": "OAuthユーザーはパスワードを変更できません"
   },
   "table": {
     "title": "タイトル",
