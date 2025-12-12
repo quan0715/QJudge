@@ -55,7 +55,10 @@ const DocsHeader: React.FC = () => {
     <HeaderContainer
       render={() => (
         <Header aria-label="QJudge Documentation">
-          <HeaderName href={import.meta.env.VITE_MAIN_APP_URL || "/"} prefix="QJudge">
+          <HeaderName
+            href={import.meta.env.VITE_MAIN_APP_URL || "/"}
+            prefix="QJudge"
+          >
             DOCS
           </HeaderName>
 
