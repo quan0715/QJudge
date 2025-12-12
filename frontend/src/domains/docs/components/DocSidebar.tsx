@@ -24,6 +24,8 @@ interface DocConfig {
 interface DocSidebarProps {
   config: DocConfig;
   currentSlug: string;
+  /** Callback when a link is clicked (for closing mobile menu) */
+  onLinkClick?: () => void;
 }
 
 // Section icons mapping
@@ -36,7 +38,11 @@ const sectionIcons: Record<string, React.ElementType> = {
   "developer-guide": Code,
 };
 
-const DocSidebar: React.FC<DocSidebarProps> = ({ config, currentSlug }) => {
+const DocSidebar: React.FC<DocSidebarProps> = ({
+  config,
+  currentSlug,
+  onLinkClick,
+}) => {
   const { t } = useTranslation("docs");
   const navigate = useNavigate();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -55,6 +61,8 @@ const DocSidebar: React.FC<DocSidebarProps> = ({ config, currentSlug }) => {
 
   const handleNavigation = (slug: string) => {
     navigate(`/docs/${slug}`, { replace: false });
+    // Close mobile menu after navigation
+    onLinkClick?.();
   };
 
   const toggleSection = (sectionId: string) => {

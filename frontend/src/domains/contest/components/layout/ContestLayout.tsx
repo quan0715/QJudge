@@ -10,10 +10,6 @@ import {
   HeaderNavigation,
   HeaderMenu,
   HeaderMenuItem,
-  TextInput,
-  InlineLoading,
-  Popover,
-  PopoverContent,
   Button,
 } from "@carbon/react";
 import {
@@ -26,14 +22,9 @@ import {
   Locked,
   WarningAlt,
   WarningAltFilled,
-  Edit,
-  Language,
-  Checkmark,
 } from "@carbon/icons-react";
 import { useTheme } from "@/ui/theme/ThemeContext";
-import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
-import { Light, Asleep } from "@carbon/icons-react";
 import ExamModeWrapper from "@/domains/contest/components/ExamModeWrapper";
 import {
   getContest,
@@ -41,132 +32,14 @@ import {
   leaveContest,
   startExam,
   endExam,
-  updateNickname,
 } from "@/services/contest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { UserMenu } from "@/ui/components/UserMenu";
 import ContestHero from "@/domains/contest/components/layout/ContestHero";
 import ContestTabs from "@/domains/contest/components/layout/ContestTabs";
 import { ContentPage } from "@/ui/layout/ContentPage";
-import { UserAvatarDisplay } from "@/ui/components/UserAvatarDisplay";
 import { ContestProvider } from "@/domains/contest/contexts/ContestContext";
 import { ExamModeMonitorModel } from "@/domains/contest/components/Model/ExamModeMonitorModel";
-
-const UserAvatarDisplayWithEditInline = ({
-  contest,
-  onRefresh,
-}: {
-  contest: ContestDetail;
-  onRefresh: () => void;
-}) => {
-  const { t } = useTranslation("contest");
-  const { t: tc } = useTranslation("common");
-  const [open, setOpen] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [nickname, setNickname] = useState(contest.myNickname || "");
-  const [loading, setLoading] = useState(false);
-
-  // Use a ref to anchor the popover
-  const avatarRef = React.useRef<HTMLDivElement>(null);
-
-  const handleUpdate = async () => {
-    setLoading(true);
-    try {
-      await updateNickname(contest.id, nickname);
-      await onRefresh();
-      setShowEditModal(false);
-      setOpen(false);
-    } catch (error) {
-      console.error("Failed to update nickname", error);
-      alert(t("avatar.updateFailed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const currentNickname = contest.myNickname || t("avatar.participant");
-  const role =
-    contest.currentUserRole === "admin" || contest.currentUserRole === "teacher"
-      ? t("avatar.admin")
-      : t("avatar.student");
-
-  // Can edit if registered, anonymous mode is enabled, and exam not in progress (unless admin)
-  const canEdit =
-    (contest.anonymousModeEnabled && contest.examStatus !== "in_progress") ||
-    contest.currentUserRole === "admin";
-
-  return (
-    <>
-      <div
-        ref={avatarRef}
-        style={{
-          cursor: "pointer",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-        }}
-        onClick={() => setOpen(!open)}
-      >
-        <UserAvatarDisplay />
-      </div>
-
-      <Popover open={open} align="bottom-right" isTabTip>
-        <PopoverContent className="p-3">
-          <div style={{ minWidth: "200px", padding: "1rem" }}>
-            <div style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>
-              {currentNickname}
-            </div>
-            <div
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--cds-text-secondary)",
-                marginBottom: "1rem",
-              }}
-            >
-              {role}
-            </div>
-
-            {canEdit && (
-              <Button
-                kind="ghost"
-                size="sm"
-                renderIcon={Edit}
-                onClick={() => setShowEditModal(true)}
-                style={{ width: "100%" }}
-              >
-                {t("avatar.editNickname")}
-              </Button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Modal
-        open={showEditModal}
-        modalHeading={t("avatar.editContestNickname")}
-        primaryButtonText={
-          loading ? (
-            <InlineLoading description={t("refreshing")} />
-          ) : (
-            t("avatar.save")
-          )
-        }
-        secondaryButtonText={tc("button.cancel")}
-        primaryButtonDisabled={loading}
-        onRequestClose={() => setShowEditModal(false)}
-        onRequestSubmit={handleUpdate}
-        size="xs"
-      >
-        <TextInput
-          id="nickname-input"
-          labelText={t("avatar.nicknameLabel")}
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder={t("avatar.nicknamePlaceholder")}
-        />
-      </Modal>
-    </>
-  );
-};
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -181,36 +54,9 @@ const ContestLayout = () => {
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [unlockTimeLeft, setUnlockTimeLeft] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
-  const languageMenuRef = React.useRef<HTMLDivElement>(null);
-  const { theme, toggleTheme } = useTheme();
-  const {
-    contentLanguage,
-    setContentLanguage,
-    supportedLanguages,
-    getCurrentLanguageShortLabel,
-  } = useContentLanguage();
+  const { theme } = useTheme();
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
-
-  // Close language menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        languageMenuRef.current &&
-        !languageMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsLanguageMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleLanguageSelect = (langId: string) => {
-    setContentLanguage(langId as typeof contentLanguage);
-    setIsLanguageMenuOpen(false);
-  };
 
   // Detect if we're on a solve page - hide hero/tabs for cleaner UI
   const isSolvePage = location.pathname.includes("/solve/");
@@ -582,15 +428,6 @@ const ContestLayout = () => {
                   ))}
                 </HeaderMenu>
               )}
-
-            {/* User Avatar - Left side */}
-            {contest && (
-              <UserAvatarDisplayWithEditInline
-                contest={contest}
-                onRefresh={refreshContest}
-              />
-            )}
-            {!contest && <UserAvatarDisplay />}
           </HeaderNavigation>
           <HeaderGlobalBar>
             {/* Exam Status Display - Right side */}
@@ -691,92 +528,6 @@ const ContestLayout = () => {
               </>
             )}
 
-            <div ref={languageMenuRef} style={{ position: "relative" }}>
-              <HeaderGlobalAction
-                aria-label={tc("language.switchTo")}
-                tooltipAlignment="center"
-                isActive={isLanguageMenuOpen}
-                onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <Language size={20} />
-                  <span style={{ fontSize: "12px", fontWeight: 500 }}>
-                    {getCurrentLanguageShortLabel()}
-                  </span>
-                </div>
-              </HeaderGlobalAction>
-              {isLanguageMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    backgroundColor: "var(--cds-layer-01)",
-                    border: "1px solid var(--cds-border-subtle)",
-                    borderRadius: "4px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    minWidth: "150px",
-                    zIndex: 9999,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "0.5rem 1rem",
-                      fontSize: "0.75rem",
-                      color: "var(--cds-text-secondary)",
-                      borderBottom: "1px solid var(--cds-border-subtle)",
-                    }}
-                  >
-                    {tc("language.selectLanguage")}
-                  </div>
-                  {supportedLanguages.map((lang) => (
-                    <div
-                      key={lang.id}
-                      onClick={() => handleLanguageSelect(lang.id)}
-                      style={{
-                        padding: "0.75rem 1rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        backgroundColor:
-                          contentLanguage === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          "var(--cds-layer-hover-01)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          contentLanguage === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent")
-                      }
-                    >
-                      <span>{lang.label}</span>
-                      {contentLanguage === lang.id && <Checkmark size={16} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <HeaderGlobalAction
-              aria-label={
-                theme === "white"
-                  ? tc("theme.switchToDark")
-                  : tc("theme.switchToLight")
-              }
-              tooltipAlignment="center"
-              onClick={toggleTheme}
-            >
-              {theme === "white" ? <Asleep size={20} /> : <Light size={20} />}
-            </HeaderGlobalAction>
-
             <HeaderGlobalAction
               aria-label={isRefreshing ? t("refreshing") : t("refresh")}
               tooltipAlignment="center"
@@ -810,6 +561,13 @@ const ContestLayout = () => {
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </HeaderGlobalAction>
 
+            {/* User Menu - contest mode: theme/language/nickname edit */}
+            <UserMenu
+              contestMode
+              contest={contest}
+              onContestRefresh={refreshContest}
+            />
+
             <Button
               kind="danger--ghost"
               size="sm"
@@ -823,7 +581,6 @@ const ContestLayout = () => {
             >
               {t("exit")}
             </Button>
-            {/* User Info Display moved to HeaderNavigation (left side) */}
           </HeaderGlobalBar>
         </Header>
 

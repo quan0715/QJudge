@@ -119,6 +119,24 @@ class ContestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def perform_update(self, serializer):
+        """
+        Override to log contest update activity.
+        """
+        instance = serializer.save()
+        
+        # Log activity - record what fields were changed
+        changed_fields = []
+        for field, value in serializer.validated_data.items():
+            changed_fields.append(field)
+        
+        ContestActivityViewSet.log_activity(
+            instance,
+            self.request.user,
+            'update_contest',
+            f"Updated contest settings: {', '.join(changed_fields)}"
+        )
+
     def retrieve(self, request, *args, **kwargs):
         """
         Retrieve contest details. Block access if inactive and user is not owner/admin.
