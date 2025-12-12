@@ -22,7 +22,7 @@
     },
     {
       "id": "developer-guide",
-      "items": ["contributing", "dev-setup"]
+      "items": ["contributing", "dev-setup", "e2e-testing"]
     }
   ],
   "defaultDoc": "overview"

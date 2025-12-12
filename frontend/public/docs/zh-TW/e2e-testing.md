@@ -24,15 +24,15 @@
 ┌────────────────────▼────────────────────────────────────┐
 │              Docker Compose 測試環境                     │
 ├─────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │   Frontend   │  │   Backend    │  │   Celery     │ │
-│  │   :5174      │◄─┤   :8001      │◄─┤   Worker     │ │
-│  └──────────────┘  └──────┬───────┘  └──────┬───────┘ │
-│                            │                  │          │
-│                    ┌───────▼────────┐ ┌──────▼───────┐ │
-│                    │   PostgreSQL   │ │    Redis     │ │
-│                    │   (test_oj_e2e)│ │   :6380      │ │
-│                    └────────────────┘ └──────────────┘ │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Frontend   │  │   Backend    │  │   Celery     │  │
+│  │   :5174      │◄─┤   :8001      │◄─┤   Worker     │  │
+│  └──────────────┘  └──────┬───────┘  └──────┬───────┘  │
+│                           │                  │          │
+│                   ┌───────▼────────┐ ┌──────▼───────┐  │
+│                   │   PostgreSQL   │ │    Redis     │  │
+│                   │   (test_oj_e2e)│ │   :6380      │  │
+│                   └────────────────┘ └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -51,30 +51,14 @@
 
 ### 測試題目
 
-- **P001: A+B Problem** (簡單)
-
-  - 計算兩個整數的和
-  - 包含 3 個測試案例
-
-- **P002: Hello World** (簡單)
-
-  - 輸出 "Hello, World!"
-  - 包含 1 個測試案例
-
-- **P003: Factorial** (中等)
-  - 計算階乘
-  - 包含 3 個測試案例
+- **P001: A+B Problem** (簡單) - 計算兩個整數的和，包含 3 個測試案例
+- **P002: Hello World** (簡單) - 輸出 "Hello, World!"，包含 1 個測試案例
+- **P003: Factorial** (中等) - 計算階乘，包含 3 個測試案例
 
 ### 測試競賽
 
-- **E2E Test Contest** (進行中)
-
-  - 包含 A+B Problem 和 Hello World
-  - 可以加入並提交
-
-- **Upcoming Contest** (即將開始)
-  - 包含 Factorial
-  - 無法加入
+- **E2E Test Contest** (進行中) - 包含 A+B Problem 和 Hello World，可以加入並提交
+- **Upcoming Contest** (即將開始) - 包含 Factorial，無法加入
 
 ## 快速開始
 
@@ -188,47 +172,45 @@ frontend/
 
 ### 認證測試 (auth.e2e.spec.ts)
 
-- ✅ 用戶註冊
-- ✅ 用戶登入（Student, Teacher, Admin）
-- ✅ 用戶登出
-- ✅ 無效憑證錯誤處理
-- ✅ 未授權訪問保護
-- ✅ Session 持久化
+- 用戶註冊
+- 用戶登入（Student, Teacher, Admin）
+- 用戶登出
+- 無效憑證錯誤處理
+- 未授權訪問保護
+- Session 持久化
 
 ### 題目列表測試 (problems.e2e.spec.ts)
 
-- ✅ 顯示題目列表
-- ✅ 題目資訊顯示（標題、難度、編號）
-- ✅ 點擊題目進入詳情頁
-- ✅ 分頁功能
-- ✅ 導航功能
+- 顯示題目列表
+- 題目資訊顯示（標題、難度、編號）
+- 點擊題目進入詳情頁
+- 分頁功能
+- 導航功能
 
 ### 提交測試 (submission.e2e.spec.ts)
 
-- ✅ 顯示題目詳情
-- ✅ 題目描述與測試案例
-- ✅ 代碼編輯器
-- ✅ 提交代碼
-- ✅ 查看提交結果
-- ✅ 提交歷史
-- ✅ 提交篩選
+- 顯示題目詳情
+- 題目描述與測試案例
+- 代碼編輯器
+- 提交代碼
+- 查看提交結果
+- 提交歷史
+- 提交篩選
 
 ### 競賽測試 (contest.e2e.spec.ts)
 
-- ✅ 顯示競賽列表
-- ✅ 競賽狀態顯示
-- ✅ 競賽詳情頁
-- ✅ 加入競賽
-- ✅ 競賽題目列表
-- ✅ 競賽中解題
-- ✅ 競賽排行榜
-- ✅ 時間限制檢查
+- 顯示競賽列表
+- 競賽狀態顯示
+- 競賽詳情頁
+- 加入競賽
+- 競賽題目列表
+- 競賽中解題
+- 競賽排行榜
+- 時間限制檢查
 
-## 開發測試
+## 編寫新測試
 
-### 編寫新測試
-
-1. 在 `frontend/tests/e2e/` 建立新的測試檔案：
+在 `frontend/tests/e2e/` 建立新的測試檔案：
 
 ```typescript
 import { test, expect } from "@playwright/test";
@@ -245,7 +227,7 @@ test.describe("My Feature Tests", () => {
 });
 ```
 
-2. 使用輔助函數：
+使用輔助函數：
 
 ```typescript
 import { login, logout } from "../helpers/auth.helper";
@@ -259,7 +241,7 @@ const user = TEST_USERS.student;
 const problem = TEST_PROBLEMS.aPlusB;
 ```
 
-### 偵錯測試
+## 偵錯測試
 
 ```bash
 # UI 模式（推薦）
@@ -275,45 +257,31 @@ npx playwright test -c playwright.config.e2e.ts tests/e2e/auth.e2e.spec.ts
 npx playwright test -c playwright.config.e2e.ts -g "should login as student"
 ```
 
-### 查看測試報告
-
-```bash
-# 執行測試後查看報告
-npm run test:e2e:report
-
-# 或直接開啟
-open playwright-report-e2e/index.html
-```
-
 ## 常見問題
 
-### Q: 測試環境啟動失敗
+### 測試環境啟動失敗
 
-**A:** 檢查以下幾點：
+檢查以下幾點：
 
 1. Docker 是否正在運行
 2. Port 5174 和 8001 是否被佔用
 3. 查看服務日誌：`./frontend/scripts/e2e-env.sh logs`
 
-### Q: 測試資料不正確
+### 測試資料不正確
 
-**A:** 重置測試環境：
+重置測試環境：
 
 ```bash
 ./frontend/scripts/e2e-env.sh reset
 ```
 
-### Q: 測試執行很慢
-
-**A:**
+### 測試執行很慢
 
 1. 確保 Docker 資源配置足夠
 2. 使用 `--workers=1` 避免並行測試
 3. 考慮使用 API 登入取代 UI 登入（更快）
 
-### Q: 如何在 CI/CD 中執行測試
-
-**A:** 參考 `.github/workflows/e2e-tests.yml`（如果有的話）或使用：
+### 如何在 CI/CD 中執行測試
 
 ```bash
 # 設置 CI 環境變數
@@ -347,12 +315,6 @@ cd .. && ./frontend/scripts/e2e-env.sh stop
 3. **並行執行**：小心使用，確保測試資料不衝突
 4. **快照測試**：對於穩定的 UI，考慮使用視覺快照測試
 
-## 參考資料
-
-- [Playwright 官方文件](https://playwright.dev/)
-- [Docker Compose 文件](https://docs.docker.com/compose/)
-- [Django 測試最佳實踐](https://docs.djangoproject.com/en/stable/topics/testing/)
-
 ## 維護
 
 ### 更新測試資料
@@ -366,3 +328,9 @@ cd .. && ./frontend/scripts/e2e-env.sh stop
 ### 更新環境配置
 
 修改 `docker-compose.test.yml` 來調整服務配置（port、環境變數等）。
+
+## 參考資料
+
+- [Playwright 官方文件](https://playwright.dev/)
+- [Docker Compose 文件](https://docs.docker.com/compose/)
+- [Django 測試最佳實踐](https://docs.djangoproject.com/en/stable/topics/testing/)
