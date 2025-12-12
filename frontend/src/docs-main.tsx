@@ -29,15 +29,6 @@ function DocsApp() {
               <Routes>
                 <Route element={<DocsLayout />}>
                   {/* Root redirects directly to overview */}
-<<<<<<< HEAD
-                  <Route index element={<Navigate to="/docs/overview" replace />} />
-                  {/* /docs also redirects to overview */}
-                  <Route path="/docs" element={<Navigate to="/docs/overview" replace />} />
-                  <Route path="/docs/:slug" element={<DocumentationPage />} />
-                </Route>
-                {/* Fallback - redirect to docs overview */}
-                <Route path="*" element={<Navigate to="/docs/overview" replace />} />
-=======
                   <Route
                     index
                     element={<Navigate to="/docs/overview" replace />}
@@ -54,7 +45,6 @@ function DocsApp() {
                   path="*"
                   element={<Navigate to="/docs/overview" replace />}
                 />
->>>>>>> 4d6c70c43d8614b4d6dec3f1f8f53121619c41c7
               </Routes>
             </HashRouter>
           </ThemeProvider>
