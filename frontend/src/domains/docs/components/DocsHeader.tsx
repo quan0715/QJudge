@@ -1,30 +1,22 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Header,
   HeaderContainer,
   HeaderName,
-  HeaderGlobalBar,
-  HeaderGlobalAction,
   HeaderMenuButton,
   SideNav,
   SideNavItems,
-  SideNavMenu,
-  SideNavMenuItem,
-  Button,
+  SideNavDivider,
+  SkeletonText,
 } from "@carbon/react";
-import {
-  Language,
-  Checkmark,
-  Launch,
-  Light,
-  Asleep,
-  Document,
-} from "@carbon/icons-react";
+import { Light, Asleep, Laptop, Launch, Language } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import DocsSearchDropdown from "./DocsSearchDropdown";
+import DocSidebar from "./DocSidebar";
+import styles from "./DocsHeader.module.scss";
 
 interface DocConfig {
   sections: Array<{
@@ -34,16 +26,19 @@ interface DocConfig {
   defaultDoc: string;
 }
 
+type ThemeValue = "light" | "dark" | "system";
+
 const DocsHeader: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { t: tDocs } = useTranslation("docs");
-  const { theme, toggleTheme } = useTheme();
+  const { setTheme } = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(false);
   const [docsConfig, setDocsConfig] = useState<DocConfig | null>(null);
-  const languageMenuRef = useRef<HTMLDivElement>(null);
+  const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
+    const stored = localStorage.getItem("theme-preference");
+    return (stored as ThemeValue) || "system";
+  });
 
   // Get current doc slug from URL
   const currentDocSlug =
@@ -68,31 +63,43 @@ const DocsHeader: React.FC = () => {
     loadDocsConfig();
   }, []);
 
-  // Close language menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        languageMenuRef.current &&
-        !languageMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsLanguageMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleLanguageSelect = (langId: string) => {
     i18n.changeLanguage(langId);
-    setIsLanguageMenuOpen(false);
   };
 
-  const getCurrentLanguageShortLabel = () => {
-    const currentLang = SUPPORTED_LANGUAGES.find(
-      (lang) => lang.id === i18n.language
-    );
-    return currentLang?.shortLabel || "中";
+  const handleThemeChange = (value: ThemeValue) => {
+    setCurrentTheme(value);
+    localStorage.setItem("theme-preference", value);
+
+    if (value === "system") {
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      setTheme(prefersDark ? "g100" : "white");
+    } else if (value === "dark") {
+      setTheme("g100");
+    } else {
+      setTheme("white");
+    }
   };
+
+  const themeOptions = [
+    {
+      value: "light" as ThemeValue,
+      label: t("theme.light"),
+      icon: <Light size={16} />,
+    },
+    {
+      value: "dark" as ThemeValue,
+      label: t("theme.dark"),
+      icon: <Asleep size={16} />,
+    },
+    {
+      value: "system" as ThemeValue,
+      label: t("theme.system"),
+      icon: <Laptop size={16} />,
+    },
+  ];
 
   return (
     <HeaderContainer
@@ -102,7 +109,6 @@ const DocsHeader: React.FC = () => {
             aria-label={t("header.menu", "選單")}
             onClick={() => setIsSideNavExpanded(!isSideNavExpanded)}
             isActive={isSideNavExpanded}
-            aria-expanded={isSideNavExpanded}
           />
           <HeaderName
             href={import.meta.env.VITE_MAIN_APP_URL || "/"}
@@ -111,116 +117,12 @@ const DocsHeader: React.FC = () => {
             DOCS
           </HeaderName>
 
-          <HeaderGlobalBar>
+          {/* Search - Only element in header */}
+          <div className={styles.searchWrapper}>
             <DocsSearchDropdown />
+          </div>
 
-            {/* Language Switcher */}
-            <div ref={languageMenuRef} style={{ position: "relative" }}>
-              <HeaderGlobalAction
-                aria-label={t("language.switchTo")}
-                tooltipAlignment="center"
-                isActive={isLanguageMenuOpen}
-                onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <Language size={20} />
-                  <span style={{ fontSize: "12px", fontWeight: 500 }}>
-                    {getCurrentLanguageShortLabel()}
-                  </span>
-                </div>
-              </HeaderGlobalAction>
-              {isLanguageMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    backgroundColor: "var(--cds-layer-01)",
-                    border: "1px solid var(--cds-border-subtle)",
-                    borderRadius: "4px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    minWidth: "150px",
-                    zIndex: 9999,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "0.5rem 1rem",
-                      fontSize: "0.75rem",
-                      color: "var(--cds-text-secondary)",
-                      borderBottom: "1px solid var(--cds-border-subtle)",
-                    }}
-                  >
-                    {t("language.selectLanguage")}
-                  </div>
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <div
-                      key={lang.id}
-                      onClick={() => handleLanguageSelect(lang.id)}
-                      style={{
-                        padding: "0.75rem 1rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        backgroundColor:
-                          i18n.language === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          "var(--cds-layer-hover-01)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          i18n.language === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent")
-                      }
-                    >
-                      <span>{lang.label}</span>
-                      {i18n.language === lang.id && <Checkmark size={16} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Theme Toggle */}
-            <HeaderGlobalAction
-              aria-label={
-                theme === "white"
-                  ? t("theme.switchToDark")
-                  : t("theme.switchToLight")
-              }
-              tooltipAlignment="center"
-              onClick={toggleTheme}
-            >
-              {theme === "white" ? <Asleep size={20} /> : <Light size={20} />}
-            </HeaderGlobalAction>
-
-            {/* Go to QJudge Button */}
-            <Button
-              kind="ghost"
-              size="sm"
-              renderIcon={Launch}
-              href={import.meta.env.VITE_MAIN_APP_URL || "/"}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              {t("nav.dashboard")}
-            </Button>
-          </HeaderGlobalBar>
-
-          {/* Mobile Side Navigation with Docs Menu */}
+          {/* Side Navigation - Same content for mobile and desktop */}
           <SideNav
             aria-label={tDocs("nav.productLabel", "使用說明")}
             expanded={isSideNavExpanded}
@@ -228,31 +130,176 @@ const DocsHeader: React.FC = () => {
             onSideNavBlur={() => setIsSideNavExpanded(false)}
           >
             <SideNavItems>
-              {docsConfig && (
-                <SideNavMenu
-                  renderIcon={Document}
-                  title={tDocs("nav.productLabel", "使用說明")}
-                  defaultExpanded
-                  isActive
+              {/* Sidebar Header */}
+              <div
+                style={{
+                  padding: "1rem",
+                  borderBottom: "1px solid var(--cds-border-subtle-01)",
+                }}
+              >
+                <p className="cds--label" style={{ marginBottom: "0.25rem" }}>
+                  {tDocs("nav.productLabel", "使用說明")}
+                </p>
+                <h2
+                  className="cds--type-productive-heading-03"
+                  style={{ margin: 0 }}
                 >
-                  {docsConfig.sections.map((section) =>
-                    section.items.map((item) => (
-                      <SideNavMenuItem
-                        key={item}
-                        href="#"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          navigate(`/docs/${item}`);
-                          setIsSideNavExpanded(false);
-                        }}
-                        isActive={currentDocSlug === item}
-                      >
-                        {tDocs(`nav.items.${item}`, item)}
-                      </SideNavMenuItem>
-                    ))
-                  )}
-                </SideNavMenu>
-              )}
+                  QJudge
+                </h2>
+              </div>
+
+              {/* DocSidebar Navigation */}
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {docsConfig ? (
+                  <DocSidebar
+                    config={docsConfig}
+                    currentSlug={currentDocSlug}
+                  />
+                ) : (
+                  <div style={{ padding: "1rem" }}>
+                    <SkeletonText paragraph lineCount={8} />
+                  </div>
+                )}
+              </div>
+
+              <SideNavDivider />
+
+              {/* Theme Section */}
+              <div style={{ padding: "0.75rem 1rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                    color: "var(--cds-text-secondary)",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <Light size={16} />
+                  <span>{t("preferences.themeSection")}</span>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {themeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleThemeChange(option.value)}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.25rem",
+                        padding: "0.5rem",
+                        background:
+                          currentTheme === option.value
+                            ? "var(--cds-layer-selected-01)"
+                            : "transparent",
+                        border: `1px solid ${
+                          currentTheme === option.value
+                            ? "var(--cds-border-interactive)"
+                            : "var(--cds-border-subtle)"
+                        }`,
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        color:
+                          currentTheme === option.value
+                            ? "var(--cds-text-primary)"
+                            : "var(--cds-text-secondary)",
+                        fontSize: "0.75rem",
+                        transition: "all 0.15s ease",
+                      }}
+                      title={option.label}
+                    >
+                      {option.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language Section */}
+              <div style={{ padding: "0.75rem 1rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                    color: "var(--cds-text-secondary)",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <Language size={16} />
+                  <span>{t("preferences.languageSection")}</span>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.id}
+                      type="button"
+                      onClick={() => handleLanguageSelect(lang.id)}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0.5rem",
+                        background:
+                          i18n.language === lang.id
+                            ? "var(--cds-layer-selected-01)"
+                            : "transparent",
+                        border: `1px solid ${
+                          i18n.language === lang.id
+                            ? "var(--cds-border-interactive)"
+                            : "var(--cds-border-subtle)"
+                        }`,
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        color:
+                          i18n.language === lang.id
+                            ? "var(--cds-text-primary)"
+                            : "var(--cds-text-secondary)",
+                        fontSize: "0.75rem",
+                        fontWeight: 500,
+                        transition: "all 0.15s ease",
+                      }}
+                      title={lang.label}
+                    >
+                      {lang.shortLabel}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <SideNavDivider />
+
+              {/* Go to Dashboard Link */}
+              <a
+                href={import.meta.env.VITE_MAIN_APP_URL || "/"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.75rem 1rem",
+                  color: "var(--cds-link-primary)",
+                  textDecoration: "none",
+                  fontSize: "0.875rem",
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "var(--cds-layer-hover-01)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <Launch size={16} />
+                <span>{t("nav.dashboard")}</span>
+              </a>
             </SideNavItems>
           </SideNav>
         </Header>
