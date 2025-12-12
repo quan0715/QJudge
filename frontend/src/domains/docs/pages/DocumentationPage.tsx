@@ -43,7 +43,8 @@ const DocumentationPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
-    const stored = localStorage.getItem("theme-preference");
+    // Use unified localStorage key (same as useUserPreferences)
+    const stored = localStorage.getItem("themePreference");
     return (stored as ThemeValue) || "system";
   });
 
@@ -138,7 +139,8 @@ const DocumentationPage: React.FC = () => {
   // Theme handling
   const handleThemeChange = (value: ThemeValue) => {
     setCurrentTheme(value);
-    localStorage.setItem("theme-preference", value);
+    // Use unified localStorage key (same as useUserPreferences)
+    localStorage.setItem("themePreference", value);
 
     if (value === "system") {
       const prefersDark = window.matchMedia(
