@@ -4,10 +4,10 @@ QJudge 是一個現代化的線上評測系統（Online Judge），提供完整�
 
 ## 連結
 
-| 項目             | 網址                                                           |
-| ---------------- | -------------------------------------------------------------- |
-| **線上平台**     | [q-judge.quan.wtf](https://q-judge.quan.wtf)                   |
-| **使用說明**     | [q-judge.quan.wtf/docs](https://q-judge.quan.wtf/docs)         |
+| 項目             | 網址                                                                           |
+| ---------------- | ------------------------------------------------------------------------------ |
+| **線上平台**     | [q-judge.quan.wtf](https://q-judge.quan.wtf)                                   |
+| **使用說明**     | [q-judge.quan.wtf/docs](https://q-judge.quan.wtf/docs)                         |
 | **GitHub Pages** | [quan0715.github.io/QJudge](https://quan0715.github.io/QJudge/#/docs/overview) |
 
 ## 技術棧
