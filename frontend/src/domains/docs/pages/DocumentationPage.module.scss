@@ -59,7 +59,8 @@
   gap: 0.5rem;
 }
 
-.themeBtn {
+.themeBtn,
+.langBtn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -72,6 +73,7 @@
   cursor: pointer;
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
+  font-weight: 500;
   transition: all 0.15s ease;
 
   &:hover {
@@ -84,6 +86,11 @@
     border-color: var(--cds-border-interactive);
     color: var(--cds-text-primary);
   }
+}
+
+.languageButtons {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .dashboardLink {

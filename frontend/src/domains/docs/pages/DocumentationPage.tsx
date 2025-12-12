@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { SkeletonText, IconButton, Select, SelectItem } from "@carbon/react";
-import { ArrowLeft, Light, Asleep, Laptop, Launch } from "@carbon/icons-react";
+import { SkeletonText, IconButton } from "@carbon/react";
+import {
+  ArrowLeft,
+  Light,
+  Asleep,
+  Laptop,
+  Launch,
+  Language,
+} from "@carbon/icons-react";
 import MarkdownRenderer from "@/ui/components/common/MarkdownRenderer";
 import DocSidebar from "../components/DocSidebar";
 import DocTableOfContents from "../components/DocTableOfContents";
@@ -221,17 +228,25 @@ const DocumentationPage: React.FC = () => {
 
           {/* Language Section */}
           <div className={styles.settingsSection}>
-            <Select
-              id="language-select"
-              labelText={tCommon("preferences.languageSection")}
-              value={i18n.language}
-              onChange={(e) => handleLanguageSelect(e.target.value)}
-              size="sm"
-            >
+            <div className={styles.settingsLabel}>
+              <Language size={16} />
+              <span>{tCommon("preferences.languageSection")}</span>
+            </div>
+            <div className={styles.languageButtons}>
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.id} value={lang.id} text={lang.label} />
+                <button
+                  key={lang.id}
+                  type="button"
+                  onClick={() => handleLanguageSelect(lang.id)}
+                  className={`${styles.langBtn} ${
+                    i18n.language === lang.id ? styles.active : ""
+                  }`}
+                  title={lang.label}
+                >
+                  {lang.shortLabel}
+                </button>
               ))}
-            </Select>
+            </div>
           </div>
 
           <div className={styles.settingsDivider} />
@@ -244,7 +259,7 @@ const DocumentationPage: React.FC = () => {
             className={styles.dashboardLink}
           >
             <Launch size={16} />
-            <span>{tCommon("nav.dashboard")}</span>
+            <span>QJudge</span>
           </a>
         </div>
       </aside>

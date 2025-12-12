@@ -298,7 +298,7 @@ const DocsHeader: React.FC = () => {
                 }}
               >
                 <Launch size={16} />
-                <span>{t("nav.dashboard")}</span>
+                <span>QJudge</span>
               </a>
             </SideNavItems>
           </SideNav>
