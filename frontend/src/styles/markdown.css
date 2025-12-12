@@ -518,3 +518,190 @@
 .markdown-body pre code .hljs-subst {
   color: #9cdcfe;
 }
+
+/* ============================================
+   Light Theme Syntax Highlighting
+   VS Code Light+ inspired colors
+   ============================================ */
+
+/* Light theme code block wrapper */
+[data-carbon-theme="white"] .markdown-body .code-block-wrapper,
+[data-carbon-theme="g10"] .markdown-body .code-block-wrapper {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-header,
+[data-carbon-theme="g10"] .markdown-body .code-block-header {
+  background-color: #e8e8e8;
+  border-bottom-color: #e0e0e0;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-header .cds--tag,
+[data-carbon-theme="g10"] .markdown-body .code-block-header .cds--tag {
+  background-color: #d0d0d0;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button {
+  color: #666666;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button:hover,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button:hover {
+  background-color: #d0d0d0;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-copy-button.copied,
+[data-carbon-theme="g10"] .markdown-body .code-copy-button.copied {
+  background-color: #198038;
+  color: #ffffff;
+}
+
+/* Light theme base code styling */
+[data-carbon-theme="white"] .markdown-body pre code.hljs,
+[data-carbon-theme="g10"] .markdown-body pre code.hljs {
+  background: #f5f5f5;
+  color: #333333;
+}
+
+[data-carbon-theme="white"] .markdown-body .code-block-wrapper pre,
+[data-carbon-theme="g10"] .markdown-body .code-block-wrapper pre,
+[data-carbon-theme="white"] .markdown-body pre:has(code.hljs),
+[data-carbon-theme="g10"] .markdown-body pre:has(code.hljs) {
+  background-color: #f5f5f5;
+}
+
+/* Light theme keywords */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-keyword,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-keyword,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-selector-tag,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-selector-tag,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-built_in,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-built_in,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-type,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-type {
+  color: #0000ff;
+  font-weight: 500;
+}
+
+/* Light theme strings */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-string,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-string,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-symbol,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-symbol,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-bullet,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-bullet {
+  color: #a31515;
+}
+
+/* Light theme numbers */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-number,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-number,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-literal,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-literal {
+  color: #098658;
+}
+
+/* Light theme comments */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-comment,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-comment,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-quote,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-quote {
+  color: #008000;
+  font-style: italic;
+}
+
+/* Light theme function names */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-title,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-title,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-section,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-section {
+  color: #795e26;
+}
+
+/* Light theme variables and parameters */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-variable,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-variable,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-params,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-params {
+  color: #001080;
+}
+
+/* Light theme class names */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-class .hljs-title,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-class .hljs-title,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-title.class_,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-title.class_ {
+  color: #267f99;
+}
+
+/* Light theme attributes */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-attr,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-attr,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-attribute,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-attribute {
+  color: #ff0000;
+}
+
+/* Light theme tags */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-tag,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-tag {
+  color: #800000;
+}
+
+[data-carbon-theme="white"] .markdown-body pre code .hljs-name,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-name {
+  color: #800000;
+}
+
+/* Light theme operators */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-operator,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-operator,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-punctuation,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-punctuation {
+  color: #333333;
+}
+
+/* Light theme meta/preprocessor */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-meta,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-meta,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-meta .hljs-keyword,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-meta .hljs-keyword {
+  color: #af00db;
+}
+
+/* Light theme regex */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-regexp,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-regexp {
+  color: #811f3f;
+}
+
+/* Light theme diff */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-deletion,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-deletion {
+  color: #a31515;
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+[data-carbon-theme="white"] .markdown-body pre code .hljs-addition,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-addition {
+  color: #098658;
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* Light theme selection */
+[data-carbon-theme="white"] .markdown-body pre code ::selection,
+[data-carbon-theme="g10"] .markdown-body pre code ::selection {
+  background-color: #add6ff;
+}
+
+/* Light theme template literals */
+[data-carbon-theme="white"] .markdown-body pre code .hljs-template-variable,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-template-variable,
+[data-carbon-theme="white"] .markdown-body pre code .hljs-subst,
+[data-carbon-theme="g10"] .markdown-body pre code .hljs-subst {
+  color: #001080;
+}

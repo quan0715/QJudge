@@ -1,4 +1,10 @@
-import { useState, useCallback, useMemo, isValidElement, Children } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  isValidElement,
+  Children,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -224,7 +230,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   }
 
   // Custom components for rendering
-  const components: Record<string, React.ComponentType<{ children?: React.ReactNode }>> | undefined = enableCopy
+  const components:
+    | Record<string, React.ComponentType<{ children?: React.ReactNode }>>
+    | undefined = enableCopy
     ? {
         pre: ({ children }: { children?: React.ReactNode }) => (
           <CodeBlock enableCopy={enableCopy}>{children}</CodeBlock>
