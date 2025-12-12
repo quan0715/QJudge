@@ -5,6 +5,9 @@ import {
   Switcher,
   SwitcherItem,
   SwitcherDivider,
+  Modal,
+  TextInput,
+  InlineLoading,
 } from "@carbon/react";
 import {
   Login,
@@ -20,6 +23,7 @@ import {
   Events,
   UserMultiple,
   Bullhorn,
+  Edit,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
@@ -28,6 +32,8 @@ import { ChangePasswordModal } from "@/domains/auth/components/ChangePasswordMod
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import type { ThemePreference } from "@/core/entities/auth.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
+import { updateNickname } from "@/services/contest";
 import "./UserMenu.scss";
 
 interface UserMenuProps {
@@ -35,21 +41,41 @@ interface UserMenuProps {
   otherPanelExpanded?: boolean;
   /** Callback when this panel expands/collapses */
   onExpandedChange?: (expanded: boolean) => void;
+  /** Contest mode - only show theme/language options, no navigation */
+  contestMode?: boolean;
+  /** Contest data (for nickname editing in anonymous mode) */
+  contest?: ContestDetail | null;
+  /** Callback to refresh contest data after nickname update */
+  onContestRefresh?: () => void;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
   otherPanelExpanded = false,
   onExpandedChange,
+  contestMode = false,
+  contest,
+  onContestRefresh,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const { t: tContest } = useTranslation("contest");
   const { themePreference, updateTheme, language, updateLanguage } =
     useUserPreferences();
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
     useState(false);
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
+  const [nickname, setNickname] = useState(contest?.myNickname || "");
+  const [nicknameLoading, setNicknameLoading] = useState(false);
+
+  // Update nickname state when contest changes
+  useEffect(() => {
+    if (contest?.myNickname) {
+      setNickname(contest.myNickname);
+    }
+  }, [contest?.myNickname]);
 
   // If other panel is expanded, this one should be closed
   const isExpanded = isExpandedInternal && !otherPanelExpanded;
@@ -112,6 +138,28 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     await updateLanguage(lang);
   };
 
+  const handleNicknameUpdate = async () => {
+    if (!contest) return;
+    setNicknameLoading(true);
+    try {
+      await updateNickname(contest.id, nickname);
+      onContestRefresh?.();
+      setIsNicknameModalOpen(false);
+    } catch (error) {
+      console.error("Failed to update nickname", error);
+      alert(tContest("avatar.updateFailed"));
+    } finally {
+      setNicknameLoading(false);
+    }
+  };
+
+  // Can edit nickname if in contest mode, anonymous mode is enabled, and exam not in progress (unless admin)
+  const canEditNickname =
+    contestMode &&
+    contest?.anonymousModeEnabled &&
+    (contest.examStatus !== "in_progress" ||
+      contest.currentUserRole === "admin");
+
   const themeOptions: {
     value: ThemePreference;
     labelKey: string;
@@ -155,18 +203,46 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           aria-label={t("header.userMenu")}
           className="user-menu-container"
         >
-          {/* User Info */}
+          {/* User Info - Show nickname in contest mode with anonymous */}
           <SwitcherItem
             className="user-info-item"
             aria-label={user?.username || user?.email || ""}
           >
             <div className="user-info-content">
               <span className="user-info-name">
-                {user?.username || user?.email}
+                {contestMode && contest?.anonymousModeEnabled
+                  ? contest.myNickname || tContest("avatar.participant")
+                  : user?.username || user?.email}
               </span>
-              <span className="user-info-role">{getRoleLabel(user?.role)}</span>
+              <span className="user-info-role">
+                {contestMode && contest
+                  ? contest.currentUserRole === "admin" ||
+                    contest.currentUserRole === "teacher"
+                    ? tContest("avatar.admin")
+                    : tContest("avatar.student")
+                  : getRoleLabel(user?.role)}
+              </span>
             </div>
           </SwitcherItem>
+
+          {/* Edit Nickname - Contest mode with anonymous mode */}
+          {canEditNickname && (
+            <>
+              <SwitcherItem
+                className="action-item"
+                aria-label={tContest("avatar.editNickname")}
+                onClick={() => {
+                  setIsNicknameModalOpen(true);
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Edit size={20} />
+                <span>{tContest("avatar.editNickname")}</span>
+              </SwitcherItem>
+              <SwitcherDivider />
+            </>
+          )}
 
           {/* Theme Section */}
           <SwitcherItem
@@ -225,46 +301,47 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             ))}
           </SwitcherItem>
 
-          {/* Management Section (teacher/admin only) */}
-          {(user?.role === "admin" || user?.role === "teacher") && (
-            <>
-              <SwitcherDivider />
-              <SwitcherItem
-                className="section-label"
-                aria-label={t("header.management")}
-              >
-                <Settings size={16} />
-                <span>{t("header.management")}</span>
-              </SwitcherItem>
-              <SwitcherItem
-                className="action-item"
-                aria-label={t("header.problemManagement")}
-                onClick={() => {
-                  navigate("/management/problems");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <DocumentAdd size={20} />
-                <span>{t("header.problemManagement")}</span>
-              </SwitcherItem>
-              <SwitcherItem
-                className="action-item"
-                aria-label={t("header.createContest")}
-                onClick={() => {
-                  navigate("/contests/new");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <Events size={20} />
-                <span>{t("header.createContest")}</span>
-              </SwitcherItem>
-            </>
-          )}
+          {/* Management Section (teacher/admin only) - Hidden in contest mode */}
+          {!contestMode &&
+            (user?.role === "admin" || user?.role === "teacher") && (
+              <>
+                <SwitcherDivider />
+                <SwitcherItem
+                  className="section-label"
+                  aria-label={t("header.management")}
+                >
+                  <Settings size={16} />
+                  <span>{t("header.management")}</span>
+                </SwitcherItem>
+                <SwitcherItem
+                  className="action-item"
+                  aria-label={t("header.problemManagement")}
+                  onClick={() => {
+                    navigate("/management/problems");
+                    setIsExpandedInternal(false);
+                    onExpandedChange?.(false);
+                  }}
+                >
+                  <DocumentAdd size={20} />
+                  <span>{t("header.problemManagement")}</span>
+                </SwitcherItem>
+                <SwitcherItem
+                  className="action-item"
+                  aria-label={t("header.createContest")}
+                  onClick={() => {
+                    navigate("/contests/new");
+                    setIsExpandedInternal(false);
+                    onExpandedChange?.(false);
+                  }}
+                >
+                  <Events size={20} />
+                  <span>{t("header.createContest")}</span>
+                </SwitcherItem>
+              </>
+            )}
 
-          {/* Admin Section */}
-          {user?.role === "admin" && (
+          {/* Admin Section - Hidden in contest mode */}
+          {!contestMode && user?.role === "admin" && (
             <>
               <SwitcherItem
                 className="action-item"
@@ -305,32 +382,40 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             </>
           )}
 
-          <SwitcherDivider />
-
-          {/* Change Password (only for email users) */}
-          {canChangePassword && (
+          {/* Actions section - Hidden in contest mode */}
+          {!contestMode && (
             <>
+              <SwitcherDivider />
+
+              {/* Change Password (only for email users) */}
+              {canChangePassword && (
+                <>
+                  <SwitcherItem
+                    className="action-item"
+                    aria-label={t("preferences.changePassword")}
+                    onClick={handleChangePasswordClick}
+                  >
+                    <Password size={20} />
+                    <span>{t("preferences.changePassword")}</span>
+                  </SwitcherItem>
+                  <SwitcherDivider />
+                </>
+              )}
+
+              {/* Logout */}
               <SwitcherItem
                 className="action-item"
-                aria-label={t("preferences.changePassword")}
-                onClick={handleChangePasswordClick}
+                aria-label={t("button.logout")}
+                onClick={handleLogout}
               >
-                <Password size={20} />
-                <span>{t("preferences.changePassword")}</span>
+                <Logout
+                  size={20}
+                  style={{ color: "var(--cds-support-error)" }}
+                />
+                <span className="logout-text">{t("button.logout")}</span>
               </SwitcherItem>
-              <SwitcherDivider />
             </>
           )}
-
-          {/* Logout */}
-          <SwitcherItem
-            className="action-item"
-            aria-label={t("button.logout")}
-            onClick={handleLogout}
-          >
-            <Logout size={20} style={{ color: "var(--cds-support-error)" }} />
-            <span className="logout-text">{t("button.logout")}</span>
-          </SwitcherItem>
         </Switcher>
       </HeaderPanel>
 
@@ -339,6 +424,32 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
       />
+
+      {/* Nickname Edit Modal - Contest mode */}
+      <Modal
+        open={isNicknameModalOpen}
+        modalHeading={tContest("avatar.editContestNickname")}
+        primaryButtonText={
+          nicknameLoading ? (
+            <InlineLoading description={tContest("refreshing")} />
+          ) : (
+            tContest("avatar.save")
+          )
+        }
+        secondaryButtonText={t("button.cancel")}
+        primaryButtonDisabled={nicknameLoading}
+        onRequestClose={() => setIsNicknameModalOpen(false)}
+        onRequestSubmit={handleNicknameUpdate}
+        size="xs"
+      >
+        <TextInput
+          id="nickname-input"
+          labelText={tContest("avatar.nicknameLabel")}
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          placeholder={tContest("avatar.nicknamePlaceholder")}
+        />
+      </Modal>
     </>
   );
 };

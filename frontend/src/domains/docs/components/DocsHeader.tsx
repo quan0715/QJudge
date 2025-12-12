@@ -154,6 +154,7 @@ const DocsHeader: React.FC = () => {
                   <DocSidebar
                     config={docsConfig}
                     currentSlug={currentDocSlug}
+                    onLinkClick={() => setIsSideNavExpanded(false)}
                   />
                 ) : (
                   <div style={{ padding: "1rem" }}>
@@ -279,6 +280,7 @@ const DocsHeader: React.FC = () => {
                 href={import.meta.env.VITE_MAIN_APP_URL || "/"}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setIsSideNavExpanded(false)}
                 style={{
                   display: "flex",
                   alignItems: "center",

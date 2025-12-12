@@ -12,8 +12,8 @@ import { WarningAlt, Locked, CheckmarkFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 // Anti-cheat timing constants (module-level to avoid recreation on each render)
-const BLUR_DEBOUNCE_MS = 1500; // Time to wait after user interaction before detecting blur (increased for Chrome extension compatibility)
-const FOCUS_CHECK_DELAY_MS = 300; // Delay for document.hasFocus() check to allow event loop to settle (increased for Chrome reliability)
+const BLUR_DEBOUNCE_MS = 200; // Time to wait after user interaction before detecting blur (reduced for faster detection)
+const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
 const GRACE_PERIOD_SECONDS = 3; // Grace period countdown in seconds
 
 interface ExamModeWrapperProps {
@@ -284,7 +284,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     const handleBlur = () => {
       // Skip blur events that happen within BLUR_DEBOUNCE_MS of any user interaction
-      // This prevents false positives from Chrome extensions or internal browser processes
+      // This prevents false positives from button clicks or form interactions
       const timeSinceInteraction = Date.now() - lastInteractionTime.current;
       if (timeSinceInteraction < BLUR_DEBOUNCE_MS) {
         console.log(
@@ -296,39 +296,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       // Clear any pending blur check timeout (clearTimeout handles undefined gracefully)
       clearTimeout(blurCheckTimeoutRef.current);
 
-      // Additional check: verify document actually lost focus
-      // Use setTimeout to check after the event loop, as focus state might not be updated yet
-      // Chrome extensions and autofill can cause temporary blur events
+      // Short delay to verify focus was actually lost (not just a temporary browser event)
       blurCheckTimeoutRef.current = setTimeout(() => {
         blurCheckTimeoutRef.current = undefined;
 
-        // Double-check: if there was a recent interaction, skip
-        const recentInteraction =
-          Date.now() - lastInteractionTime.current < BLUR_DEBOUNCE_MS;
-        if (recentInteraction) {
-          console.log(
-            "[Anti-cheat] Ignoring blur event - interaction occurred during delay"
-          );
-          return;
-        }
-
-        // Check if document still has focus (Chrome extensions may cause temporary blur)
+        // Check if document still has focus
         if (!document.hasFocus()) {
-          // Additional Chrome-specific check: verify activeElement is not within our app
-          const activeEl = document.activeElement;
-          const isActiveInApp =
-            activeEl &&
-            document.body.contains(activeEl) &&
-            activeEl !== document.body;
-
-          if (isActiveInApp) {
-            console.log(
-              "[Anti-cheat] Ignoring blur event - active element still in app"
-            );
-            return;
-          }
-
-          // Call async function and handle potential errors
+          // Trigger cheat event - window lost focus
           handleCheatEvent("window_blur", t("exam.windowBlur")).catch(
             (error) => {
               console.error(

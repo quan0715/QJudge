@@ -13,6 +13,7 @@ import {
   getContestStandings,
   getContestParticipants,
   getExamEvents,
+  getContestActivities,
 } from "@/services/contest";
 import type {
   ContestDetail,
@@ -133,12 +134,20 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     if (!contestId || !isAdmin) return;
 
     try {
-      const [participantsData, eventsData] = await Promise.all([
-        getContestParticipants(contestId),
-        getExamEvents(contestId),
-      ]);
+      const [participantsData, examEventsData, activitiesData] =
+        await Promise.all([
+          getContestParticipants(contestId),
+          getExamEvents(contestId),
+          getContestActivities(contestId),
+        ]);
       setParticipants(participantsData);
-      setExamEvents(eventsData);
+
+      // Merge exam events and activities, sort by timestamp (most recent first)
+      const allEvents = [...examEventsData, ...activitiesData].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setExamEvents(allEvents);
     } catch (err) {
       console.error("Failed to fetch admin data:", err);
     }

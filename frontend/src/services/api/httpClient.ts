@@ -48,6 +48,29 @@ const handleUnauthorized = (response: Response): boolean => {
 };
 
 /**
+ * Dispatch server error event for global error handling.
+ * This event is listened to by ApiErrorContext to navigate to error pages.
+ */
+const dispatchServerError = (statusCode: number, message?: string) => {
+  window.dispatchEvent(
+    new CustomEvent("server-error", {
+      detail: { statusCode, message },
+    })
+  );
+};
+
+/**
+ * Handle server errors (5xx) - dispatch event for global handling
+ */
+const handleServerError = (response: Response): boolean => {
+  if (response.status >= 500 && response.status < 600) {
+    dispatchServerError(response.status, `伺服器錯誤 (${response.status})`);
+    return true;
+  }
+  return false;
+};
+
+/**
  * Base fetch wrapper with HttpOnly cookie support and CSRF protection.
  *
  * Security:
@@ -92,6 +115,12 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
   if (handleUnauthorized(response)) {
     throw new Error("Unauthorized");
+  }
+
+  // Handle server errors (5xx) - dispatch event but don't throw
+  // This allows components to still handle the error if needed
+  if (handleServerError(response)) {
+    // Don't throw - let calling code decide how to handle
   }
 
   return response;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import {
   Header,
   HeaderName,
@@ -18,17 +18,11 @@ import {
   Locked,
   WarningAltFilled,
   View,
-  Language,
-  Checkmark,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
-import { Light, Asleep } from "@carbon/icons-react";
-import { useTheme } from "@/ui/theme/ThemeContext";
-import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { UserMenu } from "@/ui/components/UserMenu";
-import UserAvatarDisplayWithEdit from "./UserAvatarDisplayWithEdit";
 
 interface ContestHeaderProps {
   contest: ContestDetail | null;
@@ -64,37 +58,7 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
   onMonitoringClick,
 }) => {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
-  const {
-    contentLanguage,
-    setContentLanguage,
-    supportedLanguages,
-    getCurrentLanguageShortLabel,
-  } = useContentLanguage();
   const { t } = useTranslation("contest");
-  const { t: tc } = useTranslation("common");
-
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
-  const languageMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close language menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        languageMenuRef.current &&
-        !languageMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsLanguageMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleLanguageSelect = (langId: string) => {
-    setContentLanguage(langId as typeof contentLanguage);
-    setIsLanguageMenuOpen(false);
-  };
 
   return (
     <Header aria-label="Contest Platform">
@@ -153,14 +117,6 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
             ))}
           </HeaderMenu>
         )}
-
-        {/* User Avatar with Edit - Left side (contest context) */}
-        {contest && (
-          <UserAvatarDisplayWithEdit
-            contest={contest}
-            onRefresh={onRefreshContest}
-          />
-        )}
       </HeaderNavigation>
 
       <HeaderGlobalBar>
@@ -173,90 +129,6 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
             onMonitoringClick={onMonitoringClick}
           />
         )}
-
-        <div ref={languageMenuRef} style={{ position: "relative" }}>
-          <HeaderGlobalAction
-            aria-label={tc("language.switchTo")}
-            tooltipAlignment="center"
-            isActive={isLanguageMenuOpen}
-            onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <Language size={20} />
-              <span style={{ fontSize: "12px", fontWeight: 500 }}>
-                {getCurrentLanguageShortLabel()}
-              </span>
-            </div>
-          </HeaderGlobalAction>
-          {isLanguageMenuOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                backgroundColor: "var(--cds-layer-01)",
-                border: "1px solid var(--cds-border-subtle)",
-                borderRadius: "4px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                minWidth: "150px",
-                zIndex: 9999,
-              }}
-            >
-              <div
-                style={{
-                  padding: "0.5rem 1rem",
-                  fontSize: "0.75rem",
-                  color: "var(--cds-text-secondary)",
-                  borderBottom: "1px solid var(--cds-border-subtle)",
-                }}
-              >
-                {tc("language.selectLanguage")}
-              </div>
-              {supportedLanguages.map((lang) => (
-                <div
-                  key={lang.id}
-                  onClick={() => handleLanguageSelect(lang.id)}
-                  style={{
-                    padding: "0.75rem 1rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    backgroundColor:
-                      contentLanguage === lang.id
-                        ? "var(--cds-layer-selected-01)"
-                        : "transparent",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      "var(--cds-layer-hover-01)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      contentLanguage === lang.id
-                        ? "var(--cds-layer-selected-01)"
-                        : "transparent")
-                  }
-                >
-                  <span>{lang.label}</span>
-                  {contentLanguage === lang.id && <Checkmark size={16} />}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <HeaderGlobalAction
-          aria-label={
-            theme === "white"
-              ? tc("theme.switchToDark")
-              : tc("theme.switchToLight")
-          }
-          tooltipAlignment="center"
-          onClick={toggleTheme}
-        >
-          {theme === "white" ? <Asleep size={20} /> : <Light size={20} />}
-        </HeaderGlobalAction>
 
         <HeaderGlobalAction
           aria-label={isRefreshing ? t("refreshing") : t("refresh")}
@@ -289,8 +161,12 @@ const ContestHeader: React.FC<ContestHeaderProps> = ({
           {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
         </HeaderGlobalAction>
 
-        {/* User Menu */}
-        <UserMenu />
+        {/* User Menu - contest mode: only theme/language, nickname edit */}
+        <UserMenu
+          contestMode
+          contest={contest}
+          onContestRefresh={onRefreshContest}
+        />
 
         <Button
           kind="danger--ghost"
