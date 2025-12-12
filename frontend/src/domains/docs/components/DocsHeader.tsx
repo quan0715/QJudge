@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useTheme } from "@/ui/theme/ThemeContext";
 import DocsSearchDropdown from "./DocsSearchDropdown";
+import styles from "./DocsHeader.module.scss";
 
 const DocsHeader: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -66,7 +67,7 @@ const DocsHeader: React.FC = () => {
             <DocsSearchDropdown />
 
             {/* Language Switcher */}
-            <div ref={languageMenuRef} style={{ position: "relative" }}>
+            <div ref={languageMenuRef} className={styles.languageMenu}>
               <HeaderGlobalAction
                 aria-label={t("language.switchTo")}
                 tooltipAlignment="center"
@@ -83,54 +84,15 @@ const DocsHeader: React.FC = () => {
                 </div>
               </HeaderGlobalAction>
               {isLanguageMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    backgroundColor: "var(--cds-layer-01)",
-                    border: "1px solid var(--cds-border-subtle)",
-                    borderRadius: "4px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    minWidth: "150px",
-                    zIndex: 9999,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "0.5rem 1rem",
-                      fontSize: "0.75rem",
-                      color: "var(--cds-text-secondary)",
-                      borderBottom: "1px solid var(--cds-border-subtle)",
-                    }}
-                  >
+                <div className={styles.languageDropdown}>
+                  <div className={styles.languageDropdownHeader}>
                     {t("language.selectLanguage")}
                   </div>
                   {SUPPORTED_LANGUAGES.map((lang) => (
                     <div
                       key={lang.id}
                       onClick={() => handleLanguageSelect(lang.id)}
-                      style={{
-                        padding: "0.75rem 1rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        backgroundColor:
-                          i18n.language === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          "var(--cds-layer-hover-01)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          i18n.language === lang.id
-                            ? "var(--cds-layer-selected-01)"
-                            : "transparent")
-                      }
+                      className={`${styles.languageOption} ${i18n.language === lang.id ? styles.selected : ''}`}
                     >
                       <span>{lang.label}</span>
                       {i18n.language === lang.id && <Checkmark size={16} />}
@@ -161,6 +123,7 @@ const DocsHeader: React.FC = () => {
               href={import.meta.env.VITE_MAIN_APP_URL || "/"}
               target="_blank"
               rel="noopener noreferrer"
+              className={styles.goToQJudgeButton}
               style={{
                 height: "100%",
                 display: "flex",

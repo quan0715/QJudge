@@ -1,0 +1,26 @@
+// MobileDocsMenu styles
+
+.menuButton {
+  // Show only on mobile
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: flex !important;
+  }
+}
+
+.mobileMenuModal {
+  // Modal adjustments for mobile
+  @media (max-width: 768px) {
+    // Make modal full width on mobile
+    .cds--modal-container {
+      max-width: 95vw;
+    }
+  }
+}
+
+.modalContent {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 1rem 0;
+}

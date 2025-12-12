@@ -9,6 +9,7 @@ import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
 import AIGeneratedBadge from "../components/AIGeneratedBadge";
+import MobileDocsMenu from "../components/MobileDocsMenu";
 import styles from "./DocumentationPage.module.scss";
 
 interface DocConfig {
@@ -148,16 +149,22 @@ const DocumentationPage: React.FC = () => {
       <div className={styles.mainArea}>
         {/* Header Title Area */}
         <header className={styles.pageHeader}>
-          {/* Back Button */}
-          <IconButton
-            kind="ghost"
-            size="sm"
-            label={t("nav.back", "返回")}
-            onClick={() => navigate(-1)}
-            style={{ marginBottom: "1rem", marginLeft: "-0.5rem" }}
-          >
-            <ArrowLeft />
-          </IconButton>
+          {/* Mobile Menu Button and Back Button Row */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            {/* Mobile Navigation Menu */}
+            {config && <MobileDocsMenu config={config} currentSlug={currentSlug} />}
+            
+            {/* Back Button */}
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={t("nav.back", "返回")}
+              onClick={() => navigate(-1)}
+              style={{ marginLeft: "-0.5rem" }}
+            >
+              <ArrowLeft />
+            </IconButton>
+          </div>
 
           {/* Page Title */}
           {!loading && !error && (
