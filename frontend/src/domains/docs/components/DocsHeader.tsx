@@ -55,7 +55,7 @@ const DocsHeader: React.FC = () => {
     <HeaderContainer
       render={() => (
         <Header aria-label="QJudge Documentation">
-          <HeaderName href="/" prefix="QJudge">
+          <HeaderName href={import.meta.env.VITE_MAIN_APP_URL || "/"} prefix="QJudge">
             DOCS
           </HeaderName>
 
@@ -155,7 +155,7 @@ const DocsHeader: React.FC = () => {
               kind="ghost"
               size="sm"
               renderIcon={Launch}
-              href="/"
+              href={import.meta.env.VITE_MAIN_APP_URL || "/"}
               target="_blank"
               rel="noopener noreferrer"
               style={{
