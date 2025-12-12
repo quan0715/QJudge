@@ -30,6 +30,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0; // Prevent flex item from overflowing
 }
 
 .pageHeader {
@@ -56,18 +57,26 @@
   border-left: 1px solid var(--cds-border-subtle-01);
 }
 
-// Mobile responsive styles
-@media (max-width: 768px) {
+// Mobile responsive styles - using max-width for better compatibility
+@media screen and (max-width: 768px) {
   .container {
     flex-direction: column;
   }
 
   .leftSidebar {
-    display: none; // Hide left sidebar on mobile
+    display: none !important; // Hide left sidebar on mobile with !important to ensure it works
+    width: 0;
+    position: fixed; // Ensure it doesn't take up space
+    left: -100%; // Move it off-screen
   }
 
   .rightSidebar {
-    display: none; // Hide right sidebar (TOC) on mobile
+    display: none !important; // Hide right sidebar (TOC) on mobile
+    width: 0;
+  }
+
+  .mainArea {
+    width: 100%;
   }
 
   .pageHeader {
@@ -76,11 +85,12 @@
 
   .mainContent {
     padding: 1rem; // Reduce padding on mobile
+    width: 100%;
   }
 }
 
 // Tablet responsive styles
-@media (min-width: 769px) and (max-width: 1024px) {
+@media screen and (min-width: 769px) and (max-width: 1024px) {
   .leftSidebar {
     width: 200px; // Narrower sidebar on tablet
   }
@@ -97,3 +107,4 @@
     padding: 1.25rem 1.5rem;
   }
 }
+

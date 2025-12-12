@@ -43,6 +43,18 @@
   .cds--data-table td.id-column {
     white-space: nowrap;
   }
+  
+  // Ensure body doesn't have horizontal scroll
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  // Ensure root container fits viewport
+  #root {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
 }
 
 // Tablet adjustments
