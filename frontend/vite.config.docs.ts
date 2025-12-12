@@ -24,7 +24,9 @@ export default defineConfig({
   base: "/QJudge/", // GitHub repo name for GitHub Pages
   define: {
     // Main app URL for "Go to Dashboard" button
-    "import.meta.env.VITE_MAIN_APP_URL": JSON.stringify("https://q-judge.quan.wtf"),
+    "import.meta.env.VITE_MAIN_APP_URL": JSON.stringify(
+      "https://q-judge.quan.wtf"
+    ),
   },
   build: {
     outDir: "dist-docs",

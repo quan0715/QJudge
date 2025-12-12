@@ -29,13 +29,22 @@ function DocsApp() {
               <Routes>
                 <Route element={<DocsLayout />}>
                   {/* Root redirects directly to overview */}
-                  <Route index element={<Navigate to="/docs/overview" replace />} />
+                  <Route
+                    index
+                    element={<Navigate to="/docs/overview" replace />}
+                  />
                   {/* /docs also redirects to overview */}
-                  <Route path="/docs" element={<Navigate to="/docs/overview" replace />} />
+                  <Route
+                    path="/docs"
+                    element={<Navigate to="/docs/overview" replace />}
+                  />
                   <Route path="/docs/:slug" element={<DocumentationPage />} />
                 </Route>
                 {/* Fallback - redirect to docs overview */}
-                <Route path="*" element={<Navigate to="/docs/overview" replace />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/docs/overview" replace />}
+                />
               </Routes>
             </HashRouter>
           </ThemeProvider>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Search, Layer } from "@carbon/react";
+import { Layer } from "@carbon/react";
 import {
   Rocket,
   Book,
@@ -39,7 +39,6 @@ const sectionIcons: Record<string, React.ElementType> = {
 const DocSidebar: React.FC<DocSidebarProps> = ({ config, currentSlug }) => {
   const { t } = useTranslation("docs");
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
   );
@@ -70,28 +69,6 @@ const DocSidebar: React.FC<DocSidebarProps> = ({ config, currentSlug }) => {
     });
   };
 
-  // Filter items based on search query
-  const filteredSections = config.sections
-    .map((section) => ({
-      ...section,
-      items: section.items.filter((item) => {
-        const itemTitle = t(`nav.items.${item}`).toLowerCase();
-        const sectionTitle = t(`nav.sections.${section.id}`).toLowerCase();
-        const query = searchQuery.toLowerCase();
-        return itemTitle.includes(query) || sectionTitle.includes(query);
-      }),
-    }))
-    .filter((section) => section.items.length > 0);
-
-  // Expand all sections when searching
-  useEffect(() => {
-    if (searchQuery) {
-      setExpandedSections(
-        new Set(filteredSections.map((section) => section.id))
-      );
-    }
-  }, [searchQuery, filteredSections.length]);
-
   return (
     <Layer>
       <nav
@@ -102,26 +79,14 @@ const DocSidebar: React.FC<DocSidebarProps> = ({ config, currentSlug }) => {
           flexDirection: "column",
         }}
       >
-        {/* Search Box */}
-        <div style={{ padding: "0 1rem 1rem 1rem" }}>
-          <Search
-            size="sm"
-            placeholder={t("nav.searchPlaceholder", "搜尋文檔...")}
-            labelText=""
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            closeButtonLabelText="Clear"
-          />
-        </div>
-
-        {/* Navigation Sections - IBM Style */}
+        {/* Navigation Sections */}
         <div
           style={{
             flex: 1,
             overflowY: "auto",
           }}
         >
-          {filteredSections.map((section) => {
+          {config.sections.map((section) => {
             const Icon = sectionIcons[section.id] || DocumentBlank;
             const isExpanded = expandedSections.has(section.id);
             const hasActiveItem = section.items.includes(currentSlug);
