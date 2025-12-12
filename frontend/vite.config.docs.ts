@@ -1,10 +1,26 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
+
+// Plugin to rename docs.html to index.html after build
+function renameDocsToIndex(): Plugin {
+  return {
+    name: "rename-docs-to-index",
+    closeBundle() {
+      const docsPath = path.resolve(__dirname, "dist-docs/docs.html");
+      const indexPath = path.resolve(__dirname, "dist-docs/index.html");
+      if (fs.existsSync(docsPath)) {
+        fs.renameSync(docsPath, indexPath);
+        console.log("✓ Renamed docs.html to index.html");
+      }
+    },
+  };
+}
 
 // Vite config for standalone documentation build (GitHub Pages)
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), renameDocsToIndex()],
   base: "/QJudge/", // GitHub repo name for GitHub Pages
   build: {
     outDir: "dist-docs",
