@@ -36,10 +36,12 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  // Prevent excessive text wrapping in table cells
-  .cds--data-table td {
+  // Selectively prevent text wrapping for specific columns (e.g., status, ID)
+  // Users can still wrap text in description/content columns
+  .cds--data-table td:first-child,
+  .cds--data-table td.status-column,
+  .cds--data-table td.id-column {
     white-space: nowrap;
-    min-width: fit-content;
   }
 }
 

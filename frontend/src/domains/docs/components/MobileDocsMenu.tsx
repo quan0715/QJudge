@@ -6,8 +6,16 @@ import DocSidebar from "./DocSidebar";
 import { SkeletonText } from "@carbon/react";
 import styles from "./MobileDocsMenu.module.scss";
 
+interface DocConfig {
+  sections: Array<{
+    id: string;
+    items: string[];
+  }>;
+  defaultDoc: string;
+}
+
 interface MobileDocsMenuProps {
-  config: any;
+  config: DocConfig | null;
   currentSlug: string;
 }
 

@@ -47,8 +47,12 @@
 @media (max-width: 768px) {
   // Hide the "Go to QJudge" button text on mobile, keep icon only
   .goToQJudgeButton {
-    span {
-      display: none !important;
+    :global(.cds--btn__icon) {
+      margin: 0;
+    }
+    
+    span:not(:global(.cds--btn__icon)) {
+      display: none;
     }
   }
   
