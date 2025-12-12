@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '@/ui/theme/ThemeContext';
+import styles from './SurfaceSection.module.scss';
 
 interface SurfaceSectionProps {
   children: React.ReactNode;
@@ -19,18 +20,16 @@ const SurfaceSection: React.FC<SurfaceSectionProps> = ({ children, className, st
 
   return (
     <div 
-      className={className}
+      className={`${styles.container} ${className || ''}`}
       style={{
         backgroundColor,
-        width: '100%',
         ...style
       }}
     >
       {/* Inner container with optional max-width */}
-      <div style={{
+      <div className={styles.inner} style={{
         maxWidth: maxWidth,
         margin: maxWidth ? '0 auto' : undefined,
-        padding: '1rem',
       }}>
         {children}
       </div>

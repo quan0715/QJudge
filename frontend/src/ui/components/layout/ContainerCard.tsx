@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./ContainerCard.module.scss";
 
 interface ContainerCardProps {
   children: React.ReactNode;
@@ -19,60 +20,24 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 }) => {
   return (
     <div
-      className={className}
-      style={{
-        backgroundColor: "var(--cds-layer-02)",
-        border: "1px solid var(--cds-border-subtle)",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        ...style,
-      }}
+      className={`${styles.card} ${className || ''}`}
+      style={style}
     >
       {(title || action) && (
-        <div
-          style={{
-            minHeight: "3rem", // Match Carbon header height
-            borderBottom: "1px solid var(--cds-border-strong-01)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "stretch", // Stretch to fill height
-          }}
-        >
+        <div className={styles.header}>
           {title && (
-            <h4
-              style={{
-                margin: 0,
-                fontSize: "1rem",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                paddingLeft: "1rem",
-              }}
-            >
+            <h4 className={styles.title}>
               {title}
             </h4>
           )}
           {action && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "stretch", // Actions fill height
-                marginLeft: "auto",
-              }}
-            >
+            <div className={styles.action}>
               {action}
             </div>
           )}
         </div>
       )}
-      <div
-        style={{
-          padding: noPadding ? 0 : "1rem",
-          flex: 1,
-          overflow: "auto",
-        }}
-      >
+      <div className={noPadding ? styles.contentNoPadding : styles.content}>
         {children}
       </div>
     </div>
