@@ -105,14 +105,11 @@ const DocsHeader: React.FC = () => {
     <HeaderContainer
       render={() => (
         <Header aria-label="QJudge Documentation">
-<<<<<<< HEAD
           <HeaderMenuButton
             aria-label={t("header.menu", "選單")}
             onClick={() => setIsSideNavExpanded(!isSideNavExpanded)}
             isActive={isSideNavExpanded}
           />
-=======
->>>>>>> 1ca1dd1122b93fde21036833bdbca43b6614e60a
           <HeaderName
             href={import.meta.env.VITE_MAIN_APP_URL || "/"}
             prefix="QJudge"
@@ -277,7 +274,6 @@ const DocsHeader: React.FC = () => {
 
               <SideNavDivider />
 
-<<<<<<< HEAD
               {/* Go to Dashboard Link */}
               <a
                 href={import.meta.env.VITE_MAIN_APP_URL || "/"}
@@ -306,25 +302,6 @@ const DocsHeader: React.FC = () => {
               </a>
             </SideNavItems>
           </SideNav>
-=======
-            {/* Go to QJudge Button */}
-            <Button
-              kind="ghost"
-              size="sm"
-              renderIcon={Launch}
-              href={import.meta.env.VITE_MAIN_APP_URL || "/"}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              {t("nav.dashboard")}
-            </Button>
-          </HeaderGlobalBar>
->>>>>>> 1ca1dd1122b93fde21036833bdbca43b6614e60a
         </Header>
       )}
     />
