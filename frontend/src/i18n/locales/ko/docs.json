@@ -3,6 +3,9 @@
     "title": "문서",
     "subtitle": "QJudge 플랫폼 사용 방법 알아보기"
   },
+  "badge": {
+    "aiGenerated": "AI 생성"
+  },
   "nav": {
     "productLabel": "문서",
     "searchPlaceholder": "문서 검색...",
@@ -32,6 +35,47 @@
       "dev-setup": "개발 환경 설정",
       "e2e-testing": "E2E 테스트 가이드"
     }
+  },
+  "quickLinks": {
+    "student": {
+      "tag": "학생",
+      "title": "문제 풀기",
+      "description": "문제 탐색, 코드 작성 및 제출 평가 방법 학습"
+    },
+    "contestant": {
+      "tag": "대회",
+      "title": "대회 참가",
+      "description": "대회 규칙, 채점 시스템 및 문제 해결 방법 이해"
+    },
+    "teacher": {
+      "tag": "교사",
+      "title": "대회 관리",
+      "description": "대회 생성, 문제 관리 및 학생 통계 확인"
+    },
+    "admin": {
+      "tag": "관리자",
+      "title": "시스템 관리",
+      "description": "사용자, 권한 및 시스템 구성 관리"
+    },
+    "developer": {
+      "tag": "개발자",
+      "title": "코드 기여",
+      "description": "개발 환경 설정 및 기여 워크플로우 학습"
+    }
+  },
+  "search": {
+    "label": "문서 검색",
+    "placeholder": "문서 검색...",
+    "searching": "검색 중...",
+    "noResults": "결과를 찾을 수 없습니다",
+    "resultsCount": "{{count}}개의 결과 발견",
+    "matches": "개 일치"
+  },
+  "feedback": {
+    "title": "이 페이지가 도움이 되었나요?",
+    "helpful": "도움이 됨",
+    "notHelpful": "개선 필요",
+    "thanks": "피드백 감사합니다！"
   },
   "message": {
     "loading": "문서 로딩 중...",
