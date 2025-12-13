@@ -4,61 +4,62 @@ This document explains how to set up and run frontend E2E tests.
 
 ## Overview
 
-This project uses Playwright for end-to-end (E2E) testing, with Docker Compose providing a complete test environment including:
+This project uses Playwright for end-to-end (E2E) testing, with Docker Compose providing the complete test environment, including:
 
-- Isolated test database (PostgreSQL)
+- Dedicated test database (PostgreSQL)
 - Test Redis instance
 - Django backend test service
-- Celery Worker (for processing submissions)
+- Celery Worker (for submission processing)
 - React frontend test service
-- Pre-injected test data
+- Pre-seeded test data
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Playwright Tests                      │
-│                   (localhost:5174)                       │
+│              (Chrome + Safari dual browsers)            │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              Docker Compose Test Environment             │
+│              Docker Compose Test Environment            │
+│              (docker-compose.test.yml)                  │
 ├─────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   Frontend   │  │   Backend    │  │   Celery     │  │
+│  │ frontend-test│  │ backend-test │  │ celery-test  │  │
 │  │   :5174      │◄─┤   :8001      │◄─┤   Worker     │  │
 │  └──────────────┘  └──────┬───────┘  └──────┬───────┘  │
 │                           │                  │          │
 │                   ┌───────▼────────┐ ┌──────▼───────┐  │
-│                   │   PostgreSQL   │ │    Redis     │  │
-│                   │   (test_oj_e2e)│ │   :6380      │  │
+│                   │ postgres-test  │ │  redis-test  │  │
+│                   │ (test_oj_e2e)  │ │   :6380      │  │
 │                   └────────────────┘ └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Test Data
 
-The test environment automatically injects the following test data:
+The test environment automatically seeds the following test data:
 
 ### Test Users
 
-| Role     | Email                | Password   | Purpose            |
-| -------- | -------------------- | ---------- | ------------------ |
-| Admin    | admin@example.com    | admin123   | Admin testing      |
-| Teacher  | teacher@example.com  | teacher123 | Teacher features   |
-| Student  | student@example.com  | student123 | Student testing    |
-| Student2 | student2@example.com | student123 | Multi-user testing |
+| Role     | Email                | Password   | Purpose           |
+| -------- | -------------------- | ---------- | ----------------- |
+| Admin    | admin@example.com    | admin123   | Admin testing     |
+| Teacher  | teacher@example.com  | teacher123 | Teacher features  |
+| Student  | student@example.com  | student123 | Student features  |
+| Student2 | student2@example.com | student123 | Multi-user testing|
 
 ### Test Problems
 
-- **P001: A+B Problem** (Easy) - Calculate sum of two integers, 3 test cases
-- **P002: Hello World** (Easy) - Output "Hello, World!", 1 test case
-- **P003: Factorial** (Medium) - Calculate factorial, 3 test cases
+- **P001: A+B Problem** (Easy) - Calculate the sum of two integers, includes 3 test cases
+- **P002: Hello World** (Easy) - Output "Hello, World!", includes 1 test case
+- **P003: Factorial** (Medium) - Calculate factorial, includes 3 test cases
 
 ### Test Contests
 
-- **E2E Test Contest** (In Progress) - Contains A+B Problem and Hello World, can join and submit
-- **Upcoming Contest** (Starting Soon) - Contains Factorial, cannot join yet
+- **E2E Test Contest** (Active) - Contains A+B Problem and Hello World, can join and submit
+- **Upcoming Contest** (Not started) - Contains Factorial, cannot join yet
 
 ## Quick Start
 
@@ -72,80 +73,80 @@ npm install
 ### 2. Install Playwright Browsers
 
 ```bash
-npx playwright install
+# Install Chrome and Safari
+npx playwright install chromium webkit
 ```
 
 ### 3. Start Test Environment
 
-Use the management script to start the complete E2E test environment:
-
 ```bash
-# Method 1: Use management script (recommended)
-./frontend/scripts/e2e-env.sh start
+# Start test environment using Docker Compose
+docker compose -f docker-compose.test.yml up -d
 
-# Method 2: Use Docker Compose directly
-docker-compose -f docker-compose.test.yml up -d
+# Wait for services to be ready (about 30-60 seconds)
+# Check service status with:
+docker compose -f docker-compose.test.yml ps
 ```
-
-Wait for services to start (about 1-2 minutes), the script will automatically wait for services to be ready.
 
 ### 4. Run Tests
 
 ```bash
 cd frontend
 
-# Run all E2E tests
+# Run all E2E tests (auto-detects if environment is running)
 npm run test:e2e
 
-# Run in UI mode
+# Test Chrome only
+npx playwright test -c playwright.config.e2e.ts --project=chromium
+
+# Test Safari only
+npx playwright test -c playwright.config.e2e.ts --project=webkit
+
+# Run specific test file
+npx playwright test -c playwright.config.e2e.ts tests/e2e/auth.e2e.spec.ts
+
+# Run specific test case
+npx playwright test -c playwright.config.e2e.ts --grep "should login"
+
+# Use UI mode (recommended for debugging)
 npm run test:e2e:ui
 
 # Debug mode
 npm run test:e2e:debug
 
-# Run in headed browser
-npm run test:e2e:headed
-
 # View test report
-npm run test:e2e:report
+npx playwright show-report playwright-report-e2e
 ```
 
 ### 5. Stop Test Environment
 
 ```bash
-# Use management script
-./frontend/scripts/e2e-env.sh stop
-
-# Or use Docker Compose
-docker-compose -f docker-compose.test.yml down -v
+# Stop and cleanup test environment
+docker compose -f docker-compose.test.yml down -v
 ```
 
-## Management Script Usage
+## Test Environment Features
 
-`frontend/scripts/e2e-env.sh` provides the following commands:
+### Smart Environment Detection
 
+The test framework automatically detects environment status:
+- If environment is running, runs tests immediately (fast)
+- If environment is not running, automatically starts Docker environment (local development)
+- In CI environment, waits for pre-started services to be ready
+
+### Environment Preservation
+
+By default, the Docker environment is preserved after tests complete for:
+- Quick test re-runs
+- Manual debugging
+
+To cleanup the environment:
 ```bash
-# Start environment
-./frontend/scripts/e2e-env.sh start
+# Cleanup after tests
+E2E_CLEANUP=true npm run test:e2e
 
-# Stop environment
-./frontend/scripts/e2e-env.sh stop
-
-# Reset environment (recreate test data)
-./frontend/scripts/e2e-env.sh reset
-
-# Check service status
-./frontend/scripts/e2e-env.sh status
-
-# View logs
-./frontend/scripts/e2e-env.sh logs                # All services
-./frontend/scripts/e2e-env.sh logs backend_test   # Specific service
-
-# Execute command in container
-./frontend/scripts/e2e-env.sh exec backend_test python manage.py shell
-
-# Show help
-./frontend/scripts/e2e-env.sh help
+# Or manually stop
+docker compose -f docker-compose.test.yml down -v
 ```
 
 ## Test Structure
@@ -154,70 +155,131 @@ docker-compose -f docker-compose.test.yml down -v
 frontend/
 ├── tests/
 │   ├── e2e/                      # E2E test files
-│   │   ├── auth.e2e.spec.ts      # Authentication tests
-│   │   ├── problems.e2e.spec.ts  # Problem list tests
-│   │   ├── submission.e2e.spec.ts# Submission tests
+│   │   ├── auth.e2e.spec.ts      # Auth tests (17 test cases)
+│   │   ├── problems.e2e.spec.ts  # Problem list tests (8 test cases)
+│   │   ├── submission.e2e.spec.ts# Submission tests (10 test cases)
 │   │   └── contest.e2e.spec.ts   # Contest tests
 │   └── helpers/                  # Test utilities
 │       ├── auth.helper.ts        # Auth helper functions
 │       ├── data.helper.ts        # Test data constants
-│       ├── setup.ts              # Global setup
-│       └── teardown.ts           # Global teardown
+│       ├── setup.ts              # Global setup (environment detection)
+│       └── teardown.ts           # Global teardown (environment preservation)
 ├── playwright.config.e2e.ts      # Playwright E2E config
-└── scripts/
-    └── e2e-env.sh                # Environment management script
+└── playwright-report-e2e/        # Test report output directory
 ```
 
 ## Test Coverage
 
-### Authentication Tests (auth.e2e.spec.ts)
+### Auth Tests (auth.e2e.spec.ts) - 17 tests
 
-- User registration
-- User login (Student, Teacher, Admin)
-- User logout
-- Invalid credentials error handling
-- Unauthorized access protection
-- Session persistence
+#### Registration
+- ✅ Register new user successfully
+- ✅ Show error when passwords don't match
+- ✅ Show error when email already exists
 
-### Problem List Tests (problems.e2e.spec.ts)
+#### Login
+- ✅ Student login successfully
+- ✅ Teacher login successfully
+- ✅ Admin login successfully
+- ✅ Show error with invalid credentials
+- ✅ Show error with wrong password
+- ✅ Handle empty fields
 
-- Display problem list
-- Problem info display (title, difficulty, number)
-- Click problem to view details
-- Pagination
-- Navigation
+#### Logout
+- ✅ Logout successfully and redirect to login page
 
-### Submission Tests (submission.e2e.spec.ts)
+#### Session Management
+- ✅ Redirect unauthorized access to dashboard
+- ✅ Maintain session after page reload
+- ✅ Store token in localStorage after login
+- ✅ Clear token after logout
 
-- Display problem details
-- Problem description and test cases
-- Code editor
-- Submit code
-- View submission results
-- Submission history
-- Submission filtering
+#### Navigation
+- ✅ Navigate from login to register page
+- ✅ Navigate from register to login page
+- ✅ Redirect to login when accessing protected route without auth
+
+### Problem List Tests (problems.e2e.spec.ts) - 8 tests
+
+- ✅ Display problem list page
+- ✅ Display A+B Problem
+- ✅ Display Hello World Problem
+- ✅ Display difficulty badges
+- ✅ Navigate to problem detail when clicking
+- ✅ Access problems page from navigation menu
+- ✅ Display problems in table format
+- ✅ Show problem time and memory limits
+
+### Submission Tests (submission.e2e.spec.ts) - 10 tests
+
+- ✅ Display problem detail page
+- ✅ Display problem description and test cases
+- ✅ Display coding tab
+- ✅ Submit code and see result
+- ✅ View submission history
+- ✅ Filter submissions
+- ✅ Display submission status
+- ✅ Navigate to problem from submissions page
+- ✅ Show submission detail when clicking
+- ✅ Navigate to problem and see coding interface
 
 ### Contest Tests (contest.e2e.spec.ts)
 
 - Display contest list
-- Contest status display
 - Contest detail page
 - Join contest
 - Contest problem list
-- Solve problems in contest
-- Contest leaderboard
-- Time limit checking
+
+## CI/CD Integration
+
+### GitHub Actions Configuration
+
+Tests automatically trigger on:
+- Push to `main` / `develop` branches
+- Changes to `frontend/tests/e2e/**`, `frontend/src/services/**`, etc.
+
+### Test Flow
+
+CI test flow:
+1. Start PostgreSQL and Redis
+2. Start Backend and wait for health check
+3. Run API integration tests
+4. Start Frontend
+5. Run E2E tests sequentially (Auth → Problems → Submission → Contest)
+6. Upload test reports
+
+### Test Report Artifacts
+
+| Artifact Name | Content | Retention |
+|--------------|---------|-----------|
+| `playwright-report-e2e` | HTML test report | 30 days |
+| `playwright-test-results` | Screenshots, Videos, Traces | 14 days (failures only) |
+
+### Manual Trigger
+
+You can manually trigger tests from the GitHub Actions page, selecting test type:
+- `api-only` - Run API integration tests only
+- `e2e-only` - Run E2E tests only
+- `all` - Run all tests
 
 ## Writing New Tests
 
-Create a new test file in `frontend/tests/e2e/`:
+Create new test files in `frontend/tests/e2e/`:
 
 ```typescript
 import { test, expect } from "@playwright/test";
-import { login } from "../helpers/auth.helper";
+import { login, clearAuth } from "../helpers/auth.helper";
+import { TEST_USERS } from "../helpers/data.helper";
 
 test.describe("My Feature Tests", () => {
+  // Use serial mode to avoid login conflicts
+  test.describe.configure({ mode: "serial" });
+
   test.beforeEach(async ({ page }) => {
+    // Clear previous auth state
+    await page.goto("/login");
+    await clearAuth(page);
+    // Login
     await login(page, "student");
   });
 
@@ -227,110 +289,89 @@ test.describe("My Feature Tests", () => {
 });
 ```
 
-Using helper functions:
+### Using Helper Functions
 
 ```typescript
-import { login, logout } from "../helpers/auth.helper";
-import { TEST_USERS, TEST_PROBLEMS } from "../helpers/data.helper";
+import { login, logout, clearAuth, isAuthenticated } from "../helpers/auth.helper";
+import { TEST_USERS, TEST_PROBLEMS, TEST_CONTESTS } from "../helpers/data.helper";
 
-// Login
+// Login as different roles
 await login(page, "student");
+await login(page, "teacher");
+await login(page, "admin");
+
+// Logout
+await logout(page);
 
 // Use test data
-const user = TEST_USERS.student;
-const problem = TEST_PROBLEMS.aPlusB;
+const user = TEST_USERS.student;  // { email, password, username, role }
+const problem = TEST_PROBLEMS.aPlusB;  // { title, displayId, difficulty, slug }
 ```
 
 ## Debugging Tests
 
 ```bash
-# UI mode (recommended)
+# UI mode (recommended) - Visual test execution
 npm run test:e2e:ui
 
-# Debug mode
+# Debug mode - Step through execution
 npm run test:e2e:debug
 
-# Run specific test file
-npx playwright test -c playwright.config.e2e.ts tests/e2e/auth.e2e.spec.ts
+# Show browser window
+npx playwright test -c playwright.config.e2e.ts --headed
 
-# Run specific test case
-npx playwright test -c playwright.config.e2e.ts -g "should login as student"
+# View failed test trace
+npx playwright show-trace test-results/xxx/trace.zip
 ```
 
-## FAQ
+## Troubleshooting
 
-### Test environment fails to start
+### Test Environment Fails to Start
 
-Check the following:
+1. Confirm Docker is running
+2. Confirm ports 5174 and 8001 are not in use
+3. Check service logs:
+   ```bash
+   docker compose -f docker-compose.test.yml logs backend-test
+   ```
 
-1. Is Docker running?
-2. Are ports 5174 and 8001 available?
-3. Check service logs: `./frontend/scripts/e2e-env.sh logs`
+### Test Data is Incorrect
 
-### Test data is incorrect
-
-Reset the test environment:
-
+Reset test environment:
 ```bash
-./frontend/scripts/e2e-env.sh reset
+docker compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml up -d
 ```
 
-### Tests run slowly
+### Login Test Fails
 
-1. Ensure Docker has sufficient resources
-2. Use `--workers=1` to avoid parallel tests
-3. Consider using API login instead of UI login (faster)
+Ensure correct selector is used. User Menu button has aria-label "使用者選單" or "User Menu".
 
-### How to run tests in CI/CD
+### API Request Fails (400 error)
 
-```bash
-# Set CI environment variable
-export CI=true
+Confirm Docker service names use hyphens (`-`) not underscores (`_`), e.g., `backend-test` not `backend_test`.
 
-# Start environment
-./frontend/scripts/e2e-env.sh start
+### Multiple Test Suites Fail When Run Together
 
-# Run tests
-cd frontend && npm run test:e2e
-
-# Cleanup
-cd .. && ./frontend/scripts/e2e-env.sh stop
-```
+This may be due to rate limiting or session conflicts. Recommendations:
+- Use `serial` mode
+- Call `clearAuth()` in `beforeEach`
+- Run test suites individually
 
 ## Best Practices
 
-1. **Data Isolation**: Reset environment before each test run to ensure test independence
-2. **Wait Strategy**: Use Playwright's auto-wait, avoid `waitForTimeout`
+1. **Data Isolation**: Use unique timestamps for test users to avoid data conflicts
+2. **Wait Strategy**: Use Playwright's auto-waiting, avoid `waitForTimeout`
 3. **Selector Priority**:
-   - Prefer `data-testid`
-   - Then semantic selectors (role, text)
-   - Avoid CSS classes (prone to change)
-4. **Test Independence**: Each test should run independently without relying on other tests
-5. **Clean State**: Clear authentication state in `beforeEach`
-
-## Performance Optimization
-
-1. **Use API Login**: For tests not testing the login flow, use `loginViaAPI()` for speed
-2. **Reduce Wait Time**: Leverage Playwright's auto-wait mechanism
-3. **Parallel Execution**: Use carefully, ensure test data doesn't conflict
-4. **Snapshot Testing**: Consider visual snapshot testing for stable UI
-
-## Maintenance
-
-### Update Test Data
-
-Modify `backend/apps/core/management/commands/seed_e2e_data.py` to update test data structure.
-
-### Update Test Configuration
-
-Modify `frontend/playwright.config.e2e.ts` to adjust test behavior (timeout, retry count, etc.).
-
-### Update Environment Configuration
-
-Modify `docker-compose.test.yml` to adjust service configuration (port, environment variables, etc.).
+   - Prefer `getByRole`, `getByText`
+   - Then use `data-testid`
+   - Avoid unstable CSS classes
+4. **Test Independence**: Clear state in `beforeEach`
+5. **Error Handling**: Use `force: true` for covered elements
+6. **Serial Mode**: Use `test.describe.configure({ mode: "serial" })` to avoid parallel conflicts
 
 ## References
 
 - [Playwright Documentation](https://playwright.dev/)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Django Testing Best Practices](https://docs.djangoproject.com/en/stable/topics/testing/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
