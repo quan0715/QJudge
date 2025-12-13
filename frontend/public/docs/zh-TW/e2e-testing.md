@@ -81,11 +81,11 @@ npx playwright install chromium webkit
 
 ```bash
 # 使用 Docker Compose 啟動測試環境
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml up -d
 
 # 等待服務就緒（約 30-60 秒）
 # 可以使用以下命令檢查服務狀態
-docker-compose -f docker-compose.test.yml ps
+docker compose -f docker-compose.test.yml ps
 ```
 
 ### 4. 執行測試
@@ -122,7 +122,7 @@ npx playwright show-report playwright-report-e2e
 
 ```bash
 # 停止並清理測試環境
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml down -v
 ```
 
 ## 測試環境特性
@@ -131,7 +131,8 @@ docker-compose -f docker-compose.test.yml down -v
 
 測試框架會自動檢測環境狀態：
 - 如果環境已運行，直接執行測試（快速）
-- 如果環境未運行，自動啟動 Docker 環境
+- 如果環境未運行，自動啟動 Docker 環境（本地開發）
+- 在 CI 環境中，會等待預先啟動的服務就緒
 
 ### 環境保留
 
@@ -145,7 +146,7 @@ docker-compose -f docker-compose.test.yml down -v
 E2E_CLEANUP=true npm run test:e2e
 
 # 或手動停止
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml down -v
 ```
 
 ## 測試結構
@@ -155,8 +156,8 @@ frontend/
 ├── tests/
 │   ├── e2e/                      # E2E 測試檔案
 │   │   ├── auth.e2e.spec.ts      # 認證測試（17 個測試案例）
-│   │   ├── problems.e2e.spec.ts  # 題目列表測試
-│   │   ├── submission.e2e.spec.ts# 提交測試
+│   │   ├── problems.e2e.spec.ts  # 題目列表測試（8 個測試案例）
+│   │   ├── submission.e2e.spec.ts# 提交測試（10 個測試案例）
 │   │   └── contest.e2e.spec.ts   # 競賽測試
 │   └── helpers/                  # 測試輔助工具
 │       ├── auth.helper.ts        # 認證相關輔助函數
@@ -198,20 +199,29 @@ frontend/
 - ✅ 註冊頁跳轉至登入頁
 - ✅ 未登入訪問受保護路由重定向
 
-### 題目列表測試 (problems.e2e.spec.ts)
+### 題目列表測試 (problems.e2e.spec.ts) - 8 個測試
 
-- 顯示題目列表
-- 題目資訊顯示（標題、難度、編號）
-- 點擊題目進入詳情頁
-- 導航功能
+- ✅ 顯示題目列表頁面
+- ✅ 顯示 A+B Problem
+- ✅ 顯示 Hello World Problem
+- ✅ 顯示難度標籤
+- ✅ 點擊題目進入詳情頁
+- ✅ 從導航選單訪問題目頁
+- ✅ 以表格格式顯示題目
+- ✅ 顯示題目時間和記憶體限制
 
-### 提交測試 (submission.e2e.spec.ts)
+### 提交測試 (submission.e2e.spec.ts) - 10 個測試
 
-- 顯示題目詳情
-- 題目描述與測試案例
-- 代碼編輯器
-- 提交代碼
-- 查看提交結果
+- ✅ 顯示題目詳情頁
+- ✅ 顯示題目描述與測試案例
+- ✅ 顯示程式碼編輯 Tab
+- ✅ 提交代碼並查看結果
+- ✅ 查看提交歷史
+- ✅ 過濾提交記錄
+- ✅ 顯示提交狀態
+- ✅ 從提交頁面跳轉到題目
+- ✅ 點擊提交查看詳情
+- ✅ 導航到題目並看到編碼介面
 
 ### 競賽測試 (contest.e2e.spec.ts)
 
@@ -227,6 +237,16 @@ frontend/
 測試會在以下情況自動觸發：
 - Push 到 `main` / `develop` 分支
 - 修改 `frontend/tests/e2e/**`、`frontend/src/services/**` 等相關檔案
+
+### 測試流程
+
+CI 中的測試流程：
+1. 啟動 PostgreSQL 和 Redis
+2. 啟動 Backend 並等待健康檢查通過
+3. 執行 API 整合測試
+4. 啟動 Frontend
+5. 依序執行 E2E 測試（Auth → Problems → Submission → Contest）
+6. 上傳測試報告
 
 ### 測試報告 Artifacts
 
@@ -252,13 +272,18 @@ import { login, clearAuth } from "../helpers/auth.helper";
 import { TEST_USERS } from "../helpers/data.helper";
 
 test.describe("My Feature Tests", () => {
+  // 使用 serial 模式避免登入衝突
+  test.describe.configure({ mode: "serial" });
+
   test.beforeEach(async ({ page }) => {
+    // 清除先前的認證狀態
     await page.goto("/login");
     await clearAuth(page);
+    // 登入
+    await login(page, "student");
   });
 
-  test("should do something as student", async ({ page }) => {
-    await login(page, "student");
+  test("should do something", async ({ page }) => {
     // 你的測試邏輯
   });
 });
@@ -307,24 +332,31 @@ npx playwright show-trace test-results/xxx/trace.zip
 2. 確認 Port 5174 和 8001 未被佔用
 3. 查看服務日誌：
    ```bash
-   docker-compose -f docker-compose.test.yml logs backend-test
+   docker compose -f docker-compose.test.yml logs backend-test
    ```
 
 ### 測試資料不正確
 
 重置測試環境：
 ```bash
-docker-compose -f docker-compose.test.yml down -v
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml up -d
 ```
 
-### 登出測試失敗
+### 登入測試失敗
 
 確保使用正確的 selector，User Menu 按鈕的 aria-label 為「使用者選單」。
 
 ### API 請求失敗（400 錯誤）
 
 確認 Docker 服務名稱使用連字符（`-`）而非底線（`_`），例如：`backend-test` 而非 `backend_test`。
+
+### 多個測試套件同時運行時失敗
+
+這可能是 rate limiting 或 session 衝突。建議：
+- 使用 `serial` 模式
+- 在 `beforeEach` 中呼叫 `clearAuth()`
+- 單獨運行各測試套件
 
 ## 最佳實踐
 
@@ -336,6 +368,7 @@ docker-compose -f docker-compose.test.yml up -d
    - 避免使用不穩定的 CSS class
 4. **測試獨立性**：每個測試在 `beforeEach` 中清理狀態
 5. **錯誤處理**：使用 `force: true` 處理元素被覆蓋的情況
+6. **Serial 模式**：使用 `test.describe.configure({ mode: "serial" })` 避免並行衝突
 
 ## 參考資料
 
