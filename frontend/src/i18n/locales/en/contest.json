@@ -382,5 +382,58 @@
       "itemsPerPageText": "Items per page"
     },
     "refresh": "Refresh"
+  },
+  "participants": {
+    "title": "Participant Management",
+    "addParticipant": "Add Participant",
+    "statusFilter": {
+      "all": "All Status",
+      "not_started": "Not Started",
+      "in_progress": "In Progress",
+      "paused": "Paused",
+      "locked": "Locked",
+      "submitted": "Submitted"
+    },
+    "table": {
+      "headers": {
+        "username": "User",
+        "joinedAt": "Joined At",
+        "status": "Status",
+        "lockReason": "Lock Reason",
+        "actions": "Actions"
+      }
+    },
+    "actions": {
+      "unlock": "Unlock",
+      "reopen": "Reopen",
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+    "messages": {
+      "loadError": "Failed to load participants list",
+      "addSuccess": "Participant added",
+      "addError": "Failed to add participant",
+      "unlockConfirm": "Are you sure you want to unlock this student?",
+      "unlockSuccess": "Unlocked successfully",
+      "unlockError": "Failed to unlock",
+      "updateSuccess": "Participant status updated",
+      "updateError": "Update failed",
+      "reopenConfirm": "Are you sure you want to reopen the exam for this student?",
+      "reopenSuccess": "Exam reopened successfully",
+      "reopenError": "Failed to reopen exam",
+      "removeConfirm": "Are you sure you want to remove participant {{username}}?",
+      "removeSuccess": "Participant removed",
+      "removeError": "Failed to remove participant"
+    },
+    "editModal": {
+      "title": "Edit Participant Status",
+      "statusLabel": "Exam Status",
+      "statusHelp": "Select the exam status for this participant",
+      "lockReasonLabel": "Lock Reason (Optional)",
+      "lockReasonPlaceholder": "If status is 'Locked', you can enter the lock reason here...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
   }
 }

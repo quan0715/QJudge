@@ -110,7 +110,8 @@
   "pagination": {
     "previous": "Previous",
     "next": "Next",
-    "itemsPerPage": "Items per page"
+    "itemsPerPage": "Items per page",
+    "showing": "Showing"
   },
   "language": {
     "switchTo": "Switch Language",

@@ -382,5 +382,58 @@
       "itemsPerPageText": "페이지당 항목"
     },
     "refresh": "새로고침"
+  },
+  "participants": {
+    "title": "참가자 관리",
+    "addParticipant": "참가자 추가",
+    "statusFilter": {
+      "all": "모든 상태",
+      "not_started": "시작 전",
+      "in_progress": "진행 중",
+      "paused": "일시정지",
+      "locked": "잠김",
+      "submitted": "제출 완료"
+    },
+    "table": {
+      "headers": {
+        "username": "사용자",
+        "joinedAt": "참가 시간",
+        "status": "상태",
+        "lockReason": "잠금 사유",
+        "actions": "작업"
+      }
+    },
+    "actions": {
+      "unlock": "잠금 해제",
+      "reopen": "재개방",
+      "edit": "편집",
+      "remove": "제거"
+    },
+    "messages": {
+      "loadError": "참가자 목록을 불러올 수 없습니다",
+      "addSuccess": "참가자가 추가되었습니다",
+      "addError": "참가자 추가 실패",
+      "unlockConfirm": "이 학생의 잠금을 해제하시겠습니까?",
+      "unlockSuccess": "잠금 해제됨",
+      "unlockError": "잠금 해제 실패",
+      "updateSuccess": "참가자 상태가 업데이트되었습니다",
+      "updateError": "업데이트 실패",
+      "reopenConfirm": "이 학생의 시험을 재개방하시겠습니까?",
+      "reopenSuccess": "시험이 재개방되었습니다",
+      "reopenError": "재개방 실패",
+      "removeConfirm": "참가자 {{username}}을(를) 제거하시겠습니까?",
+      "removeSuccess": "참가자가 제거되었습니다",
+      "removeError": "참가자 제거 실패"
+    },
+    "editModal": {
+      "title": "참가자 상태 편집",
+      "statusLabel": "시험 상태",
+      "statusHelp": "이 참가자의 시험 상태 선택",
+      "lockReasonLabel": "잠금 사유 (선택사항)",
+      "lockReasonPlaceholder": "상태가 '잠김'인 경우 잠금 사유를 입력할 수 있습니다...",
+      "cancel": "취소",
+      "save": "저장",
+      "saving": "저장 중..."
+    }
   }
 }

@@ -382,5 +382,58 @@
       "itemsPerPageText": "每頁顯示"
     },
     "refresh": "重新整理"
+  },
+  "participants": {
+    "title": "參賽者管理",
+    "addParticipant": "新增參賽者",
+    "statusFilter": {
+      "all": "全部狀態",
+      "not_started": "未開始",
+      "in_progress": "進行中",
+      "paused": "已暫停",
+      "locked": "已鎖定",
+      "submitted": "已交卷"
+    },
+    "table": {
+      "headers": {
+        "username": "使用者",
+        "joinedAt": "加入時間",
+        "status": "狀態",
+        "lockReason": "鎖定原因",
+        "actions": "操作"
+      }
+    },
+    "actions": {
+      "unlock": "解鎖",
+      "reopen": "重新開放",
+      "edit": "編輯",
+      "remove": "移除"
+    },
+    "messages": {
+      "loadError": "無法載入參賽者列表",
+      "addSuccess": "參賽者已新增",
+      "addError": "新增參賽者失敗",
+      "unlockConfirm": "確定要解除此學生的鎖定嗎？",
+      "unlockSuccess": "已解除鎖定",
+      "unlockError": "解除鎖定失敗",
+      "updateSuccess": "參賽者狀態已更新",
+      "updateError": "更新失敗",
+      "reopenConfirm": "確定要重新開放此學生考試嗎？",
+      "reopenSuccess": "已重新開放考試",
+      "reopenError": "重新開放失敗",
+      "removeConfirm": "確定要移除參賽者 {{username}} 嗎？",
+      "removeSuccess": "參賽者已移除",
+      "removeError": "移除參賽者失敗"
+    },
+    "editModal": {
+      "title": "編輯參賽者狀態",
+      "statusLabel": "考試狀態",
+      "statusHelp": "選擇此參賽者的考試狀態",
+      "lockReasonLabel": "鎖定原因 (選填)",
+      "lockReasonPlaceholder": "如果狀態為「已鎖定」，可在此輸入鎖定原因...",
+      "cancel": "取消",
+      "save": "儲存",
+      "saving": "儲存中..."
+    }
   }
 }

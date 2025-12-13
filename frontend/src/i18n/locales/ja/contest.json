@@ -382,5 +382,58 @@
       "itemsPerPageText": "ページごとの項目数"
     },
     "refresh": "更新"
+  },
+  "participants": {
+    "title": "参加者管理",
+    "addParticipant": "参加者追加",
+    "statusFilter": {
+      "all": "全てのステータス",
+      "not_started": "未開始",
+      "in_progress": "進行中",
+      "paused": "一時停止",
+      "locked": "ロック済み",
+      "submitted": "提出済み"
+    },
+    "table": {
+      "headers": {
+        "username": "ユーザー",
+        "joinedAt": "参加日時",
+        "status": "ステータス",
+        "lockReason": "ロック理由",
+        "actions": "操作"
+      }
+    },
+    "actions": {
+      "unlock": "ロック解除",
+      "reopen": "再開放",
+      "edit": "編集",
+      "remove": "削除"
+    },
+    "messages": {
+      "loadError": "参加者リストを読み込めません",
+      "addSuccess": "参加者が追加されました",
+      "addError": "参加者の追加に失敗しました",
+      "unlockConfirm": "この学生のロックを解除してもよろしいですか？",
+      "unlockSuccess": "ロック解除されました",
+      "unlockError": "ロック解除に失敗しました",
+      "updateSuccess": "参加者ステータスが更新されました",
+      "updateError": "更新に失敗しました",
+      "reopenConfirm": "この学生の試験を再開放してもよろしいですか？",
+      "reopenSuccess": "試験が再開放されました",
+      "reopenError": "再開放に失敗しました",
+      "removeConfirm": "参加者 {{username}} を削除してもよろしいですか？",
+      "removeSuccess": "参加者が削除されました",
+      "removeError": "参加者の削除に失敗しました"
+    },
+    "editModal": {
+      "title": "参加者ステータス編集",
+      "statusLabel": "試験ステータス",
+      "statusHelp": "この参加者の試験ステータスを選択",
+      "lockReasonLabel": "ロック理由（任意）",
+      "lockReasonPlaceholder": "ステータスが「ロック済み」の場合、ロック理由を入力できます...",
+      "cancel": "キャンセル",
+      "save": "保存",
+      "saving": "保存中..."
+    }
   }
 }

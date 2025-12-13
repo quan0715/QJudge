@@ -110,7 +110,8 @@
   "pagination": {
     "previous": "前へ",
     "next": "次へ",
-    "itemsPerPage": "表示件数"
+    "itemsPerPage": "表示件数",
+    "showing": "表示中"
   },
   "language": {
     "switchTo": "言語を切り替え",
