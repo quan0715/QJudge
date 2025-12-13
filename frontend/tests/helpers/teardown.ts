@@ -2,9 +2,8 @@
  * Global Teardown for E2E Tests
  *
  * This file runs once after all tests complete.
- * It's responsible for:
- * 1. Stopping Docker Compose services
- * 2. Cleaning up volumes and containers
+ * By default, it keeps the Docker environment running for faster subsequent runs.
+ * Set E2E_CLEANUP=true to stop and cleanup the environment.
  */
 
 import { execSync } from "child_process";
@@ -15,10 +14,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function globalTeardown() {
-  console.log("\n🧹 Cleaning up E2E test environment...\n");
+  console.log("\n🧹 E2E test cleanup...\n");
 
   const rootDir = path.resolve(__dirname, "../../../");
   const composeFile = path.join(rootDir, "docker-compose.test.yml");
+
+  // Only cleanup if explicitly requested
+  const shouldCleanup = process.env.E2E_CLEANUP === "true";
+
+  if (!shouldCleanup) {
+    console.log("♻️  Keeping Docker environment running for faster re-runs.");
+    console.log("   To stop: docker-compose -f docker-compose.test.yml down -v");
+    console.log("   To cleanup on teardown: E2E_CLEANUP=true npm run test:e2e\n");
+    return;
+  }
 
   try {
     // Stop and remove containers, networks, and volumes

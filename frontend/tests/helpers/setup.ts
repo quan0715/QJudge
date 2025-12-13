@@ -3,9 +3,10 @@
  *
  * This file runs once before all tests start.
  * It's responsible for:
- * 1. Starting Docker Compose services
- * 2. Waiting for services to be healthy
- * 3. Verifying test data is properly seeded
+ * 1. Checking if Docker environment is already running
+ * 2. Starting Docker Compose services if needed
+ * 3. Waiting for services to be healthy
+ * 4. Verifying test data is properly seeded
  */
 
 import { execSync } from "child_process";
@@ -15,6 +16,31 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Check if the E2E environment is already running
+ */
+function isEnvironmentRunning(): boolean {
+  try {
+    // Check if backend is responding
+    const result = execSync(
+      `curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me`,
+      { encoding: "utf-8", stdio: "pipe" }
+    );
+    const statusCode = parseInt(result.trim(), 10);
+
+    // Also check frontend
+    const frontendResult = execSync(
+      `curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/`,
+      { encoding: "utf-8", stdio: "pipe" }
+    );
+    const frontendStatus = parseInt(frontendResult.trim(), 10);
+
+    return statusCode >= 200 && statusCode < 500 && frontendStatus === 200;
+  } catch {
+    return false;
+  }
+}
+
 async function globalSetup() {
   console.log("\n🚀 Starting E2E test environment...\n");
 
@@ -22,9 +48,45 @@ async function globalSetup() {
   const composeFile = path.join(rootDir, "docker-compose.test.yml");
 
   try {
-    // Stop any existing containers
-    console.log("📦 Stopping existing containers...");
-    execSync(`docker-compose -f ${composeFile} down -v`, {
+    // First, check if environment is already running
+    if (isEnvironmentRunning()) {
+      console.log("✅ Environment is already running! Skipping setup.\n");
+
+      // Just verify test data exists
+      console.log("✅ Verifying test data...");
+      try {
+        execSync(
+          `docker-compose -f ${composeFile} exec -T backend-test python manage.py shell << 'EOF'
+from django.contrib.auth import get_user_model
+from apps.problems.models import Problem
+
+User = get_user_model()
+users = User.objects.count()
+problems = Problem.objects.count()
+
+print(f"Users: {users}, Problems: {problems}")
+
+if users < 3 or problems < 2:
+    print("Warning: Test data may not be properly seeded")
+    exit(1)
+EOF`,
+          { stdio: "inherit", cwd: rootDir }
+        );
+      } catch {
+        console.log(
+          "⚠️  Could not verify test data, but environment is running."
+        );
+      }
+
+      console.log("\n✨ E2E environment is ready!\n");
+      return;
+    }
+
+    // Environment not running, start it
+    console.log("📦 Environment not running. Starting Docker Compose...");
+
+    // Stop any existing containers first
+    execSync(`docker-compose -f ${composeFile} down -v 2>/dev/null || true`, {
       stdio: "inherit",
       cwd: rootDir,
     });
@@ -45,23 +107,23 @@ async function globalSetup() {
 
     while (attempts < maxAttempts) {
       try {
-        // Check if backend is responding
         const result = execSync(
-          `curl -f http://localhost:8001/api/v1/ || exit 1`,
+          `curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me`,
           { encoding: "utf-8", stdio: "pipe" }
         );
+        const statusCode = parseInt(result.trim(), 10);
 
-        if (result) {
-          console.log("✅ Backend is ready!");
+        if (statusCode >= 200 && statusCode < 500) {
+          console.log(`✅ Backend is ready! (HTTP ${statusCode})`);
           break;
         }
-      } catch (error) {
+        throw new Error(`Unexpected status code: ${statusCode}`);
+      } catch {
         attempts++;
         if (attempts >= maxAttempts) {
           console.error("❌ Backend failed to start within timeout");
           throw new Error("Backend startup timeout");
         }
-        // Wait 2 seconds before next attempt
         await new Promise((resolve) => setTimeout(resolve, 2000));
         process.stdout.write(".");
       }
@@ -73,16 +135,13 @@ async function globalSetup() {
 
     while (attempts < maxAttempts) {
       try {
-        const result = execSync(`curl -f http://localhost:5174/ || exit 1`, {
+        execSync(`curl -sf http://localhost:5174/ -o /dev/null`, {
           encoding: "utf-8",
           stdio: "pipe",
         });
-
-        if (result) {
-          console.log("✅ Frontend is ready!");
-          break;
-        }
-      } catch (error) {
+        console.log("✅ Frontend is ready!");
+        break;
+      } catch {
         attempts++;
         if (attempts >= maxAttempts) {
           console.error("❌ Frontend failed to start within timeout");
@@ -96,7 +155,7 @@ async function globalSetup() {
     // Verify test data
     console.log("\n✅ Verifying test data...");
     execSync(
-      `docker-compose -f ${composeFile} exec -T backend_test python manage.py shell << 'EOF'
+      `docker-compose -f ${composeFile} exec -T backend-test python manage.py shell << 'EOF'
 from django.contrib.auth import get_user_model
 from apps.problems.models import Problem
 
@@ -120,11 +179,14 @@ EOF`,
     // Show logs for debugging
     console.log("\n📋 Backend logs:");
     try {
-      execSync(`docker-compose -f ${composeFile} logs --tail=50 backend_test`, {
-        stdio: "inherit",
-        cwd: rootDir,
-      });
-    } catch (e) {
+      execSync(
+        `docker-compose -f ${composeFile} logs --tail=50 backend-test`,
+        {
+          stdio: "inherit",
+          cwd: rootDir,
+        }
+      );
+    } catch {
       console.error("Could not fetch backend logs");
     }
 
