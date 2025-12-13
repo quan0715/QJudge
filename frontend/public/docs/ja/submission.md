@@ -43,8 +43,35 @@ n = int(input())
 print(n * 2)
 ```
 
+### Java
+
+```java
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        System.out.println(n * 2);
+    }
+}
+```
+
 ## 提出制限
 
 - **提出頻度**：ジャッジが完了するまで次の提出を待つ必要があります
 - **コード長**：最大 64 KB
 - **出力サイズ**：256 MB まで
+
+## よくある質問
+
+### ローカルでは動作するのに、提出すると失敗するのはなぜ？
+
+よくある原因：
+
+- 出力形式が正しくない（余分なスペース、改行）
+- エッジケースが処理されていない
+- 整数オーバーフロー
+- 配列の範囲外アクセス
+
+問題文の出力形式要件を注意深く確認してください。

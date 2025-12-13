@@ -15,6 +15,19 @@ QJudge は複数の主要プログラミング言語をサポートしていま�
 
 ### C/C++
 
+**推奨ヘッダファイル**：
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <map>
+#include <set>
+#include <queue>
+```
+
 **パフォーマンス最適化**：
 
 ```cpp
@@ -38,6 +51,11 @@ a, b = map(int, input().split())
 arr = list(map(int, input().split()))
 ```
 
+**注意点**：
+
+- Python の実行時間制限は通常緩和されます
+- 効率を上げるために組み込み関数とリスト内包表記を使用することをお勧めします
+
 ### Java
 
 **クラス名**：
@@ -52,6 +70,24 @@ public class Main {
 }
 ```
 
+**高速 I/O**：
+
+```java
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
+
+        // 読み取りと処理
+
+        out.flush();
+    }
+}
+```
+
 ## 時間係数
 
 | 言語   | 時間係数 |
@@ -59,5 +95,38 @@ public class Main {
 | C/C++  | 1x       |
 | Java   | 2x       |
 | Python | 3x       |
+
+例：問題の時間制限が 1 秒の場合、Python プログラムは実際に 3 秒の実行時間があります。
+
+## 選択の推奨
+
+| シナリオ       | 推奨言語 |
+| -------------- | -------- |
+| 実行効率重視   | C++      |
+| 素早い開発     | Python   |
+| オブジェクト指向に慣れている | Java     |
+| データ構造の学習 | C++      |
+
+## 言語比較
+
+### 長所と短所の比較
+
+**C++**
+
+- 実行速度が速い
+- STL が強力
+- 構文がやや複雑
+
+**Python**
+
+- 構文が簡潔
+- 開発速度が速い
+- 実行が遅い
+
+**Java**
+
+- クロスプラットフォーム
+- オブジェクト指向が完全
+- コードが長くなりがち
 
 最も慣れている言語を選んで、問題解決のロジックに集中しましょう！
