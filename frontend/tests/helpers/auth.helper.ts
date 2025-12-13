@@ -28,8 +28,8 @@ export async function login(page: Page, role: UserRole = "student") {
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to dashboard
-  await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+  // Wait for navigation to dashboard (longer timeout for slower browsers like WebKit)
+  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
   // Verify login success by checking for user info or dashboard content
   await expect(page).toHaveURL(/\/dashboard/);
@@ -41,19 +41,26 @@ export async function login(page: Page, role: UserRole = "student") {
  * @param page - Playwright page object
  */
 export async function logout(page: Page) {
-  // Click on user menu/avatar
-  await page
-    .click('[data-testid="user-menu"], .user-avatar, button:has-text("登出")')
-    .catch(async () => {
-      // If specific selectors don't work, try to find logout button anywhere
-      const logoutButton = page
-        .locator("button, a")
-        .filter({ hasText: /登出|Logout/i });
-      await logoutButton.first().click();
-    });
+  // Click on user menu button - use role-based selector for reliability
+  const userMenuButton = page.getByRole("button", {
+    name: /使用者選單|User Menu/i,
+  });
+
+  await userMenuButton.click({ timeout: 5000 });
+
+  // Wait for the panel to open
+  await page.waitForTimeout(500);
+
+  // Find and click the logout item in the switcher menu
+  const logoutItem = page.locator(
+    '.cds--switcher__item [aria-label*="登出"], .cds--switcher__item [aria-label*="Logout"]'
+  );
+
+  // Force click to bypass any overlay issues
+  await logoutItem.first().click({ force: true, timeout: 5000 });
 
   // Wait for redirect to login page
-  await page.waitForURL(/\/login/, { timeout: 5000 });
+  await page.waitForURL(/\/login/, { timeout: 10000 });
 
   // Verify logout success
   await expect(page).toHaveURL(/\/login/);

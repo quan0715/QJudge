@@ -1,5 +1,5 @@
 services:
-  postgres_test:
+  postgres-test:
     image: postgres:15-alpine
     container_name: oj_postgres_test
     environment:
@@ -9,27 +9,27 @@ services:
     ports:
       - "5433:5432"
     networks:
-      - test_network
+      - test-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U oj_user -d test_oj_e2e"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  redis_test:
+  redis-test:
     image: redis:7-alpine
     container_name: oj_redis_test
     ports:
       - "6380:6379"
     networks:
-      - test_network
+      - test-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  backend_test:
+  backend-test:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -45,34 +45,28 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=postgres_test
+      - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
-      - REDIS_HOST=redis_test
+      - REDIS_HOST=redis-test
       - REDIS_PORT=6379
-      - REDIS_URL=redis://redis_test:6379/0
+      - REDIS_URL=redis://redis-test:6379/0
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=True
       - ALLOWED_HOSTS=*
     ports:
       - "8001:8000"
     depends_on:
-      postgres_test:
+      postgres-test:
         condition: service_healthy
-      redis_test:
+      redis-test:
         condition: service_healthy
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - test_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      - test-network
 
-  celery_test:
+  celery-test:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -83,50 +77,49 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=postgres_test
+      - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
-      - REDIS_HOST=redis_test
+      - REDIS_HOST=redis-test
       - REDIS_PORT=6379
-      - REDIS_URL=redis://redis_test:6379/0
+      - REDIS_URL=redis://redis-test:6379/0
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=True
       - JUDGE_TMP_DIR=/judge_tmp
     depends_on:
-      postgres_test:
+      postgres-test:
         condition: service_healthy
-      redis_test:
+      redis-test:
         condition: service_healthy
-      backend_test:
-        condition: service_healthy
+      backend-test:
+        condition: service_started
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
-      - judge_tmp_test:/judge_tmp
+      - judge-tmp-test:/judge_tmp
     networks:
-      - test_network
+      - test-network
 
-  frontend_test:
+  frontend-test:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: oj_frontend_test
     command: npm run dev -- --host 0.0.0.0 --port 5174
     environment:
-      - VITE_API_TARGET=http://backend_test:8000
+      - VITE_API_TARGET=http://backend-test:8000
     ports:
       - "5174:5174"
     depends_on:
-      backend_test:
-        condition: service_healthy
+      - backend-test
     volumes:
       - ./frontend:/app
       - /app/node_modules
     networks:
-      - test_network
+      - test-network
 
 networks:
-  test_network:
+  test-network:
     driver: bridge
 
 volumes:
-  judge_tmp_test:
+  judge-tmp-test:

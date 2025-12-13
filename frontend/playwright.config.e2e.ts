@@ -26,20 +26,16 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Run tests in parallel with multiple workers */
-  /* Each test file runs independently, data conflicts avoided by:
-   * - Unique timestamps for new user registrations
-   * - Idempotent operations (join contest if not joined)
-   * - Read-only tests for problems listing
-   */
-  workers: process.env.CI ? 4 : 2,
+  /* Run tests with limited workers to avoid login conflicts */
+  /* Use 1 worker locally for stability, more in CI with isolated browsers */
+  workers: process.env.CI ? 2 : 1,
 
   /* Reporter to use */
   reporter: [["html", { outputFolder: "playwright-report-e2e" }], ["list"]],
 
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL for E2E tests - points to frontend_test service */
+    /* Base URL for E2E tests - points to frontend-test service */
     baseURL: "http://localhost:5174",
 
     /* Collect trace when retrying the failed test */
@@ -62,7 +58,7 @@ export default defineConfig({
   globalSetup: "./tests/helpers/setup.ts",
   globalTeardown: "./tests/helpers/teardown.ts",
 
-  /* Configure projects for major browsers */
+  /* Configure projects for Chrome and Safari */
   projects: [
     {
       name: "chromium",
@@ -70,26 +66,21 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         // Clear storage before each test to ensure clean state
         storageState: undefined,
+        // Use fresh context for each test
+        contextOptions: {
+          storageState: undefined,
+        },
       },
     },
-
-    // Uncomment to test on other browsers
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: "webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        storageState: undefined,
+        contextOptions: {
+          storageState: undefined,
+        },
+      },
+    },
   ],
-
-  /* Web Server Configuration */
-  /* Note: We manage Docker Compose in globalSetup/globalTeardown instead */
-  // webServer: {
-  //   command: 'docker-compose -f ../docker-compose.test.yml up',
-  //   url: 'http://localhost:5174',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120 * 1000,
-  // },
 });

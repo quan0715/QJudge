@@ -6,11 +6,17 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { login } from "../helpers/auth.helper";
+import { login, clearAuth } from "../helpers/auth.helper";
 import { TEST_CONTESTS } from "../helpers/data.helper";
 
 test.describe("Contest E2E Tests", () => {
+  // Use serial mode to avoid login conflicts
+  test.describe.configure({ mode: "serial" });
+
   test.beforeEach(async ({ page }) => {
+    // Clear any previous auth state
+    await page.goto("/login");
+    await clearAuth(page);
     // Login as student before each test
     await login(page, "student");
   });
