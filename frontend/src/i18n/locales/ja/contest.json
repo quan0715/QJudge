@@ -306,5 +306,81 @@
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
     "joinPassword": "参加パスワード"
+  },
+  "logs": {
+    "title": "試験ログ",
+    "eventTimeline": "イベントタイムライン",
+    "chartGroups": {
+      "violation": "違反イベント",
+      "submission": "提出",
+      "lifecycle": "試験状態",
+      "admin": "管理操作"
+    },
+    "axes": {
+      "time": "時間",
+      "eventCount": "イベント数"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "非表示",
+        "show": "表示"
+      },
+      "statsNote": "📊 5分ごとにイベント数を集計",
+      "examStart": "🕐 試験開始:",
+      "examEnd": "🏁 試験終了:",
+      "noData": "視覚化するイベントデータがありません"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "時間",
+        "userName": "ユーザー",
+        "eventType": "イベントタイプ",
+        "reason": "詳細"
+      },
+      "searchPlaceholder": "イベントを検索..."
+    },
+    "eventTypes": {
+      "join": "参加",
+      "register": "登録",
+      "unregister": "登録解除",
+      "enter_contest": "コンテスト入場",
+      "leave": "退出",
+      "start_exam": "試験開始",
+      "end_exam": "試験終了",
+      "auto_submit": "自動提出",
+      "resume_exam": "試験再開",
+      "reopen_exam": "試験再開放",
+      "pause_exam": "試験一時停止",
+      "submit": "提出",
+      "submit_code": "コード提出",
+      "tab_switch": "タブ切り替え",
+      "tab_hidden": "タブ非表示",
+      "window_blur": "ウィンドウ離脱",
+      "exit_fullscreen": "全画面終了",
+      "forbidden_focus_event": "禁止フォーカスイベント",
+      "cheat_warning": "違反警告",
+      "lock": "ロック",
+      "lock_user": "ユーザーロック",
+      "unlock": "ロック解除",
+      "unlock_user": "ユーザーロック解除",
+      "ask_question": "質問",
+      "reply_question": "質問回答",
+      "announce": "お知らせ投稿",
+      "update_contest": "コンテスト設定更新",
+      "update_problem": "問題更新",
+      "update_participant": "参加者更新",
+      "publish_problem_to_practice": "練習問題として公開",
+      "other": "その他"
+    },
+    "notification": {
+      "success": "成功",
+      "error": "エラー"
+    },
+    "pagination": {
+      "backwardText": "前へ",
+      "forwardText": "次へ",
+      "itemsPerPageText": "ページごとの項目数"
+    },
+    "refresh": "更新"
   }
 }

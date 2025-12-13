@@ -306,5 +306,81 @@
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
     "joinPassword": "加入密碼"
+  },
+  "logs": {
+    "title": "考試紀錄",
+    "eventTimeline": "事件時序圖",
+    "chartGroups": {
+      "violation": "違規事件",
+      "submission": "程式提交",
+      "lifecycle": "考試狀態",
+      "admin": "管理操作"
+    },
+    "axes": {
+      "time": "時間",
+      "eventCount": "事件數量"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "隱藏",
+        "show": "顯示"
+      },
+      "statsNote": "📊 每 5 分鐘統計一次事件數量",
+      "examStart": "🕐 考試開始:",
+      "examEnd": "🏁 考試結束:",
+      "noData": "暫無事件資料可供視覺化"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "時間",
+        "userName": "使用者",
+        "eventType": "事件類型",
+        "reason": "詳細內容"
+      },
+      "searchPlaceholder": "搜尋事件..."
+    },
+    "eventTypes": {
+      "join": "加入",
+      "register": "註冊",
+      "unregister": "取消註冊",
+      "enter_contest": "進入競賽",
+      "leave": "離開競賽",
+      "start_exam": "開始考試",
+      "end_exam": "結束考試",
+      "auto_submit": "自動提交",
+      "resume_exam": "繼續考試",
+      "reopen_exam": "重新開放考試",
+      "pause_exam": "暫停考試",
+      "submit": "提交",
+      "submit_code": "提交程式碼",
+      "tab_switch": "切換分頁",
+      "tab_hidden": "隱藏分頁",
+      "window_blur": "離開視窗",
+      "exit_fullscreen": "退出全螢幕",
+      "forbidden_focus_event": "禁止焦點事件",
+      "cheat_warning": "違規警告",
+      "lock": "鎖定",
+      "lock_user": "鎖定用戶",
+      "unlock": "解鎖",
+      "unlock_user": "解鎖用戶",
+      "ask_question": "提問",
+      "reply_question": "回覆提問",
+      "announce": "發布公告",
+      "update_contest": "更新競賽設定",
+      "update_problem": "更新題目",
+      "update_participant": "更新參與者",
+      "publish_problem_to_practice": "發布到練習區",
+      "other": "其他"
+    },
+    "notification": {
+      "success": "成功",
+      "error": "錯誤"
+    },
+    "pagination": {
+      "backwardText": "上一頁",
+      "forwardText": "下一頁",
+      "itemsPerPageText": "每頁顯示"
+    },
+    "refresh": "重新整理"
   }
 }

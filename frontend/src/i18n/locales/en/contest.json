@@ -306,5 +306,81 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "joinPassword": "Join Password"
+  },
+  "logs": {
+    "title": "Exam Logs",
+    "eventTimeline": "Event Timeline",
+    "chartGroups": {
+      "violation": "Violations",
+      "submission": "Submissions",
+      "lifecycle": "Exam Status",
+      "admin": "Admin Actions"
+    },
+    "axes": {
+      "time": "Time",
+      "eventCount": "Event Count"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "Hide",
+        "show": "Show"
+      },
+      "statsNote": "📊 Event counts aggregated every 5 minutes",
+      "examStart": "🕐 Exam Start:",
+      "examEnd": "🏁 Exam End:",
+      "noData": "No event data available for visualization"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "Time",
+        "userName": "User",
+        "eventType": "Event Type",
+        "reason": "Details"
+      },
+      "searchPlaceholder": "Search events..."
+    },
+    "eventTypes": {
+      "join": "Join",
+      "register": "Register",
+      "unregister": "Unregister",
+      "enter_contest": "Enter Contest",
+      "leave": "Leave Contest",
+      "start_exam": "Start Exam",
+      "end_exam": "End Exam",
+      "auto_submit": "Auto Submit",
+      "resume_exam": "Resume Exam",
+      "reopen_exam": "Reopen Exam",
+      "pause_exam": "Pause Exam",
+      "submit": "Submit",
+      "submit_code": "Submit Code",
+      "tab_switch": "Tab Switch",
+      "tab_hidden": "Tab Hidden",
+      "window_blur": "Window Blur",
+      "exit_fullscreen": "Exit Fullscreen",
+      "forbidden_focus_event": "Forbidden Focus Event",
+      "cheat_warning": "Cheat Warning",
+      "lock": "Lock",
+      "lock_user": "Lock User",
+      "unlock": "Unlock",
+      "unlock_user": "Unlock User",
+      "ask_question": "Ask Question",
+      "reply_question": "Reply Question",
+      "announce": "Announce",
+      "update_contest": "Update Contest Settings",
+      "update_problem": "Update Problem",
+      "update_participant": "Update Participant",
+      "publish_problem_to_practice": "Publish to Practice",
+      "other": "Other"
+    },
+    "notification": {
+      "success": "Success",
+      "error": "Error"
+    },
+    "pagination": {
+      "backwardText": "Previous",
+      "forwardText": "Next",
+      "itemsPerPageText": "Items per page"
+    },
+    "refresh": "Refresh"
   }
 }

@@ -306,5 +306,81 @@
     "deleteContest": "대회 삭제",
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
     "joinPassword": "참가 비밀번호"
+  },
+  "logs": {
+    "title": "시험 로그",
+    "eventTimeline": "이벤트 타임라인",
+    "chartGroups": {
+      "violation": "위반 이벤트",
+      "submission": "제출",
+      "lifecycle": "시험 상태",
+      "admin": "관리 작업"
+    },
+    "axes": {
+      "time": "시간",
+      "eventCount": "이벤트 수"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "숨기기",
+        "show": "표시"
+      },
+      "statsNote": "📊 5분마다 이벤트 수 집계",
+      "examStart": "🕐 시험 시작:",
+      "examEnd": "🏁 시험 종료:",
+      "noData": "시각화할 이벤트 데이터가 없습니다"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "시간",
+        "userName": "사용자",
+        "eventType": "이벤트 유형",
+        "reason": "세부사항"
+      },
+      "searchPlaceholder": "이벤트 검색..."
+    },
+    "eventTypes": {
+      "join": "참가",
+      "register": "등록",
+      "unregister": "등록 취소",
+      "enter_contest": "대회 입장",
+      "leave": "대회 퇴장",
+      "start_exam": "시험 시작",
+      "end_exam": "시험 종료",
+      "auto_submit": "자동 제출",
+      "resume_exam": "시험 재개",
+      "reopen_exam": "시험 재개방",
+      "pause_exam": "시험 일시정지",
+      "submit": "제출",
+      "submit_code": "코드 제출",
+      "tab_switch": "탭 전환",
+      "tab_hidden": "탭 숨김",
+      "window_blur": "창 이탈",
+      "exit_fullscreen": "전체화면 종료",
+      "forbidden_focus_event": "금지된 포커스 이벤트",
+      "cheat_warning": "부정행위 경고",
+      "lock": "잠금",
+      "lock_user": "사용자 잠금",
+      "unlock": "잠금 해제",
+      "unlock_user": "사용자 잠금 해제",
+      "ask_question": "질문",
+      "reply_question": "질문 답변",
+      "announce": "공지 게시",
+      "update_contest": "대회 설정 업데이트",
+      "update_problem": "문제 업데이트",
+      "update_participant": "참가자 업데이트",
+      "publish_problem_to_practice": "연습 문제로 게시",
+      "other": "기타"
+    },
+    "notification": {
+      "success": "성공",
+      "error": "오류"
+    },
+    "pagination": {
+      "backwardText": "이전",
+      "forwardText": "다음",
+      "itemsPerPageText": "페이지당 항목"
+    },
+    "refresh": "새로고침"
   }
 }
