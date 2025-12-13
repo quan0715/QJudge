@@ -1,3 +1,8 @@
+---
+name: "documentation"
+description: "文檔維護 Agent - 負責維護專案文檔的品質與一致性，確保文檔內容與程式碼同步更新，並維護多語言版本的一致性"
+---
+
 # 文檔維護 Agent (Documentation)
 
 ## 概述
