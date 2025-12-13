@@ -15,19 +15,19 @@ export const API_BASE_URL =
   (import.meta.env?.API_BASE_URL as string) ||
   "http://localhost:8001";
 
-// Test credentials
+// Test credentials - must match seed_e2e_data.py in backend
 export const TEST_USERS = {
   student: {
-    email: "student@test.com",
-    password: "testpass123",
+    email: "student@example.com",
+    password: "student123",
   },
   teacher: {
-    email: "teacher@test.com",
-    password: "testpass123",
+    email: "teacher@example.com",
+    password: "teacher123",
   },
   admin: {
-    email: "admin@test.com",
-    password: "testpass123",
+    email: "admin@example.com",
+    password: "admin123",
   },
 } as const;
 
