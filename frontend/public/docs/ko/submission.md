@@ -43,8 +43,35 @@ n = int(input())
 print(n * 2)
 ```
 
+### Java
+
+```java
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        System.out.println(n * 2);
+    }
+}
+```
+
 ## 제출 제한
 
 - **제출 빈도**: 채점이 완료될 때까지 다음 제출을 기다려야 합니다
 - **코드 길이**: 최대 64 KB
 - **출력 크기**: 256 MB 이하
+
+## 자주 묻는 질문
+
+### 로컬에서는 동작하는데 제출하면 실패하는 이유는?
+
+흔한 원인:
+
+- 출력 형식 오류 (추가 공백, 줄바꿈)
+- 엣지 케이스 미처리
+- 정수 오버플로우
+- 배열 범위 초과
+
+문제의 출력 형식 요구사항을 주의 깊게 확인하세요.
