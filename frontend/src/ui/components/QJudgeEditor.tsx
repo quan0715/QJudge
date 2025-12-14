@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useEffect } from "react";
 import Editor, { type EditorProps, type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { useTheme } from "@/ui/theme/ThemeContext";
@@ -29,6 +29,14 @@ interface QJudgeEditorProps extends Omit<EditorProps, "onChange"> {
 export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
   const { theme } = useTheme();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  
+  // Store onChange in ref to avoid recreating listener when callback changes
+  const onChangeRef = useRef(props.onChange);
+  
+  // Keep ref in sync with prop
+  useEffect(() => {
+    onChangeRef.current = props.onChange;
+  }, [props.onChange]);
 
   const handleMount: OnMount = useCallback(
     (editor, monaco) => {
@@ -44,15 +52,31 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
         editor.layout();
       });
 
-      // Handle content changes - report to parent via callback
-      editor.onDidChangeModelContent(() => {
-        props.onChange?.(editor.getValue());
+      // Handle content changes - use ref to always get latest callback
+      // This prevents memory leaks from multiple listener registrations
+      const disposable = editor.onDidChangeModelContent(() => {
+        onChangeRef.current?.(editor.getValue());
       });
+
+      // Store disposable for cleanup (though Monaco editor handles this on dispose)
+      // This is defensive coding in case the editor instance is reused
+      (editor as any).__contentChangeDisposable = disposable;
 
       props.onMount?.(editor, monaco);
     },
-    [theme, props.onChange, props.onMount]
+    // Only depend on theme and onMount - onChange is accessed via ref
+    [theme, props.onMount]
   );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const disposable = (editorRef.current as any)?.__contentChangeDisposable;
+      if (disposable) {
+        disposable.dispose();
+      }
+    };
+  }, []);
 
   return (
     <div
