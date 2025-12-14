@@ -6,6 +6,7 @@ import type {
 } from "@/core/entities/problem.entity";
 import { useContentLanguage } from "@/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
+import "@/styles/markdown.css";
 
 interface ProblemPreviewProps {
   title?: string;
@@ -47,48 +48,21 @@ const ProblemPreview = ({
 
   const sampleCases = testCases.filter((tc) => tc.isSample);
 
-  // Section heading style - H1 level (Carbon productive-heading-03)
-  const sectionHeadingStyle: React.CSSProperties = {
-    fontSize: "1.25rem", // 20px - productive-heading-03
-    fontWeight: 400,
-    lineHeight: 1.4,
-    letterSpacing: 0,
-    marginTop: "1.5rem",
-    marginBottom: "0.75rem",
-    color: "var(--cds-text-primary)",
-  };
-
   return (
-    <div className="problem-preview">
-      {/* H0 - Problem Title (Special, largest heading) */}
+    <article className="problem-preview markdown-body">
+      {/* H0 - Problem Title (Special, largest heading with underline) */}
       {!compact && (
-        <div style={{ marginBottom: "2rem" }}>
-          <h1
-            className="cds--type-productive-heading-05"
-            style={{
-              fontSize: "2rem", // 32px - productive-heading-05
-              fontWeight: 400,
-              lineHeight: 1.25,
-              letterSpacing: 0,
-              margin: 0,
-              paddingBottom: "0.5rem",
-              borderBottom: "2px solid var(--cds-border-strong-01)",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {translation?.title || title || t("common:message.noData")}
-          </h1>
-        </div>
+        <h1 className="problem-title">
+          {translation?.title || title || t("common:message.noData")}
+        </h1>
       )}
 
       {translation && (
         <>
           {/* H1 - Description Section */}
           {translation.description && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>
-                {t("problem:section.description")}
-              </h2>
+            <section>
+              <h2>{t("problem:section.description")}</h2>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.description}
               </MarkdownRenderer>
@@ -97,10 +71,8 @@ const ProblemPreview = ({
 
           {/* H1 - Input Description Section */}
           {translation.inputDescription && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>
-                {t("problem:section.inputDescription")}
-              </h2>
+            <section>
+              <h2>{t("problem:section.inputDescription")}</h2>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.inputDescription}
               </MarkdownRenderer>
@@ -109,10 +81,8 @@ const ProblemPreview = ({
 
           {/* H1 - Output Description Section */}
           {translation.outputDescription && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>
-                {t("problem:section.outputDescription")}
-              </h2>
+            <section>
+              <h2>{t("problem:section.outputDescription")}</h2>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.outputDescription}
               </MarkdownRenderer>
@@ -121,102 +91,27 @@ const ProblemPreview = ({
 
           {/* H1 - Sample Test Cases Section */}
           {sampleCases.length > 0 && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>
-                {t("problem:section.sampleTestCases")}
-              </h2>
+            <section>
+              <h2>{t("problem:section.sampleTestCases")}</h2>
               {sampleCases.map((tc, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: "1.25rem",
-                    border: "1px solid var(--cds-border-subtle)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    backgroundColor: "var(--cds-layer-01)",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "0.75rem 1rem",
-                      backgroundColor: "var(--cds-layer-02)",
-                      borderBottom: "1px solid var(--cds-border-subtle)",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      color: "var(--cds-text-primary)",
-                    }}
-                  >
+                <div key={index} className="sample-case">
+                  <div className="sample-case__header">
                     {t("problem:sample.example", { index: index + 1 })}
                   </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "1rem",
-                        borderRight: "1px solid var(--cds-border-subtle)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          marginBottom: "0.5rem",
-                          fontSize: "0.8125rem",
-                          color: "var(--cds-text-secondary)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
+                  <div className="sample-case__content">
+                    <div className="sample-case__column">
+                      <h4 className="sample-case__label">
                         {t("problem:sample.input")}
-                      </div>
-                      <pre
-                        style={{
-                          background: "var(--cds-field)",
-                          padding: "0.75rem",
-                          borderRadius: "4px",
-                          margin: 0,
-                          overflowX: "auto",
-                          fontSize: "0.8125rem",
-                          lineHeight: "1.5",
-                          border: "1px solid var(--cds-border-subtle)",
-                          fontFamily: "'IBM Plex Mono', monospace",
-                        }}
-                      >
+                      </h4>
+                      <pre className="sample-case__code">
                         {tc.input || t("problem:sample.empty")}
                       </pre>
                     </div>
-
-                    <div style={{ padding: "1rem" }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          marginBottom: "0.5rem",
-                          fontSize: "0.8125rem",
-                          color: "var(--cds-text-secondary)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
+                    <div className="sample-case__column">
+                      <h4 className="sample-case__label">
                         {t("problem:sample.output")}
-                      </div>
-                      <pre
-                        style={{
-                          background: "var(--cds-field)",
-                          padding: "0.75rem",
-                          borderRadius: "4px",
-                          margin: 0,
-                          overflowX: "auto",
-                          fontSize: "0.8125rem",
-                          lineHeight: "1.5",
-                          border: "1px solid var(--cds-border-subtle)",
-                          fontFamily: "'IBM Plex Mono', monospace",
-                        }}
-                      >
+                      </h4>
+                      <pre className="sample-case__code">
                         {tc.output || t("problem:sample.empty")}
                       </pre>
                     </div>
@@ -228,8 +123,8 @@ const ProblemPreview = ({
 
           {/* H1 - Hint Section */}
           {translation.hint && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>{t("problem:section.hint")}</h2>
+            <section>
+              <h2>{t("problem:section.hint")}</h2>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.hint}
               </MarkdownRenderer>
@@ -238,78 +133,30 @@ const ProblemPreview = ({
 
           {/* H1 - Code Restrictions Section */}
           {(requiredKeywords.length > 0 || forbiddenKeywords.length > 0) && (
-            <section style={{ marginBottom: "1.5rem" }}>
-              <h2 style={sectionHeadingStyle}>
-                {t("problem:section.codeRestrictions")}
-              </h2>
+            <section>
+              <h2>{t("problem:section.codeRestrictions")}</h2>
 
               {requiredKeywords.length > 0 && (
-                <div style={{ marginBottom: "0.75rem" }}>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      color: "var(--cds-text-secondary)",
-                    }}
-                  >
-                    {t("problem:section.requiredKeywords")}
-                  </div>
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
-                  >
+                <div className="keyword-group">
+                  <h3>{t("problem:section.requiredKeywords")}</h3>
+                  <div className="keyword-tags">
                     {requiredKeywords.map((kw, index) => (
-                      <span
-                        key={index}
-                        style={{
-                          display: "inline-block",
-                          padding: "0.25rem 0.5rem",
-                          backgroundColor:
-                            "var(--cds-tag-background-green, #a7f0ba)",
-                          color: "var(--cds-tag-color-green, #044317)",
-                          borderRadius: "4px",
-                          fontSize: "0.875rem",
-                          fontFamily: "'IBM Plex Mono', monospace",
-                        }}
-                      >
+                      <code key={index} className="keyword-tag keyword-tag--success">
                         {kw}
-                      </span>
+                      </code>
                     ))}
                   </div>
                 </div>
               )}
 
               {forbiddenKeywords.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      color: "var(--cds-text-secondary)",
-                    }}
-                  >
-                    {t("problem:section.forbiddenKeywords")}
-                  </div>
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
-                  >
+                <div className="keyword-group">
+                  <h3>{t("problem:section.forbiddenKeywords")}</h3>
+                  <div className="keyword-tags">
                     {forbiddenKeywords.map((kw, index) => (
-                      <span
-                        key={index}
-                        style={{
-                          display: "inline-block",
-                          padding: "0.25rem 0.5rem",
-                          backgroundColor:
-                            "var(--cds-tag-background-red, #ffd7d9)",
-                          color: "var(--cds-tag-color-red, #750e13)",
-                          borderRadius: "4px",
-                          fontSize: "0.875rem",
-                          fontFamily: "'IBM Plex Mono', monospace",
-                        }}
-                      >
+                      <code key={index} className="keyword-tag keyword-tag--error">
                         {kw}
-                      </span>
+                      </code>
                     ))}
                   </div>
                 </div>
@@ -320,17 +167,9 @@ const ProblemPreview = ({
       )}
 
       {!translation && (
-        <div
-          style={{
-            padding: "2rem",
-            textAlign: "center",
-            color: "var(--cds-text-secondary)",
-          }}
-        >
-          {t("common:message.noData")}
-        </div>
+        <p className="empty-state">{t("common:message.noData")}</p>
       )}
-    </div>
+    </article>
   );
 };
 

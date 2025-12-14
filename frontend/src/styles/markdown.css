@@ -485,6 +485,125 @@
 }
 
 /* ============================================
+   Problem Preview Specific Styles
+   ============================================ */
+
+/* Problem Title - H0 (Special largest heading with underline) */
+.markdown-body .problem-title,
+.markdown-body h1.problem-title {
+  font-size: var(--cds-productive-heading-05-font-size, 2rem);
+  font-weight: var(--cds-productive-heading-05-font-weight, 400);
+  line-height: var(--cds-productive-heading-05-line-height, 1.25);
+  letter-spacing: var(--cds-productive-heading-05-letter-spacing, 0);
+  margin: 0 0 2rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--cds-border-strong-01);
+  color: var(--cds-text-primary);
+}
+
+/* Sample Test Case Container */
+.markdown-body .sample-case {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--cds-layer-01);
+}
+
+.markdown-body .sample-case__header {
+  padding: 0.75rem 1rem;
+  background-color: var(--cds-layer-02);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
+}
+
+.markdown-body .sample-case__content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.markdown-body .sample-case__column {
+  padding: 1rem;
+}
+
+.markdown-body .sample-case__column:first-child {
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.markdown-body .sample-case__label {
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+}
+
+.markdown-body .sample-case__code {
+  background: var(--cds-field);
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin: 0;
+  overflow-x: auto;
+  font-size: var(--cds-code-01-font-size, 0.75rem);
+  line-height: 1.5;
+  border: 1px solid var(--cds-border-subtle);
+  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  color: var(--cds-text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Keyword Tags for Code Restrictions */
+.markdown-body .keyword-group {
+  margin-bottom: 1rem;
+}
+
+.markdown-body .keyword-group h3 {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  margin: 0 0 0.5rem 0;
+}
+
+.markdown-body .keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.markdown-body .keyword-tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  background-color: var(--cds-layer-01);
+}
+
+.markdown-body .keyword-tag--success {
+  background-color: var(--cds-tag-background-green, #a7f0ba);
+  color: var(--cds-tag-color-green, #044317);
+}
+
+.markdown-body .keyword-tag--error {
+  background-color: var(--cds-tag-background-red, #ffd7d9);
+  color: var(--cds-tag-color-red, #750e13);
+}
+
+/* Empty State */
+.markdown-body .empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--cds-text-secondary);
+}
+
+/* ============================================
    Custom Syntax Highlighting for Code Blocks
    High contrast colors for better readability
    ============================================ */
