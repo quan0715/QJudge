@@ -391,39 +391,49 @@
   line-height: var(--cds-heading-compact-01-line-height, 1.28572);
 }
 
-/* Aside variants using data-type attribute - IBM Carbon Notification Colors */
+/* Aside variants - IBM Carbon Notification Colors
+   Supports both class and data-type attribute selectors for compatibility */
 
 /* Info (default) - Blue */
 .markdown-body aside[data-type="info"],
-.markdown-body aside[data-type="note"] {
+.markdown-body aside[data-type="note"],
+.markdown-body aside.info,
+.markdown-body aside.note {
   background-color: var(--cds-notification-info-background, #edf5ff);
   border-left-color: var(--cds-support-info, #0f62fe);
 }
 
 /* Warning - Yellow */
 .markdown-body aside[data-type="warning"],
-.markdown-body aside[data-type="caution"] {
+.markdown-body aside[data-type="caution"],
+.markdown-body aside.warning,
+.markdown-body aside.caution {
   background-color: var(--cds-notification-warning-background, #fcf4d6);
   border-left-color: var(--cds-support-warning, #f1c21b);
 }
 
 /* Error/Danger - Red */
 .markdown-body aside[data-type="error"],
-.markdown-body aside[data-type="danger"] {
+.markdown-body aside[data-type="danger"],
+.markdown-body aside.error,
+.markdown-body aside.danger {
   background-color: var(--cds-notification-error-background, #fff1f1);
   border-left-color: var(--cds-support-error, #da1e28);
 }
 
 /* Success - Green */
 .markdown-body aside[data-type="success"],
-.markdown-body aside[data-type="tip"] {
+.markdown-body aside[data-type="tip"],
+.markdown-body aside.success,
+.markdown-body aside.tip {
   background-color: var(--cds-notification-success-background, #defbe6);
   border-left-color: var(--cds-support-success, #24a148);
 }
 
-/* Inline code inside aside */
+/* Inline code inside aside - keep red styling */
 .markdown-body aside code {
   background-color: rgba(0, 0, 0, 0.05);
+  color: var(--cds-support-error, #da1e28);
 }
 
 /* Lists inside aside */
