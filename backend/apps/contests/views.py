@@ -1152,10 +1152,17 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Get file_format and language from query params
+        # Get file_format, language, and scale from query params
         # Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
         file_format = request.query_params.get('file_format', 'markdown').lower()
         language = request.query_params.get('language', 'zh-TW')
+        
+        # Get scale parameter for PDF (0.5 to 2.0, default 1.0)
+        try:
+            scale = float(request.query_params.get('scale', '1.0'))
+            scale = max(0.5, min(2.0, scale))  # Clamp between 0.5 and 2.0
+        except (ValueError, TypeError):
+            scale = 1.0
         
         if file_format not in ['markdown', 'pdf']:
             return Response(
@@ -1175,7 +1182,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
                 
             else:  # pdf
-                exporter = PDFExporter(contest, language)
+                exporter = PDFExporter(contest, language, scale=scale)
                 pdf_file = exporter.export()
                 
                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')
