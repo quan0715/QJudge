@@ -193,14 +193,32 @@ class InactiveContestAccessTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreater(len(response.data['problems']), 0)
 
-    def test_student_sees_problems_in_active_contest(self):
-        """Student should see problem structure in active contest (after start)."""
+    def test_registered_student_sees_problems_in_active_contest(self):
+        """Registered student should see problem structure in active contest (after start)."""
         self.client.force_authenticate(user=self.student)
         url = reverse('contests:contest-detail', args=[self.active_contest.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Active contest has started, so problems should be visible
+        # Active contest has started and student is registered, so problems should be visible
         self.assertGreater(len(response.data['problems']), 0)
+
+    def test_unregistered_student_cannot_see_problems_in_active_contest(self):
+        """Unregistered student should NOT see problem structure even in active contest."""
+        # another_student is not registered for active_contest
+        self.client.force_authenticate(user=self.another_student)
+        url = reverse('contests:contest-detail', args=[self.active_contest.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Unregistered user should see empty problems list
+        self.assertEqual(len(response.data['problems']), 0)
+
+    def test_anonymous_cannot_see_problems_in_active_contest(self):
+        """Anonymous users should NOT see problem structure even in active contest."""
+        url = reverse('contests:contest-detail', args=[self.active_contest.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Anonymous user should see empty problems list
+        self.assertEqual(len(response.data['problems']), 0)
 
     # =========================================================================
     # Test 5: Contest list filtering
