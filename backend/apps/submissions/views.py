@@ -185,41 +185,47 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         if contest:
             source_type = 'contest'
             
-            # Validate contest status
-            # Use computed_status or status field. status field is 'active'/'inactive'.
-            # But 'active' means running. 'inactive' could mean upcoming or ended.
-            # We should check if it's actually running.
-            # The model has 'status' field: active/inactive.
-            # If status is inactive, reject.
-            if contest.status != 'active':
-                 from rest_framework.exceptions import PermissionDenied
-                 raise PermissionDenied("Contest is not active")
+            # Check if user is privileged (admin/owner/contest admin)
+            # Privileged users can submit at any time regardless of contest status
+            is_privileged = (
+                user.is_staff or 
+                getattr(user, 'role', '') in ['admin', 'teacher'] or 
+                contest.owner == user or
+                contest.admins.filter(pk=user.pk).exists()
+            )
+            
+            # Validate contest status - only for non-privileged users
+            # Admin/Owner can submit even when contest is inactive
+            if not is_privileged and contest.status != 'active':
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Contest is not active")
                  
-            # Validate registration
+            # Validate registration - only for non-privileged users
             from apps.contests.models import ContestParticipant, ExamStatus
-            try:
-                participant = ContestParticipant.objects.get(contest=contest, user=user)
-                
-                # Check if exam finished
-                if participant.has_finished_exam:
-                    from rest_framework.exceptions import PermissionDenied
-                    raise PermissionDenied("You have finished the exam and cannot submit anymore")
-                
-                # Check if exam is paused - must resume before submitting
-                if participant.exam_status == ExamStatus.PAUSED:
-                    from rest_framework.exceptions import PermissionDenied
-                    raise PermissionDenied("Your exam is paused. Please resume the exam before submitting.")
-                
-                # Check if exam is locked
-                if participant.exam_status == ExamStatus.LOCKED:
-                    from rest_framework.exceptions import PermissionDenied
-                    raise PermissionDenied("You have been locked out of this exam and cannot submit.")
+            
+            if not is_privileged:
+                try:
+                    participant = ContestParticipant.objects.get(contest=contest, user=user)
                     
-            except ContestParticipant.DoesNotExist:
-                 # Allow if admin/owner
-                 if not (user.is_staff or getattr(user, 'role', '') in ['admin', 'teacher'] or contest.owner == user):
-                     from rest_framework.exceptions import PermissionDenied
-                     raise PermissionDenied("You are not registered for this contest")
+                    # Check if exam finished
+                    if participant.has_finished_exam:
+                        from rest_framework.exceptions import PermissionDenied
+                        raise PermissionDenied("You have finished the exam and cannot submit anymore")
+                    
+                    # Check if exam is paused - must resume before submitting
+                    if participant.exam_status == ExamStatus.PAUSED:
+                        from rest_framework.exceptions import PermissionDenied
+                        raise PermissionDenied("Your exam is paused. Please resume the exam before submitting.")
+                    
+                    # Check if exam is locked
+                    if participant.exam_status == ExamStatus.LOCKED:
+                        from rest_framework.exceptions import PermissionDenied
+                        raise PermissionDenied("You have been locked out of this exam and cannot submit.")
+                        
+                except ContestParticipant.DoesNotExist:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You are not registered for this contest")
+            # Privileged users (admin/owner) can submit without registration
         
         # === Keyword Restriction Validation ===
         problem = serializer.validated_data.get('problem')

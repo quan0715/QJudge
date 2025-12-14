@@ -147,10 +147,17 @@ const ContestProblemPage = () => {
     );
   }
 
+  // Admin/Owner/Teacher can always submit regardless of contest status
+  const isPrivileged =
+    contest?.currentUserRole === "admin" ||
+    contest?.currentUserRole === "teacher" ||
+    contest?.permissions?.canEditContest;
+
   const isSubmissionDisabled =
-    contest?.status === "inactive" ||
-    contest?.status === "ended" ||
-    (!!contest?.endTime && new Date(contest.endTime) < new Date());
+    !isPrivileged &&
+    (contest?.status === "inactive" ||
+      contest?.status === "ended" ||
+      (!!contest?.endTime && new Date(contest.endTime) < new Date()));
 
   return (
     <div
