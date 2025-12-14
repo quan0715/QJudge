@@ -61,6 +61,9 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
       style={{
         height: "100%",
         border: "1px solid var(--cds-border-subtle-01)",
+        // Disable font ligatures at container level as fallback
+        fontVariantLigatures: "none",
+        fontFeatureSettings: '"liga" 0, "clig" 0, "dlig" 0, "hlig" 0',
       }}
     >
       <Editor
@@ -105,8 +108,12 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
           letterSpacing: 0,
           scrollBeyondLastLine: false,
           automaticLayout: true,
+          // Completely disable font ligatures to prevent fi, ff, fl etc. from merging
           fontLigatures: false,
-          fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+          // Use monospace fonts without ligature support
+          // Avoid Fira Code, JetBrains Mono, etc. which have ligatures by default
+          fontFamily:
+            "'SF Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
           fontWeight: "400",
           cursorBlinking: "smooth",
           // Disable smooth caret animation to prevent input lag

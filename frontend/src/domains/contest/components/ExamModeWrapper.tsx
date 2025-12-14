@@ -150,9 +150,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Start grace period ONLY when exam monitoring is truly active (in_progress)
     // This ensures the countdown only appears when anti-cheat is enabled
     // Must also check examModeEnabled to avoid false triggers
-    const shouldStartGracePeriod = 
-      examModeEnabled && 
-      effectiveIsActive && 
+    const shouldStartGracePeriod =
+      examModeEnabled &&
+      effectiveIsActive &&
       !prevIsActiveRef.current &&
       !isBypassed;
 
