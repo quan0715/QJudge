@@ -47,101 +47,84 @@ const ProblemPreview = ({
 
   const sampleCases = testCases.filter((tc) => tc.isSample);
 
+  // Section heading style - H1 level (Carbon productive-heading-03)
+  const sectionHeadingStyle: React.CSSProperties = {
+    fontSize: "1.25rem", // 20px - productive-heading-03
+    fontWeight: 400,
+    lineHeight: 1.4,
+    letterSpacing: 0,
+    marginTop: "1.5rem",
+    marginBottom: "0.75rem",
+    color: "var(--cds-text-primary)",
+  };
+
   return (
     <div className="problem-preview">
+      {/* H0 - Problem Title (Special, largest heading) */}
       {!compact && (
-        <div style={{ marginBottom: "1.5rem" }}>
-          <div
+        <div style={{ marginBottom: "2rem" }}>
+          <h1
+            className="cds--type-productive-heading-05"
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "0.5rem",
+              fontSize: "2rem", // 32px - productive-heading-05
+              fontWeight: 400,
+              lineHeight: 1.25,
+              letterSpacing: 0,
+              margin: 0,
+              paddingBottom: "0.5rem",
+              borderBottom: "2px solid var(--cds-border-strong-01)",
+              color: "var(--cds-text-primary)",
             }}
           >
-            <h3 style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
-              {translation?.title || title || t("common:message.noData")}
-            </h3>
-          </div>
+            {translation?.title || title || t("common:message.noData")}
+          </h1>
         </div>
       )}
 
       {translation && (
         <>
+          {/* H1 - Description Section */}
           {translation.description && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.5rem",
-                  fontSize: "1rem",
-                }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>
                 {t("problem:section.description")}
-              </h4>
-              <MarkdownRenderer
-                enableMath
-                enableHighlight
-                style={{ fontSize: "0.875rem" }}
-              >
+              </h2>
+              <MarkdownRenderer enableMath enableHighlight>
                 {translation.description}
               </MarkdownRenderer>
-            </div>
+            </section>
           )}
 
+          {/* H1 - Input Description Section */}
           {translation.inputDescription && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.5rem",
-                  fontSize: "1rem",
-                }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>
                 {t("problem:section.inputDescription")}
-              </h4>
-              <MarkdownRenderer
-                enableMath
-                enableHighlight
-                style={{ fontSize: "0.875rem" }}
-              >
+              </h2>
+              <MarkdownRenderer enableMath enableHighlight>
                 {translation.inputDescription}
               </MarkdownRenderer>
-            </div>
+            </section>
           )}
 
+          {/* H1 - Output Description Section */}
           {translation.outputDescription && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.5rem",
-                  fontSize: "1rem",
-                }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>
                 {t("problem:section.outputDescription")}
-              </h4>
-              <MarkdownRenderer
-                enableMath
-                enableHighlight
-                style={{ fontSize: "0.875rem" }}
-              >
+              </h2>
+              <MarkdownRenderer enableMath enableHighlight>
                 {translation.outputDescription}
               </MarkdownRenderer>
-            </div>
+            </section>
           )}
 
+          {/* H1 - Sample Test Cases Section */}
           {sampleCases.length > 0 && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "1rem",
-                  fontSize: "1rem",
-                }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>
                 {t("problem:section.sampleTestCases")}
-              </h4>
+              </h2>
               {sampleCases.map((tc, index) => (
                 <div
                   key={index}
@@ -240,41 +223,25 @@ const ProblemPreview = ({
                   </div>
                 </div>
               ))}
-            </div>
+            </section>
           )}
 
+          {/* H1 - Hint Section */}
           {translation.hint && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.5rem",
-                  fontSize: "1rem",
-                }}
-              >
-                {t("problem:section.hint")}
-              </h4>
-              <MarkdownRenderer
-                enableMath
-                enableHighlight
-                style={{ fontSize: "0.875rem" }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>{t("problem:section.hint")}</h2>
+              <MarkdownRenderer enableMath enableHighlight>
                 {translation.hint}
               </MarkdownRenderer>
-            </div>
+            </section>
           )}
 
+          {/* H1 - Code Restrictions Section */}
           {(requiredKeywords.length > 0 || forbiddenKeywords.length > 0) && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.75rem",
-                  fontSize: "1rem",
-                }}
-              >
+            <section style={{ marginBottom: "1.5rem" }}>
+              <h2 style={sectionHeadingStyle}>
                 {t("problem:section.codeRestrictions")}
-              </h4>
+              </h2>
 
               {requiredKeywords.length > 0 && (
                 <div style={{ marginBottom: "0.75rem" }}>
@@ -347,7 +314,7 @@ const ProblemPreview = ({
                   </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
         </>
       )}
