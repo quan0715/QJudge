@@ -303,3 +303,77 @@ class ContestNotStartedAccessTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Future Contest')
+
+
+class ContestEndedAccessTests(APITestCase):
+    """Test access control for contests that have ended."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.student = User.objects.create_user(
+            username='student',
+            email='student@example.com',
+            password='password123',
+            role='student'
+        )
+        self.teacher = User.objects.create_user(
+            username='teacher',
+            email='teacher@example.com',
+            password='password123',
+            role='teacher'
+        )
+
+        # Create an active contest that has already ended
+        self.ended_contest = Contest.objects.create(
+            name='Ended Contest',
+            start_time=timezone.now() - timedelta(hours=4),  # Started 4 hours ago
+            end_time=timezone.now() - timedelta(hours=2),    # Ended 2 hours ago
+            owner=self.teacher,
+            visibility='public',
+            status='active'
+        )
+
+        # Create a problem and add to contest
+        self.problem = Problem.objects.create(
+            title='Ended Problem',
+            slug='ended-problem-test',
+            difficulty='easy',
+            created_by=self.teacher
+        )
+        ContestProblem.objects.create(
+            contest=self.ended_contest,
+            problem=self.problem,
+            order=0
+        )
+
+        # Register student
+        ContestParticipant.objects.create(
+            contest=self.ended_contest,
+            user=self.student
+        )
+
+    def test_student_cannot_see_problems_after_end(self):
+        """Student should not see problem structure after contest ends."""
+        self.client.force_authenticate(user=self.student)
+        url = reverse('contests:contest-detail', args=[self.ended_contest.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Problems should be empty list after contest ends
+        self.assertEqual(len(response.data['problems']), 0)
+
+    def test_owner_can_see_problems_after_end(self):
+        """Owner should see problem structure after contest ends."""
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('contests:contest-detail', args=[self.ended_contest.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Owner should see problems even after end
+        self.assertGreater(len(response.data['problems']), 0)
+
+    def test_student_can_access_ended_contest(self):
+        """Student should be able to access ended contest (but not see problems)."""
+        self.client.force_authenticate(user=self.student)
+        url = reverse('contests:contest-detail', args=[self.ended_contest.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Ended Contest')
