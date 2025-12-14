@@ -103,48 +103,14 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                 title={t("overview.problemStructure")}
                 style={{ marginBottom: "1.5rem" }}
               >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <table className="cds-data-table">
                   <thead>
                     <tr>
-                      <th
-                        style={{
-                          backgroundColor: "var(--cds-layer-02)",
-                          border: "1px solid var(--cds-border-subtle)",
-                          padding: "0.75rem",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          width: "60px",
-                        }}
-                      >
+                      <th style={{ width: "60px" }}>
                         {t("overview.problemColumn")}
                       </th>
-                      <th
-                        style={{
-                          backgroundColor: "var(--cds-layer-02)",
-                          border: "1px solid var(--cds-border-subtle)",
-                          padding: "0.75rem",
-                          textAlign: "left",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {t("overview.topicColumn")}
-                      </th>
-                      <th
-                        style={{
-                          backgroundColor: "var(--cds-layer-02)",
-                          border: "1px solid var(--cds-border-subtle)",
-                          padding: "0.75rem",
-                          textAlign: "center",
-                          fontWeight: 600,
-                          width: "80px",
-                        }}
-                      >
+                      <th>{t("overview.topicColumn")}</th>
+                      <th style={{ width: "80px", textAlign: "center" }}>
                         {t("overview.scoreColumn")}
                       </th>
                     </tr>
@@ -152,54 +118,16 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                   <tbody>
                     {contest.problems.map((problem) => (
                       <tr key={problem.id}>
-                        <td
-                          style={{
-                            border: "1px solid var(--cds-border-subtle)",
-                            padding: "0.75rem",
-                          }}
-                        >
-                          {problem.label}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid var(--cds-border-subtle)",
-                            padding: "0.75rem",
-                          }}
-                        >
-                          {problem.title}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid var(--cds-border-subtle)",
-                            padding: "0.75rem",
-                            textAlign: "center",
-                          }}
-                        >
+                        <td>{problem.label}</td>
+                        <td>{problem.title}</td>
+                        <td style={{ textAlign: "center" }}>
                           {problem.score ?? "-"}
                         </td>
                       </tr>
                     ))}
-                    <tr>
-                      <td
-                        colSpan={2}
-                        style={{
-                          border: "1px solid var(--cds-border-subtle)",
-                          padding: "0.75rem",
-                          fontWeight: 600,
-                          backgroundColor: "var(--cds-layer-02)",
-                        }}
-                      >
-                        {t("overview.total")}
-                      </td>
-                      <td
-                        style={{
-                          border: "1px solid var(--cds-border-subtle)",
-                          padding: "0.75rem",
-                          textAlign: "center",
-                          fontWeight: 600,
-                          backgroundColor: "var(--cds-layer-02)",
-                        }}
-                      >
+                    <tr className="total-row">
+                      <td colSpan={2}>{t("overview.total")}</td>
+                      <td style={{ textAlign: "center" }}>
                         {contest.problems.reduce(
                           (sum, p) => sum + (p.score || 0),
                           0

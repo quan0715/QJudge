@@ -276,29 +276,59 @@
   padding: 0.75rem 1rem;
   text-align: left;
   border: none;
-  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .markdown-body table th {
-  background-color: transparent;
+  background-color: var(--cds-layer-01);
   font-weight: 600;
   color: var(--cds-text-secondary);
   font-size: var(--cds-label-01-font-size, 0.75rem);
   letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--cds-border-strong-01, #8d8d8d);
+  border-bottom: 1px solid var(--cds-border-strong-01);
 }
 
 .markdown-body table tbody tr {
   transition: background-color 0.15s ease;
 }
 
-.markdown-body table tbody tr:hover {
-  background-color: var(--cds-layer-hover-01, #e8e8e8);
+.markdown-body table tbody tr {
+  background-color: transparent;
 }
 
-.markdown-body table tr:nth-child(even) {
+.markdown-body table tbody tr:hover {
+  background-color: var(--cds-layer-hover-01);
+}
+
+/* Zebra striping for tables */
+.markdown-body table tbody tr:nth-child(odd) {
   background-color: transparent;
+}
+
+.markdown-body table tbody tr:nth-child(even) {
+  background-color: var(--cds-layer-accent-01, rgba(0, 0, 0, 0.03));
+}
+
+/* Dark theme table adjustments */
+[data-carbon-theme="g100"] .markdown-body table th,
+[data-carbon-theme="g90"] .markdown-body table th {
+  background-color: var(--cds-layer-02);
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr,
+[data-carbon-theme="g90"] .markdown-body table tbody tr {
+  background-color: transparent;
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr:nth-child(even),
+[data-carbon-theme="g90"] .markdown-body table tbody tr:nth-child(even) {
+  background-color: var(--cds-layer-accent-01, rgba(255, 255, 255, 0.03));
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr:hover,
+[data-carbon-theme="g90"] .markdown-body table tbody tr:hover {
+  background-color: var(--cds-layer-hover-02);
 }
 
 /* Horizontal rules */
@@ -347,35 +377,104 @@
   white-space: nowrap;
 }
 
-/* Aside / Callout blocks */
+/* ============================================
+   Aside / Callout blocks - IBM Carbon Design Notification Style
+   https://carbondesignsystem.com/components/notification/style
+   ============================================ */
+
 .markdown-body aside {
-  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 3rem; /* 48px */
+  padding: 0.75rem 1rem; /* 12px 16px */
   margin: 1rem 0;
-  background-color: var(--cds-background-selected);
-  border-left: 4px solid var(--cds-support-info);
+  background-color: var(--cds-notification-info-background, #edf5ff);
+  border-left: 3px solid var(--cds-support-info, #0f62fe);
   border-radius: 0;
   color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.42857);
+}
+
+.markdown-body aside p {
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.markdown-body aside p + p {
+  margin-top: 0.5rem;
+}
+
+.markdown-body aside p:first-child {
+  margin-top: 0;
 }
 
 .markdown-body aside p:last-child {
   margin-bottom: 0;
 }
 
-/* Aside variants using data-type attribute */
-.markdown-body aside[data-type="warning"] {
-  border-left-color: var(--cds-support-warning);
-  background-color: var(--cds-notification-background-warning);
+/* Aside title styling (strong element at the start) */
+.markdown-body aside strong:first-child,
+.markdown-body aside p:first-child strong:first-child {
+  font-weight: 600;
+  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-heading-compact-01-line-height, 1.28572);
 }
 
+/* Aside variants - IBM Carbon Notification Colors
+   Supports both class and data-type attribute selectors for compatibility */
+
+/* Info (default) - Blue */
+.markdown-body aside[data-type="info"],
+.markdown-body aside[data-type="note"],
+.markdown-body aside.info,
+.markdown-body aside.note {
+  background-color: var(--cds-notification-info-background, #edf5ff);
+  border-left-color: var(--cds-support-info, #0f62fe);
+}
+
+/* Warning - Yellow */
+.markdown-body aside[data-type="warning"],
+.markdown-body aside[data-type="caution"],
+.markdown-body aside.warning,
+.markdown-body aside.caution {
+  background-color: var(--cds-notification-warning-background, #fcf4d6);
+  border-left-color: var(--cds-support-warning, #f1c21b);
+}
+
+/* Error/Danger - Red */
 .markdown-body aside[data-type="error"],
-.markdown-body aside[data-type="danger"] {
-  border-left-color: var(--cds-support-error);
-  background-color: var(--cds-notification-background-error);
+.markdown-body aside[data-type="danger"],
+.markdown-body aside.error,
+.markdown-body aside.danger {
+  background-color: var(--cds-notification-error-background, #fff1f1);
+  border-left-color: var(--cds-support-error, #da1e28);
 }
 
-.markdown-body aside[data-type="success"] {
-  border-left-color: var(--cds-support-success);
-  background-color: var(--cds-notification-background-success);
+/* Success - Green */
+.markdown-body aside[data-type="success"],
+.markdown-body aside[data-type="tip"],
+.markdown-body aside.success,
+.markdown-body aside.tip {
+  background-color: var(--cds-notification-success-background, #defbe6);
+  border-left-color: var(--cds-support-success, #24a148);
+}
+
+/* Inline code inside aside - keep red styling */
+.markdown-body aside code {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--cds-support-error, #da1e28);
+}
+
+/* Lists inside aside */
+.markdown-body aside ul,
+.markdown-body aside ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.markdown-body aside li {
+  margin-bottom: 0.25rem;
 }
 
 /* First heading in document - no top margin */

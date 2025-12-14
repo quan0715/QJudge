@@ -262,7 +262,14 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   }
 
   return (
-    <div className={className} style={{ overflowX: "auto" }}>
+    <div
+      className={className}
+      style={{
+        overflowX: "auto",
+        maxWidth: "100%",
+        WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
+      }}
+    >
       <DataTable rows={rows} headers={headers}>
         {({
           rows,
@@ -271,12 +278,16 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           getHeaderProps,
           getRowProps,
         }: any) => (
-          <TableContainer>
+          <TableContainer style={{ overflow: "visible" }}>
             <Table
               {...getTableProps()}
               isSortable
               className="contest-scoreboard-table"
-              style={{ tableLayout: "fixed", width: "100%" }}
+              style={{
+                tableLayout: "auto",
+                minWidth: "max-content", // Allow table to expand beyond container
+                width: "auto",
+              }}
             >
               <TableHead>
                 <TableRow>
