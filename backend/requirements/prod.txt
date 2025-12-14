@@ -2,7 +2,6 @@
 
 # Production server
 gunicorn>=21.2,<22.0
-whitenoise>=6.6,<7.0
 
 # Monitoring
 sentry-sdk>=1.38,<2.0
