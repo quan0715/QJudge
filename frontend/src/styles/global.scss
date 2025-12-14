@@ -4,7 +4,8 @@
 @import "./responsive.scss";
 
 // Ensure full viewport height for proper footer positioning
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -99,11 +100,45 @@ body {
 .markdown-body {
   background-color: transparent !important;
   color: var(--cds-text-primary) !important;
-  
+
   // Fix blockquote backgrounds
   blockquote {
     color: var(--cds-text-secondary) !important;
     border-left-color: var(--cds-border-subtle) !important;
+  }
+}
+
+// ============================================
+// Carbon DataTable - Fix dark mode row backgrounds
+// ============================================
+.cds--data-table tbody tr,
+.cds--data-table--zebra tbody tr {
+  background-color: transparent;
+}
+
+[data-carbon-theme="g100"],
+[data-carbon-theme="g90"] {
+  .cds--data-table tbody tr,
+  .cds--data-table--zebra tbody tr {
+    background-color: transparent;
+  }
+
+  .cds--data-table tbody tr:hover {
+    background-color: var(--cds-layer-hover-01);
+  }
+
+  .cds--data-table--zebra tbody tr:nth-child(even) {
+    background-color: var(--cds-layer-accent-01, rgba(255, 255, 255, 0.03));
+  }
+}
+
+// Contest Scoreboard table - allow horizontal scroll
+.contest-scoreboard-table {
+  min-width: max-content;
+
+  th,
+  td {
+    white-space: nowrap;
   }
 }
 
@@ -115,14 +150,15 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  
-  th, td {
+
+  th,
+  td {
     padding: 0.75rem 1rem;
     text-align: left;
     border: none;
     border-bottom: 1px solid var(--cds-border-subtle-01);
   }
-  
+
   th {
     background-color: var(--cds-layer-01);
     font-weight: 600;
@@ -132,19 +168,19 @@ body {
     text-transform: uppercase;
     border-bottom: 1px solid var(--cds-border-strong-01);
   }
-  
+
   tbody tr {
     transition: background-color 0.15s ease;
-    
+
     &:hover {
       background-color: var(--cds-layer-hover-01);
     }
   }
-  
+
   // Total/Summary row
   .total-row {
     font-weight: 600;
-    
+
     td {
       border-top: 1px solid var(--cds-border-strong-01);
       background-color: var(--cds-layer-01);
@@ -159,11 +195,11 @@ body {
     th {
       background-color: var(--cds-layer-02);
     }
-    
+
     tbody tr:hover {
       background-color: var(--cds-layer-hover-02);
     }
-    
+
     .total-row td {
       background-color: var(--cds-layer-02);
     }
@@ -178,5 +214,6 @@ body {
 
 .hero-separator {
   border-bottom: 1px solid var(--nycu-secondary);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }

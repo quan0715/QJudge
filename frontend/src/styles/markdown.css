@@ -293,18 +293,37 @@
   transition: background-color 0.15s ease;
 }
 
+.markdown-body table tbody tr {
+  background-color: transparent;
+}
+
 .markdown-body table tbody tr:hover {
   background-color: var(--cds-layer-hover-01);
 }
 
-.markdown-body table tr:nth-child(even) {
+/* Zebra striping for tables */
+.markdown-body table tbody tr:nth-child(odd) {
   background-color: transparent;
+}
+
+.markdown-body table tbody tr:nth-child(even) {
+  background-color: var(--cds-layer-accent-01, rgba(0, 0, 0, 0.03));
 }
 
 /* Dark theme table adjustments */
 [data-carbon-theme="g100"] .markdown-body table th,
 [data-carbon-theme="g90"] .markdown-body table th {
   background-color: var(--cds-layer-02);
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr,
+[data-carbon-theme="g90"] .markdown-body table tbody tr {
+  background-color: transparent;
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr:nth-child(even),
+[data-carbon-theme="g90"] .markdown-body table tbody tr:nth-child(even) {
+  background-color: var(--cds-layer-accent-01, rgba(255, 255, 255, 0.03));
 }
 
 [data-carbon-theme="g100"] .markdown-body table tbody tr:hover,
