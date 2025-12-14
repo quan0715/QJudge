@@ -111,7 +111,10 @@
     "previous": "Previous",
     "next": "Next",
     "itemsPerPage": "Items per page",
-    "showing": "Showing"
+    "showing": "Showing",
+    "backwardText": "Previous",
+    "forwardText": "Next",
+    "itemsPerPageText": "Items per page"
   },
   "language": {
     "switchTo": "Switch Language",

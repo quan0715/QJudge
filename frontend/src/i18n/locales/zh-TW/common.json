@@ -111,7 +111,10 @@
     "previous": "上一頁",
     "next": "下一頁",
     "itemsPerPage": "每頁顯示",
-    "showing": "顯示"
+    "showing": "顯示",
+    "backwardText": "上一頁",
+    "forwardText": "下一頁",
+    "itemsPerPageText": "每頁顯示"
   },
   "language": {
     "switchTo": "切換語言",

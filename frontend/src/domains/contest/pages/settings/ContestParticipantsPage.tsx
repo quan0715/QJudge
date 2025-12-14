@@ -45,6 +45,7 @@ import SurfaceSection from "@/ui/components/layout/SurfaceSection";
 const ContestAdminParticipantsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
 
   const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [notification, setNotification] = useState<{
@@ -259,7 +260,7 @@ const ContestAdminParticipantsPage = () => {
                 renderIcon={Renew}
                 onClick={loadParticipants}
                 hasIconOnly
-                iconDescription={t("logs.refresh")}
+                iconDescription={tc("action.refresh")}
               />
               <Button
                 size="sm"
@@ -423,9 +424,9 @@ const ContestAdminParticipantsPage = () => {
           </DataTable>
           <Pagination
             totalItems={filteredParticipants.length}
-            backwardText={t("logs.pagination.backwardText")}
-            forwardText={t("logs.pagination.forwardText")}
-            itemsPerPageText={t("logs.pagination.itemsPerPageText")}
+            backwardText={tc("pagination.backwardText")}
+            forwardText={tc("pagination.forwardText")}
+            itemsPerPageText={tc("pagination.itemsPerPageText")}
             page={page}
             pageSize={pageSize}
             pageSizes={[10, 20, 50, 100]}

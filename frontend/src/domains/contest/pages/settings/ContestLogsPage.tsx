@@ -31,6 +31,7 @@ import { useTheme } from "@/ui/theme/ThemeContext";
 
 const ContestAdminLogsPage = () => {
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   // Use examEvents from context - no local fetch needed
   const { examEvents, isRefreshing, refreshAdminData, contest } = useContest();
   const { theme } = useTheme();
@@ -394,7 +395,7 @@ const ContestAdminLogsPage = () => {
                   renderIcon={Renew}
                   onClick={refreshAdminData}
                   hasIconOnly
-                  iconDescription={t("logs.refresh")}
+                  iconDescription={tc("action.refresh")}
                   disabled={isRefreshing}
                 />
               }
@@ -491,9 +492,9 @@ const ContestAdminLogsPage = () => {
               </DataTable>
               <Pagination
                 totalItems={filteredEvents.length}
-                backwardText={t("logs.pagination.backwardText")}
-                forwardText={t("logs.pagination.forwardText")}
-                itemsPerPageText={t("logs.pagination.itemsPerPageText")}
+                backwardText={tc("pagination.backwardText")}
+                forwardText={tc("pagination.forwardText")}
+                itemsPerPageText={tc("pagination.itemsPerPageText")}
                 page={page}
                 pageSize={pageSize}
                 pageSizes={[20, 50, 100, 200]}
