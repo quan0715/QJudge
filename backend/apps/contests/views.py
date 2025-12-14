@@ -874,10 +874,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         # Only show problem titles to privileged users
         # Non-privileged users only see labels (A, B, C...) to prevent info leak
+        # Note: id is always included for frontend to match standings data
         show_problem_details = role in ['admin', 'teacher']
         
         problems_data = [{
-            'id': cp.problem.id if show_problem_details else None,
+            'id': cp.problem.id,  # Always include id for standings matching
             'title': cp.problem.title if show_problem_details else None,
             'order': cp.order,
             'label': cp.label,

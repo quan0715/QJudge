@@ -505,6 +505,67 @@
   margin-bottom: 0.25rem;
 }
 
+/* Dark mode aside styles */
+[data-carbon-theme="g90"] .markdown-body aside,
+[data-carbon-theme="g100"] .markdown-body aside {
+  background-color: #262626;
+  border-left-color: var(--cds-support-info, #4589ff);
+}
+
+[data-carbon-theme="g90"] .markdown-body aside[data-type="info"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="info"],
+[data-carbon-theme="g90"] .markdown-body aside[data-type="note"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="note"],
+[data-carbon-theme="g90"] .markdown-body aside.info,
+[data-carbon-theme="g100"] .markdown-body aside.info,
+[data-carbon-theme="g90"] .markdown-body aside.note,
+[data-carbon-theme="g100"] .markdown-body aside.note {
+  background-color: #002d9c;
+  border-left-color: var(--cds-support-info, #4589ff);
+}
+
+[data-carbon-theme="g90"] .markdown-body aside[data-type="warning"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="warning"],
+[data-carbon-theme="g90"] .markdown-body aside[data-type="caution"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="caution"],
+[data-carbon-theme="g90"] .markdown-body aside.warning,
+[data-carbon-theme="g100"] .markdown-body aside.warning,
+[data-carbon-theme="g90"] .markdown-body aside.caution,
+[data-carbon-theme="g100"] .markdown-body aside.caution {
+  background-color: #684e00;
+  border-left-color: var(--cds-support-warning, #f1c21b);
+}
+
+[data-carbon-theme="g90"] .markdown-body aside[data-type="error"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="error"],
+[data-carbon-theme="g90"] .markdown-body aside[data-type="danger"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="danger"],
+[data-carbon-theme="g90"] .markdown-body aside.error,
+[data-carbon-theme="g100"] .markdown-body aside.error,
+[data-carbon-theme="g90"] .markdown-body aside.danger,
+[data-carbon-theme="g100"] .markdown-body aside.danger {
+  background-color: #520408;
+  border-left-color: var(--cds-support-error, #fa4d56);
+}
+
+[data-carbon-theme="g90"] .markdown-body aside[data-type="success"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="success"],
+[data-carbon-theme="g90"] .markdown-body aside[data-type="tip"],
+[data-carbon-theme="g100"] .markdown-body aside[data-type="tip"],
+[data-carbon-theme="g90"] .markdown-body aside.success,
+[data-carbon-theme="g100"] .markdown-body aside.success,
+[data-carbon-theme="g90"] .markdown-body aside.tip,
+[data-carbon-theme="g100"] .markdown-body aside.tip {
+  background-color: #044317;
+  border-left-color: var(--cds-support-success, #42be65);
+}
+
+[data-carbon-theme="g90"] .markdown-body aside code,
+[data-carbon-theme="g100"] .markdown-body aside code {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--cds-support-error, #fa4d56);
+}
+
 /* First heading in document - no top margin */
 .markdown-body > h1:first-child,
 .markdown-body > h2:first-child,

@@ -103,14 +103,18 @@ export interface ContestDetail extends Contest {
 
 // Scoreboard Types
 export interface ScoreboardProblemCell {
-  status: SubmissionStatus;
-  attempts: number;
+  status: SubmissionStatus | null;
+  tries: number;
   time: number | null; // Minutes
+  pending: boolean;
+  score: number;
+  max_score?: number;
 }
 
 export interface ScoreboardRow {
   userId: string;
   displayName: string;
+  nickname?: string;
   solvedCount: number;
   totalScore: number;
   penalty: number;
@@ -122,8 +126,12 @@ export interface ScoreboardData {
   contestId: string;
   contestName: string;
   problems: Array<{
+    id: number;
     label: string;
     problemId: string;
+    title?: string | null;
+    order: number;
+    score: number;
   }>;
   rows: ScoreboardRow[];
 }
