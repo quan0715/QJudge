@@ -367,7 +367,9 @@ describe("Contests API - /api/v1/contests", () => {
         expect(res.status).not.toBe(400);
         expect(res.status).not.toBe(500);
         expect([200, 403]).toContain(res.status);
-        console.log(`✓ Scale ${description}: status ${res.status} (clamped, not rejected)`);
+        console.log(
+          `✓ Scale ${description}: status ${res.status} (clamped, not rejected)`
+        );
       }
     });
 
@@ -398,7 +400,9 @@ describe("Contests API - /api/v1/contests", () => {
       // It should NOT return 500 (server error)
       expect(res.status).not.toBe(500);
       expect([200, 403]).toContain(res.status);
-      console.log(`✓ Non-numeric scale handled gracefully: status ${res.status}`);
+      console.log(
+        `✓ Non-numeric scale handled gracefully: status ${res.status}`
+      );
     });
   });
 });
