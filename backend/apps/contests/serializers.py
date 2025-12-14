@@ -240,7 +240,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     def get_problems(self, obj):
         """
         Get contest problems with labels.
-        Hide problem structure before contest starts unless user is owner/admin.
+        Hide problem structure in these cases (unless user is owner/admin):
+        1. Contest is inactive
+        2. Contest hasn't started yet
         """
         request = self.context.get('request')
         user = request.user if request else None
@@ -249,8 +251,13 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         is_privileged = user and user.is_authenticated and (
             obj.owner == user or
             user.is_staff or
-            getattr(user, 'role', '') == 'admin'
+            getattr(user, 'role', '') == 'admin' or
+            obj.admins.filter(pk=user.pk).exists()
         )
+
+        # Hide problems for inactive contests (only owner/admin can see)
+        if not is_privileged and obj.status == 'inactive':
+            return []
 
         # Hide problems if contest hasn't started yet (and user is not privileged)
         if not is_privileged and obj.start_time and timezone.now() < obj.start_time:
