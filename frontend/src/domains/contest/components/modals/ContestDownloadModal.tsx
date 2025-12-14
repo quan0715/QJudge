@@ -40,6 +40,7 @@ export const ContestDownloadModal = ({
   const { t: tc } = useTranslation("common");
   const [format, setFormat] = useState<"pdf" | "markdown">("pdf");
   const [language, setLanguage] = useState<string>("zh-TW");
+  const [scale, setScale] = useState<number>(1.0);
   const [loading, setLoading] = useState(false);
 
   const languageOptions = [
@@ -47,16 +48,27 @@ export const ContestDownloadModal = ({
     { id: "en", label: "English" },
   ];
 
+  const scaleOptions = [
+    { id: 0.5, label: "50%" },
+    { id: 0.75, label: "75%" },
+    { id: 1.0, label: "100%" },
+    { id: 1.25, label: "125%" },
+    { id: 1.5, label: "150%" },
+    { id: 2.0, label: "200%" },
+  ];
+
   const handleDownload = async () => {
     console.log(
       "Download requested with format:",
       format,
       "language:",
-      language
+      language,
+      "scale:",
+      scale
     );
     setLoading(true);
     try {
-      const blob = await downloadContestFile(contestId, format, language);
+      const blob = await downloadContestFile(contestId, format, language, scale);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -139,7 +151,7 @@ export const ContestDownloadModal = ({
           </RadioButtonGroup>
         </div>
 
-        <div>
+        <div style={{ marginBottom: "1.5rem" }}>
           <Dropdown
             id="language-selector"
             titleText={t("download.language")}
@@ -154,6 +166,34 @@ export const ContestDownloadModal = ({
             }}
           />
         </div>
+
+        {/* Scale option - only visible for PDF format */}
+        {format === "pdf" && (
+          <div style={{ marginBottom: "1.5rem" }}>
+            <Dropdown
+              id="scale-selector"
+              titleText={t("download.scale")}
+              label={t("download.selectScale")}
+              items={scaleOptions}
+              itemToString={(item) => (item ? item.label : "")}
+              selectedItem={scaleOptions.find((s) => s.id === scale)}
+              onChange={({ selectedItem }) => {
+                if (selectedItem) {
+                  setScale(selectedItem.id);
+                }
+              }}
+            />
+            <p
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.75rem",
+                color: "var(--cds-text-secondary)",
+              }}
+            >
+              {t("download.scaleHint")}
+            </p>
+          </div>
+        )}
 
         {loading && (
           <div style={{ marginTop: "1rem" }}>

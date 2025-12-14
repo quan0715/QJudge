@@ -143,6 +143,9 @@
     "pdf": "PDF (.pdf)",
     "language": "Language",
     "selectLanguage": "Select language",
+    "scale": "Scale",
+    "selectScale": "Select scale",
+    "scaleHint": "Adjust font and content size of PDF output. 100% is original size.",
     "generating": "Generating file..."
   },
   "exitModal": {

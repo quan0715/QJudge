@@ -143,6 +143,9 @@
     "pdf": "PDF (.pdf)",
     "language": "語言",
     "selectLanguage": "選擇語言",
+    "scale": "縮放比例",
+    "selectScale": "選擇縮放",
+    "scaleHint": "調整 PDF 輸出的字體與內容大小。100% 為原始大小。",
     "generating": "檔案生成中..."
   },
   "exitModal": {
