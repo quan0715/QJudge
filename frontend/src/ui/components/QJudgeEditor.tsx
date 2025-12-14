@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect } from "react";
+import React, { useRef, useCallback } from "react";
 import Editor, { type EditorProps, type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { useTheme } from "@/ui/theme/ThemeContext";
@@ -7,27 +7,28 @@ interface QJudgeEditorProps extends Omit<EditorProps, "onChange"> {
   onChange?: (value: string) => void;
 }
 
+/**
+ * QJudgeEditor - Monaco Editor wrapper with IBM Carbon Design styling
+ *
+ * This component uses UNCONTROLLED mode for optimal typing performance:
+ * - Uses `defaultValue` for initial content (set once on mount)
+ * - Parent should use `key` prop to force re-mount when content needs to reset
+ *   (e.g., language change, template load)
+ * - `onChange` callback reports changes but doesn't control the editor
+ *
+ * Example usage:
+ * ```tsx
+ * <QJudgeEditor
+ *   key={language}  // Force re-mount on language change
+ *   value={code}    // Used as defaultValue
+ *   language={language}
+ *   onChange={(val) => setCode(val)}
+ * />
+ * ```
+ */
 export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
   const { theme } = useTheme();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
-  const isInternalChange = useRef(false);
-
-  // Handle external value changes (e.g., language switch, template load)
-  useEffect(() => {
-    if (editorRef.current && props.value !== undefined) {
-      const currentValue = editorRef.current.getValue();
-      // Only update if value actually changed from external source
-      if (currentValue !== props.value && !isInternalChange.current) {
-        const position = editorRef.current.getPosition();
-        editorRef.current.setValue(props.value);
-        // Restore cursor position if possible
-        if (position) {
-          editorRef.current.setPosition(position);
-        }
-      }
-    }
-    isInternalChange.current = false;
-  }, [props.value]);
 
   const handleMount: OnMount = useCallback(
     (editor, monaco) => {
@@ -43,12 +44,9 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
         editor.layout();
       });
 
-      // Handle content changes - update parent without causing re-render loop
+      // Handle content changes - report to parent via callback
       editor.onDidChangeModelContent(() => {
-        if (props.onChange) {
-          isInternalChange.current = true;
-          props.onChange(editor.getValue());
-        }
+        props.onChange?.(editor.getValue());
       });
 
       props.onMount?.(editor, monaco);
@@ -69,7 +67,8 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
       <Editor
         height="100%"
         theme={theme === "white" ? "vs" : "my-dark"}
-        // Use defaultValue instead of value to avoid controlled component issues
+        // UNCONTROLLED MODE: Use defaultValue only
+        // Parent should use key prop to force re-mount when value needs to reset
         defaultValue={props.value}
         language={props.language}
         beforeMount={(monaco) => {
