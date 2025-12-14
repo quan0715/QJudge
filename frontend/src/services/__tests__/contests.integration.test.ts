@@ -331,7 +331,7 @@ describe("Contests API - /api/v1/contests", () => {
       }
     });
 
-    it("should reject invalid scale values", async () => {
+    it("should handle out-of-range scale values by clamping", async () => {
       const shouldSkip = await skipIfNoBackend();
       if (shouldSkip || !adminToken) return;
 
@@ -342,21 +342,63 @@ describe("Contests API - /api/v1/contests", () => {
       const contests = (await listRes.json()).results || [];
 
       if (contests.length === 0) {
-        console.log("⚠️ No contests found, skipping invalid scale test");
+        console.log("⚠️ No contests found, skipping scale clamping test");
         return;
       }
 
       const contestId = contests[0].id;
 
-      // Test with out-of-range scale (should be clamped or rejected)
+      // Test with out-of-range scale values
+      // Backend clamps scale to 0.5-2.0 range (see exporters.py and views.py)
+      const outOfRangeValues = [
+        { scale: 5.0, description: "above max (5.0 -> clamped to 2.0)" },
+        { scale: 0.1, description: "below min (0.1 -> clamped to 0.5)" },
+        { scale: -1, description: "negative (-1 -> clamped to 0.5)" },
+      ];
+
+      for (const { scale, description } of outOfRangeValues) {
+        const res = await authenticatedRequest(
+          `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=${scale}`,
+          adminToken
+        );
+
+        // Backend should clamp and return 200 (or 403 if permission denied)
+        // It should NOT return 400 (bad request) or 500 (server error)
+        expect(res.status).not.toBe(400);
+        expect(res.status).not.toBe(500);
+        expect([200, 403]).toContain(res.status);
+        console.log(`✓ Scale ${description}: status ${res.status} (clamped, not rejected)`);
+      }
+    });
+
+    it("should handle non-numeric scale values gracefully", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping non-numeric scale test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Test with non-numeric scale (should default to 1.0)
       const res = await authenticatedRequest(
-        `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=5.0`,
+        `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=invalid`,
         adminToken
       );
 
-      // Backend should either clamp the value or return an error
-      // Most likely it will clamp to 2.0 and return 200
-      console.log(`✓ Invalid scale=5.0 handled, status: ${res.status}`);
+      // Backend should default to 1.0 and return 200 (or 403 if permission denied)
+      // It should NOT return 500 (server error)
+      expect(res.status).not.toBe(500);
+      expect([200, 403]).toContain(res.status);
+      console.log(`✓ Non-numeric scale handled gracefully: status ${res.status}`);
     });
   });
 });
