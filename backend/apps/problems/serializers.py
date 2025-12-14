@@ -21,6 +21,13 @@ class ProblemTranslationSerializer(serializers.ModelSerializer):
 
 class TestCaseSerializer(serializers.ModelSerializer):
     """Serializer for test cases."""
+    # Explicitly define fields to preserve whitespace
+    # Django REST Framework's CharField defaults to trim_whitespace=True,
+    # which would strip leading/trailing spaces from test case data.
+    # This breaks problems that require specific whitespace in output (e.g., ASCII art).
+    input_data = serializers.CharField(trim_whitespace=False, allow_blank=True)
+    output_data = serializers.CharField(trim_whitespace=False, allow_blank=True)
+    
     class Meta:
         model = TestCase
         fields = [

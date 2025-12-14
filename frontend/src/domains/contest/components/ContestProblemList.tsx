@@ -329,11 +329,12 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
           open={importModalOpen}
           onClose={() => setImportModalOpen(false)}
           onImport={async (problemData) => {
-            const { createProblem } = await import("@/services/problem");
-            const created = await createProblem(problemData);
-            await addContestProblem(contestId!, { problem_id: created.id });
+            // Use createContestProblem to create problem directly in contest
+            // This avoids creating a public problem first and then cloning it
+            const { createContestProblem } = await import("@/services/contest");
+            const created = await createContestProblem(contestId!, problemData);
             await reloadProblems();
-            return created.id;
+            return { id: created.id, contest_id: contestId };
           }}
         />
       </SurfaceSection>

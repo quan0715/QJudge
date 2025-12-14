@@ -744,11 +744,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         ContestActivityViewSet.log_activity(
             contest, 
             request.user, 
-            'submit_code', 
-            f"Submitted code for problem {problem.display_id}"
+            'add_problem', 
+            f"Added problem {problem.display_id} to contest"
         )
         
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # Include contest_id for frontend navigation
+        response_data = serializer.data
+        response_data['contest_id'] = contest.id
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def reorder_problems(self, request, pk=None):
