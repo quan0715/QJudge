@@ -347,35 +347,94 @@
   white-space: nowrap;
 }
 
-/* Aside / Callout blocks */
+/* ============================================
+   Aside / Callout blocks - IBM Carbon Design Notification Style
+   https://carbondesignsystem.com/components/notification/style
+   ============================================ */
+
 .markdown-body aside {
-  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 3rem; /* 48px */
+  padding: 0.75rem 1rem; /* 12px 16px */
   margin: 1rem 0;
-  background-color: var(--cds-background-selected);
-  border-left: 4px solid var(--cds-support-info);
+  background-color: var(--cds-notification-info-background, #edf5ff);
+  border-left: 3px solid var(--cds-support-info, #0f62fe);
   border-radius: 0;
   color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.42857);
+}
+
+.markdown-body aside p {
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.markdown-body aside p + p {
+  margin-top: 0.5rem;
+}
+
+.markdown-body aside p:first-child {
+  margin-top: 0;
 }
 
 .markdown-body aside p:last-child {
   margin-bottom: 0;
 }
 
-/* Aside variants using data-type attribute */
-.markdown-body aside[data-type="warning"] {
-  border-left-color: var(--cds-support-warning);
-  background-color: var(--cds-notification-background-warning);
+/* Aside title styling (strong element at the start) */
+.markdown-body aside strong:first-child,
+.markdown-body aside p:first-child strong:first-child {
+  font-weight: 600;
+  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-heading-compact-01-line-height, 1.28572);
 }
 
+/* Aside variants using data-type attribute - IBM Carbon Notification Colors */
+
+/* Info (default) - Blue */
+.markdown-body aside[data-type="info"],
+.markdown-body aside[data-type="note"] {
+  background-color: var(--cds-notification-info-background, #edf5ff);
+  border-left-color: var(--cds-support-info, #0f62fe);
+}
+
+/* Warning - Yellow */
+.markdown-body aside[data-type="warning"],
+.markdown-body aside[data-type="caution"] {
+  background-color: var(--cds-notification-warning-background, #fcf4d6);
+  border-left-color: var(--cds-support-warning, #f1c21b);
+}
+
+/* Error/Danger - Red */
 .markdown-body aside[data-type="error"],
 .markdown-body aside[data-type="danger"] {
-  border-left-color: var(--cds-support-error);
-  background-color: var(--cds-notification-background-error);
+  background-color: var(--cds-notification-error-background, #fff1f1);
+  border-left-color: var(--cds-support-error, #da1e28);
 }
 
-.markdown-body aside[data-type="success"] {
-  border-left-color: var(--cds-support-success);
-  background-color: var(--cds-notification-background-success);
+/* Success - Green */
+.markdown-body aside[data-type="success"],
+.markdown-body aside[data-type="tip"] {
+  background-color: var(--cds-notification-success-background, #defbe6);
+  border-left-color: var(--cds-support-success, #24a148);
+}
+
+/* Inline code inside aside */
+.markdown-body aside code {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Lists inside aside */
+.markdown-body aside ul,
+.markdown-body aside ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.markdown-body aside li {
+  margin-bottom: 0.25rem;
 }
 
 /* First heading in document - no top margin */

@@ -452,18 +452,34 @@ class PDFExporter(ContestExporter):
                 color: #750e13;
             }
             
-            /* Info box */
+            /* Info box - Carbon Design Notification Style */
             .info-box {
-                background-color: #edf5ff;
-                border-left: 4px solid #0f62fe;
+                background-color: #edf5ff; /* Carbon notification-info-background */
+                border-left: 3px solid #0f62fe; /* Carbon support-info */
                 padding: 12px 16px;
                 margin: 12px 0;
+                min-height: 48px;
             }
             .warning-box {
-                background-color: #fcf4d6;
-                border-left: 4px solid #f1c21b;
+                background-color: #fcf4d6; /* Carbon notification-warning-background */
+                border-left: 3px solid #f1c21b; /* Carbon support-warning */
                 padding: 12px 16px;
                 margin: 12px 0;
+                min-height: 48px;
+            }
+            .error-box {
+                background-color: #fff1f1; /* Carbon notification-error-background */
+                border-left: 3px solid #da1e28; /* Carbon support-error */
+                padding: 12px 16px;
+                margin: 12px 0;
+                min-height: 48px;
+            }
+            .success-box {
+                background-color: #defbe6; /* Carbon notification-success-background */
+                border-left: 3px solid #24a148; /* Carbon support-success */
+                padding: 12px 16px;
+                margin: 12px 0;
+                min-height: 48px;
             }
             
             /* Metadata */
@@ -505,23 +521,71 @@ class PDFExporter(ContestExporter):
                 margin-bottom: 4px;
             }
             
-            /* Aside callout boxes */
+            /* ============================================
+               Aside / Callout blocks - IBM Carbon Design Notification Style
+               https://carbondesignsystem.com/components/notification/style
+               ============================================ */
             aside {
-                background-color: #f4f4f4;
-                border-left: 4px solid #0f62fe;
-                padding: 12px 16px;
+                display: block;
+                min-height: 48px; /* 3rem */
+                padding: 12px 16px; /* 0.75rem 1rem */
                 margin: 12px 0;
+                background-color: #edf5ff; /* Carbon notification-info-background */
+                border-left: 3px solid #0f62fe; /* Carbon support-info */
+                border-radius: 0;
+                color: #161616;
+                font-size: 10pt;
+                line-height: 1.5;
                 page-break-inside: avoid;
             }
-            aside.warning {
-                background-color: #fdf6dd;
-                border-left-color: #f1c21b;
+            aside p {
+                margin: 0;
+            }
+            aside p + p {
+                margin-top: 8px;
             }
             aside p:first-child {
                 margin-top: 0;
             }
             aside p:last-child {
                 margin-bottom: 0;
+            }
+            /* Aside title styling */
+            aside strong:first-child {
+                font-weight: 600;
+                font-size: 10pt;
+            }
+            /* Info (default) - Blue */
+            aside.info, aside.note {
+                background-color: #edf5ff;
+                border-left-color: #0f62fe;
+            }
+            /* Warning - Yellow */
+            aside.warning, aside.caution {
+                background-color: #fcf4d6; /* Carbon notification-warning-background */
+                border-left-color: #f1c21b; /* Carbon support-warning */
+            }
+            /* Error/Danger - Red */
+            aside.error, aside.danger {
+                background-color: #fff1f1; /* Carbon notification-error-background */
+                border-left-color: #da1e28; /* Carbon support-error */
+            }
+            /* Success/Tip - Green */
+            aside.success, aside.tip {
+                background-color: #defbe6; /* Carbon notification-success-background */
+                border-left-color: #24a148; /* Carbon support-success */
+            }
+            /* Inline code inside aside */
+            aside code {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+            /* Lists inside aside */
+            aside ul, aside ol {
+                margin: 8px 0;
+                padding-left: 24px;
+            }
+            aside li {
+                margin-bottom: 4px;
             }
             
             /* Markdown tables */
