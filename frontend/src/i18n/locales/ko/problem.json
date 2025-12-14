@@ -135,5 +135,75 @@
       "forbiddenDescription": "코드에 이러한 문자열이 포함될 수 없습니다. 예: <code>sort</code>, <code>qsort</code> 등 표준 라이브러리 함수를 금지합니다.",
       "forbiddenPlaceholder": "금지 키워드 입력..."
     }
+  },
+  "form": {
+    "notification": {
+      "error": "오류",
+      "success": "성공"
+    },
+    "sections": {
+      "basic": "기본 정보",
+      "content": "문제 내용",
+      "testcases": "테스트 케이스",
+      "languages": "언어 설정",
+      "restrictions": "코드 제한",
+      "preview": "미리보기"
+    },
+    "actions": {
+      "importYAML": "YAML 가져오기",
+      "delete": "문제 삭제",
+      "cancel": "취소",
+      "saving": "저장 중...",
+      "update": "문제 업데이트",
+      "create": "문제 생성",
+      "add": "추가"
+    },
+    "basic": {
+      "titleLabel": "문제 제목 (전역) *",
+      "titlePlaceholder": "문제 제목 입력...",
+      "difficultyLabel": "난이도",
+      "difficultySelect": "난이도 선택",
+      "difficultyEasy": "쉬움",
+      "difficultyMedium": "보통",
+      "difficultyHard": "어려움",
+      "timeLimitLabel": "시간 제한 (ms)",
+      "memoryLimitLabel": "메모리 제한 (MB)",
+      "visibilityLabel": "문제 표시",
+      "visibilityHidden": "숨김",
+      "visibilityVisible": "표시",
+      "tagsLabel": "태그",
+      "tagsPlaceholder": "태그 검색 또는 생성..."
+    },
+    "content": {
+      "languageVersions": "언어 버전",
+      "languageVersionsHelp": "아래 섹션을 펼쳐서 다른 언어로 문제 내용을 편집하세요",
+      "chineseTraditional": "中文 (繁體)",
+      "english": "English",
+      "titleLabel": "문제 제목 *",
+      "titlePlaceholder": "제목 입력...",
+      "descriptionLabel": "문제 설명 (Markdown)",
+      "inputDescriptionLabel": "입력 설명 (Markdown)",
+      "outputDescriptionLabel": "출력 설명 (Markdown)",
+      "hintLabel": "힌트 (Markdown)"
+    },
+    "testcases": {
+      "description": "문제의 테스트 케이스를 설정합니다. 공개 테스트 케이스는 학생에게 예제로 표시되며, 비공개 테스트 케이스는 채점에 사용됩니다."
+    },
+    "languages": {
+      "title": "허용된 프로그래밍 언어",
+      "disabled": "비활성화",
+      "enabled": "활성화",
+      "templateCode": "템플릿 코드"
+    },
+    "restrictions": {
+      "title": "코드 키워드 제한",
+      "description": "학생 제출에 포함되어야 하거나 금지된 키워드를 설정합니다. 특정 함수 시그니처를 요구하거나 표준 라이브러리 함수를 금지하는 데 일반적으로 사용됩니다.",
+      "requiredTitle": "필수 키워드",
+      "requiredDescription": "코드에는 이러한 문자열이 포함되어야 합니다 (부분 문자열 일치). 예: 특정 함수 시그니처 <code>void printRectangle(int w, int h, char c)</code> 또는 <code>class Solution</code>.",
+      "requiredPlaceholder": "필수 키워드 입력...",
+      "forbiddenTitle": "금지된 키워드",
+      "forbiddenDescription": "코드에는 이러한 문자열이 포함될 수 없습니다. 예: <code>sort</code>, <code>qsort</code> 등의 표준 라이브러리 함수 금지.",
+      "forbiddenPlaceholder": "금지된 키워드 입력..."
+    }
   }
 }
