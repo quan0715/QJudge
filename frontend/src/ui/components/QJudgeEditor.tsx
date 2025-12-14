@@ -104,22 +104,31 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
         options={{
           minimap: { enabled: false },
           fontSize: 14,
-          lineHeight: 20,
-          letterSpacing: 0,
+          lineHeight: 22,
+          letterSpacing: 0.3,
           scrollBeyondLastLine: false,
           automaticLayout: true,
-          // Completely disable font ligatures to prevent fi, ff, fl etc. from merging
+          // Disable font ligatures to prevent fi, ff, fl etc. from merging
           fontLigatures: false,
-          // Use monospace fonts without ligature support
-          // Avoid Fira Code, JetBrains Mono, etc. which have ligatures by default
+          // Modern monospace fonts - JetBrains Mono is beautiful but disable its ligatures
+          // Fallback chain: JetBrains Mono -> Fira Code -> SF Mono -> system monospace
           fontFamily:
-            "'SF Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
+            "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', 'Consolas', monospace",
           fontWeight: "400",
+          // Smooth cursor animation for fluid typing experience
           cursorBlinking: "smooth",
-          // Disable smooth caret animation to prevent input lag
-          cursorSmoothCaretAnimation: "off",
+          cursorSmoothCaretAnimation: "on",
+          cursorWidth: 2,
+          cursorStyle: "line",
+          // Smooth scrolling
           smoothScrolling: true,
+          mouseWheelScrollSensitivity: 1,
+          fastScrollSensitivity: 5,
           padding: { top: 16, bottom: 16 },
+          // Better rendering
+          renderWhitespace: "selection",
+          renderLineHighlight: "all",
+          bracketPairColorization: { enabled: true },
           ...props.options,
         }}
       />
