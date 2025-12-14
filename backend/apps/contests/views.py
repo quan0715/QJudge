@@ -60,7 +60,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter contests based on visibility and user role.
-        Inactive contests are hidden from public listing unless user is owner/participant.
+        Inactive contests are hidden from public listing unless user is owner/admin.
         """
         queryset = super().get_queryset()
         queryset = queryset.annotate(participant_count=Count('participants'))
@@ -74,8 +74,8 @@ class ContestViewSet(viewsets.ModelViewSet):
                 return queryset.none()
             if user.is_staff or getattr(user, 'role', '') == 'admin':
                 return queryset
-            # Teachers see contests they own
-            return queryset.filter(owner=user)
+            # Teachers see contests they own or are admin of
+            return queryset.filter(Q(owner=user) | Q(admins=user)).distinct()
 
         # Public scope (default)
         # Admin/staff can see all contests
@@ -84,15 +84,16 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         # For regular users:
         # - Active public/private contests are visible
-        # - Inactive contests are only visible if user is owner or participant
+        # - Inactive contests are ONLY visible if user is owner or contest admin
+        # - Note: participants CANNOT see inactive contests in list (security requirement)
         if user.is_authenticated:
             queryset = queryset.filter(
                 # Active contests with public/private visibility
                 Q(status='active', visibility__in=['public', 'private']) |
                 # User is the owner (can see all their contests regardless of status)
                 Q(owner=user) |
-                # User is a participant (can see contests they joined regardless of status)
-                Q(participants=user)
+                # User is a contest admin (can see all contests they manage)
+                Q(admins=user)
             ).distinct()
         else:
             # Anonymous users only see active public contests

@@ -141,7 +141,10 @@ const ProblemPreview = ({
                   <h3>{t("problem:section.requiredKeywords")}</h3>
                   <div className="keyword-tags">
                     {requiredKeywords.map((kw, index) => (
-                      <code key={index} className="keyword-tag keyword-tag--success">
+                      <code
+                        key={index}
+                        className="keyword-tag keyword-tag--success"
+                      >
                         {kw}
                       </code>
                     ))}
@@ -154,7 +157,10 @@ const ProblemPreview = ({
                   <h3>{t("problem:section.forbiddenKeywords")}</h3>
                   <div className="keyword-tags">
                     {forbiddenKeywords.map((kw, index) => (
-                      <code key={index} className="keyword-tag keyword-tag--error">
+                      <code
+                        key={index}
+                        className="keyword-tag keyword-tag--error"
+                      >
                         {kw}
                       </code>
                     ))}
