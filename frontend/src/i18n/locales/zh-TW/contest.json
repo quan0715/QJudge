@@ -429,5 +429,72 @@
       "error": "錯誤"
     },
     "pagination": {}
+  },
+  "clar": {
+    "loading": "載入中...",
+    "announcements": {
+      "title": "公告",
+      "publish": "發布公告",
+      "noData": "目前沒有任何公告",
+      "deleteIconDesc": "刪除公告",
+      "deleteConfirm": "確定要刪除此公告？"
+    },
+    "qna": {
+      "title": "學生提問與討論",
+      "askQuestion": "提出問題",
+      "noData": "目前還沒有任何提問",
+      "author": "提問者",
+      "replier": "回覆者"
+    },
+    "tags": {
+      "public": "公開",
+      "private": "私密",
+      "answered": "已回覆",
+      "publicReply": "公開回覆",
+      "onlyAskerVisible": "僅提問者可見"
+    },
+    "actions": {
+      "reply": "回覆",
+      "delete": "刪除",
+      "deleteConfirm": "確定要刪除此提問？"
+    },
+    "labels": {
+      "replyLabel": "回覆:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "提出問題",
+        "submit": "送出",
+        "cancel": "取消",
+        "questionLabel": "問題內容",
+        "questionPlaceholder": "請清楚描述您的問題...",
+        "problemLabel": "相關題目（選填）",
+        "generalQuestion": "一般提問"
+      },
+      "createAnnouncement": {
+        "heading": "發布公告",
+        "submit": "發布",
+        "cancel": "取消",
+        "titleLabel": "公告標題",
+        "titlePlaceholder": "輸入標題...",
+        "contentLabel": "公告內容",
+        "contentPlaceholder": "輸入內容..."
+      },
+      "reply": {
+        "heading": "回覆提問",
+        "submit": "送出回覆",
+        "cancel": "取消",
+        "replyLabel": "回覆內容",
+        "replyPlaceholder": "輸入回覆...",
+        "publicCheckbox": "公開回覆（所有參賽者可見）"
+      },
+      "error": {
+        "heading": "錯誤"
+      }
+    },
+    "messages": {
+      "createClarError": "發布失敗，請檢查輸入內容",
+      "createAnnouncementError": "發布公告失敗"
+    }
   }
 }

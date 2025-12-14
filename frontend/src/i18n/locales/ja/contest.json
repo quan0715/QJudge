@@ -429,5 +429,72 @@
       "error": "エラー"
     },
     "pagination": {}
+  },
+  "clar": {
+    "loading": "読み込み中...",
+    "announcements": {
+      "title": "お知らせ",
+      "publish": "お知らせを投稿",
+      "noData": "お知らせはまだありません",
+      "deleteIconDesc": "お知らせを削除",
+      "deleteConfirm": "このお知らせを削除してもよろしいですか？"
+    },
+    "qna": {
+      "title": "学生の質問とディスカッション",
+      "askQuestion": "質問する",
+      "noData": "まだ質問はありません",
+      "author": "質問者",
+      "replier": "回答者"
+    },
+    "tags": {
+      "public": "公開",
+      "private": "非公開",
+      "answered": "回答済み",
+      "publicReply": "公開回答",
+      "onlyAskerVisible": "質問者のみ閲覧可能"
+    },
+    "actions": {
+      "reply": "返信",
+      "delete": "削除",
+      "deleteConfirm": "この質問を削除してもよろしいですか？"
+    },
+    "labels": {
+      "replyLabel": "回答:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "質問する",
+        "submit": "送信",
+        "cancel": "キャンセル",
+        "questionLabel": "質問内容",
+        "questionPlaceholder": "質問を明確に記述してください...",
+        "problemLabel": "関連問題（任意）",
+        "generalQuestion": "一般的な質問"
+      },
+      "createAnnouncement": {
+        "heading": "お知らせを投稿",
+        "submit": "投稿",
+        "cancel": "キャンセル",
+        "titleLabel": "お知らせのタイトル",
+        "titlePlaceholder": "タイトルを入力...",
+        "contentLabel": "お知らせの内容",
+        "contentPlaceholder": "内容を入力..."
+      },
+      "reply": {
+        "heading": "質問に返信",
+        "submit": "返信を送信",
+        "cancel": "キャンセル",
+        "replyLabel": "返信内容",
+        "replyPlaceholder": "返信を入力...",
+        "publicCheckbox": "公開返信（すべての参加者に表示）"
+      },
+      "error": {
+        "heading": "エラー"
+      }
+    },
+    "messages": {
+      "createClarError": "投稿に失敗しました。入力内容を確認してください。",
+      "createAnnouncementError": "お知らせの投稿に失敗しました"
+    }
   }
 }

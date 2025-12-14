@@ -429,5 +429,72 @@
       "error": "오류"
     },
     "pagination": {}
+  },
+  "clar": {
+    "loading": "로딩 중...",
+    "announcements": {
+      "title": "공지사항",
+      "publish": "공지 게시",
+      "noData": "아직 공지사항이 없습니다",
+      "deleteIconDesc": "공지 삭제",
+      "deleteConfirm": "이 공지사항을 삭제하시겠습니까?"
+    },
+    "qna": {
+      "title": "학생 질문 및 토론",
+      "askQuestion": "질문하기",
+      "noData": "아직 질문이 없습니다",
+      "author": "질문자",
+      "replier": "답변자"
+    },
+    "tags": {
+      "public": "공개",
+      "private": "비공개",
+      "answered": "답변 완료",
+      "publicReply": "공개 답변",
+      "onlyAskerVisible": "질문자만 볼 수 있음"
+    },
+    "actions": {
+      "reply": "답변",
+      "delete": "삭제",
+      "deleteConfirm": "이 질문을 삭제하시겠습니까?"
+    },
+    "labels": {
+      "replyLabel": "답변:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "질문하기",
+        "submit": "제출",
+        "cancel": "취소",
+        "questionLabel": "질문 내용",
+        "questionPlaceholder": "질문을 명확하게 설명해 주세요...",
+        "problemLabel": "관련 문제 (선택사항)",
+        "generalQuestion": "일반 질문"
+      },
+      "createAnnouncement": {
+        "heading": "공지 게시",
+        "submit": "게시",
+        "cancel": "취소",
+        "titleLabel": "공지 제목",
+        "titlePlaceholder": "제목 입력...",
+        "contentLabel": "공지 내용",
+        "contentPlaceholder": "내용 입력..."
+      },
+      "reply": {
+        "heading": "질문에 답변",
+        "submit": "답변 제출",
+        "cancel": "취소",
+        "replyLabel": "답변 내용",
+        "replyPlaceholder": "답변 입력...",
+        "publicCheckbox": "공개 답변 (모든 참가자가 볼 수 있음)"
+      },
+      "error": {
+        "heading": "오류"
+      }
+    },
+    "messages": {
+      "createClarError": "게시에 실패했습니다. 입력 내용을 확인하세요.",
+      "createAnnouncementError": "공지 게시에 실패했습니다"
+    }
   }
 }

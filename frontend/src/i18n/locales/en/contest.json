@@ -429,5 +429,72 @@
       "error": "Error"
     },
     "pagination": {}
+  },
+  "clar": {
+    "loading": "Loading...",
+    "announcements": {
+      "title": "Announcements",
+      "publish": "Publish Announcement",
+      "noData": "No announcements yet",
+      "deleteIconDesc": "Delete Announcement",
+      "deleteConfirm": "Are you sure you want to delete this announcement?"
+    },
+    "qna": {
+      "title": "Student Questions & Discussion",
+      "askQuestion": "Ask Question",
+      "noData": "No questions yet",
+      "author": "Asked by",
+      "replier": "Replied by"
+    },
+    "tags": {
+      "public": "Public",
+      "private": "Private",
+      "answered": "Answered",
+      "publicReply": "Public Reply",
+      "onlyAskerVisible": "Visible to asker only"
+    },
+    "actions": {
+      "reply": "Reply",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this question?"
+    },
+    "labels": {
+      "replyLabel": "Reply:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "Ask Question",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "questionLabel": "Question Content",
+        "questionPlaceholder": "Please describe your question clearly...",
+        "problemLabel": "Related Problem (Optional)",
+        "generalQuestion": "General Question"
+      },
+      "createAnnouncement": {
+        "heading": "Publish Announcement",
+        "submit": "Publish",
+        "cancel": "Cancel",
+        "titleLabel": "Announcement Title",
+        "titlePlaceholder": "Enter title...",
+        "contentLabel": "Announcement Content",
+        "contentPlaceholder": "Enter content..."
+      },
+      "reply": {
+        "heading": "Reply to Question",
+        "submit": "Submit Reply",
+        "cancel": "Cancel",
+        "replyLabel": "Reply Content",
+        "replyPlaceholder": "Enter reply...",
+        "publicCheckbox": "Public reply (visible to all participants)"
+      },
+      "error": {
+        "heading": "Error"
+      }
+    },
+    "messages": {
+      "createClarError": "Failed to publish. Please check your input.",
+      "createAnnouncementError": "Failed to publish announcement"
+    }
   }
 }
