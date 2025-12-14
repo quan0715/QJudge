@@ -32,14 +32,18 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   // Transform ScoreboardData to ContestScoreboard format
   const problems: ProblemInfo[] = useMemo(() => {
     if (!scoreboardData?.problems) return [];
-    return scoreboardData.problems.map((p: any, index) => ({
-      id: parseInt(p.problemId) || index,
-      title: p.title || p.label, // fallback to label as title
-      order: p.order ?? index,
-      label: p.label,
-      problem_id: parseInt(p.problemId) || undefined,
-      score: p.score || 0, // Include problem score
-    }));
+    return scoreboardData.problems.map((p: any, index) => {
+      // Use p.id directly (from API), fallback to problemId string, then index
+      const problemId = p.id ?? (p.problemId ? parseInt(p.problemId) : null);
+      return {
+        id: problemId ?? index,
+        title: p.title || p.label, // fallback to label as title
+        order: p.order ?? index,
+        label: p.label,
+        problem_id: problemId ?? undefined,
+        score: p.score || 0, // Include problem score
+      };
+    });
   }, [scoreboardData?.problems]);
 
   const standings: StandingRow[] = useMemo(() => {
@@ -58,16 +62,13 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
         Object.entries(row.problems || {}).map(([key, cell]: [string, any]) => [
           key,
           {
-            status:
-              cell?.status === "AC"
-                ? "AC"
-                : cell?.status === "WA"
-                ? "WA"
-                : null,
-            score: cell?.score ?? 0, // Include score for AC display
-            tries: cell?.attempts ?? 0,
+            // Keep original status from API (AC, WA, CE, RE, TLE, etc.)
+            // Treat non-AC statuses as "WA" for display purposes
+            status: cell?.status === "AC" ? "AC" : cell?.status ? "WA" : null,
+            score: cell?.score ?? 0,
+            tries: cell?.tries ?? 0,
             time: cell?.time ?? 0,
-            pending: false,
+            pending: cell?.pending ?? false,
           },
         ])
       ),

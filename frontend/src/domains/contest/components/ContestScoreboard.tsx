@@ -102,7 +102,8 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
 
     problems.forEach((p) => {
       // API returns problems keyed by problem ID (as string)
-      const problemId = String(p.id || p.problem_id || "");
+      // Use nullish coalescing (??) to handle id=0 correctly
+      const problemId = String(p.id ?? p.problem_id ?? "");
       const stats = problemId && s.problems ? s.problems[problemId] : null;
       row[`problem_${p.id}`] = stats;
     });
