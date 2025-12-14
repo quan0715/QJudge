@@ -60,6 +60,9 @@ CACHES = {
 # Disable ratelimit system checks in test (still functional, just no E003 error)
 SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
 
+# Disable ratelimit in tests to prevent 403 errors
+RATELIMIT_ENABLE = False
+
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
