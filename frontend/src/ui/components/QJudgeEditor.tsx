@@ -1,9 +1,9 @@
-import React, { useRef, useCallback, useEffect } from 'react';
-import Editor, { type EditorProps, type OnMount } from '@monaco-editor/react';
-import type * as Monaco from 'monaco-editor';
-import { useTheme } from '@/ui/theme/ThemeContext';
+import React, { useRef, useCallback, useEffect } from "react";
+import Editor, { type EditorProps, type OnMount } from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
+import { useTheme } from "@/ui/theme/ThemeContext";
 
-interface QJudgeEditorProps extends Omit<EditorProps, 'onChange'> {
+interface QJudgeEditorProps extends Omit<EditorProps, "onChange"> {
   onChange?: (value: string) => void;
 }
 
@@ -29,63 +29,71 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
     isInternalChange.current = false;
   }, [props.value]);
 
-  const handleMount: OnMount = useCallback((editor, monaco) => {
-    editorRef.current = editor;
-    
-    monaco.editor.setTheme(theme === 'white' ? 'vs' : 'my-dark');
-    
-    // Fix layout issues
-    setTimeout(() => {
-      editor.layout();
-    }, 100);
-    document.fonts.ready.then(() => {
-      editor.layout();
-    });
+  const handleMount: OnMount = useCallback(
+    (editor, monaco) => {
+      editorRef.current = editor;
 
-    // Handle content changes - update parent without causing re-render loop
-    editor.onDidChangeModelContent(() => {
-      if (props.onChange) {
-        isInternalChange.current = true;
-        props.onChange(editor.getValue());
-      }
-    });
-    
-    props.onMount?.(editor, monaco);
-  }, [theme, props.onChange, props.onMount]);
+      monaco.editor.setTheme(theme === "white" ? "vs" : "my-dark");
+
+      // Fix layout issues
+      setTimeout(() => {
+        editor.layout();
+      }, 100);
+      document.fonts.ready.then(() => {
+        editor.layout();
+      });
+
+      // Handle content changes - update parent without causing re-render loop
+      editor.onDidChangeModelContent(() => {
+        if (props.onChange) {
+          isInternalChange.current = true;
+          props.onChange(editor.getValue());
+        }
+      });
+
+      props.onMount?.(editor, monaco);
+    },
+    [theme, props.onChange, props.onMount]
+  );
 
   return (
-    <div style={{ height: '100%', border: '1px solid var(--cds-border-subtle-01)' }}>
+    <div
+      style={{
+        height: "100%",
+        border: "1px solid var(--cds-border-subtle-01)",
+      }}
+    >
       <Editor
         height="100%"
-        theme={theme === 'white' ? 'vs' : 'my-dark'}
+        theme={theme === "white" ? "vs" : "my-dark"}
         // Use defaultValue instead of value to avoid controlled component issues
         defaultValue={props.value}
         language={props.language}
         beforeMount={(monaco) => {
           // Define custom theme
-          monaco.editor.defineTheme('my-dark', {
-            base: 'vs-dark',
+          monaco.editor.defineTheme("my-dark", {
+            base: "vs-dark",
             inherit: true,
             rules: [
-              { token: 'comment', foreground: '8FC876', fontStyle: 'italic' },
-              { token: 'keyword', foreground: 'E685DC', fontStyle: 'bold' },
-              { token: 'string', foreground: 'FFB86C' },
-              { token: 'number', foreground: 'D1F1A9' },
-              { token: 'type', foreground: '5FE7C3' },
-              { token: 'function', foreground: 'F9E2AF' },
-              { token: 'variable', foreground: 'B4E7FF' },
-              { token: 'operator', foreground: 'F5F5F5' },
+              { token: "comment", foreground: "8FC876", fontStyle: "italic" },
+              { token: "keyword", foreground: "E685DC", fontStyle: "bold" },
+              { token: "string", foreground: "FFB86C" },
+              { token: "number", foreground: "D1F1A9" },
+              { token: "type", foreground: "5FE7C3" },
+              { token: "function", foreground: "F9E2AF" },
+              { token: "variable", foreground: "B4E7FF" },
+              { token: "operator", foreground: "F5F5F5" },
             ],
             colors: {
-              'editor.background': '#0D1117',
-              'editor.foreground': '#E6EDF3',
-              'editorLineNumber.foreground': '#6E7681',
-              'editorLineNumber.activeForeground': '#FFFFFF',
-              'editor.selectionBackground': '#3B5270',
-              'editor.inactiveSelectionBackground': '#2D3748',
-              'editorCursor.foreground': '#58A6FF',
-              'editor.lineHighlightBackground': '#161B22',
-            }
+              "editor.background": "#0D1117",
+              "editor.foreground": "#E6EDF3",
+              "editorLineNumber.foreground": "#6E7681",
+              "editorLineNumber.activeForeground": "#FFFFFF",
+              "editor.selectionBackground": "#3B5270",
+              "editor.inactiveSelectionBackground": "#2D3748",
+              "editorCursor.foreground": "#58A6FF",
+              "editor.lineHighlightBackground": "#161B22",
+            },
           });
           props.beforeMount?.(monaco);
         }}
@@ -99,13 +107,13 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
           automaticLayout: true,
           fontLigatures: false,
           fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
-          fontWeight: '400',
-          cursorBlinking: 'smooth',
+          fontWeight: "400",
+          cursorBlinking: "smooth",
           // Disable smooth caret animation to prevent input lag
-          cursorSmoothCaretAnimation: 'off',
+          cursorSmoothCaretAnimation: "off",
           smoothScrolling: true,
           padding: { top: 16, bottom: 16 },
-          ...props.options
+          ...props.options,
         }}
       />
     </div>
