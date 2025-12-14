@@ -60,6 +60,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter contests based on visibility and user role.
+        Inactive contests are hidden from public listing unless user is owner/admin.
         """
         queryset = super().get_queryset()
         queryset = queryset.annotate(participant_count=Count('participants'))
@@ -67,44 +68,40 @@ class ContestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         scope = self.request.query_params.get('scope', 'visible')
 
-        # Teacher/Admin can see manage scope
+        # Teacher/Admin can see manage scope (all their contests)
         if scope == 'manage':
             if not user.is_authenticated:
                 return queryset.none()
             if user.is_staff or getattr(user, 'role', '') == 'admin':
                 return queryset
-            # Teachers see contests they own
-            return queryset.filter(owner=user)
+            # Teachers see contests they own or are admin of
+            return queryset.filter(Q(owner=user) | Q(admins=user)).distinct()
 
         # Public scope (default)
+        # Admin/staff can see all contests
         if user.is_staff or getattr(user, 'role', '') == 'admin':
             return queryset
 
         # For regular users:
-        # 1. Public contests (excluding inactive ones unless registered?)
-        # Actually, requirement says: "User 進不去 inactive contest (這代表沒開放)"
-        # So inactive contests should be hidden or return 403 if accessed directly.
-        # But get_queryset filters the list.
-        
-        queryset = queryset.filter(
-            Q(visibility__in=['public', 'private']) |
-            Q(participants=user) |
-            Q(owner=user)
-        ).distinct()
-
+        # - Active public/private contests are visible
+        # - Inactive contests are ONLY visible if user is owner or contest admin
+        # - Note: participants CANNOT see inactive contests in list (security requirement)
         if user.is_authenticated:
-             # Filter out inactive contests for non-owners/non-participants?
-             # Or just let them see it in list but block detail view?
-             # The requirement says "User 進不去 inactive contest".
-             # Usually this means detail view. But if they can't enter, maybe they shouldn't see it?
-             # But "inactive" also means "not open yet" or "ended"?
-             # Wait, status 'inactive' means "Not Open". 'active' means "Open".
-             # If it's inactive, maybe only owner should see it?
-             # Let's keep it visible in list if it's public, but block access in `retrieve` or `enter`.
-             pass
+            queryset = queryset.filter(
+                # Active contests with public/private visibility
+                Q(status='active', visibility__in=['public', 'private']) |
+                # User is the owner (can see all their contests regardless of status)
+                Q(owner=user) |
+                # User is a contest admin (can see all contests they manage)
+                Q(admins=user)
+            ).distinct()
         else:
-            queryset = queryset.filter(visibility='public')
-            
+            # Anonymous users only see active public contests
+            queryset = queryset.filter(
+                status='active',
+                visibility='public'
+            )
+
         return queryset
 
     def get_serializer_class(self):
@@ -143,10 +140,23 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         user = request.user
-        
-        # Allow if owner or admin
-        is_owner = user.is_authenticated and (instance.owner == user or user.is_staff or getattr(user, 'role', '') == 'admin')
-        
+
+        # Check if user is owner, admin, or contest admin
+        is_privileged = user.is_authenticated and (
+            instance.owner == user or
+            user.is_staff or
+            getattr(user, 'role', '') == 'admin' or
+            instance.admins.filter(pk=user.pk).exists()
+        )
+
+        # Block access to inactive contests for non-privileged users
+        # Note: Even participants cannot access inactive contests (only owners/admins can)
+        if instance.status == 'inactive' and not is_privileged:
+            return Response(
+                {'detail': 'This contest is not available.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         # Auto-unlock check
         if user.is_authenticated:
             try:
@@ -861,9 +871,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order').annotate(
             problem_score_sum=Sum('problem__test_cases__score')
         )
+        
+        # Only show problem titles to privileged users
+        # Non-privileged users only see labels (A, B, C...) to prevent info leak
+        show_problem_details = role in ['admin', 'teacher']
+        
         problems_data = [{
-            'id': cp.problem.id,
-            'title': cp.problem.title,
+            'id': cp.problem.id if show_problem_details else None,
+            'title': cp.problem.title if show_problem_details else None,
             'order': cp.order,
             'label': cp.label,
             'score': cp.problem_score_sum or 0
@@ -1130,11 +1145,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return response
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
     def download(self, request, pk=None):
         """
         Download contest files in PDF or Markdown format.
-        Accessible by participants and managers.
+        Only accessible by contest owners and admins (contains problem content).
         """
         from django.http import HttpResponse
         from .exporters import MarkdownExporter, PDFExporter, sanitize_filename
@@ -1142,20 +1157,20 @@ class ContestViewSet(viewsets.ModelViewSet):
         contest = self.get_object()
         user = request.user
         
-        # Check permissions: user must be participant, owner, or admin
-        role = get_user_role_in_contest(user, contest)
-        is_participant = ContestParticipant.objects.filter(contest=contest, user=user).exists()
+        # Permission is already checked by IsContestOwnerOrAdmin
+        # No additional check needed
         
-        if not (role in ['admin', 'teacher'] or is_participant):
-            return Response(
-                {'message': 'You must be a participant or manager to download contest files'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Get file_format and language from query params
+        # Get file_format, language, and scale from query params
         # Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
         file_format = request.query_params.get('file_format', 'markdown').lower()
         language = request.query_params.get('language', 'zh-TW')
+        
+        # Get scale parameter for PDF (0.5 to 2.0, default 1.0)
+        try:
+            scale = float(request.query_params.get('scale', '1.0'))
+            scale = max(0.5, min(2.0, scale))  # Clamp between 0.5 and 2.0
+        except (ValueError, TypeError):
+            scale = 1.0
         
         if file_format not in ['markdown', 'pdf']:
             return Response(
@@ -1175,7 +1190,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
                 
             else:  # pdf
-                exporter = PDFExporter(contest, language)
+                exporter = PDFExporter(contest, language, scale=scale)
                 pdf_file = exporter.export()
                 
                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')
@@ -1659,29 +1674,53 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         user = request.user
         role = get_user_role_in_contest(user, contest)
         
-        # Check permissions
-        if role not in ['admin', 'teacher']:
-            # Check if contest is active or ended (if allowed to view results)
-            if contest.status == 'inactive' and not contest.allow_view_results:
-                 return Response(
+        # Check if user is privileged (owner/admin/contest-admin)
+        is_privileged = user.is_authenticated and (
+            contest.owner == user or
+            user.is_staff or
+            getattr(user, 'role', '') == 'admin' or
+            contest.admins.filter(pk=user.pk).exists()
+        )
+        
+        # Privileged users can always view problem details
+        if not is_privileged:
+            # Check if registered
+            try:
+                participant = ContestParticipant.objects.get(contest=contest, user=user)
+            except ContestParticipant.DoesNotExist:
+                return Response(
+                    {'detail': 'You are not registered for this contest.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Must have started exam to view problems
+            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
+                return Response(
+                    {'detail': 'You must start the contest to view problems.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check contest time - only allow access during contest period
+            now = timezone.now()
+            
+            # Block if contest is inactive
+            if contest.status == 'inactive':
+                return Response(
                     {'detail': 'Contest is not active.'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Check if registered
-            try:
-                participant = ContestParticipant.objects.get(contest=contest, user=user)
-                
-                # Must have started exam or finished it to view problems
-                if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
-                     return Response(
-                        {'detail': 'You must start the contest to view problems.'}, 
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-                    
-            except ContestParticipant.DoesNotExist:
-                 return Response(
-                    {'detail': 'You are not registered for this contest.'}, 
+            # Block if contest hasn't started
+            if contest.start_time and now < contest.start_time:
+                return Response(
+                    {'detail': 'Contest has not started yet.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Block if contest has ended
+            if contest.end_time and now > contest.end_time:
+                return Response(
+                    {'detail': 'Contest has ended.'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
 

@@ -50,10 +50,12 @@ const DashboardPage = () => {
           announcementsData.filter((a: Announcement) => a.visible).slice(0, 5)
         );
 
-        // Filter upcoming or ongoing contests
+        // Filter upcoming or ongoing contests (exclude inactive)
         const now = new Date();
         const activeContests = contestsData
           .filter((c: Contest) => {
+            // Exclude inactive contests
+            if (c.status === "inactive") return false;
             const endTime = new Date(c.endTime);
             return endTime > now;
           })

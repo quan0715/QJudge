@@ -46,6 +46,8 @@ const ContestLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [contest, setContest] = useState<ContestDetail | null>(null);
+  const [contestLoading, setContestLoading] = useState(true);
+  const [contestNotFound, setContestNotFound] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("00:00:00");
   const [isCountdownToStart, setIsCountdownToStart] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -76,9 +78,35 @@ const ContestLayout = () => {
 
   useEffect(() => {
     if (contestId) {
-      getContest(contestId).then((c) => setContest(c || null));
+      setContestLoading(true);
+      setContestNotFound(false);
+      getContest(contestId)
+        .then((c) => {
+          if (c) {
+            setContest(c);
+            setContestNotFound(false);
+          } else {
+            // Contest not found (API returned undefined/404)
+            setContest(null);
+            setContestNotFound(true);
+          }
+        })
+        .catch(() => {
+          setContest(null);
+          setContestNotFound(true);
+        })
+        .finally(() => {
+          setContestLoading(false);
+        });
     }
   }, [contestId]);
+
+  // Redirect to 404 page if contest not found
+  useEffect(() => {
+    if (!contestLoading && contestNotFound) {
+      navigate("/not-found", { replace: true });
+    }
+  }, [contestLoading, contestNotFound, navigate]);
 
   // Beforeunload warning for exam mode
   useEffect(() => {
@@ -360,6 +388,54 @@ const ContestLayout = () => {
       console.error("Error toggling fullscreen:", err);
     }
   };
+
+  // Show loading state while fetching contest
+  if (contestLoading) {
+    return (
+      <Theme theme={theme}>
+        <div
+          style={{
+            height: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "var(--cds-background)",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                border: "4px solid var(--cds-border-subtle)",
+                borderTopColor: "var(--cds-link-primary)",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                margin: "0 auto 1rem",
+              }}
+            />
+            <p style={{ color: "var(--cds-text-secondary)" }}>
+              {tc("message.loading")}
+            </p>
+            <style>
+              {`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+          </div>
+        </div>
+      </Theme>
+    );
+  }
+
+  // If contest not found, the useEffect will redirect to /404
+  // Return null while redirecting
+  if (contestNotFound) {
+    return null;
+  }
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
