@@ -89,6 +89,8 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
       >
         <div style={{ height: '400px' }}>
           <QJudgeEditor 
+            // Use key to force re-mount when language changes (needed for defaultValue)
+            key={language}
             value={code}
             language={language === 'cpp' ? 'cpp' : language}
             onChange={(val) => setCode(val || '')}
