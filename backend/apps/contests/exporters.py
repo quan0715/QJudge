@@ -282,61 +282,271 @@ class PDFExporter(ContestExporter):
     """Export contest to PDF format with frontend-matching styles."""
     
     def get_css_styles(self) -> str:
-        """Get CSS styles matching the frontend design."""
+        """Get CSS styles matching the frontend Carbon Design System."""
         return """
+            /* ============================================
+               IBM Carbon Design System - PDF Export Styles
+               Matching frontend markdown.css
+               https://carbondesignsystem.com/guidelines/typography
+               ============================================ */
+            
+            @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Noto+Sans+TC:wght@400;600&display=swap');
+            
             @page {
                 size: A4;
-                margin: 1cm;
+                margin: 1.5cm;
             }
             * {
                 box-sizing: border-box;
             }
+            
+            /* Base body - Carbon body-compact-01 */
             body {
-                font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
-                line-height: 1.6;
-                color: #161616;
-                font-size: 10pt;
+                font-family: "IBM Plex Sans", "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+                font-size: 14px; /* 0.875rem */
+                font-weight: 400;
+                line-height: 1.42857;
+                letter-spacing: 0.16px;
+                color: #161616; /* Carbon text-primary */
                 margin: 0;
                 padding: 0;
             }
             
-            /* Headers */
+            /* ============================================
+               Headings - Carbon productive heading tokens
+               ============================================ */
+            
+            /* h1 - productive-heading-05 */
             h1 {
-                font-size: 22pt;
-                font-weight: 600;
+                font-size: 32px; /* 2rem */
+                font-weight: 400;
+                line-height: 1.25;
+                letter-spacing: 0;
                 border-bottom: 2px solid #0f62fe;
                 padding-bottom: 8px;
                 margin: 0 0 16px 0;
                 color: #161616;
             }
+            
+            /* h2 - productive-heading-04 */
             h2 {
-                font-size: 16pt;
-                font-weight: 600;
-                margin: 20px 0 12px 0;
+                font-size: 28px; /* 1.75rem */
+                font-weight: 400;
+                line-height: 1.28572;
+                letter-spacing: 0;
+                margin: 24px 0 12px 0;
                 color: #161616;
                 page-break-after: avoid;
             }
+            
+            /* h3 - productive-heading-03 */
             h3 {
-                font-size: 12pt;
+                font-size: 20px; /* 1.25rem */
+                font-weight: 400;
+                line-height: 1.4;
+                letter-spacing: 0;
+                margin: 20px 0 8px 0;
+                color: #161616;
+            }
+            
+            /* h4 - productive-heading-02 */
+            h4 {
+                font-size: 16px; /* 1rem */
                 font-weight: 600;
+                line-height: 1.375;
+                letter-spacing: 0;
                 margin: 16px 0 8px 0;
                 color: #161616;
             }
-            h4 {
-                font-size: 10pt;
+            
+            /* h5 - productive-heading-01 */
+            h5 {
+                font-size: 14px; /* 0.875rem */
                 font-weight: 600;
-                margin: 12px 0 6px 0;
+                line-height: 1.28572;
+                letter-spacing: 0.16px;
+                margin: 16px 0 8px 0;
+                color: #161616;
+            }
+            
+            /* h6 - label-01 */
+            h6 {
+                font-size: 12px; /* 0.75rem */
+                font-weight: 400;
+                line-height: 1.33333;
+                letter-spacing: 0.32px;
+                margin: 16px 0 8px 0;
+                color: #525252; /* Carbon text-secondary */
+            }
+            
+            /* ============================================
+               Paragraphs - Carbon body-long-01
+               ============================================ */
+            p {
+                font-size: 14px;
+                line-height: 1.42857;
+                letter-spacing: 0.16px;
+                margin: 0 0 16px 0;
+                color: #161616;
+            }
+            
+            /* ============================================
+               Lists - Following Carbon guidelines
+               ============================================ */
+            ul, ol {
+                margin: 0 0 16px 0;
+                padding-left: 32px; /* 2rem */
+                color: #161616;
+                list-style-position: outside;
+            }
+            ul { list-style-type: disc; }
+            ol { list-style-type: decimal; }
+            ul ul { list-style-type: circle; }
+            ul ul ul { list-style-type: square; }
+            ol ol { list-style-type: lower-alpha; }
+            ol ol ol { list-style-type: lower-roman; }
+            
+            li {
+                margin-bottom: 4px;
+                font-size: 14px;
+                line-height: 1.42857;
+            }
+            
+            ul ul, ol ol, ul ol, ol ul {
+                margin-top: 4px;
+                margin-bottom: 4px;
+            }
+            
+            /* ============================================
+               Code - Carbon code tokens
+               ============================================ */
+            
+            pre, code {
+                font-family: "IBM Plex Mono", "SF Mono", "Monaco", monospace;
+            }
+            
+            /* Inline code - code-01 with red text (Carbon support-error) */
+            code {
+                font-size: 12px; /* 0.75rem */
+                line-height: 1.33333;
+                letter-spacing: 0.32px;
+                background-color: #f4f4f4; /* Carbon layer-01 */
+                padding: 2px 4px;
+                border-radius: 2px;
+                color: #da1e28; /* Carbon support-error - red inline code */
+                font-weight: 400;
+            }
+            
+            /* Code blocks - code-02 */
+            pre {
+                background-color: #f4f4f4; /* Carbon layer-02 */
+                padding: 16px;
+                border-radius: 4px;
+                overflow-x: auto;
+                margin: 0 0 16px 0;
+                border: 1px solid #e0e0e0; /* Carbon border-subtle */
+            }
+            
+            pre code {
+                background-color: transparent;
+                padding: 0;
+                border-radius: 0;
+                color: #161616; /* Normal text color in code blocks */
+                font-size: 14px; /* 0.875rem - code-02 */
+                line-height: 1.42857;
+                font-weight: 400;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+            
+            /* ============================================
+               Links - Carbon link tokens
+               ============================================ */
+            a {
+                color: #0f62fe; /* Carbon link-primary */
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            
+            /* ============================================
+               Tables - IBM Cloud Docs style (Carbon)
+               ============================================ */
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 0 0 16px 0;
+                border: none;
+                font-size: 14px;
+            }
+            
+            table th, table td {
+                padding: 12px 16px;
+                text-align: left;
+                border: none;
+                border-bottom: 1px solid #e0e0e0; /* Carbon border-subtle-01 */
+            }
+            
+            table th {
+                background-color: transparent;
+                font-weight: 600;
+                color: #525252; /* Carbon text-secondary */
+                font-size: 12px; /* label-01 */
+                letter-spacing: 0.32px;
+                text-transform: uppercase;
+                border-bottom: 1px solid #8d8d8d; /* Carbon border-strong-01 */
+            }
+            
+            table tr:nth-child(even) {
+                background-color: transparent;
+            }
+            
+            /* ============================================
+               Blockquotes
+               ============================================ */
+            blockquote {
+                border-left: 4px solid #0f62fe; /* Carbon border-interactive */
+                padding-left: 16px;
+                margin-left: 0;
+                margin-bottom: 16px;
+                color: #525252; /* Carbon text-secondary */
+                font-style: normal;
+            }
+            blockquote p {
                 color: #525252;
             }
             
-            /* Container card - minimal borders */
+            /* ============================================
+               Horizontal rules
+               ============================================ */
+            hr {
+                border: none;
+                border-top: 1px solid #e0e0e0; /* Carbon border-subtle */
+                margin: 24px 0;
+            }
+            
+            /* ============================================
+               Strong and emphasis
+               ============================================ */
+            strong {
+                font-weight: 600;
+                color: #161616;
+            }
+            em {
+                font-style: italic;
+            }
+            
+            /* ============================================
+               Container card
+               ============================================ */
             .container-card {
                 margin-bottom: 16px;
                 page-break-inside: avoid;
             }
             .container-card-header {
                 font-weight: 600;
-                font-size: 11pt;
+                font-size: 14px;
                 margin-bottom: 8px;
                 padding-bottom: 6px;
                 border-bottom: 1px solid #e0e0e0;
@@ -345,47 +555,56 @@ class PDFExporter(ContestExporter):
                 padding: 0;
             }
             
-            /* Problem table */
+            /* ============================================
+               Problem table
+               ============================================ */
             .problem-table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 12px 0;
             }
             .problem-table th {
-                background-color: #f4f4f4;
-                border: 1px solid #e0e0e0;
-                padding: 10px 12px;
+                background-color: transparent;
+                border: none;
+                border-bottom: 1px solid #8d8d8d;
+                padding: 12px 16px;
                 text-align: left;
                 font-weight: 600;
-                font-size: 10pt;
+                font-size: 12px;
+                color: #525252;
+                text-transform: uppercase;
+                letter-spacing: 0.32px;
             }
             .problem-table td {
-                border: 1px solid #e0e0e0;
-                padding: 10px 12px;
-                font-size: 10pt;
+                border: none;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 12px 16px;
+                font-size: 14px;
             }
             .problem-table tr:nth-child(even) {
-                background-color: #fafafa;
+                background-color: transparent;
             }
             .problem-table .total-row {
                 font-weight: 600;
-                background-color: #f4f4f4;
+                border-top: 1px solid #8d8d8d;
             }
             
-            /* Sample test case card */
+            /* ============================================
+               Sample test case card
+               ============================================ */
             .sample-case {
                 border: 1px solid #e0e0e0;
-                border-radius: 6px;
+                border-radius: 4px;
                 margin-bottom: 12px;
                 overflow: hidden;
                 page-break-inside: avoid;
             }
             .sample-case-header {
                 background-color: #f4f4f4;
-                padding: 8px 12px;
+                padding: 8px 16px;
                 border-bottom: 1px solid #e0e0e0;
                 font-weight: 600;
-                font-size: 10pt;
+                font-size: 14px;
                 color: #161616;
             }
             .sample-case-content {
@@ -395,7 +614,7 @@ class PDFExporter(ContestExporter):
             .sample-case-column {
                 display: table-cell;
                 width: 50%;
-                padding: 12px;
+                padding: 16px;
                 vertical-align: top;
             }
             .sample-case-column:first-child {
@@ -403,44 +622,23 @@ class PDFExporter(ContestExporter):
             }
             .sample-case-label {
                 font-weight: 600;
-                font-size: 9pt;
-                color: #6f6f6f;
+                font-size: 12px;
+                color: #525252;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 6px;
+                letter-spacing: 0.32px;
+                margin-bottom: 8px;
             }
             
-            /* Code blocks */
-            pre, code {
-                font-family: "IBM Plex Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", monospace;
-            }
-            pre {
-                background-color: #f4f4f4;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                padding: 10px;
-                margin: 0;
-                overflow-x: auto;
-                font-size: 9pt;
-                line-height: 1.5;
-                white-space: pre-wrap;
-                word-wrap: break-word;
-            }
-            code {
-                background-color: #f4f4f4;
-                padding: 2px 4px;
-                border-radius: 3px;
-                font-size: 9pt;
-            }
-            
-            /* Tags */
+            /* ============================================
+               Tags
+               ============================================ */
             .tag {
                 display: inline-block;
-                padding: 3px 8px;
+                padding: 4px 8px;
                 border-radius: 4px;
-                font-size: 9pt;
+                font-size: 12px;
                 font-family: "IBM Plex Mono", monospace;
-                margin-right: 6px;
+                margin-right: 8px;
                 margin-bottom: 4px;
             }
             .tag-green {
@@ -452,40 +650,44 @@ class PDFExporter(ContestExporter):
                 color: #750e13;
             }
             
-            /* Info box - Carbon Design Notification Style */
+            /* ============================================
+               Info/Warning/Error/Success boxes
+               ============================================ */
             .info-box {
-                background-color: #edf5ff; /* Carbon notification-info-background */
-                border-left: 3px solid #0f62fe; /* Carbon support-info */
+                background-color: #edf5ff;
+                border-left: 3px solid #0f62fe;
                 padding: 12px 16px;
                 margin: 12px 0;
                 min-height: 48px;
             }
             .warning-box {
-                background-color: #fcf4d6; /* Carbon notification-warning-background */
-                border-left: 3px solid #f1c21b; /* Carbon support-warning */
+                background-color: #fcf4d6;
+                border-left: 3px solid #f1c21b;
                 padding: 12px 16px;
                 margin: 12px 0;
                 min-height: 48px;
             }
             .error-box {
-                background-color: #fff1f1; /* Carbon notification-error-background */
-                border-left: 3px solid #da1e28; /* Carbon support-error */
+                background-color: #fff1f1;
+                border-left: 3px solid #da1e28;
                 padding: 12px 16px;
                 margin: 12px 0;
                 min-height: 48px;
             }
             .success-box {
-                background-color: #defbe6; /* Carbon notification-success-background */
-                border-left: 3px solid #24a148; /* Carbon support-success */
+                background-color: #defbe6;
+                border-left: 3px solid #24a148;
                 padding: 12px 16px;
                 margin: 12px 0;
                 min-height: 48px;
             }
             
-            /* Metadata */
+            /* ============================================
+               Metadata
+               ============================================ */
             .metadata {
                 color: #525252;
-                font-size: 9pt;
+                font-size: 12px;
                 margin-bottom: 12px;
             }
             .metadata-item {
@@ -493,12 +695,16 @@ class PDFExporter(ContestExporter):
                 margin-right: 16px;
             }
             
-            /* Page break */
+            /* ============================================
+               Page break
+               ============================================ */
             .page-break {
                 page-break-after: always;
             }
             
-            /* Problem section - left line decoration */
+            /* ============================================
+               Problem section
+               ============================================ */
             .problem-section {
                 margin-bottom: 24px;
             }
@@ -506,36 +712,26 @@ class PDFExporter(ContestExporter):
                 border-left: 4px solid #0f62fe;
                 padding-left: 12px;
                 margin-bottom: 12px;
-                font-size: 14pt;
             }
             .problem-body {
                 padding: 0 0 0 16px;
             }
             
-            /* Lists in markdown */
-            ul, ol {
-                margin: 8px 0;
-                padding-left: 24px;
-            }
-            li {
-                margin-bottom: 4px;
-            }
-            
             /* ============================================
-               Aside / Callout blocks - IBM Carbon Design Notification Style
+               Aside / Callout blocks - IBM Carbon Notification Style
                https://carbondesignsystem.com/components/notification/style
                ============================================ */
             aside {
                 display: block;
-                min-height: 48px; /* 3rem */
-                padding: 12px 16px; /* 0.75rem 1rem */
-                margin: 12px 0;
-                background-color: #edf5ff; /* Carbon notification-info-background */
-                border-left: 3px solid #0f62fe; /* Carbon support-info */
+                min-height: 48px;
+                padding: 12px 16px;
+                margin: 16px 0;
+                background-color: #edf5ff;
+                border-left: 3px solid #0f62fe;
                 border-radius: 0;
                 color: #161616;
-                font-size: 10pt;
-                line-height: 1.5;
+                font-size: 14px;
+                line-height: 1.42857;
                 page-break-inside: avoid;
             }
             aside p {
@@ -550,10 +746,12 @@ class PDFExporter(ContestExporter):
             aside p:last-child {
                 margin-bottom: 0;
             }
-            /* Aside title styling */
-            aside strong:first-child {
+            /* Aside title - heading-compact-01 */
+            aside strong:first-child,
+            aside p:first-child strong:first-child {
                 font-weight: 600;
-                font-size: 10pt;
+                font-size: 14px;
+                line-height: 1.28572;
             }
             /* Info (default) - Blue */
             aside.info, aside.note {
@@ -562,22 +760,23 @@ class PDFExporter(ContestExporter):
             }
             /* Warning - Yellow */
             aside.warning, aside.caution {
-                background-color: #fcf4d6; /* Carbon notification-warning-background */
-                border-left-color: #f1c21b; /* Carbon support-warning */
+                background-color: #fcf4d6;
+                border-left-color: #f1c21b;
             }
             /* Error/Danger - Red */
             aside.error, aside.danger {
-                background-color: #fff1f1; /* Carbon notification-error-background */
-                border-left-color: #da1e28; /* Carbon support-error */
+                background-color: #fff1f1;
+                border-left-color: #da1e28;
             }
             /* Success/Tip - Green */
             aside.success, aside.tip {
-                background-color: #defbe6; /* Carbon notification-success-background */
-                border-left-color: #24a148; /* Carbon support-success */
+                background-color: #defbe6;
+                border-left-color: #24a148;
             }
-            /* Inline code inside aside */
+            /* Inline code inside aside - keep red styling */
             aside code {
                 background-color: rgba(0, 0, 0, 0.05);
+                color: #da1e28;
             }
             /* Lists inside aside */
             aside ul, aside ol {
@@ -586,28 +785,6 @@ class PDFExporter(ContestExporter):
             }
             aside li {
                 margin-bottom: 4px;
-            }
-            
-            /* Markdown tables */
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 12px 0;
-                font-size: 10pt;
-            }
-            table th {
-                background-color: #f4f4f4;
-                border: 1px solid #e0e0e0;
-                padding: 8px 12px;
-                text-align: left;
-                font-weight: 600;
-            }
-            table td {
-                border: 1px solid #e0e0e0;
-                padding: 8px 12px;
-            }
-            table tr:nth-child(even) {
-                background-color: #f9f9f9;
             }
             
             /* Exam mode notice */
