@@ -7,6 +7,7 @@ import {
   FormLabel, Accordion, AccordionItem
 } from '@carbon/react';
 import { Save, Upload } from '@carbon/icons-react';
+import { useTranslation } from 'react-i18n';
 import { TestCaseList } from './common/TestCaseList';
 import { TagSelect } from './common/TagSelect';
 import Editor from '@monaco-editor/react';
@@ -58,6 +59,8 @@ const ProblemForm = ({
   error: externalError,
   success: externalSuccess,
 }: ProblemFormProps) => {
+  const { t } = useTranslation('problem');
+  
   // Basic Info
   const [title, setTitle] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
@@ -348,7 +351,7 @@ const ProblemForm = ({
       {externalError && (
         <InlineNotification
           kind="error"
-          title="錯誤"
+          title={t('form.notification.error')}
           subtitle={externalError}
           style={{ marginBottom: '1rem' }}
         />
@@ -357,7 +360,7 @@ const ProblemForm = ({
       {externalSuccess && (
         <InlineNotification
           kind="success"
-          title="成功"
+          title={t('form.notification.success')}
           subtitle={externalSuccess}
           style={{ marginBottom: '1rem' }}
         />
@@ -374,12 +377,12 @@ const ProblemForm = ({
                       selectedIndex={['basic', 'content', 'testcases', 'languages', 'restrictions', 'preview'].indexOf(activeSection)}
                       onChange={({ name }) => setActiveSection(name as string)}
                   >
-                      <Switch name="basic" text="基本資訊" />
-                      <Switch name="content" text="題目內容" />
-                      <Switch name="testcases" text="測試案例" />
-                      <Switch name="languages" text="語言設定" />
-                      <Switch name="restrictions" text="程式碼限制" />
-                      <Switch name="preview" text="預覽" />
+                      <Switch name="basic" text={t('form.sections.basic')} />
+                      <Switch name="content" text={t('form.sections.content')} />
+                      <Switch name="testcases" text={t('form.sections.testcases')} />
+                      <Switch name="languages" text={t('form.sections.languages')} />
+                      <Switch name="restrictions" text={t('form.sections.restrictions')} />
+                      <Switch name="preview" text={t('form.sections.preview')} />
                   </ContentSwitcher>
                   <Button
                     kind="ghost"
@@ -387,7 +390,7 @@ const ProblemForm = ({
                     renderIcon={Upload}
                     onClick={() => setImportModalOpen(true)}
                   >
-                    匯入 YAML
+                    {t('form.actions.importYAML')}
                   </Button>
                 </div>
             </div>
@@ -398,8 +401,8 @@ const ProblemForm = ({
                     <Column lg={16} md={8} sm={4}>
                       <TextInput
                         id="problem-title"
-                        labelText="題目標題 (全局) *"
-                        placeholder="輸入題目標題..."
+                        labelText={t('form.basic.titleLabel')}
+                        placeholder={t('form.basic.titlePlaceholder')}
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
@@ -409,18 +412,18 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <Dropdown
                         id="difficulty"
-                        titleText="難度"
-                        label="選擇難度"
+                        titleText={t('form.basic.difficultyLabel')}
+                        label={t('form.basic.difficultySelect')}
                         items={[
-                          { id: 'easy', label: '簡單' },
-                          { id: 'medium', label: '中等' },
-                          { id: 'hard', label: '困難' }
+                          { id: 'easy', label: t('form.basic.difficultyEasy') },
+                          { id: 'medium', label: t('form.basic.difficultyMedium') },
+                          { id: 'hard', label: t('form.basic.difficultyHard') }
                         ]}
                         itemToString={(item) => item ? item.label : ''}
                         selectedItem={[
-                          { id: 'easy', label: '簡單' },
-                          { id: 'medium', label: '中等' },
-                          { id: 'hard', label: '困難' }
+                          { id: 'easy', label: t('form.basic.difficultyEasy') },
+                          { id: 'medium', label: t('form.basic.difficultyMedium') },
+                          { id: 'hard', label: t('form.basic.difficultyHard') }
                         ].find(i => i.id === difficulty)}
                         onChange={({ selectedItem }) => setDifficulty(selectedItem?.id || 'medium')}
                         style={{ marginBottom: '1rem' }}
@@ -429,7 +432,7 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <NumberInput
                         id="time-limit"
-                        label="時間限制 (ms)"
+                        label={t('form.basic.timeLimitLabel')}
                         value={timeLimit}
                         onChange={(e: any) => setTimeLimit(e.imaginaryTarget?.value || timeLimit)}
                         min={100}
@@ -440,7 +443,7 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <NumberInput
                         id="memory-limit"
-                        label="記憶體限制 (MB)"
+                        label={t('form.basic.memoryLimitLabel')}
                         value={memoryLimit}
                         onChange={(e: any) => setMemoryLimit(e.imaginaryTarget?.value || memoryLimit)}
                         min={16}
@@ -452,9 +455,9 @@ const ProblemForm = ({
                     <Column lg={16} md={8} sm={4}>
                       <Toggle
                         id="is-visible"
-                        labelText="題目可見性"
-                        labelA="隱藏"
-                        labelB="可見"
+                        labelText={t('form.basic.visibilityLabel')}
+                        labelA={t('form.basic.visibilityHidden')}
+                        labelB={t('form.basic.visibilityVisible')}
                         toggled={isVisible}
                         onToggle={(checked) => setIsVisible(checked)}
                         style={{ marginBottom: '1rem' }}
@@ -469,8 +472,8 @@ const ProblemForm = ({
                         pendingNewTags={pendingNewTagNames}
                         onPendingNewTagsChange={setPendingNewTagNames}
                         loading={tagsLoading}
-                        titleText="標籤"
-                        placeholder="搜尋或建立標籤..."
+                        titleText={t('form.basic.tagsLabel')}
+                        placeholder={t('form.basic.tagsPlaceholder')}
                       />
                     </Column>
                   </Grid>

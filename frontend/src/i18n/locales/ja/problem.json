@@ -65,5 +65,75 @@
     "cases": "個",
     "samples": "サンプル",
     "languages": "言語"
+  },
+  "form": {
+    "notification": {
+      "error": "エラー",
+      "success": "成功"
+    },
+    "sections": {
+      "basic": "基本情報",
+      "content": "問題内容",
+      "testcases": "テストケース",
+      "languages": "言語設定",
+      "restrictions": "コード制限",
+      "preview": "プレビュー"
+    },
+    "actions": {
+      "importYAML": "YAMLをインポート",
+      "delete": "問題を削除",
+      "cancel": "キャンセル",
+      "saving": "保存中...",
+      "update": "問題を更新",
+      "create": "問題を作成",
+      "add": "追加"
+    },
+    "basic": {
+      "titleLabel": "問題タイトル (グローバル) *",
+      "titlePlaceholder": "問題タイトルを入力...",
+      "difficultyLabel": "難易度",
+      "difficultySelect": "難易度を選択",
+      "difficultyEasy": "易しい",
+      "difficultyMedium": "中級",
+      "difficultyHard": "難しい",
+      "timeLimitLabel": "時間制限 (ms)",
+      "memoryLimitLabel": "メモリ制限 (MB)",
+      "visibilityLabel": "問題の可視性",
+      "visibilityHidden": "非表示",
+      "visibilityVisible": "表示",
+      "tagsLabel": "タグ",
+      "tagsPlaceholder": "タグを検索または作成..."
+    },
+    "content": {
+      "languageVersions": "言語バージョン",
+      "languageVersionsHelp": "以下のセクションを展開して、異なる言語で問題内容を編集します",
+      "chineseTraditional": "中文 (繁體)",
+      "english": "English",
+      "titleLabel": "問題タイトル *",
+      "titlePlaceholder": "タイトルを入力...",
+      "descriptionLabel": "問題の説明 (Markdown)",
+      "inputDescriptionLabel": "入力の説明 (Markdown)",
+      "outputDescriptionLabel": "出力の説明 (Markdown)",
+      "hintLabel": "ヒント (Markdown)"
+    },
+    "testcases": {
+      "description": "問題のテストケースを設定します。公開テストケースは学生に例として表示され、非表示テストケースは採点に使用されます。"
+    },
+    "languages": {
+      "title": "許可されたプログラミング言語",
+      "disabled": "無効",
+      "enabled": "有効",
+      "templateCode": "テンプレートコード"
+    },
+    "restrictions": {
+      "title": "コードキーワード制限",
+      "description": "学生の提出物に含める必要がある、または禁止するキーワードを設定します。特定の関数シグネチャを要求したり、標準ライブラリ関数を禁止するために一般的に使用されます。",
+      "requiredTitle": "必須キーワード",
+      "requiredDescription": "コードにこれらの文字列が含まれている必要があります（部分文字列一致）。例：特定の関数シグネチャ <code>void printRectangle(int w, int h, char c)</code> または <code>class Solution</code>。",
+      "requiredPlaceholder": "必須キーワードを入力...",
+      "forbiddenTitle": "禁止キーワード",
+      "forbiddenDescription": "コードにこれらの文字列を含めることはできません。例：<code>sort</code>、<code>qsort</code>などの標準ライブラリ関数を禁止します。",
+      "forbiddenPlaceholder": "禁止キーワードを入力..."
+    }
   }
 }
