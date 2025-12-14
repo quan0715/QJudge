@@ -238,7 +238,24 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         return registration.exam_status == ExamStatus.SUBMITTED if registration else False
     
     def get_problems(self, obj):
-        """Get contest problems with labels."""
+        """
+        Get contest problems with labels.
+        Hide problem structure before contest starts unless user is owner/admin.
+        """
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        # Check if user is owner or admin
+        is_privileged = user and user.is_authenticated and (
+            obj.owner == user or
+            user.is_staff or
+            getattr(user, 'role', '') == 'admin'
+        )
+
+        # Hide problems if contest hasn't started yet (and user is not privileged)
+        if not is_privileged and obj.start_time and timezone.now() < obj.start_time:
+            return []
+
         contest_problems = obj.contest_problems.select_related('problem').order_by('order')
         return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
 
