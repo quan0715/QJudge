@@ -60,6 +60,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter contests based on visibility and user role.
+        Inactive contests are hidden from public listing unless user is owner/participant.
         """
         queryset = super().get_queryset()
         queryset = queryset.annotate(participant_count=Count('participants'))
@@ -67,7 +68,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         scope = self.request.query_params.get('scope', 'visible')
 
-        # Teacher/Admin can see manage scope
+        # Teacher/Admin can see manage scope (all their contests)
         if scope == 'manage':
             if not user.is_authenticated:
                 return queryset.none()
@@ -77,34 +78,29 @@ class ContestViewSet(viewsets.ModelViewSet):
             return queryset.filter(owner=user)
 
         # Public scope (default)
+        # Admin/staff can see all contests
         if user.is_staff or getattr(user, 'role', '') == 'admin':
             return queryset
 
         # For regular users:
-        # 1. Public contests (excluding inactive ones unless registered?)
-        # Actually, requirement says: "User 進不去 inactive contest (這代表沒開放)"
-        # So inactive contests should be hidden or return 403 if accessed directly.
-        # But get_queryset filters the list.
-        
-        queryset = queryset.filter(
-            Q(visibility__in=['public', 'private']) |
-            Q(participants=user) |
-            Q(owner=user)
-        ).distinct()
-
+        # - Active public/private contests are visible
+        # - Inactive contests are only visible if user is owner or participant
         if user.is_authenticated:
-             # Filter out inactive contests for non-owners/non-participants?
-             # Or just let them see it in list but block detail view?
-             # The requirement says "User 進不去 inactive contest".
-             # Usually this means detail view. But if they can't enter, maybe they shouldn't see it?
-             # But "inactive" also means "not open yet" or "ended"?
-             # Wait, status 'inactive' means "Not Open". 'active' means "Open".
-             # If it's inactive, maybe only owner should see it?
-             # Let's keep it visible in list if it's public, but block access in `retrieve` or `enter`.
-             pass
+            queryset = queryset.filter(
+                # Active contests with public/private visibility
+                Q(status='active', visibility__in=['public', 'private']) |
+                # User is the owner (can see all their contests regardless of status)
+                Q(owner=user) |
+                # User is a participant (can see contests they joined regardless of status)
+                Q(participants=user)
+            ).distinct()
         else:
-            queryset = queryset.filter(visibility='public')
-            
+            # Anonymous users only see active public contests
+            queryset = queryset.filter(
+                status='active',
+                visibility='public'
+            )
+
         return queryset
 
     def get_serializer_class(self):
