@@ -276,17 +276,17 @@
   padding: 0.75rem 1rem;
   text-align: left;
   border: none;
-  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .markdown-body table th {
-  background-color: transparent;
+  background-color: var(--cds-layer-01);
   font-weight: 600;
   color: var(--cds-text-secondary);
   font-size: var(--cds-label-01-font-size, 0.75rem);
   letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--cds-border-strong-01, #8d8d8d);
+  border-bottom: 1px solid var(--cds-border-strong-01);
 }
 
 .markdown-body table tbody tr {
@@ -294,11 +294,22 @@
 }
 
 .markdown-body table tbody tr:hover {
-  background-color: var(--cds-layer-hover-01, #e8e8e8);
+  background-color: var(--cds-layer-hover-01);
 }
 
 .markdown-body table tr:nth-child(even) {
   background-color: transparent;
+}
+
+/* Dark theme table adjustments */
+[data-carbon-theme="g100"] .markdown-body table th,
+[data-carbon-theme="g90"] .markdown-body table th {
+  background-color: var(--cds-layer-02);
+}
+
+[data-carbon-theme="g100"] .markdown-body table tbody tr:hover,
+[data-carbon-theme="g90"] .markdown-body table tbody tr:hover {
+  background-color: var(--cds-layer-hover-02);
 }
 
 /* Horizontal rules */
