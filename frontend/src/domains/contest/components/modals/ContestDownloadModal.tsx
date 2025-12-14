@@ -68,7 +68,12 @@ export const ContestDownloadModal = ({
     );
     setLoading(true);
     try {
-      const blob = await downloadContestFile(contestId, format, language, scale);
+      const blob = await downloadContestFile(
+        contestId,
+        format,
+        language,
+        scale
+      );
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
