@@ -254,7 +254,9 @@ describe("Contests API - /api/v1/contests", () => {
             contentType?.includes("text/plain") ||
             contentType?.includes("application/octet-stream")
         ).toBe(true);
-        console.log(`✓ Markdown download successful, content-type: ${contentType}`);
+        console.log(
+          `✓ Markdown download successful, content-type: ${contentType}`
+        );
       }
     });
 
@@ -293,7 +295,9 @@ describe("Contests API - /api/v1/contests", () => {
           contentType?.includes("application/pdf") ||
             contentType?.includes("application/octet-stream")
         ).toBe(true);
-        console.log(`✓ PDF download with scale=1.5 successful, content-type: ${contentType}`);
+        console.log(
+          `✓ PDF download with scale=1.5 successful, content-type: ${contentType}`
+        );
       }
     });
 
