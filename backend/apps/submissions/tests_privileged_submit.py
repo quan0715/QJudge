@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 
 from apps.problems.models import Problem, TestCase as ProblemTestCase
 from apps.contests.models import Contest, ContestProblem, ContestParticipant
-from apps.submissions.models import Submission
+# from apps.submissions.models import Submission
 
 User = get_user_model()
 

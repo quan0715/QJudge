@@ -29,10 +29,10 @@ interface QJudgeEditorProps extends Omit<EditorProps, "onChange"> {
 export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
   const { theme } = useTheme();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
-  
+
   // Store onChange in ref to avoid recreating listener when callback changes
   const onChangeRef = useRef(props.onChange);
-  
+
   // Keep ref in sync with prop
   useEffect(() => {
     onChangeRef.current = props.onChange;

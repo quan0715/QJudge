@@ -184,7 +184,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       }
     }
     prevIsActiveRef.current = effectiveIsActive;
-  }, [isActive, isLocked, lockReason, examStatus, examModeEnabled, isBypassed]);
+  }, [
+    isActive,
+    isLocked,
+    lockReason,
+    examStatus,
+    examModeEnabled,
+    isBypassed,
+    currentUserRole,
+  ]);
 
   // Track last interaction time to debounce blur events during submit
   const lastInteractionTime = useRef<number>(0);

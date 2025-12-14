@@ -6,7 +6,6 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { authenticatedRequest, skipIfNoBackend, loginAs } from "./setup";
-import { downloadContestFile } from "../contest";
 
 describe("Contests API - /api/v1/contests", () => {
   let authToken: string | null = null;

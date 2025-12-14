@@ -187,12 +187,15 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             
             # Check if user is privileged (admin/owner/contest admin)
             # Privileged users can submit at any time regardless of contest status
-            is_privileged = (
-                user.is_staff or 
-                getattr(user, 'role', '') in ['admin', 'teacher'] or 
-                contest.owner == user or
-                contest.admins.filter(pk=user.pk).exists()
-            )
+            # Reorder checks to avoid unnecessary DB query
+            if user.is_staff:
+                is_privileged = True
+            elif getattr(user, 'role', '') in ['admin', 'teacher']:
+                is_privileged = True
+            elif contest.owner == user:
+                is_privileged = True
+            else:
+                is_privileged = contest.admins.filter(pk=user.pk).exists()
             
             # Validate contest status - only for non-privileged users
             # Admin/Owner can submit even when contest is inactive
