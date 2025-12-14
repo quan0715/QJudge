@@ -865,26 +865,43 @@ class PDFExporter(ContestExporter):
         # Exam mode notice
         exam_notice_html = ""
         if self.contest.exam_mode_enabled:
-            # First box: Warning (Yellow)
-            # Second box: Anti-cheating (Gray/Blue)
-            
+            # First box: Warning (Yellow) - exam rules
+            # Second box: Info (Blue) - anti-cheating policy
+
             if lang.startswith('zh'):
-                # Warning content
                 exam_notice_html = """
                 <aside class="warning">
-                    ⚠️ <strong>重要提醒</strong> - 🚫 禁止使用手機 - 🚫 禁止上網查資料 - 🚫 禁止使用 AI 工具（ChatGPT、Copilot 等） - 🚫 禁止抄襲或分享程式碼 - ✅ 可以攜帶<strong>紙本小抄</strong>（A4 單面一張）
+                    <p><strong>重要提醒</strong></p>
+                    <ul>
+                        <li>禁止使用手機</li>
+                        <li>禁止上網查資料</li>
+                        <li>禁止使用 AI 工具（ChatGPT、Copilot 等）</li>
+                        <li>禁止抄襲或分享程式碼</li>
+                        <li>可以攜帶<strong>紙本小抄</strong>（A4 單面一張）</li>
+                    </ul>
                 </aside>
-                <aside>
-                    🔒 <strong>QJudge 防作弊機制</strong> 本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。 ⚠️ 若被系統偵測到可疑行為，且監考助教判定<strong>並非誤觸</strong>，將會<strong>直接鎖定至考試結束</strong>，無法繼續作答！請專心作答，避免不必要的視窗切換。
+                <aside class="info">
+                    <p><strong>QJudge 防作弊機制</strong></p>
+                    <p>本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。</p>
+                    <p>若被系統偵測到可疑行為，且監考助教判定<strong>並非誤觸</strong>，將會<strong>直接鎖定至考試結束</strong>，無法繼續作答！請專心作答，避免不必要的視窗切換。</p>
                 </aside>
                 """
             else:
                 exam_notice_html = """
                 <aside class="warning">
-                    ⚠️ <strong>IMPORTANT</strong> - 🚫 No Phones - 🚫 No Internet Search - 🚫 No AI Tools (ChatGPT, Copilot etc.) - 🚫 No Plagiarism - ✅ <strong>One A4 cheat sheet</strong> allowed
+                    <p><strong>Important Notice</strong></p>
+                    <ul>
+                        <li>No phones allowed</li>
+                        <li>No internet search</li>
+                        <li>No AI tools (ChatGPT, Copilot, etc.)</li>
+                        <li>No plagiarism or code sharing</li>
+                        <li><strong>One A4 cheat sheet</strong> allowed</li>
+                    </ul>
                 </aside>
-                <aside>
-                    🔒 <strong>QJudge Anti-Cheating Policy</strong> This exam uses <strong>QJudge OJ</strong> with automatic monitoring. Suspicious behavior like switching windows will be detected. ⚠️ If confirmed as intentional, your exam will be <strong>locked immediately</strong> and you will not be able to continue. Please stay focused.
+                <aside class="info">
+                    <p><strong>QJudge Anti-Cheating Policy</strong></p>
+                    <p>This exam uses <strong>QJudge OJ</strong> with automatic monitoring. Suspicious behavior like switching windows will be detected.</p>
+                    <p>If confirmed as intentional, your exam will be <strong>locked immediately</strong> and you will not be able to continue. Please stay focused.</p>
                 </aside>
                 """
         
