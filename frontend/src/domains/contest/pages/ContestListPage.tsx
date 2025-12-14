@@ -75,20 +75,22 @@ const ContestListPage: React.FC = () => {
   ];
 
   /* Processing logic for contest lists (ongoing, upcoming, past) */
+  /* Exclude inactive contests from public listing */
   const now = new Date();
+  const activeContests = contests.filter((c) => c.status !== "inactive");
 
-  const ongoingContests = contests.filter((c) => {
+  const ongoingContests = activeContests.filter((c) => {
     const start = new Date(c.startTime);
     const end = new Date(c.endTime);
     return start <= now && end >= now;
   });
 
-  const upcomingContests = contests.filter((c) => {
+  const upcomingContests = activeContests.filter((c) => {
     const start = new Date(c.startTime);
     return start > now;
   });
 
-  const pastContests = contests.filter((c) => {
+  const pastContests = activeContests.filter((c) => {
     const end = new Date(c.endTime);
     return end < now;
   });
