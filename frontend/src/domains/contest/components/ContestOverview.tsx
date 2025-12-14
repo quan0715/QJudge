@@ -51,10 +51,8 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
               />
             )}
 
-            {/* Download Contest Files Section */}
-            {(contest.hasJoined ||
-              contest.isRegistered ||
-              contest.permissions?.canEditContest) && (
+            {/* Download Contest Files Section - Only for admins/teachers */}
+            {contest.permissions?.canEditContest && (
               <ContainerCard
                 title={t("overview.contestFiles")}
                 style={{ marginBottom: "1.5rem" }}
