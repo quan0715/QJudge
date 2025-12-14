@@ -580,6 +580,9 @@ export const downloadContestFile = async (
 
   // Only add scale param for PDF format
   if (format === "pdf" && scale !== 1.0) {
+    if (scale < 0.5 || scale > 2.0) {
+      throw new Error("Scale must be between 0.5 and 2.0");
+    }
     params.append("scale", scale.toString());
   }
 
