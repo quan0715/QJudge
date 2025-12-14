@@ -135,27 +135,22 @@ class ContestViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        Retrieve contest details. Block access if inactive and user is not owner/admin/participant.
+        Retrieve contest details. Block access if inactive and user is not owner/admin.
         """
         instance = self.get_object()
         user = request.user
 
-        # Check if user is owner or admin
+        # Check if user is owner, admin, or contest admin
         is_privileged = user.is_authenticated and (
             instance.owner == user or
             user.is_staff or
-            getattr(user, 'role', '') == 'admin'
+            getattr(user, 'role', '') == 'admin' or
+            instance.admins.filter(pk=user.pk).exists()
         )
 
-        # Check if user is a participant
-        is_participant = False
-        if user.is_authenticated:
-            is_participant = ContestParticipant.objects.filter(
-                contest=instance, user=user
-            ).exists()
-
-        # Block access to inactive contests for non-privileged, non-participant users
-        if instance.status == 'inactive' and not is_privileged and not is_participant:
+        # Block access to inactive contests for non-privileged users
+        # Note: Even participants cannot access inactive contests (only owners/admins can)
+        if instance.status == 'inactive' and not is_privileged:
             return Response(
                 {'detail': 'This contest is not available.'},
                 status=status.HTTP_404_NOT_FOUND
