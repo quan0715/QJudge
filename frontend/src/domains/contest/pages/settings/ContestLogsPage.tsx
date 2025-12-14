@@ -22,6 +22,7 @@ import { Renew } from "@carbon/icons-react";
 import { LineChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
+import { useTranslation } from "react-i18next";
 import type { ExamEvent } from "@/core/entities/contest.entity";
 import { useContest } from "@/domains/contest/contexts/ContestContext";
 import ContainerCard from "@/ui/components/layout/ContainerCard";
@@ -29,6 +30,8 @@ import SurfaceSection from "@/ui/components/layout/SurfaceSection";
 import { useTheme } from "@/ui/theme/ThemeContext";
 
 const ContestAdminLogsPage = () => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   // Use examEvents from context - no local fetch needed
   const { examEvents, isRefreshing, refreshAdminData, contest } = useContest();
   const { theme } = useTheme();
@@ -162,10 +165,10 @@ const ContestAdminLogsPage = () => {
 
     sortedIntervals.forEach(([timestamp, counts]) => {
       const date = new Date(timestamp);
-      data.push({ date, value: counts.violation, group: "違規事件" });
-      data.push({ date, value: counts.submission, group: "程式提交" });
-      data.push({ date, value: counts.lifecycle, group: "考試狀態" });
-      data.push({ date, value: counts.admin, group: "管理操作" });
+      data.push({ date, value: counts.violation, group: t("logs.chartGroups.violation") });
+      data.push({ date, value: counts.submission, group: t("logs.chartGroups.submission") });
+      data.push({ date, value: counts.lifecycle, group: t("logs.chartGroups.lifecycle") });
+      data.push({ date, value: counts.admin, group: t("logs.chartGroups.admin") });
     });
 
     return data;
@@ -179,11 +182,11 @@ const ContestAdminLogsPage = () => {
         bottom: {
           mapsTo: "date",
           scaleType: ScaleTypes.TIME,
-          title: "時間",
+          title: t("logs.axes.time"),
         },
         left: {
           mapsTo: "value",
-          title: "事件數量",
+          title: t("logs.axes.eventCount"),
           scaleType: ScaleTypes.LINEAR,
         },
       },
@@ -192,10 +195,10 @@ const ContestAdminLogsPage = () => {
       theme: theme === "g100" ? "g100" : "white",
       color: {
         scale: {
-          違規事件: "#da1e28",
-          程式提交: "#0f62fe",
-          考試狀態: "#24a148",
-          管理操作: "#8a3ffc",
+          [t("logs.chartGroups.violation")]: "#da1e28",
+          [t("logs.chartGroups.submission")]: "#0f62fe",
+          [t("logs.chartGroups.lifecycle")]: "#24a148",
+          [t("logs.chartGroups.admin")]: "#8a3ffc",
         },
       },
       legend: {
@@ -210,7 +213,7 @@ const ContestAdminLogsPage = () => {
         showTotal: false,
       },
     }),
-    [theme]
+    [theme, t]
   );
 
   // Filter events when search term changes
@@ -232,66 +235,66 @@ const ContestAdminLogsPage = () => {
 
   // Comprehensive event type mapping
   const getEventTag = (type: string) => {
-    const eventMap: Record<string, { label: string; type: any }> = {
+    const eventMap: Record<string, { labelKey: string; type: any }> = {
       // Registration/Join events
-      join: { label: "加入", type: "green" },
-      register: { label: "註冊", type: "green" },
-      unregister: { label: "取消註冊", type: "gray" },
-      enter_contest: { label: "進入競賽", type: "blue" },
-      leave: { label: "離開競賽", type: "gray" },
+      join: { labelKey: "logs.eventTypes.join", type: "green" },
+      register: { labelKey: "logs.eventTypes.register", type: "green" },
+      unregister: { labelKey: "logs.eventTypes.unregister", type: "gray" },
+      enter_contest: { labelKey: "logs.eventTypes.enter_contest", type: "blue" },
+      leave: { labelKey: "logs.eventTypes.leave", type: "gray" },
 
       // Exam lifecycle events
-      start_exam: { label: "開始考試", type: "cyan" },
-      end_exam: { label: "結束考試", type: "magenta" },
-      auto_submit: { label: "自動提交", type: "magenta" },
-      resume_exam: { label: "繼續考試", type: "cyan" },
-      reopen_exam: { label: "重新開放考試", type: "teal" },
-      pause_exam: { label: "暫停考試", type: "gray" },
+      start_exam: { labelKey: "logs.eventTypes.start_exam", type: "cyan" },
+      end_exam: { labelKey: "logs.eventTypes.end_exam", type: "magenta" },
+      auto_submit: { labelKey: "logs.eventTypes.auto_submit", type: "magenta" },
+      resume_exam: { labelKey: "logs.eventTypes.resume_exam", type: "cyan" },
+      reopen_exam: { labelKey: "logs.eventTypes.reopen_exam", type: "teal" },
+      pause_exam: { labelKey: "logs.eventTypes.pause_exam", type: "gray" },
 
       // Submission events
-      submit: { label: "提交", type: "blue" },
-      submit_code: { label: "提交程式碼", type: "purple" },
+      submit: { labelKey: "logs.eventTypes.submit", type: "blue" },
+      submit_code: { labelKey: "logs.eventTypes.submit_code", type: "purple" },
 
       // Cheat detection events (from ExamEvent)
-      tab_switch: { label: "切換分頁", type: "red" },
-      tab_hidden: { label: "隱藏分頁", type: "red" },
-      window_blur: { label: "離開視窗", type: "red" },
-      exit_fullscreen: { label: "退出全螢幕", type: "red" },
-      forbidden_focus_event: { label: "禁止焦點事件", type: "red" },
-      cheat_warning: { label: "違規警告", type: "red" },
+      tab_switch: { labelKey: "logs.eventTypes.tab_switch", type: "red" },
+      tab_hidden: { labelKey: "logs.eventTypes.tab_hidden", type: "red" },
+      window_blur: { labelKey: "logs.eventTypes.window_blur", type: "red" },
+      exit_fullscreen: { labelKey: "logs.eventTypes.exit_fullscreen", type: "red" },
+      forbidden_focus_event: { labelKey: "logs.eventTypes.forbidden_focus_event", type: "red" },
+      cheat_warning: { labelKey: "logs.eventTypes.cheat_warning", type: "red" },
 
       // Lock/Unlock events
-      lock: { label: "鎖定", type: "red" },
-      lock_user: { label: "鎖定用戶", type: "red" },
-      unlock: { label: "解鎖", type: "teal" },
-      unlock_user: { label: "解鎖用戶", type: "teal" },
+      lock: { labelKey: "logs.eventTypes.lock", type: "red" },
+      lock_user: { labelKey: "logs.eventTypes.lock_user", type: "red" },
+      unlock: { labelKey: "logs.eventTypes.unlock", type: "teal" },
+      unlock_user: { labelKey: "logs.eventTypes.unlock_user", type: "teal" },
 
       // Q&A events
-      ask_question: { label: "提問", type: "blue" },
-      reply_question: { label: "回覆提問", type: "blue" },
-      announce: { label: "發布公告", type: "magenta" },
+      ask_question: { labelKey: "logs.eventTypes.ask_question", type: "blue" },
+      reply_question: { labelKey: "logs.eventTypes.reply_question", type: "blue" },
+      announce: { labelKey: "logs.eventTypes.announce", type: "magenta" },
 
       // Admin/Management events
-      update_contest: { label: "更新競賽設定", type: "cool-gray" },
-      update_problem: { label: "更新題目", type: "gray" },
-      update_participant: { label: "更新參與者", type: "gray" },
-      publish_problem_to_practice: { label: "發布到練習區", type: "cool-gray" },
-      other: { label: "其他", type: "outline" },
+      update_contest: { labelKey: "logs.eventTypes.update_contest", type: "cool-gray" },
+      update_problem: { labelKey: "logs.eventTypes.update_problem", type: "gray" },
+      update_participant: { labelKey: "logs.eventTypes.update_participant", type: "gray" },
+      publish_problem_to_practice: { labelKey: "logs.eventTypes.publish_problem_to_practice", type: "cool-gray" },
+      other: { labelKey: "logs.eventTypes.other", type: "outline" },
     };
 
-    const config = eventMap[type] || { label: type, type: "outline" };
+    const config = eventMap[type] || { labelKey: "logs.eventTypes.other", type: "outline" };
     return (
       <Tag type={config.type} size="sm">
-        {config.label}
+        {t(config.labelKey)}
       </Tag>
     );
   };
 
   const headers = [
-    { key: "timestamp", header: "時間" },
-    { key: "userName", header: "使用者" },
-    { key: "eventType", header: "事件類型" },
-    { key: "reason", header: "詳細內容" },
+    { key: "timestamp", header: t("logs.table.headers.timestamp") },
+    { key: "userName", header: t("logs.table.headers.userName") },
+    { key: "eventType", header: t("logs.table.headers.eventType") },
+    { key: "reason", header: t("logs.table.headers.reason") },
   ];
 
   const startIndex = (page - 1) * pageSize;
@@ -313,7 +316,7 @@ const ContestAdminLogsPage = () => {
         {notification && (
           <InlineNotification
             kind={notification.kind}
-            title={notification.kind === "success" ? "成功" : "錯誤"}
+            title={t(`logs.notification.${notification.kind}`)}
             subtitle={notification.message}
             onClose={() => setNotification(null)}
             style={{ marginBottom: "1rem", maxWidth: "100%" }}
@@ -326,14 +329,14 @@ const ContestAdminLogsPage = () => {
           <>
             {/* Timeline Chart */}
             <ContainerCard
-              title="事件時序圖"
+              title={t("logs.eventTimeline")}
               style={{ marginBottom: "1rem" }}
               action={
                 <Toggle
                   id="show-chart-toggle"
                   size="sm"
-                  labelA="隱藏"
-                  labelB="顯示"
+                  labelA={t("logs.chart.toggle.hide")}
+                  labelB={t("logs.chart.toggle.show")}
                   toggled={showChart}
                   onToggle={() => setShowChart(!showChart)}
                 />
@@ -352,17 +355,17 @@ const ContestAdminLogsPage = () => {
                       color: "var(--cds-text-secondary)",
                     }}
                   >
-                    <span>📊 每 5 分鐘統計一次事件數量</span>
+                    <span>{t("logs.chart.statsNote")}</span>
                     {contest?.startTime && (
                       <span>
-                        🕐 考試開始:{" "}
+                        {t("logs.chart.examStart")}{" "}
                         {new Date(contest.startTime).toLocaleString()}
                       </span>
                     )}
                     {contest?.endTime &&
                       new Date(contest.endTime) < new Date() && (
                         <span>
-                          🏁 考試結束:{" "}
+                          {t("logs.chart.examEnd")}{" "}
                           {new Date(contest.endTime).toLocaleString()}
                         </span>
                       )}
@@ -376,14 +379,14 @@ const ContestAdminLogsPage = () => {
                     color: "var(--cds-text-secondary)",
                   }}
                 >
-                  暫無事件資料可供視覺化
+                  {t("logs.chart.noData")}
                 </div>
               ) : null}
             </ContainerCard>
 
             {/* Event Table */}
             <ContainerCard
-              title="考試紀錄"
+              title={t("logs.title")}
               noPadding
               action={
                 <Button
@@ -392,7 +395,7 @@ const ContestAdminLogsPage = () => {
                   renderIcon={Renew}
                   onClick={refreshAdminData}
                   hasIconOnly
-                  iconDescription="重新整理"
+                  iconDescription={tc("action.refresh")}
                   disabled={isRefreshing}
                 />
               }
@@ -420,7 +423,7 @@ const ContestAdminLogsPage = () => {
                           onChange={(e: any) =>
                             setSearchTerm(e.target?.value || "")
                           }
-                          placeholder="搜尋事件..."
+                          placeholder={t("logs.table.searchPlaceholder")}
                           persistent
                         />
                       </TableToolbarContent>
@@ -489,9 +492,9 @@ const ContestAdminLogsPage = () => {
               </DataTable>
               <Pagination
                 totalItems={filteredEvents.length}
-                backwardText="上一頁"
-                forwardText="下一頁"
-                itemsPerPageText="每頁顯示"
+                backwardText={tc("pagination.backwardText")}
+                forwardText={tc("pagination.forwardText")}
+                itemsPerPageText={tc("pagination.itemsPerPageText")}
                 page={page}
                 pageSize={pageSize}
                 pageSizes={[20, 50, 100, 200]}

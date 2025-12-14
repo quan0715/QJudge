@@ -65,5 +65,75 @@
     "cases": "",
     "samples": "samples",
     "languages": "languages"
+  },
+  "form": {
+    "notification": {
+      "error": "Error",
+      "success": "Success"
+    },
+    "sections": {
+      "basic": "Basic Info",
+      "content": "Problem Content",
+      "testcases": "Test Cases",
+      "languages": "Language Settings",
+      "restrictions": "Code Restrictions",
+      "preview": "Preview"
+    },
+    "actions": {
+      "importYAML": "Import YAML",
+      "delete": "Delete Problem",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "update": "Update Problem",
+      "create": "Create Problem",
+      "add": "Add"
+    },
+    "basic": {
+      "titleLabel": "Problem Title (Global) *",
+      "titlePlaceholder": "Enter problem title...",
+      "difficultyLabel": "Difficulty",
+      "difficultySelect": "Select difficulty",
+      "difficultyEasy": "Easy",
+      "difficultyMedium": "Medium",
+      "difficultyHard": "Hard",
+      "timeLimitLabel": "Time Limit (ms)",
+      "memoryLimitLabel": "Memory Limit (MB)",
+      "visibilityLabel": "Problem Visibility",
+      "visibilityHidden": "Hidden",
+      "visibilityVisible": "Visible",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Search or create tags..."
+    },
+    "content": {
+      "languageVersions": "Language Versions",
+      "languageVersionsHelp": "Expand the sections below to edit the problem content in different languages",
+      "chineseTraditional": "中文 (繁體)",
+      "english": "English",
+      "titleLabel": "Problem Title *",
+      "titlePlaceholder": "Enter title...",
+      "descriptionLabel": "Problem Description (Markdown)",
+      "inputDescriptionLabel": "Input Description (Markdown)",
+      "outputDescriptionLabel": "Output Description (Markdown)",
+      "hintLabel": "Hint (Markdown)"
+    },
+    "testcases": {
+      "description": "Configure the problem's test cases. Public test cases will be shown to students as examples, while hidden test cases are used for grading."
+    },
+    "languages": {
+      "title": "Allowed Programming Languages",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "templateCode": "Template Code"
+    },
+    "restrictions": {
+      "title": "Code Keyword Restrictions",
+      "description": "Set keywords that must be included or forbidden in student submissions. Commonly used to require specific function signatures or prohibit standard library functions.",
+      "requiredTitle": "Required Keywords",
+      "requiredDescription": "Code must contain these strings (substring match). For example: specific function signature <code>void printRectangle(int w, int h, char c)</code> or <code>class Solution</code>.",
+      "requiredPlaceholder": "Enter required keyword...",
+      "forbiddenTitle": "Forbidden Keywords",
+      "forbiddenDescription": "Code must not contain these strings. For example: prohibit <code>sort</code>, <code>qsort</code>, etc. standard library functions.",
+      "forbiddenPlaceholder": "Enter forbidden keyword..."
+    }
   }
 }

@@ -13,7 +13,59 @@
   "examMode": "시험 모드",
   "startTime": "시작 시간",
   "endTime": "종료 시간",
-  "participants": "참가자 수",
+  "participants": {
+    "title": "참가자 관리",
+    "addParticipant": "참가자 추가",
+    "statusFilter": {
+      "all": "모든 상태",
+      "not_started": "시작 전",
+      "in_progress": "진행 중",
+      "paused": "일시정지",
+      "locked": "잠김",
+      "submitted": "제출 완료"
+    },
+    "table": {
+      "headers": {
+        "username": "사용자",
+        "joinedAt": "참가 시간",
+        "status": "상태",
+        "lockReason": "잠금 사유",
+        "actions": "작업"
+      }
+    },
+    "actions": {
+      "unlock": "잠금 해제",
+      "reopen": "재개방",
+      "edit": "편집",
+      "remove": "제거"
+    },
+    "messages": {
+      "loadError": "참가자 목록을 불러올 수 없습니다",
+      "addSuccess": "참가자가 추가되었습니다",
+      "addError": "참가자 추가 실패",
+      "unlockConfirm": "이 학생의 잠금을 해제하시겠습니까?",
+      "unlockSuccess": "잠금 해제됨",
+      "unlockError": "잠금 해제 실패",
+      "updateSuccess": "참가자 상태가 업데이트되었습니다",
+      "updateError": "업데이트 실패",
+      "reopenConfirm": "이 학생의 시험을 재개방하시겠습니까?",
+      "reopenSuccess": "시험이 재개방되었습니다",
+      "reopenError": "재개방 실패",
+      "removeConfirm": "참가자 {{username}}을(를) 제거하시겠습니까?",
+      "removeSuccess": "참가자가 제거되었습니다",
+      "removeError": "참가자 제거 실패"
+    },
+    "editModal": {
+      "title": "참가자 상태 편집",
+      "statusLabel": "시험 상태",
+      "statusHelp": "이 참가자의 시험 상태 선택",
+      "lockReasonLabel": "잠금 사유 (선택사항)",
+      "lockReasonPlaceholder": "상태가 '잠김'인 경우 잠금 사유를 입력할 수 있습니다...",
+      "cancel": "취소",
+      "save": "저장",
+      "saving": "저장 중..."
+    }
+  },
   "problems": "문제 수",
   "duration": "기간",
   "progress": "진행률",
@@ -309,5 +361,143 @@
     "deleteContest": "대회 삭제",
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
     "joinPassword": "참가 비밀번호"
+  },
+  "logs": {
+    "title": "시험 로그",
+    "eventTimeline": "이벤트 타임라인",
+    "chartGroups": {
+      "violation": "위반 이벤트",
+      "submission": "제출",
+      "lifecycle": "시험 상태",
+      "admin": "관리 작업"
+    },
+    "axes": {
+      "time": "시간",
+      "eventCount": "이벤트 수"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "숨기기",
+        "show": "표시"
+      },
+      "statsNote": "📊 5분마다 이벤트 수 집계",
+      "examStart": "🕐 시험 시작:",
+      "examEnd": "🏁 시험 종료:",
+      "noData": "시각화할 이벤트 데이터가 없습니다"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "시간",
+        "userName": "사용자",
+        "eventType": "이벤트 유형",
+        "reason": "세부사항"
+      },
+      "searchPlaceholder": "이벤트 검색..."
+    },
+    "eventTypes": {
+      "join": "참가",
+      "register": "등록",
+      "unregister": "등록 취소",
+      "enter_contest": "대회 입장",
+      "leave": "대회 퇴장",
+      "start_exam": "시험 시작",
+      "end_exam": "시험 종료",
+      "auto_submit": "자동 제출",
+      "resume_exam": "시험 재개",
+      "reopen_exam": "시험 재개방",
+      "pause_exam": "시험 일시정지",
+      "submit": "제출",
+      "submit_code": "코드 제출",
+      "tab_switch": "탭 전환",
+      "tab_hidden": "탭 숨김",
+      "window_blur": "창 이탈",
+      "exit_fullscreen": "전체화면 종료",
+      "forbidden_focus_event": "금지된 포커스 이벤트",
+      "cheat_warning": "부정행위 경고",
+      "lock": "잠금",
+      "lock_user": "사용자 잠금",
+      "unlock": "잠금 해제",
+      "unlock_user": "사용자 잠금 해제",
+      "ask_question": "질문",
+      "reply_question": "질문 답변",
+      "announce": "공지 게시",
+      "update_contest": "대회 설정 업데이트",
+      "update_problem": "문제 업데이트",
+      "update_participant": "참가자 업데이트",
+      "publish_problem_to_practice": "연습 문제로 게시",
+      "other": "기타"
+    },
+    "notification": {
+      "success": "성공",
+      "error": "오류"
+    },
+    "pagination": {}
+  },
+  "clar": {
+    "loading": "로딩 중...",
+    "announcements": {
+      "title": "공지사항",
+      "publish": "공지 게시",
+      "noData": "아직 공지사항이 없습니다",
+      "deleteIconDesc": "공지 삭제",
+      "deleteConfirm": "이 공지사항을 삭제하시겠습니까?"
+    },
+    "qna": {
+      "title": "학생 질문 및 토론",
+      "askQuestion": "질문하기",
+      "noData": "아직 질문이 없습니다",
+      "author": "질문자",
+      "replier": "답변자"
+    },
+    "tags": {
+      "public": "공개",
+      "private": "비공개",
+      "answered": "답변 완료",
+      "publicReply": "공개 답변",
+      "onlyAskerVisible": "질문자만 볼 수 있음"
+    },
+    "actions": {
+      "reply": "답변",
+      "delete": "삭제",
+      "deleteConfirm": "이 질문을 삭제하시겠습니까?"
+    },
+    "labels": {
+      "replyLabel": "답변:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "질문하기",
+        "submit": "제출",
+        "cancel": "취소",
+        "questionLabel": "질문 내용",
+        "questionPlaceholder": "질문을 명확하게 설명해 주세요...",
+        "problemLabel": "관련 문제 (선택사항)",
+        "generalQuestion": "일반 질문"
+      },
+      "createAnnouncement": {
+        "heading": "공지 게시",
+        "submit": "게시",
+        "cancel": "취소",
+        "titleLabel": "공지 제목",
+        "titlePlaceholder": "제목 입력...",
+        "contentLabel": "공지 내용",
+        "contentPlaceholder": "내용 입력..."
+      },
+      "reply": {
+        "heading": "질문에 답변",
+        "submit": "답변 제출",
+        "cancel": "취소",
+        "replyLabel": "답변 내용",
+        "replyPlaceholder": "답변 입력...",
+        "publicCheckbox": "공개 답변 (모든 참가자가 볼 수 있음)"
+      },
+      "error": {
+        "heading": "오류"
+      }
+    },
+    "messages": {
+      "createClarError": "게시에 실패했습니다. 입력 내용을 확인하세요.",
+      "createAnnouncementError": "공지 게시에 실패했습니다"
+    }
   }
 }

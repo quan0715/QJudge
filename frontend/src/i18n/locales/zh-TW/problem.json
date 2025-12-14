@@ -65,5 +65,75 @@
     "cases": "個",
     "samples": "範例",
     "languages": "個語言"
+  },
+  "form": {
+    "notification": {
+      "error": "錯誤",
+      "success": "成功"
+    },
+    "sections": {
+      "basic": "基本資訊",
+      "content": "題目內容",
+      "testcases": "測試案例",
+      "languages": "語言設定",
+      "restrictions": "程式碼限制",
+      "preview": "預覽"
+    },
+    "actions": {
+      "importYAML": "匯入 YAML",
+      "delete": "刪除題目",
+      "cancel": "取消",
+      "saving": "儲存中...",
+      "update": "更新題目",
+      "create": "建立題目",
+      "add": "新增"
+    },
+    "basic": {
+      "titleLabel": "題目標題 (全局) *",
+      "titlePlaceholder": "輸入題目標題...",
+      "difficultyLabel": "難度",
+      "difficultySelect": "選擇難度",
+      "difficultyEasy": "簡單",
+      "difficultyMedium": "中等",
+      "difficultyHard": "困難",
+      "timeLimitLabel": "時間限制 (ms)",
+      "memoryLimitLabel": "記憶體限制 (MB)",
+      "visibilityLabel": "題目可見性",
+      "visibilityHidden": "隱藏",
+      "visibilityVisible": "可見",
+      "tagsLabel": "標籤",
+      "tagsPlaceholder": "搜尋或建立標籤..."
+    },
+    "content": {
+      "languageVersions": "語言版本 / Language Versions",
+      "languageVersionsHelp": "展開下方的區塊來編輯各語言版本的題目內容",
+      "chineseTraditional": "中文 (繁體)",
+      "english": "English (英文)",
+      "titleLabel": "題目標題 *",
+      "titlePlaceholder": "輸入標題...",
+      "descriptionLabel": "題目描述 (Markdown)",
+      "inputDescriptionLabel": "輸入說明 (Markdown)",
+      "outputDescriptionLabel": "輸出說明 (Markdown)",
+      "hintLabel": "提示 (Markdown)"
+    },
+    "testcases": {
+      "description": "設定題目的測試案例。公開的測資會顯示給學生作為範例，隱藏的測資用於評分。"
+    },
+    "languages": {
+      "title": "允許的程式語言",
+      "disabled": "停用",
+      "enabled": "啟用",
+      "templateCode": "範本程式碼"
+    },
+    "restrictions": {
+      "title": "程式碼關鍵字限制",
+      "description": "設定學生提交的程式碼必須包含或禁止使用的關鍵字。常用於要求特定函式簽名或禁用標準庫函式。",
+      "requiredTitle": "必須包含的關鍵字",
+      "requiredDescription": "程式碼中必須包含這些字串（子字串匹配）。例如：特定函式簽名 <code>void printRectangle(int w, int h, char c)</code> 或 <code>class Solution</code>。",
+      "requiredPlaceholder": "輸入必須關鍵字...",
+      "forbiddenTitle": "禁止使用的關鍵字",
+      "forbiddenDescription": "程式碼中不可包含這些字串。例如：禁用 <code>sort</code>、<code>qsort</code> 等標準庫函式。",
+      "forbiddenPlaceholder": "輸入禁用關鍵字..."
+    }
   }
 }

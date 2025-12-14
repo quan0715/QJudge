@@ -3,6 +3,9 @@
     "title": "ドキュメント",
     "subtitle": "QJudgeプラットフォームの使い方を学ぶ"
   },
+  "badge": {
+    "aiGenerated": "AI生成"
+  },
   "nav": {
     "productLabel": "ドキュメント",
     "searchPlaceholder": "ドキュメントを検索...",
@@ -32,6 +35,47 @@
       "dev-setup": "開発環境セットアップ",
       "e2e-testing": "E2Eテストガイド"
     }
+  },
+  "quickLinks": {
+    "student": {
+      "tag": "学生",
+      "title": "問題を解く",
+      "description": "問題の閲覧、コード作成、提出評価の方法を学ぶ"
+    },
+    "contestant": {
+      "tag": "コンテスト",
+      "title": "コンテストに参加",
+      "description": "コンテストルール、スコアリングシステム、トラブルシューティングを理解する"
+    },
+    "teacher": {
+      "tag": "教師",
+      "title": "コンテストを管理",
+      "description": "コンテストの作成、問題管理、学生の統計表示"
+    },
+    "admin": {
+      "tag": "管理者",
+      "title": "システム管理",
+      "description": "ユーザー、権限、システム設定の管理"
+    },
+    "developer": {
+      "tag": "開発者",
+      "title": "コードに貢献",
+      "description": "開発環境のセットアップとコントリビューションワークフローを学ぶ"
+    }
+  },
+  "search": {
+    "label": "ドキュメントを検索",
+    "placeholder": "ドキュメントを検索...",
+    "searching": "検索中...",
+    "noResults": "結果が見つかりません",
+    "resultsCount": "{{count}}件の結果が見つかりました",
+    "matches": "件一致"
+  },
+  "feedback": {
+    "title": "このページは役に立ちましたか？",
+    "helpful": "役に立った",
+    "notHelpful": "改善が必要",
+    "thanks": "フィードバックありがとうございます！"
   },
   "message": {
     "loading": "ドキュメントを読み込み中...",

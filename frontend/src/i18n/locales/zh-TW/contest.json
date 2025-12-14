@@ -13,7 +13,59 @@
   "examMode": "考試模式",
   "startTime": "開始時間",
   "endTime": "結束時間",
-  "participants": "參賽人數",
+  "participants": {
+    "title": "參賽者管理",
+    "addParticipant": "新增參賽者",
+    "statusFilter": {
+      "all": "全部狀態",
+      "not_started": "未開始",
+      "in_progress": "進行中",
+      "paused": "已暫停",
+      "locked": "已鎖定",
+      "submitted": "已交卷"
+    },
+    "table": {
+      "headers": {
+        "username": "使用者",
+        "joinedAt": "加入時間",
+        "status": "狀態",
+        "lockReason": "鎖定原因",
+        "actions": "操作"
+      }
+    },
+    "actions": {
+      "unlock": "解鎖",
+      "reopen": "重新開放",
+      "edit": "編輯",
+      "remove": "移除"
+    },
+    "messages": {
+      "loadError": "無法載入參賽者列表",
+      "addSuccess": "參賽者已新增",
+      "addError": "新增參賽者失敗",
+      "unlockConfirm": "確定要解除此學生的鎖定嗎？",
+      "unlockSuccess": "已解除鎖定",
+      "unlockError": "解除鎖定失敗",
+      "updateSuccess": "參賽者狀態已更新",
+      "updateError": "更新失敗",
+      "reopenConfirm": "確定要重新開放此學生考試嗎？",
+      "reopenSuccess": "已重新開放考試",
+      "reopenError": "重新開放失敗",
+      "removeConfirm": "確定要移除參賽者 {{username}} 嗎？",
+      "removeSuccess": "參賽者已移除",
+      "removeError": "移除參賽者失敗"
+    },
+    "editModal": {
+      "title": "編輯參賽者狀態",
+      "statusLabel": "考試狀態",
+      "statusHelp": "選擇此參賽者的考試狀態",
+      "lockReasonLabel": "鎖定原因 (選填)",
+      "lockReasonPlaceholder": "如果狀態為「已鎖定」，可在此輸入鎖定原因...",
+      "cancel": "取消",
+      "save": "儲存",
+      "saving": "儲存中..."
+    }
+  },
   "problems": "題目數",
   "duration": "時長",
   "progress": "考試進度",
@@ -309,5 +361,143 @@
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
     "joinPassword": "加入密碼"
+  },
+  "logs": {
+    "title": "考試紀錄",
+    "eventTimeline": "事件時序圖",
+    "chartGroups": {
+      "violation": "違規事件",
+      "submission": "程式提交",
+      "lifecycle": "考試狀態",
+      "admin": "管理操作"
+    },
+    "axes": {
+      "time": "時間",
+      "eventCount": "事件數量"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "隱藏",
+        "show": "顯示"
+      },
+      "statsNote": "📊 每 5 分鐘統計一次事件數量",
+      "examStart": "🕐 考試開始:",
+      "examEnd": "🏁 考試結束:",
+      "noData": "暫無事件資料可供視覺化"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "時間",
+        "userName": "使用者",
+        "eventType": "事件類型",
+        "reason": "詳細內容"
+      },
+      "searchPlaceholder": "搜尋事件..."
+    },
+    "eventTypes": {
+      "join": "加入",
+      "register": "註冊",
+      "unregister": "取消註冊",
+      "enter_contest": "進入競賽",
+      "leave": "離開競賽",
+      "start_exam": "開始考試",
+      "end_exam": "結束考試",
+      "auto_submit": "自動提交",
+      "resume_exam": "繼續考試",
+      "reopen_exam": "重新開放考試",
+      "pause_exam": "暫停考試",
+      "submit": "提交",
+      "submit_code": "提交程式碼",
+      "tab_switch": "切換分頁",
+      "tab_hidden": "隱藏分頁",
+      "window_blur": "離開視窗",
+      "exit_fullscreen": "退出全螢幕",
+      "forbidden_focus_event": "禁止焦點事件",
+      "cheat_warning": "違規警告",
+      "lock": "鎖定",
+      "lock_user": "鎖定用戶",
+      "unlock": "解鎖",
+      "unlock_user": "解鎖用戶",
+      "ask_question": "提問",
+      "reply_question": "回覆提問",
+      "announce": "發布公告",
+      "update_contest": "更新競賽設定",
+      "update_problem": "更新題目",
+      "update_participant": "更新參與者",
+      "publish_problem_to_practice": "發布到練習區",
+      "other": "其他"
+    },
+    "notification": {
+      "success": "成功",
+      "error": "錯誤"
+    },
+    "pagination": {}
+  },
+  "clar": {
+    "loading": "載入中...",
+    "announcements": {
+      "title": "公告",
+      "publish": "發布公告",
+      "noData": "目前沒有任何公告",
+      "deleteIconDesc": "刪除公告",
+      "deleteConfirm": "確定要刪除此公告？"
+    },
+    "qna": {
+      "title": "學生提問與討論",
+      "askQuestion": "提出問題",
+      "noData": "目前還沒有任何提問",
+      "author": "提問者",
+      "replier": "回覆者"
+    },
+    "tags": {
+      "public": "公開",
+      "private": "私密",
+      "answered": "已回覆",
+      "publicReply": "公開回覆",
+      "onlyAskerVisible": "僅提問者可見"
+    },
+    "actions": {
+      "reply": "回覆",
+      "delete": "刪除",
+      "deleteConfirm": "確定要刪除此提問？"
+    },
+    "labels": {
+      "replyLabel": "回覆:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "提出問題",
+        "submit": "送出",
+        "cancel": "取消",
+        "questionLabel": "問題內容",
+        "questionPlaceholder": "請清楚描述您的問題...",
+        "problemLabel": "相關題目（選填）",
+        "generalQuestion": "一般提問"
+      },
+      "createAnnouncement": {
+        "heading": "發布公告",
+        "submit": "發布",
+        "cancel": "取消",
+        "titleLabel": "公告標題",
+        "titlePlaceholder": "輸入標題...",
+        "contentLabel": "公告內容",
+        "contentPlaceholder": "輸入內容..."
+      },
+      "reply": {
+        "heading": "回覆提問",
+        "submit": "送出回覆",
+        "cancel": "取消",
+        "replyLabel": "回覆內容",
+        "replyPlaceholder": "輸入回覆...",
+        "publicCheckbox": "公開回覆（所有參賽者可見）"
+      },
+      "error": {
+        "heading": "錯誤"
+      }
+    },
+    "messages": {
+      "createClarError": "發布失敗，請檢查輸入內容",
+      "createAnnouncementError": "發布公告失敗"
+    }
   }
 }

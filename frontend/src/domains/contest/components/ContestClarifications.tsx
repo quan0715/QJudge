@@ -22,6 +22,7 @@ import {
   deleteContestAnnouncement
 } from '@/services/contest';
 import { Card } from '@/ui/components/Card';
+import { useTranslation } from 'react-i18n';
 
 interface ContestClarificationsProps {
   contestId: string;
@@ -36,6 +37,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   problems = [],
   contestStatus = 'active'
 }) => {
+  const { t } = useTranslation('contest');
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       fetchData();
     } catch (error) {
       console.error('Failed to create clarification', error);
-      showError('發布失敗，請檢查輸入內容');
+      showError(t('clar.messages.createClarError'));
     }
   };
 
@@ -136,7 +138,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       fetchData();
     } catch (error) {
       console.error('Failed to create announcement', error);
-      showError('發布公告失敗');
+      showError(t('clar.messages.createAnnouncementError'));
     }
   };
 
@@ -156,7 +158,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   };
 
   const handleDeleteClarification = async (clarId: string) => {
-    if (!confirm('確定要刪除此提問？')) return;
+    if (!confirm(t('clar.actions.deleteConfirm'))) return;
 
     try {
       await deleteClarification(contestId, clarId);
@@ -167,7 +169,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   };
 
   const handleDeleteAnnouncement = async (annId: string) => {
-    if (!confirm('確定要刪除此公告？')) return;
+    if (!confirm(t('clar.announcements.deleteConfirm'))) return;
     try {
       await deleteContestAnnouncement(contestId, annId);
       fetchData();
@@ -184,16 +186,16 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   };
 
   if (loading) {
-    return <div>載入中...</div>;
+    return <div>{t('clar.loading')}</div>;
   }
 
   return (
     <div className="contest-clarifications">
       {/* Announcements Section */}
       <Card 
-        title="公告" 
+        title={t('clar.announcements.title')}
         action={isTeacherOrAdmin && contestStatus === 'active' ? {
-          label: "發布公告",
+          label: t('clar.announcements.publish'),
           onClick: () => setAnnouncementModalOpen(true)
         } : undefined}
         style={{ marginBottom: '2rem' }}
@@ -204,7 +206,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
             textAlign: 'center', 
             color: 'var(--cds-text-secondary)' 
           }}>
-            目前沒有任何公告
+            {t('clar.announcements.noData')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -227,7 +229,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                           size="sm"
                           renderIcon={TrashCan}
                           hasIconOnly
-                          iconDescription="刪除公告"
+                          iconDescription={t('clar.announcements.deleteIconDesc')}
                           onClick={() => handleDeleteAnnouncement(ann.id)}
                           style={{ color: 'var(--cds-support-error)' }}
                         />
@@ -255,9 +257,9 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
 
       {/* Q&A Section */}
       <Card 
-        title="學生提問與討論"
+        title={t('clar.qna.title')}
         action={contestStatus === 'active' ? {
-          label: "提出問題",
+          label: t('clar.qna.askQuestion'),
           onClick: () => setModalOpen(true)
         } : undefined}
       >
@@ -267,7 +269,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
             textAlign: 'center', 
             color: 'var(--cds-text-secondary)' 
           }}>
-            目前還沒有任何提問
+            {t('clar.qna.noData')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -290,11 +292,11 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       </h4>
                       {clar.problemTitle && <Tag type="blue" size="sm">{clar.problemTitle}</Tag>}
                       {clar.isPublic ? (
-                        <Tag type="green" size="sm">公開</Tag>
+                        <Tag type="green" size="sm">{t('clar.tags.public')}</Tag>
                       ) : (
-                        <Tag type="gray" size="sm">私密</Tag>
+                        <Tag type="gray" size="sm">{t('clar.tags.private')}</Tag>
                       )}
-                      {clar.answer && <Tag type="purple" size="sm">已回覆</Tag>}
+                      {clar.answer && <Tag type="purple" size="sm">{t('clar.tags.answered')}</Tag>}
                     </div>
                     
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -305,14 +307,14 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                             size="sm"
                             onClick={() => openReplyModal(clar)}
                           >
-                            回覆
+                            {t('clar.actions.reply')}
                           </Button>
                           <Button
                             kind="ghost"
                             size="sm"
                             renderIcon={TrashCan}
                             hasIconOnly
-                            iconDescription="刪除"
+                            iconDescription={t('clar.actions.delete')}
                             onClick={() => handleDeleteClarification(clar.id)}
                             style={{ color: 'var(--cds-support-error)' }}
                           />
@@ -326,7 +328,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                   </p>
                   
                   <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                    提問者: {clar.authorUsername} · {new Date(clar.createdAt).toLocaleString()}
+                    {t('clar.qna.author')}: {clar.authorUsername} · {new Date(clar.createdAt).toLocaleString()}
                   </div>
                 </div>
 
@@ -345,11 +347,11 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                       color: 'var(--cds-text-primary)',
                       fontSize: '0.875rem'
                     }}>
-                      <span>回覆:</span>
+                      <span>{t('clar.labels.replyLabel')}</span>
                       {clar.isPublic ? (
-                        <Tag type="green" size="sm">公開回覆</Tag>
+                        <Tag type="green" size="sm">{t('clar.tags.publicReply')}</Tag>
                       ) : (
-                        <Tag type="gray" size="sm">僅提問者可見</Tag>
+                        <Tag type="gray" size="sm">{t('clar.tags.onlyAskerVisible')}</Tag>
                       )}
                     </div>
                     <p style={{ whiteSpace: 'pre-wrap', marginBottom: '0.5rem', color: 'var(--cds-text-primary)', fontSize: '0.875rem' }}>
@@ -357,7 +359,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                     </p>
                     {clar.answeredBy && (
                       <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                        回覆者: {clar.answeredBy}
+                        {t('clar.qna.replier')}: {clar.answeredBy}
                       </div>
                     )}
                   </div>
@@ -372,30 +374,30 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Create Clarification Modal */}
       <Modal
         open={modalOpen}
-        modalHeading="提出問題"
-        primaryButtonText="送出"
-        secondaryButtonText="取消"
+        modalHeading={t('clar.modals.createClar.heading')}
+        primaryButtonText={t('clar.modals.createClar.submit')}
+        secondaryButtonText={t('clar.modals.createClar.cancel')}
         onRequestClose={() => setModalOpen(false)}
         onRequestSubmit={handleCreateClarification}
       >
         <div style={{ marginBottom: '1rem' }}>
           <TextArea
             id="clar-question"
-            labelText="問題內容"
+            labelText={t('clar.modals.createClar.questionLabel')}
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
-            placeholder="請清楚描述您的問題..."
+            placeholder={t('clar.modals.createClar.questionPlaceholder')}
             rows={5}
           />
         </div>
         <div>
           <Select
             id="clar-problem"
-            labelText="相關題目（選填）"
+            labelText={t('clar.modals.createClar.problemLabel')}
             value={newProblemId}
             onChange={(e) => setNewProblemId(e.target.value)}
           >
-            <SelectItem value="" text="一般提問" />
+            <SelectItem value="" text={t('clar.modals.createClar.generalQuestion')} />
             {problems.map(p => (
               <SelectItem 
                 key={p.problemId} 
@@ -410,28 +412,28 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Create Announcement Modal */}
       <Modal
         open={announcementModalOpen}
-        modalHeading="發布公告"
-        primaryButtonText="發布"
-        secondaryButtonText="取消"
+        modalHeading={t('clar.modals.createAnnouncement.heading')}
+        primaryButtonText={t('clar.modals.createAnnouncement.submit')}
+        secondaryButtonText={t('clar.modals.createAnnouncement.cancel')}
         onRequestClose={() => setAnnouncementModalOpen(false)}
         onRequestSubmit={handleCreateAnnouncement}
       >
         <div style={{ marginBottom: '1rem' }}>
           <TextInput
             id="ann-title"
-            labelText="公告標題"
+            labelText={t('clar.modals.createAnnouncement.titleLabel')}
             value={announcementTitle}
             onChange={(e) => setAnnouncementTitle(e.target.value)}
-            placeholder="輸入標題..."
+            placeholder={t('clar.modals.createAnnouncement.titlePlaceholder')}
           />
         </div>
         <div style={{ marginBottom: '1rem' }}>
           <TextArea
             id="ann-content"
-            labelText="公告內容"
+            labelText={t('clar.modals.createAnnouncement.contentLabel')}
             value={announcementContent}
             onChange={(e) => setAnnouncementContent(e.target.value)}
-            placeholder="輸入內容..."
+            placeholder={t('clar.modals.createAnnouncement.contentPlaceholder')}
             rows={5}
           />
         </div>
@@ -440,25 +442,25 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Reply Modal */}
       <Modal
         open={replyModalOpen}
-        modalHeading="回覆提問"
-        primaryButtonText="送出回覆"
-        secondaryButtonText="取消"
+        modalHeading={t('clar.modals.reply.heading')}
+        primaryButtonText={t('clar.modals.reply.submit')}
+        secondaryButtonText={t('clar.modals.reply.cancel')}
         onRequestClose={() => setReplyModalOpen(false)}
         onRequestSubmit={handleReply}
       >
         <div style={{ marginBottom: '1rem' }}>
           <TextArea
             id="reply-text"
-            labelText="回覆內容"
+            labelText={t('clar.modals.reply.replyLabel')}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="輸入回覆..."
+            placeholder={t('clar.modals.reply.replyPlaceholder')}
             rows={5}
           />
         </div>
         <Checkbox
           id="reply-public"
-          labelText="公開回覆（所有參賽者可見）"
+          labelText={t('clar.modals.reply.publicCheckbox')}
           checked={replyIsPublic}
           onChange={(e) => setReplyIsPublic(e.target.checked)}
         />
@@ -467,7 +469,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Error Modal */}
       <Modal
         open={errorModalOpen}
-        modalHeading="錯誤"
+        modalHeading={t('clar.modals.error.heading')}
         passiveModal
         onRequestClose={() => setErrorModalOpen(false)}
       >

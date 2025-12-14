@@ -110,7 +110,11 @@
   "pagination": {
     "previous": "이전",
     "next": "다음",
-    "itemsPerPage": "페이지당 항목 수"
+    "itemsPerPage": "페이지당 항목 수",
+    "showing": "표시 중",
+    "backwardText": "이전",
+    "forwardText": "다음",
+    "itemsPerPageText": "페이지당 항목"
   },
   "language": {
     "switchTo": "언어 전환",

@@ -7,6 +7,7 @@ import {
   FormLabel, Accordion, AccordionItem
 } from '@carbon/react';
 import { Save, Upload } from '@carbon/icons-react';
+import { useTranslation } from 'react-i18n';
 import { TestCaseList } from './common/TestCaseList';
 import { TagSelect } from './common/TagSelect';
 import Editor from '@monaco-editor/react';
@@ -58,6 +59,8 @@ const ProblemForm = ({
   error: externalError,
   success: externalSuccess,
 }: ProblemFormProps) => {
+  const { t } = useTranslation('problem');
+  
   // Basic Info
   const [title, setTitle] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
@@ -348,7 +351,7 @@ const ProblemForm = ({
       {externalError && (
         <InlineNotification
           kind="error"
-          title="錯誤"
+          title={t('form.notification.error')}
           subtitle={externalError}
           style={{ marginBottom: '1rem' }}
         />
@@ -357,7 +360,7 @@ const ProblemForm = ({
       {externalSuccess && (
         <InlineNotification
           kind="success"
-          title="成功"
+          title={t('form.notification.success')}
           subtitle={externalSuccess}
           style={{ marginBottom: '1rem' }}
         />
@@ -374,12 +377,12 @@ const ProblemForm = ({
                       selectedIndex={['basic', 'content', 'testcases', 'languages', 'restrictions', 'preview'].indexOf(activeSection)}
                       onChange={({ name }) => setActiveSection(name as string)}
                   >
-                      <Switch name="basic" text="基本資訊" />
-                      <Switch name="content" text="題目內容" />
-                      <Switch name="testcases" text="測試案例" />
-                      <Switch name="languages" text="語言設定" />
-                      <Switch name="restrictions" text="程式碼限制" />
-                      <Switch name="preview" text="預覽" />
+                      <Switch name="basic" text={t('form.sections.basic')} />
+                      <Switch name="content" text={t('form.sections.content')} />
+                      <Switch name="testcases" text={t('form.sections.testcases')} />
+                      <Switch name="languages" text={t('form.sections.languages')} />
+                      <Switch name="restrictions" text={t('form.sections.restrictions')} />
+                      <Switch name="preview" text={t('form.sections.preview')} />
                   </ContentSwitcher>
                   <Button
                     kind="ghost"
@@ -387,7 +390,7 @@ const ProblemForm = ({
                     renderIcon={Upload}
                     onClick={() => setImportModalOpen(true)}
                   >
-                    匯入 YAML
+                    {t('form.actions.importYAML')}
                   </Button>
                 </div>
             </div>
@@ -398,8 +401,8 @@ const ProblemForm = ({
                     <Column lg={16} md={8} sm={4}>
                       <TextInput
                         id="problem-title"
-                        labelText="題目標題 (全局) *"
-                        placeholder="輸入題目標題..."
+                        labelText={t('form.basic.titleLabel')}
+                        placeholder={t('form.basic.titlePlaceholder')}
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
@@ -409,18 +412,18 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <Dropdown
                         id="difficulty"
-                        titleText="難度"
-                        label="選擇難度"
+                        titleText={t('form.basic.difficultyLabel')}
+                        label={t('form.basic.difficultySelect')}
                         items={[
-                          { id: 'easy', label: '簡單' },
-                          { id: 'medium', label: '中等' },
-                          { id: 'hard', label: '困難' }
+                          { id: 'easy', label: t('form.basic.difficultyEasy') },
+                          { id: 'medium', label: t('form.basic.difficultyMedium') },
+                          { id: 'hard', label: t('form.basic.difficultyHard') }
                         ]}
                         itemToString={(item) => item ? item.label : ''}
                         selectedItem={[
-                          { id: 'easy', label: '簡單' },
-                          { id: 'medium', label: '中等' },
-                          { id: 'hard', label: '困難' }
+                          { id: 'easy', label: t('form.basic.difficultyEasy') },
+                          { id: 'medium', label: t('form.basic.difficultyMedium') },
+                          { id: 'hard', label: t('form.basic.difficultyHard') }
                         ].find(i => i.id === difficulty)}
                         onChange={({ selectedItem }) => setDifficulty(selectedItem?.id || 'medium')}
                         style={{ marginBottom: '1rem' }}
@@ -429,7 +432,7 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <NumberInput
                         id="time-limit"
-                        label="時間限制 (ms)"
+                        label={t('form.basic.timeLimitLabel')}
                         value={timeLimit}
                         onChange={(e: any) => setTimeLimit(e.imaginaryTarget?.value || timeLimit)}
                         min={100}
@@ -440,7 +443,7 @@ const ProblemForm = ({
                     <Column lg={4} md={4} sm={4}>
                       <NumberInput
                         id="memory-limit"
-                        label="記憶體限制 (MB)"
+                        label={t('form.basic.memoryLimitLabel')}
                         value={memoryLimit}
                         onChange={(e: any) => setMemoryLimit(e.imaginaryTarget?.value || memoryLimit)}
                         min={16}
@@ -452,9 +455,9 @@ const ProblemForm = ({
                     <Column lg={16} md={8} sm={4}>
                       <Toggle
                         id="is-visible"
-                        labelText="題目可見性"
-                        labelA="隱藏"
-                        labelB="可見"
+                        labelText={t('form.basic.visibilityLabel')}
+                        labelA={t('form.basic.visibilityHidden')}
+                        labelB={t('form.basic.visibilityVisible')}
                         toggled={isVisible}
                         onToggle={(checked) => setIsVisible(checked)}
                         style={{ marginBottom: '1rem' }}
@@ -469,8 +472,8 @@ const ProblemForm = ({
                         pendingNewTags={pendingNewTagNames}
                         onPendingNewTagsChange={setPendingNewTagNames}
                         loading={tagsLoading}
-                        titleText="標籤"
-                        placeholder="搜尋或建立標籤..."
+                        titleText={t('form.basic.tagsLabel')}
+                        placeholder={t('form.basic.tagsPlaceholder')}
                       />
                     </Column>
                   </Grid>
@@ -480,21 +483,21 @@ const ProblemForm = ({
             <div style={{ display: activeSection === 'content' ? 'block' : 'none' }}>
                 <div style={{ marginBottom: '1rem' }}>
                     <FormLabel style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>
-                        語言版本 / Language Versions
+                        {t('form.content.languageVersions')}
                     </FormLabel>
                     <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>
-                        展開下方的區塊來編輯各語言版本的題目內容
+                        {t('form.content.languageVersionsHelp')}
                     </p>
                     
                     <Accordion>
                         {/* Chinese Version */}
-                        <AccordionItem title="中文 (繁體)" open>
+                        <AccordionItem title={t('form.content.chineseTraditional')} open>
                             <Grid>
                                 <Column lg={16}>
                                     <TextInput
                                         id="title-zh"
-                                        labelText="題目標題 *"
-                                        placeholder="輸入標題..."
+                                        labelText={t('form.content.titleLabel')}
+                                        placeholder={t('form.content.titlePlaceholder')}
                                         value={translationTitle}
                                         onChange={(e) => setTranslationTitle(e.target.value)}
                                         required
@@ -502,7 +505,7 @@ const ProblemForm = ({
                                     />
                                     <TextArea
                                         id="description-zh"
-                                        labelText="題目描述 (Markdown)"
+                                        labelText={t('form.content.descriptionLabel')}
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         rows={8}
@@ -512,7 +515,7 @@ const ProblemForm = ({
                                 <Column lg={8}>
                                     <TextArea
                                         id="input-desc-zh"
-                                        labelText="輸入說明 (Markdown)"
+                                        labelText={t('form.content.inputDescriptionLabel')}
                                         value={inputDescription}
                                         onChange={(e) => setInputDescription(e.target.value)}
                                         rows={4}
@@ -522,7 +525,7 @@ const ProblemForm = ({
                                 <Column lg={8}>
                                     <TextArea
                                         id="output-desc-zh"
-                                        labelText="輸出說明 (Markdown)"
+                                        labelText={t('form.content.outputDescriptionLabel')}
                                         value={outputDescription}
                                         onChange={(e) => setOutputDescription(e.target.value)}
                                         rows={4}
@@ -532,7 +535,7 @@ const ProblemForm = ({
                                 <Column lg={16}>
                                     <TextArea
                                         id="hint-zh"
-                                        labelText="提示 (Markdown)"
+                                        labelText={t('form.content.hintLabel')}
                                         value={hint}
                                         onChange={(e) => setHint(e.target.value)}
                                         rows={2}
@@ -543,7 +546,7 @@ const ProblemForm = ({
                         </AccordionItem>
 
                         {/* English Version */}
-                        <AccordionItem title="English">
+                        <AccordionItem title={t('form.content.english')}>
                             <Grid>
                                 <Column lg={16}>
                                     <TextInput
@@ -603,7 +606,7 @@ const ProblemForm = ({
             <div style={{ display: activeSection === 'testcases' ? 'block' : 'none' }}>
                 <div style={{ marginBottom: '1rem' }}>
                     <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>
-                        設定題目的測試案例。公開的測資會顯示給學生作為範例，隱藏的測資用於評分。
+                        {t('form.testcases.description')}
                     </p>
                 </div>
                 <TestCaseList
@@ -627,7 +630,7 @@ const ProblemForm = ({
             {/* Languages Section */}
             <div style={{ display: activeSection === 'languages' ? 'block' : 'none' }}>
                  <div style={{ padding: '1rem' }}>
-                    <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>允許的程式語言</h4>
+                    <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>{t('form.languages.title')}</h4>
                     {LANGUAGE_OPTIONS.map((lang) => {
                       const config = languageConfigs.find(c => c.language === lang.id);
                       const isEnabled = config?.isEnabled ?? true;
@@ -637,8 +640,8 @@ const ProblemForm = ({
                           <Toggle
                             id={`lang-${lang.id}`}
                             labelText={lang.label}
-                            labelA="停用"
-                            labelB="啟用"
+                            labelA={t('form.languages.disabled')}
+                            labelB={t('form.languages.enabled')}
                             toggled={isEnabled}
                             onToggle={(checked) => {
                                 setLanguageConfigs(prev => 
@@ -655,7 +658,7 @@ const ProblemForm = ({
                           {isEnabled && (
                             <div style={{ marginTop: '0.5rem' }}>
                               <div style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                                範本程式碼
+                                {t('form.languages.templateCode')}
                               </div>
                               <div style={{ border: '1px solid var(--cds-border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <Editor
@@ -691,25 +694,24 @@ const ProblemForm = ({
             {/* Restrictions Section */}
             <div style={{ display: activeSection === 'restrictions' ? 'block' : 'none' }}>
                 <div style={{ padding: '1rem' }}>
-                    <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>程式碼關鍵字限制</h4>
+                    <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>{t('form.restrictions.title')}</h4>
                     <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1.5rem' }}>
-                        設定學生提交的程式碼必須包含或禁止使用的關鍵字。常用於要求特定函式簽名或禁用標準庫函式。
+                        {t('form.restrictions.description')}
                     </p>
 
                     {/* Required Keywords */}
                     <div style={{ marginBottom: '2rem' }}>
                         <FormLabel style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>
-                            必須包含的關鍵字
+                            {t('form.restrictions.requiredTitle')}
                         </FormLabel>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
-                            程式碼中必須包含這些字串（子字串匹配）。例如：特定函式簽名 <code>void printRectangle(int w, int h, char c)</code>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{__html: t('form.restrictions.requiredDescription')}}>
                         </p>
                         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                             <TextInput
                                 id="new-required-keyword"
                                 labelText=""
                                 hideLabel
-                                placeholder="輸入必須關鍵字..."
+                                placeholder={t('form.restrictions.requiredPlaceholder')}
                                 value={newRequiredKeyword}
                                 onChange={(e) => setNewRequiredKeyword(e.target.value)}
                                 onKeyDown={(e) => {
@@ -732,7 +734,7 @@ const ProblemForm = ({
                                     }
                                 }}
                             >
-                                新增
+                                {t('form.actions.add')}
                             </Button>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -773,17 +775,16 @@ const ProblemForm = ({
                     {/* Forbidden Keywords */}
                     <div>
                         <FormLabel style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>
-                            禁止使用的關鍵字
+                            {t('form.restrictions.forbiddenTitle')}
                         </FormLabel>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>
-                            程式碼中不可包含這些字串。例如：禁用 <code>sort</code>、<code>qsort</code> 等標準庫函式
+                        <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{__html: t('form.restrictions.forbiddenDescription')}}>
                         </p>
                         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                             <TextInput
                                 id="new-forbidden-keyword"
                                 labelText=""
                                 hideLabel
-                                placeholder="輸入禁用關鍵字..."
+                                placeholder={t('form.restrictions.forbiddenPlaceholder')}
                                 value={newForbiddenKeyword}
                                 onChange={(e) => setNewForbiddenKeyword(e.target.value)}
                                 onKeyDown={(e) => {
@@ -806,7 +807,7 @@ const ProblemForm = ({
                                     }
                                 }}
                             >
-                                新增
+                                {t('form.actions.add')}
                             </Button>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -889,19 +890,19 @@ const ProblemForm = ({
             <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               {isEditMode && onDelete ? (
                 <Button kind="danger--tertiary" onClick={onDelete}>
-                  刪除題目
+                  {t('form.actions.delete')}
                 </Button>
               ) : (
                 <div />
               )}
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <Button kind="secondary" onClick={onCancel}>取消</Button>
+                <Button kind="secondary" onClick={onCancel}>{t('form.actions.cancel')}</Button>
                 <Button
                   type="submit"
                   renderIcon={Save}
                   disabled={loading}
                 >
-                  {loading ? '儲存中...' : (isEditMode ? '更新題目' : '建立題目')}
+                  {loading ? t('form.actions.saving') : (isEditMode ? t('form.actions.update') : t('form.actions.create'))}
                 </Button>
               </div>
             </div>

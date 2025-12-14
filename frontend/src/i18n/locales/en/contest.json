@@ -13,7 +13,59 @@
   "examMode": "Exam Mode",
   "startTime": "Start Time",
   "endTime": "End Time",
-  "participants": "Participants",
+  "participants": {
+    "title": "Participant Management",
+    "addParticipant": "Add Participant",
+    "statusFilter": {
+      "all": "All Status",
+      "not_started": "Not Started",
+      "in_progress": "In Progress",
+      "paused": "Paused",
+      "locked": "Locked",
+      "submitted": "Submitted"
+    },
+    "table": {
+      "headers": {
+        "username": "User",
+        "joinedAt": "Joined At",
+        "status": "Status",
+        "lockReason": "Lock Reason",
+        "actions": "Actions"
+      }
+    },
+    "actions": {
+      "unlock": "Unlock",
+      "reopen": "Reopen",
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+    "messages": {
+      "loadError": "Failed to load participants list",
+      "addSuccess": "Participant added",
+      "addError": "Failed to add participant",
+      "unlockConfirm": "Are you sure you want to unlock this student?",
+      "unlockSuccess": "Unlocked successfully",
+      "unlockError": "Failed to unlock",
+      "updateSuccess": "Participant status updated",
+      "updateError": "Update failed",
+      "reopenConfirm": "Are you sure you want to reopen the exam for this student?",
+      "reopenSuccess": "Exam reopened successfully",
+      "reopenError": "Failed to reopen exam",
+      "removeConfirm": "Are you sure you want to remove participant {{username}}?",
+      "removeSuccess": "Participant removed",
+      "removeError": "Failed to remove participant"
+    },
+    "editModal": {
+      "title": "Edit Participant Status",
+      "statusLabel": "Exam Status",
+      "statusHelp": "Select the exam status for this participant",
+      "lockReasonLabel": "Lock Reason (Optional)",
+      "lockReasonPlaceholder": "If status is 'Locked', you can enter the lock reason here...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
+  },
   "problems": "Problems",
   "duration": "Duration",
   "progress": "Progress",
@@ -309,5 +361,143 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "joinPassword": "Join Password"
+  },
+  "logs": {
+    "title": "Exam Logs",
+    "eventTimeline": "Event Timeline",
+    "chartGroups": {
+      "violation": "Violations",
+      "submission": "Submissions",
+      "lifecycle": "Exam Status",
+      "admin": "Admin Actions"
+    },
+    "axes": {
+      "time": "Time",
+      "eventCount": "Event Count"
+    },
+    "chart": {
+      "toggle": {
+        "hide": "Hide",
+        "show": "Show"
+      },
+      "statsNote": "📊 Event counts aggregated every 5 minutes",
+      "examStart": "🕐 Exam Start:",
+      "examEnd": "🏁 Exam End:",
+      "noData": "No event data available for visualization"
+    },
+    "table": {
+      "headers": {
+        "timestamp": "Time",
+        "userName": "User",
+        "eventType": "Event Type",
+        "reason": "Details"
+      },
+      "searchPlaceholder": "Search events..."
+    },
+    "eventTypes": {
+      "join": "Join",
+      "register": "Register",
+      "unregister": "Unregister",
+      "enter_contest": "Enter Contest",
+      "leave": "Leave Contest",
+      "start_exam": "Start Exam",
+      "end_exam": "End Exam",
+      "auto_submit": "Auto Submit",
+      "resume_exam": "Resume Exam",
+      "reopen_exam": "Reopen Exam",
+      "pause_exam": "Pause Exam",
+      "submit": "Submit",
+      "submit_code": "Submit Code",
+      "tab_switch": "Tab Switch",
+      "tab_hidden": "Tab Hidden",
+      "window_blur": "Window Blur",
+      "exit_fullscreen": "Exit Fullscreen",
+      "forbidden_focus_event": "Forbidden Focus Event",
+      "cheat_warning": "Cheat Warning",
+      "lock": "Lock",
+      "lock_user": "Lock User",
+      "unlock": "Unlock",
+      "unlock_user": "Unlock User",
+      "ask_question": "Ask Question",
+      "reply_question": "Reply Question",
+      "announce": "Announce",
+      "update_contest": "Update Contest Settings",
+      "update_problem": "Update Problem",
+      "update_participant": "Update Participant",
+      "publish_problem_to_practice": "Publish to Practice",
+      "other": "Other"
+    },
+    "notification": {
+      "success": "Success",
+      "error": "Error"
+    },
+    "pagination": {}
+  },
+  "clar": {
+    "loading": "Loading...",
+    "announcements": {
+      "title": "Announcements",
+      "publish": "Publish Announcement",
+      "noData": "No announcements yet",
+      "deleteIconDesc": "Delete Announcement",
+      "deleteConfirm": "Are you sure you want to delete this announcement?"
+    },
+    "qna": {
+      "title": "Student Questions & Discussion",
+      "askQuestion": "Ask Question",
+      "noData": "No questions yet",
+      "author": "Asked by",
+      "replier": "Replied by"
+    },
+    "tags": {
+      "public": "Public",
+      "private": "Private",
+      "answered": "Answered",
+      "publicReply": "Public Reply",
+      "onlyAskerVisible": "Visible to asker only"
+    },
+    "actions": {
+      "reply": "Reply",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this question?"
+    },
+    "labels": {
+      "replyLabel": "Reply:"
+    },
+    "modals": {
+      "createClar": {
+        "heading": "Ask Question",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "questionLabel": "Question Content",
+        "questionPlaceholder": "Please describe your question clearly...",
+        "problemLabel": "Related Problem (Optional)",
+        "generalQuestion": "General Question"
+      },
+      "createAnnouncement": {
+        "heading": "Publish Announcement",
+        "submit": "Publish",
+        "cancel": "Cancel",
+        "titleLabel": "Announcement Title",
+        "titlePlaceholder": "Enter title...",
+        "contentLabel": "Announcement Content",
+        "contentPlaceholder": "Enter content..."
+      },
+      "reply": {
+        "heading": "Reply to Question",
+        "submit": "Submit Reply",
+        "cancel": "Cancel",
+        "replyLabel": "Reply Content",
+        "replyPlaceholder": "Enter reply...",
+        "publicCheckbox": "Public reply (visible to all participants)"
+      },
+      "error": {
+        "heading": "Error"
+      }
+    },
+    "messages": {
+      "createClarError": "Failed to publish. Please check your input.",
+      "createAnnouncementError": "Failed to publish announcement"
+    }
   }
 }
