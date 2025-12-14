@@ -114,9 +114,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     // Use examStatus as primary source if available
     const effectiveIsLocked = examStatus === "locked" || !!isLocked;
-    const effectiveIsActive =
-      examStatus === "in_progress" ||
-      (isActive && examStatus !== "paused" && examStatus !== "submitted");
+    // Only consider "in_progress" as truly active (monitoring enabled)
+    // This ensures grace period only starts when anti-cheat monitoring is actually active
+    const effectiveIsActive = examStatus === "in_progress";
 
     setExamState((prev) => ({
       ...prev,
@@ -147,8 +147,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     prevExamStatusRef.current = examStatus;
 
-    // Start grace period when exam becomes active
-    if (effectiveIsActive && !prevIsActiveRef.current) {
+    // Start grace period ONLY when exam monitoring is truly active (in_progress)
+    // This ensures the countdown only appears when anti-cheat is enabled
+    // Must also check examModeEnabled to avoid false triggers
+    const shouldStartGracePeriod =
+      examModeEnabled &&
+      effectiveIsActive &&
+      !prevIsActiveRef.current &&
+      !isBypassed;
+
+    if (shouldStartGracePeriod) {
       // Reset processing state for fresh start (important after unlock!)
       setIsProcessingEvent(false);
       isProcessingEventRef.current = false;
@@ -176,7 +184,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       }
     }
     prevIsActiveRef.current = effectiveIsActive;
-  }, [isActive, isLocked, lockReason, examStatus]);
+  }, [
+    isActive,
+    isLocked,
+    lockReason,
+    examStatus,
+    examModeEnabled,
+    isBypassed,
+    currentUserRole,
+  ]);
 
   // Track last interaction time to debounce blur events during submit
   const lastInteractionTime = useRef<number>(0);
@@ -501,8 +517,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     >
       {children}
 
-      {/* Grace Period Countdown Overlay */}
-      {gracePeriodCountdown > 0 && (
+      {/* Grace Period Countdown Overlay - Only show when exam monitoring is active */}
+      {examModeEnabled && !isBypassed && gracePeriodCountdown > 0 && (
         <div
           style={{
             position: "fixed",

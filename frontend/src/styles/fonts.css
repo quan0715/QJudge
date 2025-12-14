@@ -1,0 +1,35 @@
+/**
+ * JetBrains Mono - Self-hosted font for code editor
+ * License: OFL (Open Font License)
+ * Source: https://github.com/JetBrains/JetBrainsMono
+ *
+ * Self-hosting benefits:
+ * - No dependency on third-party CDN (Google Fonts)
+ * - Better privacy (no user data shared with Google)
+ * - Works in regions where Google services are blocked
+ * - Guaranteed availability
+ */
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMono-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMono-SemiBold.woff2") format("woff2");
+}

@@ -128,7 +128,7 @@ jobs:
           DOCKER_IMAGE_JUDGE: oj-judge:latest
         run: |
           pip install coverage
-          coverage run --source='apps.judge' manage.py test apps.judge
+          coverage run --source='apps.judge' manage.py test apps.judge --keepdb
           coverage report
           coverage xml
         working-directory: backend

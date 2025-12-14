@@ -143,6 +143,9 @@
     "pdf": "PDF (.pdf)",
     "language": "언어",
     "selectLanguage": "언어 선택",
+    "scale": "배율",
+    "selectScale": "배율 선택",
+    "scaleHint": "PDF 출력의 글꼴 및 콘텐츠 크기를 조정합니다. 100%가 원래 크기입니다.",
     "generating": "파일 생성 중..."
   },
   "exitModal": {

@@ -222,7 +222,8 @@ describe("Role-Based Access Control (RBAC)", () => {
       // Should be 200 OK
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(Array.isArray(data.results || data)).toBe(true);
+      // API returns { success: true, data: [...] } format
+      expect(Array.isArray(data.results || data.data || data)).toBe(true);
     });
 
     it("Student should NOT be able to change user roles", async () => {

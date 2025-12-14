@@ -215,4 +215,193 @@ describe("Contests API - /api/v1/contests", () => {
       });
     });
   });
+
+  describe("GET /:id/download - PDF/Markdown Download", () => {
+    it("should download contest file as markdown", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      // First get list to find a contest
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const listData = await listRes.json();
+      const contests = listData.results || listData;
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping download test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Test markdown download
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/download/?file_format=markdown&language=zh-TW`,
+        adminToken
+      );
+
+      // Should return 200 or content
+      expect([200, 403]).toContain(res.status);
+
+      if (res.status === 200) {
+        const contentType = res.headers.get("content-type");
+        // Should return text/markdown or text/plain
+        expect(
+          contentType?.includes("text/markdown") ||
+            contentType?.includes("text/plain") ||
+            contentType?.includes("application/octet-stream")
+        ).toBe(true);
+        console.log(
+          `✓ Markdown download successful, content-type: ${contentType}`
+        );
+      }
+    });
+
+    it("should download contest file as PDF with scale parameter", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      // First get list to find a contest
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const listData = await listRes.json();
+      const contests = listData.results || listData;
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping PDF download test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Test PDF download with scale=1.5
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/download/?file_format=pdf&language=zh-TW&scale=1.5`,
+        adminToken
+      );
+
+      // Should return 200 or 403 (permission denied for non-owners)
+      expect([200, 403]).toContain(res.status);
+
+      if (res.status === 200) {
+        const contentType = res.headers.get("content-type");
+        // Should return application/pdf
+        expect(
+          contentType?.includes("application/pdf") ||
+            contentType?.includes("application/octet-stream")
+        ).toBe(true);
+        console.log(
+          `✓ PDF download with scale=1.5 successful, content-type: ${contentType}`
+        );
+      }
+    });
+
+    it("should accept various scale values (0.5 to 2.0)", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping scale range test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+      const scaleValues = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+      for (const scale of scaleValues) {
+        const res = await authenticatedRequest(
+          `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=${scale}`,
+          adminToken
+        );
+
+        // Should not return 400 (Bad Request) for valid scale values
+        expect(res.status).not.toBe(400);
+        console.log(`✓ Scale ${scale} accepted, status: ${res.status}`);
+      }
+    });
+
+    it("should handle out-of-range scale values by clamping", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping scale clamping test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Test with out-of-range scale values
+      // Backend clamps scale to 0.5-2.0 range (see exporters.py and views.py)
+      const outOfRangeValues = [
+        { scale: 5.0, description: "above max (5.0 -> clamped to 2.0)" },
+        { scale: 0.1, description: "below min (0.1 -> clamped to 0.5)" },
+        { scale: -1, description: "negative (-1 -> clamped to 0.5)" },
+      ];
+
+      for (const { scale, description } of outOfRangeValues) {
+        const res = await authenticatedRequest(
+          `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=${scale}`,
+          adminToken
+        );
+
+        // Backend should clamp and return 200 (or 403 if permission denied)
+        // It should NOT return 400 (bad request) or 500 (server error)
+        expect(res.status).not.toBe(400);
+        expect(res.status).not.toBe(500);
+        expect([200, 403]).toContain(res.status);
+        console.log(
+          `✓ Scale ${description}: status ${res.status} (clamped, not rejected)`
+        );
+      }
+    });
+
+    it("should handle non-numeric scale values gracefully", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping non-numeric scale test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Test with non-numeric scale (should default to 1.0)
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/download/?file_format=pdf&language=en&scale=invalid`,
+        adminToken
+      );
+
+      // Backend should default to 1.0 and return 200 (or 403 if permission denied)
+      // It should NOT return 500 (server error)
+      expect(res.status).not.toBe(500);
+      expect([200, 403]).toContain(res.status);
+      console.log(
+        `✓ Non-numeric scale handled gracefully: status ${res.status}`
+      );
+    });
+  });
 });

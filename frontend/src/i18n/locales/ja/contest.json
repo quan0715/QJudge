@@ -143,6 +143,9 @@
     "pdf": "PDF (.pdf)",
     "language": "言語",
     "selectLanguage": "言語を選択",
+    "scale": "拡大縮小",
+    "selectScale": "倍率を選択",
+    "scaleHint": "PDF出力のフォントとコンテンツサイズを調整します。100%が元のサイズです。",
     "generating": "ファイル生成中..."
   },
   "exitModal": {

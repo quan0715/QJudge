@@ -562,18 +562,33 @@ export const exportContestResults = async (
 
 /**
  * Download contest file in specified format (PDF or Markdown)
+ * @param scale - PDF scale factor (0.5 to 2.0), only applies to PDF format
  */
 export const downloadContestFile = async (
   contestId: string,
   format: "pdf" | "markdown" = "markdown",
-  language: string = "zh-TW"
+  language: string = "zh-TW",
+  scale: number = 1.0
 ): Promise<Blob> => {
   const token = localStorage.getItem("token");
 
+  // Build query params
+  const params = new URLSearchParams({
+    file_format: format,
+    language: language,
+  });
+
+  // Only add scale param for PDF format
+  if (format === "pdf" && scale !== 1.0) {
+    if (scale < 0.5 || scale > 2.0) {
+      throw new Error("Scale must be between 0.5 and 2.0");
+    }
+    params.append("scale", scale.toString());
+  }
+
   // Use direct fetch instead of httpClient to set correct Accept header for binary downloads
   const res = await fetch(
-    // Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
-    `/api/v1/contests/${contestId}/download/?file_format=${format}&language=${language}`,
+    `/api/v1/contests/${contestId}/download/?${params.toString()}`,
     {
       method: "GET",
       headers: {
