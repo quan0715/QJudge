@@ -1650,20 +1650,24 @@ class StudentReportExporter:
         return ''.join(svg_parts)
     
     def generate_cumulative_chart_svg(self, submissions: List[Submission]) -> str:
-        """Generate SVG line chart showing cumulative solved problems over time with time axis."""
+        """Generate SVG line chart showing cumulative solved problems and score over time."""
         scale = self.scale
         # Wider to match scatter chart
         width = 700 * scale
-        height = 200 * scale
+        height = 220 * scale
         padding_left = 50 * scale
-        padding_right = 30 * scale
+        padding_right = 50 * scale  # More space for right Y-axis
         padding_top = 20 * scale
-        padding_bottom = 50 * scale
+        padding_bottom = 60 * scale  # More space for legend
         
         if not submissions:
             return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
         
-        # Calculate cumulative AC count over time
+        # Get problem scores mapping
+        contest_problems = self.get_contest_problems()
+        problem_scores = {cp.problem.id: cp.score for cp in contest_problems}
+        
+        # Calculate cumulative AC count and score over time
         start_time = self.contest.start_time or self.contest.created_at
         end_time = self.contest.end_time or timezone.now()
         time_range = (end_time - start_time).total_seconds()
@@ -1672,19 +1676,25 @@ class StudentReportExporter:
             time_range = 3600
         
         ac_problems = set()
-        data_points = [(0, 0)]  # (time_offset_ratio, count)
+        cumulative_score = 0
+        solved_points = [(0, 0)]  # (time_offset_ratio, count)
+        score_points = [(0, 0)]   # (time_offset_ratio, score)
         
         for sub in submissions:
             if sub.status == 'AC' and sub.problem_id not in ac_problems:
                 ac_problems.add(sub.problem_id)
+                cumulative_score += problem_scores.get(sub.problem_id, 0)
                 time_offset = (sub.created_at - start_time).total_seconds()
                 ratio = min(time_offset / time_range, 1.0)
-                data_points.append((ratio, len(ac_problems)))
+                solved_points.append((ratio, len(ac_problems)))
+                score_points.append((ratio, cumulative_score))
         
         # Add final point at end
-        data_points.append((1.0, len(ac_problems)))
+        solved_points.append((1.0, len(ac_problems)))
+        score_points.append((1.0, cumulative_score))
         
-        max_count = max(p[1] for p in data_points) or 1
+        max_solved = max(p[1] for p in solved_points) or 1
+        max_score = max(p[1] for p in score_points) or 1
         chart_width = width - padding_left - padding_right
         chart_height = height - padding_top - padding_bottom
         
@@ -1702,7 +1712,7 @@ class StudentReportExporter:
                       stroke="#e0e0e0" stroke-dasharray="4,4"/>
             ''')
         
-        # Vertical time markers (same as scatter chart)
+        # Vertical time markers
         for i in range(5):
             x = padding_left + (i / 4) * chart_width
             time_minutes = int((time_range / 60) * (i / 4))
@@ -1717,68 +1727,125 @@ class StudentReportExporter:
                       font-size="{10 * scale}px" fill="#525252" text-anchor="middle">{time_label}</text>
             ''')
         
-        # Axes
+        # Left Y-axis (Solved count) - Blue
+        svg_parts.append(f'''
+            <line x1="{padding_left}" y1="{padding_top}" 
+                  x2="{padding_left}" y2="{height - padding_bottom}" 
+                  stroke="#0f62fe" stroke-width="2"/>
+        ''')
+        
+        # Right Y-axis (Score) - Green
+        svg_parts.append(f'''
+            <line x1="{width - padding_right}" y1="{padding_top}" 
+                  x2="{width - padding_right}" y2="{height - padding_bottom}" 
+                  stroke="#24a148" stroke-width="2"/>
+        ''')
+        
+        # X-axis
         svg_parts.append(f'''
             <line x1="{padding_left}" y1="{height - padding_bottom}" 
                   x2="{width - padding_right}" y2="{height - padding_bottom}" 
-                  stroke="#8d8d8d" stroke-width="1"/>
-            <line x1="{padding_left}" y1="{padding_top}" 
-                  x2="{padding_left}" y2="{height - padding_bottom}" 
                   stroke="#8d8d8d" stroke-width="1"/>
         ''')
         
         # X-axis label
         time_label_text = "時間 (時:分)" if self.language.startswith('zh') else "Time (h:mm)"
         svg_parts.append(f'''
-            <text x="{padding_left + chart_width / 2}" y="{height - 8 * scale}" 
-                  font-size="{11 * scale}px" fill="#525252" text-anchor="middle">{time_label_text}</text>
+            <text x="{padding_left + chart_width / 2}" y="{height - 35 * scale}" 
+                  font-size="{10 * scale}px" fill="#525252" text-anchor="middle">{time_label_text}</text>
         ''')
         
-        # Y-axis labels
+        # Left Y-axis labels (Solved) - Blue
         for i in range(5):
             y = padding_top + (chart_height * i / 4)
-            label_value = int(max_count * (4 - i) / 4)
+            label_value = int(max_solved * (4 - i) / 4)
             svg_parts.append(f'''
                 <text x="{padding_left - 8 * scale}" y="{y + 4 * scale}" 
-                      font-size="{10 * scale}px" fill="#525252" text-anchor="end">{label_value}</text>
+                      font-size="{10 * scale}px" fill="#0f62fe" text-anchor="end">{label_value}</text>
             ''')
         
-        # Y-axis label text
-        solved_label = "解題數" if self.language.startswith('zh') else "Solved"
-        svg_parts.append(f'''
-            <text x="{12 * scale}" y="{padding_top + chart_height / 2}" 
-                  font-size="{10 * scale}px" fill="#525252" text-anchor="middle"
-                  transform="rotate(-90 {12 * scale} {padding_top + chart_height / 2})">{solved_label}</text>
-        ''')
+        # Right Y-axis labels (Score) - Green
+        for i in range(5):
+            y = padding_top + (chart_height * i / 4)
+            label_value = int(max_score * (4 - i) / 4)
+            svg_parts.append(f'''
+                <text x="{width - padding_right + 8 * scale}" y="{y + 4 * scale}" 
+                      font-size="{10 * scale}px" fill="#24a148" text-anchor="start">{label_value}</text>
+            ''')
         
-        # Generate path points
-        path_points = []
-        for ratio, count in data_points:
+        # Generate solved line path points
+        solved_path_points = []
+        for ratio, count in solved_points:
             x = padding_left + ratio * chart_width
-            y = height - padding_bottom - (count / max_count) * chart_height
-            path_points.append(f"{x},{y}")
+            y = height - padding_bottom - (count / max_solved) * chart_height
+            solved_path_points.append(f"{x},{y}")
         
-        # Area fill - IBM Carbon blue with transparency
-        area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
+        # Generate score line path points
+        score_path_points = []
+        for ratio, score in score_points:
+            x = padding_left + ratio * chart_width
+            y = height - padding_bottom - (score / max_score) * chart_height
+            score_path_points.append(f"{x},{y}")
+        
+        # Area fill for solved - Blue
+        area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(solved_path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
         svg_parts.append(f'''
-            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.08"/>
+            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.06"/>
         ''')
         
-        # Line - IBM Carbon Blue 60
-        line_path = "M" + " L".join(path_points)
+        # Solved line - Blue
+        solved_line_path = "M" + " L".join(solved_path_points)
         svg_parts.append(f'''
-            <path d="{line_path}" fill="none" stroke="#0f62fe" stroke-width="{2 * scale}" 
+            <path d="{solved_line_path}" fill="none" stroke="#0f62fe" stroke-width="{2 * scale}" 
                   stroke-linecap="round" stroke-linejoin="round"/>
         ''')
         
-        # Points at AC moments
-        for ratio, count in data_points[1:-1]:
+        # Score line - Green
+        score_line_path = "M" + " L".join(score_path_points)
+        svg_parts.append(f'''
+            <path d="{score_line_path}" fill="none" stroke="#24a148" stroke-width="{2 * scale}" 
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        ''')
+        
+        # Points at AC moments for solved line
+        for ratio, count in solved_points[1:-1]:
             x = padding_left + ratio * chart_width
-            y = height - padding_bottom - (count / max_count) * chart_height
+            y = height - padding_bottom - (count / max_solved) * chart_height
             svg_parts.append(f'''
                 <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
                         stroke="#0f62fe" stroke-width="{2 * scale}"/>
             ''')
+        
+        # Points at AC moments for score line
+        for ratio, score in score_points[1:-1]:
+            x = padding_left + ratio * chart_width
+            y = height - padding_bottom - (score / max_score) * chart_height
+            svg_parts.append(f'''
+                <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
+                        stroke="#24a148" stroke-width="{2 * scale}"/>
+            ''')
+        
+        # Legend at bottom
+        legend_y = height - 12 * scale
+        legend_start_x = padding_left + chart_width / 2 - 80 * scale
+        solved_label = "解題數" if self.language.startswith('zh') else "Solved"
+        score_label = "分數" if self.language.startswith('zh') else "Score"
+        
+        svg_parts.append(f'''
+            <line x1="{legend_start_x}" y1="{legend_y}" x2="{legend_start_x + 20 * scale}" y2="{legend_y}" 
+                  stroke="#0f62fe" stroke-width="{2 * scale}"/>
+            <circle cx="{legend_start_x + 10 * scale}" cy="{legend_y}" r="{3 * scale}" 
+                    fill="#ffffff" stroke="#0f62fe" stroke-width="{1.5 * scale}"/>
+            <text x="{legend_start_x + 28 * scale}" y="{legend_y + 4 * scale}" 
+                  font-size="{10 * scale}px" fill="#525252">{solved_label}</text>
+            
+            <line x1="{legend_start_x + 80 * scale}" y1="{legend_y}" x2="{legend_start_x + 100 * scale}" y2="{legend_y}" 
+                  stroke="#24a148" stroke-width="{2 * scale}"/>
+            <circle cx="{legend_start_x + 90 * scale}" cy="{legend_y}" r="{3 * scale}" 
+                    fill="#ffffff" stroke="#24a148" stroke-width="{1.5 * scale}"/>
+            <text x="{legend_start_x + 108 * scale}" y="{legend_y + 4 * scale}" 
+                  font-size="{10 * scale}px" fill="#525252">{score_label}</text>
+        ''')
         
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
