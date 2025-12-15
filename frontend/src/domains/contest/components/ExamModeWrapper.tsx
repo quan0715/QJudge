@@ -144,6 +144,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     // Stay in fullscreen when transitioning to locked or paused (do NOT exit)
     // Fullscreen is only allowed to exit after submission
+    // Also ensure fullscreen is entered when transitioning TO locked or paused states
+    if (
+      examModeEnabled &&
+      !isBypassed &&
+      (examStatus === "locked" || examStatus === "paused") &&
+      !document.fullscreenElement
+    ) {
+      // Use setTimeout to avoid blocking the state update
+      setTimeout(() => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((e) => {
+            console.warn(
+              "[Exam] Failed to enter fullscreen for locked/paused state:",
+              e
+            );
+          });
+        }
+      }, 100);
+    }
 
     prevExamStatusRef.current = examStatus;
 
@@ -357,7 +376,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     };
   }, [examModeEnabled, examStatus, contestId, location.pathname, isBypassed]);
 
-  // Monitor fullscreen exit for locked/paused states - treat as submit confirmation
+  // Monitor fullscreen exit for locked/paused states - show submit confirmation
   useEffect(() => {
     const shouldMonitorFullscreen =
       examModeEnabled &&
@@ -368,7 +387,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     const handleFullscreenExitForLockedPaused = () => {
       if (!document.fullscreenElement && !isSubmittingFromFullscreenExit) {
-        // User exited fullscreen while locked/paused - show confirmation
+        // User exited fullscreen while locked/paused - show submit confirmation
         setShowFullscreenExitConfirm(true);
       }
     };
@@ -448,7 +467,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Check if locked based on API response
     if (lastApiResponse?.locked) {
       // Stay in fullscreen when locked - don't exit
-      // Just refresh to show lock screen overlay
+      // Ensure fullscreen is maintained even when locked (no exam monitoring, just fullscreen)
+      if (!document.fullscreenElement) {
+        try {
+          await document.documentElement.requestFullscreen();
+          console.log("[Exam] Re-entering fullscreen after being locked");
+        } catch (error) {
+          console.error("[Exam] Failed to re-enter fullscreen:", error);
+        }
+      }
+      // Then refresh to show lock screen overlay
       if (onRefresh) onRefresh();
     } else {
       // Resume monitoring - force fullscreen (mandatory)
@@ -911,8 +939,35 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         open={showUnlockNotification}
         modalHeading={t("exam.unlocked")}
         primaryButtonText={t("exam.continueExam")}
-        onRequestSubmit={() => setShowUnlockNotification(false)}
-        onRequestClose={() => setShowUnlockNotification(false)}
+        onRequestSubmit={async () => {
+          setShowUnlockNotification(false);
+          // Ensure fullscreen is maintained after unlock notification
+          if (!document.fullscreenElement) {
+            try {
+              await document.documentElement.requestFullscreen();
+              console.log(
+                "[Exam] Re-entering fullscreen after unlock notification"
+              );
+            } catch (error) {
+              console.error("[Exam] Failed to re-enter fullscreen:", error);
+            }
+          }
+        }}
+        onRequestClose={async () => {
+          setShowUnlockNotification(false);
+          // Ensure fullscreen is maintained after unlock notification
+          if (!document.fullscreenElement) {
+            try {
+              await document.documentElement.requestFullscreen();
+              console.log(
+                "[Exam] Re-entering fullscreen after unlock notification"
+              );
+            } catch (error) {
+              console.error("[Exam] Failed to re-enter fullscreen:", error);
+            }
+          }
+        }}
+        preventCloseOnClickOutside
         size="sm"
       >
         <div

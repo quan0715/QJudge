@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Modal,
   Tabs,
@@ -7,23 +7,22 @@ import {
   TabPanels,
   TabPanel,
   Tag,
-
   Button,
   SkeletonText,
-  SkeletonPlaceholder
-} from '@carbon/react';
-import { Copy, Checkmark, Locked } from '@carbon/icons-react';
-import { TestCaseList } from '@/domains/problem/components/common/TestCaseList';
-import Editor from '@monaco-editor/react';
-import { getSubmission } from '@/services/submission';
-import { useCopyText } from '@/hooks/useCopyText';
-import ProblemLink from '@/domains/problem/components/ProblemLink';
-import { formatDate } from '@/utils/format';
-import type { SubmissionDetail } from '@/core/entities/submission.entity';
-import { DifficultyBadge } from '@/ui/components/badges/DifficultyBadge';
-import DataCard from '@/ui/components/data-card/DataCard';
-import { getLanguageConfig } from '@/core/config/languageConfig';
-import { getStatusConfig } from '@/core/config/statusConfig';
+  SkeletonPlaceholder,
+} from "@carbon/react";
+import { Copy, Checkmark, Locked } from "@carbon/icons-react";
+import { TestCaseList } from "@/domains/problem/components/common/TestCaseList";
+import Editor from "@monaco-editor/react";
+import { getSubmission } from "@/services/submission";
+import { useCopyText } from "@/hooks/useCopyText";
+import ProblemLink from "@/domains/problem/components/ProblemLink";
+import { formatDate } from "@/utils/format";
+import type { SubmissionDetail } from "@/core/entities/submission.entity";
+import { DifficultyBadge } from "@/ui/components/badges/DifficultyBadge";
+import DataCard from "@/ui/components/data-card/DataCard";
+import { getLanguageConfig } from "@/core/config/languageConfig";
+import { getStatusConfig } from "@/core/config/statusConfig";
 interface SubmissionDetailModalProps {
   submissionId: string | null;
   isOpen: boolean;
@@ -31,7 +30,12 @@ interface SubmissionDetailModalProps {
   contestId?: string;
 }
 
-const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: SubmissionDetailModalProps) => {
+const SubmissionDetailModal = ({
+  submissionId,
+  isOpen,
+  onClose,
+  contestId,
+}: SubmissionDetailModalProps) => {
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,17 +55,17 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
     try {
       const data = await getSubmission(submissionId!);
       setSubmission(data);
-      
+
       // Start polling if submission is pending or judging
-      if (data.status === 'pending' || data.status === 'judging') {
+      if (data.status === "pending" || data.status === "judging") {
         startPolling();
       }
     } catch (err: any) {
-      console.error('Error:', err);
-      if (err.message === 'Permission denied') {
-        setError('permission_denied');
+      console.error("Error:", err);
+      if (err.message === "Permission denied") {
+        setError("permission_denied");
       } else {
-        setError('fetch_failed');
+        setError("fetch_failed");
       }
     } finally {
       setLoading(false);
@@ -78,13 +82,13 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
       try {
         const data = await getSubmission(submissionId!);
         setSubmission(data);
-        
+
         // Stop polling if status is final
-        if (data.status !== 'pending' && data.status !== 'judging') {
+        if (data.status !== "pending" && data.status !== "judging") {
           clearInterval(pollInterval);
         }
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error("Polling error:", error);
       }
     }, 1000); // Poll every second
 
@@ -98,54 +102,68 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
     }
   };
 
-
-  
   return (
     <Modal
       open={isOpen}
-      color='white'
+      color="white"
       onRequestClose={onClose}
       passiveModal
       size="lg"
-      style={{ minHeight: '600px'}}
+      style={{ minHeight: "600px" }}
     >
       {loading ? (
-        <div style={{ padding: '0' }}>
+        <div style={{ padding: "0" }}>
           {/* Hero Skeleton */}
-          <div style={{
-            padding: '2rem 1rem',
-            margin: '-1rem -1rem 0 -1rem',
-            backgroundColor: 'var(--cds-layer-01)',
-            marginBottom: '0',
-            borderBottom: '1px solid var(--cds-border-subtle)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-              <div style={{ width: '60%' }}>
-                <div style={{ marginBottom: '0.5rem' }}>
+          <div
+            style={{
+              padding: "2rem 1rem",
+              margin: "-1rem -1rem 0 -1rem",
+              backgroundColor: "var(--cds-layer-01)",
+              marginBottom: "0",
+              borderBottom: "1px solid var(--cds-border-subtle)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2rem",
+              }}
+            >
+              <div style={{ width: "60%" }}>
+                <div style={{ marginBottom: "0.5rem" }}>
                   <SkeletonText width="30%" />
                 </div>
-                <div style={{ marginBottom: '0.5rem' }}>
+                <div style={{ marginBottom: "0.5rem" }}>
                   <SkeletonText heading width="80%" />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <SkeletonPlaceholder style={{ width: '80px', height: '24px' }} />
-                  <SkeletonPlaceholder style={{ width: '60px', height: '24px' }} />
-                  <SkeletonPlaceholder style={{ width: '100px', height: '24px' }} />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <SkeletonPlaceholder
+                    style={{ width: "80px", height: "24px" }}
+                  />
+                  <SkeletonPlaceholder
+                    style={{ width: "60px", height: "24px" }}
+                  />
+                  <SkeletonPlaceholder
+                    style={{ width: "100px", height: "24px" }}
+                  />
                 </div>
               </div>
-              <SkeletonPlaceholder style={{ width: '100px', height: '32px' }} />
+              <SkeletonPlaceholder style={{ width: "100px", height: "32px" }} />
             </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-              gap: '1.5rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--cds-border-subtle-01)'
-            }}>
-              {[1, 2, 3].map(i => (
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                gap: "1.5rem",
+                paddingTop: "1.5rem",
+                borderTop: "1px solid var(--cds-border-subtle-01)",
+              }}
+            >
+              {[1, 2, 3].map((i) => (
                 <div key={i}>
-                  <div style={{ marginBottom: '0.25rem' }}>
+                  <div style={{ marginBottom: "0.25rem" }}>
                     <SkeletonText width="40px" />
                   </div>
                   <SkeletonText width="80px" heading />
@@ -153,52 +171,76 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
               ))}
             </div>
           </div>
-          
+
           {/* Tabs Skeleton */}
-          <div style={{ marginTop: '2rem' }}>
-             <SkeletonPlaceholder style={{ width: '200px', height: '40px', marginBottom: '1rem' }} />
-             <SkeletonPlaceholder style={{ width: '100%', height: '300px' }} />
+          <div style={{ marginTop: "2rem" }}>
+            <SkeletonPlaceholder
+              style={{ width: "200px", height: "40px", marginBottom: "1rem" }}
+            />
+            <SkeletonPlaceholder style={{ width: "100%", height: "300px" }} />
           </div>
         </div>
-      ) : error === 'permission_denied' ? (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <div style={{ marginBottom: '1rem' }}><Locked size={64} style={{ color: 'var(--cds-icon-secondary)' }} /></div>
-          <h2 style={{ marginBottom: '1rem' }}>權限不足</h2>
-          <p style={{ color: 'var(--cds-text-secondary)' }}>
+      ) : error === "permission_denied" ? (
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <div style={{ marginBottom: "1rem" }}>
+            <Locked size={64} style={{ color: "var(--cds-icon-secondary)" }} />
+          </div>
+          <h2 style={{ marginBottom: "1rem" }}>權限不足</h2>
+          <p style={{ color: "var(--cds-text-secondary)" }}>
             您沒有權限查看此提交的詳細內容。
           </p>
         </div>
       ) : !submission ? (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div style={{ padding: "2rem", textAlign: "center" }}>
           <p>提交不存在或無法載入</p>
         </div>
       ) : (
-        <div style={{ padding: '1rem 1rem', margin: '1rem 1rem'}}>
-          <div style={{
-            backgroundColor: 'var(--cds-layer-01)',
-            marginBottom: '0',
-            borderBottom: '1px solid var(--cds-border-subtle-01)',
-          }}>
+        <div style={{ padding: "1rem 1rem", margin: "1rem 1rem" }}>
+          <div
+            style={{
+              backgroundColor: "var(--cds-layer-01)",
+              marginBottom: "0",
+              borderBottom: "1px solid var(--cds-border-subtle-01)",
+            }}
+          >
             {/* Header: Title + Status */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "2rem",
+              }}
+            >
               <div>
-                <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: 'var(--cds-text-secondary)', 
-                  marginBottom: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "var(--cds-text-secondary)",
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
                   <span>提交 #{submission.id}</span>
                   <span>•</span>
                   <span>{formatDate(submission.createdAt)}</span>
                 </div>
-                <h2 style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem' }}>
+                <h2
+                  style={{
+                    fontSize: "2rem",
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    marginBottom: "0.5rem",
+                  }}
+                >
                   {submission.problem ? (
                     <ProblemLink
                       problemId={submission.problem.id}
-                      displayId={submission.problem.displayId || submission.problem.id}
+                      displayId={
+                        submission.problem.displayId || submission.problem.id
+                      }
                       title={submission.problem.title}
                       contestId={contestId}
                     />
@@ -206,47 +248,86 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
                     submission.problemId
                   )}
                 </h2>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                   {submission.problem && <DifficultyBadge difficulty={submission.problem.difficulty} />}
-                   <Tag type="gray">{getLanguageConfig(submission.language).label}</Tag>
-                   <Tag type="cyan">By {submission.user?.username || submission.userId}</Tag>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {submission.problem && (
+                    <DifficultyBadge
+                      difficulty={submission.problem.difficulty}
+                    />
+                  )}
+                  <Tag type="gray">
+                    {getLanguageConfig(submission.language).label}
+                  </Tag>
+                  <Tag type="cyan">
+                    By {submission.user?.username || submission.userId}
+                  </Tag>
                 </div>
               </div>
             </div>
 
             {/* Data Grid */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-              gap: '0.5rem',
-              padding: '1rem 0rem',
-              borderTop: '1px solid var(--cds-border-subtle-01)'
-            }}>
-              <DataCard title="提交狀態" value={getStatusConfig(submission.status).label} description={`本次繳交狀態`} valueStyle={{
-                color: getStatusConfig(submission.status).color,
-              }}/>
-              <DataCard title="得分" value={submission.score || 0} unit="分" description={`題目總得分`}/>
-              <DataCard title="執行時間" value={submission.execTime || 0} unit="ms" description={`題目總執行時間`}/>
-              <DataCard title="記憶體使用" value={submission.memoryUsage || 0} unit="MB" description={`題目總記憶體使用`}/>
-
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                gap: "0.5rem",
+                padding: "1rem 0rem",
+                borderTop: "1px solid var(--cds-border-subtle-01)",
+              }}
+            >
+              <DataCard
+                title="提交狀態"
+                value={getStatusConfig(submission.status).label}
+                description={`本次繳交狀態`}
+                valueStyle={{
+                  color: getStatusConfig(submission.status).color,
+                }}
+              />
+              <DataCard
+                title="得分"
+                value={submission.score || 0}
+                unit="分"
+                description={`題目總得分`}
+              />
+              <DataCard
+                title="執行時間"
+                value={submission.execTime || 0}
+                unit="ms"
+                description={`題目總執行時間`}
+              />
+              <DataCard
+                title="記憶體使用"
+                value={submission.memoryUsage || 0}
+                unit="MB"
+                description={`題目總記憶體使用`}
+              />
             </div>
 
             {submission.errorMessage && (
-              <div style={{ marginTop: '1.5rem' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ marginTop: "1.5rem" }}>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--cds-text-secondary)",
+                    marginBottom: "0.5rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   錯誤訊息
                 </div>
-                <pre style={{
-                  padding: '1rem',
-                  backgroundColor: 'var(--cds-layer-02)',
-                  borderRadius: '4px',
-                  fontSize: '0.875rem',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  whiteSpace: 'pre-wrap',
-                  color: 'var(--cds-text-error)',
-                  margin: 0,
-                  border: '1px solid var(--cds-border-subtle)'
-                }}>
+                <pre
+                  style={{
+                    padding: "1rem",
+                    backgroundColor: "var(--cds-layer-02)",
+                    borderRadius: "4px",
+                    fontSize: "0.875rem",
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    whiteSpace: "pre-wrap",
+                    color: "var(--cds-text-error)",
+                    margin: 0,
+                    border: "1px solid var(--cds-border-subtle)",
+                  }}
+                >
                   {submission.errorMessage}
                 </pre>
               </div>
@@ -264,24 +345,24 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
               <TabPanel>
                 <div
                   style={{
-                    padding: '0.5rem',
+                    padding: "0.5rem",
                   }}
                 >
                   <div
                     style={{
-                      position: 'relative',
+                      position: "relative",
                     }}
                   >
                     <div
                       style={{
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: '0.5rem',
-                        left: 'auto',
+                        position: "absolute",
+                        top: "0.5rem",
+                        right: "0.5rem",
+                        left: "auto",
                         zIndex: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <Button
@@ -289,14 +370,18 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
                         size="sm"
                         hasIconOnly
                         renderIcon={isCopied ? Checkmark : Copy}
-                        iconDescription={isCopied ? '已複製' : '複製程式碼'}
+                        iconDescription={isCopied ? "已複製" : "複製程式碼"}
                         onClick={handleCopyCode}
                       />
                     </div>
 
                     <Editor
                       height="400px"
-                      language={submission.language === 'cpp' ? 'cpp' : submission.language}
+                      language={
+                        submission.language === "cpp"
+                          ? "cpp"
+                          : submission.language
+                      }
                       value={submission.code}
                       theme="vs-dark"
                       options={{
@@ -307,58 +392,73 @@ const SubmissionDetailModal = ({ submissionId, isOpen, onClose, contestId }: Sub
                         fontSize: 14,
                         scrollBeyondLastLine: false,
                         domReadOnly: true,
-                        lineNumbers: 'on',
+                        lineNumbers: "on",
+                        fontLigatures: false,
+                        fontFamily:
+                          "'JetBrains Mono NL', 'SF Mono', 'Menlo', 'Consolas', monospace",
                       }}
                     />
                   </div>
                 </div>
-
               </TabPanel>
 
               {/* Test Results Tab */}
               <TabPanel>
                 <div>
                   <TestCaseList
-                      mode="result"
-                      items={
-                        // 1. Prioritize results
-                        (submission.results && submission.results.length > 0) ? submission.results.map((result) => ({
+                    mode="result"
+                    items={
+                      // 1. Prioritize results
+                      submission.results && submission.results.length > 0
+                        ? submission.results.map((result) => ({
                             id: result.id.toString(),
-                            input: result.input || '',
+                            input: result.input || "",
                             output: result.expectedOutput, // Expected logic
-                            actualOutput: result.output,   // Actual logic for results
+                            actualOutput: result.output, // Actual logic for results
                             status: result.status,
                             execTime: result.execTime,
                             memoryUsage: result.memoryUsage,
                             errorMessage: result.errorMessage,
                             isSample: false,
                             isHidden: result.isHidden,
-                            source: 'public' as const,
-                            enabled: true
-                        })) : 
-                        // 2. Fallback to custom cases (e.g. pending test run)
-                        (submission.isTest && submission.customTestCases && submission.customTestCases.length > 0) ? submission.customTestCases.map((tc, index) => ({
+                            source: "public" as const,
+                            enabled: true,
+                          }))
+                        : // 2. Fallback to custom cases (e.g. pending test run)
+                        submission.isTest &&
+                          submission.customTestCases &&
+                          submission.customTestCases.length > 0
+                        ? submission.customTestCases.map((tc, index) => ({
                             id: `custom-${index}`,
                             input: tc.input,
                             output: tc.output,
                             actualOutput: undefined,
-                            status: 'pending',
+                            status: "pending",
                             execTime: undefined,
                             memoryUsage: undefined,
                             errorMessage: undefined,
                             isSample: false,
                             isHidden: false,
-                            source: 'custom' as const,
-                            enabled: true
-                        })) : []
-                      }
-                      readOnly
+                            source: "custom" as const,
+                            enabled: true,
+                          }))
+                        : []
+                    }
+                    readOnly
                   />
-                  {(!submission.results || submission.results.length === 0) && (!submission.customTestCases || submission.customTestCases.length === 0) && (
-                     <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--cds-text-secondary)' }}>
-                       暫無測試結果
-                     </div>
-                  )}
+                  {(!submission.results || submission.results.length === 0) &&
+                    (!submission.customTestCases ||
+                      submission.customTestCases.length === 0) && (
+                      <div
+                        style={{
+                          padding: "2rem",
+                          textAlign: "center",
+                          color: "var(--cds-text-secondary)",
+                        }}
+                      >
+                        暫無測試結果
+                      </div>
+                    )}
                 </div>
               </TabPanel>
             </TabPanels>
