@@ -1629,12 +1629,15 @@ class StudentReportExporter:
         return ''.join(svg_parts)
     
     def generate_cumulative_chart_svg(self, submissions: List[Submission]) -> str:
-        """Generate SVG line chart showing cumulative solved problems over time."""
+        """Generate SVG line chart showing cumulative solved problems over time with time axis."""
         scale = self.scale
         # Wider to match scatter chart
         width = 700 * scale
-        height = 180 * scale
-        padding = 50 * scale
+        height = 200 * scale
+        padding_left = 50 * scale
+        padding_right = 30 * scale
+        padding_top = 20 * scale
+        padding_bottom = 50 * scale
         
         if not submissions:
             return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
@@ -1654,15 +1657,15 @@ class StudentReportExporter:
             if sub.status == 'AC' and sub.problem_id not in ac_problems:
                 ac_problems.add(sub.problem_id)
                 time_offset = (sub.created_at - start_time).total_seconds()
-                ratio = time_offset / time_range
+                ratio = min(time_offset / time_range, 1.0)
                 data_points.append((ratio, len(ac_problems)))
         
         # Add final point at end
         data_points.append((1.0, len(ac_problems)))
         
         max_count = max(p[1] for p in data_points) or 1
-        chart_width = width - 2 * padding
-        chart_height = height - 2 * padding
+        chart_width = width - padding_left - padding_right
+        chart_height = height - padding_top - padding_bottom
         
         svg_parts = [f'''
             <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"
@@ -1670,58 +1673,91 @@ class StudentReportExporter:
                 <rect width="{width}" height="{height}" fill="#ffffff"/>
         ''']
         
-        # Grid lines
+        # Horizontal grid lines
         for i in range(5):
-            y = padding + (chart_height * i / 4)
+            y = padding_top + (chart_height * i / 4)
             svg_parts.append(f'''
-                <line x1="{padding}" y1="{y}" x2="{width - padding}" y2="{y}" 
+                <line x1="{padding_left}" y1="{y}" x2="{width - padding_right}" y2="{y}" 
                       stroke="#e0e0e0" stroke-dasharray="4,4"/>
+            ''')
+        
+        # Vertical time markers (same as scatter chart)
+        for i in range(5):
+            x = padding_left + (i / 4) * chart_width
+            time_minutes = int((time_range / 60) * (i / 4))
+            hours = time_minutes // 60
+            minutes = time_minutes % 60
+            time_label = f"{hours}:{minutes:02d}"
+            
+            svg_parts.append(f'''
+                <line x1="{x}" y1="{padding_top}" x2="{x}" y2="{height - padding_bottom}" 
+                      stroke="#e0e0e0" stroke-dasharray="4,4"/>
+                <text x="{x}" y="{height - padding_bottom + 15 * scale}" 
+                      font-size="{10 * scale}px" fill="#525252" text-anchor="middle">{time_label}</text>
             ''')
         
         # Axes
         svg_parts.append(f'''
-            <line x1="{padding}" y1="{height - padding}" x2="{width - padding}" y2="{height - padding}" 
+            <line x1="{padding_left}" y1="{height - padding_bottom}" 
+                  x2="{width - padding_right}" y2="{height - padding_bottom}" 
                   stroke="#8d8d8d" stroke-width="1"/>
-            <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{height - padding}" 
+            <line x1="{padding_left}" y1="{padding_top}" 
+                  x2="{padding_left}" y2="{height - padding_bottom}" 
                   stroke="#8d8d8d" stroke-width="1"/>
         ''')
         
-        # Generate path
+        # X-axis label
+        time_label_text = "時間 (時:分)" if self.language.startswith('zh') else "Time (h:mm)"
+        svg_parts.append(f'''
+            <text x="{padding_left + chart_width / 2}" y="{height - 8 * scale}" 
+                  font-size="{11 * scale}px" fill="#525252" text-anchor="middle">{time_label_text}</text>
+        ''')
+        
+        # Y-axis labels
+        for i in range(5):
+            y = padding_top + (chart_height * i / 4)
+            label_value = int(max_count * (4 - i) / 4)
+            svg_parts.append(f'''
+                <text x="{padding_left - 8 * scale}" y="{y + 4 * scale}" 
+                      font-size="{10 * scale}px" fill="#525252" text-anchor="end">{label_value}</text>
+            ''')
+        
+        # Y-axis label text
+        solved_label = "解題數" if self.language.startswith('zh') else "Solved"
+        svg_parts.append(f'''
+            <text x="{12 * scale}" y="{padding_top + chart_height / 2}" 
+                  font-size="{10 * scale}px" fill="#525252" text-anchor="middle"
+                  transform="rotate(-90 {12 * scale} {padding_top + chart_height / 2})">{solved_label}</text>
+        ''')
+        
+        # Generate path points
         path_points = []
         for ratio, count in data_points:
-            x = padding + ratio * chart_width
-            y = height - padding - (count / max_count) * chart_height
+            x = padding_left + ratio * chart_width
+            y = height - padding_bottom - (count / max_count) * chart_height
             path_points.append(f"{x},{y}")
         
-        # Area fill
-        area_path = f"M{padding},{height - padding} " + " L".join(path_points) + f" L{width - padding},{height - padding} Z"
+        # Area fill - IBM Carbon blue with transparency
+        area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
         svg_parts.append(f'''
-            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.1"/>
+            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.08"/>
         ''')
         
-        # Line
+        # Line - IBM Carbon Blue 60
         line_path = "M" + " L".join(path_points)
         svg_parts.append(f'''
             <path d="{line_path}" fill="none" stroke="#0f62fe" stroke-width="{2 * scale}" 
                   stroke-linecap="round" stroke-linejoin="round"/>
         ''')
         
-        # Points
+        # Points at AC moments
         for ratio, count in data_points[1:-1]:
-            x = padding + ratio * chart_width
-            y = height - padding - (count / max_count) * chart_height
+            x = padding_left + ratio * chart_width
+            y = height - padding_bottom - (count / max_count) * chart_height
             svg_parts.append(f'''
                 <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
                         stroke="#0f62fe" stroke-width="{2 * scale}"/>
             ''')
-        
-        # Y-axis label
-        svg_parts.append(f'''
-            <text x="{padding - 8 * scale}" y="{padding}" font-size="{10 * scale}px" 
-                  fill="#525252" text-anchor="end">{max_count}</text>
-            <text x="{padding - 8 * scale}" y="{height - padding}" font-size="{10 * scale}px" 
-                  fill="#525252" text-anchor="end">0</text>
-        ''')
         
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
@@ -1831,16 +1867,17 @@ class StudentReportExporter:
         lang = self.language
         stats = self.get_difficulty_stats()
         
+        # IBM Carbon colors
         difficulty_config = {
-            'easy': ('簡單', '#24a148', '#defbe6'),
-            'medium': ('中等', '#f1c21b', '#fcf4d6'),
-            'hard': ('困難', '#da1e28', '#fff1f1'),
+            'easy': ('簡單', '#24a148', '#a7f0ba'),      # Carbon green
+            'medium': ('中等', '#f1c21b', '#fddc69'),    # Carbon yellow
+            'hard': ('困難', '#da1e28', '#ffb3b8'),      # Carbon red
         }
         if not lang.startswith('zh'):
             difficulty_config = {
-                'easy': ('Easy', '#24a148', '#defbe6'),
-                'medium': ('Medium', '#f1c21b', '#fcf4d6'),
-                'hard': ('Hard', '#da1e28', '#fff1f1'),
+                'easy': ('Easy', '#24a148', '#a7f0ba'),
+                'medium': ('Medium', '#f1c21b', '#fddc69'),
+                'hard': ('Hard', '#da1e28', '#ffb3b8'),
             }
         
         title = '難度統計' if lang.startswith('zh') else 'Difficulty Statistics'
@@ -1853,35 +1890,36 @@ class StudentReportExporter:
             total = stats[difficulty]['total']
             percentage = (solved / total * 100) if total > 0 else 0
             
-            # SVG donut chart parameters
-            size = 80 * scale
-            stroke_width = 8 * scale
+            # SVG donut chart parameters - Progress starts from top, goes clockwise
+            size = 72 * scale
+            stroke_width = 6 * scale
             radius = (size - stroke_width) / 2
             circumference = 2 * 3.14159 * radius
+            # stroke-dashoffset: positive value = clockwise from start point
             dash_offset = circumference * (1 - percentage / 100)
             
             donut_svg = f'''
-                <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="transform: rotate(-90deg);">
+                <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
                     <!-- Background circle -->
                     <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
                             fill="none" stroke="{bg_color}" stroke-width="{stroke_width}"/>
-                    <!-- Progress circle -->
+                    <!-- Progress circle - starts from top (transform rotate -90deg on the circle) -->
                     <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
                             fill="none" stroke="{color}" stroke-width="{stroke_width}"
                             stroke-dasharray="{circumference}" stroke-dashoffset="{dash_offset}"
-                            stroke-linecap="round"/>
+                            stroke-linecap="round"
+                            transform="rotate(-90 {size/2} {size/2})"/>
+                    <!-- Center text -->
+                    <text x="{size/2}" y="{size/2 - 4*scale}" text-anchor="middle" 
+                          font-size="{16*scale}px" font-weight="600" fill="#161616">{solved}</text>
+                    <text x="{size/2}" y="{size/2 + 10*scale}" text-anchor="middle" 
+                          font-size="{10*scale}px" fill="#6f6f6f">/{total}</text>
                 </svg>
             '''
             
             donuts_html.append(f'''
                 <div class="donut-item">
-                    <div class="donut-chart">
-                        {donut_svg}
-                        <div class="donut-center">
-                            <div class="donut-solved">{solved}</div>
-                            <div class="donut-total">/{total}</div>
-                        </div>
-                    </div>
+                    {donut_svg}
                     <div class="donut-label" style="color: {color};">{name}</div>
                 </div>
             ''')
@@ -1898,7 +1936,7 @@ class StudentReportExporter:
         '''
     
     def render_problem_grid(self) -> str:
-        """Render a grid showing submission status for each problem."""
+        """Render a grid showing submission status for each problem in 2 columns."""
         scale = self.scale
         lang = self.language
         
@@ -1908,7 +1946,7 @@ class StudentReportExporter:
         user_problems = user_stats.get('problems', {}) if user_stats else {}
         submissions = self.get_user_submissions()
         
-        title = '題目繳交狀況' if lang.startswith('zh') else 'Problem Submission Status'
+        title = '題目繳交狀況' if lang.startswith('zh') else 'Problem Status'
         
         # Build problem submission details
         grid_items = []
@@ -1921,50 +1959,63 @@ class StudentReportExporter:
             status = problem_stat.get('status', '')
             score = problem_stat.get('score', 0)
             max_score = problem_stat.get('max_score', 0)
-            tries = problem_stat.get('tries', 0)
             
             # Get problem submissions
             problem_submissions = [s for s in submissions if s.problem_id == problem.id]
             ac_count = sum(1 for s in problem_submissions if s.status == 'AC')
             wa_count = sum(1 for s in problem_submissions if s.status != 'AC')
             
-            # Status icon and styling
+            # IBM Carbon status styling
             if status == 'AC':
                 status_icon = '✓'
                 status_class = 'status-ac'
-                status_bg = '#defbe6'
-                status_border = '#24a148'
-            elif tries > 0:
+                row_bg = '#defbe6'  # Carbon green-10
+            elif ac_count > 0 or wa_count > 0:
                 status_icon = '✗'
                 status_class = 'status-wa'
-                status_bg = '#fff1f1'
-                status_border = '#da1e28'
+                row_bg = '#fff1f1'  # Carbon red-10
             else:
-                status_icon = '−'
+                status_icon = '—'
                 status_class = 'status-none'
-                status_bg = '#f4f4f4'
-                status_border = '#e0e0e0'
+                row_bg = '#f4f4f4'  # Carbon gray-10
             
             grid_items.append(f'''
-                <div class="problem-grid-item" style="border-left: 4px solid {color}; background: {status_bg}; border-color: {status_border};">
-                    <div class="problem-grid-header">
-                        <span class="problem-grid-label" style="background: {color};">{label}</span>
-                        <span class="problem-grid-status {status_class}">{status_icon}</span>
+                <div class="problem-grid-row" style="background: {row_bg};">
+                    <div class="problem-grid-label" style="background: {color};">{label}</div>
+                    <div class="problem-grid-score">{score}<span class="score-max">/{max_score}</span></div>
+                    <div class="problem-grid-stats">
+                        <span class="stat-ac">{ac_count}</span>
+                        <span class="stat-wa">{wa_count}</span>
                     </div>
-                    <div class="problem-grid-score">{score}/{max_score}</div>
-                    <div class="problem-grid-tries">
-                        <span class="tries-ac">AC: {ac_count}</span>
-                        <span class="tries-wa">WA: {wa_count}</span>
-                    </div>
+                    <div class="problem-grid-status {status_class}">{status_icon}</div>
                 </div>
             ''')
+        
+        # Split into 2 columns
+        mid = (len(grid_items) + 1) // 2
+        col1_items = grid_items[:mid]
+        col2_items = grid_items[mid:]
+        
+        ac_label = 'AC' if not lang.startswith('zh') else 'AC'
+        wa_label = 'WA' if not lang.startswith('zh') else 'WA'
         
         return f'''
             <div class="container-card">
                 <div class="container-card-header">{title}</div>
-                <div class="container-card-body">
-                    <div class="problem-grid">
-                        {''.join(grid_items)}
+                <div class="container-card-body" style="padding: {8*scale}px;">
+                    <div class="problem-grid-header-row">
+                        <div class="grid-col-label"></div>
+                        <div class="grid-col-score">{'分數' if lang.startswith('zh') else 'Score'}</div>
+                        <div class="grid-col-stats">{ac_label}/{wa_label}</div>
+                        <div class="grid-col-status"></div>
+                    </div>
+                    <div class="problem-grid-columns">
+                        <div class="problem-grid-col">
+                            {''.join(col1_items)}
+                        </div>
+                        <div class="problem-grid-col">
+                            {''.join(col2_items)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2130,72 +2181,93 @@ class StudentReportExporter:
             .donut-container {{
                 display: table;
                 width: 100%;
+                table-layout: fixed;
             }}
             .donut-item {{
                 display: table-cell;
                 text-align: center;
-                padding: {8 * scale}px;
-                width: 33.33%;
-            }}
-            .donut-chart {{
-                position: relative;
-                display: inline-block;
-                width: {80 * scale}px;
-                height: {80 * scale}px;
-            }}
-            .donut-center {{
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(90deg);
-                text-align: center;
-            }}
-            .donut-solved {{
-                font-size: {20 * scale}px;
-                font-weight: 600;
-                color: #161616;
-                line-height: 1.2;
-            }}
-            .donut-total {{
-                font-size: {12 * scale}px;
-                color: #8d8d8d;
+                padding: {4 * scale}px;
+                vertical-align: top;
             }}
             .donut-label {{
-                margin-top: {8 * scale}px;
-                font-size: {13 * scale}px;
+                margin-top: {6 * scale}px;
+                font-size: {12 * scale}px;
                 font-weight: 600;
             }}
             
-            /* Problem Grid */
-            .problem-grid {{
+            /* Problem Grid - 2 Column Layout */
+            .problem-grid-header-row {{
+                display: none;
+            }}
+            .problem-grid-columns {{
                 display: table;
                 width: 100%;
-                border-spacing: {8 * scale}px;
+                table-layout: fixed;
             }}
-            .problem-grid-item {{
+            .problem-grid-col {{
                 display: table-cell;
                 vertical-align: top;
-                padding: {12 * scale}px;
-                border-radius: {4 * scale}px;
-                text-align: center;
-                min-width: {80 * scale}px;
+                padding-right: {6 * scale}px;
             }}
-            .problem-grid-header {{
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: {8 * scale}px;
+            .problem-grid-col:last-child {{
+                padding-right: 0;
+                padding-left: {6 * scale}px;
+            }}
+            .problem-grid-row {{
+                display: table;
+                width: 100%;
+                table-layout: fixed;
+                margin-bottom: {4 * scale}px;
+                border-radius: {4 * scale}px;
+                overflow: hidden;
+            }}
+            .problem-grid-row > div {{
+                display: table-cell;
+                vertical-align: middle;
+                padding: {6 * scale}px {4 * scale}px;
             }}
             .problem-grid-label {{
+                width: {28 * scale}px;
                 color: white;
-                padding: {3 * scale}px {8 * scale}px;
-                border-radius: {4 * scale}px;
+                text-align: center;
                 font-size: {11 * scale}px;
                 font-weight: 600;
+                border-radius: {2 * scale}px;
+                padding: {4 * scale}px !important;
+            }}
+            .problem-grid-score {{
+                width: {50 * scale}px;
+                font-size: {13 * scale}px;
+                font-weight: 600;
+                color: #161616;
+                text-align: center;
+            }}
+            .problem-grid-score .score-max {{
+                font-size: {10 * scale}px;
+                font-weight: 400;
+                color: #6f6f6f;
+            }}
+            .problem-grid-stats {{
+                width: {45 * scale}px;
+                font-size: {10 * scale}px;
+                text-align: center;
+            }}
+            .problem-grid-stats .stat-ac {{
+                color: #24a148;
+            }}
+            .problem-grid-stats .stat-ac::after {{
+                content: "/";
+                color: #8d8d8d;
+                margin: 0 {1 * scale}px;
+            }}
+            .problem-grid-stats .stat-wa {{
+                color: #da1e28;
             }}
             .problem-grid-status {{
-                font-size: {16 * scale}px;
+                width: {24 * scale}px;
+                font-size: {14 * scale}px;
                 font-weight: 700;
+                text-align: center;
             }}
             .problem-grid-status.status-ac {{
                 color: #24a148;
@@ -2206,27 +2278,29 @@ class StudentReportExporter:
             .problem-grid-status.status-none {{
                 color: #8d8d8d;
             }}
-            .problem-grid-score {{
-                font-size: {16 * scale}px;
-                font-weight: 600;
-                color: #161616;
-                margin-bottom: {4 * scale}px;
+            
+            /* Stats Row - Side by Side Layout */
+            .stats-row {{
+                display: table;
+                width: 100%;
+                margin-bottom: {16 * scale}px;
+                table-layout: fixed;
             }}
-            .problem-grid-tries {{
-                font-size: {10 * scale}px;
-                color: #525252;
+            .stats-col-left {{
+                display: table-cell;
+                width: 32%;
+                vertical-align: top;
+                padding-right: {12 * scale}px;
             }}
-            .problem-grid-tries .tries-ac {{
-                color: #24a148;
-                margin-right: {8 * scale}px;
-            }}
-            .problem-grid-tries .tries-wa {{
-                color: #da1e28;
+            .stats-col-right {{
+                display: table-cell;
+                width: 68%;
+                vertical-align: top;
             }}
             
             /* Chart Container */
             .chart-container {{
-                padding: {16 * scale}px;
+                padding: {8 * scale}px;
                 text-align: center;
             }}
             .chart-legend {{
@@ -2350,11 +2424,11 @@ class StudentReportExporter:
             
             {score_cards}
             
-            <div style="display: table; width: 100%; margin-bottom: 16px;">
-                <div style="display: table-cell; width: 35%; vertical-align: top; padding-right: 12px;">
+            <div class="stats-row">
+                <div class="stats-col-left">
                     {difficulty_stats}
                 </div>
-                <div style="display: table-cell; width: 65%; vertical-align: top;">
+                <div class="stats-col-right">
                     {problem_grid}
                 </div>
             </div>
