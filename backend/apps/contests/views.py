@@ -1161,7 +1161,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         # Permission is already checked by IsContestOwnerOrAdmin
         # No additional check needed
         
-        # Get file_format, language, and scale from query params
+        # Get file_format, language, scale, and layout from query params
         # Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
         file_format = request.query_params.get('file_format', 'markdown').lower()
         language = request.query_params.get('language', 'zh-TW')
@@ -1172,6 +1172,11 @@ class ContestViewSet(viewsets.ModelViewSet):
             scale = max(0.5, min(2.0, scale))  # Clamp between 0.5 and 2.0
         except (ValueError, TypeError):
             scale = 1.0
+        
+        # Get layout parameter for PDF ('normal' or 'compact', default 'normal')
+        layout = request.query_params.get('layout', 'normal').lower()
+        if layout not in ('normal', 'compact'):
+            layout = 'normal'
         
         if file_format not in ['markdown', 'pdf']:
             return Response(
@@ -1191,7 +1196,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
                 
             else:  # pdf
-                exporter = PDFExporter(contest, language, scale=scale)
+                exporter = PDFExporter(contest, language, scale=scale, layout=layout)
                 pdf_file = exporter.export()
                 
                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')

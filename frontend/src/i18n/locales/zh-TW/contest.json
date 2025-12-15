@@ -146,6 +146,11 @@
     "scale": "縮放比例",
     "selectScale": "選擇縮放",
     "scaleHint": "調整 PDF 輸出的字體與內容大小。100% 為原始大小。",
+    "layout": "佈局模式",
+    "selectLayout": "選擇佈局",
+    "layoutNormal": "一般模式",
+    "layoutCompact": "緊縮模式",
+    "layoutHint": "緊縮模式將輸入/輸出說明改為雙欄佈局，並減少間距，有效減少頁數。",
     "generating": "檔案生成中..."
   },
   "exitModal": {

@@ -50,49 +50,49 @@ const ProblemPreview = ({
 
   return (
     <article className="problem-preview markdown-body">
-      {/* H0 - Problem Title (Special, largest heading with underline) */}
+      {/* Problem Title - H2 */}
       {!compact && (
-        <h1 className="problem-title">
+        <h2 className="problem-title">
           {translation?.title || title || t("common:message.noData")}
-        </h1>
+        </h2>
       )}
 
       {translation && (
         <>
-          {/* H1 - Description Section */}
+          {/* Description Section - H3 */}
           {translation.description && (
             <section>
-              <h2>{t("problem:section.description")}</h2>
+              <h3>{t("problem:section.description")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.description}
               </MarkdownRenderer>
             </section>
           )}
 
-          {/* H1 - Input Description Section */}
+          {/* Input Description Section - H3 */}
           {translation.inputDescription && (
             <section>
-              <h2>{t("problem:section.inputDescription")}</h2>
+              <h3>{t("problem:section.inputDescription")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.inputDescription}
               </MarkdownRenderer>
             </section>
           )}
 
-          {/* H1 - Output Description Section */}
+          {/* Output Description Section - H3 */}
           {translation.outputDescription && (
             <section>
-              <h2>{t("problem:section.outputDescription")}</h2>
+              <h3>{t("problem:section.outputDescription")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.outputDescription}
               </MarkdownRenderer>
             </section>
           )}
 
-          {/* H1 - Sample Test Cases Section */}
+          {/* Sample Test Cases Section - H3 */}
           {sampleCases.length > 0 && (
             <section>
-              <h2>{t("problem:section.sampleTestCases")}</h2>
+              <h3>{t("problem:section.sampleTestCases")}</h3>
               {sampleCases.map((tc, index) => (
                 <div key={index} className="sample-case">
                   <div className="sample-case__header">
@@ -121,24 +121,24 @@ const ProblemPreview = ({
             </section>
           )}
 
-          {/* H1 - Hint Section */}
+          {/* Hint Section - H3 */}
           {translation.hint && (
             <section>
-              <h2>{t("problem:section.hint")}</h2>
+              <h3>{t("problem:section.hint")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
                 {translation.hint}
               </MarkdownRenderer>
             </section>
           )}
 
-          {/* H1 - Code Restrictions Section */}
+          {/* Code Restrictions Section - H3 */}
           {(requiredKeywords.length > 0 || forbiddenKeywords.length > 0) && (
             <section>
-              <h2>{t("problem:section.codeRestrictions")}</h2>
+              <h3>{t("problem:section.codeRestrictions")}</h3>
 
               {requiredKeywords.length > 0 && (
                 <div className="keyword-group">
-                  <h3>{t("problem:section.requiredKeywords")}</h3>
+                  <h4>{t("problem:section.requiredKeywords")}</h4>
                   <div className="keyword-tags">
                     {requiredKeywords.map((kw, index) => (
                       <code
@@ -154,7 +154,7 @@ const ProblemPreview = ({
 
               {forbiddenKeywords.length > 0 && (
                 <div className="keyword-group">
-                  <h3>{t("problem:section.forbiddenKeywords")}</h3>
+                  <h4>{t("problem:section.forbiddenKeywords")}</h4>
                   <div className="keyword-tags">
                     {forbiddenKeywords.map((kw, index) => (
                       <code

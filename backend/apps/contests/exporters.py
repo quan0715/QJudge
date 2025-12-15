@@ -288,15 +288,21 @@ class MarkdownExporter(ContestExporter):
 class PDFExporter(ContestExporter):
     """Export contest to PDF format with frontend-matching styles."""
     
-    def __init__(self, contest: Contest, language: str = 'zh-TW', scale: float = 1.0):
+    def __init__(self, contest: Contest, language: str = 'zh-TW', scale: float = 1.0, layout: str = 'normal'):
         super().__init__(contest, language)
         # Clamp scale between 0.5 and 2.0 for reasonable values
         self.scale = max(0.5, min(2.0, scale))
+        # Layout mode: 'normal' or 'compact'
+        self.layout = layout if layout in ('normal', 'compact') else 'normal'
     
     def get_css_styles(self) -> str:
         """Get CSS styles matching the frontend Carbon Design System."""
         # Calculate scaled values
         scale = self.scale
+        is_compact = self.layout == 'compact'
+        
+        # Spacing multiplier for compact mode (reduce by ~35%)
+        spacing_mult = 0.65 if is_compact else 1.0
         
         # Base sizes (in px at scale=1.0)
         base_font = 14 * scale
@@ -309,20 +315,20 @@ class PDFExporter(ContestExporter):
         code_size = 12 * scale
         code_block_size = 14 * scale
         
-        # Spacing (in px at scale=1.0)
-        margin_sm = 4 * scale
-        margin_md = 8 * scale
-        margin_lg = 12 * scale
-        margin_xl = 16 * scale
-        margin_xxl = 24 * scale
-        padding_sm = 2 * scale
-        padding_md = 4 * scale
-        padding_lg = 8 * scale
-        padding_xl = 16 * scale
-        padding_list = 32 * scale
+        # Spacing (in px at scale=1.0), reduced in compact mode
+        margin_sm = 4 * scale * spacing_mult
+        margin_md = 8 * scale * spacing_mult
+        margin_lg = 12 * scale * spacing_mult
+        margin_xl = 16 * scale * spacing_mult
+        margin_xxl = 24 * scale * spacing_mult
+        padding_sm = 2 * scale * spacing_mult
+        padding_md = 4 * scale * spacing_mult
+        padding_lg = 8 * scale * spacing_mult
+        padding_xl = 16 * scale * spacing_mult
+        padding_list = 32 * scale * spacing_mult
         
-        # Page margin (in cm)
-        page_margin = 1.5
+        # Page margin (in cm) - smaller for compact mode
+        page_margin = 1.0 if is_compact else 1.5
         
         return f"""
             /* ============================================
@@ -1081,24 +1087,11 @@ class PDFExporter(ContestExporter):
         contest_name = inline_markdown(self.contest.name)
         contest_name_plain = self.contest.name  # For <title> tag
         
-        # Exam mode notice
+        # Exam mode notice - only show QJudge anti-cheating policy (exam rules are written by contest owner)
         exam_notice_html = ""
         if self.contest.exam_mode_enabled:
-            # First box: Warning (Yellow) - exam rules
-            # Second box: Info (Blue) - anti-cheating policy
-
             if lang.startswith('zh'):
                 exam_notice_html = """
-                <aside class="warning">
-                    <p><strong>重要提醒</strong></p>
-                    <ul>
-                        <li>禁止使用手機</li>
-                        <li>禁止上網查資料</li>
-                        <li>禁止使用 AI 工具（ChatGPT、Copilot 等）</li>
-                        <li>禁止抄襲或分享程式碼</li>
-                        <li>可以攜帶<strong>紙本小抄</strong>（A4 單面一張）</li>
-                    </ul>
-                </aside>
                 <aside class="info">
                     <p><strong>QJudge 防作弊機制</strong></p>
                     <p>本次考試使用 <strong>QJudge OJ</strong> 進行，系統會偵測跳離視窗等異常行為。</p>
@@ -1107,16 +1100,6 @@ class PDFExporter(ContestExporter):
                 """
             else:
                 exam_notice_html = """
-                <aside class="warning">
-                    <p><strong>Important Notice</strong></p>
-                    <ul>
-                        <li>No phones allowed</li>
-                        <li>No internet search</li>
-                        <li>No AI tools (ChatGPT, Copilot, etc.)</li>
-                        <li>No plagiarism or code sharing</li>
-                        <li><strong>One A4 cheat sheet</strong> allowed</li>
-                    </ul>
-                </aside>
                 <aside class="info">
                     <p><strong>QJudge Anti-Cheating Policy</strong></p>
                     <p>This exam uses <strong>QJudge OJ</strong> with automatic monitoring. Suspicious behavior like switching windows will be detected.</p>

@@ -563,12 +563,14 @@ export const exportContestResults = async (
 /**
  * Download contest file in specified format (PDF or Markdown)
  * @param scale - PDF scale factor (0.5 to 2.0), only applies to PDF format
+ * @param layout - PDF layout mode ('normal' or 'compact'), only applies to PDF format
  */
 export const downloadContestFile = async (
   contestId: string,
   format: "pdf" | "markdown" = "markdown",
   language: string = "zh-TW",
-  scale: number = 1.0
+  scale: number = 1.0,
+  layout: "normal" | "compact" = "normal"
 ): Promise<Blob> => {
   const token = localStorage.getItem("token");
 
@@ -578,12 +580,17 @@ export const downloadContestFile = async (
     language: language,
   });
 
-  // Only add scale param for PDF format
-  if (format === "pdf" && scale !== 1.0) {
-    if (scale < 0.5 || scale > 2.0) {
-      throw new Error("Scale must be between 0.5 and 2.0");
+  // Only add scale and layout params for PDF format
+  if (format === "pdf") {
+    if (scale !== 1.0) {
+      if (scale < 0.5 || scale > 2.0) {
+        throw new Error("Scale must be between 0.5 and 2.0");
+      }
+      params.append("scale", scale.toString());
     }
-    params.append("scale", scale.toString());
+    if (layout !== "normal") {
+      params.append("layout", layout);
+    }
   }
 
   // Use direct fetch instead of httpClient to set correct Accept header for binary downloads

@@ -146,6 +146,11 @@
     "scale": "Scale",
     "selectScale": "Select scale",
     "scaleHint": "Adjust font and content size of PDF output. 100% is original size.",
+    "layout": "Layout Mode",
+    "selectLayout": "Select layout",
+    "layoutNormal": "Normal",
+    "layoutCompact": "Compact",
+    "layoutHint": "Compact mode uses two-column layout for input/output descriptions and reduces spacing to minimize page count.",
     "generating": "Generating file..."
   },
   "exitModal": {
