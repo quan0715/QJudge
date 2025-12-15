@@ -1663,9 +1663,9 @@ class StudentReportExporter:
         if not submissions:
             return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
         
-        # Get problem scores mapping
+        # Get problem scores mapping (use problem_score_sum from ContestProblem)
         contest_problems = self.get_contest_problems()
-        problem_scores = {cp.problem.id: cp.score for cp in contest_problems}
+        problem_scores = {cp.problem.id: (cp.problem_score_sum or 0) for cp in contest_problems}
         
         # Calculate cumulative AC count and score over time
         start_time = self.contest.start_time or self.contest.created_at
