@@ -1734,11 +1734,11 @@ class StudentReportExporter:
                   stroke="#0f62fe" stroke-width="2"/>
         ''')
         
-        # Right Y-axis (Score) - Green
+        # Right Y-axis (Score) - Purple
         svg_parts.append(f'''
             <line x1="{width - padding_right}" y1="{padding_top}" 
                   x2="{width - padding_right}" y2="{height - padding_bottom}" 
-                  stroke="#24a148" stroke-width="2"/>
+                  stroke="#8a3ffc" stroke-width="2"/>
         ''')
         
         # X-axis
@@ -1764,13 +1764,13 @@ class StudentReportExporter:
                       font-size="{10 * scale}px" fill="#0f62fe" text-anchor="end">{label_value}</text>
             ''')
         
-        # Right Y-axis labels (Score) - Green
+        # Right Y-axis labels (Score) - Purple
         for i in range(5):
             y = padding_top + (chart_height * i / 4)
             label_value = int(max_score * (4 - i) / 4)
             svg_parts.append(f'''
                 <text x="{width - padding_right + 8 * scale}" y="{y + 4 * scale}" 
-                      font-size="{10 * scale}px" fill="#24a148" text-anchor="start">{label_value}</text>
+                      font-size="{10 * scale}px" fill="#8a3ffc" text-anchor="start">{label_value}</text>
             ''')
         
         # Generate solved line path points
@@ -1800,10 +1800,10 @@ class StudentReportExporter:
                   stroke-linecap="round" stroke-linejoin="round"/>
         ''')
         
-        # Score line - Green
+        # Score line - Purple
         score_line_path = "M" + " L".join(score_path_points)
         svg_parts.append(f'''
-            <path d="{score_line_path}" fill="none" stroke="#24a148" stroke-width="{2 * scale}" 
+            <path d="{score_line_path}" fill="none" stroke="#8a3ffc" stroke-width="{2 * scale}" 
                   stroke-linecap="round" stroke-linejoin="round"/>
         ''')
         
@@ -1822,7 +1822,7 @@ class StudentReportExporter:
             y = height - padding_bottom - (score / max_score) * chart_height
             svg_parts.append(f'''
                 <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
-                        stroke="#24a148" stroke-width="{2 * scale}"/>
+                        stroke="#8a3ffc" stroke-width="{2 * scale}"/>
             ''')
         
         # Legend at bottom
@@ -1840,9 +1840,9 @@ class StudentReportExporter:
                   font-size="{10 * scale}px" fill="#525252">{solved_label}</text>
             
             <line x1="{legend_start_x + 80 * scale}" y1="{legend_y}" x2="{legend_start_x + 100 * scale}" y2="{legend_y}" 
-                  stroke="#24a148" stroke-width="{2 * scale}"/>
+                  stroke="#8a3ffc" stroke-width="{2 * scale}"/>
             <circle cx="{legend_start_x + 90 * scale}" cy="{legend_y}" r="{3 * scale}" 
-                    fill="#ffffff" stroke="#24a148" stroke-width="{1.5 * scale}"/>
+                    fill="#ffffff" stroke="#8a3ffc" stroke-width="{1.5 * scale}"/>
             <text x="{legend_start_x + 108 * scale}" y="{legend_y + 4 * scale}" 
                   font-size="{10 * scale}px" fill="#525252">{score_label}</text>
         ''')
@@ -1865,25 +1865,29 @@ class StudentReportExporter:
         '''
     
     def get_difficulty_stats(self) -> Dict[str, Dict[str, int]]:
-        """Calculate difficulty statistics (easy/medium/hard solved vs total)."""
+        """Calculate difficulty statistics (easy/medium/hard solved vs total) including scores."""
         contest_problems = self.get_contest_problems()
         standings = self.calculate_standings()
         user_stats = standings.get('user_stats', {})
         user_problems = user_stats.get('problems', {}) if user_stats else {}
         
         stats = {
-            'easy': {'solved': 0, 'total': 0},
-            'medium': {'solved': 0, 'total': 0},
-            'hard': {'solved': 0, 'total': 0},
+            'easy': {'solved': 0, 'total': 0, 'score': 0, 'max_score': 0},
+            'medium': {'solved': 0, 'total': 0, 'score': 0, 'max_score': 0},
+            'hard': {'solved': 0, 'total': 0, 'score': 0, 'max_score': 0},
         }
         
         for cp in contest_problems:
             difficulty = cp.problem.difficulty or 'medium'
             if difficulty in stats:
                 stats[difficulty]['total'] += 1
+                problem_max_score = cp.problem_score_sum or 0
+                stats[difficulty]['max_score'] += problem_max_score
                 
-                # Check if user solved this problem
+                # Check if user solved this problem and get score
                 problem_stat = user_problems.get(cp.problem.id, {})
+                user_score = problem_stat.get('score', 0)
+                stats[difficulty]['score'] += user_score
                 if problem_stat.get('status') == 'AC':
                     stats[difficulty]['solved'] += 1
         
@@ -1905,9 +1909,23 @@ class StudentReportExporter:
         contest_problems = self.get_contest_problems()
         total_problems = len(contest_problems)
         
-        # Count submissions
+        # Count effective submissions (exclude submissions after first AC for each problem)
         submissions = self.get_user_submissions()
-        submission_count = len(submissions)
+        ac_problems = set()
+        effective_submissions = 0
+        effective_ac_count = 0
+        
+        for sub in submissions:
+            if sub.problem_id in ac_problems:
+                # Skip submissions after AC for this problem
+                continue
+            effective_submissions += 1
+            if sub.status == 'AC':
+                effective_ac_count += 1
+                ac_problems.add(sub.problem_id)
+        
+        # Calculate AC rate
+        ac_rate = (effective_ac_count / effective_submissions * 100) if effective_submissions > 0 else 0
         
         # Calculate max possible score
         max_score = sum(cp.problem_score_sum or 0 for cp in contest_problems)
@@ -1925,7 +1943,7 @@ class StudentReportExporter:
             'score': '總分' if lang.startswith('zh') else 'Score',
             'solved': '解題數' if lang.startswith('zh') else 'Solved',
             'rank': rank_label,
-            'submissions': '提交數' if lang.startswith('zh') else 'Submissions',
+            'submissions': '有效提交' if lang.startswith('zh') else 'Submissions',
         }
         
         return f'''
@@ -1944,122 +1962,92 @@ class StudentReportExporter:
                 </div>
                 <div class="score-card">
                     <div class="score-card-label">{labels['submissions']}</div>
-                    <div class="score-card-value">{submission_count}</div>
+                    <div class="score-card-value">{effective_ac_count}<span class="score-card-max">/{effective_submissions}</span></div>
+                    <div class="score-card-sub">AC {ac_rate:.0f}%</div>
                 </div>
             </div>
         '''
     
     def render_difficulty_stats(self) -> str:
-        """Render difficulty statistics with a single large donut chart showing all difficulties."""
-        import math
+        """Render difficulty statistics with 3 donut charts showing problems and scores."""
         scale = self.scale
         lang = self.language
         stats = self.get_difficulty_stats()
         
-        # IBM Carbon colors
+        # IBM Carbon colors with background
         difficulty_config = {
-            'easy': ('簡單', '#24a148'),      # Carbon green
-            'medium': ('中等', '#f1c21b'),    # Carbon yellow  
-            'hard': ('困難', '#da1e28'),      # Carbon red
+            'easy': ('簡單', '#24a148', '#a7f0ba'),      # Carbon green
+            'medium': ('中等', '#f1c21b', '#fddc69'),    # Carbon yellow  
+            'hard': ('困難', '#da1e28', '#ffb3b8'),      # Carbon red
         }
         if not lang.startswith('zh'):
             difficulty_config = {
-                'easy': ('Easy', '#24a148'),
-                'medium': ('Medium', '#f1c21b'),
-                'hard': ('Hard', '#da1e28'),
+                'easy': ('Easy', '#24a148', '#a7f0ba'),
+                'medium': ('Medium', '#f1c21b', '#fddc69'),
+                'hard': ('Hard', '#da1e28', '#ffb3b8'),
             }
         
         title = '難度統計' if lang.startswith('zh') else 'Difficulty Statistics'
+        problems_label = '題數' if lang.startswith('zh') else 'Problems'
+        score_label = '得分' if lang.startswith('zh') else 'Score'
         
-        # Calculate totals
-        total_solved = sum(stats[d]['solved'] for d in ['easy', 'medium', 'hard'])
-        total_problems = sum(stats[d]['total'] for d in ['easy', 'medium', 'hard'])
-        
-        # SVG parameters for large donut
-        size = 140 * scale
-        cx, cy = size / 2, size / 2
-        outer_radius = 60 * scale
-        inner_radius = 40 * scale
-        
-        # Build donut segments
-        svg_paths = []
-        legend_items = []
-        current_angle = -90  # Start from top (12 o'clock)
-        
+        # Generate donut charts for each difficulty
+        donuts_html = []
         for difficulty in ['easy', 'medium', 'hard']:
-            name, color = difficulty_config[difficulty]
+            name, color, bg_color = difficulty_config[difficulty]
             solved = stats[difficulty]['solved']
             total = stats[difficulty]['total']
+            user_score = stats[difficulty]['score']
+            max_score = stats[difficulty]['max_score']
+            percentage = (solved / total * 100) if total > 0 else 0
             
-            if total_problems > 0:
-                # Angle based on proportion of total problems
-                angle = (total / total_problems) * 360
-            else:
-                angle = 120  # Equal split if no problems
+            # SVG donut chart parameters - Progress starts from top, goes clockwise
+            size = 80 * scale
+            stroke_width = 8 * scale
+            radius = (size - stroke_width) / 2
+            circumference = 2 * 3.14159 * radius
+            dash_offset = circumference * (1 - percentage / 100)
             
-            if angle > 0:
-                # Calculate arc path
-                start_angle_rad = math.radians(current_angle)
-                end_angle_rad = math.radians(current_angle + angle)
-                
-                # Outer arc points
-                x1_outer = cx + outer_radius * math.cos(start_angle_rad)
-                y1_outer = cy + outer_radius * math.sin(start_angle_rad)
-                x2_outer = cx + outer_radius * math.cos(end_angle_rad)
-                y2_outer = cy + outer_radius * math.sin(end_angle_rad)
-                
-                # Inner arc points
-                x1_inner = cx + inner_radius * math.cos(end_angle_rad)
-                y1_inner = cy + inner_radius * math.sin(end_angle_rad)
-                x2_inner = cx + inner_radius * math.cos(start_angle_rad)
-                y2_inner = cy + inner_radius * math.sin(start_angle_rad)
-                
-                large_arc = 1 if angle > 180 else 0
-                
-                # Create donut segment path
-                path = f'''
-                    M {x1_outer} {y1_outer}
-                    A {outer_radius} {outer_radius} 0 {large_arc} 1 {x2_outer} {y2_outer}
-                    L {x1_inner} {y1_inner}
-                    A {inner_radius} {inner_radius} 0 {large_arc} 0 {x2_inner} {y2_inner}
-                    Z
-                '''
-                
-                svg_paths.append(f'<path d="{path}" fill="{color}" stroke="#ffffff" stroke-width="2"/>')
-                
-                current_angle += angle
+            donut_svg = f'''
+                <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+                    <!-- Background circle -->
+                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
+                            fill="none" stroke="{bg_color}" stroke-width="{stroke_width}"/>
+                    <!-- Progress circle -->
+                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
+                            fill="none" stroke="{color}" stroke-width="{stroke_width}"
+                            stroke-dasharray="{circumference}" stroke-dashoffset="{dash_offset}"
+                            stroke-linecap="round"
+                            transform="rotate(-90 {size/2} {size/2})"/>
+                    <!-- Center text -->
+                    <text x="{size/2}" y="{size/2 + 5*scale}" text-anchor="middle" 
+                          font-size="{18*scale}px" font-weight="600" fill="#161616">{solved}/{total}</text>
+                </svg>
+            '''
             
-            # Legend item with solved/total
-            legend_items.append(f'''
-                <div class="donut-legend-item">
-                    <span class="donut-legend-color" style="background: {color};"></span>
-                    <span class="donut-legend-text">{name}</span>
-                    <span class="donut-legend-value">{solved}/{total}</span>
+            donuts_html.append(f'''
+                <div class="donut-item">
+                    <div class="donut-label" style="color: {color};">{name}</div>
+                    {donut_svg}
+                    <div class="donut-details">
+                        <div class="donut-detail-row">
+                            <span class="donut-detail-label">{problems_label}:</span>
+                            <span class="donut-detail-value">{solved}/{total}</span>
+                        </div>
+                        <div class="donut-detail-row">
+                            <span class="donut-detail-label">{score_label}:</span>
+                            <span class="donut-detail-value">{user_score}/{max_score}</span>
+                        </div>
+                    </div>
                 </div>
             ''')
-        
-        donut_svg = f'''
-            <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-                {''.join(svg_paths)}
-                <!-- Center text: total solved -->
-                <text x="{cx}" y="{cy - 6*scale}" text-anchor="middle" 
-                      font-size="{22*scale}px" font-weight="600" fill="#161616">{total_solved}</text>
-                <text x="{cx}" y="{cy + 12*scale}" text-anchor="middle" 
-                      font-size="{11*scale}px" fill="#6f6f6f">/{total_problems}</text>
-            </svg>
-        '''
         
         return f'''
             <div class="container-card">
                 <div class="container-card-header">{title}</div>
                 <div class="container-card-body">
-                    <div class="donut-single-container">
-                        <div class="donut-chart-large">
-                            {donut_svg}
-                        </div>
-                        <div class="donut-legend">
-                            {''.join(legend_items)}
-                        </div>
+                    <div class="donut-container">
+                        {''.join(donuts_html)}
                     </div>
                 </div>
             </div>
@@ -2324,45 +2312,43 @@ class StudentReportExporter:
                 font-weight: 400;
                 color: #8d8d8d;
             }}
+            .score-card-sub {{
+                font-size: {12 * scale}px;
+                color: #24a148;
+                font-weight: 600;
+                margin-top: {4 * scale}px;
+            }}
             
-            /* Difficulty Stats - Single Large Donut */
-            .donut-single-container {{
+            /* Difficulty Stats - Three Donut Charts */
+            .donut-container {{
                 display: table;
                 width: 100%;
+                table-layout: fixed;
             }}
-            .donut-chart-large {{
+            .donut-item {{
                 display: table-cell;
-                width: 50%;
                 text-align: center;
-                vertical-align: middle;
+                padding: {8 * scale}px;
+                vertical-align: top;
             }}
-            .donut-legend {{
-                display: table-cell;
-                width: 50%;
-                vertical-align: middle;
-                padding-left: {8 * scale}px;
-            }}
-            .donut-legend-item {{
-                display: flex;
-                align-items: center;
+            .donut-label {{
+                font-size: {14 * scale}px;
+                font-weight: 600;
                 margin-bottom: {8 * scale}px;
             }}
-            .donut-legend-color {{
-                width: {12 * scale}px;
-                height: {12 * scale}px;
-                border-radius: {2 * scale}px;
-                margin-right: {8 * scale}px;
-                flex-shrink: 0;
+            .donut-details {{
+                margin-top: {8 * scale}px;
             }}
-            .donut-legend-text {{
-                font-size: {13 * scale}px;
-                color: #161616;
-                flex-grow: 1;
-            }}
-            .donut-legend-value {{
-                font-size: {13 * scale}px;
-                font-weight: 600;
+            .donut-detail-row {{
+                display: flex;
+                justify-content: center;
+                gap: {4 * scale}px;
+                font-size: {11 * scale}px;
                 color: #525252;
+            }}
+            .donut-detail-value {{
+                font-weight: 600;
+                color: #161616;
             }}
             
             /* Problem Grid - 2 Column Layout */
@@ -2609,14 +2595,9 @@ class StudentReportExporter:
             
             {score_cards}
             
-            <div class="stats-row">
-                <div class="stats-col-left">
-                    {difficulty_stats}
-                </div>
-                <div class="stats-col-right">
-                    {problem_grid}
-                </div>
-            </div>
+            {difficulty_stats}
+            
+            {problem_grid}
             
             {trend_charts}
             
