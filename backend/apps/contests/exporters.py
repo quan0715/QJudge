@@ -1507,10 +1507,21 @@ class StudentReportExporter:
         padding_top = 30 * scale
         padding_bottom = 60 * scale
         
-        # Create problem labels map
+        # Create problem labels map and determine status colors
         problem_labels = {}
+        problem_status_colors = {}
         for i, cp in enumerate(contest_problems):
             problem_labels[cp.problem.id] = self.get_problem_label(cp)
+            # Check if this problem has AC submission
+            problem_subs = [s for s in submissions if s.problem_id == cp.problem.id]
+            has_ac = any(s.status == 'AC' for s in problem_subs)
+            has_attempt = len(problem_subs) > 0
+            if has_ac:
+                problem_status_colors[cp.problem.id] = '#24a148'  # Green - AC
+            elif has_attempt:
+                problem_status_colors[cp.problem.id] = '#da1e28'  # Red - attempted but failed
+            else:
+                problem_status_colors[cp.problem.id] = '#8d8d8d'  # Gray - not attempted
         
         # Calculate time range
         start_time = self.contest.start_time or self.contest.created_at
@@ -1535,6 +1546,7 @@ class StudentReportExporter:
         for i, cp in enumerate(contest_problems):
             y = padding_top + ((i + 0.5) / num_problems) * chart_height
             label = problem_labels[cp.problem.id]
+            label_color = problem_status_colors.get(cp.problem.id, '#8d8d8d')
             
             # Horizontal guide line
             svg_parts.append(f'''
@@ -1542,10 +1554,10 @@ class StudentReportExporter:
                       stroke="#e0e0e0" stroke-dasharray="2,4" stroke-opacity="0.5"/>
             ''')
             
-            # Problem label on Y axis (unified gray color)
+            # Problem label on Y axis (color based on status: green=AC, red=failed, gray=not attempted)
             svg_parts.append(f'''
                 <rect x="{padding_left - 45 * scale}" y="{y - 10 * scale}" 
-                      width="{40 * scale}" height="{20 * scale}" fill="#525252" rx="4"/>
+                      width="{40 * scale}" height="{20 * scale}" fill="{label_color}" rx="4"/>
                 <text x="{padding_left - 25 * scale}" y="{y + 4 * scale}" 
                       font-size="{11 * scale}px" fill="#ffffff" text-anchor="middle" 
                       font-weight="600">{label}</text>
