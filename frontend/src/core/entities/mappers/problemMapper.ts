@@ -12,8 +12,11 @@ export function mapTagDto(dto: any): Tag {
 }
 
 export function mapProblemDto(dto: any): Problem {
+  // For contest problems, use problem_id (the actual Problem ID) if available
+  // Otherwise fall back to id (for standalone problem views)
+  const problemId = dto.problem_id ?? dto.id;
   return {
-    id: dto.id?.toString() || "",
+    id: problemId?.toString() || "",
     displayId: dto.display_id,
     title: dto.title || "",
     difficulty: dto.difficulty || "medium",
