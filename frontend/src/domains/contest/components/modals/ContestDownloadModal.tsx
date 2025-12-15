@@ -41,6 +41,7 @@ export const ContestDownloadModal = ({
   const [format, setFormat] = useState<"pdf" | "markdown">("pdf");
   const [language, setLanguage] = useState<string>("zh-TW");
   const [scale, setScale] = useState<number>(1.0);
+  const [layout, setLayout] = useState<"normal" | "compact">("normal");
   const [loading, setLoading] = useState(false);
 
   const languageOptions = [
@@ -57,6 +58,11 @@ export const ContestDownloadModal = ({
     { id: 2.0, label: "200%" },
   ];
 
+  const layoutOptions = [
+    { id: "normal" as const, label: t("download.layoutNormal") },
+    { id: "compact" as const, label: t("download.layoutCompact") },
+  ];
+
   const handleDownload = async () => {
     console.log(
       "Download requested with format:",
@@ -64,7 +70,9 @@ export const ContestDownloadModal = ({
       "language:",
       language,
       "scale:",
-      scale
+      scale,
+      "layout:",
+      layout
     );
     setLoading(true);
     try {
@@ -72,7 +80,8 @@ export const ContestDownloadModal = ({
         contestId,
         format,
         language,
-        scale
+        scale,
+        layout
       );
 
       // Create download link
@@ -196,6 +205,34 @@ export const ContestDownloadModal = ({
               }}
             >
               {t("download.scaleHint")}
+            </p>
+          </div>
+        )}
+
+        {/* Layout option - only visible for PDF format */}
+        {format === "pdf" && (
+          <div style={{ marginBottom: "1.5rem" }}>
+            <Dropdown
+              id="layout-selector"
+              titleText={t("download.layout")}
+              label={t("download.selectLayout")}
+              items={layoutOptions}
+              itemToString={(item) => (item ? item.label : "")}
+              selectedItem={layoutOptions.find((l) => l.id === layout)}
+              onChange={({ selectedItem }) => {
+                if (selectedItem) {
+                  setLayout(selectedItem.id);
+                }
+              }}
+            />
+            <p
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.75rem",
+                color: "var(--cds-text-secondary)",
+              }}
+            >
+              {t("download.layoutHint")}
             </p>
           </div>
         )}
