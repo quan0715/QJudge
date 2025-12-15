@@ -5,7 +5,12 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { authenticatedRequest, skipIfNoBackend, loginAs } from "./setup";
+import {
+  authenticatedRequest,
+  skipIfNoBackend,
+  loginAs,
+  API_BASE_URL,
+} from "./setup";
 
 describe("Contests API - /api/v1/contests", () => {
   let authToken: string | null = null;
@@ -401,6 +406,311 @@ describe("Contests API - /api/v1/contests", () => {
       expect([200, 403]).toContain(res.status);
       console.log(
         `✓ Non-numeric scale handled gracefully: status ${res.status}`
+      );
+    });
+  });
+
+  describe("GET /:id/participants/:userId/report - Admin Participant Report", () => {
+    it("should allow admin to download participant report as PDF", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      // Get contests to find one with participants
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping participant report test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Get participants
+      const participantsRes = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/`,
+        adminToken
+      );
+
+      if (participantsRes.status !== 200) {
+        console.log("⚠️ Could not fetch participants, skipping test");
+        return;
+      }
+
+      const participants = await participantsRes.json();
+
+      if (!Array.isArray(participants) || participants.length === 0) {
+        console.log("⚠️ No participants found, skipping report test");
+        return;
+      }
+
+      const userId = participants[0].user?.id || participants[0].user_id;
+      if (!userId) {
+        console.log("⚠️ No valid user ID found in participant data");
+        return;
+      }
+
+      // Test downloading participant report
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/${userId}/report/?language=zh-TW`,
+        adminToken
+      );
+
+      // Should return 200 for PDF or 404 if user not found
+      expect([200, 404]).toContain(res.status);
+
+      if (res.status === 200) {
+        const contentType = res.headers.get("content-type");
+        expect(
+          contentType?.includes("application/pdf") ||
+            contentType?.includes("application/octet-stream")
+        ).toBe(true);
+        console.log(
+          `✓ Admin participant report download successful, content-type: ${contentType}`
+        );
+      }
+    });
+
+    it("should reject non-admin/non-owner from downloading participant report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken || !adminToken) return;
+
+      // Get contests list (as admin to ensure we have one)
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping permission test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Try to download as student (should be forbidden)
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/1/report/`,
+        authToken // student token
+      );
+
+      // Should return 403 Forbidden for non-admin/non-owner
+      expect(res.status).toBe(403);
+      console.log(`✓ Student correctly denied access: status ${res.status}`);
+    });
+
+    it("should return 404 for non-existent user in participant report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping 404 test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Request report for non-existent user
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/999999/report/`,
+        adminToken
+      );
+
+      expect(res.status).toBe(404);
+      console.log(`✓ Non-existent user returns 404: status ${res.status}`);
+    });
+
+    it("should accept scale parameter for participant report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !adminToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        adminToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping scale test");
+        return;
+      }
+
+      const contestId = contests[0].id;
+
+      // Get participants
+      const participantsRes = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/`,
+        adminToken
+      );
+
+      if (participantsRes.status !== 200) {
+        console.log("⚠️ Could not fetch participants, skipping test");
+        return;
+      }
+
+      const participants = await participantsRes.json();
+
+      if (!Array.isArray(participants) || participants.length === 0) {
+        console.log("⚠️ No participants found, skipping scale test");
+        return;
+      }
+
+      const userId = participants[0].user?.id || participants[0].user_id;
+      if (!userId) return;
+
+      // Test with scale parameter
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contestId}/participants/${userId}/report/?scale=1.5`,
+        adminToken
+      );
+
+      expect([200, 404]).toContain(res.status);
+      expect(res.status).not.toBe(400); // Scale should be accepted
+      console.log(`✓ Scale parameter accepted: status ${res.status}`);
+    });
+  });
+
+  describe("GET /:id/my_report - Student Own Report", () => {
+    it("should allow submitted student to download their own report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken) return;
+
+      // Get contests the student might be participating in
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        authToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      // Find a contest where student might have submitted
+      for (const contest of contests) {
+        const res = await authenticatedRequest(
+          `/api/v1/contests/${contest.id}/my_report/`,
+          authToken
+        );
+
+        // Possible responses:
+        // 200 - Success (student has submitted)
+        // 403 - Not submitted yet or not a participant
+        // 404 - Not a participant
+        if (res.status === 200) {
+          const contentType = res.headers.get("content-type");
+          expect(
+            contentType?.includes("application/pdf") ||
+              contentType?.includes("application/octet-stream")
+          ).toBe(true);
+          console.log(
+            `✓ Student own report download successful for contest ${contest.id}`
+          );
+          return; // Found one, test passed
+        } else if (res.status === 403) {
+          // Try parsing error message
+          try {
+            const errorData = await res.json();
+            console.log(
+              `Contest ${contest.id}: ${errorData.error || "Not submitted yet"}`
+            );
+          } catch {
+            console.log(
+              `Contest ${contest.id}: 403 - Not submitted or not participant`
+            );
+          }
+        }
+      }
+
+      console.log(
+        "⚠️ No contest found where student has submitted, which is expected"
+      );
+    });
+
+    it("should reject unauthenticated user from my_report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip) return;
+
+      // Get a contest ID without authentication
+      const publicRes = await fetch(`${API_BASE_URL}/api/v1/contests/`);
+      if (publicRes.status !== 200) {
+        console.log("⚠️ Could not fetch public contests, skipping test");
+        return;
+      }
+
+      const contests = (await publicRes.json()).results || [];
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping auth test");
+        return;
+      }
+
+      // Try to access my_report without auth
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/contests/${contests[0].id}/my_report/`
+      );
+
+      expect(res.status).toBe(401);
+      console.log(`✓ Unauthenticated request rejected: status ${res.status}`);
+    });
+
+    it("should accept language parameter for my_report", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        authToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping language test");
+        return;
+      }
+
+      // Test with English language
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contests[0].id}/my_report/?language=en`,
+        authToken
+      );
+
+      // Should not return 400 (bad request) for valid language
+      expect(res.status).not.toBe(400);
+      console.log(`✓ Language parameter accepted: status ${res.status}`);
+    });
+
+    it("should handle invalid scale by clamping (my_report)", async () => {
+      const shouldSkip = await skipIfNoBackend();
+      if (shouldSkip || !authToken) return;
+
+      const listRes = await authenticatedRequest(
+        "/api/v1/contests/",
+        authToken
+      );
+      const contests = (await listRes.json()).results || [];
+
+      if (contests.length === 0) {
+        console.log("⚠️ No contests found, skipping scale clamping test");
+        return;
+      }
+
+      // Test with out-of-range scale (should be clamped, not rejected)
+      const res = await authenticatedRequest(
+        `/api/v1/contests/${contests[0].id}/my_report/?scale=10`,
+        authToken
+      );
+
+      // Should not return 400 or 500
+      expect(res.status).not.toBe(400);
+      expect(res.status).not.toBe(500);
+      console.log(
+        `✓ Out-of-range scale clamped gracefully: status ${res.status}`
       );
     });
   });

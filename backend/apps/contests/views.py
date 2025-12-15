@@ -1205,6 +1205,132 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin], 
+            url_path='participants/(?P<user_id>\d+)/report')
+    def participant_report(self, request, pk=None, user_id=None):
+        """
+        Download individual student's exam report as PDF.
+        Only accessible by contest owners and admins.
+        
+        GET /api/v1/contests/{id}/participants/{user_id}/report/
+        """
+        from django.http import HttpResponse
+        from .exporters import StudentReportExporter, sanitize_filename
+        from apps.users.models import User
+        
+        contest = self.get_object()
+        
+        # Get the target user
+        try:
+            target_user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if user is a participant
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=target_user)
+        except ContestParticipant.DoesNotExist:
+            return Response(
+                {'error': 'User is not a participant in this contest'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get optional parameters
+        language = request.query_params.get('language', 'zh-TW')
+        try:
+            scale = float(request.query_params.get('scale', '1.0'))
+            scale = max(0.5, min(2.0, scale))
+        except (ValueError, TypeError):
+            scale = 1.0
+        
+        try:
+            exporter = StudentReportExporter(contest, target_user, language, scale)
+            pdf_file = exporter.export()
+            
+            safe_contest_name = sanitize_filename(contest.name)
+            safe_username = sanitize_filename(target_user.username)
+            filename = f"report_{contest.id}_{safe_contest_name}_{safe_username}.pdf"
+            
+            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            # Log activity
+            ContestActivityViewSet.log_activity(
+                contest,
+                request.user,
+                'other',
+                f"Downloaded report for participant {target_user.username}"
+            )
+            
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to generate report: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated],
+            url_path='my_report')
+    def my_report(self, request, pk=None):
+        """
+        Download current user's own exam report as PDF.
+        Only accessible after exam submission (exam_status = 'submitted').
+        
+        GET /api/v1/contests/{id}/my_report/
+        """
+        from django.http import HttpResponse
+        from .exporters import StudentReportExporter, sanitize_filename
+        
+        contest = self.get_object()
+        user = request.user
+        
+        # Check if user is a participant
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=user)
+        except ContestParticipant.DoesNotExist:
+            return Response(
+                {'error': 'You are not a participant in this contest'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if exam is submitted
+        if participant.exam_status != ExamStatus.SUBMITTED:
+            return Response(
+                {'error': 'You can only download your report after submitting the exam'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get optional parameters
+        language = request.query_params.get('language', 'zh-TW')
+        try:
+            scale = float(request.query_params.get('scale', '1.0'))
+            scale = max(0.5, min(2.0, scale))
+        except (ValueError, TypeError):
+            scale = 1.0
+        
+        try:
+            exporter = StudentReportExporter(contest, user, language, scale)
+            pdf_file = exporter.export()
+            
+            safe_contest_name = sanitize_filename(contest.name)
+            safe_username = sanitize_filename(user.username)
+            filename = f"report_{contest.id}_{safe_contest_name}_{safe_username}.pdf"
+            
+            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to generate report: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class ClarificationViewSet(viewsets.ModelViewSet):
     """

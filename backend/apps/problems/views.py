@@ -296,10 +296,34 @@ class ProblemViewSet(viewsets.ModelViewSet):
         from django.db.models import Count
         from django.db.models.functions import TruncDate
         from apps.submissions.models import Submission
+        from .models import Problem
         
-        problem = self.get_object()
         contest_id = request.query_params.get('contest')
         limit = int(request.query_params.get('limit', 100))
+        
+        # For contest statistics, check if user is a participant and get problem directly
+        if contest_id:
+            from apps.contests.models import Contest, ContestParticipant, ContestProblem
+            from django.shortcuts import get_object_or_404
+            from rest_framework.exceptions import PermissionDenied
+            
+            # Get the problem directly (bypass is_practice_visible filter)
+            problem = get_object_or_404(Problem, id=id)
+            
+            # Verify the problem is part of this contest
+            if not ContestProblem.objects.filter(contest_id=contest_id, problem=problem).exists():
+                raise PermissionDenied("This problem is not part of the specified contest.")
+            
+            # Verify user is a participant of this contest (or admin/teacher)
+            user = request.user
+            if not (user.is_staff or getattr(user, 'role', None) in ['admin', 'teacher']):
+                if not user.is_authenticated:
+                    raise PermissionDenied("Authentication required.")
+                if not ContestParticipant.objects.filter(contest_id=contest_id, user=user).exists():
+                    raise PermissionDenied("You are not a participant of this contest.")
+        else:
+            # For non-contest statistics, use the filtered queryset
+            problem = self.get_object()
         
         # Base queryset
         submissions_qs = Submission.objects.filter(
