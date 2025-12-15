@@ -187,7 +187,10 @@ const ContestAdminParticipantsPage = () => {
   const handleDownloadReport = async (userId: number, username: string) => {
     if (!contestId) return;
     try {
-      setNotification({ kind: "success", message: `正在產生 ${username} 的報告...` });
+      setNotification({
+        kind: "success",
+        message: `正在產生 ${username} 的報告...`,
+      });
       await downloadParticipantReport(contestId, userId);
       setNotification({ kind: "success", message: `${username} 的報告已下載` });
     } catch (error: any) {
