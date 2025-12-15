@@ -1397,6 +1397,16 @@ class StudentReportExporter:
             from pygments.lexers import get_lexer_by_name, TextLexer
             from pygments.formatters import HtmlFormatter
             
+            # Strip leading/trailing empty lines but preserve internal formatting
+            code_lines = code.split('\n')
+            # Remove leading empty lines
+            while code_lines and not code_lines[0].strip():
+                code_lines.pop(0)
+            # Remove trailing empty lines
+            while code_lines and not code_lines[-1].strip():
+                code_lines.pop()
+            code = '\n'.join(code_lines)
+            
             # Map submission language to Pygments lexer
             lexer_map = {
                 'cpp': 'cpp',
@@ -1427,6 +1437,7 @@ class StudentReportExporter:
         except ImportError:
             # Fallback if Pygments not available
             import html
+            code_clean = '\n'.join(line for line in code.split('\n') if line.strip() or code.split('\n').index(line) not in [0, len(code.split('\n'))-1])
             return f'<pre><code>{html.escape(code)}</code></pre>'
     
     def get_carbon_code_styles(self) -> str:
