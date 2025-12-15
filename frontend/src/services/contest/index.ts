@@ -332,42 +332,22 @@ const mapActivityToExamEvent = (item: any): ExamEvent => ({
 
 /**
  * Get contest activities (all events including admin actions, registrations, etc.)
- * Fetches all pages of paginated results
+ * Returns all activities without pagination (admin-only API)
  */
 export const getContestActivities = async (
   contestId: string
 ): Promise<ExamEvent[]> => {
-  const allActivities: ExamEvent[] = [];
-  let nextUrl: string | null = `/api/v1/contests/${contestId}/activities/`;
-
-  while (nextUrl) {
-    const res = await httpClient.get(nextUrl);
-    if (!res.ok) {
-      // Return empty array if not authorized (only admin/teacher can access)
-      if (res.status === 403) return [];
-      throw new Error("Failed to fetch contest activities");
-    }
-
-    const data = await res.json();
-
-    // Handle paginated response format: { count, next, previous, results }
-    if (data && typeof data === "object" && "results" in data) {
-      const results = data.results || [];
-      allActivities.push(...results.map(mapActivityToExamEvent));
-      // Get next page URL (convert absolute URL to relative path)
-      nextUrl = data.next
-        ? data.next.replace(/^https?:\/\/[^/]+/, "")
-        : null;
-    } else if (Array.isArray(data)) {
-      // Fallback for non-paginated response (backward compatibility)
-      allActivities.push(...data.map(mapActivityToExamEvent));
-      nextUrl = null;
-    } else {
-      nextUrl = null;
-    }
+  const res = await httpClient.get(`/api/v1/contests/${contestId}/activities/`);
+  if (!res.ok) {
+    // Return empty array if not authorized (only admin/teacher can access)
+    if (res.status === 403) return [];
+    throw new Error("Failed to fetch contest activities");
   }
-
-  return allActivities;
+  const data = await res.json();
+  
+  // Handle both array and paginated response format for backward compatibility
+  const results = Array.isArray(data) ? data : (data.results || []);
+  return results.map(mapActivityToExamEvent);
 };
 
 export const getScoreboard = async (

@@ -2007,6 +2007,7 @@ class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = ContestActivitySerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None  # Return all activities without pagination (admin-only API)
     
     def get_queryset(self):
         contest_pk = self.kwargs.get('contest_pk')
