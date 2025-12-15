@@ -1789,42 +1789,48 @@ class StudentReportExporter:
             y = height - padding_bottom - (score / max_score) * chart_height
             score_path_points.append(f"{x},{y}")
         
-        # Area fill for solved - Blue
-        area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(solved_path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
+        # Area fill for score - Purple (draw first so it's behind)
+        score_area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(score_path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
         svg_parts.append(f'''
-            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.06"/>
+            <path d="{score_area_path}" fill="#8a3ffc" fill-opacity="0.06"/>
         ''')
         
-        # Solved line - Blue
-        solved_line_path = "M" + " L".join(solved_path_points)
-        svg_parts.append(f'''
-            <path d="{solved_line_path}" fill="none" stroke="#0f62fe" stroke-width="{2 * scale}" 
-                  stroke-linecap="round" stroke-linejoin="round"/>
-        ''')
-        
-        # Score line - Purple
+        # Score line - Purple (draw first so blue shows on top)
         score_line_path = "M" + " L".join(score_path_points)
         svg_parts.append(f'''
             <path d="{score_line_path}" fill="none" stroke="#8a3ffc" stroke-width="{2 * scale}" 
                   stroke-linecap="round" stroke-linejoin="round"/>
         ''')
         
-        # Points at AC moments for solved line
-        for ratio, count in solved_points[1:-1]:
-            x = padding_left + ratio * chart_width
-            y = height - padding_bottom - (count / max_solved) * chart_height
-            svg_parts.append(f'''
-                <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
-                        stroke="#0f62fe" stroke-width="{2 * scale}"/>
-            ''')
+        # Area fill for solved - Blue
+        area_path = f"M{padding_left},{height - padding_bottom} " + " L".join(solved_path_points) + f" L{width - padding_right},{height - padding_bottom} Z"
+        svg_parts.append(f'''
+            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.08"/>
+        ''')
         
-        # Points at AC moments for score line
+        # Solved line - Blue (draw on top with dashed style for visibility)
+        solved_line_path = "M" + " L".join(solved_path_points)
+        svg_parts.append(f'''
+            <path d="{solved_line_path}" fill="none" stroke="#0f62fe" stroke-width="{2.5 * scale}" 
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        ''')
+        
+        # Points at AC moments for score line (draw first so blue shows on top)
         for ratio, score in score_points[1:-1]:
             x = padding_left + ratio * chart_width
             y = height - padding_bottom - (score / max_score) * chart_height
             svg_parts.append(f'''
-                <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
+                <circle cx="{x}" cy="{y}" r="{5 * scale}" fill="#ffffff" 
                         stroke="#8a3ffc" stroke-width="{2 * scale}"/>
+            ''')
+        
+        # Points at AC moments for solved line (draw on top)
+        for ratio, count in solved_points[1:-1]:
+            x = padding_left + ratio * chart_width
+            y = height - padding_bottom - (count / max_solved) * chart_height
+            svg_parts.append(f'''
+                <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#0f62fe" 
+                        stroke="#ffffff" stroke-width="{2 * scale}"/>
             ''')
         
         # Legend at bottom
