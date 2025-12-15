@@ -8,8 +8,40 @@
  * - Better privacy (no user data shared with Google)
  * - Works in regions where Google services are blocked
  * - Guaranteed availability
+ *
+ * We use JetBrains Mono NL (No Ligatures) for the code editor
+ * to prevent fi, ff, fl character merging issues.
  */
 
+/* JetBrains Mono NL (No Ligatures) - Primary font for code editor */
+@font-face {
+  font-family: "JetBrains Mono NL";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMonoNL-Regular.ttf")
+    format("truetype");
+}
+
+@font-face {
+  font-family: "JetBrains Mono NL";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMonoNL-Medium.ttf")
+    format("truetype");
+}
+
+@font-face {
+  font-family: "JetBrains Mono NL";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/JetBrainsMonoNL-SemiBold.ttf")
+    format("truetype");
+}
+
+/* JetBrains Mono (with ligatures) - Keep as fallback */
 @font-face {
   font-family: "JetBrains Mono";
   font-style: normal;

@@ -133,10 +133,11 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
           automaticLayout: true,
           // Disable font ligatures to prevent fi, ff, fl etc. from merging
           fontLigatures: false,
-          // Modern monospace fonts - JetBrains Mono is beautiful but disable its ligatures
-          // Fallback chain: JetBrains Mono -> Fira Code -> SF Mono -> system monospace
+          // Use JetBrains Mono NL (No Ligatures) as primary font to completely prevent ligatures
+          // The NL variant has all ligature glyphs removed at the font level
+          // Fallback chain: JetBrains Mono NL -> SF Mono -> Menlo -> Consolas -> monospace
           fontFamily:
-            "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', 'Consolas', monospace",
+            "'JetBrains Mono NL', 'SF Mono', 'Menlo', 'Consolas', monospace",
           fontWeight: "400",
           // Smooth cursor animation for fluid typing experience
           cursorBlinking: "smooth",
