@@ -2222,15 +2222,24 @@ class StudentReportExporter:
                 translation = problem.translations.first()
             problem_title = translation.title if translation else problem.title
             
-            # Status styling
+            # Status-based label color and status display
             if status == 'AC':
-                status_html = '<span class="status-ac">AC ✓</span>'
-            elif status == '未作答':
-                status_html = '<span class="status-none">未作答</span>'
+                label_bg = '#24a148'  # Green
+                status_icon = '✓'
+                status_text = 'AC' if not lang.startswith('zh') else 'AC'
+            elif score > 0 and score < max_score:
+                label_bg = '#f1c21b'  # Yellow - partial
+                status_icon = '◐'
+                status_text = 'Partial' if not lang.startswith('zh') else '部分'
+            elif tries > 0:
+                label_bg = '#da1e28'  # Red - attempted but failed
+                status_icon = '✗'
+                status_text = status
             else:
-                status_html = f'<span class="status-fail">{status}</span>'
+                label_bg = '#8d8d8d'  # Gray - not attempted
+                status_icon = '—'
+                status_text = 'Not Attempted' if not lang.startswith('zh') else '未作答'
             
-            status_label = '狀態' if lang.startswith('zh') else 'Status'
             score_label = '得分' if lang.startswith('zh') else 'Score'
             tries_label = '提交' if lang.startswith('zh') else 'Tries'
             code_label = '通過的程式碼' if lang.startswith('zh') else 'Accepted Code'
@@ -2254,15 +2263,13 @@ class StudentReportExporter:
             sections.append(f'''
                 <div class="problem-detail-card">
                     <div class="problem-detail-header">
-                        <span class="problem-label">{label}</span>
+                        <span class="problem-label" style="background-color: {label_bg};">{label}</span>
                         <span class="problem-title">{problem_title}</span>
+                        <span class="problem-header-status" style="color: {label_bg};">{status_icon} {status_text}</span>
+                        <span class="problem-header-score">{score_label}: {score}/{max_score}</span>
+                        <span class="problem-header-tries">{tries_label}: {tries}次</span>
                     </div>
                     <div class="problem-detail-body">
-                        <div class="problem-stats">
-                            <span class="stat-item"><strong>{status_label}:</strong> {status_html}</span>
-                            <span class="stat-item"><strong>{score_label}:</strong> {score}/{max_score}</span>
-                            <span class="stat-item"><strong>{tries_label}:</strong> {tries}次</span>
-                        </div>
                         {code_html}
                     </div>
                 </div>
@@ -2487,21 +2494,33 @@ class StudentReportExporter:
                 background-color: #f4f4f4;
                 padding: {12 * scale}px {16 * scale}px;
                 border-bottom: 1px solid #e0e0e0;
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: {8 * scale}px;
             }}
             .problem-label {{
                 display: inline-block;
-                background-color: #0f62fe;
                 color: white;
-                padding: {4 * scale}px {8 * scale}px;
+                padding: {4 * scale}px {10 * scale}px;
                 border-radius: {4 * scale}px;
                 font-weight: 600;
                 font-size: {12 * scale}px;
-                margin-right: {8 * scale}px;
             }}
             .problem-title {{
                 font-weight: 600;
                 font-size: {16 * scale}px;
                 color: #161616;
+                flex-grow: 1;
+            }}
+            .problem-header-status {{
+                font-weight: 600;
+                font-size: {14 * scale}px;
+            }}
+            .problem-header-score,
+            .problem-header-tries {{
+                font-size: {13 * scale}px;
+                color: #525252;
             }}
             .problem-detail-body {{
                 padding: {16 * scale}px;
