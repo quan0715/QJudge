@@ -1373,6 +1373,25 @@ class StudentReportExporter:
         ]
         return ac_submissions[-1] if ac_submissions else None
     
+    def get_best_submission(self, problem_id: int) -> Optional[Submission]:
+        """
+        Get the best submission for a problem.
+        Priority: AC submission > highest score submission > last submission
+        """
+        submissions = self.get_user_submissions()
+        problem_submissions = [s for s in submissions if s.problem_id == problem_id]
+        
+        if not problem_submissions:
+            return None
+        
+        # First, try to find AC submission
+        ac_submissions = [s for s in problem_submissions if s.status == 'AC']
+        if ac_submissions:
+            return ac_submissions[-1]  # Last AC
+        
+        # Otherwise, return the submission with highest score
+        return max(problem_submissions, key=lambda s: (s.score or 0, s.created_at))
+    
     def highlight_code(self, code: str, language: str = 'cpp') -> str:
         """Apply syntax highlighting to code using Pygments with Carbon-style theme."""
         try:
@@ -2213,20 +2232,27 @@ class StudentReportExporter:
             
             score_label = '得分' if lang.startswith('zh') else 'Score'
             tries_label = '提交' if lang.startswith('zh') else 'Tries'
-            code_label = '通過的程式碼' if lang.startswith('zh') else 'Accepted Code'
             
-            # Get AC code if available
+            # Get best submission code if any attempts were made
             code_html = ''
-            if status == 'AC':
-                ac_submission = self.get_last_ac_submission(problem.id)
-                if ac_submission and ac_submission.code:
+            if tries > 0:
+                best_submission = self.get_best_submission(problem.id)
+                if best_submission and best_submission.code:
+                    # Determine code label based on status
+                    if status == 'AC':
+                        code_label = '通過的程式碼' if lang.startswith('zh') else 'Accepted Code'
+                    elif score > 0 and score < max_score:
+                        code_label = '最佳提交 (部分得分)' if lang.startswith('zh') else 'Best Submission (Partial Score)'
+                    else:
+                        code_label = '最後提交' if lang.startswith('zh') else 'Last Submission'
+                    
                     highlighted_code = self.highlight_code(
-                        ac_submission.code, 
-                        ac_submission.language
+                        best_submission.code, 
+                        best_submission.language
                     )
                     code_html = f'''
                         <div class="code-section">
-                            <div class="code-label">{code_label} ({ac_submission.language})</div>
+                            <div class="code-label">{code_label} ({best_submission.language})</div>
                             {highlighted_code}
                         </div>
                     '''
