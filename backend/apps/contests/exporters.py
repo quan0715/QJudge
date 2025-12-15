@@ -1871,74 +1871,116 @@ class StudentReportExporter:
         '''
     
     def render_difficulty_stats(self) -> str:
-        """Render difficulty statistics with LeetCode-style donut charts."""
+        """Render difficulty statistics with a single large donut chart showing all difficulties."""
+        import math
         scale = self.scale
         lang = self.language
         stats = self.get_difficulty_stats()
         
         # IBM Carbon colors
         difficulty_config = {
-            'easy': ('簡單', '#24a148', '#a7f0ba'),      # Carbon green
-            'medium': ('中等', '#f1c21b', '#fddc69'),    # Carbon yellow
-            'hard': ('困難', '#da1e28', '#ffb3b8'),      # Carbon red
+            'easy': ('簡單', '#24a148'),      # Carbon green
+            'medium': ('中等', '#f1c21b'),    # Carbon yellow  
+            'hard': ('困難', '#da1e28'),      # Carbon red
         }
         if not lang.startswith('zh'):
             difficulty_config = {
-                'easy': ('Easy', '#24a148', '#a7f0ba'),
-                'medium': ('Medium', '#f1c21b', '#fddc69'),
-                'hard': ('Hard', '#da1e28', '#ffb3b8'),
+                'easy': ('Easy', '#24a148'),
+                'medium': ('Medium', '#f1c21b'),
+                'hard': ('Hard', '#da1e28'),
             }
         
         title = '難度統計' if lang.startswith('zh') else 'Difficulty Statistics'
         
-        # Generate donut charts for each difficulty
-        donuts_html = []
+        # Calculate totals
+        total_solved = sum(stats[d]['solved'] for d in ['easy', 'medium', 'hard'])
+        total_problems = sum(stats[d]['total'] for d in ['easy', 'medium', 'hard'])
+        
+        # SVG parameters for large donut
+        size = 140 * scale
+        cx, cy = size / 2, size / 2
+        outer_radius = 60 * scale
+        inner_radius = 40 * scale
+        
+        # Build donut segments
+        svg_paths = []
+        legend_items = []
+        current_angle = -90  # Start from top (12 o'clock)
+        
         for difficulty in ['easy', 'medium', 'hard']:
-            name, color, bg_color = difficulty_config[difficulty]
+            name, color = difficulty_config[difficulty]
             solved = stats[difficulty]['solved']
             total = stats[difficulty]['total']
-            percentage = (solved / total * 100) if total > 0 else 0
             
-            # SVG donut chart parameters - Progress starts from top, goes clockwise
-            size = 72 * scale
-            stroke_width = 6 * scale
-            radius = (size - stroke_width) / 2
-            circumference = 2 * 3.14159 * radius
-            # stroke-dashoffset: positive value = clockwise from start point
-            dash_offset = circumference * (1 - percentage / 100)
+            if total_problems > 0:
+                # Angle based on proportion of total problems
+                angle = (total / total_problems) * 360
+            else:
+                angle = 120  # Equal split if no problems
             
-            donut_svg = f'''
-                <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-                    <!-- Background circle -->
-                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
-                            fill="none" stroke="{bg_color}" stroke-width="{stroke_width}"/>
-                    <!-- Progress circle - starts from top (transform rotate -90deg on the circle) -->
-                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
-                            fill="none" stroke="{color}" stroke-width="{stroke_width}"
-                            stroke-dasharray="{circumference}" stroke-dashoffset="{dash_offset}"
-                            stroke-linecap="round"
-                            transform="rotate(-90 {size/2} {size/2})"/>
-                    <!-- Center text -->
-                    <text x="{size/2}" y="{size/2 - 4*scale}" text-anchor="middle" 
-                          font-size="{16*scale}px" font-weight="600" fill="#161616">{solved}</text>
-                    <text x="{size/2}" y="{size/2 + 10*scale}" text-anchor="middle" 
-                          font-size="{10*scale}px" fill="#6f6f6f">/{total}</text>
-                </svg>
-            '''
+            if angle > 0:
+                # Calculate arc path
+                start_angle_rad = math.radians(current_angle)
+                end_angle_rad = math.radians(current_angle + angle)
+                
+                # Outer arc points
+                x1_outer = cx + outer_radius * math.cos(start_angle_rad)
+                y1_outer = cy + outer_radius * math.sin(start_angle_rad)
+                x2_outer = cx + outer_radius * math.cos(end_angle_rad)
+                y2_outer = cy + outer_radius * math.sin(end_angle_rad)
+                
+                # Inner arc points
+                x1_inner = cx + inner_radius * math.cos(end_angle_rad)
+                y1_inner = cy + inner_radius * math.sin(end_angle_rad)
+                x2_inner = cx + inner_radius * math.cos(start_angle_rad)
+                y2_inner = cy + inner_radius * math.sin(start_angle_rad)
+                
+                large_arc = 1 if angle > 180 else 0
+                
+                # Create donut segment path
+                path = f'''
+                    M {x1_outer} {y1_outer}
+                    A {outer_radius} {outer_radius} 0 {large_arc} 1 {x2_outer} {y2_outer}
+                    L {x1_inner} {y1_inner}
+                    A {inner_radius} {inner_radius} 0 {large_arc} 0 {x2_inner} {y2_inner}
+                    Z
+                '''
+                
+                svg_paths.append(f'<path d="{path}" fill="{color}" stroke="#ffffff" stroke-width="2"/>')
+                
+                current_angle += angle
             
-            donuts_html.append(f'''
-                <div class="donut-item">
-                    {donut_svg}
-                    <div class="donut-label" style="color: {color};">{name}</div>
+            # Legend item with solved/total
+            legend_items.append(f'''
+                <div class="donut-legend-item">
+                    <span class="donut-legend-color" style="background: {color};"></span>
+                    <span class="donut-legend-text">{name}</span>
+                    <span class="donut-legend-value">{solved}/{total}</span>
                 </div>
             ''')
+        
+        donut_svg = f'''
+            <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+                {''.join(svg_paths)}
+                <!-- Center text: total solved -->
+                <text x="{cx}" y="{cy - 6*scale}" text-anchor="middle" 
+                      font-size="{22*scale}px" font-weight="600" fill="#161616">{total_solved}</text>
+                <text x="{cx}" y="{cy + 12*scale}" text-anchor="middle" 
+                      font-size="{11*scale}px" fill="#6f6f6f">/{total_problems}</text>
+            </svg>
+        '''
         
         return f'''
             <div class="container-card">
                 <div class="container-card-header">{title}</div>
                 <div class="container-card-body">
-                    <div class="donut-container">
-                        {''.join(donuts_html)}
+                    <div class="donut-single-container">
+                        <div class="donut-chart-large">
+                            {donut_svg}
+                        </div>
+                        <div class="donut-legend">
+                            {''.join(legend_items)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2197,22 +2239,44 @@ class StudentReportExporter:
                 color: #8d8d8d;
             }}
             
-            /* Difficulty Stats - Donut Charts (LeetCode style) */
-            .donut-container {{
+            /* Difficulty Stats - Single Large Donut */
+            .donut-single-container {{
                 display: table;
                 width: 100%;
-                table-layout: fixed;
             }}
-            .donut-item {{
+            .donut-chart-large {{
                 display: table-cell;
+                width: 50%;
                 text-align: center;
-                padding: {4 * scale}px;
-                vertical-align: top;
+                vertical-align: middle;
             }}
-            .donut-label {{
-                margin-top: {6 * scale}px;
-                font-size: {12 * scale}px;
+            .donut-legend {{
+                display: table-cell;
+                width: 50%;
+                vertical-align: middle;
+                padding-left: {8 * scale}px;
+            }}
+            .donut-legend-item {{
+                display: flex;
+                align-items: center;
+                margin-bottom: {8 * scale}px;
+            }}
+            .donut-legend-color {{
+                width: {12 * scale}px;
+                height: {12 * scale}px;
+                border-radius: {2 * scale}px;
+                margin-right: {8 * scale}px;
+                flex-shrink: 0;
+            }}
+            .donut-legend-text {{
+                font-size: {13 * scale}px;
+                color: #161616;
+                flex-grow: 1;
+            }}
+            .donut-legend-value {{
+                font-size: {13 * scale}px;
                 font-weight: 600;
+                color: #525252;
             }}
             
             /* Problem Grid - 2 Column Layout */
