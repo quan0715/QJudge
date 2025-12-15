@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   DataTable,
@@ -16,6 +16,7 @@ import {
   Dropdown,
   Modal,
   Tag,
+  Search,
 } from "@carbon/react";
 import {
   Add,
@@ -25,6 +26,8 @@ import {
   Renew,
   Restart,
   Download,
+  ArrowUp,
+  ArrowDown,
 } from "@carbon/icons-react";
 import { AddParticipantModal } from "../../components/modals/AddParticipantModal";
 import {
@@ -81,6 +84,15 @@ const ContestAdminParticipantsPage = () => {
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Sort state
+  type SortKey = "username" | "score" | "joinedAt";
+  type SortDirection = "asc" | "desc";
+  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -203,25 +215,72 @@ const ContestAdminParticipantsPage = () => {
 
   // Prepare table rows
   const headers = [
-    { key: "username", header: "使用者" },
-    { key: "joinedAt", header: "加入時間" },
+    { key: "username", header: "使用者", sortable: true },
+    { key: "score", header: "分數", sortable: true },
+    { key: "joinedAt", header: "加入時間", sortable: true },
     { key: "status", header: "狀態" },
     { key: "lockReason", header: "鎖定原因" },
     { key: "actions", header: "操作" },
   ];
 
+  // Handle sort toggle
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection(key === "score" ? "desc" : "asc");
+    }
+    setPage(1); // Reset to first page when sorting changes
+  };
+
+  // Apply search, status filter, and sorting
+  const processedParticipants = useMemo(() => {
+    let result = [...participants];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (p) =>
+          p.username.toLowerCase().includes(query) ||
+          p.userId.toString().includes(query) ||
+          (p.displayName && p.displayName.toLowerCase().includes(query)) ||
+          (p.nickname && p.nickname.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter(
+        (p) => (p.examStatus || "not_started") === statusFilter
+      );
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortKey) {
+        case "username":
+          comparison = a.username.localeCompare(b.username);
+          break;
+        case "score":
+          comparison = (a.score || 0) - (b.score || 0);
+          break;
+        case "joinedAt":
+          comparison =
+            new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [participants, searchQuery, statusFilter, sortKey, sortDirection]);
+
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-
-  // Apply status filter
-  const filteredParticipants =
-    statusFilter === "all"
-      ? participants
-      : participants.filter(
-          (p) => (p.examStatus || "not_started") === statusFilter
-        );
-
-  const paginatedParticipants = filteredParticipants.slice(
+  const paginatedParticipants = processedParticipants.slice(
     startIndex,
     endIndex
   );
@@ -271,16 +330,29 @@ const ContestAdminParticipantsPage = () => {
             </div>
           }
         >
-          {/* Status Filter */}
+          {/* Search and Filter Bar */}
           <div
             style={{
               padding: "1rem",
               borderBottom: "1px solid var(--cds-border-subtle)",
               display: "flex",
+              flexWrap: "wrap",
               gap: "1rem",
-              alignItems: "center",
+              alignItems: "flex-end",
             }}
           >
+            <Search
+              id="participant-search"
+              labelText="搜尋參賽者"
+              placeholder="搜尋姓名或使用者 ID..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1); // Reset to first page when search changes
+              }}
+              size="sm"
+              style={{ minWidth: "240px", maxWidth: "320px" }}
+            />
             <Dropdown
               id="status-filter"
               titleText="篩選狀態"
@@ -301,9 +373,10 @@ const ContestAdminParticipantsPage = () => {
               style={{
                 color: "var(--cds-text-secondary)",
                 fontSize: "0.875rem",
+                marginLeft: "auto",
               }}
             >
-              顯示 {filteredParticipants.length} / {participants.length}{" "}
+              顯示 {processedParticipants.length} / {participants.length}{" "}
               位參賽者
             </span>
           </div>
@@ -329,9 +402,38 @@ const ContestAdminParticipantsPage = () => {
                         const { key, ...headerProps } = getHeaderProps({
                           header,
                         });
+                        const isSortable = header.sortable;
+                        const isCurrentSort = sortKey === header.key;
                         return (
-                          <TableHeader key={key} {...headerProps}>
-                            {header.header}
+                          <TableHeader
+                            key={key}
+                            {...headerProps}
+                            onClick={
+                              isSortable
+                                ? () => handleSort(header.key as SortKey)
+                                : undefined
+                            }
+                            style={{
+                              cursor: isSortable ? "pointer" : "default",
+                              userSelect: isSortable ? "none" : undefined,
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                              }}
+                            >
+                              {header.header}
+                              {isSortable &&
+                                isCurrentSort &&
+                                (sortDirection === "asc" ? (
+                                  <ArrowUp size={14} />
+                                ) : (
+                                  <ArrowDown size={14} />
+                                ))}
+                            </span>
                           </TableHeader>
                         );
                       })}
@@ -356,6 +458,20 @@ const ContestAdminParticipantsPage = () => {
                             >
                               ID: {p.userId}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                fontSize: "1rem",
+                                color:
+                                  p.score > 0
+                                    ? "var(--cds-support-success)"
+                                    : "var(--cds-text-secondary)",
+                              }}
+                            >
+                              {p.score}
+                            </span>
                           </TableCell>
                           <TableCell>
                             {new Date(p.joinedAt).toLocaleString()}
@@ -460,7 +576,7 @@ const ContestAdminParticipantsPage = () => {
             )}
           </DataTable>
           <Pagination
-            totalItems={filteredParticipants.length}
+            totalItems={processedParticipants.length}
             backwardText="上一頁"
             forwardText="下一頁"
             itemsPerPageText="每頁顯示"

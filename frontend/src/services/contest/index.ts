@@ -319,29 +319,55 @@ export const getExamEvents = async (
 };
 
 /**
+ * Map activity item to ExamEvent format
+ */
+const mapActivityToExamEvent = (item: any): ExamEvent => ({
+  id: item.id?.toString() || "",
+  userId: item.user?.toString() || "",
+  userName: item.username || "Unknown",
+  eventType: item.action_type || "other",
+  timestamp: item.created_at || "",
+  reason: item.details || "",
+});
+
+/**
  * Get contest activities (all events including admin actions, registrations, etc.)
+ * Fetches all pages of paginated results
  */
 export const getContestActivities = async (
   contestId: string
 ): Promise<ExamEvent[]> => {
-  const res = await httpClient.get(`/api/v1/contests/${contestId}/activities/`);
-  if (!res.ok) {
-    // Return empty array if not authorized (only admin/teacher can access)
-    if (res.status === 403) return [];
-    throw new Error("Failed to fetch contest activities");
+  const allActivities: ExamEvent[] = [];
+  let nextUrl: string | null = `/api/v1/contests/${contestId}/activities/`;
+
+  while (nextUrl) {
+    const res = await httpClient.get(nextUrl);
+    if (!res.ok) {
+      // Return empty array if not authorized (only admin/teacher can access)
+      if (res.status === 403) return [];
+      throw new Error("Failed to fetch contest activities");
+    }
+
+    const data = await res.json();
+
+    // Handle paginated response format: { count, next, previous, results }
+    if (data && typeof data === "object" && "results" in data) {
+      const results = data.results || [];
+      allActivities.push(...results.map(mapActivityToExamEvent));
+      // Get next page URL (convert absolute URL to relative path)
+      nextUrl = data.next
+        ? data.next.replace(/^https?:\/\/[^/]+/, "")
+        : null;
+    } else if (Array.isArray(data)) {
+      // Fallback for non-paginated response (backward compatibility)
+      allActivities.push(...data.map(mapActivityToExamEvent));
+      nextUrl = null;
+    } else {
+      nextUrl = null;
+    }
   }
-  const data = await res.json();
-  // Map activity format to ExamEvent format for unified display
-  return Array.isArray(data)
-    ? data.map((item: any) => ({
-        id: item.id?.toString() || "",
-        userId: item.user?.toString() || "",
-        userName: item.username || "Unknown",
-        eventType: item.action_type || "other",
-        timestamp: item.created_at || "",
-        reason: item.details || "",
-      }))
-    : [];
+
+  return allActivities;
 };
 
 export const getScoreboard = async (

@@ -3,7 +3,33 @@ import type { SubmissionStatus } from "./submission.entity";
 
 export type ContestStatus = "inactive" | "active" | "archived" | "ended";
 export type ContestVisibility = "public" | "private";
-export type ExamEventType = "tab_hidden" | "window_blur" | "exit_fullscreen";
+// Violation events (from ExamEvent model)
+export type ExamViolationType = 
+  | "tab_hidden" 
+  | "window_blur" 
+  | "exit_fullscreen"
+  | "forbidden_focus_event";
+
+// Activity events (from ContestActivity model)
+export type ContestActivityType =
+  | "register"
+  | "enter_contest"
+  | "start_exam"
+  | "end_exam"
+  | "auto_submit"
+  | "lock_user"
+  | "unlock_user"
+  | "submit_code"
+  | "ask_question"
+  | "reply_question"
+  | "update_contest"
+  | "update_problem"
+  | "update_participant"
+  | "announce"
+  | "other";
+
+// Combined event type for unified display
+export type ExamEventType = ExamViolationType | ContestActivityType;
 
 export interface ContestPermissions {
   canSwitchView: boolean;
@@ -152,6 +178,7 @@ export interface ExamEventStats {
   tabHiddenCount: number;
   windowBlurCount: number;
   exitFullscreenCount: number;
+  forbiddenFocusEventCount: number;
   totalViolations: number;
 }
 

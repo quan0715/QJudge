@@ -17,6 +17,7 @@ import {
   Pagination,
   Tag,
   Toggle,
+  MultiSelect,
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { LineChart } from "@carbon/charts-react";
@@ -40,10 +41,19 @@ const ContestAdminLogsPage = () => {
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showChart, setShowChart] = useState(true);
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
 
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  // Event type filter options
+  const eventFilterOptions = useMemo(() => [
+    { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "lock_user", "cheat_warning"] },
+    { id: "submission", label: "程式提交", types: ["submit", "submit_code"] },
+    { id: "lifecycle", label: "考試狀態", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave"] },
+    { id: "admin", label: "管理操作", types: ["unregister", "unlock_user", "update_participant", "update_contest", "update_problem", "announce", "ask_question", "reply_question", "publish_problem_to_practice", "other"] },
+  ], []);
 
   // Sort events by timestamp (most recent first)
   const sortedEvents = useMemo(() => {
@@ -62,22 +72,31 @@ const ContestAdminLogsPage = () => {
         "exit_fullscreen",
         "forbidden_focus_event",
         "lock_user",
+        "cheat_warning",
       ],
       submission: ["submit", "submit_code"],
       lifecycle: [
+        "register",
+        "enter_contest",
         "start_exam",
         "end_exam",
         "auto_submit",
         "resume_exam",
         "reopen_exam",
+        "pause_exam",
+        "leave",
       ],
       admin: [
-        "register",
         "unregister",
         "unlock_user",
         "update_participant",
+        "update_contest",
+        "update_problem",
         "announce",
+        "ask_question",
         "reply_question",
+        "publish_problem_to_practice",
+        "other",
       ],
     };
   }, []);
@@ -213,22 +232,42 @@ const ContestAdminLogsPage = () => {
     [theme]
   );
 
-  // Filter events when search term changes
+  // Get all event types that match selected categories
+  const selectedTypes = useMemo(() => {
+    if (selectedEventTypes.length === 0) return null; // null means no filter
+    const types: string[] = [];
+    selectedEventTypes.forEach((categoryId) => {
+      const category = eventFilterOptions.find((opt) => opt.id === categoryId);
+      if (category) {
+        types.push(...category.types);
+      }
+    });
+    return types;
+  }, [selectedEventTypes, eventFilterOptions]);
+
+  // Filter events when search term or event type filter changes
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredEvents(sortedEvents);
-    } else {
+    let filtered = sortedEvents;
+    
+    // Apply event type filter
+    if (selectedTypes && selectedTypes.length > 0) {
+      filtered = filtered.filter((e) => selectedTypes.includes(e.eventType));
+    }
+    
+    // Apply search term filter
+    if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
-      const filtered = sortedEvents.filter(
+      filtered = filtered.filter(
         (e) =>
           e.userName?.toLowerCase().includes(lowerSearch) ||
           e.eventType?.toLowerCase().includes(lowerSearch) ||
           e.reason?.toLowerCase().includes(lowerSearch)
       );
-      setFilteredEvents(filtered);
     }
-    setPage(1); // Reset to first page on search
-  }, [searchTerm, sortedEvents]);
+    
+    setFilteredEvents(filtered);
+    setPage(1); // Reset to first page on filter change
+  }, [searchTerm, sortedEvents, selectedTypes]);
 
   // Comprehensive event type mapping
   const getEventTag = (type: string) => {
@@ -423,6 +462,24 @@ const ContestAdminLogsPage = () => {
                           placeholder="搜尋事件..."
                           persistent
                         />
+                        <div style={{ minWidth: "200px" }}>
+                          <MultiSelect
+                            id="event-type-filter"
+                            titleText=""
+                            label="篩選事件類型"
+                            items={eventFilterOptions}
+                            itemToString={(item: any) => item?.label || ""}
+                            selectedItems={eventFilterOptions.filter((opt) =>
+                              selectedEventTypes.includes(opt.id)
+                            )}
+                            onChange={({ selectedItems }: any) => {
+                              setSelectedEventTypes(
+                                selectedItems?.map((item: any) => item.id) || []
+                              );
+                            }}
+                            size="md"
+                          />
+                        </div>
                       </TableToolbarContent>
                     </TableToolbar>
                     <Table {...getTableProps()}>

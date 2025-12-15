@@ -97,12 +97,15 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     userId: dto.user_id?.toString() || "",
     username: dto.username || "",
     email: dto.user?.email,
-    score: dto.score || 0,
+    // 優先使用動態計算的 total_score，否則使用靜態的 score
+    score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || "",
     examStatus: dto.exam_status || "not_started",
     lockReason: dto.lock_reason,
     violationCount: dto.violation_count || 0,
+    nickname: dto.nickname,
+    displayName: dto.display_name,
   };
 }
 
@@ -204,6 +207,7 @@ export function mapExamEventStatsDto(dto: any): ExamEventStats {
     tabHiddenCount: dto.tab_hidden_count || 0,
     windowBlurCount: dto.window_blur_count || 0,
     exitFullscreenCount: dto.exit_fullscreen_count || 0,
+    forbiddenFocusEventCount: dto.forbidden_focus_event_count || 0,
     totalViolations: dto.total_violations || 0,
   };
 }

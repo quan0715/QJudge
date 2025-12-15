@@ -596,6 +596,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     nickname = serializers.CharField(read_only=True)
     display_name = serializers.SerializerMethodField()
+    total_score = serializers.SerializerMethodField()
     
     auto_unlock_at = serializers.SerializerMethodField()
     remaining_unlock_seconds = serializers.SerializerMethodField()
@@ -603,11 +604,34 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContestParticipant
         fields = [
-            'user_id', 'username', 'user', 'score', 'rank', 
+            'user_id', 'username', 'user', 'score', 'total_score', 'rank', 
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'auto_unlock_at', 'remaining_unlock_seconds',
             'nickname', 'display_name',
         ]
+    
+    def get_total_score(self, obj):
+        """計算參賽者的實際總分（從提交記錄中計算）"""
+        from apps.submissions.models import Submission
+        from django.db.models import Max
+        
+        # 取得競賽的所有題目
+        contest_problems = obj.contest.contest_problems.all()
+        total = 0
+        
+        for cp in contest_problems:
+            # 取得該用戶在此題目的最高分
+            best_submission = Submission.objects.filter(
+                contest=obj.contest,
+                problem=cp.problem,
+                user=obj.user,
+                source_type='contest'
+            ).aggregate(max_score=Max('score'))
+            
+            if best_submission['max_score']:
+                total += best_submission['max_score']
+        
+        return total
 
     def get_display_name(self, obj):
         """根據權限返回適當的顯示名稱"""

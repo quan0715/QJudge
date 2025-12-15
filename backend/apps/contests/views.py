@@ -1721,7 +1721,8 @@ class ExamViewSet(viewsets.ViewSet):
         is_allowed = (
             user.is_staff or 
             user.is_superuser or 
-            contest.owner_id == user.id
+            contest.owner_id == user.id or
+            contest.admins.filter(pk=user.pk).exists()
         )
         
         if not is_allowed:

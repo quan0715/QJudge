@@ -272,6 +272,17 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             source_type=source_type
         )
         
+        # Log activity for contest submissions
+        if source_type == 'contest' and contest:
+            from apps.contests.views import ContestActivityViewSet
+            problem = serializer.validated_data.get('problem')
+            ContestActivityViewSet.log_activity(
+                contest,
+                user,
+                'submit_code',
+                f"Submitted code for problem: {problem.title if problem else 'Unknown'}"
+            )
+        
         # Trigger async judging task after transaction commits
         # Use high_priority queue for contest submissions
         from django.db import transaction

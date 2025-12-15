@@ -32,6 +32,7 @@ const ExamEventStatsComponent: React.FC = () => {
           tabHiddenCount: 0,
           windowBlurCount: 0,
           exitFullscreenCount: 0,
+          forbiddenFocusEventCount: 0,
           totalViolations: 0,
         });
       }
@@ -51,6 +52,10 @@ const ExamEventStatsComponent: React.FC = () => {
           userStats.exitFullscreenCount++;
           userStats.totalViolations++;
           break;
+        case "forbidden_focus_event":
+          userStats.forbiddenFocusEventCount++;
+          userStats.totalViolations++;
+          break;
       }
     });
 
@@ -62,6 +67,7 @@ const ExamEventStatsComponent: React.FC = () => {
     { key: "tabHiddenCount", header: "切換分頁" },
     { key: "windowBlurCount", header: "視窗失焦" },
     { key: "exitFullscreenCount", header: "退出全螢幕" },
+    { key: "forbiddenFocusEventCount", header: "焦點異常" },
     { key: "totalViolations", header: "總違規次數" },
   ];
 
@@ -71,6 +77,7 @@ const ExamEventStatsComponent: React.FC = () => {
     tabHiddenCount: stat.tabHiddenCount,
     windowBlurCount: stat.windowBlurCount,
     exitFullscreenCount: stat.exitFullscreenCount,
+    forbiddenFocusEventCount: stat.forbiddenFocusEventCount,
     totalViolations: stat.totalViolations,
   }));
 
@@ -108,7 +115,7 @@ const ExamEventStatsComponent: React.FC = () => {
             </TableHead>
             <TableBody>
               {rows.map((row) => {
-                const hasViolations = parseInt(row.cells[4].value) > 0;
+                const hasViolations = parseInt(row.cells[5].value) > 0;
                 const { key, ...rowProps } = getRowProps({ row });
                 return (
                   <TableRow
