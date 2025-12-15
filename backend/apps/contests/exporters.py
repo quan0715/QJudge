@@ -1507,11 +1507,9 @@ class StudentReportExporter:
         padding_top = 30 * scale
         padding_bottom = 60 * scale
         
-        # Create problem color map
-        problem_colors = {}
+        # Create problem labels map
         problem_labels = {}
         for i, cp in enumerate(contest_problems):
-            problem_colors[cp.problem.id] = self.CHART_COLORS[i % len(self.CHART_COLORS)]
             problem_labels[cp.problem.id] = self.get_problem_label(cp)
         
         # Calculate time range
@@ -1536,7 +1534,6 @@ class StudentReportExporter:
         num_problems = len(contest_problems)
         for i, cp in enumerate(contest_problems):
             y = padding_top + ((i + 0.5) / num_problems) * chart_height
-            color = problem_colors[cp.problem.id]
             label = problem_labels[cp.problem.id]
             
             # Horizontal guide line
@@ -1545,10 +1542,10 @@ class StudentReportExporter:
                       stroke="#e0e0e0" stroke-dasharray="2,4" stroke-opacity="0.5"/>
             ''')
             
-            # Problem label on Y axis
+            # Problem label on Y axis (unified gray color)
             svg_parts.append(f'''
                 <rect x="{padding_left - 45 * scale}" y="{y - 10 * scale}" 
-                      width="{40 * scale}" height="{20 * scale}" fill="{color}" rx="4"/>
+                      width="{40 * scale}" height="{20 * scale}" fill="#525252" rx="4"/>
                 <text x="{padding_left - 25 * scale}" y="{y + 4 * scale}" 
                       font-size="{11 * scale}px" fill="#ffffff" text-anchor="middle" 
                       font-weight="600">{label}</text>
@@ -1587,7 +1584,7 @@ class StudentReportExporter:
                   font-size="{11 * scale}px" fill="#525252" text-anchor="middle">{time_label_text}</text>
         ''')
         
-        # Plot submissions with color coding
+        # Plot submissions with status-based color coding (Green=AC, Red=Failed)
         for sub in submissions:
             time_offset = (sub.created_at - start_time).total_seconds()
             x = padding_left + (time_offset / time_range) * chart_width
@@ -1600,10 +1597,10 @@ class StudentReportExporter:
                     break
             
             y = padding_top + ((problem_idx + 0.5) / num_problems) * chart_height
-            color = problem_colors.get(sub.problem_id, '#8d8d8d')
             
-            # Different shapes for AC vs non-AC
+            # Status-based colors
             if sub.status == 'AC':
+                color = '#24a148'  # Carbon green-60
                 # Filled circle for AC with glow effect
                 svg_parts.append(f'''
                     <circle cx="{x}" cy="{y}" r="{8 * scale}" fill="{color}" fill-opacity="0.2"/>
@@ -1611,27 +1608,28 @@ class StudentReportExporter:
                             stroke="#ffffff" stroke-width="2"/>
                 ''')
             else:
+                color = '#da1e28'  # Carbon red-60
                 # Hollow circle with X for non-AC
                 svg_parts.append(f'''
                     <circle cx="{x}" cy="{y}" r="{5 * scale}" fill="#ffffff" 
-                            stroke="{color}" stroke-width="2" stroke-opacity="0.6"/>
+                            stroke="{color}" stroke-width="2" stroke-opacity="0.7"/>
                     <line x1="{x - 3 * scale}" y1="{y - 3 * scale}" 
                           x2="{x + 3 * scale}" y2="{y + 3 * scale}" 
-                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.6"/>
+                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.7"/>
                     <line x1="{x + 3 * scale}" y1="{y - 3 * scale}" 
                           x2="{x - 3 * scale}" y2="{y + 3 * scale}" 
-                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.6"/>
+                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.7"/>
                 ''')
         
-        # Add legend at bottom
+        # Add legend at bottom with status colors
         legend_y = height - 25 * scale
         legend_start_x = padding_left
         svg_parts.append(f'''
-            <circle cx="{legend_start_x}" cy="{legend_y}" r="{5 * scale}" fill="#0f62fe"/>
+            <circle cx="{legend_start_x}" cy="{legend_y}" r="{5 * scale}" fill="#24a148"/>
             <text x="{legend_start_x + 10 * scale}" y="{legend_y + 4 * scale}" 
                   font-size="{10 * scale}px" fill="#525252">AC</text>
             <circle cx="{legend_start_x + 50 * scale}" cy="{legend_y}" r="{4 * scale}" 
-                    fill="#ffffff" stroke="#8d8d8d" stroke-width="2"/>
+                    fill="#ffffff" stroke="#da1e28" stroke-width="2"/>
             <text x="{legend_start_x + 60 * scale}" y="{legend_y + 4 * scale}" 
                   font-size="{10 * scale}px" fill="#525252">{'未通過' if self.language.startswith('zh') else 'Failed'}</text>
         ''')
@@ -1964,7 +1962,6 @@ class StudentReportExporter:
         for i, cp in enumerate(contest_problems):
             problem = cp.problem
             label = self.get_problem_label(cp)
-            color = self.CHART_COLORS[i % len(self.CHART_COLORS)]
             problem_stat = user_problems.get(problem.id, {})
             
             status = problem_stat.get('status', '')
@@ -1976,23 +1973,35 @@ class StudentReportExporter:
             ac_count = sum(1 for s in problem_submissions if s.status == 'AC')
             wa_count = sum(1 for s in problem_submissions if s.status != 'AC')
             
-            # IBM Carbon status styling
+            # Status-based colors (Green/Yellow/Red/Gray)
             if status == 'AC':
+                # Full score - Green
                 status_icon = '✓'
                 status_class = 'status-ac'
-                row_bg = '#defbe6'  # Carbon green-10
+                row_bg = '#defbe6'      # Carbon green-10
+                label_bg = '#24a148'    # Carbon green-60
+            elif score > 0 and score < max_score:
+                # Partial score - Yellow
+                status_icon = '◐'
+                status_class = 'status-partial'
+                row_bg = '#fcf4d6'      # Carbon yellow-10
+                label_bg = '#f1c21b'    # Carbon yellow-50
             elif ac_count > 0 or wa_count > 0:
+                # Attempted but no score - Red
                 status_icon = '✗'
                 status_class = 'status-wa'
-                row_bg = '#fff1f1'  # Carbon red-10
+                row_bg = '#fff1f1'      # Carbon red-10
+                label_bg = '#da1e28'    # Carbon red-60
             else:
+                # Not attempted - Gray
                 status_icon = '—'
                 status_class = 'status-none'
-                row_bg = '#f4f4f4'  # Carbon gray-10
+                row_bg = '#f4f4f4'      # Carbon gray-10
+                label_bg = '#8d8d8d'    # Carbon gray-50
             
             grid_items.append(f'''
                 <div class="problem-grid-row" style="background: {row_bg};">
-                    <div class="problem-grid-label" style="background: {color};">{label}</div>
+                    <div class="problem-grid-label" style="background: {label_bg};">{label}</div>
                     <div class="problem-grid-score">{score}<span class="score-max">/{max_score}</span></div>
                     <div class="problem-grid-stats">
                         <span class="stat-ac">{ac_count}</span>
@@ -2282,6 +2291,9 @@ class StudentReportExporter:
             }}
             .problem-grid-status.status-ac {{
                 color: #24a148;
+            }}
+            .problem-grid-status.status-partial {{
+                color: #f1c21b;
             }}
             .problem-grid-status.status-wa {{
                 color: #da1e28;
