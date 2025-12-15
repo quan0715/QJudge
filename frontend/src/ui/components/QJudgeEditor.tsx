@@ -48,9 +48,27 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
       setTimeout(() => {
         editor.layout();
       }, 100);
+
+      // Critical: Wait for fonts to load, then remeasure fonts and re-layout
+      // This fixes the "fi" ligature bug on first load where Monaco calculates
+      // wrong font metrics before the custom font is fully loaded
       document.fonts.ready.then(() => {
+        // Force Monaco to remeasure all fonts - this recalculates character widths
+        // and fixes rendering issues caused by font loading timing
+        monaco.editor.remeasureFonts();
         editor.layout();
       });
+
+      // Also listen for any late font loading (e.g., font loaded after ready event)
+      if (typeof document.fonts?.addEventListener === "function") {
+        const handleFontLoad = () => {
+          monaco.editor.remeasureFonts();
+          editor.layout();
+        };
+        document.fonts.addEventListener("loadingdone", handleFontLoad);
+        // Store for cleanup
+        (editor as any).__fontLoadHandler = handleFontLoad;
+      }
 
       // Handle content changes - use ref to always get latest callback
       // This prevents memory leaks from multiple listener registrations
@@ -71,9 +89,22 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = (props) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      const disposable = (editorRef.current as any)?.__contentChangeDisposable;
-      if (disposable) {
-        disposable.dispose();
+      const editor = editorRef.current as any;
+      if (editor) {
+        // Cleanup content change listener
+        if (editor.__contentChangeDisposable) {
+          editor.__contentChangeDisposable.dispose();
+        }
+        // Cleanup font load listener
+        if (
+          editor.__fontLoadHandler &&
+          typeof document.fonts?.removeEventListener === "function"
+        ) {
+          document.fonts.removeEventListener(
+            "loadingdone",
+            editor.__fontLoadHandler
+          );
+        }
       }
     };
   }, []);
