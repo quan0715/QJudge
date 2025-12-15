@@ -1488,9 +1488,13 @@ class StudentReportExporter:
             return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
         
         scale = self.scale
-        width = 500 * scale
-        height = 200 * scale
-        padding = 40 * scale
+        # Wider chart for better visualization
+        width = 700 * scale
+        height = 280 * scale
+        padding_left = 60 * scale
+        padding_right = 40 * scale
+        padding_top = 30 * scale
+        padding_bottom = 60 * scale
         
         # Create problem color map
         problem_colors = {}
@@ -1507,38 +1511,75 @@ class StudentReportExporter:
         if time_range <= 0:
             time_range = 3600  # Default 1 hour
         
+        chart_width = width - padding_left - padding_right
+        chart_height = height - padding_top - padding_bottom
+        
         svg_parts = [f'''
             <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" 
                  xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
                 <!-- Background -->
                 <rect width="{width}" height="{height}" fill="#ffffff"/>
-                
-                <!-- Grid lines -->
         ''']
         
-        chart_width = width - 2 * padding
-        chart_height = height - 2 * padding
-        
-        # Add horizontal grid lines
-        for i in range(5):
-            y = padding + (chart_height * i / 4)
+        # Add horizontal grid lines for each problem
+        num_problems = len(contest_problems)
+        for i, cp in enumerate(contest_problems):
+            y = padding_top + ((i + 0.5) / num_problems) * chart_height
+            color = problem_colors[cp.problem.id]
+            label = problem_labels[cp.problem.id]
+            
+            # Horizontal guide line
             svg_parts.append(f'''
-                <line x1="{padding}" y1="{y}" x2="{width - padding}" y2="{y}" 
-                      stroke="#e0e0e0" stroke-dasharray="4,4"/>
+                <line x1="{padding_left}" y1="{y}" x2="{width - padding_right}" y2="{y}" 
+                      stroke="#e0e0e0" stroke-dasharray="2,4" stroke-opacity="0.5"/>
+            ''')
+            
+            # Problem label on Y axis
+            svg_parts.append(f'''
+                <rect x="{padding_left - 45 * scale}" y="{y - 10 * scale}" 
+                      width="{40 * scale}" height="{20 * scale}" fill="{color}" rx="4"/>
+                <text x="{padding_left - 25 * scale}" y="{y + 4 * scale}" 
+                      font-size="{11 * scale}px" fill="#ffffff" text-anchor="middle" 
+                      font-weight="600">{label}</text>
             ''')
         
-        # Add axis
+        # Add vertical time markers
+        time_labels = []
+        for i in range(5):
+            x = padding_left + (i / 4) * chart_width
+            time_minutes = int((time_range / 60) * (i / 4))
+            hours = time_minutes // 60
+            minutes = time_minutes % 60
+            time_label = f"{hours}:{minutes:02d}"
+            
+            svg_parts.append(f'''
+                <line x1="{x}" y1="{padding_top}" x2="{x}" y2="{height - padding_bottom}" 
+                      stroke="#e0e0e0" stroke-dasharray="4,4"/>
+                <text x="{x}" y="{height - padding_bottom + 15 * scale}" 
+                      font-size="{10 * scale}px" fill="#525252" text-anchor="middle">{time_label}</text>
+            ''')
+        
+        # Add axes
         svg_parts.append(f'''
-            <line x1="{padding}" y1="{height - padding}" x2="{width - padding}" y2="{height - padding}" 
+            <line x1="{padding_left}" y1="{height - padding_bottom}" 
+                  x2="{width - padding_right}" y2="{height - padding_bottom}" 
                   stroke="#8d8d8d" stroke-width="1"/>
-            <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{height - padding}" 
+            <line x1="{padding_left}" y1="{padding_top}" 
+                  x2="{padding_left}" y2="{height - padding_bottom}" 
                   stroke="#8d8d8d" stroke-width="1"/>
         ''')
         
-        # Plot submissions
+        # X axis label
+        time_label_text = "時間 (時:分)" if self.language.startswith('zh') else "Time (h:mm)"
+        svg_parts.append(f'''
+            <text x="{padding_left + chart_width / 2}" y="{height - 10 * scale}" 
+                  font-size="{11 * scale}px" fill="#525252" text-anchor="middle">{time_label_text}</text>
+        ''')
+        
+        # Plot submissions with color coding
         for sub in submissions:
             time_offset = (sub.created_at - start_time).total_seconds()
-            x = padding + (time_offset / time_range) * chart_width
+            x = padding_left + (time_offset / time_range) * chart_width
             
             # Y position based on problem order
             problem_idx = 0
@@ -1547,35 +1588,42 @@ class StudentReportExporter:
                     problem_idx = i
                     break
             
-            y = padding + ((problem_idx + 0.5) / len(contest_problems)) * chart_height
+            y = padding_top + ((problem_idx + 0.5) / num_problems) * chart_height
             color = problem_colors.get(sub.problem_id, '#8d8d8d')
             
             # Different shapes for AC vs non-AC
             if sub.status == 'AC':
-                # Filled circle for AC
+                # Filled circle for AC with glow effect
                 svg_parts.append(f'''
+                    <circle cx="{x}" cy="{y}" r="{8 * scale}" fill="{color}" fill-opacity="0.2"/>
                     <circle cx="{x}" cy="{y}" r="{6 * scale}" fill="{color}" 
-                            stroke="#ffffff" stroke-width="1"/>
+                            stroke="#ffffff" stroke-width="2"/>
                 ''')
             else:
-                # Hollow circle for non-AC
+                # Hollow circle with X for non-AC
                 svg_parts.append(f'''
-                    <circle cx="{x}" cy="{y}" r="{5 * scale}" fill="none" 
-                            stroke="{color}" stroke-width="2"/>
+                    <circle cx="{x}" cy="{y}" r="{5 * scale}" fill="#ffffff" 
+                            stroke="{color}" stroke-width="2" stroke-opacity="0.6"/>
+                    <line x1="{x - 3 * scale}" y1="{y - 3 * scale}" 
+                          x2="{x + 3 * scale}" y2="{y + 3 * scale}" 
+                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.6"/>
+                    <line x1="{x + 3 * scale}" y1="{y - 3 * scale}" 
+                          x2="{x - 3 * scale}" y2="{y + 3 * scale}" 
+                          stroke="{color}" stroke-width="1.5" stroke-opacity="0.6"/>
                 ''')
         
-        # Add legend
-        legend_y = height - 10 * scale
-        legend_x = padding
-        for i, cp in enumerate(contest_problems):
-            color = problem_colors[cp.problem.id]
-            label = problem_labels[cp.problem.id]
-            svg_parts.append(f'''
-                <rect x="{legend_x + i * 50 * scale}" y="{legend_y - 8 * scale}" 
-                      width="{12 * scale}" height="{12 * scale}" fill="{color}" rx="2"/>
-                <text x="{legend_x + i * 50 * scale + 16 * scale}" y="{legend_y}" 
-                      font-size="{10 * scale}px" fill="#525252">{label}</text>
-            ''')
+        # Add legend at bottom
+        legend_y = height - 25 * scale
+        legend_start_x = padding_left
+        svg_parts.append(f'''
+            <circle cx="{legend_start_x}" cy="{legend_y}" r="{5 * scale}" fill="#0f62fe"/>
+            <text x="{legend_start_x + 10 * scale}" y="{legend_y + 4 * scale}" 
+                  font-size="{10 * scale}px" fill="#525252">AC</text>
+            <circle cx="{legend_start_x + 50 * scale}" cy="{legend_y}" r="{4 * scale}" 
+                    fill="#ffffff" stroke="#8d8d8d" stroke-width="2"/>
+            <text x="{legend_start_x + 60 * scale}" y="{legend_y + 4 * scale}" 
+                  font-size="{10 * scale}px" fill="#525252">{'未通過' if self.language.startswith('zh') else 'Failed'}</text>
+        ''')
         
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
@@ -1583,9 +1631,10 @@ class StudentReportExporter:
     def generate_cumulative_chart_svg(self, submissions: List[Submission]) -> str:
         """Generate SVG line chart showing cumulative solved problems over time."""
         scale = self.scale
-        width = 500 * scale
+        # Wider to match scatter chart
+        width = 700 * scale
         height = 180 * scale
-        padding = 40 * scale
+        padding = 50 * scale
         
         if not submissions:
             return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
@@ -1680,7 +1729,7 @@ class StudentReportExporter:
     def _empty_chart_svg(self, message: str) -> str:
         """Generate placeholder SVG when no data available."""
         scale = self.scale
-        width = 500 * scale
+        width = 700 * scale
         height = 150 * scale
         return f'''
             <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"
@@ -1777,18 +1826,18 @@ class StudentReportExporter:
         '''
     
     def render_difficulty_stats(self) -> str:
-        """Render difficulty statistics with progress bars."""
+        """Render difficulty statistics with LeetCode-style donut charts."""
         scale = self.scale
         lang = self.language
         stats = self.get_difficulty_stats()
         
-        difficulty_names = {
+        difficulty_config = {
             'easy': ('簡單', '#24a148', '#defbe6'),
             'medium': ('中等', '#f1c21b', '#fcf4d6'),
             'hard': ('困難', '#da1e28', '#fff1f1'),
         }
         if not lang.startswith('zh'):
-            difficulty_names = {
+            difficulty_config = {
                 'easy': ('Easy', '#24a148', '#defbe6'),
                 'medium': ('Medium', '#f1c21b', '#fcf4d6'),
                 'hard': ('Hard', '#da1e28', '#fff1f1'),
@@ -1796,22 +1845,44 @@ class StudentReportExporter:
         
         title = '難度統計' if lang.startswith('zh') else 'Difficulty Statistics'
         
-        bars_html = []
+        # Generate donut charts for each difficulty
+        donuts_html = []
         for difficulty in ['easy', 'medium', 'hard']:
-            name, color, bg_color = difficulty_names[difficulty]
+            name, color, bg_color = difficulty_config[difficulty]
             solved = stats[difficulty]['solved']
             total = stats[difficulty]['total']
             percentage = (solved / total * 100) if total > 0 else 0
             
-            bars_html.append(f'''
-                <div class="difficulty-row">
-                    <div class="difficulty-label" style="color: {color};">{name}</div>
-                    <div class="difficulty-bar-container">
-                        <div class="difficulty-bar-bg" style="background-color: {bg_color};">
-                            <div class="difficulty-bar-fill" style="width: {percentage}%; background-color: {color};"></div>
+            # SVG donut chart parameters
+            size = 80 * scale
+            stroke_width = 8 * scale
+            radius = (size - stroke_width) / 2
+            circumference = 2 * 3.14159 * radius
+            dash_offset = circumference * (1 - percentage / 100)
+            
+            donut_svg = f'''
+                <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="transform: rotate(-90deg);">
+                    <!-- Background circle -->
+                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
+                            fill="none" stroke="{bg_color}" stroke-width="{stroke_width}"/>
+                    <!-- Progress circle -->
+                    <circle cx="{size/2}" cy="{size/2}" r="{radius}" 
+                            fill="none" stroke="{color}" stroke-width="{stroke_width}"
+                            stroke-dasharray="{circumference}" stroke-dashoffset="{dash_offset}"
+                            stroke-linecap="round"/>
+                </svg>
+            '''
+            
+            donuts_html.append(f'''
+                <div class="donut-item">
+                    <div class="donut-chart">
+                        {donut_svg}
+                        <div class="donut-center">
+                            <div class="donut-solved">{solved}</div>
+                            <div class="donut-total">/{total}</div>
                         </div>
                     </div>
-                    <div class="difficulty-count">{solved}/{total}</div>
+                    <div class="donut-label" style="color: {color};">{name}</div>
                 </div>
             ''')
         
@@ -1819,7 +1890,82 @@ class StudentReportExporter:
             <div class="container-card">
                 <div class="container-card-header">{title}</div>
                 <div class="container-card-body">
-                    {''.join(bars_html)}
+                    <div class="donut-container">
+                        {''.join(donuts_html)}
+                    </div>
+                </div>
+            </div>
+        '''
+    
+    def render_problem_grid(self) -> str:
+        """Render a grid showing submission status for each problem."""
+        scale = self.scale
+        lang = self.language
+        
+        contest_problems = self.get_contest_problems()
+        standings = self.calculate_standings()
+        user_stats = standings.get('user_stats', {})
+        user_problems = user_stats.get('problems', {}) if user_stats else {}
+        submissions = self.get_user_submissions()
+        
+        title = '題目繳交狀況' if lang.startswith('zh') else 'Problem Submission Status'
+        
+        # Build problem submission details
+        grid_items = []
+        for i, cp in enumerate(contest_problems):
+            problem = cp.problem
+            label = self.get_problem_label(cp)
+            color = self.CHART_COLORS[i % len(self.CHART_COLORS)]
+            problem_stat = user_problems.get(problem.id, {})
+            
+            status = problem_stat.get('status', '')
+            score = problem_stat.get('score', 0)
+            max_score = problem_stat.get('max_score', 0)
+            tries = problem_stat.get('tries', 0)
+            
+            # Get problem submissions
+            problem_submissions = [s for s in submissions if s.problem_id == problem.id]
+            ac_count = sum(1 for s in problem_submissions if s.status == 'AC')
+            wa_count = sum(1 for s in problem_submissions if s.status != 'AC')
+            
+            # Status icon and styling
+            if status == 'AC':
+                status_icon = '✓'
+                status_class = 'status-ac'
+                status_bg = '#defbe6'
+                status_border = '#24a148'
+            elif tries > 0:
+                status_icon = '✗'
+                status_class = 'status-wa'
+                status_bg = '#fff1f1'
+                status_border = '#da1e28'
+            else:
+                status_icon = '−'
+                status_class = 'status-none'
+                status_bg = '#f4f4f4'
+                status_border = '#e0e0e0'
+            
+            grid_items.append(f'''
+                <div class="problem-grid-item" style="border-left: 4px solid {color}; background: {status_bg}; border-color: {status_border};">
+                    <div class="problem-grid-header">
+                        <span class="problem-grid-label" style="background: {color};">{label}</span>
+                        <span class="problem-grid-status {status_class}">{status_icon}</span>
+                    </div>
+                    <div class="problem-grid-score">{score}/{max_score}</div>
+                    <div class="problem-grid-tries">
+                        <span class="tries-ac">AC: {ac_count}</span>
+                        <span class="tries-wa">WA: {wa_count}</span>
+                    </div>
+                </div>
+            ''')
+        
+        return f'''
+            <div class="container-card">
+                <div class="container-card-header">{title}</div>
+                <div class="container-card-body">
+                    <div class="problem-grid">
+                        {''.join(grid_items)}
+                    </div>
                 </div>
             </div>
         '''
@@ -1839,16 +1985,15 @@ class StudentReportExporter:
         cumulative_svg = self.generate_cumulative_chart_svg(submissions)
         
         return f'''
-            <div class="container-card">
+            <div class="container-card" style="margin-bottom: {16 * scale}px;">
                 <div class="container-card-header">{scatter_title}</div>
-                <div class="container-card-body chart-container">
+                <div class="container-card-body chart-container" style="padding: {8 * scale}px;">
                     {scatter_svg}
-                    <p class="chart-legend">● AC ○ 未通過</p>
                 </div>
             </div>
             <div class="container-card">
                 <div class="container-card-header">{cumulative_title}</div>
-                <div class="container-card-body chart-container">
+                <div class="container-card-body chart-container" style="padding: {8 * scale}px;">
                     {cumulative_svg}
                 </div>
             </div>
@@ -1981,41 +2126,102 @@ class StudentReportExporter:
                 color: #8d8d8d;
             }}
             
-            /* Difficulty Stats */
-            .difficulty-row {{
+            /* Difficulty Stats - Donut Charts (LeetCode style) */
+            .donut-container {{
                 display: table;
                 width: 100%;
+            }}
+            .donut-item {{
+                display: table-cell;
+                text-align: center;
+                padding: {8 * scale}px;
+                width: 33.33%;
+            }}
+            .donut-chart {{
+                position: relative;
+                display: inline-block;
+                width: {80 * scale}px;
+                height: {80 * scale}px;
+            }}
+            .donut-center {{
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(90deg);
+                text-align: center;
+            }}
+            .donut-solved {{
+                font-size: {20 * scale}px;
+                font-weight: 600;
+                color: #161616;
+                line-height: 1.2;
+            }}
+            .donut-total {{
+                font-size: {12 * scale}px;
+                color: #8d8d8d;
+            }}
+            .donut-label {{
+                margin-top: {8 * scale}px;
+                font-size: {13 * scale}px;
+                font-weight: 600;
+            }}
+            
+            /* Problem Grid */
+            .problem-grid {{
+                display: table;
+                width: 100%;
+                border-spacing: {8 * scale}px;
+            }}
+            .problem-grid-item {{
+                display: table-cell;
+                vertical-align: top;
+                padding: {12 * scale}px;
+                border-radius: {4 * scale}px;
+                text-align: center;
+                min-width: {80 * scale}px;
+            }}
+            .problem-grid-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
                 margin-bottom: {8 * scale}px;
             }}
-            .difficulty-label {{
-                display: table-cell;
-                width: {80 * scale}px;
+            .problem-grid-label {{
+                color: white;
+                padding: {3 * scale}px {8 * scale}px;
+                border-radius: {4 * scale}px;
+                font-size: {11 * scale}px;
                 font-weight: 600;
-                font-size: {14 * scale}px;
-                vertical-align: middle;
             }}
-            .difficulty-bar-container {{
-                display: table-cell;
-                vertical-align: middle;
-                padding: 0 {12 * scale}px;
+            .problem-grid-status {{
+                font-size: {16 * scale}px;
+                font-weight: 700;
             }}
-            .difficulty-bar-bg {{
-                height: {16 * scale}px;
-                border-radius: {8 * scale}px;
-                overflow: hidden;
+            .problem-grid-status.status-ac {{
+                color: #24a148;
             }}
-            .difficulty-bar-fill {{
-                height: 100%;
-                border-radius: {8 * scale}px;
-                transition: width 0.3s ease;
+            .problem-grid-status.status-wa {{
+                color: #da1e28;
             }}
-            .difficulty-count {{
-                display: table-cell;
-                width: {50 * scale}px;
-                text-align: right;
-                font-size: {14 * scale}px;
+            .problem-grid-status.status-none {{
+                color: #8d8d8d;
+            }}
+            .problem-grid-score {{
+                font-size: {16 * scale}px;
+                font-weight: 600;
+                color: #161616;
+                margin-bottom: {4 * scale}px;
+            }}
+            .problem-grid-tries {{
+                font-size: {10 * scale}px;
                 color: #525252;
-                vertical-align: middle;
+            }}
+            .problem-grid-tries .tries-ac {{
+                color: #24a148;
+                margin-right: {8 * scale}px;
+            }}
+            .problem-grid-tries .tries-wa {{
+                color: #da1e28;
             }}
             
             /* Chart Container */
@@ -2120,6 +2326,7 @@ class StudentReportExporter:
         # Build report sections
         score_cards = self.render_score_cards()
         difficulty_stats = self.render_difficulty_stats()
+        problem_grid = self.render_problem_grid()
         trend_charts = self.render_trend_charts()
         problem_details = self.render_problem_details()
         
@@ -2142,7 +2349,16 @@ class StudentReportExporter:
             </div>
             
             {score_cards}
-            {difficulty_stats}
+            
+            <div style="display: table; width: 100%; margin-bottom: 16px;">
+                <div style="display: table-cell; width: 35%; vertical-align: top; padding-right: 12px;">
+                    {difficulty_stats}
+                </div>
+                <div style="display: table-cell; width: 65%; vertical-align: top;">
+                    {problem_grid}
+                </div>
+            </div>
+            
             {trend_charts}
             
             <div class="page-break"></div>
