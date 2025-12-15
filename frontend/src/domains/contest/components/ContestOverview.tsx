@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button, InlineNotification } from "@carbon/react";
-import { Time, Download } from "@carbon/icons-react";
+import { Time, Download, DocumentPdf } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/ui/components/common/MarkdownRenderer";
 import ContainerCard from "@/ui/components/layout/ContainerCard";
 import SurfaceSection from "@/ui/components/layout/SurfaceSection";
 import { SubmissionStatusBadge } from "@/ui/components/badges/SubmissionStatusBadge";
 import { ContestDownloadModal } from "./modals/ContestDownloadModal";
+import { downloadMyReport } from "@/services/contest";
 import type {
   ContestDetail,
   ScoreboardRow,
@@ -32,6 +33,31 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [reportDownloading, setReportDownloading] = useState(false);
+  const [reportNotification, setReportNotification] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Check if user can download their own report (only after submission)
+  const canDownloadReport =
+    contest.examStatus === "submitted" && (contest.hasJoined || contest.isRegistered);
+
+  const handleDownloadReport = async () => {
+    try {
+      setReportDownloading(true);
+      setReportNotification({ kind: "success", message: "正在產生報告..." });
+      await downloadMyReport(contest.id.toString());
+      setReportNotification({ kind: "success", message: "報告已下載" });
+    } catch (error: any) {
+      setReportNotification({
+        kind: "error",
+        message: error.message || "下載報告失敗",
+      });
+    } finally {
+      setReportDownloading(false);
+    }
+  };
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
@@ -178,6 +204,70 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                       }}
                     >
                       {t("overview.noRankData")}
+                    </div>
+                  )}
+
+                  {/* Download Report Section - Only after submission */}
+                  {canDownloadReport && (
+                    <div
+                      style={{
+                        marginBottom: "1.5rem",
+                        padding: "1rem",
+                        backgroundColor: "var(--cds-layer-01)",
+                        borderRadius: "4px",
+                        border: "1px solid var(--cds-border-subtle)",
+                      }}
+                    >
+                      {reportNotification && (
+                        <InlineNotification
+                          kind={reportNotification.kind}
+                          title={
+                            reportNotification.kind === "success"
+                              ? ""
+                              : "錯誤"
+                          }
+                          subtitle={reportNotification.message}
+                          onClose={() => setReportNotification(null)}
+                          lowContrast
+                          style={{ marginBottom: "0.75rem" }}
+                        />
+                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: "0.875rem",
+                              marginBottom: "0.25rem",
+                            }}
+                          >
+                            個人成績報告
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--cds-text-secondary)",
+                            }}
+                          >
+                            下載包含解題統計、程式碼和趨勢圖的 PDF 報告
+                          </div>
+                        </div>
+                        <Button
+                          kind="tertiary"
+                          size="sm"
+                          renderIcon={DocumentPdf}
+                          onClick={handleDownloadReport}
+                          disabled={reportDownloading}
+                        >
+                          {reportDownloading ? "產生中..." : "下載報告"}
+                        </Button>
+                      </div>
                     </div>
                   )}
 

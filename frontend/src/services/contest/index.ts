@@ -619,6 +619,154 @@ export const downloadContestFile = async (
   return res.blob();
 };
 
+/**
+ * Download individual participant's exam report as PDF (Admin only)
+ * @param contestId - Contest ID
+ * @param userId - Target user ID
+ * @param language - Report language (default: zh-TW)
+ * @param scale - PDF scale factor (0.5 to 2.0, default 1.0)
+ */
+export const downloadParticipantReport = async (
+  contestId: string,
+  userId: string | number,
+  language: string = "zh-TW",
+  scale: number = 1.0
+): Promise<void> => {
+  const token = localStorage.getItem("token");
+
+  const params = new URLSearchParams({
+    language: language,
+  });
+
+  if (scale !== 1.0) {
+    if (scale < 0.5 || scale > 2.0) {
+      throw new Error("Scale must be between 0.5 and 2.0");
+    }
+    params.append("scale", scale.toString());
+  }
+
+  const res = await fetch(
+    `/api/v1/contests/${contestId}/participants/${userId}/report/?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        Accept: "*/*",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    try {
+      const errorData = await res.json();
+      const message =
+        errorData.error?.message ||
+        errorData.error ||
+        errorData.message ||
+        errorData.detail ||
+        "Failed to download report";
+      throw new Error(message);
+    } catch {
+      throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+    }
+  }
+
+  // Download the file
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+
+  // Extract filename from Content-Disposition header or use default
+  const contentDisposition = res.headers.get("Content-Disposition");
+  let filename = `report_${contestId}_${userId}.pdf`;
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?(.+)"?/);
+    if (match) {
+      filename = match[1].replace(/"/g, "");
+    }
+  }
+
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+/**
+ * Download current user's own exam report as PDF (Student only, after submission)
+ * @param contestId - Contest ID
+ * @param language - Report language (default: zh-TW)
+ * @param scale - PDF scale factor (0.5 to 2.0, default 1.0)
+ */
+export const downloadMyReport = async (
+  contestId: string,
+  language: string = "zh-TW",
+  scale: number = 1.0
+): Promise<void> => {
+  const token = localStorage.getItem("token");
+
+  const params = new URLSearchParams({
+    language: language,
+  });
+
+  if (scale !== 1.0) {
+    if (scale < 0.5 || scale > 2.0) {
+      throw new Error("Scale must be between 0.5 and 2.0");
+    }
+    params.append("scale", scale.toString());
+  }
+
+  const res = await fetch(
+    `/api/v1/contests/${contestId}/my_report/?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        Accept: "*/*",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    try {
+      const errorData = await res.json();
+      const message =
+        errorData.error?.message ||
+        errorData.error ||
+        errorData.message ||
+        errorData.detail ||
+        "Failed to download report";
+      throw new Error(message);
+    } catch {
+      throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+    }
+  }
+
+  // Download the file
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+
+  // Extract filename from Content-Disposition header or use default
+  const contentDisposition = res.headers.get("Content-Disposition");
+  let filename = `my_report_${contestId}.pdf`;
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?(.+)"?/);
+    if (match) {
+      filename = match[1].replace(/"/g, "");
+    }
+  }
+
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
 export default {
   getContests,
   getContest,
@@ -660,4 +808,6 @@ export default {
   reorderContestProblems,
   exportContestResults,
   downloadContestFile,
+  downloadParticipantReport,
+  downloadMyReport,
 };

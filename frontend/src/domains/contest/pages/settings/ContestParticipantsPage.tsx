@@ -24,6 +24,7 @@ import {
   Unlocked,
   Renew,
   Restart,
+  Download,
 } from "@carbon/icons-react";
 import { AddParticipantModal } from "../../components/modals/AddParticipantModal";
 import {
@@ -33,6 +34,7 @@ import {
   updateParticipant,
   removeParticipant,
   reopenExam,
+  downloadParticipantReport,
 } from "@/services/contest";
 import type {
   ContestParticipant,
@@ -178,6 +180,20 @@ const ContestAdminParticipantsPage = () => {
       setNotification({
         kind: "error",
         message: error.message || "移除參賽者失敗",
+      });
+    }
+  };
+
+  const handleDownloadReport = async (userId: number, username: string) => {
+    if (!contestId) return;
+    try {
+      setNotification({ kind: "success", message: `正在產生 ${username} 的報告...` });
+      await downloadParticipantReport(contestId, userId);
+      setNotification({ kind: "success", message: `${username} 的報告已下載` });
+    } catch (error: any) {
+      setNotification({
+        kind: "error",
+        message: error.message || "下載報告失敗",
       });
     }
   };
@@ -396,6 +412,19 @@ const ContestAdminParticipantsPage = () => {
                                   }
                                 />
                               )}
+                              <Button
+                                kind="ghost"
+                                size="sm"
+                                renderIcon={Download}
+                                iconDescription="下載報告"
+                                hasIconOnly
+                                onClick={() =>
+                                  handleDownloadReport(
+                                    Number(p.userId),
+                                    p.username
+                                  )
+                                }
+                              />
                               <Button
                                 kind="ghost"
                                 size="sm"

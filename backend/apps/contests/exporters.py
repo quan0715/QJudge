@@ -4,10 +4,17 @@ Exporters for contest data to various formats (Markdown, PDF).
 import markdown
 import re
 from io import BytesIO
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from datetime import datetime
 
-from .models import Contest, ContestProblem
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+from .models import Contest, ContestProblem, ContestParticipant
 from apps.problems.models import Problem
+from apps.submissions.models import Submission
+
+User = get_user_model()
 
 
 def inline_markdown(text: str) -> str:
@@ -1201,6 +1208,955 @@ class PDFExporter(ContestExporter):
             raise RuntimeError(
                 "PDF export is not available. WeasyPrint requires system libraries "
                 "(libpango, libcairo, libgobject) to be installed. "
+                f"Original error: {e}"
+            )
+        
+        pdf_file = BytesIO()
+        HTML(string=full_html).write_pdf(pdf_file)
+        pdf_file.seek(0)
+        
+        return pdf_file
+
+
+class StudentReportExporter:
+    """
+    Export individual student exam report to PDF.
+    Includes score summary, difficulty stats, problem details with AC code,
+    ranking, and submission trend charts.
+    """
+    
+    # Carbon Design System color palette for charts
+    CHART_COLORS = [
+        '#0f62fe',  # Blue (Problem A)
+        '#24a148',  # Green (Problem B)
+        '#8a3ffc',  # Purple (Problem C)
+        '#ff832b',  # Orange (Problem D)
+        '#1192e8',  # Cyan (Problem E)
+        '#fa4d56',  # Red (Problem F)
+        '#009d9a',  # Teal (Problem G)
+        '#a56eff',  # Violet (Problem H)
+    ]
+    
+    def __init__(self, contest: Contest, user: User, language: str = 'zh-TW', scale: float = 1.0):
+        self.contest = contest
+        self.user = user
+        self.language = language
+        self.scale = max(0.5, min(2.0, scale))
+        self._submissions_cache = None
+        self._standings_cache = None
+    
+    def get_contest_problems(self) -> List[ContestProblem]:
+        """Get all problems in the contest with score annotation."""
+        from django.db.models import Sum
+        return ContestProblem.objects.filter(
+            contest=self.contest
+        ).select_related('problem').prefetch_related(
+            'problem__translations',
+            'problem__test_cases'
+        ).annotate(
+            problem_score_sum=Sum('problem__test_cases__score')
+        ).order_by('order')
+    
+    def get_user_submissions(self) -> List[Submission]:
+        """Get all submissions for this user in this contest."""
+        if self._submissions_cache is None:
+            self._submissions_cache = list(
+                Submission.objects.filter(
+                    contest=self.contest,
+                    user=self.user,
+                    source_type='contest',
+                    is_test=False
+                ).select_related('problem').order_by('created_at')
+            )
+        return self._submissions_cache
+    
+    def calculate_standings(self) -> Dict[str, Any]:
+        """
+        Calculate standings data for all participants.
+        Returns dict with user's rank, total participants, and full standings.
+        """
+        if self._standings_cache is not None:
+            return self._standings_cache
+        
+        from django.db.models import Sum
+        
+        contest_problems = self.get_contest_problems()
+        participants = ContestParticipant.objects.filter(
+            contest=self.contest
+        ).select_related('user')
+        
+        # Get all contest submissions
+        all_submissions = Submission.objects.filter(
+            contest=self.contest,
+            source_type='contest',
+            is_test=False
+        ).order_by('created_at')
+        
+        # Build stats for each participant
+        stats = {}
+        for p in participants:
+            stats[p.user.id] = {
+                'user_id': p.user.id,
+                'username': p.user.username,
+                'solved': 0,
+                'total_score': 0,
+                'penalty': 0,
+                'problems': {}
+            }
+            for cp in contest_problems:
+                stats[p.user.id]['problems'][cp.problem.id] = {
+                    'status': None,
+                    'score': 0,
+                    'tries': 0,
+                    'time': 0,
+                    'max_score': cp.problem_score_sum or 0
+                }
+        
+        # Process submissions
+        for sub in all_submissions:
+            uid = sub.user.id
+            pid = sub.problem.id
+            if uid not in stats or pid not in stats[uid]['problems']:
+                continue
+            
+            p_stat = stats[uid]['problems'][pid]
+            
+            # Skip if already AC
+            if p_stat['status'] == 'AC':
+                continue
+            
+            if sub.status in ['pending', 'judging']:
+                continue
+            
+            p_stat['tries'] += 1
+            max_score = p_stat['max_score']
+            
+            if sub.status == 'AC':
+                p_stat['status'] = 'AC'
+                start_time = self.contest.start_time or self.contest.created_at
+                time_diff = sub.created_at - start_time
+                minutes = int(time_diff.total_seconds() / 60)
+                p_stat['time'] = minutes
+                
+                stats[uid]['solved'] += 1
+                penalty = minutes + 20 * (p_stat['tries'] - 1)
+                stats[uid]['penalty'] += penalty
+                
+                score_diff = max_score - p_stat['score']
+                p_stat['score'] = max_score
+                stats[uid]['total_score'] += score_diff
+            else:
+                p_stat['status'] = sub.status
+                submission_score = sub.score or 0
+                if submission_score > p_stat['score']:
+                    score_diff = submission_score - p_stat['score']
+                    p_stat['score'] = submission_score
+                    stats[uid]['total_score'] += score_diff
+        
+        # Sort standings
+        standings_list = list(stats.values())
+        standings_list.sort(key=lambda x: (-x['solved'], x['penalty']))
+        
+        for i, item in enumerate(standings_list):
+            item['rank'] = i + 1
+        
+        # Find current user's rank
+        user_rank = None
+        user_stats = None
+        for item in standings_list:
+            if item['user_id'] == self.user.id:
+                user_rank = item['rank']
+                user_stats = item
+                break
+        
+        self._standings_cache = {
+            'rank': user_rank,
+            'total_participants': len(standings_list),
+            'user_stats': user_stats,
+            'standings': standings_list
+        }
+        return self._standings_cache
+    
+    def get_problem_label(self, contest_problem: ContestProblem) -> str:
+        """Return the display label for a contest problem (A, B, ...)."""
+        return contest_problem.label or chr(65 + contest_problem.order)
+    
+    def get_last_ac_submission(self, problem_id: int) -> Optional[Submission]:
+        """Get the last AC submission for a problem."""
+        submissions = self.get_user_submissions()
+        ac_submissions = [
+            s for s in submissions 
+            if s.problem_id == problem_id and s.status == 'AC'
+        ]
+        return ac_submissions[-1] if ac_submissions else None
+    
+    def highlight_code(self, code: str, language: str = 'cpp') -> str:
+        """Apply syntax highlighting to code using Pygments with Carbon-style theme."""
+        try:
+            from pygments import highlight
+            from pygments.lexers import get_lexer_by_name, TextLexer
+            from pygments.formatters import HtmlFormatter
+            
+            # Map submission language to Pygments lexer
+            lexer_map = {
+                'cpp': 'cpp',
+                'c': 'c',
+                'python': 'python3',
+                'java': 'java',
+            }
+            lexer_name = lexer_map.get(language, 'text')
+            
+            try:
+                lexer = get_lexer_by_name(lexer_name)
+            except Exception:
+                lexer = TextLexer()
+            
+            # Custom Carbon-style formatter
+            formatter = HtmlFormatter(
+                style='default',
+                noclasses=True,
+                linenos=True,
+                linenostart=1,
+                lineanchors='line',
+                linespans='line',
+                nowrap=False,
+            )
+            
+            highlighted = highlight(code, lexer, formatter)
+            return highlighted
+        except ImportError:
+            # Fallback if Pygments not available
+            import html
+            return f'<pre><code>{html.escape(code)}</code></pre>'
+    
+    def get_carbon_code_styles(self) -> str:
+        """Get CSS for Pygments with Carbon Design System colors."""
+        scale = self.scale
+        return f"""
+            /* Pygments syntax highlighting - Carbon-inspired */
+            .highlight {{
+                background-color: #f4f4f4;
+                border: 1px solid #e0e0e0;
+                border-radius: {4 * scale}px;
+                padding: {12 * scale}px;
+                margin: {8 * scale}px 0 {16 * scale}px 0;
+                overflow-x: auto;
+                font-family: "IBM Plex Mono", "SF Mono", monospace;
+                font-size: {12 * scale}px;
+                line-height: 1.5;
+            }}
+            .highlight pre {{
+                margin: 0;
+                padding: 0;
+                background: transparent;
+                border: none;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }}
+            .highlight .linenos {{
+                color: #8d8d8d;
+                padding-right: {12 * scale}px;
+                border-right: 1px solid #e0e0e0;
+                margin-right: {12 * scale}px;
+                user-select: none;
+            }}
+            /* Carbon-style syntax colors */
+            .highlight .k {{ color: #0f62fe; font-weight: 600; }}  /* Keyword */
+            .highlight .kd {{ color: #0f62fe; font-weight: 600; }} /* Keyword declaration */
+            .highlight .kt {{ color: #8a3ffc; }}                   /* Keyword type */
+            .highlight .n {{ color: #161616; }}                    /* Name */
+            .highlight .nf {{ color: #0043ce; }}                   /* Function name */
+            .highlight .nc {{ color: #8a3ffc; }}                   /* Class name */
+            .highlight .s {{ color: #198038; }}                    /* String */
+            .highlight .s1 {{ color: #198038; }}                   /* String single */
+            .highlight .s2 {{ color: #198038; }}                   /* String double */
+            .highlight .c {{ color: #6f6f6f; font-style: italic; }} /* Comment */
+            .highlight .c1 {{ color: #6f6f6f; font-style: italic; }} /* Comment single */
+            .highlight .cm {{ color: #6f6f6f; font-style: italic; }} /* Comment multiline */
+            .highlight .cp {{ color: #da1e28; }}                   /* Preprocessor */
+            .highlight .mi {{ color: #8a3ffc; }}                   /* Number integer */
+            .highlight .mf {{ color: #8a3ffc; }}                   /* Number float */
+            .highlight .o {{ color: #161616; }}                    /* Operator */
+            .highlight .p {{ color: #161616; }}                    /* Punctuation */
+            .highlight .err {{ color: #da1e28; background: #fff1f1; }} /* Error */
+        """
+    
+    def generate_scatter_chart_svg(self, submissions: List[Submission], 
+                                   contest_problems: List[ContestProblem]) -> str:
+        """Generate SVG scatter chart showing submission timeline by problem."""
+        if not submissions:
+            return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
+        
+        scale = self.scale
+        width = 500 * scale
+        height = 200 * scale
+        padding = 40 * scale
+        
+        # Create problem color map
+        problem_colors = {}
+        problem_labels = {}
+        for i, cp in enumerate(contest_problems):
+            problem_colors[cp.problem.id] = self.CHART_COLORS[i % len(self.CHART_COLORS)]
+            problem_labels[cp.problem.id] = self.get_problem_label(cp)
+        
+        # Calculate time range
+        start_time = self.contest.start_time or self.contest.created_at
+        end_time = self.contest.end_time or timezone.now()
+        time_range = (end_time - start_time).total_seconds()
+        
+        if time_range <= 0:
+            time_range = 3600  # Default 1 hour
+        
+        svg_parts = [f'''
+            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" 
+                 xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+                <!-- Background -->
+                <rect width="{width}" height="{height}" fill="#ffffff"/>
+                
+                <!-- Grid lines -->
+        ''']
+        
+        chart_width = width - 2 * padding
+        chart_height = height - 2 * padding
+        
+        # Add horizontal grid lines
+        for i in range(5):
+            y = padding + (chart_height * i / 4)
+            svg_parts.append(f'''
+                <line x1="{padding}" y1="{y}" x2="{width - padding}" y2="{y}" 
+                      stroke="#e0e0e0" stroke-dasharray="4,4"/>
+            ''')
+        
+        # Add axis
+        svg_parts.append(f'''
+            <line x1="{padding}" y1="{height - padding}" x2="{width - padding}" y2="{height - padding}" 
+                  stroke="#8d8d8d" stroke-width="1"/>
+            <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{height - padding}" 
+                  stroke="#8d8d8d" stroke-width="1"/>
+        ''')
+        
+        # Plot submissions
+        for sub in submissions:
+            time_offset = (sub.created_at - start_time).total_seconds()
+            x = padding + (time_offset / time_range) * chart_width
+            
+            # Y position based on problem order
+            problem_idx = 0
+            for i, cp in enumerate(contest_problems):
+                if cp.problem.id == sub.problem_id:
+                    problem_idx = i
+                    break
+            
+            y = padding + ((problem_idx + 0.5) / len(contest_problems)) * chart_height
+            color = problem_colors.get(sub.problem_id, '#8d8d8d')
+            
+            # Different shapes for AC vs non-AC
+            if sub.status == 'AC':
+                # Filled circle for AC
+                svg_parts.append(f'''
+                    <circle cx="{x}" cy="{y}" r="{6 * scale}" fill="{color}" 
+                            stroke="#ffffff" stroke-width="1"/>
+                ''')
+            else:
+                # Hollow circle for non-AC
+                svg_parts.append(f'''
+                    <circle cx="{x}" cy="{y}" r="{5 * scale}" fill="none" 
+                            stroke="{color}" stroke-width="2"/>
+                ''')
+        
+        # Add legend
+        legend_y = height - 10 * scale
+        legend_x = padding
+        for i, cp in enumerate(contest_problems):
+            color = problem_colors[cp.problem.id]
+            label = problem_labels[cp.problem.id]
+            svg_parts.append(f'''
+                <rect x="{legend_x + i * 50 * scale}" y="{legend_y - 8 * scale}" 
+                      width="{12 * scale}" height="{12 * scale}" fill="{color}" rx="2"/>
+                <text x="{legend_x + i * 50 * scale + 16 * scale}" y="{legend_y}" 
+                      font-size="{10 * scale}px" fill="#525252">{label}</text>
+            ''')
+        
+        svg_parts.append('</svg>')
+        return ''.join(svg_parts)
+    
+    def generate_cumulative_chart_svg(self, submissions: List[Submission]) -> str:
+        """Generate SVG line chart showing cumulative solved problems over time."""
+        scale = self.scale
+        width = 500 * scale
+        height = 180 * scale
+        padding = 40 * scale
+        
+        if not submissions:
+            return self._empty_chart_svg("無提交記錄" if self.language.startswith('zh') else "No submissions")
+        
+        # Calculate cumulative AC count over time
+        start_time = self.contest.start_time or self.contest.created_at
+        end_time = self.contest.end_time or timezone.now()
+        time_range = (end_time - start_time).total_seconds()
+        
+        if time_range <= 0:
+            time_range = 3600
+        
+        ac_problems = set()
+        data_points = [(0, 0)]  # (time_offset_ratio, count)
+        
+        for sub in submissions:
+            if sub.status == 'AC' and sub.problem_id not in ac_problems:
+                ac_problems.add(sub.problem_id)
+                time_offset = (sub.created_at - start_time).total_seconds()
+                ratio = time_offset / time_range
+                data_points.append((ratio, len(ac_problems)))
+        
+        # Add final point at end
+        data_points.append((1.0, len(ac_problems)))
+        
+        max_count = max(p[1] for p in data_points) or 1
+        chart_width = width - 2 * padding
+        chart_height = height - 2 * padding
+        
+        svg_parts = [f'''
+            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"
+                 xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+                <rect width="{width}" height="{height}" fill="#ffffff"/>
+        ''']
+        
+        # Grid lines
+        for i in range(5):
+            y = padding + (chart_height * i / 4)
+            svg_parts.append(f'''
+                <line x1="{padding}" y1="{y}" x2="{width - padding}" y2="{y}" 
+                      stroke="#e0e0e0" stroke-dasharray="4,4"/>
+            ''')
+        
+        # Axes
+        svg_parts.append(f'''
+            <line x1="{padding}" y1="{height - padding}" x2="{width - padding}" y2="{height - padding}" 
+                  stroke="#8d8d8d" stroke-width="1"/>
+            <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{height - padding}" 
+                  stroke="#8d8d8d" stroke-width="1"/>
+        ''')
+        
+        # Generate path
+        path_points = []
+        for ratio, count in data_points:
+            x = padding + ratio * chart_width
+            y = height - padding - (count / max_count) * chart_height
+            path_points.append(f"{x},{y}")
+        
+        # Area fill
+        area_path = f"M{padding},{height - padding} " + " L".join(path_points) + f" L{width - padding},{height - padding} Z"
+        svg_parts.append(f'''
+            <path d="{area_path}" fill="#0f62fe" fill-opacity="0.1"/>
+        ''')
+        
+        # Line
+        line_path = "M" + " L".join(path_points)
+        svg_parts.append(f'''
+            <path d="{line_path}" fill="none" stroke="#0f62fe" stroke-width="{2 * scale}" 
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        ''')
+        
+        # Points
+        for ratio, count in data_points[1:-1]:
+            x = padding + ratio * chart_width
+            y = height - padding - (count / max_count) * chart_height
+            svg_parts.append(f'''
+                <circle cx="{x}" cy="{y}" r="{4 * scale}" fill="#ffffff" 
+                        stroke="#0f62fe" stroke-width="{2 * scale}"/>
+            ''')
+        
+        # Y-axis label
+        svg_parts.append(f'''
+            <text x="{padding - 8 * scale}" y="{padding}" font-size="{10 * scale}px" 
+                  fill="#525252" text-anchor="end">{max_count}</text>
+            <text x="{padding - 8 * scale}" y="{height - padding}" font-size="{10 * scale}px" 
+                  fill="#525252" text-anchor="end">0</text>
+        ''')
+        
+        svg_parts.append('</svg>')
+        return ''.join(svg_parts)
+    
+    def _empty_chart_svg(self, message: str) -> str:
+        """Generate placeholder SVG when no data available."""
+        scale = self.scale
+        width = 500 * scale
+        height = 150 * scale
+        return f'''
+            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"
+                 xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+                <rect width="{width}" height="{height}" fill="#f4f4f4" rx="4"/>
+                <text x="{width/2}" y="{height/2}" font-size="{14 * scale}px" fill="#8d8d8d" 
+                      text-anchor="middle" dominant-baseline="middle">{message}</text>
+            </svg>
+        '''
+    
+    def get_difficulty_stats(self) -> Dict[str, Dict[str, int]]:
+        """Calculate difficulty statistics (easy/medium/hard solved vs total)."""
+        contest_problems = self.get_contest_problems()
+        standings = self.calculate_standings()
+        user_stats = standings.get('user_stats', {})
+        user_problems = user_stats.get('problems', {}) if user_stats else {}
+        
+        stats = {
+            'easy': {'solved': 0, 'total': 0},
+            'medium': {'solved': 0, 'total': 0},
+            'hard': {'solved': 0, 'total': 0},
+        }
+        
+        for cp in contest_problems:
+            difficulty = cp.problem.difficulty or 'medium'
+            if difficulty in stats:
+                stats[difficulty]['total'] += 1
+                
+                # Check if user solved this problem
+                problem_stat = user_problems.get(cp.problem.id, {})
+                if problem_stat.get('status') == 'AC':
+                    stats[difficulty]['solved'] += 1
+        
+        return stats
+    
+    def render_score_cards(self) -> str:
+        """Render the 4-column score cards section."""
+        scale = self.scale
+        lang = self.language
+        standings = self.calculate_standings()
+        user_stats = standings.get('user_stats', {})
+        
+        total_score = user_stats.get('total_score', 0) if user_stats else 0
+        solved = user_stats.get('solved', 0) if user_stats else 0
+        rank = standings.get('rank', '-')
+        total_participants = standings.get('total_participants', 0)
+        
+        # Count total problems
+        contest_problems = self.get_contest_problems()
+        total_problems = len(contest_problems)
+        
+        # Count submissions
+        submissions = self.get_user_submissions()
+        submission_count = len(submissions)
+        
+        # Calculate max possible score
+        max_score = sum(cp.problem_score_sum or 0 for cp in contest_problems)
+        
+        # Determine if contest is finished
+        is_finished = False
+        if self.contest.end_time and timezone.now() > self.contest.end_time:
+            is_finished = True
+        
+        rank_label = "最終排名" if is_finished else "當前排名"
+        if not lang.startswith('zh'):
+            rank_label = "Final Rank" if is_finished else "Current Rank"
+        
+        labels = {
+            'score': '總分' if lang.startswith('zh') else 'Score',
+            'solved': '解題數' if lang.startswith('zh') else 'Solved',
+            'rank': rank_label,
+            'submissions': '提交數' if lang.startswith('zh') else 'Submissions',
+        }
+        
+        return f'''
+            <div class="score-cards">
+                <div class="score-card">
+                    <div class="score-card-label">{labels['score']}</div>
+                    <div class="score-card-value">{total_score}<span class="score-card-max">/{max_score}</span></div>
+                </div>
+                <div class="score-card">
+                    <div class="score-card-label">{labels['solved']}</div>
+                    <div class="score-card-value">{solved}<span class="score-card-max">/{total_problems}</span></div>
+                </div>
+                <div class="score-card">
+                    <div class="score-card-label">{labels['rank']}</div>
+                    <div class="score-card-value">#{rank}<span class="score-card-max">/{total_participants}</span></div>
+                </div>
+                <div class="score-card">
+                    <div class="score-card-label">{labels['submissions']}</div>
+                    <div class="score-card-value">{submission_count}</div>
+                </div>
+            </div>
+        '''
+    
+    def render_difficulty_stats(self) -> str:
+        """Render difficulty statistics with progress bars."""
+        scale = self.scale
+        lang = self.language
+        stats = self.get_difficulty_stats()
+        
+        difficulty_names = {
+            'easy': ('簡單', '#24a148', '#defbe6'),
+            'medium': ('中等', '#f1c21b', '#fcf4d6'),
+            'hard': ('困難', '#da1e28', '#fff1f1'),
+        }
+        if not lang.startswith('zh'):
+            difficulty_names = {
+                'easy': ('Easy', '#24a148', '#defbe6'),
+                'medium': ('Medium', '#f1c21b', '#fcf4d6'),
+                'hard': ('Hard', '#da1e28', '#fff1f1'),
+            }
+        
+        title = '難度統計' if lang.startswith('zh') else 'Difficulty Statistics'
+        
+        bars_html = []
+        for difficulty in ['easy', 'medium', 'hard']:
+            name, color, bg_color = difficulty_names[difficulty]
+            solved = stats[difficulty]['solved']
+            total = stats[difficulty]['total']
+            percentage = (solved / total * 100) if total > 0 else 0
+            
+            bars_html.append(f'''
+                <div class="difficulty-row">
+                    <div class="difficulty-label" style="color: {color};">{name}</div>
+                    <div class="difficulty-bar-container">
+                        <div class="difficulty-bar-bg" style="background-color: {bg_color};">
+                            <div class="difficulty-bar-fill" style="width: {percentage}%; background-color: {color};"></div>
+                        </div>
+                    </div>
+                    <div class="difficulty-count">{solved}/{total}</div>
+                </div>
+            ''')
+        
+        return f'''
+            <div class="container-card">
+                <div class="container-card-header">{title}</div>
+                <div class="container-card-body">
+                    {''.join(bars_html)}
+                </div>
+            </div>
+        '''
+    
+    def render_trend_charts(self) -> str:
+        """Render submission trend charts section."""
+        scale = self.scale
+        lang = self.language
+        
+        submissions = self.get_user_submissions()
+        contest_problems = self.get_contest_problems()
+        
+        scatter_title = '提交時間分布' if lang.startswith('zh') else 'Submission Timeline'
+        cumulative_title = '累計解題數' if lang.startswith('zh') else 'Cumulative Solved'
+        
+        scatter_svg = self.generate_scatter_chart_svg(submissions, contest_problems)
+        cumulative_svg = self.generate_cumulative_chart_svg(submissions)
+        
+        return f'''
+            <div class="container-card">
+                <div class="container-card-header">{scatter_title}</div>
+                <div class="container-card-body chart-container">
+                    {scatter_svg}
+                    <p class="chart-legend">● AC ○ 未通過</p>
+                </div>
+            </div>
+            <div class="container-card">
+                <div class="container-card-header">{cumulative_title}</div>
+                <div class="container-card-body chart-container">
+                    {cumulative_svg}
+                </div>
+            </div>
+        '''
+    
+    def render_problem_details(self) -> str:
+        """Render detailed results for each problem including AC code."""
+        scale = self.scale
+        lang = self.language
+        
+        contest_problems = self.get_contest_problems()
+        standings = self.calculate_standings()
+        user_stats = standings.get('user_stats', {})
+        user_problems = user_stats.get('problems', {}) if user_stats else {}
+        submissions = self.get_user_submissions()
+        
+        title = '題目詳情' if lang.startswith('zh') else 'Problem Details'
+        
+        sections = [f'<h2>{title}</h2>']
+        
+        for cp in contest_problems:
+            problem = cp.problem
+            label = self.get_problem_label(cp)
+            problem_stat = user_problems.get(problem.id, {})
+            
+            status = problem_stat.get('status') or '未作答'
+            score = problem_stat.get('score', 0)
+            max_score = problem_stat.get('max_score', 0)
+            tries = problem_stat.get('tries', 0)
+            
+            # Get problem title
+            translation = problem.translations.filter(language=self.language).first()
+            if not translation and problem.translations.exists():
+                translation = problem.translations.first()
+            problem_title = translation.title if translation else problem.title
+            
+            # Status styling
+            if status == 'AC':
+                status_html = '<span class="status-ac">AC ✓</span>'
+            elif status == '未作答':
+                status_html = '<span class="status-none">未作答</span>'
+            else:
+                status_html = f'<span class="status-fail">{status}</span>'
+            
+            status_label = '狀態' if lang.startswith('zh') else 'Status'
+            score_label = '得分' if lang.startswith('zh') else 'Score'
+            tries_label = '提交' if lang.startswith('zh') else 'Tries'
+            code_label = '通過的程式碼' if lang.startswith('zh') else 'Accepted Code'
+            
+            # Get AC code if available
+            code_html = ''
+            if status == 'AC':
+                ac_submission = self.get_last_ac_submission(problem.id)
+                if ac_submission and ac_submission.code:
+                    highlighted_code = self.highlight_code(
+                        ac_submission.code, 
+                        ac_submission.language
+                    )
+                    code_html = f'''
+                        <div class="code-section">
+                            <div class="code-label">{code_label} ({ac_submission.language})</div>
+                            {highlighted_code}
+                        </div>
+                    '''
+            
+            sections.append(f'''
+                <div class="problem-detail-card">
+                    <div class="problem-detail-header">
+                        <span class="problem-label">{label}</span>
+                        <span class="problem-title">{problem_title}</span>
+                    </div>
+                    <div class="problem-detail-body">
+                        <div class="problem-stats">
+                            <span class="stat-item"><strong>{status_label}:</strong> {status_html}</span>
+                            <span class="stat-item"><strong>{score_label}:</strong> {score}/{max_score}</span>
+                            <span class="stat-item"><strong>{tries_label}:</strong> {tries}次</span>
+                        </div>
+                        {code_html}
+                    </div>
+                </div>
+            ''')
+        
+        return '\n'.join(sections)
+    
+    def get_report_styles(self) -> str:
+        """Get CSS styles for the student report."""
+        scale = self.scale
+        
+        # Get base styles from PDFExporter
+        base_exporter = PDFExporter(self.contest, self.language, self.scale)
+        base_styles = base_exporter.get_css_styles()
+        
+        # Add report-specific styles
+        report_styles = f'''
+            {base_styles}
+            {self.get_carbon_code_styles()}
+            
+            /* Score Cards */
+            .score-cards {{
+                display: table;
+                width: 100%;
+                margin-bottom: {16 * scale}px;
+                border-collapse: separate;
+                border-spacing: {8 * scale}px;
+            }}
+            .score-card {{
+                display: table-cell;
+                width: 25%;
+                background-color: #f4f4f4;
+                border-radius: {4 * scale}px;
+                padding: {16 * scale}px;
+                text-align: center;
+                vertical-align: top;
+            }}
+            .score-card-label {{
+                font-size: {12 * scale}px;
+                color: #525252;
+                text-transform: uppercase;
+                letter-spacing: 0.32px;
+                margin-bottom: {8 * scale}px;
+            }}
+            .score-card-value {{
+                font-size: {28 * scale}px;
+                font-weight: 600;
+                color: #161616;
+            }}
+            .score-card-max {{
+                font-size: {14 * scale}px;
+                font-weight: 400;
+                color: #8d8d8d;
+            }}
+            
+            /* Difficulty Stats */
+            .difficulty-row {{
+                display: table;
+                width: 100%;
+                margin-bottom: {8 * scale}px;
+            }}
+            .difficulty-label {{
+                display: table-cell;
+                width: {80 * scale}px;
+                font-weight: 600;
+                font-size: {14 * scale}px;
+                vertical-align: middle;
+            }}
+            .difficulty-bar-container {{
+                display: table-cell;
+                vertical-align: middle;
+                padding: 0 {12 * scale}px;
+            }}
+            .difficulty-bar-bg {{
+                height: {16 * scale}px;
+                border-radius: {8 * scale}px;
+                overflow: hidden;
+            }}
+            .difficulty-bar-fill {{
+                height: 100%;
+                border-radius: {8 * scale}px;
+                transition: width 0.3s ease;
+            }}
+            .difficulty-count {{
+                display: table-cell;
+                width: {50 * scale}px;
+                text-align: right;
+                font-size: {14 * scale}px;
+                color: #525252;
+                vertical-align: middle;
+            }}
+            
+            /* Chart Container */
+            .chart-container {{
+                padding: {16 * scale}px;
+                text-align: center;
+            }}
+            .chart-legend {{
+                font-size: {11 * scale}px;
+                color: #8d8d8d;
+                margin-top: {8 * scale}px;
+            }}
+            
+            /* Problem Detail Card */
+            .problem-detail-card {{
+                border: 1px solid #e0e0e0;
+                border-radius: {4 * scale}px;
+                margin-bottom: {16 * scale}px;
+                overflow: hidden;
+                page-break-inside: avoid;
+            }}
+            .problem-detail-header {{
+                background-color: #f4f4f4;
+                padding: {12 * scale}px {16 * scale}px;
+                border-bottom: 1px solid #e0e0e0;
+            }}
+            .problem-label {{
+                display: inline-block;
+                background-color: #0f62fe;
+                color: white;
+                padding: {4 * scale}px {8 * scale}px;
+                border-radius: {4 * scale}px;
+                font-weight: 600;
+                font-size: {12 * scale}px;
+                margin-right: {8 * scale}px;
+            }}
+            .problem-title {{
+                font-weight: 600;
+                font-size: {16 * scale}px;
+                color: #161616;
+            }}
+            .problem-detail-body {{
+                padding: {16 * scale}px;
+            }}
+            .problem-stats {{
+                display: flex;
+                gap: {24 * scale}px;
+                margin-bottom: {12 * scale}px;
+                flex-wrap: wrap;
+            }}
+            .stat-item {{
+                font-size: {14 * scale}px;
+                color: #161616;
+            }}
+            .status-ac {{
+                color: #24a148;
+                font-weight: 600;
+            }}
+            .status-fail {{
+                color: #da1e28;
+                font-weight: 600;
+            }}
+            .status-none {{
+                color: #8d8d8d;
+            }}
+            .code-section {{
+                margin-top: {12 * scale}px;
+            }}
+            .code-label {{
+                font-size: {12 * scale}px;
+                color: #525252;
+                text-transform: uppercase;
+                letter-spacing: 0.32px;
+                margin-bottom: {8 * scale}px;
+            }}
+            
+            /* Report Header */
+            .report-header {{
+                margin-bottom: {24 * scale}px;
+            }}
+            .report-meta {{
+                font-size: {12 * scale}px;
+                color: #525252;
+                margin-top: {8 * scale}px;
+            }}
+        '''
+        return report_styles
+    
+    def export(self) -> BytesIO:
+        """Generate PDF report for the student."""
+        lang = self.language
+        
+        # Header info
+        contest_name = inline_markdown(self.contest.name)
+        student_name = self.user.username
+        download_time = timezone.now().strftime('%Y/%m/%d %H:%M')
+        
+        report_title = '個人成績報告' if lang.startswith('zh') else 'Personal Score Report'
+        student_label = '學生' if lang.startswith('zh') else 'Student'
+        time_label = '報告產生時間' if lang.startswith('zh') else 'Generated'
+        
+        # Build report sections
+        score_cards = self.render_score_cards()
+        difficulty_stats = self.render_difficulty_stats()
+        trend_charts = self.render_trend_charts()
+        problem_details = self.render_problem_details()
+        
+        full_html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>{report_title} - {student_name}</title>
+            <style>{self.get_report_styles()}</style>
+        </head>
+        <body>
+            <div class="report-header">
+                <h1>{contest_name}</h1>
+                <h2 style="margin-top: 8px; border: none; color: #525252;">{report_title}</h2>
+                <div class="report-meta">
+                    <strong>{student_label}:</strong> {student_name} | 
+                    <strong>{time_label}:</strong> {download_time}
+                </div>
+            </div>
+            
+            {score_cards}
+            {difficulty_stats}
+            {trend_charts}
+            
+            <div class="page-break"></div>
+            {problem_details}
+        </body>
+        </html>
+        '''
+        
+        # Generate PDF
+        try:
+            from weasyprint import HTML
+        except (ImportError, OSError) as e:
+            raise RuntimeError(
+                "PDF export is not available. WeasyPrint requires system libraries. "
                 f"Original error: {e}"
             )
         
