@@ -611,7 +611,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         ]
     
     def get_total_score(self, obj):
-        """計算參賽者的實際總分（從提交記錄中計算）"""
+        """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）"""
         from apps.submissions.models import Submission
         from django.db.models import Max
         
@@ -620,12 +620,13 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         total = 0
         
         for cp in contest_problems:
-            # 取得該用戶在此題目的最高分
+            # 取得該用戶在此題目的最高分（排除測試提交）
             best_submission = Submission.objects.filter(
                 contest=obj.contest,
                 problem=cp.problem,
                 user=obj.user,
-                source_type='contest'
+                source_type='contest',
+                is_test=False  # Exclude test submissions
             ).aggregate(max_score=Max('score'))
             
             if best_submission['max_score']:

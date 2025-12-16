@@ -1275,6 +1275,7 @@ class StudentReportExporter:
             is_test=False
         ).order_by('created_at')
         
+        
         # Build stats for each participant
         stats = {}
         for p in participants:
@@ -1358,6 +1359,8 @@ class StudentReportExporter:
             'user_stats': user_stats,
             'standings': standings_list
         }
+        
+        
         return self._standings_cache
     
     def get_problem_label(self, contest_problem: ContestProblem) -> str:

@@ -888,11 +888,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         # 2. Get Participants
         participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
         
-        # 3. Get Submissions
+        # 3. Get Submissions (exclude test submissions to match report calculation)
         from apps.submissions.models import Submission
         submissions = Submission.objects.filter(
             contest=contest,
-            source_type='contest'
+            source_type='contest',
+            is_test=False  # Exclude test submissions
         ).order_by('created_at')
 
         # 4. Process Stats
@@ -1025,11 +1026,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         # 2. Get Participants
         participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
         
-        # 3. Get Submissions
+        # 3. Get Submissions (exclude test submissions)
         from apps.submissions.models import Submission
         submissions = Submission.objects.filter(
             contest=contest,
-            source_type='contest'
+            source_type='contest',
+            is_test=False  # Exclude test submissions
         ).order_by('created_at')
         
         # 4. Process Stats
