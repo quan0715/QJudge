@@ -986,7 +986,8 @@ class ContestViewSet(viewsets.ModelViewSet):
                     stats[uid]['total_score'] += score_diff
 
         standings_list = list(stats.values())
-        standings_list.sort(key=lambda x: (-x['solved'], x['time']))
+        # Ranking order: total_score (desc) > solved (desc) > penalty time (asc)
+        standings_list.sort(key=lambda x: (-x['total_score'], -x['solved'], x['time']))
 
         for i, item in enumerate(standings_list):
             item['rank'] = i + 1
@@ -1100,9 +1101,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                     p_stat['score'] = submission_score
                     stats[uid]['total_score'] += score_diff
         
-        # Sort by standings
+        # Sort by standings: total_score (desc) > solved (desc) > penalty time (asc)
         standings_list = list(stats.values())
-        standings_list.sort(key=lambda x: (-x['solved'], x['time']))
+        standings_list.sort(key=lambda x: (-x['total_score'], -x['solved'], x['time']))
         
         for i, item in enumerate(standings_list):
             item['rank'] = i + 1

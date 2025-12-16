@@ -214,7 +214,7 @@
     "title": "Live Standings",
     "refreshing": "Refreshing...",
     "refresh": "Refresh",
-    "icpcRules": "ICPC Rules: Rankings are based on number of problems solved first, then total penalty time (solve time + 20 min per wrong attempt).",
+    "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",
     "rank": "Rank",
     "participant": "Participant",
     "solved": "Solved",

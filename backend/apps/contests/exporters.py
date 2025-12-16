@@ -1337,9 +1337,9 @@ class StudentReportExporter:
                     p_stat['score'] = submission_score
                     stats[uid]['total_score'] += score_diff
         
-        # Sort standings
+        # Sort standings: total_score (desc) > solved (desc) > penalty time (asc)
         standings_list = list(stats.values())
-        standings_list.sort(key=lambda x: (-x['solved'], x['penalty']))
+        standings_list.sort(key=lambda x: (-x['total_score'], -x['solved'], x['penalty']))
         
         for i, item in enumerate(standings_list):
             item['rank'] = i + 1

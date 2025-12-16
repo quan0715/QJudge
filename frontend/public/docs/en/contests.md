@@ -41,10 +41,11 @@ Once the contest starts:
 
 ## Scoring Methods
 
-### ACM/ICPC Mode
+### Scoring Mode
 
-- Ranking based primarily on number of problems solved
-- When tied, ranking is determined by total penalty time
+- Ranking based primarily on total score
+- When scores are tied, ranking is determined by number of problems solved
+- When both are tied, ranking is determined by total penalty time
 - Each wrong submission adds 20 minutes of penalty
 
 ### OI Mode
