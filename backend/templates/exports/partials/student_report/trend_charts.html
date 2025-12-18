@@ -1,0 +1,10 @@
+<div class="container-card" style="margin-bottom: 16px">
+  <div class="container-card-header">{{ scatter_title }}</div>
+  <div class="container-card-body chart-container">{{ scatter_svg|safe }}</div>
+</div>
+<div class="container-card">
+  <div class="container-card-header">{{ cumulative_title }}</div>
+  <div class="container-card-body chart-container">
+    {{ cumulative_svg|safe }}
+  </div>
+</div>

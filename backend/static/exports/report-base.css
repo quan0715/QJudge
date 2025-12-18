@@ -1,0 +1,405 @@
+/**
+ * Base Report Styles - IBM Carbon Design System
+ * Shared between PDFRenderer and StudentReportRenderer
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Noto+Sans+TC:wght@400;600&display=swap");
+
+@page {
+  size: A4;
+  margin: 1.5cm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "IBM Plex Sans", "Noto Sans TC", "Microsoft JhengHei", system-ui,
+    -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.42857;
+  letter-spacing: 0.16px;
+  color: #161616;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+   Typography
+   ============================================================================ */
+
+h1 {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.25;
+  border-bottom: 2px solid #0f62fe;
+  padding-bottom: 8px;
+  margin: 0 0 16px 0;
+  color: #161616;
+}
+
+h2 {
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.28572;
+  margin: 24px 0 12px 0;
+  color: #161616;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 20px 0 8px 0;
+  color: #161616;
+}
+
+h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+}
+
+h5 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+}
+
+h6 {
+  font-size: 12px;
+  font-weight: 400;
+  color: #525252;
+  margin: 16px 0 8px 0;
+}
+
+p {
+  font-size: 14px;
+  line-height: 1.42857;
+  margin: 0 0 16px 0;
+}
+
+ul,
+ol {
+  margin: 0 0 16px 0;
+  padding-left: 32px;
+  list-style-position: outside;
+}
+
+li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+/* ============================================================================
+   Code
+   ============================================================================ */
+
+pre,
+code {
+  font-family: "IBM Plex Mono", "SF Mono", "Monaco", monospace;
+}
+
+code {
+  font-size: 12px;
+  background-color: #f4f4f4;
+  padding: 2px 4px;
+  border-radius: 2px;
+  color: #da1e28;
+}
+
+pre {
+  background-color: #f4f4f4;
+  padding: 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0 0 16px 0;
+  border: 1px solid #e0e0e0;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #161616;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* ============================================================================
+   Links & Tables
+   ============================================================================ */
+
+a {
+  color: #0f62fe;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+table th,
+table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+table th {
+  font-weight: 600;
+  color: #525252;
+  font-size: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #8d8d8d;
+}
+
+/* ============================================================================
+   Blockquote & HR
+   ============================================================================ */
+
+blockquote {
+  border-left: 4px solid #0f62fe;
+  padding-left: 16px;
+  margin-left: 0;
+  margin-bottom: 16px;
+  color: #525252;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 24px 0;
+}
+
+strong {
+  font-weight: 600;
+}
+
+em {
+  font-style: italic;
+}
+
+/* ============================================================================
+   Container Card
+   ============================================================================ */
+
+.container-card {
+  margin-bottom: 16px;
+  page-break-inside: avoid;
+}
+
+.container-card-header {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.container-card-body {
+  padding: 0;
+}
+
+/* ============================================================================
+   Problem Table
+   ============================================================================ */
+
+.problem-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.problem-table th {
+  background-color: transparent;
+  border-bottom: 1px solid #8d8d8d;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 12px;
+  color: #525252;
+  text-transform: uppercase;
+}
+
+.problem-table td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.problem-table .total-row {
+  font-weight: 600;
+  border-top: 1px solid #8d8d8d;
+}
+
+/* ============================================================================
+   Sample Cases
+   ============================================================================ */
+
+.sample-case {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  page-break-inside: avoid;
+}
+
+.sample-case-header {
+  background-color: #f4f4f4;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+}
+
+.sample-case-content {
+  display: table;
+  width: 100%;
+}
+
+.sample-case-column {
+  display: table-cell;
+  width: 50%;
+  padding: 16px;
+  vertical-align: top;
+}
+
+.sample-case-column:first-child {
+  border-right: 1px solid #e0e0e0;
+}
+
+.sample-case-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: #525252;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ============================================================================
+   Tags
+   ============================================================================ */
+
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: "IBM Plex Mono", monospace;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+.tag-green {
+  background-color: #a7f0ba;
+  color: #044317;
+}
+
+.tag-red {
+  background-color: #ffd7d9;
+  color: #750e13;
+}
+
+/* ============================================================================
+   Metadata
+   ============================================================================ */
+
+.metadata {
+  color: #525252;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.metadata-item {
+  display: inline-block;
+  margin-right: 16px;
+}
+
+/* ============================================================================
+   Problem Section
+   ============================================================================ */
+
+.problem-section {
+  margin-bottom: 24px;
+}
+
+.problem-header {
+  border-left: 4px solid #0f62fe;
+  padding-left: 12px;
+  margin-bottom: 12px;
+}
+
+.problem-body {
+  padding: 0 0 0 16px;
+}
+
+/* ============================================================================
+   Aside (Info/Warning/Error/Success)
+   ============================================================================ */
+
+aside {
+  display: block;
+  min-height: 48px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  background-color: #edf5ff;
+  border-left: 3px solid #0f62fe;
+  page-break-inside: avoid;
+}
+
+aside p {
+  margin: 0;
+}
+
+aside p + p {
+  margin-top: 8px;
+}
+
+aside.info {
+  background-color: #edf5ff;
+  border-left-color: #0f62fe;
+}
+
+aside.warning {
+  background-color: #fcf4d6;
+  border-left-color: #f1c21b;
+}
+
+aside.error {
+  background-color: #fff1f1;
+  border-left-color: #da1e28;
+}
+
+aside.success {
+  background-color: #defbe6;
+  border-left-color: #24a148;
+}
+
+/* ============================================================================
+   Exam Time Info
+   ============================================================================ */
+
+.exam-time-info {
+  background-color: #e0e0e0;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 10pt;
+  border-radius: 4px;
+}
+
+/* ============================================================================
+   Utilities
+   ============================================================================ */
+
+.page-break {
+  page-break-after: always;
+}

@@ -1,0 +1,7 @@
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 {{ size }} {{ size }}" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ radius }}" fill="none" stroke="{{ bg_color }}" stroke-width="{{ stroke_width }}"/>
+  <circle cx="{{ cx }}" cy="{{ cy }}" r="{{ radius }}" fill="none" stroke="{{ color }}" stroke-width="{{ stroke_width }}"
+          stroke-dasharray="{{ circumference }}" stroke-dashoffset="{{ dash_offset }}" stroke-linecap="round"
+          transform="rotate(-90 {{ cx }} {{ cy }})"/>
+  <text x="{{ cx }}" y="{{ text_y }}" text-anchor="middle" font-size="{{ font_size }}px" font-weight="600" fill="#161616">{{ label }}</text>
+</svg>

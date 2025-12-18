@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="{{ language|default:'zh-TW' }}">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ report_title }} - {{ student_name }}</title>
+    <style>
+      {{ base_css|safe }}
+    </style>
+    <style>
+      {{ report_css|safe }}
+    </style>
+  </head>
+  <body>
+    <div class="report-header">
+      <h1>{{ contest_name|safe }}</h1>
+      <h2 style="margin-top: 8px; border: none; color: #525252">
+        {{ report_title }}
+      </h2>
+      <div class="report-meta">
+        <strong>{{ labels.student }}:</strong> {{ student_name }} |
+        <strong>{{ labels.generated }}:</strong> {{ download_time }}
+      </div>
+    </div>
+
+    {{ score_cards|safe }} {{ difficulty_stats|safe }} {{ problem_grid|safe }}
+    {{ trend_charts|safe }}
+
+    <div class="page-break"></div>
+    {{ problem_details|safe }}
+  </body>
+</html>

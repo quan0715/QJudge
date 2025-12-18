@@ -45,6 +45,7 @@ class TestContestExporters:
         """Create a test problem with translation and test cases."""
         problem = Problem.objects.create(
             title='Test Problem',
+            slug='test-problem-main',
             time_limit=1000,
             memory_limit=128,
             difficulty='medium',
@@ -100,6 +101,7 @@ class TestContestExporters:
         """Ensure multiple problems are exported with separators for PDF pagination."""
         second_problem = Problem.objects.create(
             title='Second Problem',
+            slug='test-second-problem',
             time_limit=2000,
             memory_limit=256,
             difficulty='easy',
@@ -217,10 +219,11 @@ class TestStudentReportExporter:
         """Create multiple problems with different difficulties."""
         problems = []
         difficulties = [('easy', '簡單題'), ('medium', '中等題'), ('hard', '困難題')]
-        
+
         for i, (difficulty, title) in enumerate(difficulties):
             problem = Problem.objects.create(
                 title=f'Problem {i+1}',
+                slug=f'test-problem-{i+1}-{difficulty}',
                 time_limit=1000,
                 memory_limit=128,
                 difficulty=difficulty,
@@ -439,7 +442,8 @@ class TestStudentReportExporter:
         exporter = StudentReportExporter(contest_with_times, student)
         html = exporter.render_difficulty_stats()
         
-        assert 'difficulty-row' in html
+        # Check for difficulty section structure (using donut charts)
+        assert 'donut-item' in html or 'difficulty-row' in html
         assert '簡單' in html or 'Easy' in html
         assert '中等' in html or 'Medium' in html
         assert '困難' in html or 'Hard' in html

@@ -1,0 +1,4 @@
+<svg width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}" xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+  <rect width="{{ width }}" height="{{ height }}" fill="#f4f4f4" rx="4"/>
+  <text x="{{ text_x }}" y="{{ text_y }}" font-size="{{ font_size }}px" fill="#8d8d8d" text-anchor="middle" dominant-baseline="middle">{{ message }}</text>
+</svg>

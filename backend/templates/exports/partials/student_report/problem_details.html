@@ -1,0 +1,32 @@
+<h2>{{ title }}</h2>
+{% for problem in problems %}
+<div class="problem-detail-card">
+  <div class="problem-detail-header">
+    <span
+      class="problem-label"
+      style="background-color: {{ problem.label_bg }};"
+      >{{ problem.label }}</span
+    >
+    <span class="problem-title">{{ problem.title }}</span>
+    <span class="problem-header-status" style="color: {{ problem.label_bg }};"
+      >{{ problem.status_icon }} {{ problem.status_text }}</span
+    >
+    <span class="problem-header-score"
+      >{{ labels.score }}: {{ problem.score }}/{{ problem.max_score }}</span
+    >
+    <span class="problem-header-tries"
+      >{{ labels.tries }}: {{ problem.tries }}次</span
+    >
+  </div>
+  <div class="problem-detail-body">
+    {% if problem.code_html %}
+    <div class="code-section">
+      <div class="code-label">
+        {{ problem.code_label }} ({{ problem.language }})
+      </div>
+      {{ problem.code_html|safe }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}

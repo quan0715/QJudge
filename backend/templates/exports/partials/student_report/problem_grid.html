@@ -1,0 +1,47 @@
+<div class="container-card">
+  <div class="container-card-header">{{ title }}</div>
+  <div class="container-card-body">
+    <div class="problem-grid-columns">
+      <div class="problem-grid-col">
+        {% for item in column1 %}
+        <div class="problem-grid-row" style="background: {{ item.row_bg }};">
+          <div
+            class="problem-grid-label"
+            style="background: {{ item.label_bg }};"
+          >
+            {{ item.label }}
+          </div>
+          <div class="problem-grid-score">
+            {{ item.score }}<span class="score-max">/{{ item.max_score }}</span>
+          </div>
+          <div class="problem-grid-stats">
+            <span class="stat-ac">{{ item.ac_count }}</span>
+            <span class="stat-wa">{{ item.wa_count }}</span>
+          </div>
+          <div class="problem-grid-status">{{ item.status_icon }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="problem-grid-col">
+        {% for item in column2 %}
+        <div class="problem-grid-row" style="background: {{ item.row_bg }};">
+          <div
+            class="problem-grid-label"
+            style="background: {{ item.label_bg }};"
+          >
+            {{ item.label }}
+          </div>
+          <div class="problem-grid-score">
+            {{ item.score }}<span class="score-max">/{{ item.max_score }}</span>
+          </div>
+          <div class="problem-grid-stats">
+            <span class="stat-ac">{{ item.ac_count }}</span>
+            <span class="stat-wa">{{ item.wa_count }}</span>
+          </div>
+          <div class="problem-grid-status">{{ item.status_icon }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+<div class="score-cards">
+  {% for card in cards %}
+  <div class="score-card">
+    <div class="score-card-label">{{ card.label }}</div>
+    <div class="score-card-value">
+      {{ card.value }}{% if card.max_value %}<span class="score-card-max"
+        >/{{ card.max_value }}</span
+      >{% endif %}
+    </div>
+    {% if card.sub_text %}
+    <div class="score-card-sub">{{ card.sub_text }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>

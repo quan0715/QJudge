@@ -1,0 +1,21 @@
+<h3>{{ title }}</h3>
+{% if required_keywords %}
+<div style="margin-bottom: 12px">
+  <div style="font-weight: 600; margin-bottom: 6px; color: #525252">{{ labels.required }}</div>
+  <div>
+    {% for kw in required_keywords %}
+    <span class="tag tag-green">{{ kw }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% if forbidden_keywords %}
+<div style="margin-bottom: 12px">
+  <div style="font-weight: 600; margin-bottom: 6px; color: #525252">{{ labels.forbidden }}</div>
+  <div>
+    {% for kw in forbidden_keywords %}
+    <span class="tag tag-red">{{ kw }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

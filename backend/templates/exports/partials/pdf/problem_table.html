@@ -1,0 +1,27 @@
+<div class="container-card">
+  <div class="container-card-header">{{ title }}</div>
+  <div class="container-card-body" style="padding: 0">
+    <table class="problem-table">
+      <thead>
+        <tr>
+          <th style="width: 60px">{{ labels.problem }}</th>
+          <th>{{ labels.title }}</th>
+          <th style="width: 60px; text-align: center">{{ labels.score }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{{ row.title|safe }}</td>
+          <td style="text-align: center">{{ row.score }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="2">Total</td>
+          <td style="text-align: center">{{ total_score }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

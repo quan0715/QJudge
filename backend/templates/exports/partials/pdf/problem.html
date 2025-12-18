@@ -1,0 +1,54 @@
+<div class="problem-section">
+  <h2 class="problem-header">Problem {{ problem.label }}: {{ problem.title }}</h2>
+  <div class="problem-body">
+    <div class="metadata">
+      <span class="metadata-item"><strong>{{ labels.time_limit }}:</strong> {{ problem.time_limit }}ms</span>
+      <span class="metadata-item"><strong>{{ labels.memory_limit }}:</strong> {{ problem.memory_limit }}MB</span>
+      <span class="metadata-item"><strong>{{ labels.difficulty }}:</strong> {{ problem.difficulty_display }}</span>
+    </div>
+
+    {% if problem.description_html %}
+    <h3>{{ labels.description }}</h3>
+    {{ problem.description_html|safe }}
+    {% endif %}
+
+    {% if problem.input_html %}
+    <h3>{{ labels.input_description }}</h3>
+    {{ problem.input_html|safe }}
+    {% endif %}
+
+    {% if problem.output_html %}
+    <h3>{{ labels.output_description }}</h3>
+    {{ problem.output_html|safe }}
+    {% endif %}
+
+    {% if sample_cases %}
+    <h3>{{ labels.sample_cases }}</h3>
+    {% for case in sample_cases %}
+    <div class="sample-case">
+      <div class="sample-case-header">{{ labels.example }} {{ forloop.counter }}</div>
+      <div class="sample-case-content">
+        <div class="sample-case-column">
+          <div class="sample-case-label">{{ labels.input }}</div>
+          <pre>{{ case.input|default:labels.empty }}</pre>
+        </div>
+        <div class="sample-case-column">
+          <div class="sample-case-label">{{ labels.output }}</div>
+          <pre>{{ case.output|default:labels.empty }}</pre>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if problem.hint_html %}
+    <h3>{{ labels.hint }}</h3>
+    {{ problem.hint_html|safe }}
+    {% endif %}
+
+    {% if keyword_restrictions_html %}
+    {{ keyword_restrictions_html|safe }}
+    {% endif %}
+  </div>
+</div>
+{% if not is_last %}<div class="page-break"></div>{% endif %}

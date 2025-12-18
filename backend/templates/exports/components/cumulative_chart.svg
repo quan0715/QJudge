@@ -1,0 +1,54 @@
+<svg width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}" xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+  <rect width="{{ width }}" height="{{ height }}" fill="#ffffff"/>
+
+  {# Horizontal grid lines #}
+  {% for line in h_grid_lines %}
+  <line x1="{{ padding_left }}" y1="{{ line.y }}" x2="{{ chart_right }}" y2="{{ line.y }}" stroke="#e0e0e0" stroke-dasharray="4,4"/>
+  {% endfor %}
+
+  {# Vertical time markers #}
+  {% for marker in time_markers %}
+  <line x1="{{ marker.x }}" y1="{{ padding_top }}" x2="{{ marker.x }}" y2="{{ chart_bottom }}" stroke="#e0e0e0" stroke-dasharray="4,4"/>
+  <text x="{{ marker.x }}" y="{{ marker.label_y }}" font-size="{{ font_size_small }}px" fill="#525252" text-anchor="middle">{{ marker.label }}</text>
+  {% endfor %}
+
+  {# Left Y-axis (Solved) - Blue #}
+  <line x1="{{ padding_left }}" y1="{{ padding_top }}" x2="{{ padding_left }}" y2="{{ chart_bottom }}" stroke="#0f62fe" stroke-width="2"/>
+
+  {# Right Y-axis (Score) - Purple #}
+  <line x1="{{ chart_right }}" y1="{{ padding_top }}" x2="{{ chart_right }}" y2="{{ chart_bottom }}" stroke="#8a3ffc" stroke-width="2"/>
+
+  {# X-axis #}
+  <line x1="{{ padding_left }}" y1="{{ chart_bottom }}" x2="{{ chart_right }}" y2="{{ chart_bottom }}" stroke="#8d8d8d" stroke-width="1"/>
+
+  {# X-axis label #}
+  <text x="{{ x_axis_label_x }}" y="{{ x_axis_label_y }}" font-size="{{ font_size_small }}px" fill="#525252" text-anchor="middle">{{ x_axis_label }}</text>
+
+  {# Left Y-axis labels (Solved) - Blue #}
+  {% for label in left_labels %}
+  <text x="{{ label.x }}" y="{{ label.y }}" font-size="{{ font_size_small }}px" fill="#0f62fe" text-anchor="end">{{ label.value }}</text>
+  {% endfor %}
+
+  {# Right Y-axis labels (Score) - Purple #}
+  {% for label in right_labels %}
+  <text x="{{ label.x }}" y="{{ label.y }}" font-size="{{ font_size_small }}px" fill="#8a3ffc" text-anchor="start">{{ label.value }}</text>
+  {% endfor %}
+
+  {# Score area fill - Purple (behind) #}
+  {% if score_area_path %}<path d="{{ score_area_path }}" fill="#8a3ffc" fill-opacity="0.06"/>{% endif %}
+
+  {# Score line - Purple #}
+  {% if score_line_path %}<path d="{{ score_line_path }}" fill="none" stroke="#8a3ffc" stroke-width="{{ line_width }}" stroke-linecap="round" stroke-linejoin="round"/>{% endif %}
+
+  {# Solved area fill - Blue #}
+  {% if solved_area_path %}<path d="{{ solved_area_path }}" fill="#0f62fe" fill-opacity="0.08"/>{% endif %}
+
+  {# Solved line - Blue (on top) #}
+  {% if solved_line_path %}<path d="{{ solved_line_path }}" fill="none" stroke="#0f62fe" stroke-width="{{ line_width_thick }}" stroke-linecap="round" stroke-linejoin="round"/>{% endif %}
+
+  {# Legend #}
+  <rect x="{{ legend_solved_x }}" y="{{ legend_y }}" width="{{ legend_rect_width }}" height="{{ legend_rect_height }}" fill="#0f62fe"/>
+  <text x="{{ legend_solved_text_x }}" y="{{ legend_text_y }}" font-size="{{ font_size_small }}px" fill="#0f62fe">{{ solved_label }}</text>
+  <rect x="{{ legend_score_x }}" y="{{ legend_y }}" width="{{ legend_rect_width }}" height="{{ legend_rect_height }}" fill="#8a3ffc"/>
+  <text x="{{ legend_score_text_x }}" y="{{ legend_text_y }}" font-size="{{ font_size_small }}px" fill="#8a3ffc">{{ score_label }}</text>
+</svg>

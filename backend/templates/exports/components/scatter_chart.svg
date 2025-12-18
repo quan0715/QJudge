@@ -1,0 +1,26 @@
+<svg width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}" xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
+  <rect width="{{ width }}" height="{{ height }}" fill="#ffffff"/>
+
+  {# Problem labels and grid lines #}
+  {% for problem in problems %}
+  <line x1="{{ padding_left }}" y1="{{ problem.y }}" x2="{{ chart_right }}" y2="{{ problem.y }}" stroke="#e0e0e0" stroke-dasharray="2,4" stroke-opacity="0.5"/>
+  <rect x="{{ problem.rect_x }}" y="{{ problem.rect_y }}" width="{{ label_rect_width }}" height="{{ label_rect_height }}" fill="{{ problem.color }}" rx="4"/>
+  <text x="{{ problem.text_x }}" y="{{ problem.text_y }}" font-size="{{ font_size_label }}px" fill="#ffffff" text-anchor="middle" font-weight="600">{{ problem.label }}</text>
+  {% endfor %}
+
+  {# Time markers #}
+  {% for marker in time_markers %}
+  <line x1="{{ marker.x }}" y1="{{ padding_top }}" x2="{{ marker.x }}" y2="{{ chart_bottom }}" stroke="#e0e0e0" stroke-dasharray="4,4"/>
+  <text x="{{ marker.x }}" y="{{ marker.label_y }}" font-size="{{ font_size_time }}px" fill="#525252" text-anchor="middle">{{ marker.label }}</text>
+  {% endfor %}
+
+  {# Submission points #}
+  {% for point in points %}
+  {% if point.is_ac %}
+  <circle cx="{{ point.x }}" cy="{{ point.y }}" r="{{ point.outer_radius }}" fill="{{ point.color }}" fill-opacity="0.2"/>
+  <circle cx="{{ point.x }}" cy="{{ point.y }}" r="{{ point.inner_radius }}" fill="{{ point.color }}" stroke="#ffffff" stroke-width="2"/>
+  {% else %}
+  <circle cx="{{ point.x }}" cy="{{ point.y }}" r="{{ point.radius }}" fill="#ffffff" stroke="{{ point.color }}" stroke-width="2" stroke-opacity="0.7"/>
+  {% endif %}
+  {% endfor %}
+</svg>

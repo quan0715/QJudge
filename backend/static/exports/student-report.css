@@ -1,0 +1,360 @@
+/**
+ * Student Report Styles
+ * Complete styling for PDF student reports
+ */
+
+/* ============================================================================
+   Container Cards - Common card styling
+   ============================================================================ */
+
+.container-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.container-card-header {
+  background-color: #f4f4f4;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #161616;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.container-card-body {
+  padding: 16px;
+  background-color: #ffffff;
+}
+
+/* ============================================================================
+   Pygments Syntax Highlighting - Carbon-inspired, compact
+   ============================================================================ */
+
+.highlight {
+  background-color: #f4f4f4;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 6px 0 12px 0;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.highlight pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Inline line numbers styling */
+.highlight .linenos {
+  color: #a8a8a8;
+  padding-right: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ============================================================================
+   Score Cards
+   ============================================================================ */
+
+.score-cards {
+  display: table;
+  width: 100%;
+  margin-bottom: 16px;
+  border-collapse: separate;
+  border-spacing: 8px;
+}
+
+.score-card {
+  display: table-cell;
+  width: 25%;
+  background-color: #f4f4f4;
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.score-card-label {
+  font-size: 12px;
+  color: #525252;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.score-card-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #161616;
+}
+
+.score-card-max {
+  font-size: 14px;
+  font-weight: 400;
+  color: #8d8d8d;
+}
+
+.score-card-sub {
+  font-size: 12px;
+  color: #24a148;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ============================================================================
+   Difficulty Stats - Donut Charts
+   ============================================================================ */
+
+.donut-container {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.donut-item {
+  display: table-cell;
+  width: 33.33%;
+  text-align: center;
+  vertical-align: top;
+  padding: 8px;
+}
+
+.donut-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.donut-chart {
+  margin: 8px 0;
+}
+
+.donut-details {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #525252;
+}
+
+.donut-detail-row {
+  display: block;
+  margin: 2px 0;
+}
+
+.donut-detail-label {
+  color: #8d8d8d;
+}
+
+.donut-detail-value {
+  font-weight: 600;
+  color: #161616;
+}
+
+/* ============================================================================
+   Problem Grid
+   ============================================================================ */
+
+.problem-grid-columns {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.problem-grid-col {
+  display: table-cell;
+  vertical-align: top;
+  padding-right: 6px;
+}
+
+.problem-grid-col:last-child {
+  padding-right: 0;
+  padding-left: 6px;
+}
+
+.problem-grid-row {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.problem-grid-row > div {
+  display: table-cell;
+  vertical-align: middle;
+  padding: 6px 4px;
+}
+
+.problem-grid-label {
+  width: 28px;
+  color: white;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 4px !important;
+}
+
+.problem-grid-score {
+  width: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #161616;
+  text-align: center;
+}
+
+.problem-grid-score .score-max {
+  font-size: 10px;
+  font-weight: 400;
+  color: #6f6f6f;
+}
+
+.problem-grid-stats {
+  width: 45px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.problem-grid-stats .stat-ac {
+  color: #24a148;
+}
+
+.problem-grid-stats .stat-ac::after {
+  content: "/";
+  color: #8d8d8d;
+  margin: 0 1px;
+}
+
+.problem-grid-stats .stat-wa {
+  color: #da1e28;
+}
+
+.problem-grid-status {
+  width: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ============================================================================
+   Trend Charts
+   ============================================================================ */
+
+.chart-container {
+  padding: 8px;
+  text-align: center;
+}
+
+.chart-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================================================
+   Problem Details
+   ============================================================================ */
+
+.problem-detail-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  page-break-inside: avoid;
+}
+
+.problem-detail-header {
+  background-color: #f4f4f4;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.problem-label {
+  display: inline-block;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.problem-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #161616;
+  flex-grow: 1;
+}
+
+.problem-header-status {
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.problem-header-score,
+.problem-header-tries {
+  font-size: 12px;
+  color: #525252;
+  margin-left: 12px;
+}
+
+.problem-detail-body {
+  padding: 16px;
+  background-color: #ffffff;
+}
+
+.code-section {
+  margin-top: 12px;
+}
+
+.code-label {
+  font-size: 12px;
+  color: #525252;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* ============================================================================
+   Report Header
+   ============================================================================ */
+
+.report-header {
+  margin-bottom: 24px;
+}
+
+.report-meta {
+  font-size: 14px;
+  color: #525252;
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   Utilities
+   ============================================================================ */
+
+.page-break {
+  page-break-after: always;
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty-chart {
+  padding: 40px;
+  text-align: center;
+  color: #8d8d8d;
+  font-size: 14px;
+}

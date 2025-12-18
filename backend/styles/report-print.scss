@@ -1,0 +1,481 @@
+/**
+ * Report Print Styles
+ * IBM Carbon Design System inspired styles for PDF export
+ */
+
+@import "variables";
+
+// ============================================================================
+// Base Styles
+// ============================================================================
+
+@page {
+  size: A4;
+  margin: var(--page-margin, 1.5cm);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family-sans;
+  font-size: $font-size-base;
+  font-weight: $font-weight-normal;
+  line-height: 1.42857;
+  letter-spacing: 0.16px;
+  color: $color-text;
+  margin: 0;
+  padding: 0;
+}
+
+// ============================================================================
+// Typography
+// ============================================================================
+
+h1 {
+  font-size: $font-size-h1;
+  font-weight: $font-weight-normal;
+  line-height: 1.25;
+  border-bottom: 2px solid $color-primary;
+  padding-bottom: $spacing-sm;
+  margin: 0 0 $spacing-lg 0;
+  color: $color-text;
+}
+
+h2 {
+  font-size: $font-size-h2;
+  font-weight: $font-weight-normal;
+  line-height: 1.28572;
+  margin: $spacing-xl 0 $spacing-md 0;
+  color: $color-text;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: $font-size-h3;
+  font-weight: $font-weight-normal;
+  line-height: 1.4;
+  margin: 20px 0 $spacing-sm 0;
+  color: $color-text;
+}
+
+h4 {
+  font-size: $font-size-h4;
+  font-weight: $font-weight-semibold;
+  margin: $spacing-lg 0 $spacing-sm 0;
+}
+h5 {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  margin: $spacing-lg 0 $spacing-sm 0;
+}
+h6 {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-normal;
+  color: $color-text-secondary;
+  margin: $spacing-lg 0 $spacing-sm 0;
+}
+
+p {
+  font-size: $font-size-base;
+  line-height: 1.42857;
+  margin: 0 0 $spacing-lg 0;
+}
+
+ul,
+ol {
+  margin: 0 0 $spacing-lg 0;
+  padding-left: 32px;
+  list-style-position: outside;
+}
+
+li {
+  margin-bottom: $spacing-xs;
+  font-size: $font-size-base;
+}
+
+// ============================================================================
+// Code
+// ============================================================================
+
+pre,
+code {
+  font-family: $font-family-mono;
+}
+
+code {
+  font-size: $font-size-code;
+  background-color: $color-background;
+  padding: 2px 4px;
+  border-radius: $border-radius-sm;
+  color: $color-error;
+}
+
+pre {
+  background-color: $color-background;
+  padding: $spacing-lg;
+  border-radius: $border-radius-md;
+  overflow-x: auto;
+  margin: 0 0 $spacing-lg 0;
+  border: 1px solid $color-border;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: $color-text;
+  font-size: $font-size-code-block;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+// ============================================================================
+// Links and Tables
+// ============================================================================
+
+a {
+  color: $color-primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 $spacing-lg 0;
+  font-size: $font-size-base;
+}
+
+table th,
+table td {
+  padding: $spacing-md $spacing-lg;
+  text-align: left;
+  border-bottom: 1px solid $color-border;
+}
+
+table th {
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  text-transform: uppercase;
+  border-bottom: 1px solid $color-border-strong;
+}
+
+// ============================================================================
+// Blockquote and HR
+// ============================================================================
+
+blockquote {
+  border-left: 4px solid $color-primary;
+  padding-left: $spacing-lg;
+  margin-left: 0;
+  margin-bottom: $spacing-lg;
+  color: $color-text-secondary;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid $color-border;
+  margin: $spacing-xl 0;
+}
+
+strong {
+  font-weight: $font-weight-semibold;
+}
+em {
+  font-style: italic;
+}
+
+// ============================================================================
+// Container Cards
+// ============================================================================
+
+.container-card {
+  margin-bottom: $spacing-lg;
+  page-break-inside: avoid;
+}
+
+.container-card-header {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  margin-bottom: $spacing-sm;
+  padding-bottom: 6px;
+  border-bottom: 1px solid $color-border;
+}
+
+.container-card-body {
+  padding: 0;
+}
+
+// ============================================================================
+// Problem Table
+// ============================================================================
+
+.problem-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: $spacing-md 0;
+}
+
+.problem-table th {
+  background-color: transparent;
+  border-bottom: 1px solid $color-border-strong;
+  padding: $spacing-md $spacing-lg;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  text-transform: uppercase;
+}
+
+.problem-table td {
+  border-bottom: 1px solid $color-border;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-size-base;
+}
+
+.problem-table .total-row {
+  font-weight: $font-weight-semibold;
+  border-top: 1px solid $color-border-strong;
+}
+
+// ============================================================================
+// Sample Cases
+// ============================================================================
+
+.sample-case {
+  border: 1px solid $color-border;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-md;
+  overflow: hidden;
+  page-break-inside: avoid;
+}
+
+.sample-case-header {
+  background-color: $color-background;
+  padding: $spacing-sm $spacing-lg;
+  border-bottom: 1px solid $color-border;
+  font-weight: $font-weight-semibold;
+}
+
+.sample-case-content {
+  display: table;
+  width: 100%;
+}
+
+.sample-case-column {
+  display: table-cell;
+  width: 50%;
+  padding: $spacing-lg;
+  vertical-align: top;
+
+  &:first-child {
+    border-right: 1px solid $color-border;
+  }
+}
+
+.sample-case-label {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  text-transform: uppercase;
+  margin-bottom: $spacing-sm;
+}
+
+// ============================================================================
+// Tags
+// ============================================================================
+
+.tag {
+  display: inline-block;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-md;
+  font-size: $font-size-sm;
+  font-family: $font-family-mono;
+  margin-right: $spacing-sm;
+  margin-bottom: $spacing-xs;
+}
+
+.tag-green {
+  background-color: $color-success-light;
+  color: #044317;
+}
+
+.tag-red {
+  background-color: $color-error-light;
+  color: #750e13;
+}
+
+// ============================================================================
+// Problem Section
+// ============================================================================
+
+.problem-section {
+  margin-bottom: $spacing-xl;
+}
+
+.problem-header {
+  border-left: 4px solid $color-primary;
+  padding-left: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.problem-body {
+  padding: 0 0 0 $spacing-lg;
+}
+
+.metadata {
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-md;
+}
+
+.metadata-item {
+  display: inline-block;
+  margin-right: $spacing-lg;
+}
+
+// ============================================================================
+// Aside/Notification
+// ============================================================================
+
+aside {
+  display: block;
+  min-height: 48px;
+  padding: $spacing-md $spacing-lg;
+  margin: $spacing-lg 0;
+  background-color: #edf5ff;
+  border-left: 3px solid $color-primary;
+  page-break-inside: avoid;
+
+  p {
+    margin: 0;
+
+    & + p {
+      margin-top: $spacing-sm;
+    }
+  }
+
+  &.info {
+    background-color: #edf5ff;
+    border-left-color: $color-primary;
+  }
+  &.warning {
+    background-color: #fcf4d6;
+    border-left-color: $color-warning;
+  }
+  &.error {
+    background-color: #fff1f1;
+    border-left-color: $color-error;
+  }
+  &.success {
+    background-color: #defbe6;
+    border-left-color: $color-success;
+  }
+}
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+.page-break {
+  page-break-after: always;
+}
+
+.exam-time-info {
+  background-color: $color-border;
+  padding: 10px $spacing-lg;
+  margin-bottom: $spacing-lg;
+  font-size: 10pt;
+  border-radius: $border-radius-md;
+}
+
+// ============================================================================
+// Score Cards (Student Report)
+// ============================================================================
+
+.score-cards {
+  display: table;
+  width: 100%;
+  margin-bottom: $spacing-lg;
+  border-collapse: separate;
+  border-spacing: $spacing-sm;
+}
+
+.score-card {
+  display: table-cell;
+  width: 25%;
+  background-color: $color-background;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  text-align: center;
+  vertical-align: top;
+}
+
+.score-card-label {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  text-transform: uppercase;
+  margin-bottom: $spacing-sm;
+}
+
+.score-card-value {
+  font-size: 28px;
+  font-weight: $font-weight-semibold;
+  color: $color-text;
+}
+
+.score-card-max {
+  font-size: $font-size-base;
+  font-weight: $font-weight-normal;
+  color: $color-text-light;
+}
+
+.score-card-sub {
+  font-size: $font-size-sm;
+  color: $color-success;
+  font-weight: $font-weight-semibold;
+  margin-top: $spacing-xs;
+}
+
+// ============================================================================
+// Syntax Highlighting
+// ============================================================================
+
+.highlight {
+  background-color: $color-background;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin: $spacing-sm 0 $spacing-lg 0;
+  overflow-x: auto;
+  font-family: $font-family-mono;
+  font-size: $font-size-code;
+  line-height: 1.5;
+
+  pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+}
+
+// ============================================================================
+// Report Header
+// ============================================================================
+
+.report-header {
+  margin-bottom: $spacing-xl;
+}
+
+.report-meta {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: $spacing-sm;
+}

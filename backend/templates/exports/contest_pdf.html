@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="{{ language|default:'zh-TW' }}">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ contest_name_plain }}</title>
+    <style>
+      {{ base_css|safe }}
+    </style>
+  </head>
+  <body>
+    <h1>{{ contest_name|safe }}</h1>
+    {{ exam_time_html|safe }}
+    {{ exam_notice_html|safe }}
+    {{ rules_html|safe }}
+    {{ problem_table_html|safe }}
+    {{ problems_html|safe }}
+  </body>
+</html>
