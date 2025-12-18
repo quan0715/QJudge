@@ -2,13 +2,14 @@
 Views for contests app.
 """
 from django.utils import timezone
-from django.db.models import Count, Q, Sum
+from django.db.models import Q, Sum
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 
+from .access_policy import ContestAccessPolicy
 from .models import (
     Contest,
     ContestParticipant,
@@ -39,6 +40,7 @@ from .permissions import (
     IsContestParticipant,
     get_user_role_in_contest
 )
+from .services.scoreboard import ScoreboardScope, ScoreboardService
 
 
 class ContestViewSet(viewsets.ModelViewSet):
@@ -46,7 +48,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     ViewSet for contests.
     """
     queryset = Contest.objects.all()
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ContestAccessPolicy]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -60,49 +62,15 @@ class ContestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter contests based on visibility and user role.
-        Inactive contests are hidden from public listing unless user is owner/admin.
+        Draft/archived contests are hidden from public listing.
         """
         queryset = super().get_queryset()
-        queryset = queryset.annotate(participant_count=Count('participants'))
 
-        user = self.request.user
-        scope = self.request.query_params.get('scope', 'visible')
-
-        # Teacher/Admin can see manage scope (all their contests)
-        if scope == 'manage':
-            if not user.is_authenticated:
-                return queryset.none()
-            if user.is_staff or getattr(user, 'role', '') == 'admin':
-                return queryset
-            # Teachers see contests they own or are admin of
-            return queryset.filter(Q(owner=user) | Q(admins=user)).distinct()
-
-        # Public scope (default)
-        # Admin/staff can see all contests
-        if user.is_staff or getattr(user, 'role', '') == 'admin':
+        if self.action and self.action != "list":
             return queryset
 
-        # For regular users:
-        # - Active public/private contests are visible
-        # - Inactive contests are ONLY visible if user is owner or contest admin
-        # - Note: participants CANNOT see inactive contests in list (security requirement)
-        if user.is_authenticated:
-            queryset = queryset.filter(
-                # Active contests with public/private visibility
-                Q(status='active', visibility__in=['public', 'private']) |
-                # User is the owner (can see all their contests regardless of status)
-                Q(owner=user) |
-                # User is a contest admin (can see all contests they manage)
-                Q(admins=user)
-            ).distinct()
-        else:
-            # Anonymous users only see active public contests
-            queryset = queryset.filter(
-                status='active',
-                visibility='public'
-            )
-
-        return queryset
+        scope = self.request.query_params.get("scope", "visible")
+        return queryset.optimized_for_list().visible_to(user=self.request.user, scope=scope)
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -112,6 +80,16 @@ class ContestViewSet(viewsets.ModelViewSet):
             return ContestCreateUpdateSerializer
 
         return ContestDetailSerializer
+
+    def handle_exception(self, exc) -> Response:
+        from rest_framework.exceptions import NotAuthenticated, PermissionDenied
+
+        if isinstance(exc, (NotAuthenticated, PermissionDenied)):
+            error_response = getattr(self.request, "_permission_error", None)
+            if error_response is not None:
+                return error_response
+
+        return super().handle_exception(exc)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -136,26 +114,10 @@ class ContestViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        Retrieve contest details. Block access if inactive and user is not owner/admin.
+        Retrieve contest details. Block access if draft or archived for non-privileged users.
         """
         instance = self.get_object()
         user = request.user
-
-        # Check if user is owner, admin, or contest admin
-        is_privileged = user.is_authenticated and (
-            instance.owner == user or
-            user.is_staff or
-            getattr(user, 'role', '') == 'admin' or
-            instance.admins.filter(pk=user.pk).exists()
-        )
-
-        # Block access to inactive contests for non-privileged users
-        # Note: Even participants cannot access inactive contests (only owners/admins can)
-        if instance.status == 'inactive' and not is_privileged:
-            return Response(
-                {'detail': 'This contest is not available.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
 
         # Auto-unlock check
         if user.is_authenticated:
@@ -185,7 +147,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                         )
                 
                 # Auto-submit if contest ended and participant still active
-                if instance.end_time and timezone.now() >= instance.end_time:
+                if instance.status == 'published' and instance.end_time and timezone.now() >= instance.end_time:
                     if participant.exam_status in [ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED]:
                         participant.exam_status = ExamStatus.SUBMITTED
                         participant.left_at = timezone.now()
@@ -208,13 +170,18 @@ class ContestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def toggle_status(self, request, pk=None):
         """
-        Toggle contest status between active and inactive.
+        Toggle contest status between published and draft.
         """
         contest = self.get_object()
-        if contest.status == 'active':
-            contest.status = 'inactive'
+        if contest.status == 'archived':
+            return Response(
+                {'error': 'Contest is archived and cannot be toggled'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if contest.status == 'published':
+            contest.status = 'draft'
         else:
-            contest.status = 'active'
+            contest.status = 'published'
         contest.save()
         
         # Log activity
@@ -541,6 +508,20 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         contest = self.get_object()
         user = request.user
+
+        # Only allow registration for published contests
+        if contest.status != 'published':
+            return Response(
+                {'message': 'Contest is not published'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Block registration after contest ends
+        if contest.end_time and timezone.now() > contest.end_time:
+            return Response(
+                {'message': 'Contest has ended'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Check if already registered
         if ContestParticipant.objects.filter(contest=contest, user=user).exists():
@@ -635,13 +616,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         # Admin/Teacher can always enter
         if role in ['admin', 'teacher']:
             return Response({'message': 'Entered successfully (Privileged)'})
-        
-        # Check status - REMOVED to allow entry in inactive state
-        # if contest.status == 'inactive':
-        #      return Response(
-        #         {'message': 'Contest is not active'},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
+
+        if contest.status == 'draft':
+            return Response(
+                {'message': 'Contest is not published'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=user)
@@ -796,7 +776,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         detail=True, 
         methods=['post'], 
         permission_classes=[IsContestOwnerOrAdmin],
-        url_path='problems/(?P<problem_id>\d+)/publish'
+        url_path=r'problems/(?P<problem_id>\d+)/publish'
     )
     def publish_problem_to_practice(self, request, pk=None, problem_id=None):
         """
@@ -804,10 +784,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         contest = self.get_object()
         
-        # Check if contest is ended/inactive
-        if contest.status == 'active':
+        # Check if contest is still running
+        is_running = contest.status == 'published' and (
+            not contest.end_time or timezone.now() <= contest.end_time
+        )
+        if is_running:
             return Response(
-                {'message': 'Contest must be inactive/ended before publishing problems'},
+                {'message': 'Contest must be ended before publishing problems'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -848,153 +831,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get contest standings (ICPC Style).
         """
         contest = self.get_object()
-        user = request.user
-        
-        # Check visibility
-        role = get_user_role_in_contest(user, contest)
-        can_view = False
-        
-        if role in ['admin', 'teacher']:
-            can_view = True
-        elif contest.scoreboard_visible_during_contest:
-            can_view = True
-        elif contest.status == 'inactive': # Ended
-            can_view = True
-            
-        if not can_view:
-             return Response(
-                {'message': 'Scoreboard is not visible'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # 1. Get Problems
-        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order').annotate(
-            problem_score_sum=Sum('problem__test_cases__score')
+        result = ScoreboardService.calculate(
+            contest,
+            ScoreboardScope(viewer=request.user, mode="scoreboard"),
         )
-        
-        # Only show problem titles to privileged users
-        # Non-privileged users only see labels (A, B, C...) to prevent info leak
-        # Note: id is always included for frontend to match standings data
-        show_problem_details = role in ['admin', 'teacher']
-        
-        problems_data = [{
-            'id': cp.problem.id,  # Always include id for standings matching
-            'title': cp.problem.title if show_problem_details else None,
-            'order': cp.order,
-            'label': cp.label,
-            'score': cp.problem_score_sum or 0
-        } for cp in contest_problems]
-
-        # 2. Get Participants
-        participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
-        
-        # 3. Get Submissions (exclude test submissions to match report calculation)
-        from apps.submissions.models import Submission
-        submissions = Submission.objects.filter(
-            contest=contest,
-            source_type='contest',
-            is_test=False  # Exclude test submissions
-        ).order_by('created_at')
-
-        # 4. Process Stats
-        from apps.users.serializers import UserSerializer
-        stats = {} 
-        
-        # Determine if current user can see real names
-        can_see_real_names = role in ['admin', 'teacher']
-        
-        for p in participants:
-            # Calculate display_name based on anonymous mode and role
-            if not contest.anonymous_mode_enabled:
-                display_name = p.user.username
-            elif can_see_real_names:
-                display_name = p.user.username
-            else:
-                display_name = p.nickname or p.user.username
-            
-            stats[p.user.id] = {
-                'user': UserSerializer(p.user).data,
-                'display_name': display_name,
-                'nickname': p.nickname,
-                'solved': 0,
-                'rank': p.rank,
-                'score': p.score,
-                'joined_at': p.joined_at,
-                'has_finished_exam': p.exam_status == ExamStatus.SUBMITTED,
-                'started_at': p.started_at,
-                'total_score': 0,
-                'time': 0, # Penalty
-                'problems': {}
-            }
-            for cp in contest_problems:
-                stats[p.user.id]['problems'][cp.problem.id] = {
-                    'status': None,
-                    'tries': 0,
-                    'time': 0,
-                    'pending': False,
-                    'score': 0,  # Score earned for this problem
-                    'max_score': cp.problem_score_sum or 0  # Max possible score
-                }
-
-        for sub in submissions:
-            uid = sub.user.id
-            pid = sub.problem.id
-            if uid not in stats: continue
-            if pid not in stats[uid]['problems']: continue
-
-            p_stat = stats[uid]['problems'][pid]
-            
-            if p_stat['status'] == 'AC':
-                continue
-
-            # if sub.status == 'CE':
-            #     continue
-            
-            if sub.status in ['pending', 'judging']:
-                p_stat['pending'] = True
-                continue
-
-            p_stat['tries'] += 1
-            
-            # Get max possible score for this problem
-            max_problem_score = next(((cp.problem_score_sum or 0) for cp in contest_problems if cp.problem.id == pid), 0)
-            
-            if sub.status == 'AC':
-                p_stat['status'] = 'AC'
-                # Calculate time in minutes from start_time
-                start_time = contest.start_time or contest.created_at
-                time_diff = sub.created_at - start_time
-                minutes = int(time_diff.total_seconds() / 60)
-                p_stat['time'] = minutes
-                
-                stats[uid]['solved'] += 1
-                penalty = minutes + 20 * (p_stat['tries'] - 1)
-                stats[uid]['time'] += penalty
-                
-                # Full score for AC
-                new_score = max_problem_score
-                score_diff = new_score - p_stat['score']
-                p_stat['score'] = new_score
-                stats[uid]['total_score'] += score_diff
-            else:
-                p_stat['status'] = sub.status
-                # Track partial score (highest score among all submissions)
-                submission_score = sub.score or 0
-                if submission_score > p_stat['score']:
-                    score_diff = submission_score - p_stat['score']
-                    p_stat['score'] = submission_score
-                    stats[uid]['total_score'] += score_diff
-
-        standings_list = list(stats.values())
-        # Ranking order: total_score (desc) > solved (desc) > penalty time (asc)
-        standings_list.sort(key=lambda x: (-x['total_score'], -x['solved'], x['time']))
-
-        for i, item in enumerate(standings_list):
-            item['rank'] = i + 1
 
         return Response({
-            'problems': problems_data,
-            'standings': standings_list
+            'problems': result.problems,
+            'standings': result.standings,
         })
 
     @action(detail=True, methods=['get'])
@@ -1007,107 +851,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         from django.http import HttpResponse
         
         contest = self.get_object()
-        user = request.user
-        
-        # Only allow admins/teachers
-        role = get_user_role_in_contest(user, contest)
-        if role not in ['admin', 'teacher']:
-            return Response(
-                {'message': 'Permission denied'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Get standings data (reuse standings logic)
-        # 1. Get Problems
-        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem').order_by('order').annotate(
-            problem_score_sum=Sum('problem__test_cases__score')
+        result = ScoreboardService.calculate(
+            contest,
+            ScoreboardScope(viewer=request.user, mode="export"),
         )
-        problems_data = list(contest_problems)
-        
-        # 2. Get Participants
-        participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
-        
-        # 3. Get Submissions (exclude test submissions)
-        from apps.submissions.models import Submission
-        submissions = Submission.objects.filter(
-            contest=contest,
-            source_type='contest',
-            is_test=False  # Exclude test submissions
-        ).order_by('created_at')
-        
-        # 4. Process Stats
-        stats = {}
-        for p in participants:
-            stats[p.user.id] = {
-                'username': p.user.username,
-                'display_name': p.nickname or p.user.username,
-                'email': p.user.email,
-                'solved': 0,
-                'total_score': 0,
-                'time': 0,
-                'problems': {}
-            }
-            for cp in contest_problems:
-                stats[p.user.id]['problems'][cp.problem.id] = {
-                    'status': '-',
-                    'tries': 0,
-                    'time': 0,
-                    'score': 0
-                }
-        
-        for sub in submissions:
-            uid = sub.user.id
-            pid = sub.problem.id
-            if uid not in stats: 
-                continue
-            if pid not in stats[uid]['problems']: 
-                continue
-            
-            p_stat = stats[uid]['problems'][pid]
-            
-            if p_stat['status'] == 'AC':
-                continue
-            
-            if sub.status in ['pending', 'judging']:
-                continue
-            
-            p_stat['tries'] += 1
-            
-            # Get max possible score for this problem
-            max_problem_score = next(((cp.problem_score_sum or 0) for cp in problems_data if cp.problem.id == pid), 0)
-            
-            if sub.status == 'AC':
-                p_stat['status'] = 'AC'
-                start_time = contest.start_time or contest.created_at
-                time_diff = sub.created_at - start_time
-                minutes = int(time_diff.total_seconds() / 60)
-                p_stat['time'] = minutes
-                
-                stats[uid]['solved'] += 1
-                penalty = minutes + 20 * (p_stat['tries'] - 1)
-                stats[uid]['time'] += penalty
-                
-                # Full score for AC
-                new_score = max_problem_score
-                score_diff = new_score - p_stat['score']
-                p_stat['score'] = new_score
-                stats[uid]['total_score'] += score_diff
-            else:
-                p_stat['status'] = sub.status
-                # Track partial score (highest score among all submissions)
-                submission_score = sub.score or 0
-                if submission_score > p_stat['score']:
-                    score_diff = submission_score - p_stat['score']
-                    p_stat['score'] = submission_score
-                    stats[uid]['total_score'] += score_diff
-        
-        # Sort by standings: total_score (desc) > solved (desc) > penalty time (asc)
-        standings_list = list(stats.values())
-        standings_list.sort(key=lambda x: (-x['total_score'], -x['solved'], x['time']))
-        
-        for i, item in enumerate(standings_list):
-            item['rank'] = i + 1
-        
+
         # Create CSV response
         response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
@@ -1116,23 +864,25 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         # Header row
         header = ['排名', '帳號', '顯示名稱', 'Email', '解題數', '總分', '罰時']
-        for cp in problems_data:
-            header.append(f'{cp.label or chr(65 + cp.order)} ({cp.problem.title})')
+        for problem in result.problems:
+            label = problem.get('label') or chr(65 + problem['order'])
+            title = problem.get('title') or ''
+            header.append(f'{label} ({title})')
         writer.writerow(header)
         
         # Data rows
-        for item in standings_list:
+        for item in result.standings:
             row = [
                 item['rank'],
-                item['username'],
+                item['user'].get('username'),
                 item['display_name'],
-                item['email'],
+                item['user'].get('email'),
                 item['solved'],
                 item['total_score'],
                 item['time']
             ]
-            for cp in problems_data:
-                p_stat = item['problems'].get(cp.problem.id, {})
+            for problem in result.problems:
+                p_stat = item['problems'].get(problem['id'], {})
                 status_str = p_stat.get('status', '-')
                 tries = p_stat.get('tries', 0)
                 time_val = p_stat.get('time', 0)
@@ -1214,7 +964,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin], 
-            url_path='participants/(?P<user_id>\d+)/report')
+            url_path=r'participants/(?P<user_id>\d+)/report')
     def participant_report(self, request, pk=None, user_id=None):
         """
         Download individual student's exam report as PDF.
@@ -1405,7 +1155,7 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
     """
     3-layer permission check for exam operations.
     
-    Layer 1: Contest status (must be active)
+    Layer 1: Contest status (must be published)
     Layer 2: Time range (must be within start_time ~ end_time)
     Layer 3: Participant status (must be registered, optionally in_progress)
     
@@ -1425,9 +1175,9 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
                 return None, None
     
     # Layer 1: Contest status
-    if contest.status != 'active':
+    if contest.status != 'published':
         return None, Response(
-            {'error': 'Contest is not active.'},
+            {'error': 'Contest is not published.'},
             status=status.HTTP_403_FORBIDDEN
         )
     
@@ -1839,10 +1589,10 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             # Check contest time - only allow access during contest period
             now = timezone.now()
             
-            # Block if contest is inactive
-            if contest.status == 'inactive':
+            # Block if contest is draft
+            if contest.status == 'draft':
                 return Response(
-                    {'detail': 'Contest is not active.'}, 
+                    {'detail': 'Contest is not published.'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
             
@@ -1853,12 +1603,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Block if contest has ended
-            if contest.end_time and now > contest.end_time:
-                return Response(
-                    {'detail': 'Contest has ended.'}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            # Allow read-only access after contest ends
 
         # Serialize the problem with full details
         from apps.problems.serializers import ProblemDetailSerializer

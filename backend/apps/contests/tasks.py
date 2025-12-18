@@ -31,7 +31,7 @@ def check_heartbeat_timeout():
     stale_participants = ContestParticipant.objects.filter(
         exam_status=ExamStatus.IN_PROGRESS,
         last_heartbeat__lt=timeout_threshold,
-        contest__status='active',
+        contest__status='published',
         contest__exam_mode_enabled=True,
         contest__end_time__gt=now  # Only active contests
     ).select_related('contest', 'user')
@@ -59,14 +59,14 @@ def check_contest_end():
     """
     Periodic task: Check for contests that have ended and auto-submit participants.
     
-    Runs every minute via Celery Beat. Finds all active exam-mode contests
+    Runs every minute via Celery Beat. Finds all published exam-mode contests
     that have passed their end_time and triggers auto-submit for each.
     """
     now = timezone.now()
     
     ended_contests = Contest.objects.filter(
         end_time__lte=now,
-        status='active',
+        status='published',
         exam_mode_enabled=True
     )
     

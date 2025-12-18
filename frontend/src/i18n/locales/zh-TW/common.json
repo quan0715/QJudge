@@ -71,7 +71,8 @@
       "noContests": "目前沒有近期比賽",
       "upcoming": "即將開始",
       "ongoing": "進行中",
-      "ended": "已結束"
+      "ended": "已結束",
+      "participated": "已參加"
     },
     "announcements": {
       "title": "公告",
@@ -201,7 +202,9 @@
   "status": {
     "public": "公開",
     "private": "私有",
+    "draft": "草稿",
     "published": "已發布",
+    "archived": "已封存",
     "hidden": "隱藏",
     "active": "啟用",
     "inactive": "停用",

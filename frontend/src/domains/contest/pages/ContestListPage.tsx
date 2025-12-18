@@ -28,6 +28,11 @@ import { useNavigate } from "react-router-dom";
 import { getContests } from "@/services/contest";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import type { Contest } from "@/core/entities/contest.entity";
+import {
+  getContestState,
+  getContestStateColor,
+  getContestStateLabel,
+} from "@/core/entities/contest.entity";
 import { PageHeader } from "@/ui/layout/PageHeader";
 import TeacherContestList from "../components/TeacherContestList";
 
@@ -37,6 +42,9 @@ const ContestListPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [contests, setContests] = useState<Contest[]>([]);
+  const [participatedContests, setParticipatedContests] = useState<Contest[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [notificationModal, setNotificationModal] = useState({
     open: false,
@@ -47,12 +55,16 @@ const ContestListPage: React.FC = () => {
 
   useEffect(() => {
     fetchContests();
-  }, []);
+  }, [user]);
 
   const fetchContests = async () => {
     try {
-      const data = await getContests();
-      setContests(data);
+      const [visibleData, participatedData] = await Promise.all([
+        getContests(),
+        user ? getContests("participated") : Promise.resolve([]),
+      ]);
+      setContests(visibleData);
+      setParticipatedContests(participatedData);
     } catch (error) {
       console.error("Failed to fetch contests", error);
     } finally {
@@ -75,22 +87,22 @@ const ContestListPage: React.FC = () => {
   ];
 
   /* Processing logic for contest lists (ongoing, upcoming, past) */
-  /* Exclude inactive contests from public listing */
+  /* Only show published contests in public listing */
   const now = new Date();
-  const activeContests = contests.filter((c) => c.status !== "inactive");
+  const visibleContests = contests.filter((c) => c.status === "published");
 
-  const ongoingContests = activeContests.filter((c) => {
+  const ongoingContests = visibleContests.filter((c) => {
     const start = new Date(c.startTime);
     const end = new Date(c.endTime);
     return start <= now && end >= now;
   });
 
-  const upcomingContests = activeContests.filter((c) => {
+  const upcomingContests = visibleContests.filter((c) => {
     const start = new Date(c.startTime);
     return start > now;
   });
 
-  const pastContests = activeContests.filter((c) => {
+  const pastContests = visibleContests.filter((c) => {
     const end = new Date(c.endTime);
     return end < now;
   });
@@ -130,7 +142,7 @@ const ContestListPage: React.FC = () => {
             </TableHead>
             <TableBody>
               {rows.map((row: any) => {
-                const contest = contests.find(
+                const contest = data.find(
                   (c) => c.id.toString() === row.id
                 );
                 if (!contest) return null;
@@ -168,11 +180,14 @@ const ContestListPage: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Tag
-                        type={contest.status === "active" ? "green" : "gray"}
-                      >
-                        {contest.status}
-                      </Tag>
+                      {(() => {
+                        const contestState = getContestState(contest);
+                        return (
+                          <Tag type={getContestStateColor(contestState)}>
+                            {getContestStateLabel(contestState)}
+                          </Tag>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       {contest.isRegistered && (
@@ -267,7 +282,7 @@ const ContestListPage: React.FC = () => {
                 {loading ? (
                   renderSkeletonTable()
                 ) : (
-                  <TeacherContestList contests={contests} />
+                  <TeacherContestList />
                 )}
               </div>
             )}
@@ -287,6 +302,12 @@ const ContestListPage: React.FC = () => {
                   {tc("dashboard.contests.ended")}{" "}
                   {!loading && `(${pastContests.length})`}
                 </Tab>
+                {user && (
+                  <Tab>
+                    {tc("dashboard.contests.participated")}{" "}
+                    {!loading && `(${participatedContests.length})`}
+                  </Tab>
+                )}
               </TabList>
               <TabPanels>
                 <TabPanel>
@@ -310,6 +331,15 @@ const ContestListPage: React.FC = () => {
                     ? renderContestTable(pastContests)
                     : renderEmptyState("沒有已結束的競賽")}
                 </TabPanel>
+                {user && (
+                  <TabPanel>
+                    {loading
+                      ? renderSkeletonTable()
+                      : participatedContests.length > 0
+                      ? renderContestTable(participatedContests)
+                      : renderEmptyState("沒有已參加的競賽")}
+                  </TabPanel>
+                )}
               </TabPanels>
             </Tabs>
 

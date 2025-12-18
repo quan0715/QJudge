@@ -74,60 +74,17 @@ class ProblemViewSet(viewsets.ModelViewSet):
         """
         Filter queryset based on user role and tags.
         """
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        # Management view filtering
-        if self.request.query_params.get('scope') == 'manage':
-            if not user.is_authenticated:
-                return queryset.none()
-            
-            # Admin sees all
-            if user.is_staff or user.role == 'admin':
-                return queryset
-                
-            # Teacher sees only their own
-            if user.role == 'teacher':
-                return queryset.filter(created_by=user)
-                
-            # Others shouldn't be here, but default to none or own
-            return queryset.none()
-        
-        # For privileged users (admin/teacher), allow access to all problems
-        # This covers retrieve, update, partial_update, destroy
-        if user.is_authenticated and (user.is_staff or user.role in ['admin', 'teacher']):
-            if self.action != 'list':
-                return queryset
-        
-        # Normal view filtering (Problem List for students/public)
-        # MVP: Only show problems where is_practice_visible=True
-        queryset = queryset.filter(is_practice_visible=True)
-        
-        # Annotate with user status if authenticated
-        if user.is_authenticated:
-            from django.db.models import Exists, OuterRef
-            from apps.submissions.models import Submission
-            
-            ac_submissions = Submission.objects.filter(
-                problem=OuterRef('pk'),
-                user=user,
-                status='AC',
-                is_test=False
-            )
-            queryset = queryset.annotate(
-                is_solved=Exists(ac_submissions)
-            )
-            
-        # Filter by tags if provided (comma-separated slugs)
-        tags_param = self.request.query_params.get('tags')
+        tags_param = self.request.query_params.get("tags")
+        tag_slugs = None
         if tags_param:
-            tag_slugs = [slug.strip() for slug in tags_param.split(',') if slug.strip()]
-            if tag_slugs:
-                # Filter problems that have ALL the specified tags
-                for slug in tag_slugs:
-                    queryset = queryset.filter(tags__slug=slug)
-            
-        return queryset.prefetch_related('translations', 'test_cases', 'tags').distinct()
+            tag_slugs = [slug.strip() for slug in tags_param.split(",") if slug.strip()]
+
+        return super().get_queryset().visible_to(
+            user=self.request.user,
+            scope=self.request.query_params.get("scope"),
+            action=self.action,
+            tag_slugs=tag_slugs,
+        )
 
     def get_object(self):
         """

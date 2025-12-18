@@ -28,17 +28,22 @@ interface ContestClarificationsProps {
   isTeacherOrAdmin: boolean;
   problems?: ContestProblemSummary[];
   contestStatus?: string;
+  contestEndTime?: string;
 }
 
 const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   contestId,
   isTeacherOrAdmin,
   problems = [],
-  contestStatus = 'active'
+  contestStatus = 'published',
+  contestEndTime
 }) => {
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const isEnded = !!contestEndTime && new Date(contestEndTime) < new Date();
+  const isReadOnly = contestStatus !== 'published' || isEnded;
   
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -192,7 +197,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Announcements Section */}
       <Card 
         title="公告" 
-        action={isTeacherOrAdmin && contestStatus === 'active' ? {
+        action={!isReadOnly && isTeacherOrAdmin ? {
           label: "發布公告",
           onClick: () => setAnnouncementModalOpen(true)
         } : undefined}
@@ -256,7 +261,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
       {/* Q&A Section */}
       <Card 
         title="學生提問與討論"
-        action={contestStatus === 'active' ? {
+        action={!isReadOnly ? {
           label: "提出問題",
           onClick: () => setModalOpen(true)
         } : undefined}

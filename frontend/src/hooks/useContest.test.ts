@@ -15,7 +15,7 @@ const mockContest = {
   description: "A test contest",
   startTime: "2024-01-01T10:00:00Z",
   endTime: "2024-01-01T12:00:00Z",
-  status: "active",
+  status: "published",
 };
 
 describe("useContest", () => {

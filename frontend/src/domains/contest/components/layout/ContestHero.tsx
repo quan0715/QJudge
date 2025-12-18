@@ -27,7 +27,7 @@ const MinimalProgressBar = ({
   status?: string;
 }) => {
   const isFinished = status === "ended" || status === "FINISHED";
-  const isActive = status === "active";
+  const isActive = status === "running";
 
   return (
     <div style={{ width: "100%", marginTop: "0", marginBottom: "1.25rem" }}>
@@ -208,11 +208,11 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     <MinimalProgressBar
       value={progress}
       label={
-        contest.status === "active"
+        contestState === "running"
           ? `${t("progress")} · ${Math.round(progress)}%`
           : t("notActive")
       }
-      status={contest.status}
+      status={contestState}
     />
   );
   // ----------------------------------
@@ -264,8 +264,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       contest.examStatus ||
       (contest.hasStarted ? "in_progress" : "not_started");
 
-    // Contest must be active for exam actions
-    if (contest.status !== "active") {
+    // Contest must be published for exam actions
+    if (contest.status !== "published") {
       return (
         <div style={{ display: "flex", alignItems: "center" }}>
           <Button kind="secondary" disabled renderIcon={Flag}>

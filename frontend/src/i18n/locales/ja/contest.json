@@ -17,7 +17,7 @@
   "problems": "問題数",
   "duration": "期間",
   "progress": "進捗",
-  "notActive": "試験未開始",
+  "notActive": "進行なし",
   "delete": {
     "title": "コンテスト削除",
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",
@@ -42,7 +42,7 @@
   "hero": {
     "examEnded": "試験終了",
     "register": "参加登録",
-    "contestInactive": "コンテスト未開始",
+    "contestInactive": "コンテスト未公開",
     "examLocked": "試験ロック中",
     "restartExam": "試験を再開",
     "finished": "提出済み",
@@ -274,7 +274,7 @@
     "rulesHelperText": "Markdown構文をサポート",
     "accessControl": "アクセス制御",
     "contestStatus": "コンテストステータス",
-    "statusLabel": "ステータス (Active/Inactive)",
+    "statusLabel": "ステータス (下書き/公開)",
     "scoreboardSettings": "スコアボード設定",
     "showDuringContest": "コンテスト中にスコアボードを表示",
     "showDuringContestHelp": "参加者がコンテスト中にリアルタイムスコアボードを表示できるようにする",

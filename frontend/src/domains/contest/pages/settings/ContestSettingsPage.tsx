@@ -89,7 +89,7 @@ const ContestAdminSettingsPage = () => {
       max_cheat_warnings: data.maxCheatWarnings || 0,
       allow_auto_unlock: data.allowAutoUnlock || false,
       auto_unlock_minutes: data.autoUnlockMinutes || 0,
-      status: (data.status || "inactive") as any,
+      status: (data.status || "draft") as any,
       anonymous_mode_enabled: data.anonymousModeEnabled || false,
     });
 
@@ -465,19 +465,29 @@ const ContestAdminSettingsPage = () => {
 
                 <ContainerCard title={t("settings.contestStatus")}>
                   <div style={{ marginBottom: "1.5rem" }}>
-                    <Toggle
+                    <Select
                       id="contest-status"
                       labelText={t("settings.statusLabel")}
-                      labelA={tc("status.inactive")}
-                      labelB={tc("status.active")}
-                      toggled={formData.status === "active"}
-                      onToggle={(checked) =>
+                      value={formData.status || "draft"}
+                      disabled={formData.status === "archived"}
+                      onChange={(e) =>
                         setFormData({
                           ...formData,
-                          status: checked ? "active" : "inactive",
+                          status: e.target.value as any,
                         })
                       }
-                    />
+                    >
+                      <SelectItem value="draft" text={tc("status.draft")} />
+                      <SelectItem
+                        value="published"
+                        text={tc("status.published")}
+                      />
+                      <SelectItem
+                        value="archived"
+                        text={tc("status.archived")}
+                        disabled={formData.status !== "archived"}
+                      />
+                    </Select>
                   </div>
                 </ContainerCard>
 

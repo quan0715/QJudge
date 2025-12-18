@@ -2,6 +2,7 @@
 Permissions and role detection for contests.
 """
 from rest_framework import permissions
+from django.utils import timezone
 
 
 def get_user_role_in_contest(user, contest):
@@ -59,9 +60,10 @@ def get_contest_permissions(user, contest):
     
     # Student permissions are more restricted
     # Scoreboard visibility depends on contest settings and status
+    has_ended = bool(contest.end_time and timezone.now() > contest.end_time)
     can_view_scoreboard = (
-        contest.scoreboard_visible_during_contest or 
-        contest.status == 'inactive'
+        contest.scoreboard_visible_during_contest or
+        has_ended
     )
     
     return {

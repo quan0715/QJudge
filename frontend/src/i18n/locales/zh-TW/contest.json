@@ -17,7 +17,7 @@
   "problems": "題目數",
   "duration": "時長",
   "progress": "考試進度",
-  "notActive": "考試未啟用",
+  "notActive": "非進行中",
   "delete": {
     "title": "刪除競賽",
     "confirm": "確定要刪除此競賽嗎？此動作無法復原。",
@@ -42,7 +42,7 @@
   "hero": {
     "examEnded": "考試已結束",
     "register": "立即報名",
-    "contestInactive": "考試未啟用",
+    "contestInactive": "競賽未發布",
     "examLocked": "考試已鎖定",
     "restartExam": "重新開始考試",
     "finished": "已交卷",
@@ -279,7 +279,7 @@
     "rulesHelperText": "支援 Markdown 語法",
     "accessControl": "存取控制",
     "contestStatus": "競賽狀態",
-    "statusLabel": "狀態 (Active/Inactive)",
+    "statusLabel": "狀態 (草稿/已發布)",
     "scoreboardSettings": "排行榜設定",
     "showDuringContest": "比賽期間顯示排行榜",
     "showDuringContestHelp": "允許參賽者在比賽進行中查看即時排行榜",

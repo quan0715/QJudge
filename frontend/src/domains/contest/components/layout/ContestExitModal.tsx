@@ -3,6 +3,7 @@ import { Modal } from "@carbon/react";
 import { WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { isContestEnded } from "@/core/entities/contest.entity";
 
 interface ContestExitModalProps {
   open: boolean;
@@ -24,6 +25,7 @@ const ContestExitModal: React.FC<ContestExitModalProps> = ({
   onConfirm,
 }) => {
   const { t } = useTranslation("contest");
+  const hasEnded = contest ? isContestEnded(contest) : false;
   const { t: tc } = useTranslation("common");
 
   const getExamStatusLabel = () => {
@@ -53,7 +55,8 @@ const ContestExitModal: React.FC<ContestExitModalProps> = ({
     // Student - Joined but exam not started (or submitted)
     if (
       !contest?.status ||
-      contest.status === "inactive" ||
+      contest.status !== "published" ||
+      hasEnded ||
       contest.examStatus === "submitted" ||
       contest.examStatus === "not_started"
     ) {

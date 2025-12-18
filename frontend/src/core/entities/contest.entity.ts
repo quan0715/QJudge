@@ -1,7 +1,7 @@
 import type { UserRole } from "./user.entity";
 import type { SubmissionStatus } from "./submission.entity";
 
-export type ContestStatus = "inactive" | "active" | "archived" | "ended";
+export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
 // Violation events (from ExamEvent model)
 export type ExamViolationType = 
@@ -245,7 +245,12 @@ export interface ContestUpdateRequest {
 
 // ============ Contest State Utilities ============
 
-export type ContestDisplayState = "upcoming" | "running" | "ended" | "inactive";
+export type ContestDisplayState =
+  | "draft"
+  | "archived"
+  | "upcoming"
+  | "running"
+  | "ended";
 
 export const getContestState = (contest: {
   status?: string;
@@ -254,15 +259,25 @@ export const getContestState = (contest: {
   start_time?: string;
   end_time?: string;
 }): ContestDisplayState => {
-  if (contest.status === "inactive") {
-    return "inactive";
+  if (contest.status === "draft") {
+    return "draft";
+  }
+
+  if (contest.status === "archived") {
+    return "archived";
   }
 
   const now = new Date().getTime();
+  const startTimeValue = contest.startTime || contest.start_time || "";
+  const endTimeValue = contest.endTime || contest.end_time || "";
   const startTime = new Date(
-    contest.startTime || contest.start_time || ""
+    startTimeValue
   ).getTime();
-  const endTime = new Date(contest.endTime || contest.end_time || "").getTime();
+  const endTime = new Date(endTimeValue).getTime();
+
+  if (!startTimeValue || !endTimeValue || Number.isNaN(startTime) || Number.isNaN(endTime)) {
+    return "running";
+  }
 
   if (now < startTime) {
     return "upcoming";
@@ -275,14 +290,16 @@ export const getContestState = (contest: {
 
 export const getContestStateLabel = (state: ContestDisplayState): string => {
   switch (state) {
+    case "draft":
+      return "草稿";
+    case "archived":
+      return "已封存";
     case "upcoming":
       return "即將開始";
     case "running":
       return "進行中";
     case "ended":
       return "已結束";
-    case "inactive":
-      return "未開放";
     default:
       return "未知";
   }
@@ -304,14 +321,16 @@ export const getContestStateColor = (
   | "high-contrast"
   | "outline" => {
   switch (state) {
+    case "draft":
+      return "gray";
+    case "archived":
+      return "cool-gray";
     case "upcoming":
       return "blue";
     case "running":
       return "green";
     case "ended":
       return "gray";
-    case "inactive":
-      return "red";
     default:
       return "gray";
   }

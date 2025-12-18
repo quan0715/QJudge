@@ -34,12 +34,13 @@ import {
   endExam,
 } from "@/services/contest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { isContestEnded } from "@/core/entities/contest.entity";
 import { UserMenu } from "@/ui/components/UserMenu";
 import ContestHero from "@/domains/contest/components/layout/ContestHero";
 import ContestTabs from "@/domains/contest/components/layout/ContestTabs";
 import { ContentPage } from "@/ui/layout/ContentPage";
 import { ContestProvider } from "@/domains/contest/contexts/ContestContext";
-import { ExamModeMonitorModel } from "@/domains/contest/components/Model/ExamModeMonitorModel";
+import { ExamModeMonitorModal } from "@/domains/contest/components/modals/ExamModeMonitorModal";
 
 const ContestLayout = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -67,10 +68,13 @@ const ContestLayout = () => {
     contest?.examModeEnabled && contest?.examStatus === "in_progress"
   );
 
+  const hasEnded = !!contest && isContestEnded(contest);
+
   // Should warn on exit: when exam is in_progress, paused, or locked (not yet submitted)
   const shouldWarnOnExit = !!(
     contest?.examModeEnabled &&
-    contest?.status === "active" &&
+    contest?.status === "published" &&
+    !hasEnded &&
     (contest?.examStatus === "in_progress" ||
       contest?.examStatus === "paused" ||
       contest?.examStatus === "locked")
@@ -350,7 +354,8 @@ const ContestLayout = () => {
       // If exam mode is enabled and exam is in_progress, paused, or locked, end the exam first (submit)
       if (
         contest.examModeEnabled &&
-        contest.status === "active" &&
+        contest.status === "published" &&
+        !hasEnded &&
         (contest.examStatus === "in_progress" ||
           contest.examStatus === "paused" ||
           contest.examStatus === "locked")
@@ -661,7 +666,7 @@ const ContestLayout = () => {
         </Header>
 
         {/* Monitoring Warning Modal */}
-        <ExamModeMonitorModel
+        <ExamModeMonitorModal
           open={monitoringModalOpen}
           onRequestClose={() => setMonitoringModalOpen(false)}
         />
@@ -765,7 +770,8 @@ const ContestLayout = () => {
             // Student - Joined but exam not started (or submitted)
             if (
               !contest?.status ||
-              contest.status === "inactive" ||
+              contest.status !== "published" ||
+              hasEnded ||
               contest.examStatus === "submitted" ||
               contest.examStatus === "not_started"
             ) {

@@ -71,7 +71,8 @@
       "noContests": "No upcoming contests",
       "upcoming": "Upcoming",
       "ongoing": "Ongoing",
-      "ended": "Ended"
+      "ended": "Ended",
+      "participated": "Participated"
     },
     "announcements": {
       "title": "Announcements",
@@ -201,7 +202,9 @@
   "status": {
     "public": "Public",
     "private": "Private",
+    "draft": "Draft",
     "published": "Published",
+    "archived": "Archived",
     "hidden": "Hidden",
     "active": "Active",
     "inactive": "Inactive",

@@ -17,7 +17,7 @@
   "problems": "문제 수",
   "duration": "기간",
   "progress": "진행률",
-  "notActive": "시험 미시작",
+  "notActive": "진행 아님",
   "delete": {
     "title": "대회 삭제",
     "confirm": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -42,7 +42,7 @@
   "hero": {
     "examEnded": "시험 종료",
     "register": "참가 등록",
-    "contestInactive": "대회 미시작",
+    "contestInactive": "대회 미게시",
     "examLocked": "시험 잠금",
     "restartExam": "시험 재시작",
     "finished": "제출 완료",
@@ -274,7 +274,7 @@
     "rulesHelperText": "Markdown 구문 지원",
     "accessControl": "접근 제어",
     "contestStatus": "대회 상태",
-    "statusLabel": "상태 (활성/비활성)",
+    "statusLabel": "상태 (초안/게시)",
     "scoreboardSettings": "점수판 설정",
     "showDuringContest": "대회 중 점수판 표시",
     "showDuringContestHelp": "참가자가 대회 중 실시간 점수판을 볼 수 있도록 허용",

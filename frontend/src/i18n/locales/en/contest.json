@@ -17,7 +17,7 @@
   "problems": "Problems",
   "duration": "Duration",
   "progress": "Progress",
-  "notActive": "Not Active",
+  "notActive": "Not Running",
   "delete": {
     "title": "Delete Contest",
     "confirm": "Are you sure you want to delete this contest? This action cannot be undone.",
@@ -42,7 +42,7 @@
   "hero": {
     "examEnded": "Exam Ended",
     "register": "Register",
-    "contestInactive": "Contest Inactive",
+    "contestInactive": "Contest Not Published",
     "examLocked": "Exam Locked",
     "restartExam": "Restart Exam",
     "finished": "Finished",
@@ -279,7 +279,7 @@
     "rulesHelperText": "Supports Markdown syntax",
     "accessControl": "Access Control",
     "contestStatus": "Contest Status",
-    "statusLabel": "Status (Active/Inactive)",
+    "statusLabel": "Status (Draft/Published)",
     "scoreboardSettings": "Scoreboard Settings",
     "showDuringContest": "Show scoreboard during contest",
     "showDuringContestHelp": "Allow participants to view live scoreboard during contest",

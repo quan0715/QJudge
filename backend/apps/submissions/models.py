@@ -4,6 +4,7 @@ Models for submissions and judging results.
 from django.db import models
 from django.contrib.auth import get_user_model
 from apps.problems.models import Problem, TestCase
+from .managers import SubmissionQuerySet
 
 User = get_user_model()
 
@@ -87,6 +88,8 @@ class Submission(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='提交時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    objects = SubmissionQuerySet.as_manager()
     
     class Meta:
         db_table = 'submissions'

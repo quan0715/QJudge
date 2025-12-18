@@ -16,7 +16,7 @@ def test_authenticated_user_can_create_contest(authenticated_client):
     assert response.status_code == status.HTTP_201_CREATED
     contest = Contest.objects.get(id=response.json()["id"])
     assert contest.owner == user
-    assert contest.status == "inactive"
+    assert contest.status == "draft"
 
 
 @pytest.mark.django_db

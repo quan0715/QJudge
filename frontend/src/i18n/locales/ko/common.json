@@ -71,7 +71,8 @@
       "noContests": "예정된 대회가 없습니다",
       "upcoming": "예정",
       "ongoing": "진행 중",
-      "ended": "종료"
+      "ended": "종료",
+      "participated": "참가함"
     },
     "announcements": {
       "title": "공지사항",
@@ -201,7 +202,9 @@
   "status": {
     "public": "공개",
     "private": "비공개",
+    "draft": "초안",
     "published": "게시됨",
+    "archived": "보관됨",
     "hidden": "숨김",
     "active": "활성",
     "inactive": "비활성",

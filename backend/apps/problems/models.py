@@ -4,6 +4,7 @@ Models for problems, translations, and test cases.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from .managers import ProblemQuerySet
 
 
 class Problem(models.Model):
@@ -106,6 +107,8 @@ class Problem(models.Model):
         verbose_name='必須關鍵字',
         help_text='提交代碼中必須包含的關鍵字列表 (substring match)'
     )
+
+    objects = ProblemQuerySet.as_manager()
     
     class Meta:
         db_table = 'problems'
@@ -258,4 +261,3 @@ class Tag(models.Model):
     
     def __str__(self):
         return self.name
-

@@ -37,6 +37,7 @@ const ContestQAPage: React.FC<ContestQAPageProps> = ({ maxWidth }) => {
                 )}
                 problems={contest.problems}
                 contestStatus={contest.status}
+                contestEndTime={contest.endTime}
               />
             </ContainerCard>
           </div>

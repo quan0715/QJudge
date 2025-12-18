@@ -99,7 +99,7 @@ describe("Contests API - /api/v1/contests", () => {
       const shouldSkip = await skipIfNoBackend();
       if (shouldSkip || !adminToken) return;
 
-      // First get list to find an active contest
+      // First get list to find a published contest
       const listRes = await authenticatedRequest(
         "/api/v1/contests/",
         adminToken
@@ -107,15 +107,11 @@ describe("Contests API - /api/v1/contests", () => {
       const listData = await listRes.json();
       const contests = listData.results || listData;
 
-      // Find an active contest
-      const activeContest = contests.find(
-        (c: any) => c.status === "active" || c.status === "ended"
-      );
+      // Find a published contest
+      const activeContest = contests.find((c: any) => c.status === "published");
 
       if (!activeContest) {
-        console.log(
-          "⚠️ No active/ended contests found, skipping standings test"
-        );
+        console.log("⚠️ No published contests found, skipping standings test");
         return;
       }
 
@@ -186,18 +182,16 @@ describe("Contests API - /api/v1/contests", () => {
       const shouldSkip = await skipIfNoBackend();
       if (shouldSkip || !adminToken) return;
 
-      // Get an active contest
+      // Get a published contest
       const listRes = await authenticatedRequest(
         "/api/v1/contests/",
         adminToken
       );
       const contests = (await listRes.json()).results || (await listRes.json());
-      const activeContest = contests.find(
-        (c: any) => c.status === "active" || c.status === "ended"
-      );
+      const activeContest = contests.find((c: any) => c.status === "published");
 
       if (!activeContest) {
-        console.log("⚠️ No active/ended contests, skipping score sum test");
+        console.log("⚠️ No published contests, skipping score sum test");
         return;
       }
 

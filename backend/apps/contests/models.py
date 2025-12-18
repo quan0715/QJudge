@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.problems.models import Problem
+from .managers import ContestQuerySet
 
 User = get_user_model()
 
@@ -46,19 +47,19 @@ class Contest(models.Model):
     )
     password = models.CharField(max_length=255, blank=True, null=True, verbose_name='密碼')
     
-    # Contest status - replaces is_ended with explicit active/inactive
+    # Contest status - draft/published/archived
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive'),
+        ('draft', 'Draft'),
+        ('published', 'Published'),
         ('archived', 'Archived'),
     ]
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='inactive',
+        default='draft',
         db_index=True,
         verbose_name='狀態',
-        help_text='active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用'
+        help_text='draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀'
     )
     
     # Legacy settings - kept for backward compatibility
@@ -116,6 +117,8 @@ class Contest(models.Model):
         verbose_name='管理員',
         help_text='除 owner 外的其他管理者 (teachers)'
     )
+
+    objects = ContestQuerySet.as_manager()
     
     class Meta:
         db_table = 'contests'
@@ -132,19 +135,21 @@ class Contest(models.Model):
         Calculate dynamic status based on time (for backward compatibility).
         Use the 'status' field for primary state management.
         """
-        if self.status == 'inactive':
-            return 'inactive'
-        
+        if self.status in ['draft', 'archived']:
+            return self.status
+
+        if self.status != 'published':
+            return self.status
+
         if not self.start_time or not self.end_time:
-            return 'inactive'
-        
+            return 'published'
+
         now = timezone.now()
         if now < self.start_time:
             return 'upcoming'
-        elif now <= self.end_time:
+        if now <= self.end_time:
             return 'ongoing'
-        else:
-            return 'finished'
+        return 'ended'
 
 
 class ContestProblem(models.Model):

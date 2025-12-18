@@ -1,5 +1,5 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
-export type ContestStatus = 'inactive' | 'active' | 'archived';
+export type ContestStatus = 'draft' | 'published' | 'archived';
 export type ContestVisibility = 'public' | 'private';
 export type ExamEventType = 'tab_hidden' | 'window_blur' | 'exit_fullscreen';
 export type SubmissionStatus = 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE' | 'CE' | 'NS';
@@ -198,7 +198,7 @@ export interface Contest {
   rules?: string;
   start_time: string;
   end_time: string;
-  status: 'active' | 'inactive';
+  status: ContestStatus;
   current_user_role?: 'student' | 'teacher' | 'admin';
   permissions?: {
     can_edit?: boolean;
@@ -236,18 +236,28 @@ export interface ContestParticipant {
 // ============ Contest State Utilities ============
 // Merged from utils/contest.ts
 
-export type ContestDisplayState = 'upcoming' | 'running' | 'ended' | 'inactive';
+export type ContestDisplayState = 'draft' | 'archived' | 'upcoming' | 'running' | 'ended';
 
 export const getContestState = (
   contest: { status?: string; start_time?: string; end_time?: string; startTime?: string; endTime?: string }
 ): ContestDisplayState => {
-  if (contest.status === 'inactive') {
-    return 'inactive';
+  if (contest.status === 'draft') {
+    return 'draft';
+  }
+
+  if (contest.status === 'archived') {
+    return 'archived';
   }
 
   const now = new Date().getTime();
-  const startTime = new Date(contest.start_time || contest.startTime || '').getTime();
-  const endTime = new Date(contest.end_time || contest.endTime || '').getTime();
+  const startTimeValue = contest.start_time || contest.startTime || '';
+  const endTimeValue = contest.end_time || contest.endTime || '';
+  const startTime = new Date(startTimeValue).getTime();
+  const endTime = new Date(endTimeValue).getTime();
+
+  if (!startTimeValue || !endTimeValue || Number.isNaN(startTime) || Number.isNaN(endTime)) {
+    return 'running';
+  }
 
   if (now < startTime) {
     return 'upcoming';
@@ -260,14 +270,16 @@ export const getContestState = (
 
 export const getContestStateLabel = (state: ContestDisplayState): string => {
   switch (state) {
+    case 'draft':
+      return '草稿';
+    case 'archived':
+      return '已封存';
     case 'upcoming':
       return '即將開始';
     case 'running':
       return '進行中';
     case 'ended':
       return '已結束';
-    case 'inactive':
-      return '未開放';
     default:
       return '未知';
   }
@@ -275,14 +287,16 @@ export const getContestStateLabel = (state: ContestDisplayState): string => {
 
 export const getContestStateColor = (state: ContestDisplayState): "red" | "magenta" | "purple" | "blue" | "cyan" | "teal" | "green" | "gray" | "cool-gray" | "warm-gray" | "high-contrast" | "outline" => {
   switch (state) {
+    case 'draft':
+      return 'gray';
+    case 'archived':
+      return 'cool-gray';
     case 'upcoming':
       return 'blue';
     case 'running':
       return 'green';
     case 'ended':
       return 'gray';
-    case 'inactive':
-      return 'red';
     default:
       return 'gray';
   }
@@ -292,4 +306,3 @@ export const isContestEnded = (contest: { end_time?: string; endTime?: string })
   const endTime = new Date(contest.end_time || contest.endTime || '').getTime();
   return new Date().getTime() > endTime;
 };
-

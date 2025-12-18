@@ -32,7 +32,7 @@ export function mapContestDto(dto: any): Contest {
     description: dto.description || "",
     startTime: dto.start_time || "",
     endTime: dto.end_time || "",
-    status: dto.status || "inactive",
+    status: dto.status || "draft",
     visibility: dto.visibility || "public",
     password: dto.password,
 

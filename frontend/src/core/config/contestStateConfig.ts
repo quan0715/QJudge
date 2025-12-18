@@ -7,9 +7,8 @@ export interface ContestStatusConfig {
 }
 
 export const CONTEST_STATUS_CONFIG: Record<ContestStatus, ContestStatusConfig> = {
-  'active': { color: 'green', label: '進行中', type: 'green' },
-  'inactive': { color: 'blue', label: '未開始', type: 'blue' },
-  'ended': { color: 'gray', label: '已結束', type: 'gray' },
+  'draft': { color: 'gray', label: '草稿', type: 'gray' },
+  'published': { color: 'green', label: '已發布', type: 'green' },
   'archived': { color: 'purple', label: '已封存', type: 'purple' },
 };
 

@@ -200,14 +200,14 @@ paths:
           type: string
           title: 狀態
           enum:
-          - active
+          - draft
+          - published
           - archived
-          - inactive
         description: |-
-          active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+          draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-          * `active` - Active
-          * `inactive` - Inactive
+          * `draft` - Draft
+          * `published` - Published
           * `archived` - Archived
       - in: query
         name: visibility
@@ -1159,8 +1159,8 @@ paths:
   /api/v1/contests/{id}/:
     get:
       operationId: v1_contests_retrieve
-      description: Retrieve contest details. Block access if inactive and user is
-        not owner/admin.
+      description: Retrieve contest details. Block access if draft/archived for
+        non-privileged users.
       parameters:
       - in: path
         name: id
@@ -1570,7 +1570,7 @@ paths:
   /api/v1/contests/{id}/toggle_status/:
     post:
       operationId: v1_contests_toggle_status_create
-      description: Toggle contest status between active and inactive.
+      description: Toggle contest status between published and draft.
       parameters:
       - in: path
         name: id
@@ -2740,10 +2740,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
       required:
       - id
@@ -2813,10 +2813,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
     ContestDetail:
       type: object
@@ -2855,10 +2855,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
         visibility:
           allOf:
@@ -2988,10 +2988,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
         visibility:
           allOf:
@@ -3051,10 +3051,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
         visibility:
           allOf:
@@ -3623,10 +3623,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
     PatchedContestDetailRequest:
       type: object
@@ -3659,10 +3659,10 @@ components:
           - $ref: '#/components/schemas/StatusDc4Enum'
           title: 狀態
           description: |-
-            active: 比賽正在進行，可接受提交；inactive: 比賽已關閉或尚未啟用
+            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
 
-            * `active` - Active
-            * `inactive` - Inactive
+            * `draft` - Draft
+            * `published` - Published
             * `archived` - Archived
         visibility:
           allOf:
@@ -4189,13 +4189,13 @@ components:
         * `SE` - System Error
     StatusDc4Enum:
       enum:
-      - active
-      - inactive
+      - draft
+      - published
       - archived
       type: string
       description: |-
-        * `active` - Active
-        * `inactive` - Inactive
+        * `draft` - Draft
+        * `published` - Published
         * `archived` - Archived
     SubmissionDetail:
       type: object

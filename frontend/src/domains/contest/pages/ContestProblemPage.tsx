@@ -8,6 +8,7 @@ import type { SubmissionDetail as Submission } from "@/core/entities/submission.
 import { getContestProblem } from "@/services/contest";
 import { useContest } from "@/domains/contest/contexts/ContestContext";
 import { submitSolution } from "@/services/submission";
+import { isContestEnded } from "@/core/entities/contest.entity";
 
 const ContestProblemPage = () => {
   const { contestId, problemId } = useParams<{
@@ -26,7 +27,8 @@ const ContestProblemPage = () => {
   } | null>(null);
   const [_isPending, startTransition] = useTransition();
 
-  useContestNavigationGuard(contestId, contest?.status === "active");
+  const hasEnded = !!contest && isContestEnded(contest);
+  useContestNavigationGuard(contestId, contest?.status === "published" && !hasEnded);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,7 +130,7 @@ const ContestProblemPage = () => {
     contest?.currentUserRole === "admin" ||
     contest?.currentUserRole === "teacher" ||
     contest?.permissions?.canEditContest ||
-    (contest?.status === "active" &&
+    ((contest?.status === "published" || contest?.status === "archived") &&
       contest?.hasStarted &&
       contest?.examStatus !== "locked");
 
@@ -155,9 +157,7 @@ const ContestProblemPage = () => {
 
   const isSubmissionDisabled =
     !isPrivileged &&
-    (contest?.status === "inactive" ||
-      contest?.status === "ended" ||
-      (!!contest?.endTime && new Date(contest.endTime) < new Date()));
+    (contest?.status !== "published" || hasEnded);
 
   return (
     <div
