@@ -201,13 +201,8 @@ registerStory("shared/ui/testcase/TestCaseList", TestCaseListStories);
 registerStory("shared/ui/testcase/TestCaseDetail", TestCaseDetailStories);
 
 // Import story modules - Shared UI: navigation
-import CollapsibleSideNavStories from "@/shared/ui/navigation/CollapsibleSideNav.stories";
 
 // Register all stories - Shared UI: navigation
-registerStory(
-  "shared/ui/navigation/CollapsibleSideNav",
-  CollapsibleSideNavStories
-);
 
 // Import story modules - Features: Problems
 import ProblemPreviewSectionStories from "@/features/problems/screens/problems/section/ProblemPreviewSection.stories";
