@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
-import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
-import type { Submission } from "@/core/entities/submission.entity";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
@@ -25,7 +23,6 @@ import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdmi
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
   const { t: tc } = useTranslation('common');
-  const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Use contest and standings from context
@@ -33,7 +30,6 @@ const ContestDashboard = () => {
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [mySubmissions, setMySubmissions] = useState<Submission[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [lockModalOpen, setLockModalOpen] = useState(false);
 
@@ -58,50 +54,10 @@ const ContestDashboard = () => {
     }
   }, [currentUser, scoreboardData]);
 
-  // Load submissions separately (user-specific, can't be shared)
-  useEffect(() => {
-    if (contestId && currentUser) {
-      loadMySubmissions();
-    }
-  }, [contestId, currentUser]);
-
-  const loadMySubmissions = async () => {
-    if (!contestId || !currentUser) return;
-    try {
-      const submissions = await getSubmissions({ contest: contestId });
-      // @ts-ignore
-      const submissionList = submissions.results || [];
-      const mySubs = submissionList.filter(
-        (s: Submission) =>
-          s.username === currentUser.username ||
-          s.userId === currentUser.id?.toString()
-      );
-      setMySubmissions(mySubs.slice(0, 5)); // Show top 5 recent
-    } catch (error) {
-      console.error("Failed to load submissions", error);
-    }
-  };
-
-  const handleSubmissionClick = (submissionId: string) => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev);
-      newParams.set("submissionId", submissionId);
-      return newParams;
-    });
-  };
-
   const handleSubmissionClose = () => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
       newParams.delete("submissionId");
-      return newParams;
-    });
-  };
-
-  const handleViewAllSubmissions = () => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev);
-      newParams.set("tab", "submissions");
       return newParams;
     });
   };
@@ -153,10 +109,6 @@ const ContestDashboard = () => {
         return (
           <ContestOverview
             contest={contest!}
-            myRank={myRank}
-            mySubmissions={mySubmissions}
-            onSubmissionClick={handleSubmissionClick}
-            onViewAllSubmissions={handleViewAllSubmissions}
             maxWidth="1056px"
           />
         );
@@ -189,10 +141,6 @@ const ContestDashboard = () => {
         return (
           <ContestOverview
             contest={contest!}
-            myRank={myRank}
-            mySubmissions={mySubmissions}
-            onSubmissionClick={handleSubmissionClick}
-            onViewAllSubmissions={handleViewAllSubmissions}
             maxWidth="1056px"
           />
         );
