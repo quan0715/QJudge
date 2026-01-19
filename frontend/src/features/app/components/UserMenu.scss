@@ -2,134 +2,94 @@
 @use "@carbon/type";
 
 .user-menu-container {
-  padding: 0;
-  min-width: layout.rem(280px);
-  max-width: layout.rem(320px);
-  display: flex;
-  flex-direction: column;
-}
-
-// ===== Profile Section =====
-.user-menu-profile {
   padding: layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.user-menu-profile-inner {
-  display: flex;
-  gap: layout.$spacing-04;
-  align-items: center;
-}
-
-.user-menu-avatar {
-  width: layout.rem(40px);
-  height: layout.rem(40px);
-  border-radius: 50%;
-  background-color: var(--cds-layer-accent-01);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--cds-text-on-color);
-  flex-shrink: 0;
-}
-
-.user-menu-info {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-01;
-  min-width: 0;
-}
-
-.user-menu-name {
-  @include type.type-style("heading-compact-01");
-  color: var(--cds-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.user-menu-role {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-// ===== Sections =====
-.user-menu-section {
-  padding: layout.$spacing-04 layout.$spacing-05;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-  border-bottom: 1px solid var(--cds-border-subtle);
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.user-menu-section-title {
-  @include type.type-style("label-01");
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  color: var(--cds-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.32px;
-}
-
-// ===== Preference Controls =====
-.user-menu-preferences {
+  min-width: layout.rem(256px);
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-05;
 }
 
-.user-menu-pref-row {
+// ===== Header =====
+.user-menu-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: layout.$spacing-03;
+  padding-bottom: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  svg {
+    fill: var(--cds-icon-secondary);
+    flex-shrink: 0;
+  }
 }
 
-.user-menu-pref-label {
+.user-menu-name {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.user-menu-role {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-left: auto;
+}
+
+// ===== Dropdown Fields =====
+.user-menu-fields {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+// ===== Link Entry =====
+.user-menu-link {
   @include type.type-style("body-compact-01");
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
+  padding: layout.$spacing-03;
+  margin: 0 layout.$spacing-03 * -1;
+  background: none;
+  border: none;
   color: var(--cds-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms, color 150ms;
 
   svg {
     fill: var(--cds-icon-secondary);
+    flex-shrink: 0;
   }
-}
 
-.user-menu-pref-control {
-  flex-shrink: 0;
-}
+  &:hover {
+    background-color: var(--cds-layer-hover);
+    color: var(--cds-text-primary);
 
-// ===== Stack for buttons =====
-.user-menu-stack {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-}
+    svg {
+      fill: var(--cds-icon-primary);
+    }
+  }
 
-// ===== Hint text =====
-.user-menu-hint {
-  @include type.type-style("helper-text-01");
-  margin: 0;
-  color: var(--cds-text-helper);
-}
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
 
-// ===== Dev Tools Section =====
-.user-menu-dev-tools {
-  background-color: var(--cds-layer-02);
-}
+  &--danger {
+    color: var(--cds-text-error);
 
-// ===== Actions Section =====
-.user-menu-actions {
-  padding: layout.$spacing-04 layout.$spacing-05;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
-  border-top: 1px solid var(--cds-border-subtle);
+    svg {
+      fill: var(--cds-support-error);
+    }
+
+    &:hover {
+      background-color: var(--cds-support-error);
+      color: var(--cds-text-on-color);
+
+      svg {
+        fill: var(--cds-icon-on-color);
+      }
+    }
+  }
 }

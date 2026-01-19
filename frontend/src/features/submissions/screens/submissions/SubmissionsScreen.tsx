@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { Button, InlineLoading } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import {
@@ -161,18 +159,6 @@ const SubmissionsScreen = () => {
       <PageHeader
         title={t("submissions.title")}
         subtitle={t("submissions.subtitle")}
-        extra={
-          <Button
-            kind="tertiary"
-            renderIcon={refreshing ? InlineLoading : Renew}
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            {refreshing
-              ? t("submissions.refreshing")
-              : t("submissions.refresh")}
-          </Button>
-        }
       />
 
       <SubmissionDataTable

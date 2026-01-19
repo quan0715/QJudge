@@ -23,6 +23,7 @@ body {
 
 .cds--content {
   flex: 1;
+  min-height: calc(100vh - 3rem);
   margin-top: 3rem;
   background: var(--cds-background);
 }

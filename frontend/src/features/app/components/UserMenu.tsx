@@ -5,18 +5,14 @@ import {
   Modal,
   TextInput,
   InlineLoading,
-  Button,
 } from "@carbon/react";
 import {
   Login,
   Logout,
   UserAvatar,
   Password,
-  UserMultiple,
   Edit,
   Code,
-  Light,
-  Language,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -167,119 +163,77 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
       <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>
         <div className="user-menu-container">
-          {/* Profile Section */}
-          <div className="user-menu-profile">
-            <div className="user-menu-profile-inner">
-              <div className="user-menu-avatar">
-                <UserAvatar size={20} />
-              </div>
-              <div className="user-menu-info">
-                <span className="user-menu-name">
-                  {user.username || user.email}
-                </span>
-                <span className="user-menu-role">
-                  {getRoleLabel(user.role)}
-                </span>
-              </div>
-            </div>
+          {/* User Info */}
+          <div className="user-menu-header">
+            <UserAvatar size={20} />
+            <span className="user-menu-name">
+              {user.username || user.email}
+            </span>
+            <span className="user-menu-role">{getRoleLabel(user.role)}</span>
           </div>
 
-          {/* Preferences Section */}
-          <div className="user-menu-section">
-            <div className="user-menu-preferences">
-              <div className="user-menu-pref-row">
-                <span className="user-menu-pref-label">
-                  <Light size={16} />
-                  {t("theme.title")}
-                </span>
-                <div className="user-menu-pref-control">
-                  <ThemeSwitch
-                    value={themePreference as ThemePreference}
-                    onChange={handleThemeChange}
-                    showLabel={false}
-                  />
-                </div>
-              </div>
-              <div className="user-menu-pref-row">
-                <span className="user-menu-pref-label">
-                  <Language size={16} />
-                  {t("language.title")}
-                </span>
-                <div className="user-menu-pref-control">
-                  <LanguageSwitch
-                    value={language}
-                    onChange={handleLanguageChange}
-                    showLabel={false}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* Preferences */}
+          <div className="user-menu-fields">
+            <ThemeSwitch
+              value={themePreference as ThemePreference}
+              onChange={handleThemeChange}
+              showLabel
+            />
+            <LanguageSwitch
+              value={language}
+              onChange={handleLanguageChange}
+              showLabel
+            />
           </div>
 
-          {/* Contest Mode: nickname edit */}
+          {/* Contest nickname */}
           {contestMode && canEditNickname && (
-            <div className="user-menu-section">
-              <div className="user-menu-section-title">
-                <UserMultiple size={16} />
-                {tContest("avatar.nickname")}
-              </div>
-              <Button
-                kind="tertiary"
-                size="sm"
-                onClick={() => setIsNicknameModalOpen(true)}
-                renderIcon={Edit}
-              >
-                {tContest("avatar.editNickname")}
-              </Button>
-              <p className="user-menu-hint">
-                {tContest("avatar.nicknameHint")}
-              </p>
-            </div>
-          )}
-
-          {/* Dev Tools (Dev Only) */}
-          {import.meta.env.DEV && (
-            <div className="user-menu-section user-menu-dev-tools">
-              <div className="user-menu-section-title">
-                <Code size={16} />
-                {"</>"} Dev Tools
-              </div>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={() => {
-                  navigate("/dev/storybook");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-                renderIcon={Code}
-              >
-                Storybook
-              </Button>
-            </div>
-          )}
-
-          {/* Account Actions */}
-          <div className="user-menu-actions">
-            {canChangePassword && (
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={handleChangePasswordClick}
-                renderIcon={Password}
-              >
-                {t("user.changePassword")}
-              </Button>
-            )}
-            <Button
-              kind="danger--ghost"
-              size="sm"
-              onClick={handleLogout}
-              renderIcon={Logout}
+            <button
+              type="button"
+              className="user-menu-link"
+              onClick={() => setIsNicknameModalOpen(true)}
             >
-              {t("button.logout")}
-            </Button>
-          </div>
+              <Edit size={16} />
+              {tContest("avatar.editNickname")}
+            </button>
+          )}
+
+          {/* Dev Tools */}
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              className="user-menu-link"
+              onClick={() => {
+                navigate("/dev/storybook");
+                setIsExpandedInternal(false);
+                onExpandedChange?.(false);
+              }}
+            >
+              <Code size={16} />
+              Storybook
+            </button>
+          )}
+
+          {/* Actions */}
+          {canChangePassword && (
+            <button
+              type="button"
+              className="user-menu-link"
+              onClick={handleChangePasswordClick}
+            >
+              <Password size={16} />
+              {t("user.changePassword")}
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="user-menu-link user-menu-link--danger"
+            onClick={handleLogout}
+          >
+            <Logout size={16} />
+            {t("button.logout")}
+          </button>
         </div>
       </HeaderPanel>
 
