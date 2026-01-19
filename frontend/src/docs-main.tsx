@@ -9,14 +9,14 @@ import { createRoot } from "react-dom/client";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
-import DocsLayout from "@/domains/docs/components/DocsLayout";
-import DocumentationPage from "@/domains/docs/pages/DocumentationPage";
-import ErrorBoundary from "@/ui/components/ErrorBoundary";
-import { ThemeProvider } from "@/ui/theme/ThemeContext";
-import { ContentLanguageProvider } from "@/contexts/ContentLanguageContext";
+import DocsLayout from "@/features/docs/components/DocsLayout";
+import DocumentationScreen from "@/features/docs/screens/DocumentationScreen";
+import ErrorBoundary from "@/features/app/components/ErrorBoundary";
+import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
+import { ContentLanguageProvider } from "@/shared/contexts/ContentLanguageContext";
 
 // Import styles
-import "./styles/global.scss";
+import "./styles/globals.scss";
 import "github-markdown-css/github-markdown-light.css";
 
 function DocsApp() {
@@ -38,7 +38,7 @@ function DocsApp() {
                     path="/docs"
                     element={<Navigate to="/docs/overview" replace />}
                   />
-                  <Route path="/docs/:slug" element={<DocumentationPage />} />
+                  <Route path="/docs/:slug" element={<DocumentationScreen />} />
                 </Route>
                 {/* Fallback - redirect to docs overview */}
                 <Route

@@ -1,0 +1,50 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.dashboard-page {
+  padding-top: layout.$spacing-06;
+  padding-bottom: layout.$spacing-06;
+}
+
+.dashboard-page__grid {
+  row-gap: layout.$spacing-05;
+}
+
+.dashboard-page__column {
+  margin-bottom: layout.$spacing-05;
+}
+
+.dashboard-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.dashboard-page__section-header {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.dashboard-page__section-title {
+  @include type.type-style("productive-heading-02");
+  margin: 0;
+}
+
+.dashboard-page__section-subtitle {
+  @include type.type-style("body-short-01");
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.dashboard-page__empty {
+  @include type.type-style("body-short-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.dashboard-page__contests-grid {
+  display: grid;
+  gap: layout.$spacing-04;
+  grid-template-columns: repeat(auto-fit, minmax(layout.rem(320px), 1fr));
+}

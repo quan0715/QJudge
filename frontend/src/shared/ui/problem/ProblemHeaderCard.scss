@@ -1,0 +1,74 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+
+.problem-header-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  // padding: $spacing-05;
+  // background-color: var(--cds-layer-02);
+  // border-radius: 4px;
+  // border: 1px solid var(--cds-border-subtle);
+  margin-bottom: $spacing-05;
+  // ============================================================================
+  // Title Row
+  // ============================================================================
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+  }
+
+  &__title {
+    @include type-style("heading-04");
+
+    margin: 0;
+    color: var(--cds-text-primary);
+  }
+
+  // ============================================================================
+  // Badges Row
+  // ============================================================================
+
+  &__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-03;
+  }
+
+  // ============================================================================
+  // Limits Row
+  // ============================================================================
+
+  &__limits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-05;
+    padding-top: $spacing-03;
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  &__limit-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-02;
+    color: var(--cds-text-secondary);
+
+    @include type-style("body-compact-01");
+
+    svg {
+      fill: var(--cds-icon-secondary);
+    }
+  }
+
+  &__limit-label {
+    color: var(--cds-text-secondary);
+  }
+
+  &__limit-value {
+    color: var(--cds-text-primary);
+    font-weight: 500;
+  }
+}

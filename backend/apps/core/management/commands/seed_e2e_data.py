@@ -323,7 +323,7 @@ int main() {
                 'end_time': now + timedelta(hours=2),
                 'owner': teacher,
                 'visibility': 'public',
-                'status': 'active',
+                'status': 'published',
                 'exam_mode_enabled': False,
                 'scoreboard_visible_during_contest': True,
                 'allow_view_results': True,
@@ -352,7 +352,7 @@ int main() {
                 'end_time': now + timedelta(days=1, hours=2),
                 'owner': teacher,
                 'visibility': 'public',
-                'status': 'inactive',
+                'status': 'published',
                 'exam_mode_enabled': False,
             }
         )

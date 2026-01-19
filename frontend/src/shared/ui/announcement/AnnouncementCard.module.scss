@@ -1,0 +1,61 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.card {
+  background-color: var(--cds-layer-02);
+  border-radius: layout.$spacing-02;
+  border-left: 4px solid var(--cds-border-interactive);
+  border: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-04;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  transition: background-color 0.15s ease;
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--cds-layer-hover-02);
+    }
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: layout.$spacing-03;
+}
+
+.title {
+  @include type.type-style("productive-heading-01");
+  margin: 0;
+  color: var(--cds-text-primary);
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  gap: layout.$spacing-02;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.deleteButton {
+  color: var(--cds-support-error);
+}
+
+.content {
+  @include type.type-style("body-short-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.meta {
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
+}

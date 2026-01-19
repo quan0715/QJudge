@@ -1,0 +1,86 @@
+@use "@carbon/layout";
+
+.dangerZone {
+  padding: layout.$spacing-06;
+}
+
+.title {
+  font-size: var(--cds-heading-03-font-size);
+  font-weight: var(--cds-heading-03-font-weight);
+  color: var(--cds-support-error);
+  margin-bottom: layout.$spacing-06;
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+
+  &::before {
+    content: "⚠";
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: layout.$spacing-05;
+  background-color: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  margin-bottom: layout.$spacing-04;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.itemInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: layout.$spacing-04;
+  flex: 1;
+}
+
+.itemIcon {
+  flex-shrink: 0;
+  padding: layout.$spacing-03;
+  background-color: var(--cds-layer-02);
+  border-radius: 4px;
+  color: var(--cds-text-secondary);
+
+  &.danger {
+    background-color: var(--cds-support-error-inverse);
+    color: var(--cds-support-error);
+  }
+}
+
+.itemContent {
+  flex: 1;
+}
+
+.itemTitle {
+  font-size: var(--cds-body-compact-01-font-size);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin-bottom: layout.$spacing-02;
+}
+
+.itemDescription {
+  font-size: var(--cds-label-01-font-size);
+  color: var(--cds-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.deleteWarning {
+  color: var(--cds-support-error);
+  margin-bottom: layout.$spacing-04;
+}
+
+.deleteInstruction {
+  margin-bottom: layout.$spacing-03;
+
+  strong {
+    color: var(--cds-text-primary);
+    font-weight: 600;
+  }
+}

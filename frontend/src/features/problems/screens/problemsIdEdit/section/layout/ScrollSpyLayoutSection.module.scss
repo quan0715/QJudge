@@ -1,0 +1,38 @@
+@use "@carbon/layout";
+
+// Sidebar width
+$sidebar-width: layout.rem(220px);
+
+.layout {
+  display: flex;
+  height: 100%;
+  background-color: var(--cds-background);
+}
+
+.sidebar {
+  width: $sidebar-width;
+  min-width: $sidebar-width;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  position: sticky;
+  top: 0;
+}
+
+.sidebarHeader {
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}

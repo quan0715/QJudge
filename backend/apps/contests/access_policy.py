@@ -5,6 +5,7 @@ This module provides a centralized permission system for contest operations,
 replacing scattered permission checks throughout views.py.
 """
 from rest_framework import permissions, status
+from django.utils import timezone
 from rest_framework.response import Response
 
 from .models import Contest, ContestParticipant, ExamStatus
@@ -50,7 +51,7 @@ class PermissionError:
 
 class ErrorCodes:
     """Constants for permission error codes."""
-    CONTEST_INACTIVE = 'contest_inactive'
+    CONTEST_DRAFT = 'contest_draft'
     CONTEST_ARCHIVED = 'contest_archived'
     CONTEST_NOT_STARTED = 'contest_not_started'
     CONTEST_ENDED = 'contest_ended'
@@ -70,13 +71,13 @@ BASE_ROLE_PERMISSIONS = {
     'admin': {
         'manage_contest', 'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_inactive', 'view_archived', 'view_participants',
+        'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'teacher': {
         'manage_contest', 'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_inactive', 'view_participants',
+        'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'student': {
@@ -90,10 +91,10 @@ BASE_ROLE_PERMISSIONS = {
 
 # Restrictions based on contest status
 STATUS_RESTRICTIONS = {
-    'inactive': {
-        'requires_permission': 'view_inactive',
-        'error_code': ErrorCodes.CONTEST_INACTIVE,
-        'error_message': 'Contest is not active',
+    'draft': {
+        'requires_permission': 'view_draft',
+        'error_code': ErrorCodes.CONTEST_DRAFT,
+        'error_message': 'Contest is not published',
     },
     'archived': {
         'requires_permission': 'view_archived',
@@ -113,7 +114,7 @@ class ContestAccessPolicy(permissions.BasePermission):
 
     Permission check order:
     1. Check if user is authenticated (for protected actions)
-    2. Check contest status (active/inactive/archived)
+    2. Check contest status (draft/published/archived)
     3. Check role-based permissions
     4. Check context-specific conditions (scoreboard settings, exam status)
 
@@ -143,6 +144,7 @@ class ContestAccessPolicy(permissions.BasePermission):
         'add_problem': 'manage_problems',
         'reorder_problems': 'manage_problems',
         'publish_problem_to_practice': 'manage_problems',
+        'publish_problems_to_practice': 'manage_problems',
 
         # Participant Management
         'participants': 'view_participants',
@@ -189,7 +191,7 @@ class ContestAccessPolicy(permissions.BasePermission):
         role = get_user_role_in_contest(user, contest) if user.is_authenticated else 'anonymous'
 
         # 1. Check contest status restrictions
-        status_error = self._check_contest_status(contest, role, action)
+        status_error = self._check_contest_status(contest, user, role, action)
         if status_error is not None:
             request._permission_error = status_error
             return False
@@ -228,8 +230,17 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         return True
 
-    def _check_contest_status(self, contest, role, action):
+    def _check_contest_status(self, contest, user, role, action):
         """Check if contest status allows access."""
+        if action in {"standings", "my_report"}:
+            return None
+
+        if contest.status == "archived" and action == "retrieve":
+            if user.is_authenticated and ContestParticipant.objects.filter(
+                contest=contest, user=user
+            ).exists():
+                return None
+
         if contest.status in STATUS_RESTRICTIONS:
             restriction = STATUS_RESTRICTIONS[contest.status]
             required = restriction['requires_permission']
@@ -245,12 +256,13 @@ class ContestAccessPolicy(permissions.BasePermission):
 
     def _check_context_conditions(self, contest, user, role, action, request):
         """Check context-specific conditions (scoreboard settings, exam status, etc.)."""
+        is_ended = bool(contest.end_time and timezone.now() > contest.end_time)
 
         # Scoreboard visibility for students
         if action == 'standings' and role == 'student':
             if not contest.scoreboard_visible_during_contest:
                 # Allow viewing after contest ends
-                if contest.status != 'inactive':
+                if not is_ended:
                     return self._get_error_response(
                         action,
                         ErrorCodes.SCOREBOARD_HIDDEN,
@@ -287,6 +299,24 @@ class ContestAccessPolicy(permissions.BasePermission):
 
     def _get_error_response(self, action, code, message):
         """Generate appropriate error response based on action."""
+        if action == "retrieve":
+            return Response(
+                {"detail": "This contest is not available."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if action == "standings" and code == ErrorCodes.SCOREBOARD_HIDDEN:
+            return Response(
+                {"message": "Scoreboard is not visible"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if action == "export_results" and code == ErrorCodes.INSUFFICIENT_ROLE:
+            return Response(
+                {"message": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         if action in self.mask_as_404:
             return PermissionError.not_found(code)
         return PermissionError.forbidden(code, message)

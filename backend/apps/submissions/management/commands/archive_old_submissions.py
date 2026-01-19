@@ -64,7 +64,7 @@ class Command(BaseCommand):
             query = query.filter(source_type='contest')
             
             # 可選：只歸檔已結束的考試
-            # query = query.filter(contest__status='inactive')
+            # query = query.filter(contest__status='draft')
         
         total = query.count()
         

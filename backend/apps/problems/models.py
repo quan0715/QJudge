@@ -4,6 +4,7 @@ Models for problems, translations, and test cases.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from .managers import ProblemQuerySet
 
 
 class Problem(models.Model):
@@ -72,6 +73,15 @@ class Problem(models.Model):
         verbose_name='來源競賽',
         help_text='記錄此題最初在哪場競賽中建立'
     )
+    origin_problem = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='practice_copies',
+        verbose_name='來源題目',
+        help_text='若此題由競賽題複製而來，記錄原始題目'
+    )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
@@ -106,6 +116,8 @@ class Problem(models.Model):
         verbose_name='必須關鍵字',
         help_text='提交代碼中必須包含的關鍵字列表 (substring match)'
     )
+
+    objects = ProblemQuerySet.as_manager()
     
     class Meta:
         db_table = 'problems'
@@ -235,6 +247,154 @@ class TestCase(models.Model):
         return f"TestCase {self.id} for {self.problem.title}"
 
 
+class ProblemDiscussion(models.Model):
+    """
+    Discussion threads for a problem.
+    """
+
+    problem = models.ForeignKey(
+        Problem,
+        on_delete=models.CASCADE,
+        related_name="discussions",
+        verbose_name="題目",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="problem_discussions",
+        verbose_name="使用者",
+    )
+    title = models.CharField(max_length=255, verbose_name="標題")
+    content = models.TextField(verbose_name="內容")
+    is_deleted = models.BooleanField(default=False, verbose_name="是否已刪除")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        db_table = "problem_discussions"
+        verbose_name = "題目討論"
+        verbose_name_plural = "題目討論"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["problem", "-created_at"]),
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Discussion {self.id} for {self.problem_id}"
+
+
+class ProblemDiscussionComment(models.Model):
+    """
+    Comments within a problem discussion.
+    """
+
+    discussion = models.ForeignKey(
+        ProblemDiscussion,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="討論",
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replies",
+        verbose_name="上層留言",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="problem_discussion_comments",
+        verbose_name="使用者",
+    )
+    content = models.TextField(verbose_name="內容")
+    is_deleted = models.BooleanField(default=False, verbose_name="是否已刪除")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        db_table = "problem_discussion_comments"
+        verbose_name = "題目討論留言"
+        verbose_name_plural = "題目討論留言"
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["discussion", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Comment {self.id} on discussion {self.discussion_id}"
+
+
+class DiscussionLike(models.Model):
+    """
+    Likes on a problem discussion.
+    Each user can like a discussion only once.
+    """
+
+    discussion = models.ForeignKey(
+        ProblemDiscussion,
+        on_delete=models.CASCADE,
+        related_name="likes",
+        verbose_name="討論",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="discussion_likes",
+        verbose_name="使用者",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+
+    class Meta:
+        db_table = "problem_discussion_likes"
+        verbose_name = "討論按讚"
+        verbose_name_plural = "討論按讚"
+        unique_together = ["discussion", "user"]
+        indexes = [
+            models.Index(fields=["discussion"]),
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self):
+        return f"Like by {self.user_id} on discussion {self.discussion_id}"
+
+
+class CommentLike(models.Model):
+    """
+    Likes on a problem discussion comment.
+    Each user can like a comment only once.
+    """
+
+    comment = models.ForeignKey(
+        ProblemDiscussionComment,
+        on_delete=models.CASCADE,
+        related_name="likes",
+        verbose_name="評論",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="comment_likes",
+        verbose_name="使用者",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+
+    class Meta:
+        db_table = "problem_discussion_comment_likes"
+        verbose_name = "評論按讚"
+        verbose_name_plural = "評論按讚"
+        unique_together = ["comment", "user"]
+        indexes = [
+            models.Index(fields=["comment"]),
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self):
+        return f"Like by {self.user_id} on comment {self.comment_id}"
+
+
 class Tag(models.Model):
     """
     Tags for categorizing problems (e.g., 'array', 'dynamic programming', 'graph').
@@ -258,4 +418,3 @@ class Tag(models.Model):
     
     def __str__(self):
         return self.name
-

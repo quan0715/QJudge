@@ -1,0 +1,21 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+
+.problem-hero {
+  &__metadata-item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__metadata-label {
+    margin-bottom: $spacing-02;
+    color: var(--cds-text-secondary);
+    @include type-style("label-01");
+  }
+
+  &__metadata-value {
+    color: var(--cds-text-primary);
+    font-weight: 600;
+    @include type-style("body-compact-01");
+  }
+}

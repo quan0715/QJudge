@@ -57,6 +57,11 @@ CACHES = {
     }
 }
 
+# Avoid hitting external cloud database during tests.
+# Mirror the cloud alias to default so Django won't try to create/connect a separate DB.
+if "cloud" in DATABASES:
+    DATABASES["cloud"]["TEST"] = {"MIRROR": "default"}
+
 # Disable ratelimit system checks in test (still functional, just no E003 error)
 SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
 

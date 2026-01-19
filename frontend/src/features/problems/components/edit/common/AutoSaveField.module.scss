@@ -1,0 +1,25 @@
+@use "@carbon/layout";
+
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.fieldWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator {
+  position: absolute;
+  top: layout.$spacing-07; // Align with label height
+  right: 0;
+  transform: translateY(-50%);
+}
+
+// For fields with labels, position indicator next to the label
+.container--with-label {
+  .indicator {
+    top: layout.$spacing-03;
+  }
+}

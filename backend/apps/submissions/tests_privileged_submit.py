@@ -20,7 +20,7 @@ User = get_user_model()
 class PrivilegedSubmissionTestCase(TestCase):
     """
     Test that admin/owner/teacher can submit to contests at any time,
-    including inactive contests, ended contests, and contests they're not registered for.
+    including draft contests, ended contests, and contests they're not registered for.
     """
 
     def setUp(self):
@@ -76,20 +76,20 @@ class PrivilegedSubmissionTestCase(TestCase):
             order=1
         )
         
-        # Create an inactive contest
-        self.inactive_contest = Contest.objects.create(
-            name='Inactive Contest',
+        # Create an draft contest
+        self.draft_contest = Contest.objects.create(
+            name='Draft Contest',
             owner=self.contest_owner,
-            status='inactive',
+            status='draft',
             visibility='public',
             start_time=timezone.now() + timedelta(days=1),
             end_time=timezone.now() + timedelta(days=2)
         )
         
-        # Add problem to inactive contest
+        # Add problem to draft contest
         # Note: label is a computed property based on order, so we don't set it
         ContestProblem.objects.create(
-            contest=self.inactive_contest,
+            contest=self.draft_contest,
             problem=self.problem,
             order=0  # Will get label 'A'
         )
@@ -98,7 +98,7 @@ class PrivilegedSubmissionTestCase(TestCase):
         self.ended_contest = Contest.objects.create(
             name='Ended Contest',
             owner=self.contest_owner,
-            status='active',
+            status='published',
             visibility='public',
             start_time=timezone.now() - timedelta(days=2),
             end_time=timezone.now() - timedelta(hours=1)  # Ended 1 hour ago
@@ -114,7 +114,7 @@ class PrivilegedSubmissionTestCase(TestCase):
         self.active_contest = Contest.objects.create(
             name='Active Contest',
             owner=self.contest_owner,
-            status='active',
+            status='published',
             visibility='public',
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=2)
@@ -164,12 +164,12 @@ class PrivilegedSubmissionTestCase(TestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('django.db.transaction.on_commit', side_effect=lambda func: func())
-    def test_admin_can_submit_to_inactive_contest(self, mock_commit):
-        """Admin can submit to inactive contests"""
+    def test_admin_can_submit_to_draft_contest(self, mock_commit):
+        """Admin can submit to draft contests"""
         patcher, _ = self._mock_judge()
         try:
             self.client.force_authenticate(user=self.admin)
-            response = self._submit(self.inactive_contest)
+            response = self._submit(self.draft_contest)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             patcher.stop()
@@ -203,12 +203,12 @@ class PrivilegedSubmissionTestCase(TestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('django.db.transaction.on_commit', side_effect=lambda func: func())
-    def test_owner_can_submit_to_inactive_contest(self, mock_commit):
-        """Contest owner can submit to their inactive contests"""
+    def test_owner_can_submit_to_draft_contest(self, mock_commit):
+        """Contest owner can submit to their draft contests"""
         patcher, _ = self._mock_judge()
         try:
             self.client.force_authenticate(user=self.contest_owner)
-            response = self._submit(self.inactive_contest)
+            response = self._submit(self.draft_contest)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             patcher.stop()
@@ -229,12 +229,12 @@ class PrivilegedSubmissionTestCase(TestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('django.db.transaction.on_commit', side_effect=lambda func: func())
-    def test_teacher_can_submit_to_inactive_contest(self, mock_commit):
-        """Teacher can submit to inactive contests (teacher role bypass)"""
+    def test_teacher_can_submit_to_draft_contest(self, mock_commit):
+        """Teacher can submit to draft contests (teacher role bypass)"""
         patcher, _ = self._mock_judge()
         try:
             self.client.force_authenticate(user=self.teacher)
-            response = self._submit(self.inactive_contest)
+            response = self._submit(self.draft_contest)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             patcher.stop()
@@ -243,8 +243,8 @@ class PrivilegedSubmissionTestCase(TestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch('django.db.transaction.on_commit', side_effect=lambda func: func())
-    def test_contest_admin_can_submit_to_inactive_contest(self, mock_commit):
-        """Contest co-admin can submit to inactive contests"""
+    def test_contest_admin_can_submit_to_draft_contest(self, mock_commit):
+        """Contest co-admin can submit to draft contests"""
         # Create a new user and make them a contest admin
         contest_admin = User.objects.create_user(
             username='contest_admin',
@@ -252,22 +252,28 @@ class PrivilegedSubmissionTestCase(TestCase):
             password='testpass123',
             role='student'  # Regular student role, but contest admin
         )
-        self.inactive_contest.admins.add(contest_admin)
+        self.draft_contest.admins.add(contest_admin)
         
         patcher, _ = self._mock_judge()
         try:
             self.client.force_authenticate(user=contest_admin)
-            response = self._submit(self.inactive_contest)
+            response = self._submit(self.draft_contest)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             patcher.stop()
 
     # ==================== Student Restriction Tests ====================
 
-    def test_student_cannot_submit_to_inactive_contest(self):
-        """Student cannot submit to inactive contests"""
+    def test_student_cannot_submit_to_draft_contest(self):
+        """Student cannot submit to draft contests"""
         self.client.force_authenticate(user=self.student)
-        response = self._submit(self.inactive_contest)
+        response = self._submit(self.draft_contest)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_student_cannot_submit_to_ended_contest(self):
+        """Student cannot submit to ended contests"""
+        self.client.force_authenticate(user=self.student)
+        response = self._submit(self.ended_contest)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_student_cannot_submit_without_registration(self):
@@ -276,7 +282,7 @@ class PrivilegedSubmissionTestCase(TestCase):
         other_contest = Contest.objects.create(
             name='Other Contest',
             owner=self.contest_owner,
-            status='active',
+            status='published',
             visibility='public',
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=2)

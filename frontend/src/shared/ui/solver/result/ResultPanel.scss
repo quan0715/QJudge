@@ -1,0 +1,64 @@
+/**
+ * ResultPanel - IDE-style bottom panel styles
+ *
+ * Structure:
+ * - Toolbar (48px fixed)
+ * - Content (fills remaining space, hidden when collapsed)
+ */
+@use "@carbon/layout";
+
+.result-panel {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--cds-layer-01);
+
+  // Content area - fills remaining space
+  &__content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Empty state
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+    padding: layout.$spacing-05;
+    color: var(--cds-text-secondary);
+    text-align: center;
+
+    svg {
+      fill: var(--cds-icon-secondary);
+      margin-bottom: layout.$spacing-04;
+    }
+  }
+
+  // Uses Carbon heading-compact-01 type set
+  &__empty-title {
+    margin: 0;
+    font-size: var(--cds-heading-compact-01-font-size);
+    font-weight: var(--cds-heading-compact-01-font-weight);
+    line-height: var(--cds-heading-compact-01-line-height);
+    color: var(--cds-text-primary);
+  }
+
+  // Uses Carbon body-compact-01 type set
+  &__empty-subtitle {
+    margin: layout.$spacing-02 0 0;
+    font-size: var(--cds-body-compact-01-font-size);
+    line-height: var(--cds-body-compact-01-line-height);
+  }
+
+  &__skeleton {
+    padding: layout.$spacing-05;
+  }
+}

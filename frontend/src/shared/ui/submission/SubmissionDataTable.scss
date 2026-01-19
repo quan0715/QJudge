@@ -1,0 +1,84 @@
+.submission-data-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 300px;
+
+  // Table row styling
+  &__row {
+    transition: background-color 0.15s ease;
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: var(--cds-layer-hover);
+      }
+    }
+  }
+
+  // Problem title
+  &__problem {
+    font-weight: 500;
+    color: var(--cds-text-primary);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+
+  // Username
+  &__user {
+    color: var(--cds-text-secondary);
+  }
+
+  // Metric display (icon + value)
+  &__metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--cds-text-secondary);
+
+    svg {
+      fill: var(--cds-icon-secondary);
+    }
+  }
+
+  // Pagination
+  &__pagination {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  // Loading state
+  &--loading {
+    .cds--data-table {
+      tbody tr {
+        pointer-events: none;
+      }
+    }
+  }
+
+  // Empty message inside table
+  &__empty-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 3rem 1rem;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  &__empty-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cds-text-primary);
+  }
+
+  &__empty-subtitle {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+  }
+}

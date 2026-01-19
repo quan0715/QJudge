@@ -1,0 +1,60 @@
+{
+  "hero": {
+    "title": "지금 바로 코딩하고 채점하기",
+    "subtitle": "Carbon UI 기반 온라인 저지로 수업과 대회를 위한 실시간 피드백과 명확한 결과를 제공합니다.",
+    "signIn": "로그인",
+    "register": "회원가입",
+    "badges": { "qjudge": "QJudge", "oj": "Online Judge", "carbon": "Carbon UI" }
+  },
+  "features": {
+    "eyebrow": "핵심 기능",
+    "title": "현대적인 프로그래밍 워크플로우 지원",
+    "multiLanguage": { "title": "다중 언어", "description": "Python, C++, Java, JavaScript 등 주요 언어를 즉시 컴파일/실행." },
+    "analytics": { "title": "실시간 분석", "description": "실행 시간, 메모리 통계와 함께 상세 결과 제공." },
+    "contest": { "title": "대회 시스템", "description": "라이브 랭킹과 다양한 점수 모드로 대회를 개최." },
+    "lab": { "title": "랩 모드", "description": "교수자가 문제 세트와 학생 진행 상황을 관리." }
+  },
+  "steps": {
+    "eyebrow": "사용 방법",
+    "title": "4단계로 시작",
+    "browse": { "title": "문제 탐색", "description": "난이도와 태그로 필터링하고 설명/샘플을 확인." },
+    "code": { "title": "코드 작성", "description": "내장 에디터로 Markdown 가이드와 함께 작성." },
+    "submit": { "title": "제출 및 채점", "description": "원클릭 제출로 즉시 결과 확인." },
+    "improve": { "title": "실력 향상", "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가." }
+  },
+  "highlights": {
+    "eyebrow": "QJudge 이유",
+    "title": "교육과 대회를 위해 설계",
+    "item1": "랩 모드와 진행 추적",
+    "item2": "실시간 대회/랭킹",
+    "item3": "케이스 비교 및 diff",
+    "item4": "토론/공지 통합",
+    "item5": "IBM Carbon 기반의 모던 UI",
+    "docs": "문서 보기"
+  },
+  "testimonials": {
+    "eyebrow": "사용자 후기",
+    "title": "학생들의 이야기",
+    "quote1": "실시간 피드백으로 문제를 빠르게 찾을 수 있어 효율적입니다.",
+    "quote2": "차이 비교 기능 덕분에 디버깅이 쉬워졌습니다.",
+    "quote3": "랩 모드가 수업 진행과 잘 맞아 학습 효과가 좋습니다.",
+    "name1": "Wang",
+    "name2": "Lee",
+    "name3": "Chen",
+    "title1": "NYCU IM/Fin 3학년",
+    "title2": "NYCU IM/Fin 2학년",
+    "title3": "NYCU IM/Fin 3학년",
+    "badge": "국립양명교통대학교 정보관리·재무금융학과"
+  },
+  "contact": {
+    "eyebrow": "문의하기",
+    "title": "질문이나 제안이 있으신가요?",
+    "description": "피드백, 버그 신고, 협업 제안을 환영합니다.",
+    "email": { "title": "이메일" },
+    "github": { "title": "GitHub" },
+    "university": { "title": "협력 대학", "value": "국립양명교통대학교" }
+  },
+  "stats": { "problems": "문제", "submissions": "제출", "users": "활성 사용자", "uptime": "가용성" },
+  "cta": { "title": "지금 시작해 보세요", "description": "QJudge와 함께 코딩 여정을 시작하세요. 무료로 이용 가능합니다.", "signIn": "로그인", "docs": "자세히 보기" },
+  "footer": { "copyright": "© 2024 QJudge. Built with IBM Carbon Design System." }
+}

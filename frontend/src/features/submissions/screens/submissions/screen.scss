@@ -1,0 +1,7 @@
+@use "@carbon/react/scss/spacing" as *;
+
+.submissions-page {
+  padding: $spacing-07;
+  max-width: 1200px;
+  margin: 0 auto;
+}

@@ -1,0 +1,38 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.contest-preview-card {
+  min-height: layout.rem(160px);
+  position: relative;
+}
+
+.contest-preview-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.contest-preview-card__title {
+  @include type.type-style("heading-03");
+  margin: 0;
+}
+
+.contest-preview-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size);
+}
+
+.contest-preview-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  flex: 0 0 auto;
+}
+
+.contest-preview-card__status-icon--success {
+  color: var(--cds-support-success);
+}

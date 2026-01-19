@@ -1,0 +1,114 @@
+@use "@carbon/layout";
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  background-color: var(--cds-layer-01);
+  padding: layout.$spacing-06;
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: layout.$spacing-05;
+}
+
+.headerTitle {
+  font-size: var(--cds-heading-compact-02-font-size);
+  font-weight: var(--cds-heading-compact-02-font-weight);
+  line-height: var(--cds-heading-compact-02-line-height);
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-text-secondary);
+  padding: layout.$spacing-05;
+  text-align: center;
+  height: 100%;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.section {
+  padding: layout.$spacing-05;
+  background-color: var(--cds-layer-02);
+}
+
+.sectionTitle {
+  font-size: var(--cds-label-01-font-size);
+  font-weight: 600;
+  line-height: var(--cds-label-01-line-height);
+  color: var(--cds-text-secondary);
+  margin: 0 0 layout.$spacing-03 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// CodeSnippet 樣式（唯讀模式）
+.codeSnippet {
+  max-width: 100%;
+  max-height: layout.rem(200px);
+
+  :global(.cds--snippet-container) {
+    max-height: layout.rem(200px);
+    overflow: auto;
+  }
+
+  :global(code) {
+    white-space: pre;
+  }
+}
+
+// TextArea 樣式（編輯模式）
+.textArea {
+  width: 100%;
+
+  :global(.cds--text-area__wrapper) {
+    width: 100%;
+  }
+
+  :global(.cds--text-area) {
+    width: 100%;
+    font-family: var(--cds-code-01-font-family);
+    font-size: var(--cds-code-01-font-size);
+    min-height: layout.rem(120px);
+    resize: vertical;
+  }
+
+  // 移除 label
+  :global(.cds--label) {
+    display: none;
+  }
+}
+
+.readOnlyNotice {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size);
+  background-color: var(--cds-layer-accent-01);
+  border-radius: var(--cds-border-radius, 0);
+}

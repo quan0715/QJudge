@@ -1,0 +1,95 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.user-menu-container {
+  padding: layout.$spacing-05;
+  min-width: layout.rem(256px);
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+// ===== Header =====
+.user-menu-header {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding-bottom: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  svg {
+    fill: var(--cds-icon-secondary);
+    flex-shrink: 0;
+  }
+}
+
+.user-menu-name {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.user-menu-role {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-left: auto;
+}
+
+// ===== Dropdown Fields =====
+.user-menu-fields {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+// ===== Link Entry =====
+.user-menu-link {
+  @include type.type-style("body-compact-01");
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03;
+  margin: 0 layout.$spacing-03 * -1;
+  background: none;
+  border: none;
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms, color 150ms;
+
+  svg {
+    fill: var(--cds-icon-secondary);
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+    color: var(--cds-text-primary);
+
+    svg {
+      fill: var(--cds-icon-primary);
+    }
+  }
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+
+  &--danger {
+    color: var(--cds-text-error);
+
+    svg {
+      fill: var(--cds-support-error);
+    }
+
+    &:hover {
+      background-color: var(--cds-support-error);
+      color: var(--cds-text-on-color);
+
+      svg {
+        fill: var(--cds-icon-on-color);
+      }
+    }
+  }
+}

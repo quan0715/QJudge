@@ -4,6 +4,7 @@ Models for submissions and judging results.
 from django.db import models
 from django.contrib.auth import get_user_model
 from apps.problems.models import Problem, TestCase
+from .managers import SubmissionQuerySet
 
 User = get_user_model()
 
@@ -53,6 +54,14 @@ class Submission(models.Model):
         related_name='submissions',
         verbose_name='考試'
     )
+    lab = models.ForeignKey(
+        'labs.Lab',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submissions',
+        verbose_name='題目單'
+    )
     
     # Content
     SOURCE_TYPE_CHOICES = [
@@ -87,6 +96,8 @@ class Submission(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='提交時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    objects = SubmissionQuerySet.as_manager()
     
     class Meta:
         db_table = 'submissions'
@@ -99,6 +110,7 @@ class Submission(models.Model):
             # Performance indexes for common query patterns
             models.Index(fields=['source_type', 'is_test', '-created_at'], name='sub_src_test_created_idx'),
             models.Index(fields=['contest', 'source_type', '-created_at'], name='sub_contest_src_created_idx'),
+            models.Index(fields=['lab', '-created_at'], name='sub_lab_created_idx'),
             models.Index(fields=['problem', '-created_at'], name='sub_problem_created_idx'),
             models.Index(fields=['status', '-created_at'], name='sub_status_created_idx'),
             models.Index(fields=['user', '-created_at'], name='sub_user_created_idx'),

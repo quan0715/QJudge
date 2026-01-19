@@ -1,0 +1,61 @@
+@use "@carbon/layout";
+
+.problem-empty {
+  padding: layout.$spacing-09 layout.$spacing-05;
+  text-align: center;
+  color: var(--cds-text-secondary);
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 8px;
+}
+
+.problem-empty__title {
+  margin: 0 0 layout.$spacing-03 0;
+  font-size: var(--cds-heading-compact-02-font-size);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.problem-empty__subtitle {
+  margin: 0 0 layout.$spacing-04 0;
+  font-size: var(--cds-body-compact-01-font-size);
+}
+
+.problem-empty__tags {
+  display: flex;
+  justify-content: center;
+}
+
+.problem-list-page {
+  padding-top: layout.$spacing-06;
+  padding-bottom: layout.$spacing-06;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.problem-list-page__grid {
+  row-gap: layout.$spacing-01;
+}
+
+.problem-list-page__header {
+  margin-bottom: layout.$spacing-04;
+}
+
+.problem-list-page__sidebar {
+  position: sticky;
+  top: calc(var(--header-height, 48px) + layout.$spacing-06);
+  height: calc(100vh - var(--header-height, 48px) - layout.$spacing-09);
+  overflow-y: auto;
+
+  @media (max-width: 1055px) {
+    display: none;
+  }
+}
+
+.problem-list-page__mobile-toggle {
+  display: none;
+
+  @media (max-width: 1055px) {
+    display: inline-flex;
+  }
+}

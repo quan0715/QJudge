@@ -1,0 +1,88 @@
+{
+  "hero": {
+    "title": "程式評測，立即開始",
+    "subtitle": "Carbon 風格的線上評測平台，為課程與競賽提供即時回饋、完整結果與討論協作。",
+    "signIn": "立即登入",
+    "register": "免費註冊",
+    "badges": {
+      "qjudge": "QJudge",
+      "oj": "Online Judge",
+      "carbon": "Carbon UI"
+    }
+  },
+  "features": {
+    "eyebrow": "核心功能",
+    "title": "為程式學習打造的完整平台",
+    "multiLanguage": {
+      "title": "多語言支援",
+      "description": "Python、C++、Java、JavaScript 等主流程式語言即時編譯執行。"
+    },
+    "analytics": {
+      "title": "即時分析",
+      "description": "詳細的測試結果、執行時間與記憶體統計，協助優化程式效能。"
+    },
+    "contest": {
+      "title": "競賽系統",
+      "description": "舉辦程式競賽，排行榜即時更新，支援多種計分模式。"
+    },
+    "lab": {
+      "title": "實驗室模式",
+      "description": "教師管理題目集、追蹤學生進度，輕鬆掌握學習成效。"
+    }
+  },
+  "steps": {
+    "eyebrow": "使用流程",
+    "title": "四步驟開始你的程式旅程",
+    "browse": { "title": "瀏覽題庫", "description": "依難度與標籤篩選題目，查看說明與範例測資。" },
+    "code": { "title": "撰寫程式", "description": "使用內建編輯器撰寫程式，支援語法高亮與自動補全。" },
+    "submit": { "title": "提交評測", "description": "一鍵提交，即時取得測試結果與詳細報告。" },
+    "improve": { "title": "持續精進", "description": "參與討論、查看他人解法，加入競賽或 Lab。" }
+  },
+  "highlights": {
+    "eyebrow": "為什麼選擇 QJudge",
+    "title": "專為教學與競賽設計",
+    "item1": "Lab 模式與進度追蹤",
+    "item2": "即時競賽與排行榜",
+    "item3": "測資差異與詳細比較",
+    "item4": "討論串與公告整合",
+    "item5": "基於 IBM Carbon 的現代化介面",
+    "docs": "查看文件"
+  },
+  "testimonials": {
+    "eyebrow": "用戶回饋",
+    "title": "聽聽同學們怎麼說",
+    "quote1": "即時回饋讓我能快速找出程式問題，比傳統作業效率高很多！",
+    "quote2": "差異比較功能讓 debug 輕鬆許多，介面也很直覺。",
+    "quote3": "Lab 模式與課程進度結合，加上討論功能，學習效果明顯提升。",
+    "name1": "王同學",
+    "name2": "李同學",
+    "name3": "陳同學",
+    "title1": "NYCU 資財系 大三",
+    "title2": "NYCU 資財系 大二",
+    "title3": "NYCU 資財系 大三",
+    "badge": "國立陽明交通大學 資訊管理與財務金融學系"
+  },
+  "contact": {
+    "eyebrow": "聯絡我們",
+    "title": "有任何問題或建議？",
+    "description": "歡迎回饋、Bug 回報或合作洽談，透過以下方式與我們聯繫。",
+    "email": { "title": "電子郵件" },
+    "github": { "title": "GitHub" },
+    "university": { "title": "合作院校", "value": "國立陽明交通大學" }
+  },
+  "stats": {
+    "problems": "程式題目",
+    "submissions": "提交次數",
+    "users": "活躍用戶",
+    "uptime": "系統穩定度"
+  },
+  "cta": {
+    "title": "準備好開始了嗎？",
+    "description": "立即加入 QJudge，展開程式學習之旅，免費使用。",
+    "signIn": "立即登入",
+    "docs": "了解更多"
+  },
+  "footer": {
+    "copyright": "© 2024 QJudge. 建立於 IBM Carbon Design System。"
+  }
+}

@@ -2,12 +2,15 @@
   "nav": {
     "dashboard": "儀表板",
     "problems": "題目",
+    "labs": "題目單",
     "contests": "競賽",
     "submissions": "提交紀錄",
     "ranking": "排行榜",
     "documentation": "文件",
+    "docs": "文件",
     "backToProblemList": "返回題目列表",
-    "problemList": "題目列表"
+    "problemList": "題目列表",
+    "back": "返回"
   },
   "page": {
     "dashboard": "儀表板",
@@ -47,11 +50,18 @@
     "userMenu": "使用者選單",
     "management": "管理",
     "system": "系統",
+    "navigation": "快速導航",
+    "account": "帳戶",
     "problemManagement": "題目管理",
     "createContest": "建立競賽",
+    "createLab": "建立題目單",
     "userManagement": "使用者管理",
     "announcements": "公告管理",
-    "environmentSettings": "環境設定"
+    "environmentSettings": "環境設定",
+    "teacherDashboard": "教師後台",
+    "systemSettings": "系統設定",
+    "contestManagement": "競賽管理",
+    "labManagement": "題目單管理"
   },
   "dashboard": {
     "welcomeBack": "歡迎回來，{{name}}",
@@ -71,7 +81,8 @@
       "noContests": "目前沒有近期比賽",
       "upcoming": "即將開始",
       "ongoing": "進行中",
-      "ended": "已結束"
+      "ended": "已結束",
+      "participated": "已參加"
     },
     "announcements": {
       "title": "公告",
@@ -113,12 +124,14 @@
     "itemsPerPage": "每頁顯示"
   },
   "language": {
+    "title": "語言",
     "switchTo": "切換語言",
     "switchedTitle": "語言已切換",
     "switchedTo": "已切換至 {{language}}",
     "selectLanguage": "選擇語言"
   },
   "theme": {
+    "title": "主題",
     "switchToLight": "切換至淺色模式",
     "switchToDark": "切換至深色模式",
     "light": "淺色",
@@ -153,6 +166,8 @@
     "public": "公開"
   },
   "user": {
+    "preferences": "偏好設定",
+    "changePassword": "變更密碼",
     "role": {
       "student": "學生",
       "teacher": "教師",
@@ -201,7 +216,9 @@
   "status": {
     "public": "公開",
     "private": "私有",
+    "draft": "草稿",
     "published": "已發布",
+    "archived": "已封存",
     "hidden": "隱藏",
     "active": "啟用",
     "inactive": "停用",

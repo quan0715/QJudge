@@ -1,0 +1,78 @@
+@use "@carbon/layout";
+
+.container {
+  width: 100%;
+}
+
+.emptyState {
+  text-align: center;
+  padding: layout.$spacing-07 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+
+  p {
+    margin: 0;
+  }
+}
+
+.emptyHint {
+  font-size: var(--cds-body-compact-01-font-size);
+  margin-top: layout.$spacing-02;
+}
+
+.statusError {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-support-error);
+}
+
+.statusOk {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-support-success);
+}
+
+.actionsCell {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.deleteButton {
+  color: var(--cds-support-error);
+}
+
+.modal {
+  // Modal content styling
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+}
+
+.ioGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: layout.$spacing-05;
+
+  @media (max-width: 672px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.optionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: layout.$spacing-05;
+
+  > * {
+    flex: 0 0 auto;
+  }
+}

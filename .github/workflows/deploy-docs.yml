@@ -8,7 +8,7 @@ on:
     branches: [main]
     paths:
       - "frontend/public/docs/**"
-      - "frontend/src/domains/docs/**"
+      - "frontend/src/features/docs/**"
       - "frontend/src/i18n/locales/*/docs.json"
       - "frontend/docs.html"
       - "frontend/src/docs-main.tsx"

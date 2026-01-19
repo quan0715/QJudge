@@ -1,0 +1,39 @@
+@use "@carbon/layout";
+
+.editor-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: layout.rem(48px);
+    min-height: layout.rem(48px);
+    padding-right: layout.$spacing-03;
+    background-color: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  &__toolbar-left {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  &__toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-02;
+  }
+
+  &__editor {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}

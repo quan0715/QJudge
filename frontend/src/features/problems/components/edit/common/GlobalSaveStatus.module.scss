@@ -1,0 +1,49 @@
+@use "@carbon/layout";
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  font-size: var(--cds-body-compact-01-font-size);
+  white-space: nowrap;
+}
+
+.loading {
+  min-block-size: auto;
+  
+  :global(.cds--inline-loading__text) {
+    color: var(--cds-text-secondary);
+  }
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  animation: fadeIn 0.2s ease-in-out;
+  
+  .icon {
+    fill: var(--cds-support-success);
+  }
+}
+
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-error);
+  
+  .icon {
+    fill: currentColor;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

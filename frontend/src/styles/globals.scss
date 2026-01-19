@@ -1,0 +1,79 @@
+@use "@carbon/react";
+@use "./scrollbar" as *;
+
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
+  overflow-x: hidden;
+
+  // Apply thin scrollbar globally
+  @include thin-scrollbar-all(6px);
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cds--content {
+  flex: 1;
+  min-height: calc(100vh - 3rem);
+  margin-top: 3rem;
+  background: var(--cds-background);
+}
+
+:root {
+  --problem-difficulty-easy: #22c55e;
+  --problem-difficulty-medium: #f59e0b;
+  --problem-difficulty-hard: #ef4444;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+// Markdown body overrides to fix background color rendering
+.markdown-body {
+  background-color: transparent !important;
+  color: var(--cds-text-primary) !important;
+
+  // Fix blockquote backgrounds
+  blockquote {
+    color: var(--cds-text-secondary) !important;
+    border-left-color: var(--cds-border-subtle) !important;
+  }
+}

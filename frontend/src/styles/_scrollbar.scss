@@ -1,0 +1,53 @@
+@use "@carbon/layout";
+
+/// Thin scrollbar mixin for consistent scrollbar styling across the app
+/// Uses Carbon design tokens for colors
+/// @param {Number} $width - Scrollbar width (default: 6px)
+/// @param {Boolean} $show-on-hover - Only show scrollbar on hover (default: false)
+@mixin thin-scrollbar($width: 6px, $show-on-hover: false) {
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: var(--cds-border-subtle-01) transparent;
+
+  // Webkit (Chrome, Safari, Edge)
+  &::-webkit-scrollbar {
+    width: layout.rem($width);
+    height: layout.rem($width);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle-01);
+    border-radius: layout.rem($width / 2);
+
+    &:hover {
+      background: var(--cds-border-strong-01);
+    }
+  }
+
+  @if $show-on-hover {
+    &::-webkit-scrollbar-thumb {
+      background: transparent;
+    }
+
+    &:hover::-webkit-scrollbar-thumb {
+      background: var(--cds-border-subtle-01);
+
+      &:hover {
+        background: var(--cds-border-strong-01);
+      }
+    }
+  }
+}
+
+/// Apply thin scrollbar to an element and all its scrollable descendants
+@mixin thin-scrollbar-all($width: 6px) {
+  @include thin-scrollbar($width);
+
+  * {
+    @include thin-scrollbar($width);
+  }
+}

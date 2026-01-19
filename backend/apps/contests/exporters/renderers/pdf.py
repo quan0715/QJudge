@@ -3,10 +3,10 @@ PDF renderer for contest export.
 Uses WeasyPrint to generate PDF from HTML.
 """
 from io import BytesIO
-from pathlib import Path
 import re
+from pathlib import Path
 
-from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -213,13 +213,19 @@ class PDFRenderer(BaseRenderer):
 
     def get_css_styles(self) -> str:
         """Get CSS styles from external file with scale applied."""
-        css_path = Path(settings.BASE_DIR) / 'static' / 'exports' / 'report-base.css'
-        base_css = css_path.read_text()
+        base_css = self._read_static_css('exports/report-base.css')
 
         # Apply scale and layout adjustments
         if self.scale != 1.0 or self.layout == 'compact':
             return self._apply_scale_to_css(base_css)
         return base_css
+
+    def _read_static_css(self, relative_path: str) -> str:
+        """Read a static CSS asset from the configured staticfiles finders."""
+        css_path = finders.find(relative_path)
+        if not css_path:
+            raise FileNotFoundError(f"Static CSS not found: {relative_path}")
+        return Path(css_path).read_text(encoding="utf-8")
 
     def _apply_scale_to_css(self, css: str) -> str:
         """Apply scale factor and layout adjustments to CSS."""

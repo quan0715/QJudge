@@ -146,6 +146,80 @@ class LoginView(APIView):
         return response
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class DevTokenView(APIView):
+    """
+    Development-only helper to generate JWT tokens for a test user.
+
+    POST /api/v1/auth/dev/token
+    Body: { role: "student"|"teacher"|"admin", email?, username?, password? }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if not settings.DEBUG:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        role = request.data.get('role', 'student')
+        want_superuser = bool(request.data.get('superuser', False))
+        if role not in ['student', 'teacher', 'admin']:
+            return Response(
+                {'detail': 'Invalid role. Use student, teacher, or admin.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        email = request.data.get('email') or f"dev-{role}@local.test"
+        username = request.data.get('username') or f"dev_{role}"
+        password = request.data.get('password')
+
+        def ensure_unique_username(base: str) -> str:
+            if not User.objects.filter(username=base).exists():
+                return base
+            suffix = 1
+            while User.objects.filter(username=f"{base}_{suffix}").exists():
+                suffix += 1
+            return f"{base}_{suffix}"
+
+        user = User.objects.filter(email=email).first()
+        created = False
+        if not user:
+            created = True
+            user = User(
+                username=ensure_unique_username(username),
+                email=email,
+                auth_provider='email',
+                email_verified=True,
+                is_active=True,
+            )
+
+        # Always align role for dev convenience
+        user.role = role
+        user.is_staff = role == 'admin'
+        user.is_superuser = role == 'admin' and want_superuser
+
+        if created or password:
+            if not password:
+                password = secrets.token_urlsafe(12)
+            user.set_password(password)
+
+        if created:
+            user.save()
+        else:
+            update_fields = ['role', 'is_staff', 'is_superuser']
+            if password:
+                update_fields.append('password')
+            user.save(update_fields=update_fields)
+
+        tokens = JWTService.generate_tokens(user)
+        payload = JWTService.get_user_response_data(user, tokens)
+        if created and password:
+            payload.setdefault('data', {})['dev_password'] = password
+
+        response = Response(payload)
+        set_jwt_cookies(response, tokens)
+        return response
+
+
 class NYCUOAuthLoginView(APIView):
     """
     Initiate NYCU OAuth login.
@@ -377,43 +451,6 @@ class CurrentUserView(APIView):
             'success': True,
             'data': serializer.data,
             'message': '個人資料已更新'
-        })
-
-
-class EmailVerificationView(APIView):
-    """
-    Verify email address.
-    
-    POST /api/v1/auth/verify-email
-    """
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        token = request.data.get('token')
-        
-        if not token:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'MISSING_TOKEN',
-                    'message': '缺少驗證 token'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        user = EmailAuthService.verify_email(token)
-        
-        if not user:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'INVALID_TOKEN',
-                    'message': '驗證 token 無效或已過期'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response({
-            'success': True,
-            'message': 'Email 驗證成功'
         })
 
 

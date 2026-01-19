@@ -54,6 +54,45 @@ class ProblemService:
         next_num = max(numbers) + 1 if numbers else 1
         return f'P{next_num:03d}'
     @staticmethod
+    def _clone_related(source_problem: Problem, new_problem: Problem) -> None:
+        translations = source_problem.translations.all()
+        for trans in translations:
+            ProblemTranslation.objects.create(
+                problem=new_problem,
+                language=trans.language,
+                title=trans.title,
+                description=trans.description,
+                input_description=trans.input_description,
+                output_description=trans.output_description,
+                hint=trans.hint
+            )
+
+        test_cases = source_problem.test_cases.all()
+        for tc in test_cases:
+            TestCase.objects.create(
+                problem=new_problem,
+                input_data=tc.input_data,
+                output_data=tc.output_data,
+                is_sample=tc.is_sample,
+                score=tc.score,
+                order=tc.order,
+                is_hidden=tc.is_hidden
+            )
+
+        configs = source_problem.language_configs.all()
+        for config in configs:
+            LanguageConfig.objects.create(
+                problem=new_problem,
+                language=config.language,
+                template_code=config.template_code,
+                is_enabled=config.is_enabled,
+                order=config.order
+            )
+
+        if source_problem.tags.exists():
+            new_problem.tags.set(source_problem.tags.all())
+
+    @staticmethod
     @transaction.atomic
     def clone_problem(source_problem: Problem, contest, created_by) -> Problem:
         """
@@ -83,43 +122,39 @@ class ProblemService:
             new_problem.slug = f"{source_problem.slug}-{contest.id}-{uuid.uuid4().hex[:8]}"
             new_problem.save()
 
-        # 2. Clone Translations
-        translations = source_problem.translations.all()
-        for trans in translations:
-            ProblemTranslation.objects.create(
-                problem=new_problem,
-                language=trans.language,
-                title=trans.title,
-                description=trans.description,
-                input_description=trans.input_description,
-                output_description=trans.output_description,
-                hint=trans.hint
-            )
-
-        # 3. Clone Test Cases
-        test_cases = source_problem.test_cases.all()
-        for tc in test_cases:
-            TestCase.objects.create(
-                problem=new_problem,
-                input_data=tc.input_data,
-                output_data=tc.output_data,
-                is_sample=tc.is_sample,
-                score=tc.score,
-                order=tc.order,
-                is_hidden=tc.is_hidden
-            )
-
-        # 4. Clone Language Configs
-        configs = source_problem.language_configs.all()
-        for config in configs:
-            LanguageConfig.objects.create(
-                problem=new_problem,
-                language=config.language,
-                template_code=config.template_code,
-                is_enabled=config.is_enabled,
-                order=config.order
-            )
+        ProblemService._clone_related(source_problem, new_problem)
             
+        return new_problem
+
+    @staticmethod
+    @transaction.atomic
+    def clone_problem_to_practice(
+        source_problem: Problem,
+        *,
+        source_contest,
+        created_by,
+    ) -> Problem:
+        """
+        Clone a contest problem into the practice library.
+        """
+        display_id = ProblemService.generate_practice_problem_id()
+        slug = f"{source_problem.slug}-practice-{uuid.uuid4().hex[:8]}"
+
+        new_problem = Problem.objects.create(
+            title=source_problem.title,
+            slug=slug,
+            display_id=display_id,
+            difficulty=source_problem.difficulty,
+            time_limit=source_problem.time_limit,
+            memory_limit=source_problem.memory_limit,
+            is_visible=True,
+            is_practice_visible=True,
+            created_in_contest=source_contest,
+            origin_problem=source_problem,
+            created_by=created_by,
+        )
+
+        ProblemService._clone_related(source_problem, new_problem)
         return new_problem
 
     @staticmethod

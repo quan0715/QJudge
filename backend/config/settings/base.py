@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'apps.contests',
     'apps.notifications',
     'apps.announcements',
+    'apps.labs',
     'drf_spectacular',
 ]
 

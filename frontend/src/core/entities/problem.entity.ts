@@ -89,3 +89,45 @@ export interface ProblemDetail extends Problem {
   forbiddenKeywords?: string[];
   requiredKeywords?: string[];
 }
+
+// API payload shape for create/update/import (snake_case).
+export interface ProblemUpsertTranslation {
+  language: string;
+  title: string;
+  description: string;
+  input_description: string;
+  output_description: string;
+  hint?: string;
+}
+
+export interface ProblemUpsertTestCase {
+  input_data: string;
+  output_data: string;
+  is_sample: boolean;
+  score?: number;
+  order?: number;
+  is_hidden?: boolean;
+}
+
+export interface ProblemUpsertLanguageConfig {
+  language: string;
+  template_code: string;
+  is_enabled?: boolean;
+  order?: number;
+}
+
+export interface ProblemUpsertPayload {
+  title: string;
+  difficulty: Difficulty;
+  time_limit: number;
+  memory_limit: number;
+  is_visible?: boolean;
+  is_practice_visible?: boolean;
+  display_id?: string;
+  translations: ProblemUpsertTranslation[];
+  test_cases?: ProblemUpsertTestCase[];
+  language_configs?: ProblemUpsertLanguageConfig[];
+  forbidden_keywords?: string[];
+  required_keywords?: string[];
+  existing_tag_ids?: number[];
+}

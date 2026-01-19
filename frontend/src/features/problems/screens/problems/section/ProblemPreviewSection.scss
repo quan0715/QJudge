@@ -1,0 +1,73 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.problem-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+}
+
+.problem-preview-card__container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: layout.$spacing-04;
+}
+
+.problem-preview-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  min-width: 200px;
+}
+
+.problem-preview-card__title {
+  @include type.type-style("heading-03");
+}
+
+.problem-preview-card__meta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+
+  > * {
+    flex: 0 0 auto;
+  }
+}
+
+.problem-preview-card__solved {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-support-success);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.problem-preview-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+}
+
+.problem-preview-card__status-icon {
+  color: var(--cds-icon-primary);
+}
+
+.problem-preview-card__status-icon--success {
+  color: var(--cds-support-success);
+}
+
+.problem-preview-card__status-placeholder {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--cds-border-subtle);
+  flex-shrink: 0;
+}

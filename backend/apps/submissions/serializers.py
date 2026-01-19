@@ -7,6 +7,14 @@ from apps.problems.serializers import ProblemListSerializer
 from apps.users.serializers import UserSerializer
 
 
+def _get_total_test_cases(submission: Submission) -> int:
+    if submission.is_test:
+        sample_count = submission.problem.test_cases.filter(is_sample=True).count()
+        custom_count = len(submission.custom_test_cases or [])
+        return sample_count + custom_count
+    return submission.problem.test_cases.count()
+
+
 class SubmissionResultSerializer(serializers.ModelSerializer):
     """Serializer for submission results."""
     class Meta:
@@ -81,6 +89,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     problem_id = serializers.IntegerField(source='problem.id', read_only=True)
     problem_title = serializers.CharField(source='problem.title', read_only=True)
     contest_id = serializers.IntegerField(source='contest.id', read_only=True, allow_null=True)
+    lab_id = serializers.IntegerField(source='lab.id', read_only=True, allow_null=True)
     
     def get_username(self, obj):
         """Handle anonymous mode for contests."""
@@ -115,6 +124,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             'problem_id',
             'problem_title',
             'contest_id',
+            'lab_id',
             'source_type',
             'language',
             'status',
@@ -131,6 +141,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     problem = ProblemListSerializer(read_only=True)
     results = SubmissionResultSerializer(many=True, read_only=True)
     screen_events = ScreenEventSerializer(many=True, read_only=True)
+    total_test_cases = serializers.SerializerMethodField()
     
     class Meta:
         model = Submission
@@ -139,6 +150,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'user',
             'problem',
             'contest',
+            'lab',
             'source_type',
             'language',
             'code',
@@ -152,33 +164,55 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'results',
             'screen_events',
             'custom_test_cases',
+            'total_test_cases',
         ]
+
+    def get_total_test_cases(self, obj):
+        return _get_total_test_cases(obj)
 
 
 class CreateSubmissionSerializer(serializers.ModelSerializer):
     """Serializer for creating a submission."""
+    total_test_cases = serializers.SerializerMethodField()
+
     class Meta:
         model = Submission
         fields = [
             'id',
             'problem',
             'contest',
+            'lab',
             'source_type',
             'language',
             'code',
-            'is_test',
-            'custom_test_cases',
             'status',
+            'error_message',
             'created_at',
+            'total_test_cases',
         ]
         read_only_fields = ['id', 'status', 'created_at']
         extra_kwargs = {
             'problem': {'required': True},
             'code': {'required': True},
             'language': {'required': True},
-            'custom_test_cases': {'required': False},
         }
     
     def validate(self, attrs):
         # Additional validation if needed
+        if attrs.get('contest') and attrs.get('lab'):
+            raise serializers.ValidationError('contest and lab cannot be set together')
+
+        # Reject test-only fields from submit API
+        disallowed_fields = []
+        for field in ['is_test', 'custom_test_cases']:
+            if field in self.initial_data:
+                disallowed_fields.append(field)
+        if disallowed_fields:
+            raise serializers.ValidationError({
+                field: 'This field is not allowed for submissions.'
+                for field in disallowed_fields
+            })
         return attrs
+
+    def get_total_test_cases(self, obj):
+        return _get_total_test_cases(obj)

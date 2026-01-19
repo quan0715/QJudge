@@ -6,7 +6,7 @@ Usage:
     python scripts/build_styles.py
 
 This script:
-1. Loads design tokens from styles/tokens.json
+1. Loads design tokens from apps/contests/styles/tokens.json
 2. Generates SCSS variables file
 3. Compiles SCSS to CSS (if sass is available)
 4. Outputs CSS and hash file for cache busting
@@ -18,8 +18,8 @@ import shutil
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-STYLES_DIR = BASE_DIR / 'styles'
-OUTPUT_DIR = BASE_DIR / 'static' / 'exports'
+STYLES_DIR = BASE_DIR / 'apps' / 'contests' / 'styles'
+OUTPUT_DIR = BASE_DIR / 'apps' / 'contests' / 'static' / 'exports'
 
 
 def load_tokens() -> dict:

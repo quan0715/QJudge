@@ -1,0 +1,126 @@
+// _solver-menu.scss
+// ProblemMenu styles
+// 背景色由 Carbon Layer 組件處理
+@use "@carbon/layout";
+
+// ==============================================
+// Shared Variables - 統一尺寸
+// ==============================================
+:root {
+  --solver-item-size: #{layout.$spacing-09}; // 48px - 正方形 1:1
+}
+
+// ==============================================
+// Shared Item Content - 正方形置中容器
+// ==============================================
+.solver-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--solver-item-size);
+  height: var(--solver-item-size);
+}
+
+// ==============================================
+// Resize Handle - 用於 react-resizable-panels
+// ==============================================
+.solver-resize-handle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: layout.$spacing-02;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background-color: var(--cds-border-subtle-01);
+  user-select: none;
+
+  &::after {
+    content: "";
+    width: layout.$spacing-07;
+    height: layout.$spacing-01;
+    background-color: var(--cds-border-strong-01);
+    border-radius: var(--cds-border-radius-small);
+  }
+
+  &:hover,
+  &[data-resize-handle-active] {
+    background-color: var(--cds-border-interactive);
+    &::after {
+      background-color: var(--cds-icon-primary);
+    }
+  }
+}
+
+// ==============================================
+// Problem Menu
+// ==============================================
+
+.solver-menu {
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+  // Use shared item size
+  --solver-menu-row-height: var(--solver-item-size);
+  --solver-menu-indicator-width: #{layout.$spacing-02};
+  --solver-menu-header-height: 0; // No header - items start from top
+
+  // ContainedList overrides - remove default padding
+  .cds--contained-list {
+    padding: 0;
+  }
+
+  // Override ContainedListItem internal padding
+  .cds--contained-list-item__content {
+    padding: 0;
+  }
+}
+
+// Selection Indicator
+.solver-menu__indicator {
+  position: absolute;
+  left: 0;
+  width: var(--solver-menu-indicator-width);
+  height: var(--solver-menu-row-height);
+  background-color: var(--cds-interactive);
+  z-index: 10;
+  pointer-events: none;
+}
+
+// Problem Item
+.solver-menu__item {
+  cursor: pointer;
+  height: var(--solver-menu-row-height);
+  border-left: var(--solver-menu-indicator-width) solid transparent;
+  position: relative;
+
+  // Ensure Carbon's internal wrapper fills the height
+  .cds--contained-list-item__content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &[data-active="true"] {
+    background-color: var(--cds-layer-02);
+
+    .solver-menu__label {
+      color: var(--cds-interactive);
+    }
+  }
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+  }
+}
+
+// Problem Label (e.g., "A", "B")
+// Uses Carbon body-compact-02 type set for proper sizing
+.solver-menu__label {
+  font-size: var(--cds-body-compact-02-font-size);
+  font-weight: var(--cds-body-compact-02-font-weight);
+  line-height: var(--cds-body-compact-02-line-height);
+  color: var(--cds-text-primary);
+}

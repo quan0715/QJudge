@@ -1,0 +1,115 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--cds-layer-01);
+
+  &.panel {
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  &.modal {
+    padding: 1.5rem;
+  }
+
+  &.inline {
+    padding: 1.25rem;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.closeButton {
+  flex-shrink: 0;
+}
+
+.stats {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--cds-layer-02);
+  border-radius: var(--cds-border-radius, 0);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+
+  svg {
+    fill: var(--cds-icon-secondary);
+  }
+}
+
+.errorNotification {
+  margin: 0;
+  max-width: 100%;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section {
+  padding: 1rem;
+  background-color: var(--cds-layer-02);
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.codeSnippet {
+  max-width: 100%;
+  max-height: 200px;
+
+  // Override Carbon's code snippet styling
+  :global(.cds--snippet-container) {
+    max-height: 200px;
+    overflow: auto;
+  }
+
+  :global(code) {
+    white-space: pre;
+  }
+}
+
+.hiddenNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  background-color: var(--cds-layer-accent-01);
+  border-radius: var(--cds-border-radius, 0);
+}

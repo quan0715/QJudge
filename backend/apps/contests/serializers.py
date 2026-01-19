@@ -242,7 +242,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         Get contest problems with labels.
         Problems are ONLY visible to:
         1. Owner/Admin/Contest-Admin: always visible
-        2. Registered participants: only during active contest period
+        2. Registered participants: only during published contest period
         
         Non-registered users NEVER see problem structure.
         """
@@ -270,19 +270,20 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if not is_participant:
             return []
 
-        # For participants, only show problems during active contest period
+        # For participants, only show problems during published contest period
         now = timezone.now()
 
-        # Hide problems for inactive contests
-        if obj.status == 'inactive':
+        # Hide problems for draft contests
+        if obj.status == 'draft':
             return []
+
+        # Archived contests are read-only but visible to participants
+        if obj.status == 'archived':
+            contest_problems = obj.contest_problems.select_related('problem').order_by('order')
+            return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
 
         # Hide problems if contest hasn't started yet
         if obj.start_time and now < obj.start_time:
-            return []
-
-        # Hide problems if contest has ended
-        if obj.end_time and now > obj.end_time:
             return []
 
         contest_problems = obj.contest_problems.select_related('problem').order_by('order')
@@ -363,7 +364,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
         """Create contest with current user as owner."""
         request = self.context.get('request')
         validated_data['owner'] = request.user
-        validated_data['status'] = 'inactive'  # Always start as inactive
+        validated_data['status'] = 'draft'  # Always start as draft
 
         
         return super().create(validated_data)

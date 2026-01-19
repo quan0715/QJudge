@@ -1,0 +1,131 @@
+@use "@carbon/layout";
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: layout.$spacing-05 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  width: 100%;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--cds-body-compact-01-font-size);
+  color: var(--cds-text-secondary);
+  text-align: left;
+  transition: all 0.15s ease;
+  position: relative;
+
+  // Left border indicator
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background-color 0.15s ease;
+  }
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.active {
+  background-color: var(--cds-layer-selected-01);
+  color: var(--cds-text-primary);
+
+  &::before {
+    background: var(--cds-interactive);
+  }
+
+  .icon {
+    color: var(--cds-interactive);
+  }
+}
+
+.danger {
+  color: var(--cds-text-secondary);
+
+  &:hover {
+    color: var(--cds-support-error);
+  }
+
+  &.active {
+    color: var(--cds-support-error);
+
+    &::before {
+      background: var(--cds-support-error);
+    }
+
+    .icon {
+      color: var(--cds-support-error);
+    }
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Validation indicators
+.validIndicator {
+  display: flex;
+  align-items: center;
+  color: var(--cds-support-success);
+}
+
+.invalidIndicator {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-01;
+  color: var(--cds-support-error);
+}
+
+.errorCount {
+  font-size: var(--cds-label-01-font-size);
+  font-weight: 600;
+}
+
+.incompleteIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--cds-border-subtle-01);
+}
+
+// Preview button at bottom
+.previewButton {
+  padding: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle-01);
+  margin-top: auto;
+}

@@ -1,0 +1,279 @@
+// StorybookScreen responsive styles - based on DocumentationScreen
+
+.container {
+  display: flex;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.leftSidebar {
+  width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-layer-01);
+  position: sticky;
+  top: 3rem;
+  height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebarHeader {
+  padding: 1.5rem 1rem 1rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.sidebarTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.devBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  background-color: var(--cds-support-warning);
+  color: var(--cds-text-on-color);
+  font-size: 0.625rem;
+  font-weight: 600;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebarContent {
+  flex: 1;
+  padding-top: 0.5rem;
+  overflow-y: auto;
+}
+
+.mainArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pageHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.componentPath {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.contentArea {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  min-height: 0; // 重要：允許 flex 子項縮小
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.rightSidebar {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-layer-01);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.rightSidebarHeader {
+  padding: 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.rightSidebarContent {
+  padding: 1rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+// Canvas 區域
+.canvasSection {
+  margin-bottom: 2rem;
+}
+
+.canvasHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.canvas {
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  padding: 2rem;
+  background-color: var(--cds-layer-01);
+  min-height: 200px;
+  overflow-x: auto; // 允許內部水平卷軸
+}
+
+.canvasLight {
+  background-color: #ffffff;
+}
+
+.canvasDark {
+  background-color: #161616;
+}
+
+// Story 選擇器
+.storySelector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.storyButton {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+
+  &.active {
+    background: var(--cds-layer-selected-01);
+    border-color: var(--cds-border-interactive);
+    color: var(--cds-text-primary);
+    font-weight: 500;
+  }
+}
+
+// Code 區塊
+.codeSection {
+  margin-top: 1.5rem;
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+}
+
+.codeBlock {
+  margin: 0;
+  padding: 1rem;
+  background-color: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 0 0 4px 4px;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+// Empty state
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  color: var(--cds-text-secondary);
+}
+
+.emptyIcon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+// Mobile responsive styles
+@media screen and (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .leftSidebar {
+    display: none;
+  }
+
+  .rightSidebar {
+    display: none;
+  }
+
+  .mainArea {
+    width: 100%;
+  }
+
+  .pageHeader {
+    padding: 1rem;
+    flex-direction: column;
+  }
+
+  .mainContent {
+    padding: 1rem;
+  }
+}
+
+// Tablet responsive styles
+@media screen and (min-width: 769px) and (max-width: 1200px) {
+  .leftSidebar {
+    width: 240px;
+  }
+
+  .rightSidebar {
+    width: 240px;
+  }
+
+  .pageHeader {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .mainContent {
+    padding: 1.25rem 1.5rem;
+  }
+}

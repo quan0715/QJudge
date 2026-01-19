@@ -1,0 +1,148 @@
+@use "@carbon/layout";
+
+.inline-editable-markdown {
+  position: relative;
+
+  &__label {
+    display: block;
+    font-size: var(--cds-label-01-font-size);
+    font-weight: var(--cds-label-01-font-weight);
+    color: var(--cds-text-secondary);
+    margin-bottom: layout.$spacing-02;
+  }
+
+  &__view {
+    position: relative;
+    padding: layout.$spacing-04;
+    background-color: var(--cds-field-01);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: var(--cds-border-subtle-01);
+      background-color: var(--cds-field-hover-01);
+
+      .inline-editable-markdown__edit-hint {
+        opacity: 1;
+      }
+    }
+
+    &:focus {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+  }
+
+  &__placeholder {
+    color: var(--cds-text-placeholder);
+    font-style: italic;
+  }
+
+  &__preview {
+    // Ensure markdown preview has proper styling
+    color: var(--cds-text-primary);
+    font-size: var(--cds-body-01-font-size);
+    line-height: 1.5;
+
+    // Override markdown preview styles for inline display
+    :global(.markdown-preview) {
+      padding: 0;
+      background: transparent;
+    }
+
+    // Limit preview height with fade out
+    max-height: 300px;
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: layout.$spacing-07;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        var(--cds-field-01)
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+  }
+
+  // Show fade only if content is long
+  &__view:not(:hover) &__preview {
+    &::after {
+      opacity: 1;
+    }
+  }
+
+  &__edit-hint {
+    position: absolute;
+    top: layout.$spacing-03;
+    right: layout.$spacing-03;
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-02;
+    padding: layout.$spacing-02 layout.$spacing-03;
+    background-color: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle-01);
+    border-radius: 4px;
+    color: var(--cds-text-secondary);
+    font-size: var(--cds-label-01-font-size);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  &__editor {
+    border: 2px solid var(--cds-interactive);
+    border-radius: 4px;
+    overflow: hidden;
+
+    // Animation
+    animation: slideDown 0.15s ease-out;
+  }
+
+  &__error {
+    margin-top: layout.$spacing-02;
+    color: var(--cds-text-error);
+    font-size: var(--cds-label-01-font-size);
+  }
+
+  // States
+  &--disabled {
+    .inline-editable-markdown__view {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  &--invalid {
+    .inline-editable-markdown__view {
+      border-color: var(--cds-support-error);
+    }
+  }
+
+  &--editing {
+    .inline-editable-markdown__label {
+      color: var(--cds-interactive);
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
