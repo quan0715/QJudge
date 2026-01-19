@@ -14,7 +14,6 @@ import {
 } from "@/core/entities/contest.entity";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
-import { ContestTimer } from "@/shared/ui/contest";
 import { updateNickname } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
 import "./ContestHero.css";
@@ -218,16 +217,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       status={contestState}
     />
   );
-
-  const timer =
-    contestState === "ended" ? null : (
-      <ContestTimer
-        status={contestState as any}
-        targetTime={contestState === "upcoming" ? contest.startTime : contest.endTime}
-        label={contestState === "upcoming" ? t("countdownToStart") : t("countdownToEnd")}
-        onExpire={onRefreshContest}
-      />
-    );
   // ----------------------------------
 
   const handleStartClick = () => {
@@ -380,12 +369,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
           </MarkdownRenderer>
         }
         badges={badges}
-        metadata={
-          <>
-            {metadata}
-            {timer && <div style={{ marginTop: "0.75rem" }}>{timer}</div>}
-          </>
-        }
+        metadata={metadata}
         actions={renderActions()}
         kpiCards={kpiCards}
         progressBar={progressBar}

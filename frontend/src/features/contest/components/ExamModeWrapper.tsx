@@ -61,7 +61,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const isGracePeriod = useRef(false);
   const isSubmitting = useRef(false);
-  const prevIsActiveRef = useRef(false);
+  // Initialize with current examStatus to prevent grace period re-trigger on navigation
+  // This ensures that navigating from /solve back to /contest/id doesn't re-trigger the countdown
+  const prevIsActiveRef = useRef(examStatus === "in_progress");
   const blurCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );

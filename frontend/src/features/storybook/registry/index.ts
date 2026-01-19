@@ -131,7 +131,6 @@ import ErrorBoundaryStories from "@/features/app/components/ErrorBoundary.storie
 import QJudgeEditorStories from "@/shared/ui/editor/QJudgeEditor.stories";
 import KpiCardStories from "@/shared/ui/dataCard/KpiCard.stories";
 import InfoCardStories from "@/shared/ui/dataCard/InfoCard.stories";
-import ContestTimerStories from "@/shared/ui/contest/ContestTimer.stories";
 import MarkdownEditorStories from "@/shared/ui/markdown/markdownEditor/MarkdownEditor.stories";
 import ProblemDiscussionThreadStories from "@/shared/ui/discussion/ProblemDiscussionThread.stories";
 
@@ -167,7 +166,6 @@ registerStory("features/app/components/NotFound", NotFoundStories);
 registerStory("features/app/components/ServerError", ServerErrorStories);
 registerStory("shared/ui/dataCard/KpiCard", KpiCardStories);
 registerStory("shared/ui/dataCard/InfoCard", InfoCardStories);
-registerStory("shared/ui/contest/ContestTimer", ContestTimerStories);
 registerStory("shared/ui/markdown/markdownEditor", MarkdownEditorStories);
 registerStory(
   "shared/ui/discussion/ProblemDiscussionThread",
