@@ -1,0 +1,158 @@
+{
+  "info": {
+    "name": "Online Judge API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "submission_id", "value": "" },
+    { "key": "contest_id", "value": "" },
+    { "key": "problem_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Dev Token (DEBUG only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"student\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/dev/token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "dev", "token"]
+            }
+          }
+        },
+        {
+          "name": "Email Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/email/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "email", "login"]
+            }
+          }
+        },
+        {
+          "name": "Token Refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Submissions",
+      "item": [
+        {
+          "name": "Create Submission (contest/test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problem\": {{problem_id}},\n  \"contest\": {{contest_id}},\n  \"language\": \"cpp\",\n  \"code\": \"int main() { return 0; }\",\n  \"is_test\": true,\n  \"custom_test_cases\": [\n    { \"input\": \"1 2\", \"output\": \"3\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/submissions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "submissions", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Submission",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/submissions/{{submission_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "submissions", "{{submission_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "List Submissions (practice)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/submissions/?source_type=practice",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "submissions", ""],
+              "query": [
+                { "key": "source_type", "value": "practice" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Submissions (contest nested)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/contests/{{contest_id}}/submissions/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "contests", "{{contest_id}}", "submissions", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

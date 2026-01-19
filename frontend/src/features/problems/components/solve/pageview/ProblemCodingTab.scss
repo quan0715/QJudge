@@ -1,0 +1,36 @@
+@use "@carbon/react/scss/spacing" as *;
+
+.problem-coding-tab {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  padding: $spacing-05 0;
+
+  &__editor-container {
+    height: 400px;
+  }
+
+  &__test-cases-container {
+    max-height: 350px;
+    overflow-y: auto;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+  }
+
+  &__language-selector {
+    display: flex;
+    align-items: center;
+    padding: 0 $spacing-05;
+    border-right: 1px solid var(--cds-border-subtle);
+    height: 100%;
+  }
+
+  &__action-button {
+    height: 100%;
+    border-radius: 0;
+  }
+}

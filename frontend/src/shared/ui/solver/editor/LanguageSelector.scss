@@ -1,0 +1,131 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.language-selector {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+
+  // Custom trigger button (not using Carbon Button to avoid override issues)
+  &__trigger {
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-03;
+    height: 100%;
+    padding: 0 layout.$spacing-05;
+    min-width: layout.rem(120px);
+    background-color: transparent;
+    border: none;
+    color: var(--cds-text-primary);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    @include type.type-style("body-compact-01");
+
+    &:hover {
+      background-color: var(--cds-layer-hover-01);
+    }
+
+    &:focus {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+
+    &:active {
+      background-color: var(--cds-layer-active-01);
+    }
+  }
+
+  &__trigger-content {
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-03;
+    flex: 1;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    color: var(--cds-icon-secondary);
+  }
+
+  &__label {
+    @include type.type-style("label-01");
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--cds-text-primary);
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    margin-left: auto;
+    color: var(--cds-icon-primary);
+    transition: transform 0.15s ease;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  // Dropdown menu
+  &__menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: layout.rem(180px);
+    max-height: layout.rem(300px);
+    overflow-y: auto;
+    z-index: 9000; // Carbon uses 9000+ for overlays
+    background-color: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle-01);
+    box-shadow: 0 layout.rem(2px) layout.rem(6px) var(--cds-shadow);
+
+    // Note: Scrollbar styles are globally defined in styles/_scrollbar.scss
+  }
+
+  // Menu items
+  &__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: layout.$spacing-03 layout.$spacing-05;
+    background: none;
+    border: none;
+    text-align: left;
+    color: var(--cds-text-primary);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    @include type.type-style("body-compact-01");
+
+    &:hover {
+      background-color: var(--cds-layer-hover-01);
+    }
+
+    &:focus {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+
+    &--selected {
+      background-color: var(--cds-layer-selected-01);
+      font-weight: 600;
+
+      // Left accent bar for selected item
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: layout.rem(3px);
+        background-color: var(--cds-border-interactive);
+      }
+
+      &:hover {
+        background-color: var(--cds-layer-selected-hover-01);
+      }
+    }
+  }
+}

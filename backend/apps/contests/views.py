@@ -41,6 +41,8 @@ from .permissions import (
     get_user_role_in_contest
 )
 from .services.scoreboard import ScoreboardScope, ScoreboardService
+from apps.problems.services import ProblemService
+from apps.problems.models import Problem
 
 
 class ContestViewSet(viewsets.ModelViewSet):
@@ -780,20 +782,17 @@ class ContestViewSet(viewsets.ModelViewSet):
     )
     def publish_problem_to_practice(self, request, pk=None, problem_id=None):
         """
-        Publish a contest problem to the practice library.
+        Publish a single contest problem to the practice library by cloning.
+        Only allowed when contest is archived.
         """
         contest = self.get_object()
-        
-        # Check if contest is still running
-        is_running = contest.status == 'published' and (
-            not contest.end_time or timezone.now() <= contest.end_time
-        )
-        if is_running:
+
+        if contest.status != 'archived':
             return Response(
-                {'message': 'Contest must be ended before publishing problems'},
+                {'message': 'Contest must be archived before publishing problems'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             contest_problem = ContestProblem.objects.get(
                 contest=contest,
@@ -805,25 +804,95 @@ class ContestViewSet(viewsets.ModelViewSet):
                 {'message': 'Problem not found in this contest'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        if problem.is_practice_visible:
+
+        exists = Problem.objects.filter(
+            origin_problem=problem,
+            created_in_contest=contest,
+        ).exists()
+        if exists:
             return Response(
-                {'message': 'Problem is already published'},
+                {'message': 'Problem already published to practice'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        problem.is_practice_visible = True
-        problem.save()
-        
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest, 
-            request.user, 
-            'other', 
-            f"Published problem {problem.display_id} to practice"
+
+        new_problem = ProblemService.clone_problem_to_practice(
+            source_problem=problem,
+            source_contest=contest,
+            created_by=request.user,
         )
-        
-        return Response({'message': 'Problem published successfully'})
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'other',
+            f"Published problem {problem.display_id} to practice",
+        )
+
+        return Response(
+            {
+                'message': 'Problem published successfully',
+                'created_problem_id': new_problem.id,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[IsContestOwnerOrAdmin],
+        url_path='publish_to_practice'
+    )
+    def publish_problems_to_practice(self, request, pk=None):
+        """
+        Clone archived contest problems into the practice library.
+        """
+        contest = self.get_object()
+
+        if contest.status != 'archived':
+            return Response(
+                {'message': 'Contest must be archived before publishing problems'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        problem_ids = request.data.get('problem_ids')
+        if isinstance(problem_ids, str):
+            problem_ids = [pid for pid in problem_ids.split(",") if pid.strip()]
+        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem')
+        if problem_ids:
+            contest_problems = contest_problems.filter(problem_id__in=problem_ids)
+
+        created_problem_ids = []
+        skipped_problem_ids = []
+
+        for contest_problem in contest_problems:
+            problem = contest_problem.problem
+            exists = Problem.objects.filter(
+                origin_problem=problem,
+                created_in_contest=contest,
+            ).exists()
+            if exists:
+                skipped_problem_ids.append(problem.id)
+                continue
+
+            new_problem = ProblemService.clone_problem_to_practice(
+                source_problem=problem,
+                source_contest=contest,
+                created_by=request.user,
+            )
+            created_problem_ids.append(new_problem.id)
+
+        if created_problem_ids:
+            ContestActivityViewSet.log_activity(
+                contest,
+                request.user,
+                "other",
+                "Published contest problems to practice",
+            )
+
+        return Response({
+            'created_problem_ids': created_problem_ids,
+            'skipped_problem_ids': skipped_problem_ids,
+        })
 
     @action(detail=True, methods=['get'])
     def standings(self, request, pk=None):

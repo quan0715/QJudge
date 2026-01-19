@@ -2,12 +2,15 @@
   "nav": {
     "dashboard": "대시보드",
     "problems": "문제",
+    "labs": "랩",
     "contests": "대회",
     "submissions": "제출 기록",
     "ranking": "랭킹",
     "documentation": "문서",
+    "docs": "문서",
     "backToProblemList": "문제 목록으로 돌아가기",
-    "problemList": "문제 목록"
+    "problemList": "문제 목록",
+    "back": "뒤로"
   },
   "page": {
     "dashboard": "대시보드",
@@ -47,8 +50,11 @@
     "userMenu": "사용자 메뉴",
     "management": "관리",
     "system": "시스템",
+    "navigation": "빠른 탐색",
+    "account": "계정",
     "problemManagement": "문제 관리",
     "createContest": "대회 생성",
+    "createLab": "랩 생성",
     "userManagement": "사용자 관리",
     "announcements": "공지 관리",
     "environmentSettings": "환경 설정"
@@ -114,12 +120,14 @@
     "itemsPerPage": "페이지당 항목 수"
   },
   "language": {
+    "title": "언어",
     "switchTo": "언어 전환",
     "switchedTitle": "언어가 변경되었습니다",
     "switchedTo": "{{language}}로 전환되었습니다",
     "selectLanguage": "언어 선택"
   },
   "theme": {
+    "title": "테마",
     "switchToLight": "라이트 모드로 전환",
     "switchToDark": "다크 모드로 전환",
     "light": "라이트",
@@ -154,6 +162,8 @@
     "public": "공개"
   },
   "user": {
+    "preferences": "환경설정",
+    "changePassword": "비밀번호 변경",
     "role": {
       "student": "학생",
       "teacher": "교수",

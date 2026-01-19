@@ -1,0 +1,117 @@
+.editor-layout {
+  display: flex;
+  flex: 1; // Take remaining space from parent
+  width: 100%;
+  background-color: var(--cds-background);
+  overflow: hidden;
+  min-height: 0; // Critical for nested flex containers
+
+  // Left Panel - Fixed Width, Always Visible
+  &__left {
+    flex-shrink: 0;
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--cds-layer-01);
+    border-right: 1px solid var(--cds-border-subtle-01);
+  }
+
+  // Fixed width variant for menu/collapsed panels
+  &__left--fixed {
+    width: var(--cds-spacing-09);
+    min-width: var(--cds-spacing-09);
+  }
+
+  // Main Area (Center + Right with resizable panels)
+  &__main {
+    flex: 1;
+    height: 100%;
+    min-width: 0;
+  }
+
+  // Center Panel - Main Content
+  // Note: No explicit background - let Carbon Layer component handle layering
+  &__center {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; // Don't scroll here - let children handle their own scrolling
+
+    // Ensure direct children fill the panel
+    > * {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+    }
+  }
+
+  // Statement panel wrapper (inside resizable Panel)
+  &__statement-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  // Result panel inside resizable area
+  &__result-panel {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; // Critical for flex shrinking
+    border-top: 1px solid var(--cds-border-subtle-01);
+  }
+
+  // Right Panel - Editor/Preview/Context
+  // No scroll here - let children handle their own scrolling
+  &__right {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--cds-layer-01);
+
+    // Ensure direct children fill the panel
+    > * {
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  // Fixed width variant for collapsed right panel
+  &__right--fixed {
+    width: var(--cds-spacing-09);
+    min-width: var(--cds-spacing-09);
+  }
+
+  // Resize Handle (Vertical - for horizontal panels)
+  &__resize-handle {
+    width: 4px;
+    background-color: transparent;
+    cursor: col-resize;
+    transition: background-color 0.15s ease;
+
+    &:hover,
+    &[data-resize-handle-active] {
+      background-color: var(--cds-border-interactive);
+    }
+  }
+
+  // Resize Handle (Horizontal - for vertical panels)
+  &__resize-handle--horizontal {
+    height: 4px;
+    width: 100%;
+    background-color: transparent;
+    cursor: row-resize;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+
+    &:hover,
+    &[data-resize-handle-active] {
+      background-color: var(--cds-border-interactive);
+    }
+  }
+
+  // Editor + Result vertical group (resizable panels)
+  &__editor-result-group {
+    height: 100%;
+  }
+}

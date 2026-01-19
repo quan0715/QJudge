@@ -1,0 +1,84 @@
+@use "@carbon/layout";
+
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  white-space: nowrap;
+}
+
+.small {
+  font-size: var(--cds-label-01-font-size);
+}
+
+.medium {
+  font-size: var(--cds-body-compact-01-font-size);
+}
+
+.loading {
+  // Override InlineLoading min-height
+  min-block-size: auto;
+  
+  // Adjust text size
+  :global(.cds--inline-loading__text) {
+    font-size: inherit;
+    color: var(--cds-text-secondary);
+  }
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-support-success);
+  animation: fadeIn 0.2s ease-in-out;
+  
+  .icon {
+    fill: currentColor;
+  }
+  
+  .text {
+    color: var(--cds-text-secondary);
+  }
+}
+
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-support-error);
+  
+  .icon {
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+  
+  .text {
+    color: var(--cds-text-error);
+    max-width: layout.rem(200px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .retryButton {
+    margin-left: layout.$spacing-02;
+    padding: 0;
+    min-height: auto;
+    
+    // Ensure icon button is visible
+    &:hover {
+      background-color: var(--cds-layer-hover-01);
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

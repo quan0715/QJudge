@@ -1,0 +1,45 @@
+/**
+ * ResizeHandle - Global resize handle styles
+ * 
+ * Provides consistent styling for react-resizable-panels Separator
+ * in both vertical (col-resize) and horizontal (row-resize) orientations.
+ */
+
+.resize-handle {
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+
+  // Active/Hover state
+  &:hover,
+  &[data-resize-handle-active] {
+    background-color: var(--cds-border-interactive);
+  }
+
+  // Vertical orientation (for horizontal panel groups)
+  // Creates a vertical bar that resizes width
+  &--vertical {
+    width: 4px;
+    cursor: col-resize;
+  }
+
+  // Horizontal orientation (for vertical panel groups)
+  // Creates a horizontal bar that resizes height
+  &--horizontal {
+    height: 4px;
+    width: 100%;
+    cursor: row-resize;
+  }
+
+  // Disabled state
+  &--disabled {
+    cursor: default;
+    pointer-events: none;
+    opacity: 0.5;
+
+    &:hover,
+    &[data-resize-handle-active] {
+      background-color: transparent;
+    }
+  }
+}

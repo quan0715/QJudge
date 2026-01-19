@@ -1,5 +1,10 @@
 import pytest
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 from apps.users.models import User, UserProfile
 
 
@@ -64,6 +69,61 @@ def test_token_refresh_flow(api_client, user_factory):
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["success"] is True
     assert "access_token" in response.json()["data"]
+
+
+@pytest.mark.django_db
+def test_logout_blacklists_refresh_token(api_client, user_factory):
+    password = "LogoutPass123"
+    user = user_factory(password=password)
+    login_response = api_client.post(
+        "/api/v1/auth/email/login",
+        {"email": user.email, "password": password},
+        format="json",
+    )
+    refresh_token = login_response.json()["data"]["refresh_token"]
+    # Capture JTI before logout blacklists the token (verify=False to skip blacklist check)
+    jti = str(RefreshToken(refresh_token, verify=False)["jti"])
+
+    api_client.force_authenticate(user=user)
+    response = api_client.post(
+        "/api/v1/auth/logout",
+        {"refresh": refresh_token},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["success"] is True
+
+    assert BlacklistedToken.objects.filter(token__jti=jti).exists()
+
+    refresh_response = api_client.post(
+        "/api/v1/auth/refresh",
+        {"refresh": refresh_token},
+        format="json",
+    )
+    assert refresh_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_logout_without_refresh_blacklists_all_outstanding(api_client, user_factory):
+    password = "LogoutPass456"
+    user = user_factory(password=password)
+    api_client.post(
+        "/api/v1/auth/email/login",
+        {"email": user.email, "password": password},
+        format="json",
+    )
+
+    api_client.force_authenticate(user=user)
+    response = api_client.post("/api/v1/auth/logout")
+    assert response.status_code == status.HTTP_200_OK
+
+    outstanding_tokens = OutstandingToken.objects.filter(user=user)
+    assert outstanding_tokens.exists()
+    assert (
+        BlacklistedToken.objects.filter(token__in=outstanding_tokens).count()
+        == outstanding_tokens.count()
+    )
 
 
 @pytest.mark.django_db

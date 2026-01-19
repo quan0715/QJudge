@@ -78,6 +78,7 @@ export interface Contest {
   status: ContestStatus;
   visibility: ContestVisibility;
   password?: string;
+  organizer?: string;
 
   // User state
   hasJoined: boolean;

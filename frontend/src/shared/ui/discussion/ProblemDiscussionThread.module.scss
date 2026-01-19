@@ -1,0 +1,188 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+// Main Thread Container
+.thread {
+  padding: layout.$spacing-05;
+}
+
+.tagsRow {
+  margin-bottom: layout.$spacing-04;
+}
+
+// Main Content Layout
+.mainContent {
+  display: flex;
+  gap: layout.$spacing-04;
+}
+
+// Left Side - Thread Line & Avatar
+.threadLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.verticalLine {
+  width: 2px;
+  flex: 1;
+  background-color: var(--cds-border-subtle);
+  margin-top: layout.$spacing-03;
+}
+
+// Right Side - Content Area
+.contentArea {
+  flex: 1;
+  min-width: 0;
+}
+
+// Author Row
+.authorRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  margin-bottom: layout.$spacing-02;
+  flex-wrap: wrap;
+}
+
+.authorName {
+  @include type.type-style("label-01");
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.dot {
+  color: var(--cds-text-secondary);
+}
+
+.time {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.editedTag {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  font-style: italic;
+  margin-left: layout.$spacing-02;
+}
+
+.editButton {
+  color: var(--cds-text-secondary);
+  margin-left: auto;
+
+  &:hover {
+    color: var(--cds-text-primary);
+  }
+}
+
+.deleteButton {
+  color: var(--cds-support-error);
+}
+
+// Content Text
+.contentText {
+  @include type.type-style("body-short-01");
+  white-space: pre-wrap;
+  color: var(--cds-text-primary);
+  line-height: 1.5;
+  margin-bottom: layout.$spacing-03;
+}
+
+// Action Row
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  margin-top: layout.$spacing-03;
+}
+
+.likeButton,
+.replyButton {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: layout.$spacing-02;
+  border-radius: layout.$spacing-02;
+  transition: background-color 0.15s ease;
+
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+  }
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+.likeButton.liked {
+  color: var(--cds-support-error);
+}
+
+// Replies Container
+.repliesContainer {
+  margin-top: layout.$spacing-05;
+}
+
+// Reply Item with Connector
+.replyWrapper {
+  display: flex;
+  gap: layout.$spacing-03;
+  position: relative;
+
+  &.lastReply {
+    .connector .connectorLine {
+      // 最後一則回覆：線條只到圓點中心
+      height: 14px; // 與 connectorDot 的 margin-top(8px) + 半徑(6px) 對齊
+    }
+  }
+}
+
+// Connector (Vertical + Horizontal Line + Dot)
+.connector {
+  position: relative;
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.connectorLine {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--cds-border-subtle);
+  transform: translateX(-50%);
+}
+
+.connectorDot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--cds-background);
+  border: 2px solid var(--cds-border-subtle);
+  margin-top: 8px;
+  z-index: 1;
+}
+
+// Reply Content
+.replyContent {
+  flex: 1;
+  min-width: 0;
+}
+
+// Nested Replies
+.nestedReplies {
+  margin-top: layout.$spacing-03;
+}

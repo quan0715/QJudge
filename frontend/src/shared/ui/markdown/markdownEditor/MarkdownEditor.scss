@@ -1,0 +1,368 @@
+.markdown-editor {
+  display: flex;
+  flex-direction: column;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+
+  // Inline mode - fills container height
+  &--inline {
+    height: 100%;
+  }
+
+  &__label {
+    flex-shrink: 0;
+    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cds-text-secondary);
+    background: var(--cds-layer-02);
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    min-height: 0; // Important for flex child to shrink properly
+    overflow: hidden;
+  }
+
+  &__editor {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    // Monaco editor container needs to fill
+    > div {
+      flex: 1;
+      min-height: 0;
+    }
+
+    &--with-preview {
+      flex: 1;
+      border-right: 1px solid var(--cds-border-subtle-01);
+    }
+  }
+
+  &__preview {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--cds-layer-01);
+  }
+
+  &__preview-header {
+    flex-shrink: 0;
+    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cds-text-secondary);
+    background: var(--cds-layer-02);
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+
+  &__preview-content {
+    flex: 1;
+    min-height: 0;
+    padding: 1rem; // explicit padding
+    overflow: auto;
+
+    .markdown-body {
+      > *:not(:last-child) {
+        margin-bottom: 0.75rem;
+      }
+    }
+  }
+}
+
+// Toolbar styles
+.markdown-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--cds-spacing-02);
+  padding: var(--cds-spacing-02) var(--cds-spacing-03);
+  background: var(--cds-layer-02);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+
+  &__group {
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-01);
+
+    &--right {
+      margin-left: auto;
+    }
+  }
+
+  &__divider {
+    width: 1px;
+    height: 24px;
+    background: var(--cds-border-subtle-01);
+    margin: 0 var(--cds-spacing-02);
+  }
+}
+
+// Field trigger styles
+.markdown-field-trigger {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--cds-border-strong-01);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: var(--cds-spacing-02);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cds-text-secondary);
+  }
+
+  &__content {
+    min-height: 80px;
+    max-height: 200px;
+    padding: var(--cds-spacing-05);
+    overflow: auto;
+    background: var(--cds-field-01);
+    border: 1px solid var(--cds-border-subtle-01);
+
+    .markdown-body {
+      font-size: 0.875rem;
+
+      // Space between markdown elements
+      > *:not(:last-child) {
+        margin-bottom: var(--cds-spacing-04);
+      }
+    }
+  }
+
+  &__placeholder {
+    color: var(--cds-text-placeholder);
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+
+  &__edit-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-02);
+    margin-top: var(--cds-spacing-02);
+    font-size: 0.75rem;
+    color: var(--cds-text-helper);
+  }
+}
+
+// Inline Markdown Editor styles
+.inline-markdown-editor {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:hover:not(&--editing) {
+    border-color: var(--cds-border-strong-01);
+  }
+
+  &--editing {
+    cursor: default;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem; // spacing-03
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cds-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--cds-spacing-02);
+  }
+
+  &__edit-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-02);
+    font-size: 0.75rem;
+    color: var(--cds-text-helper);
+  }
+
+  &__content {
+    min-height: 80px;
+    max-height: 300px;
+    padding: 1rem; // explicit padding
+    overflow: auto;
+    background: var(--cds-field-01);
+    border: 1px solid var(--cds-border-subtle-01);
+
+    .markdown-body {
+      font-size: 0.875rem;
+
+      > *:not(:last-child) {
+        margin-bottom: 0.75rem;
+      }
+    }
+  }
+
+  &__placeholder {
+    color: var(--cds-text-placeholder);
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+
+  &__editor {
+    border: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+// Modal styles
+.markdown-editor-modal {
+  .cds--modal-container {
+    max-width: 90vw;
+    width: 90vw;
+    max-height: 90vh;
+    height: 90vh;
+  }
+
+  .cds--modal-content {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    .markdown-editor {
+      flex: 1;
+      min-height: 0;
+    }
+  }
+}
+
+// MarkdownField - Always-visible editor for forms (Carbon-style)
+.markdown-field {
+  // Label - matches Carbon's .cds--label
+  &__label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1rem;
+    letter-spacing: 0.32px;
+    color: var(--cds-text-secondary);
+  }
+
+  // Editor container - Carbon TextArea style
+  &__editor {
+    position: relative;
+    border: none;
+    border-bottom: 1px solid var(--cds-border-strong);
+    padding: var(--cds-spacing-02);
+    background-color: var(--cds-field);
+    overflow: hidden;
+    transition: outline 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+
+    // Focus state - Carbon style outline
+    &:focus-within {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+
+    // Remove inner border from markdown-editor
+    .markdown-editor {
+      border: 1px solid var(--cds-border-subtle-01);
+      background: var(--cds-field);
+    }
+
+    // Toolbar - subtle background, sits above the input
+    .markdown-toolbar {
+      background: var(--cds-layer-02);
+      border-bottom: 1px solid var(--cds-border-subtle);
+    }
+
+    // Editor content area - Carbon field background
+    .markdown-editor__content,
+    .markdown-editor__editor {
+      background-color: var(--cds-field);
+
+      &:hover {
+        background-color: var(--cds-field-hover);
+      }
+    }
+
+    // Monaco editor background
+    .monaco-editor,
+    .monaco-editor .margin,
+    .monaco-editor-background {
+      background-color: var(--cds-field) !important;
+    }
+
+    // Monaco editor on hover
+    &:hover {
+      .monaco-editor,
+      .monaco-editor .margin,
+      .monaco-editor-background {
+        background-color: var(--cds-field-hover) !important;
+      }
+    }
+  }
+
+  // Helper text - matches Carbon's .cds--form__helper-text
+  &__helper-text {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    letter-spacing: 0.32px;
+    color: var(--cds-text-helper);
+  }
+
+  // Invalid state
+  &--invalid {
+    .markdown-field__editor {
+      outline: 2px solid var(--cds-support-error);
+      outline-offset: -2px;
+    }
+
+    .markdown-field__helper-text {
+      color: var(--cds-text-error);
+    }
+  }
+
+  // Disabled state
+  &--disabled {
+    .markdown-field__label {
+      color: var(--cds-text-disabled);
+    }
+
+    .markdown-field__editor {
+      background-color: var(--cds-field-disabled);
+      border-bottom-color: transparent;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: var(--cds-field-disabled);
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
+.list {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.emptyState {
+  padding: 1rem 1.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  text-align: center;
+  background-color: var(--cds-layer-02);
+  border-radius: 4px;
+}
+
+// Horizontal layout - scrollable row
+.horizontal {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 0.25rem; // Space for scrollbar
+
+  // Hide scrollbar but keep functionality
+  scrollbar-width: thin;
+  scrollbar-color: var(--cds-border-subtle) transparent;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle);
+    border-radius: 2px;
+
+    &:hover {
+      background: var(--cds-border-strong);
+    }
+  }
+}
+
+// Vertical layout - stacked column
+.vertical {
+  flex-direction: column;
+  align-items: stretch;
+
+  > * {
+    width: 100%;
+  }
+}
+
+// Grid layout - responsive grid
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns, 4), 1fr);
+  gap: 0.5rem;
+
+  // Responsive breakpoints
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  > * {
+    justify-content: center;
+  }
+}

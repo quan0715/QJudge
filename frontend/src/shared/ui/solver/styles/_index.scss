@@ -1,0 +1,9 @@
+// _index.scss
+// Contest Solver Styles Entry Point
+// 使用 @forward 讓樣式可被外部 @use
+
+// 只包含無法用現有組件替代的獨特樣式
+@forward "./solver-menu";       // ProblemMenu sliding indicator 動畫
+@forward "./solver-results";    // TestResult 狀態顏色、動畫
+@forward "./solver-statement";  // StatementPanel 折疊狀態、垂直 tabs
+

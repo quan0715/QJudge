@@ -1,0 +1,109 @@
+import React from "react";
+// import { useTheme } from '@/shared/ui/theme/ThemeContext';
+
+interface ContentPageProps {
+  children: React.ReactNode;
+  hero?: React.ReactNode;
+  header?: React.ReactNode;
+  sidebar?: React.ReactNode;
+  /** Content that sticks below the hero when scrolling (e.g., tabs) */
+  stickyHeader?: React.ReactNode;
+  className?: string;
+  contentStyle?: React.CSSProperties;
+}
+
+/**
+ * A shared layout component that provides the standard "Hero + Scrollable Content + Surface" structure.
+ */
+export const ContentPage: React.FC<ContentPageProps> = ({
+  children,
+  hero,
+  header,
+  sidebar,
+  stickyHeader,
+  className,
+  contentStyle,
+}) => {
+  // const { theme } = useTheme();
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      {/* Optional Custom Header or Global Bar Area */}
+      {header}
+
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "row",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Optional Sidebar Area */}
+        {sidebar}
+
+        <div
+          className={className}
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            backgroundColor: "var(--cds-background)",
+            ...contentStyle,
+          }}
+        >
+          <div
+            className="content-scroll-container"
+            style={{
+              flex: 1,
+              overflow: "auto",
+              backgroundColor: "var(--cds-background)",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: "100%",
+            }}
+          >
+            {/* Hero Section - Scrolls with content */}
+            {hero && <div style={{ flexShrink: 0 }}>{hero}</div>}
+
+            {/* Sticky Header (e.g., Tabs) - Sticks to top when scrolling */}
+            {stickyHeader && (
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 90,
+                  flexShrink: 0,
+                }}
+              >
+                {stickyHeader}
+              </div>
+            )}
+
+            {/* Main Content Area - Fill remaining space */}
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: "calc(100vh - 3rem - 200px)", // At least fill screen minus header and hero estimate
+              }}
+            >
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,107 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+
+// Status colors using Carbon tokens where possible
+// Note: These are for chart visualization - Carbon charts require hex values
+:root {
+  --stats-color-success: var(--cds-support-success, #24a148);
+  --stats-color-error: var(--cds-support-error, #da1e28);
+  --stats-color-warning: var(--cds-support-warning, #f1c21b);
+  --stats-color-info: var(--cds-support-info, #0f62fe);
+  // Custom status colors for detailed chart
+  --stats-color-wa: #fa4d56;
+  --stats-color-mle: #ff832b;
+  --stats-color-re: #a56eff;
+  // Rank badge colors (semantic)
+  --stats-rank-gold: #ffd700;
+  --stats-rank-silver: #c0c0c0;
+  --stats-rank-bronze: #cd7f32;
+}
+
+.problem-stats-tab {
+  min-height: 100%;
+
+  &__chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  &__chart-summary {
+    margin-top: $spacing-03;
+    text-align: center;
+    color: var(--cds-text-secondary);
+    @include type-style("body-compact-01");
+  }
+
+  &__empty-state {
+    padding: $spacing-07;
+    text-align: center;
+    color: var(--cds-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  &__loading {
+    padding: $spacing-06;
+  }
+
+  &__leaderboard-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+  }
+
+  &__rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: 700;
+    @include type-style("label-01");
+
+    &--gold {
+      background-color: var(--stats-rank-gold);
+      color: #000;
+    }
+
+    &--silver {
+      background-color: var(--stats-rank-silver);
+      color: #000;
+    }
+
+    &--bronze {
+      background-color: var(--stats-rank-bronze);
+      color: #000;
+    }
+
+    &--default {
+      background-color: var(--cds-layer-accent-01);
+      color: var(--cds-text-primary);
+    }
+  }
+
+  &__exec-time {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-02;
+    font-weight: 600;
+
+    &--best {
+      color: var(--cds-support-success);
+    }
+  }
+
+  &__trend-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+}

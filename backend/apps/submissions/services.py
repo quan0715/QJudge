@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 from django.db import transaction
 
 from apps.contests.models import Contest
+from apps.labs.access_policy import LabAccessError, LabAccessPolicy
+from apps.labs.models import Lab
 from apps.problems.models import Problem
 from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from apps.submissions.models import Submission
@@ -30,15 +32,29 @@ class SubmissionService:
         user: User,
         data: Dict[str, Any],
         contest_id: Optional[int] = None,
+        lab_id: Optional[int] = None,
     ) -> SubmissionCreateResult:
         contest = data.get("contest")
         if contest is None and contest_id:
             contest = Contest.objects.get(id=contest_id)
 
+        lab = data.get("lab")
+        if lab is None and lab_id:
+            lab = Lab.objects.get(id=lab_id)
+
+        if contest and lab:
+            raise SubmissionAccessError("Contest and lab cannot be combined")
+
         source_type = "contest" if contest else "practice"
 
         if contest:
             SubmissionAccessPolicy.enforce_contest_submission(user, contest)
+
+        if lab:
+            try:
+                LabAccessPolicy.enforce_submission(user, lab)
+            except LabAccessError as exc:
+                raise SubmissionAccessError(exc.message) from exc
 
         problem: Problem = data["problem"]
         code: str = data.get("code", "")

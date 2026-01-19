@@ -1,0 +1,21 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.meta {
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
+}
+
+.content {
+  @include type.type-style("body-long-01");
+  color: var(--cds-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}

@@ -12,7 +12,7 @@ from .serializers import (
     CreateSubmissionSerializer,
 )
 from .tasks import judge_submission, judge_contest_submission
-from .access_policy import SubmissionAccessError
+from .access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from .services import SubmissionService
 
 
@@ -20,6 +20,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for viewing and creating submissions.
     """
+    http_method_names = ["get", "post", "head", "options"]
     queryset = Submission.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [
@@ -27,7 +28,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter
     ]
     filterset_fields = [
-        'problem', 'contest', 'status', 'language', 'source_type', 'user'
+        'problem', 'contest', 'lab', 'status', 'language', 'source_type', 'user'
     ]
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
@@ -62,15 +63,21 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         if self.action != "list":
             return queryset.optimized_for_detail()
 
-        contest_id = self.request.query_params.get("contest")
+        contest_id = self.kwargs.get("contest_pk") or self.request.query_params.get("contest")
+        lab_id = self.request.query_params.get("lab")
         include_all = self.request.query_params.get("include_all", "false").lower() == "true"
         created_after = self.request.query_params.get("created_after")
-        source_type = self.request.query_params.get("source_type", "practice")
+        source_type = self.request.query_params.get("source_type")
+        if contest_id:
+            source_type = "contest"
+        elif not source_type:
+            source_type = "practice"
 
         return queryset.visible_to(
             user=self.request.user,
             source_type=source_type,
             contest_id=contest_id,
+            lab_id=lab_id,
             include_all=include_all,
             created_after=created_after,
             date_range_days=self.DEFAULT_DATE_RANGE_DAYS,
@@ -96,8 +103,12 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         is_admin = user.is_staff or getattr(user, 'role', '') in ['admin', 'teacher']
         is_contest_owner = instance.contest and instance.contest.owner == user
         is_problem_owner = instance.problem.created_by == user
+        is_contest_admin = (
+            instance.contest
+            and SubmissionAccessPolicy.is_privileged(user, instance.contest)
+        )
         
-        if not (is_owner or is_admin or is_contest_owner or is_problem_owner):
+        if not (is_owner or is_admin or is_contest_owner or is_problem_owner or is_contest_admin):
             return Response(
                 {'detail': 'You do not have permission to view this submission details.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -112,12 +123,14 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         contest = serializer.validated_data.get('contest')
+        lab = serializer.validated_data.get('lab')
 
         try:
             result = SubmissionService.create_submission(
                 user=user,
                 data=serializer.validated_data,
                 contest_id=contest.id if contest else None,
+                lab_id=lab.id if lab else None,
             )
         except SubmissionAccessError as exc:
             from rest_framework.exceptions import PermissionDenied

@@ -2,12 +2,15 @@
   "nav": {
     "dashboard": "Dashboard",
     "problems": "Problems",
+    "labs": "Labs",
     "contests": "Contests",
     "submissions": "Submissions",
     "ranking": "Ranking",
     "documentation": "Documentation",
+    "docs": "Docs",
     "backToProblemList": "Back to Problems",
-    "problemList": "Problem List"
+    "problemList": "Problem List",
+    "back": "Back"
   },
   "page": {
     "dashboard": "Dashboard",
@@ -47,11 +50,18 @@
     "userMenu": "User Menu",
     "management": "Management",
     "system": "System",
+    "navigation": "Quick Navigation",
+    "account": "Account",
     "problemManagement": "Problem Management",
     "createContest": "Create Contest",
+    "createLab": "Create Lab",
     "userManagement": "User Management",
     "announcements": "Announcements",
-    "environmentSettings": "Environment Settings"
+    "environmentSettings": "Environment Settings",
+    "teacherDashboard": "Teacher Dashboard",
+    "systemSettings": "System Settings",
+    "contestManagement": "Contest Management",
+    "labManagement": "Lab Management"
   },
   "dashboard": {
     "welcomeBack": "Welcome back, {{name}}",
@@ -114,12 +124,14 @@
     "itemsPerPage": "Items per page"
   },
   "language": {
+    "title": "Language",
     "switchTo": "Switch Language",
     "switchedTitle": "Language Changed",
     "switchedTo": "Switched to {{language}}",
     "selectLanguage": "Select Language"
   },
   "theme": {
+    "title": "Theme",
     "switchToLight": "Switch to Light Mode",
     "switchToDark": "Switch to Dark Mode",
     "light": "Light",
@@ -154,6 +166,8 @@
     "public": "Public"
   },
   "user": {
+    "preferences": "Preferences",
+    "changePassword": "Change Password",
     "role": {
       "student": "Student",
       "teacher": "Teacher",

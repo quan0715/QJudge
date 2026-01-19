@@ -1,0 +1,44 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatarSm {
+  width: 28px;
+  height: 28px;
+}
+
+.avatarMd {
+  width: 40px;
+  height: 40px;
+}
+
+.avatarLg {
+  width: 56px;
+  height: 56px;
+}
+
+.avatarInitial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cds-layer-accent-01);
+  color: var(--cds-text-on-color);
+  font-weight: 600;
+
+  &.avatarSm {
+    @include type.type-style("label-01");
+  }
+
+  &.avatarMd {
+    @include type.type-style("body-compact-01");
+  }
+
+  &.avatarLg {
+    @include type.type-style("heading-01");
+  }
+}

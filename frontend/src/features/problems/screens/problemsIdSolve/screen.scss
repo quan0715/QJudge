@@ -1,0 +1,70 @@
+@use "@carbon/layout";
+
+.problem-solve-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--cds-background);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    // OVERRIDE: Remove Carbon Header default padding for edge-to-edge layout
+    // Reason: Solver screen needs buttons flush to edges for compact toolbar
+    // Remove when: Carbon provides padding prop for Header component
+    &.cds--header {
+      padding: 0;
+    }
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  &__header-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  &__title {
+    font-weight: 500;
+
+    // OVERRIDE: Adjust Carbon HeaderName padding for compact layout
+    // Reason: Default prefix spacing not needed, use minimal padding
+    &.cds--header__name {
+      padding: 0 layout.$spacing-03;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: layout.rem(48px); // Account for fixed header height
+    min-height: 0;
+    overflow: hidden;
+
+    &--loading,
+    &--error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: layout.$spacing-05;
+      padding: layout.$spacing-07;
+      text-align: center;
+
+      h3 {
+        color: var(--cds-text-primary);
+        margin: 0;
+      }
+    }
+  }
+}

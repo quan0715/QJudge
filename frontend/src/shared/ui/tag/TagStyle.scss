@@ -1,0 +1,48 @@
+@use "@carbon/layout";
+
+.tag-line {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  gap: layout.$spacing-02;
+  flex-wrap: wrap;
+}
+
+.tag-empty {
+  color: var(--cds-text-secondary);
+}
+
+.acr-badge__ring {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: layout.$spacing-03;
+  flex-shrink: 0;
+}
+
+.acr-badge__ring-center {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--cds-layer-01);
+}
+
+.acr-badge__text {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+}
+
+// Scoped to AcrBadge only
+.cds--tag__label {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}

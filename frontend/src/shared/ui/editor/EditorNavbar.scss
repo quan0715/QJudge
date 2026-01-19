@@ -1,0 +1,33 @@
+.editor-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: var(--cds-layer-01);
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  &__back {
+    margin-left: 0.5rem;
+  }
+
+  &__title {
+    font-weight: 600;
+    padding-left: 0.5rem;
+    
+    // Remove default prefix styling
+    &::before {
+      content: none;
+    }
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    flex: 1;
+  }
+
+  &__action {
+    margin-left: 0.5rem;
+  }
+}

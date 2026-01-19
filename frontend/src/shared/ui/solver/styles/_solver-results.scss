@@ -1,0 +1,292 @@
+// _solver-results.scss
+// Test Results Panel styles - 保留獨特的狀態顏色、動畫
+// 整合 ResultsPanel.scss 和 TestResultPanel.scss
+@use "@carbon/layout";
+
+// ==============================================
+// Results Panel - Empty State
+// ==============================================
+.results-panel {
+  flex: 1;
+  width: 100%;
+
+  &__root {
+    height: 100%;
+    width: 100%;
+  }
+
+  &__body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  // Empty state
+  &__empty-state {
+    height: 100%;
+    padding: layout.$spacing-07;
+    color: var(--cds-text-secondary);
+  }
+
+  &__empty-icon {
+    color: var(--cds-icon-secondary);
+  }
+
+  &__empty-title {
+    font-size: var(--cds-heading-compact-01-font-size);
+    font-weight: var(--cds-heading-compact-01-font-weight);
+    line-height: var(--cds-heading-compact-01-line-height);
+    color: var(--cds-text-primary);
+    margin: 0;
+  }
+
+  &__empty-subtitle {
+    font-size: var(--cds-body-compact-01-font-size);
+    line-height: var(--cds-body-compact-01-line-height);
+    color: var(--cds-text-secondary);
+    text-align: center;
+    margin: 0;
+  }
+}
+
+// ==============================================
+// Test Result Panel
+// ==============================================
+.test-result-panel {
+  // CSS Variables - using layout.rem for dynamic values
+  --test-result-sidebar-width: layout.rem(220px);
+  --test-result-list-header-height: layout.rem(48px);
+  --test-result-row-height: layout.rem(48px);
+  --test-result-indicator-width: layout.$spacing-02;
+  --test-result-header-skeleton-width: layout.rem(146px);
+
+  height: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--cds-border-subtle-01);
+  width: 100%;
+
+  // Body
+  &__body {
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  // Header
+  &__header-layer {
+    padding: 0;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+
+  // Status Icons - 獨特的狀態顏色
+  &__header-icon {
+    flex-shrink: 0;
+
+    &--success {
+      color: var(--cds-support-success);
+    }
+
+    &--error {
+      color: var(--cds-support-error);
+    }
+
+    &--info {
+      color: var(--cds-support-info);
+      animation: test-result-panel-spin 1.5s linear infinite;
+    }
+  }
+
+  // Title - 狀態顏色
+  &__title {
+    font-size: var(--cds-heading-03-font-size);
+    line-height: var(--cds-heading-03-line-height);
+    font-weight: var(--cds-heading-03-font-weight);
+    margin: 0;
+
+    &[data-status="green"] {
+      color: var(--cds-support-success);
+    }
+    &[data-status="red"] {
+      color: var(--cds-support-error);
+    }
+    &[data-status="blue"] {
+      color: var(--cds-support-info);
+    }
+    &[data-status="gray"] {
+      color: var(--cds-text-secondary);
+    }
+  }
+
+  &__subtitle {
+    font-size: var(--cds-label-01-font-size);
+    line-height: var(--cds-label-01-line-height);
+    font-weight: var(--cds-label-01-font-weight);
+    color: var(--cds-text-secondary);
+  }
+
+  // Sidebar
+  &__sidebar {
+    width: var(--test-result-sidebar-width);
+    min-width: var(--test-result-sidebar-width);
+    overflow-y: auto;
+    border-right: 1px solid var(--cds-border-subtle-01);
+    position: relative;
+  }
+
+  &__list-container {
+    position: relative;
+  }
+
+  // Sliding Indicator - 獨特的動畫效果
+  &__sliding-indicator {
+    position: absolute;
+    left: 0;
+    width: var(--test-result-indicator-width);
+    height: var(--test-result-row-height);
+    transition: top 0.25s cubic-bezier(0.2, 0, 0.38, 0.9),
+      background-color 0.2s linear;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  // Case Item
+  &__case-item {
+    cursor: pointer;
+    height: var(--test-result-row-height);
+    border-left: var(--test-result-indicator-width) solid transparent;
+    position: relative;
+
+    &[data-active="true"] {
+      background-color: var(--cds-layer-selected-01);
+    }
+
+    &:hover {
+      background-color: var(--cds-layer-hover-01);
+    }
+  }
+
+  &__case-item-content {
+    width: 100%;
+  }
+
+  &__case-label {
+    font-size: var(--cds-body-compact-01-font-size);
+    line-height: var(--cds-body-compact-01-line-height);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Empty state
+  &__empty-item {
+    pointer-events: none;
+    height: var(--test-result-row-height);
+  }
+
+  &__empty-text {
+    font-size: var(--cds-body-compact-01-font-size);
+    color: var(--cds-text-secondary);
+    font-style: italic;
+  }
+
+  // Detail Panel
+  &__detail {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  &__detail-content {
+    padding: layout.$spacing-06;
+  }
+
+  &__section-title {
+    font-size: var(--cds-label-01-font-size);
+    line-height: var(--cds-label-01-line-height);
+    font-weight: var(--cds-label-01-font-weight);
+    color: var(--cds-text-secondary);
+    text-transform: uppercase;
+  }
+
+  // Error Alert - 獨特的錯誤樣式
+  &__error-alert {
+    background-color: var(--cds-notification-background-error);
+    border-left: var(--test-result-indicator-width) solid
+      var(--cds-support-error);
+    padding: layout.$spacing-04;
+    color: var(--cds-text-primary);
+    white-space: pre-wrap;
+    font-family: var(--cds-code-01-font-family);
+    font-size: var(--cds-code-01-font-size);
+    line-height: var(--cds-code-01-line-height);
+  }
+
+  &__empty {
+    color: var(--cds-text-secondary);
+    font-size: var(--cds-body-01-font-size);
+    line-height: var(--cds-body-01-line-height);
+  }
+
+  // Hidden Test Cases State
+  &__hidden-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: layout.$spacing-05;
+    padding: layout.$spacing-09;
+    border: 1px dashed var(--cds-border-subtle-01);
+    border-radius: layout.$spacing-02;
+    margin-top: layout.$spacing-05;
+  }
+
+  &__hidden-text {
+    font-size: var(--cds-heading-compact-01-font-size);
+    line-height: var(--cds-heading-compact-01-line-height);
+    font-weight: var(--cds-heading-compact-01-font-weight);
+    color: var(--cds-text-primary);
+  }
+
+  &__hidden-subtext {
+    font-size: var(--cds-body-compact-01-font-size);
+    line-height: var(--cds-body-compact-01-line-height);
+    color: var(--cds-text-secondary);
+  }
+
+  &__snippet {
+    max-width: 100%;
+  }
+
+  // Edit Mode
+  &__editor-header {
+    margin-bottom: layout.$spacing-04;
+  }
+
+  &__editor-title {
+    font-size: var(--cds-heading-compact-01-font-size);
+    font-weight: var(--cds-heading-compact-01-font-weight);
+    line-height: var(--cds-heading-compact-01-line-height);
+    color: var(--cds-text-primary);
+    margin: 0;
+  }
+
+  &__form-actions {
+    padding-top: layout.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+// ==============================================
+// Animations
+// ==============================================
+@keyframes test-result-panel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

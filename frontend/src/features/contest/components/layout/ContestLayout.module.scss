@@ -1,0 +1,158 @@
+// ContestLayout styles
+
+.root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+// Loading state
+.loadingContainer {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cds-background);
+}
+
+.loadingContent {
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--cds-border-subtle);
+  border-top-color: var(--cds-link-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.loadingText {
+  color: var(--cds-text-secondary);
+}
+
+// Main content area
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.contentWrapper {
+  margin-top: 3rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--cds-background);
+}
+
+.scrollableContent {
+  overflow: auto;
+  flex: 1;
+}
+
+// Header navigation items
+.headerTimerDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0 1rem;
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-font-family, monospace);
+  font-size: 0.875rem;
+}
+
+.headerScoreDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0 1rem;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.scoreLabel {
+  color: var(--cds-text-secondary);
+}
+
+.scoreValue {
+  font-family: var(--cds-code-font-family, monospace);
+
+  &.hasScore {
+    color: var(--cds-support-success);
+  }
+}
+
+.scoreDivider {
+  color: var(--cds-text-secondary);
+}
+
+.totalScore {
+  font-family: var(--cds-code-font-family, monospace);
+}
+
+// Exam status indicators
+.examStatusBase {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0 1rem;
+  font-weight: bold;
+  font-size: 0.875rem;
+  cursor: help;
+}
+
+.examStatusLocked {
+  composes: examStatusBase;
+  background-color: var(--cds-support-error);
+  color: #fff;
+}
+
+.examStatusPaused {
+  composes: examStatusBase;
+  background-color: var(--cds-support-warning);
+  color: #000;
+}
+
+.examStatusInProgress {
+  composes: examStatusBase;
+  background-color: var(--cds-support-success);
+  color: #fff;
+  cursor: pointer;
+}
+
+.examTimeDisplay {
+  font-family: var(--cds-code-font-family, monospace);
+  margin-left: 0.5rem;
+  opacity: 0.9;
+}
+
+// Exit button
+.exitButton {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+// Refresh icon animation
+.refreshing {
+  animation: spin 1s linear infinite;
+}
+
+// Shared animation
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

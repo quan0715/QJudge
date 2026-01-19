@@ -1,0 +1,200 @@
+// _solver-statement.scss
+// StatementPanel styles - 保留獨特的折疊狀態、垂直 tabs、loading skeleton
+// 背景色由 Carbon Layer 組件處理
+@use "@carbon/layout";
+
+.statement-panel {
+  // Skeleton sizing variables
+  --statement-panel-skeleton-tab-width: layout.rem(200px);
+  --statement-panel-skeleton-block-height: layout.rem(100px);
+  --statement-panel-skeleton-badge-width: layout.rem(60px);
+  --statement-panel-skeleton-badge-height: layout.rem(20px);
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
+
+  // Copy protection - 獨特功能
+  &--no-copy {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+
+    img {
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+  }
+
+  // ============================================
+  // COLLAPSED STATE - 使用 ContainedList (類似 ProblemMenu)
+  // ============================================
+  // Use shared item size (正方形 1:1)
+  --statement-panel-row-height: var(--solver-item-size);
+  --statement-panel-collapsed-width: var(--solver-item-size);
+
+  &--collapsed {
+    width: var(--statement-panel-collapsed-width);
+    min-width: var(--statement-panel-collapsed-width);
+    max-width: var(--statement-panel-collapsed-width);
+    padding: 0;
+    border-right: 1px solid var(--cds-border-subtle-01);
+    flex-shrink: 0;
+
+    // Fade-in animation when collapsed
+    animation: statement-panel-fade-in 0.2s ease-out;
+
+    // Note: ContainedList header is hidden via component props (hideLabel)
+    // instead of CSS override to follow Carbon-first Policy
+  }
+
+  // Menu items (using ContainedListItem)
+  &__menu-item {
+    cursor: pointer;
+    height: var(--statement-panel-row-height);
+    transition: background-color 0.15s ease;
+
+    &[data-active="true"] {
+      background-color: var(--cds-layer-selected-01);
+    }
+
+    &:hover {
+      background-color: var(--cds-layer-hover-01);
+    }
+  }
+
+  // Icon color in collapsed state
+  .solver-item-content {
+    color: var(--cds-icon-secondary);
+
+    svg {
+      fill: currentColor;
+    }
+  }
+
+  // ============================================
+  // EXPANDED STATE - Hero + Tabs + Content
+  // ============================================
+
+  // Fade-in animation when expanded (not collapsed and not loading)
+  &:not(&--collapsed):not(&--loading) {
+    animation: statement-panel-fade-in 0.2s ease-out;
+  }
+ 
+  &__collapse-btn {
+    flex-shrink: 0;
+  }
+
+  &__skeleton-tabs {
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+    padding-inline: layout.$spacing-06;
+  }
+
+  &__skeleton-tabs-placeholder {
+    width: min(100%, var(--statement-panel-skeleton-tab-width));
+    height: layout.$spacing-09;
+  }
+
+  &__skeleton-section {
+    margin-bottom: layout.$spacing-06;
+  }
+
+  &__skeleton-subsection {
+    margin-top: layout.$spacing-06;
+    margin-bottom: layout.$spacing-05;
+  }
+
+  &__skeleton-block {
+    width: 100%;
+    height: var(--statement-panel-skeleton-block-height);
+  }
+
+  // ============================================
+  // CONTENT AREA
+  // ============================================
+
+  // Tab content container - 讓內容可滾動
+  &__tab-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  // Content wrapper - unified padding for all content
+  &__content {
+    min-width: 0;
+    height: 100%;
+    padding: layout.$spacing-05;
+  }
+
+  &--loading &__content {
+    display: flex;
+    flex-direction: column;
+    gap: layout.$spacing-05;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--cds-text-secondary);
+    font-size: var(--cds-body-compact-01-font-size);
+  }
+
+  &--loading {
+    overflow-y: auto;
+  }
+}
+
+// ==============================================
+// Contest Problem Submissions (embedded in StatementPanel)
+// ==============================================
+.contest-problem-submissions {
+  // Note: padding is now handled by parent .statement-panel__content
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: layout.$spacing-04;
+  }
+
+  &__title {
+    font-size: var(--cds-body-compact-01-font-size);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    color: var(--cds-text-primary);
+    margin: 0;
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: layout.$spacing-03;
+  }
+
+  &__skeleton-row {
+    display: flex;
+    gap: layout.$spacing-05;
+    padding: layout.$spacing-03 0;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+// ==============================================
+// Animations
+// ==============================================
+@keyframes statement-panel-fade-in {
+  from {
+    opacity: 0;
+    width: 0;
+  }
+  to {
+    opacity: 1;
+    width: 100%;
+  }
+}

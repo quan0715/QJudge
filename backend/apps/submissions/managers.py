@@ -15,7 +15,7 @@ User = get_user_model()
 
 class SubmissionQuerySet(models.QuerySet):
     def optimized_for_detail(self) -> "SubmissionQuerySet":
-        return self.select_related("user", "problem", "contest")
+        return self.select_related("user", "problem", "contest", "lab")
 
     def optimized_for_list(self) -> "SubmissionQuerySet":
         return self.only(
@@ -23,6 +23,7 @@ class SubmissionQuerySet(models.QuerySet):
             "user_id",
             "problem_id",
             "contest_id",
+            "lab_id",
             "source_type",
             "language",
             "status",
@@ -36,7 +37,8 @@ class SubmissionQuerySet(models.QuerySet):
             "problem__title",
             "contest__id",
             "contest__anonymous_mode_enabled",
-        ).select_related("user", "problem", "contest")
+            "lab__id",
+        ).select_related("user", "problem", "contest", "lab")
 
     def visible_to(
         self,
@@ -44,11 +46,17 @@ class SubmissionQuerySet(models.QuerySet):
         user: Optional[User],
         source_type: str,
         contest_id: Optional[int],
+        lab_id: Optional[int],
         include_all: bool,
         created_after: Optional[str],
         date_range_days: int,
     ) -> "SubmissionQuerySet":
         queryset = self.optimized_for_list()
+        is_privileged_user = bool(
+            user
+            and user.is_authenticated
+            and (user.is_staff or getattr(user, "role", "") in ["admin", "teacher"])
+        )
 
         if contest_id:
             nickname_subquery = ContestParticipant.objects.filter(
@@ -65,13 +73,22 @@ class SubmissionQuerySet(models.QuerySet):
                 queryset = queryset.filter(created_at__gte=cutoff_date)
 
         if source_type == "practice":
-            return queryset.filter(source_type="practice", is_test=False)
+            queryset = queryset.filter(source_type="practice", is_test=False)
+            if lab_id:
+                queryset = queryset.filter(lab_id=lab_id)
+            if is_privileged_user:
+                return queryset
+            if user and user.is_authenticated:
+                return queryset.filter(user=user)
+            return queryset.none()
 
         if source_type == "contest":
             queryset = queryset.filter(source_type="contest")
             if contest_id:
-                queryset = queryset.filter(contest_id=contest_id)
-            return queryset
+                return queryset.filter(contest_id=contest_id)
+            if is_privileged_user:
+                return queryset
+            return queryset.none()
 
         if user and user.is_authenticated:
             return queryset.filter(user=user)

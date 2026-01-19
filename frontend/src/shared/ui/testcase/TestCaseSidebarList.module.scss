@@ -1,0 +1,58 @@
+@use "@carbon/layout";
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  cursor: pointer;
+  transition: background-color 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+  }
+
+  &--active {
+    background-color: var(--cds-layer-selected);
+
+    &:hover {
+      background-color: var(--cds-layer-selected-hover);
+    }
+  }
+}
+
+.itemIcon {
+  color: var(--cds-text-secondary);
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+
+  .item--active & {
+    font-weight: 600;
+  }
+}
+
+.addItem {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  cursor: pointer;
+  color: var(--cds-link-primary);
+  transition: background-color 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+  }
+}

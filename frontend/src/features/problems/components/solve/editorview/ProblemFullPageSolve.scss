@@ -1,0 +1,43 @@
+.problem-full-page-solve {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--cds-background);
+
+  &__error-banner {
+    padding: var(--cds-spacing-03);
+    flex-shrink: 0;
+  }
+
+  // Loading state
+  &--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+  }
+
+  // Error state
+  &--error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cds-spacing-05);
+    padding: var(--cds-spacing-07);
+    text-align: center;
+    min-height: 400px;
+
+    h3 {
+      color: var(--cds-text-primary);
+      margin: 0;
+    }
+
+    p {
+      color: var(--cds-text-secondary);
+      margin: 0;
+    }
+  }
+}

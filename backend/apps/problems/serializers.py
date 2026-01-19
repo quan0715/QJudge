@@ -2,7 +2,15 @@
 Serializers for problems app.
 """
 from rest_framework import serializers
-from .models import Problem, ProblemTranslation, TestCase, LanguageConfig, Tag
+from .models import (
+    Problem,
+    ProblemTranslation,
+    TestCase,
+    LanguageConfig,
+    Tag,
+    ProblemDiscussion,
+    ProblemDiscussionComment,
+)
 
 
 class ProblemTranslationSerializer(serializers.ModelSerializer):
@@ -60,20 +68,135 @@ class TagSerializer(serializers.ModelSerializer):
 
 class TestRunSerializer(serializers.Serializer):
     """Serializer for test run requests."""
+
+    class CustomTestCaseSerializer(serializers.Serializer):
+        input = serializers.CharField(
+            required=True,
+            allow_blank=True,
+            help_text='Custom input for the program'
+        )
+
     language = serializers.ChoiceField(
         choices=['cpp', 'python', 'java', 'c'],
         required=True,
         help_text='Programming language'
     )
-    source_code = serializers.CharField(
+    code = serializers.CharField(
         required=True,
         help_text='Source code to execute'
     )
-    custom_input = serializers.CharField(
-        required=True,
-        allow_blank=True,
-        help_text='Custom input for the program'
+    use_samples = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text='Whether to include sample test cases'
     )
+    custom_test_cases = CustomTestCaseSerializer(
+        many=True,
+        required=False,
+        help_text='Custom test cases (input only)'
+    )
+
+
+class SimpleUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    role = serializers.CharField(required=False, allow_blank=True)
+
+
+class ProblemDiscussionSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    comments_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProblemDiscussion
+        fields = [
+            "id",
+            "problem",
+            "title",
+            "content",
+            "is_deleted",
+            "created_at",
+            "updated_at",
+            "user",
+            "comments_count",
+            "comments",
+            "like_count",
+            "is_liked",
+        ]
+        read_only_fields = [
+            "id",
+            "problem",
+            "is_deleted",
+            "created_at",
+            "updated_at",
+            "user",
+            "comments_count",
+            "comments",
+            "like_count",
+            "is_liked",
+        ]
+
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+    def get_comments(self, obj):
+        """Return all comments for this discussion with nested structure."""
+        comments = obj.comments.select_related("user").order_by("created_at")
+        return ProblemDiscussionCommentSerializer(
+            comments, many=True, context=self.context
+        ).data
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
+
+
+class ProblemDiscussionCommentSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    like_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProblemDiscussionComment
+        fields = [
+            "id",
+            "discussion",
+            "parent",
+            "content",
+            "is_deleted",
+            "created_at",
+            "updated_at",
+            "user",
+            "like_count",
+            "is_liked",
+        ]
+        read_only_fields = [
+            "id",
+            "discussion",
+            "is_deleted",
+            "created_at",
+            "updated_at",
+            "user",
+            "like_count",
+            "is_liked",
+        ]
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
 
 
 class ProblemListSerializer(serializers.ModelSerializer):
@@ -100,6 +223,7 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'is_visible',
             'is_practice_visible',
             'created_in_contest',
+            'origin_problem',
             'created_at',
             'created_by',
             'created_by',
@@ -168,6 +292,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'acceptance_rate',
             'is_practice_visible',
             'created_in_contest',
+            'origin_problem',
             'translation',
             'samples',
             'translations',
@@ -234,7 +359,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Problem
         fields = '__all__'
-        read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate', 'origin_problem']
     
     def _handle_tags(self, problem, validated_data):
         """Helper to handle tag association."""

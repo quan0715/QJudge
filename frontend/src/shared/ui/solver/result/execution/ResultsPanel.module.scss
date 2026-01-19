@@ -1,0 +1,187 @@
+@use "@carbon/layout";
+
+// Main container
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Header area
+.header {
+  width: 100%;
+  flex-shrink: 0;
+  background-color: var(--cds-layer-02);
+}
+
+// Content area (sidebar + detail)
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  background-color: var(--cds-layer-01);
+  min-height: 0;
+}
+
+// Empty state (when no results)
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  height: 100%;
+}
+
+.emptyStateIcon {
+  margin-bottom: layout.$spacing-04;
+  fill: var(--cds-icon-secondary);
+}
+
+.emptyStateTitle {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--cds-heading-compact-01-font-size);
+  line-height: var(--cds-heading-compact-01-line-height);
+  color: var(--cds-text-primary);
+}
+
+.emptyStateSubtitle {
+  margin: 0;
+  font-size: var(--cds-body-compact-01-font-size);
+  line-height: var(--cds-body-compact-01-line-height);
+}
+
+// Sidebar
+.sidebar {
+  width: layout.rem(160px);
+  min-width: layout.rem(160px);
+  max-width: layout.rem(160px);
+  flex-shrink: 0;
+  flex-grow: 0;
+  overflow: auto;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.sidebarList {
+  display: flex;
+  flex-direction: column;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  cursor: pointer;
+  transition: background-color 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+  }
+
+  &--active {
+    background-color: var(--cds-layer-selected);
+
+    &:hover {
+      background-color: var(--cds-layer-selected-hover);
+    }
+  }
+}
+
+.resultLabel {
+  font-weight: 400;
+
+  .resultItem--active & {
+    font-weight: 600;
+  }
+}
+
+.resultMeta {
+  font-size: var(--cds-helper-text-01-font-size);
+  line-height: var(--cds-helper-text-01-line-height);
+  color: var(--cds-text-secondary);
+  margin-left: auto;
+}
+
+.detail {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.detailEmpty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-text-secondary);
+}
+
+// Detail Skeleton Styles
+.detailSkeleton {
+  height: 100%;
+  padding: layout.$spacing-05;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailSkeletonHeader {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  margin-bottom: layout.$spacing-05;
+}
+
+.detailSkeletonStats {
+  display: flex;
+  gap: layout.$spacing-05;
+  margin-bottom: layout.$spacing-05;
+}
+
+.detailSkeletonSections {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  flex: 1;
+}
+
+.detailSkeletonSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+// Skeleton element sizes
+.skeletonIcon {
+  width: layout.rem(24px);
+  height: layout.rem(24px);
+  border-radius: 50%;
+}
+
+.skeletonTag {
+  width: layout.rem(60px);
+  height: layout.rem(24px);
+}
+
+.skeletonCodeBlock {
+  width: 100%;
+  height: layout.rem(80px);
+}
+
+// Sidebar skeleton elements
+.skeletonStatusIcon {
+  width: layout.rem(16px);
+  height: layout.rem(16px);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeletonMeta {
+  margin-left: auto;
+}

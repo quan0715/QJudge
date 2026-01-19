@@ -1,0 +1,159 @@
+@use "@carbon/layout";
+
+.problem-edit-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--cds-background);
+
+  // Header
+  &__header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: layout.rem(48px);
+    background-color: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+
+    // Override Carbon Header styles
+    :global(.cds--header__name) {
+      padding-left: layout.$spacing-05;
+    }
+  }
+
+  &__back-btn {
+    margin-left: layout.$spacing-03;
+  }
+
+  &__title {
+    flex: 1;
+    font-size: var(--cds-heading-compact-01-font-size);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-03;
+    margin-right: layout.$spacing-05;
+
+    // OverflowMenu styling for export button
+    :global(.cds--overflow-menu) {
+      // Match button height
+      height: layout.rem(48px);
+      
+      &:hover {
+        background-color: var(--cds-layer-hover-01);
+      }
+    }
+  }
+
+  // Export Modal
+  &__export-modal {
+    :global(.cds--modal-container) {
+      max-width: layout.rem(400px);
+    }
+  }
+
+  &__export-content {
+    padding-top: layout.$spacing-03;
+  }
+
+  &__export-switcher {
+    margin-bottom: layout.$spacing-05;
+  }
+
+  &__export-options {
+    margin-top: layout.$spacing-05;
+  }
+
+  &__export-description {
+    margin-top: layout.$spacing-05;
+    color: var(--cds-text-secondary);
+    font-size: var(--cds-body-compact-01-font-size);
+  }
+
+  // Notification
+  &__notification {
+    padding: layout.$spacing-03 layout.$spacing-05;
+    background-color: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+
+    :global(.cds--inline-notification) {
+      max-width: none;
+      margin: 0;
+    }
+  }
+
+  // Content
+  &__content {
+    flex: 1;
+    min-height: 0; // Important: allows flex child to shrink below content size
+    overflow: hidden;
+  }
+
+  // Sections
+  &__sections {
+    padding: layout.$spacing-06;
+    max-width: layout.rem(900px);
+    margin: 0 auto;
+  }
+
+  &__section {
+    padding: layout.$spacing-06 0;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &--danger {
+      border-bottom: none;
+      border-top: 2px solid var(--cds-support-error);
+      margin-top: layout.$spacing-07;
+      padding-top: layout.$spacing-07;
+    }
+  }
+
+  &__section-title {
+    font-size: var(--cds-heading-03-font-size);
+    font-weight: var(--cds-heading-03-font-weight);
+    color: var(--cds-text-primary);
+    margin-bottom: layout.$spacing-05;
+  }
+
+  // States
+  &__loading,
+  &__error {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: layout.$spacing-05;
+
+    h3 {
+      font-size: var(--cds-heading-03-font-size);
+      color: var(--cds-text-primary);
+    }
+
+    p {
+      color: var(--cds-text-secondary);
+    }
+  }
+
+  // Preview Modal
+  &__preview-modal {
+    :global(.cds--modal-container) {
+      max-height: 90vh;
+    }
+
+    :global(.cds--modal-content) {
+      padding: layout.$spacing-05;
+      overflow-y: auto;
+    }
+  }
+}

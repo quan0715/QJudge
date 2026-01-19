@@ -1,0 +1,60 @@
+{
+  "hero": {
+    "title": "すぐにコードを書いて評価",
+    "subtitle": "Carbon UI を採用したオンラインジャッジで、講義やコンテストに即時フィードバックと明確な結果を提供します。",
+    "signIn": "ログイン",
+    "register": "登録",
+    "badges": { "qjudge": "QJudge", "oj": "Online Judge", "carbon": "Carbon UI" }
+  },
+  "features": {
+    "eyebrow": "主な機能",
+    "title": "モダンな開発フローに対応",
+    "multiLanguage": { "title": "多言語対応", "description": "Python、C++、Java、JavaScript などを即時コンパイル。" },
+    "analytics": { "title": "リアルタイム分析", "description": "詳細な結果と実行時間・メモリ統計で最適化を支援。" },
+    "contest": { "title": "コンテスト", "description": "ライブランキング付きのコンテストを開催可能。" },
+    "lab": { "title": "ラボモード", "description": "課題セット管理と進捗トラッキングをサポート。" }
+  },
+  "steps": {
+    "eyebrow": "手順",
+    "title": "4 ステップで開始",
+    "browse": { "title": "問題を探す", "description": "難易度やタグでフィルタし、説明とサンプルを確認。" },
+    "code": { "title": "コードを書く", "description": "組み込みエディタで Markdown ガイド付き。" },
+    "submit": { "title": "提出・採点", "description": "ワンクリック提出、結果を即時表示。" },
+    "improve": { "title": "改善", "description": "議論に参加し、解法を比較して実力アップ。" }
+  },
+  "highlights": {
+    "eyebrow": "QJudge の特徴",
+    "title": "教育とコンテストのために設計",
+    "item1": "ラボモードと進捗管理",
+    "item2": "リアルタイムランキング",
+    "item3": "詳細なケース比較",
+    "item4": "ディスカッションと告知",
+    "item5": "IBM Carbon ベースのモダン UI",
+    "docs": "ドキュメントを見る"
+  },
+  "testimonials": {
+    "eyebrow": "利用者の声",
+    "title": "学生の感想",
+    "quote1": "リアルタイムのフィードバックで問題箇所をすぐ特定できます。",
+    "quote2": "差分表示のおかげでデバッグが楽になりました。",
+    "quote3": "ラボモードが授業の流れと合っていて学習がはかどります。",
+    "name1": "Wang",
+    "name2": "Lee",
+    "name3": "Chen",
+    "title1": "NYCU IM/Fin 3年",
+    "title2": "NYCU IM/Fin 2年",
+    "title3": "NYCU IM/Fin 3年",
+    "badge": "国立陽明交通大学 情報管理・財務金融学系"
+  },
+  "contact": {
+    "eyebrow": "お問い合わせ",
+    "title": "ご質問・ご要望は？",
+    "description": "フィードバックや協業のご連絡をお待ちしています。",
+    "email": { "title": "メール" },
+    "github": { "title": "GitHub" },
+    "university": { "title": "パートナー", "value": "国立陽明交通大学" }
+  },
+  "stats": { "problems": "問題", "submissions": "提出", "users": "アクティブユーザー", "uptime": "稼働率" },
+  "cta": { "title": "始めましょう", "description": "QJudge で学習をスタート。無料で利用できます。", "signIn": "ログイン", "docs": "詳しく見る" },
+  "footer": { "copyright": "© 2024 QJudge. Built with IBM Carbon Design System." }
+}

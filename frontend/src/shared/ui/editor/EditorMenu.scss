@@ -1,0 +1,83 @@
+.editor-menu {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    padding: 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--cds-border-subtle);
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--cds-text-primary);
+    font-size: 0.875rem;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: var(--cds-layer-hover);
+    }
+
+    &--active {
+      background-color: var(--cds-layer-selected);
+      font-weight: 500;
+    }
+
+    &--child {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--cds-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:hover {
+        color: var(--cds-text-primary);
+      }
+
+      &.editor-menu__item--active {
+        color: var(--cds-text-primary);
+      }
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+  }
+
+  &__label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Nested children container
+  &__children {
+    margin-left: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--cds-border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

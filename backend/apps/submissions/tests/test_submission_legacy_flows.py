@@ -117,7 +117,6 @@ def test_forbidden_keyword_sets_kr_and_skips_judge(
             "problem": problem.id,
             "language": "python",
             "code": "print(eval('1+1'))",
-            "is_test": False,
         },
         format="json",
     )
@@ -145,7 +144,6 @@ def test_required_keyword_missing_sets_kr(
             "problem": problem.id,
             "language": "python",
             "code": "print('hello')",
-            "is_test": False,
         },
         format="json",
     )
@@ -172,7 +170,6 @@ def test_practice_submission_triggers_judge(
             "problem": problem.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -201,7 +198,6 @@ def test_contest_submission_rejected_when_not_published(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -234,7 +230,6 @@ def test_contest_submission_rejected_before_start(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -266,7 +261,6 @@ def test_contest_submission_rejected_after_end(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -293,7 +287,6 @@ def test_contest_submission_requires_registration(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -331,7 +324,6 @@ def test_contest_submission_blocked_by_exam_state(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -358,7 +350,6 @@ def test_contest_submission_privileged_bypasses_restrictions(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )
@@ -387,7 +378,6 @@ def test_contest_submission_triggers_judge(
             "contest": contest.id,
             "language": "python",
             "code": "print('ok')",
-            "is_test": False,
         },
         format="json",
     )

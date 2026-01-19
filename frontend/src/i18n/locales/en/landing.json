@@ -1,0 +1,88 @@
+{
+  "hero": {
+    "title": "Code, test, and compete instantly",
+    "subtitle": "A Carbon-powered online judge for courses and contests with realtime feedback and clear results.",
+    "signIn": "Sign in",
+    "register": "Create account",
+    "badges": {
+      "qjudge": "QJudge",
+      "oj": "Online Judge",
+      "carbon": "Carbon UI"
+    }
+  },
+  "features": {
+    "eyebrow": "Core features",
+    "title": "Built for modern programming workflows",
+    "multiLanguage": {
+      "title": "Multi-language",
+      "description": "Python, C++, Java, JavaScript and more with syntax highlighting and autocomplete."
+    },
+    "analytics": {
+      "title": "Realtime analytics",
+      "description": "Detailed results with runtime and memory insights to help you optimize."
+    },
+    "contest": {
+      "title": "Contest ready",
+      "description": "Host contests with live rankings and flexible scoring rules."
+    },
+    "lab": {
+      "title": "Lab mode",
+      "description": "Teachers manage sets and track class progress with ease."
+    }
+  },
+  "steps": {
+    "eyebrow": "How it works",
+    "title": "Start in four steps",
+    "browse": { "title": "Browse problems", "description": "Filter by difficulty and tags; review statements and samples." },
+    "code": { "title": "Write code", "description": "Use the built-in editor with Markdown guidance and hints." },
+    "submit": { "title": "Submit & test", "description": "One-click submission with instant results and detailed report." },
+    "improve": { "title": "Keep improving", "description": "Discuss, compare solutions, and join contests or labs." }
+  },
+  "highlights": {
+    "eyebrow": "Why QJudge",
+    "title": "Designed for teaching and competition",
+    "item1": "Lab mode with progress tracking",
+    "item2": "Live contests and rankings",
+    "item3": "Detailed diff and case comparison",
+    "item4": "Discussion threads and announcements",
+    "item5": "Modern UI built on IBM Carbon",
+    "docs": "View docs"
+  },
+  "testimonials": {
+    "eyebrow": "Testimonials",
+    "title": "What students say",
+    "quote1": "Realtime feedback helps me spot issues faster than traditional assignments!",
+    "quote2": "The diff view makes debugging easier. The interface is intuitive.",
+    "quote3": "Lab mode aligns perfectly with our course flow and discussions.",
+    "name1": "Student Wang",
+    "name2": "Student Lee",
+    "name3": "Student Chen",
+    "title1": "NYCU IM/Fin junior",
+    "title2": "NYCU IM/Fin sophomore",
+    "title3": "NYCU IM/Fin junior",
+    "badge": "National Yang Ming Chiao Tung University IM/Fin"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Questions or ideas?",
+    "description": "We welcome feedback, bug reports, and collaboration proposals.",
+    "email": { "title": "Email" },
+    "github": { "title": "GitHub" },
+    "university": { "title": "Partner", "value": "National Yang Ming Chiao Tung University" }
+  },
+  "stats": {
+    "problems": "Problems",
+    "submissions": "Submissions",
+    "users": "Active users",
+    "uptime": "Uptime"
+  },
+  "cta": {
+    "title": "Ready to start?",
+    "description": "Join QJudge and begin your coding journey. Free to start.",
+    "signIn": "Sign in",
+    "docs": "Learn more"
+  },
+  "footer": {
+    "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  }
+}

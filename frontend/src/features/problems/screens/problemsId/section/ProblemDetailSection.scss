@@ -1,0 +1,70 @@
+@use "@carbon/styles/scss/spacing" as *;
+@use "@carbon/styles/scss/breakpoint" as *;
+
+.problem-detail-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cds-background);
+
+  &__error-banner {
+    max-width: 66rem;
+    margin: 0 auto;
+    width: 100%;
+    padding: $spacing-05 $spacing-05 0;
+  }
+
+  &__content {
+    flex: 1;
+    width: 100%;
+    max-width: 66rem;
+    margin: 0 auto;
+    padding: $spacing-07 $spacing-05;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-07;
+
+    @include breakpoint-down(md) {
+      padding: $spacing-05 $spacing-04;
+      gap: $spacing-05;
+    }
+  }
+
+  &__section {
+    width: 100%;
+  }
+
+  &__container {
+    &--no-padding {
+      // Remove padding for ProblemPreview which has its own padding
+      .container-card__body {
+        padding: 0;
+      }
+    }
+  }
+}
+
+// Adjust ProblemCodingTab within the single page layout
+.problem-detail-page .problem-coding-tab {
+  // Ensure editor has reasonable height in single page mode
+  &__editor-container {
+    min-height: 400px;
+    max-height: 600px;
+  }
+}
+
+// Adjust DiscussionList within ContainerCard
+.problem-detail-page .discussion-list {
+  &__header {
+    padding: 0;
+    margin-bottom: $spacing-05;
+    border-bottom: none;
+  }
+}
+
+// Adjust ProblemSubmissionList for single page
+.problem-detail-page .problem-submission-list {
+  max-height: 500px;
+  overflow-y: auto;
+}

@@ -2,12 +2,15 @@
   "nav": {
     "dashboard": "ダッシュボード",
     "problems": "問題",
+    "labs": "ラボ",
     "contests": "コンテスト",
     "submissions": "提出履歴",
     "ranking": "ランキング",
     "documentation": "ドキュメント",
+    "docs": "ドキュメント",
     "backToProblemList": "問題一覧に戻る",
-    "problemList": "問題一覧"
+    "problemList": "問題一覧",
+    "back": "戻る"
   },
   "page": {
     "dashboard": "ダッシュボード",
@@ -47,8 +50,11 @@
     "userMenu": "ユーザーメニュー",
     "management": "管理",
     "system": "システム",
+    "navigation": "クイックナビ",
+    "account": "アカウント",
     "problemManagement": "問題管理",
     "createContest": "コンテスト作成",
+    "createLab": "ラボ作成",
     "userManagement": "ユーザー管理",
     "announcements": "お知らせ管理",
     "environmentSettings": "環境設定"
@@ -114,12 +120,14 @@
     "itemsPerPage": "表示件数"
   },
   "language": {
+    "title": "言語",
     "switchTo": "言語を切り替え",
     "switchedTitle": "言語が変更されました",
     "switchedTo": "{{language}}に切り替えました",
     "selectLanguage": "言語を選択"
   },
   "theme": {
+    "title": "テーマ",
     "switchToLight": "ライトモードに切り替え",
     "switchToDark": "ダークモードに切り替え",
     "light": "ライト",
@@ -154,6 +162,8 @@
     "public": "公開"
   },
   "user": {
+    "preferences": "設定",
+    "changePassword": "パスワード変更",
     "role": {
       "student": "学生",
       "teacher": "教員",

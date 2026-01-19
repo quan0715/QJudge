@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/v1/problems/', include('apps.problems.urls')),
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
+    path('api/v1/labs/', include('apps.labs.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     # Database Admin (development only)
@@ -29,4 +30,3 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-

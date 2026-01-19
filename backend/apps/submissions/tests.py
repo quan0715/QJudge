@@ -82,7 +82,6 @@ int main() {
                 'problem': self.problem.id,
                 'language': 'cpp',
                 'code': code,
-                'is_test': False
             })
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -106,7 +105,7 @@ int main() {
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
     
     def test_list_own_submissions(self):
-        """Test that students can see all practice submissions (Public)"""
+        """Students only see their own practice submissions."""
         # Create submission for student
         submission1 = Submission.objects.create(
             user=self.student,
@@ -130,8 +129,9 @@ int main() {
         response = self.client.get('/api/v1/submissions/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Should see both because practice submissions are public
-        self.assertEqual(len(response.data['results']), 2)
+        # Practice submissions are limited to the viewer's own submissions
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], submission1.id)
     
     def test_teacher_can_see_all_submissions(self):
         """Test that teachers can see all submissions"""
@@ -362,7 +362,7 @@ int main() {
         # the task should have completed synchronously.
         self.assertEqual(submission.status, 'AC')
         self.assertEqual(submission.score, 100)
-    
+
     def test_submission_cpp_ce(self):
         """Test C++ submission with syntax error (CE)"""
         code = '''#include <iostream>
@@ -395,6 +395,19 @@ int main() {
         submission = Submission.objects.get(id=submission_id)
         self.assertEqual(submission.status, 'CE')
         self.assertIn('error', submission.error_message.lower())
+
+    def test_submission_rejects_test_only_fields(self):
+        """Submit API should reject is_test/custom_test_cases payload."""
+        self.client.force_authenticate(user=self.user)
+        with override_settings(CELERY_TASK_ALWAYS_EAGER=True):
+            response = self.client.post('/api/v1/submissions/', {
+                'problem': self.problem.id,
+                'language': 'python',
+                'code': 'print(42)',
+                'is_test': True,
+                'custom_test_cases': [{'input': '1 2'}],
+            }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_submission_python_ac(self):
         """Test Python submission that should be Accepted (AC)"""
@@ -416,4 +429,3 @@ print(a + b)
         submission = Submission.objects.get(id=submission_id)
         self.assertEqual(submission.status, 'AC')
         self.assertEqual(submission.score, 100)
-

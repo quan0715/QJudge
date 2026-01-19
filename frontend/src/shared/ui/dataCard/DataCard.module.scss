@@ -1,0 +1,125 @@
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--cds-spacing-05, 1rem);
+  background: transparent;
+}
+
+.outline {
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.filled {
+  background-color: var(--cds-background-active);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--cds-spacing-03, 0.5rem);
+  color: var(--cds-text-secondary);
+}
+
+.value {
+  font-weight: 300;
+  display: flex;
+  align-items: baseline;
+  gap: var(--cds-spacing-02, 0.25rem);
+}
+
+.unit {
+  font-size: 0.6em;
+  color: var(--cds-text-secondary);
+}
+
+.description {
+  color: var(--cds-text-secondary);
+}
+
+.sizeSm .title {
+  font-size: 0.75rem;
+  margin-bottom: var(--cds-spacing-02, 0.25rem);
+}
+
+.sizeSm .value {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin-bottom: var(--cds-spacing-02, 0.25rem);
+}
+
+.sizeSm .description {
+  font-size: 0.625rem;
+}
+
+.sizeDefault .title {
+  font-size: 0.875rem;
+  margin-bottom: var(--cds-spacing-03, 0.5rem);
+}
+
+.sizeDefault .value {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: var(--cds-spacing-03, 0.5rem);
+}
+
+.sizeDefault .description {
+  font-size: 0.75rem;
+}
+
+.sizeLg .title {
+  font-size: 1rem;
+  margin-bottom: var(--cds-spacing-04, 0.75rem);
+}
+
+.sizeLg .value {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: var(--cds-spacing-04, 0.75rem);
+}
+
+.sizeLg .description {
+  font-size: 0.875rem;
+}
+
+.sizeXl .title {
+  font-size: 1.125rem;
+  margin-bottom: var(--cds-spacing-05, 1rem);
+}
+
+.sizeXl .value {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: var(--cds-spacing-05, 1rem);
+}
+
+.sizeXl .description {
+  font-size: 1rem;
+}
+
+.kpi {
+  padding: 0 var(--cds-spacing-07, 2rem);
+  align-items: flex-start;
+}
+
+.kpiBorder {
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.kpiIcon {
+  margin-bottom: var(--cds-spacing-03, 0.5rem);
+  color: var(--cds-text-secondary);
+}
+
+.kpiValue {
+  font-size: var(--cds-productive-heading-05, 2rem);
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: var(--cds-spacing-02, 0.25rem);
+}
+
+.kpiLabel {
+  font-size: var(--cds-body-short-01, 0.875rem);
+  color: var(--cds-text-secondary);
+}

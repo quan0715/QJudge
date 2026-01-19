@@ -5,12 +5,12 @@ from django.urls import path
 from .views import (
     RegisterView,
     LoginView,
+    DevTokenView,
     LogoutView,
     NYCUOAuthLoginView,
     NYCUOAuthCallbackView,
     TokenRefreshView,
     CurrentUserView,
-    EmailVerificationView,
     UserSearchView,
     UserRoleUpdateView,
     UserStatsView,
@@ -24,7 +24,9 @@ urlpatterns = [
     # Email/Password authentication
     path('email/register', RegisterView.as_view(), name='email-register'),
     path('email/login', LoginView.as_view(), name='email-login'),
-    path('verify-email', EmailVerificationView.as_view(), name='verify-email'),
+
+    # Development helper (DEBUG only)
+    path('dev/token', DevTokenView.as_view(), name='dev-token'),
     
     # NYCU OAuth
     path('nycu/login', NYCUOAuthLoginView.as_view(), name='nycu-oauth-login'),

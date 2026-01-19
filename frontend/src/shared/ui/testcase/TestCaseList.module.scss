@@ -1,0 +1,73 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.addBar {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.list {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.vertical {
+  flex-direction: column;
+}
+
+.horizontal {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--cds-border-subtle) transparent;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle);
+    border-radius: 2px;
+  }
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--cds-text-helper);
+  font-size: 0.875rem;
+  background-color: var(--cds-layer-01);
+  border: 1px dashed var(--cds-border-subtle);
+  border-radius: 4px;
+}

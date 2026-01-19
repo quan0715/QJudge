@@ -1,0 +1,135 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.user-menu-container {
+  padding: 0;
+  min-width: layout.rem(280px);
+  max-width: layout.rem(320px);
+  display: flex;
+  flex-direction: column;
+}
+
+// ===== Profile Section =====
+.user-menu-profile {
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.user-menu-profile-inner {
+  display: flex;
+  gap: layout.$spacing-04;
+  align-items: center;
+}
+
+.user-menu-avatar {
+  width: layout.rem(40px);
+  height: layout.rem(40px);
+  border-radius: 50%;
+  background-color: var(--cds-layer-accent-01);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-text-on-color);
+  flex-shrink: 0;
+}
+
+.user-menu-info {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-01;
+  min-width: 0;
+}
+
+.user-menu-name {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-role {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+// ===== Sections =====
+.user-menu-section {
+  padding: layout.$spacing-04 layout.$spacing-05;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.user-menu-section-title {
+  @include type.type-style("label-01");
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+}
+
+// ===== Preference Controls =====
+.user-menu-preferences {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.user-menu-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+}
+
+.user-menu-pref-label {
+  @include type.type-style("body-compact-01");
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+
+  svg {
+    fill: var(--cds-icon-secondary);
+  }
+}
+
+.user-menu-pref-control {
+  flex-shrink: 0;
+}
+
+// ===== Stack for buttons =====
+.user-menu-stack {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+// ===== Hint text =====
+.user-menu-hint {
+  @include type.type-style("helper-text-01");
+  margin: 0;
+  color: var(--cds-text-helper);
+}
+
+// ===== Dev Tools Section =====
+.user-menu-dev-tools {
+  background-color: var(--cds-layer-02);
+}
+
+// ===== Actions Section =====
+.user-menu-actions {
+  padding: layout.$spacing-04 layout.$spacing-05;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  border-top: 1px solid var(--cds-border-subtle);
+}

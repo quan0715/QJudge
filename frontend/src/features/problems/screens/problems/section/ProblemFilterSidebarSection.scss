@@ -1,0 +1,35 @@
+@use '@carbon/layout';
+
+.problem-filter-sidebar {
+  padding: layout.$spacing-05;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+
+.problem-filter__section {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.problem-filter__section-title {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.problem-filter__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.problem-filter__empty {
+  font-size: var(--cds-body-compact-01-font-size);
+  color: var(--cds-text-secondary);
+  margin: 0;
+}

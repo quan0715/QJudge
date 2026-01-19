@@ -1,0 +1,57 @@
+.entry {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border-radius: 4px;
+  transition: background-color 150ms ease-in-out;
+  user-select: none;
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cds-layer-hover);
+    }
+
+    &:focus {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+
+    &:active {
+      background: var(--cds-layer-active);
+    }
+  }
+
+  &.selected {
+    background: var(--cds-layer-selected);
+
+    &:hover {
+      background: var(--cds-layer-selected-hover);
+    }
+  }
+}
+
+.content {
+  align-items: center;
+  white-space: nowrap;
+}
+
+.label {
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hiddenIcon {
+  color: var(--cds-text-secondary);
+  margin-left: 0.125rem;
+}
+
+.details {
+  color: var(--cds-text-secondary);
+  font-size: 0.875em;
+  margin-left: 0.25rem;
+}
