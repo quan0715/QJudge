@@ -30,7 +30,7 @@ const ContestDashboard = () => {
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(() => {
+  const [currentUser] = useState<any>(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     try {
@@ -44,11 +44,11 @@ const ContestDashboard = () => {
 
   // Find my rank from context standings
   useEffect(() => {
-    if (!currentUser) {
-      setMyRank(null);
-      return;
-    }
     const timerId = setTimeout(() => {
+      if (!currentUser) {
+        setMyRank(null);
+        return;
+      }
       const myEntry = scoreboardData?.rows?.find(
         (s) => s.displayName === currentUser.username
       );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -31,7 +31,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     "calc(var(--cds-spacing-09) + var(--cds-spacing-07))",
   ];
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentUser, setCurrentUser] = useState<any>(() => {
+  const [currentUser] = useState<any>(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     try {

@@ -61,7 +61,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [problemFilter, setProblemFilter] = useState<string>("all");
   const [onlyMine, setOnlyMine] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(() => {
+  const [currentUser] = useState<any>(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     try {

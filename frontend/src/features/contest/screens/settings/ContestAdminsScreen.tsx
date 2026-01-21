@@ -54,9 +54,11 @@ const ContestAdminsPage: React.FC = () => {
   }, [contestId]);
 
   useEffect(() => {
-    if (contestId) {
+    if (!contestId) return undefined;
+    const timerId = setTimeout(() => {
       loadAdmins();
-    }
+    }, 0);
+    return () => clearTimeout(timerId);
   }, [contestId, loadAdmins]);
 
   const handleAddAdmin = async (username: string) => {
