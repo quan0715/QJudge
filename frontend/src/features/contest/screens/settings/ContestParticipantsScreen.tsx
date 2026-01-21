@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   DataTable,
@@ -100,21 +100,22 @@ const ContestAdminParticipantsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  useEffect(() => {
-    if (contestId) {
-      loadParticipants();
-    }
-  }, [contestId]);
-
-  const loadParticipants = async () => {
+  const loadParticipants = useCallback(async () => {
+    if (!contestId) return;
     try {
-      const data = await getContestParticipants(contestId!);
+      const data = await getContestParticipants(contestId);
       setParticipants(data);
     } catch (error) {
       console.error("Failed to load participants", error);
       setNotification({ kind: "error", message: "無法載入參賽者列表" });
     }
-  };
+  }, [contestId]);
+
+  useEffect(() => {
+    if (contestId) {
+      loadParticipants();
+    }
+  }, [contestId, loadParticipants]);
 
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
@@ -122,12 +123,11 @@ const ContestAdminParticipantsPage = () => {
       await addContestParticipant(contestId, username);
       await loadParticipants();
       setNotification({ kind: "success", message: "參賽者已新增" });
-    } catch (error: any) {
-      setNotification({
-        kind: "error",
-        message: error.message || "新增參賽者失敗",
-      });
-      throw error; // Propagate to modal
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "新增參賽者失敗";
+      setNotification({ kind: "error", message });
+      throw error;
     }
   };
 
@@ -144,11 +144,10 @@ const ContestAdminParticipantsPage = () => {
       await unlockParticipant(contestId, userId);
       await loadParticipants();
       setNotification({ kind: "success", message: "已解除鎖定" });
-    } catch (error: any) {
-      setNotification({
-        kind: "error",
-        message: error.message || "解除鎖定失敗",
-      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "解除鎖定失敗";
+      setNotification({ kind: "error", message });
     }
   };
 
@@ -170,8 +169,10 @@ const ContestAdminParticipantsPage = () => {
       setEditModalOpen(false);
       await loadParticipants();
       setNotification({ kind: "success", message: "參賽者狀態已更新" });
-    } catch (error: any) {
-      setNotification({ kind: "error", message: error.message || "更新失敗" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "更新失敗";
+      setNotification({ kind: "error", message });
     } finally {
       setSaving(false);
     }
@@ -190,11 +191,10 @@ const ContestAdminParticipantsPage = () => {
       await reopenExam(contestId, userId);
       await loadParticipants();
       setNotification({ kind: "success", message: "已重新開放考試" });
-    } catch (error: any) {
-      setNotification({
-        kind: "error",
-        message: error.message || "重新開放失敗",
-      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "重新開放失敗";
+      setNotification({ kind: "error", message });
     }
   };
 
@@ -211,11 +211,10 @@ const ContestAdminParticipantsPage = () => {
       await removeParticipant(contestId, userId);
       await loadParticipants();
       setNotification({ kind: "success", message: "參賽者已移除" });
-    } catch (error: any) {
-      setNotification({
-        kind: "error",
-        message: error.message || "移除參賽者失敗",
-      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "移除參賽者失敗";
+      setNotification({ kind: "error", message });
     }
   };
 
@@ -228,11 +227,10 @@ const ContestAdminParticipantsPage = () => {
       });
       await downloadParticipantReport(contestId, userId);
       setNotification({ kind: "success", message: `${username} 的報告已下載` });
-    } catch (error: any) {
-      setNotification({
-        kind: "error",
-        message: error.message || "下載報告失敗",
-      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "下載報告失敗";
+      setNotification({ kind: "error", message });
     }
   };
 
@@ -381,11 +379,11 @@ const ContestAdminParticipantsPage = () => {
               titleText="篩選狀態"
               label="選擇狀態"
               items={statusFilterOptions}
-              itemToString={(item: any) => item?.label || ""}
+              itemToString={(item) => item?.label || ""}
               selectedItem={statusFilterOptions.find(
                 (opt) => opt.id === statusFilter
               )}
-              onChange={({ selectedItem }: any) => {
+              onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
                 setStatusFilter(selectedItem?.id || "all");
                 setPage(1); // Reset to first page when filter changes
               }}
@@ -416,12 +414,18 @@ const ContestAdminParticipantsPage = () => {
               getHeaderProps,
               getRowProps,
               getTableProps,
-            }: any) => (
+            }: {
+              rows: typeof rows;
+              headers: typeof headers;
+              getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
+              getRowProps: (args: { row: { id: string } }) => Record<string, string>;
+              getTableProps: () => Record<string, string>;
+            }) => (
               <TableContainer>
                 <Table {...getTableProps()}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header: any) => {
+                      {headers.map((header) => {
                         const { key, ...headerProps } = getHeaderProps({
                           header,
                         });
@@ -463,7 +467,7 @@ const ContestAdminParticipantsPage = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows.map((row: any) => {
+                    {rows.map((row) => {
                       const p = participants.find(
                         (item) => item.userId.toString() === row.id
                       );
@@ -606,7 +610,7 @@ const ContestAdminParticipantsPage = () => {
             page={page}
             pageSize={pageSize}
             pageSizes={[10, 20, 50, 100]}
-            onChange={({ page: newPage, pageSize: newPageSize }: any) => {
+            onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
               setPage(newPage);
               setPageSize(newPageSize);
             }}
@@ -638,11 +642,11 @@ const ContestAdminParticipantsPage = () => {
               titleText="考試狀態"
               label="選擇狀態"
               items={examStatusOptions}
-              itemToString={(item: any) => item?.label || ""}
+              itemToString={(item) => item?.label || ""}
               selectedItem={examStatusOptions.find(
                 (opt) => opt.id === editExamStatus
               )}
-              onChange={({ selectedItem }: any) =>
+              onChange={({ selectedItem }: { selectedItem?: { id: ExamStatusType; label: string } | null }) =>
                 setEditExamStatus(selectedItem?.id as ExamStatusType)
               }
             />

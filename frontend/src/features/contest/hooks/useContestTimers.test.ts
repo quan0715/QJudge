@@ -10,7 +10,15 @@ const baseContest = {
   status: "published",
   examModeEnabled: false,
   examStatus: "not_started",
-} as any;
+} satisfies {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  examModeEnabled: boolean;
+  examStatus: string;
+};
 
 describe("useContestTimers", () => {
   beforeEach(() => {

@@ -32,16 +32,16 @@ export const useClarifications = (contestId: string) => {
         ]);
 
         // Handle clarifications
-        let rawClars: any[] = [];
+        let rawClars: unknown[] = [];
         if (clarData && typeof clarData === "object" && "results" in clarData) {
-          rawClars = (clarData as any).results;
+          rawClars = (clarData as { results?: unknown[] }).results ?? [];
         } else if (Array.isArray(clarData)) {
           rawClars = clarData;
         }
         setClarifications(rawClars.map(mapClarificationDto));
 
         // Handle announcements
-        let rawAnns: any[] = [];
+        let rawAnns: unknown[] = [];
         if (Array.isArray(annData)) {
           rawAnns = annData;
         }

@@ -453,9 +453,11 @@ const ContestHero: React.FC<ContestHeroProps> = ({
               // Fallback if no refresh function provided (shouldn't happen in updated layout)
               console.warn("No refresh function provided");
             }
-          } catch (error: any) {
+          } catch (error) {
             console.error("Failed to update nickname", error);
-            showError(error.message || t("hero.updateFailed"));
+            const message =
+              error instanceof Error ? error.message : t("hero.updateFailed");
+            showError(message);
           } finally {
             setIsUpdatingNickname(false);
           }
@@ -469,7 +471,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             labelText={t("hero.nicknameLabel")}
             placeholder={t("hero.nicknamePlaceholder")}
             value={newNickname}
-            onChange={(e: any) => setNewNickname(e.target.value)}
+            onChange={(e) => setNewNickname(e.target.value)}
           />
         </div>
       </Modal>
@@ -527,7 +529,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
                   labelText={t("hero.nicknameOptional")}
                   placeholder={t("hero.leaveBlankForDefault")}
                   value={registerNickname}
-                  onChange={(e: any) => setRegisterNickname(e.target.value)}
+                  onChange={(e) => setRegisterNickname(e.target.value)}
                   maxLength={50}
                 />
                 <p

@@ -8,6 +8,7 @@ import type {
   ContestProblemSummary,
   ScoreboardRow,
 } from "@/core/entities/contest.entity";
+import type { User } from "@/core/entities/user.entity";
 import { ProblemTable, type ProblemRowData } from "@/features/problems/components/list";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { ProblemImportModal } from "@/features/problems/components/modals";
@@ -23,9 +24,19 @@ interface ContestProblemListProps {
   contest: ContestDetail;
   problems: ContestProblemSummary[];
   myRank: ScoreboardRow | null;
-  currentUser: any;
+  currentUser: User | null;
   maxWidth?: string;
   onReload?: () => void;
+}
+
+interface PublicProblemOption {
+  id: string;
+  label: string;
+}
+
+interface PublicProblemFilterOption {
+  item: PublicProblemOption;
+  inputValue: string | null;
 }
 
 export const ContestProblemList: React.FC<ContestProblemListProps> = ({
@@ -59,9 +70,9 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
     kind: "success" | "error";
     message: string;
   } | null>(null);
-  const [publicProblems, setPublicProblems] = useState<
-    { id: string; label: string }[]
-  >([]);
+  const [publicProblems, setPublicProblems] = useState<PublicProblemOption[]>(
+    []
+  );
   const [loadingProblems, setLoadingProblems] = useState(false);
   const { confirm, modalProps } = useConfirmModal();
 
@@ -215,15 +226,15 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   const tableProblems: ProblemRowData[] = problems.map((p) => ({
     ...p,
     id: p.id,
-    problemId: (p as any).problemId || p.id,
+    problemId: p.problemId || p.id,
     title: p.title,
     label: p.label || "-",
     score: p.score || 0,
     order: p.order || 0,
-    difficulty: (p as any).difficulty,
+    difficulty: p.difficulty,
     isSolved: myRank?.problems?.[p.id]?.status === "AC",
-    submissionCount: (p as any).submissionCount,
-    acceptedCount: (p as any).acceptedCount,
+    submissionCount: undefined,
+    acceptedCount: undefined,
   }));
 
   // ============================================
@@ -291,17 +302,11 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
                 titleText={t("problemManage.selectFromLibrary")}
                 placeholder={t("problemManage.searchPlaceholder")}
                 items={publicProblems}
-                itemToString={(item: any) => (item ? item.label : "")}
-                onChange={(e: { selectedItem: any }) => {
+                itemToString={(item) => (item ? item.label : "")}
+                onChange={(e: { selectedItem?: PublicProblemOption | null }) => {
                   setNewProblemId(e.selectedItem ? e.selectedItem.id : "");
                 }}
-                shouldFilterItem={({
-                  item,
-                  inputValue,
-                }: {
-                  item: any;
-                  inputValue: string | null;
-                }) => {
+                shouldFilterItem={({ item, inputValue }: PublicProblemFilterOption) => {
                   if (!inputValue) return true;
                   return item.label
                     .toLowerCase()

@@ -22,7 +22,10 @@ const ExamEventStatsComponent: React.FC = () => {
     const userMap = new Map<string, ExamEventStats>();
 
     examEvents.forEach((event: ExamEvent) => {
-      const eventRaw = event as any; // For access to raw fields
+      const eventRaw = event as ExamEvent & {
+        user_id?: string;
+        student_name?: string;
+      };
       const userId = eventRaw.userId || eventRaw.user_id || "unknown";
 
       if (!userMap.has(userId)) {

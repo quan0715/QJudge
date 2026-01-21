@@ -72,8 +72,10 @@ const ContestAdminsPage: React.FC = () => {
       });
       setAddModalOpen(false);
       loadAdmins();
-    } catch (error: any) {
-      setNotification({ kind: "error", message: error.message || "新增失敗" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "新增失敗";
+      setNotification({ kind: "error", message });
       throw error;
     }
   };
@@ -95,8 +97,10 @@ const ContestAdminsPage: React.FC = () => {
         message: `已移除管理員: ${admin.username}`,
       });
       loadAdmins();
-    } catch (error: any) {
-      setNotification({ kind: "error", message: error.message || "移除失敗" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "移除失敗";
+      setNotification({ kind: "error", message });
     }
   };
 

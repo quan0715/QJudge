@@ -24,6 +24,7 @@ import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
+import type { User } from "@/core/entities/user.entity";
 
 interface ContestSubmissionListPageProps {
   maxWidth?: string;
@@ -61,7 +62,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [problemFilter, setProblemFilter] = useState<string>("all");
   const [onlyMine, setOnlyMine] = useState(false);
-  const [currentUser] = useState<any>(() => {
+  const [currentUser] = useState<User | null>(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     try {
@@ -112,7 +113,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
     return undefined;
   }, [data]);
 
-  const statusOptions = [
+  const statusOptions: Array<{ id: string; label: string }> = [
     { id: "all", label: t("submissions.allStatus") },
     { id: "AC", label: t("submissions.ac") },
     { id: "WA", label: t("submissions.wa") },
@@ -179,31 +180,45 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
     { key: "actions", header: t("submissions.actions") },
   ];
 
-  const rows = submissions.map((sub: any) => {
-    const isOwner = sub.username === currentUser?.username;
+  const rows = submissions.map((sub) => {
+    const submission = sub as {
+      id: string | number;
+      status: string;
+      username?: string | null;
+      language?: string | null;
+      score?: number | null;
+      execTime?: number | null;
+      createdAt?: string | null;
+      problemId?: string | null;
+      problemTitle?: string | null;
+    };
+    const isOwner = submission.username === currentUser?.username;
     const isAdminOrTeacher =
       currentUser?.role === "admin" || currentUser?.role === "teacher";
     const canView = isOwner || isAdminOrTeacher;
 
-    // Find problem info from contest problems list
-    const problemInfo = problems.find((p) => p.problemId === sub.problemId);
+    const problemInfo = problems.find(
+      (p) => p.problemId === submission.problemId
+    );
     const displayTitle =
-      sub.problemTitle || problemInfo?.title || `Problem ${sub.problemId}`;
+      submission.problemTitle ||
+      problemInfo?.title ||
+      `Problem ${submission.problemId}`;
     const displayLabel = problemInfo?.label || "";
 
     return {
-      id: sub.id.toString(),
-      status: getStatusBadge(sub.status),
+      id: submission.id.toString(),
+      status: getStatusBadge(submission.status),
       problem: (
         <span style={{ fontWeight: 500 }}>
           {displayLabel ? `${displayLabel}. ${displayTitle}` : displayTitle}
         </span>
       ),
-      username: sub.username || "Unknown",
-      language: getLanguageLabel(sub.language),
-      score: sub.score ?? 0,
-      time: sub.execTime !== undefined ? `${sub.execTime} ms` : "-",
-      created_at: sub.createdAt ? formatDate(sub.createdAt) : "-",
+      username: submission.username || "Unknown",
+      language: getLanguageLabel(submission.language || ""),
+      score: submission.score ?? 0,
+      time: submission.execTime !== undefined ? `${submission.execTime} ms` : "-",
+      created_at: submission.createdAt ? formatDate(submission.createdAt) : "-",
       actions: (
         <Button
           kind="ghost"
@@ -219,7 +234,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             if (canView) {
-              handleSubmissionClick(sub.id.toString());
+              handleSubmissionClick(submission.id.toString());
             }
           }}
         />
@@ -259,7 +274,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                       label: `${p.label}. ${p.title}`,
                     })),
                   ]}
-                  itemToString={(item: any) => (item ? item.label : "")}
+                  itemToString={(item) => (item ? item.label : "")}
                   selectedItem={
                     problemFilter === "all"
                       ? { id: "all", label: t("submissions.allProblems") }
@@ -274,7 +289,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                           }`,
                         }
                   }
-                  onChange={({ selectedItem }: any) => {
+                  onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
                     if (selectedItem) {
                       setProblemFilter(selectedItem.id);
                       setPage(1);
@@ -287,11 +302,11 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                   titleText={t("submissions.statusLabel")}
                   label={t("submissions.selectStatus")}
                   items={statusOptions}
-                  itemToString={(item: any) => (item ? item.label : "")}
+                  itemToString={(item) => (item ? item.label : "")}
                   selectedItem={
                     statusOptions.find((s) => s.id === statusFilter) || null
                   }
-                  onChange={({ selectedItem }: any) => {
+                  onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
                     if (selectedItem) {
                       setStatusFilter(selectedItem.id);
                       setPage(1);
@@ -390,7 +405,13 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                       getTableProps,
                       getHeaderProps,
                       getRowProps,
-                    }: any) => (
+                    }: {
+                      rows: typeof rows;
+                      headers: typeof headers;
+                      getTableProps: () => Record<string, string>;
+                      getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
+                      getRowProps: (args: { row: { id: string } }) => Record<string, string>;
+                    }) => (
                       <TableContainer
                         title=""
                         description=""
@@ -403,7 +424,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                         <Table {...getTableProps()}>
                           <TableHead>
                             <TableRow>
-                              {headers.map((header: any) => {
+                              {headers.map((header) => {
                                 const { key, ...headerProps } = getHeaderProps({
                                   header,
                                 });
@@ -416,7 +437,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {rows.map((row: any, rowIndex: number) => {
+                            {rows.map((row, rowIndex) => {
                               const { key, ...rowProps } = getRowProps({ row });
                               return (
                                 <TableRow
@@ -435,7 +456,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                                     transformOrigin: "center top",
                                   }}
                                 >
-                                  {row.cells.map((cell: any) => (
+                                  {row.cells.map((cell) => (
                                     <TableCell key={cell.id}>
                                       {cell.value}
                                     </TableCell>
@@ -460,7 +481,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                 pageSize={pageSize}
                 pageSizes={[10, 20, 50, 100]}
                 size="md"
-                onChange={({ page: newPage, pageSize: newPageSize }: any) => {
+                onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
                   setPage(newPage);
                   setPageSize(newPageSize);
                 }}

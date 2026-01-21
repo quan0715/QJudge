@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
+import type { User } from "@/core/entities/user.entity";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
@@ -30,7 +31,7 @@ const ContestDashboard = () => {
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [currentUser] = useState<any>(() => {
+  const [currentUser] = useState<User | null>(() => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     try {

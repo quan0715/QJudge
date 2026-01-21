@@ -89,7 +89,17 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     const rowId = `row_${s.rank}_${s.user?.id || index}`;
     // Use displayName if available (for anonymous mode), fallback to username
     const displayName = s.displayName || s.user?.username || "Unknown";
-    const row: any = {
+    const row: {
+      id: string;
+      rank: number;
+      user: string;
+      nickname?: string;
+      realUsername?: string;
+      solved: number;
+      total_score: number;
+      time: number;
+      [key: string]: ProblemStats | string | number | undefined;
+    } = {
       id: rowId,
       rank: s.rank,
       user: displayName,
@@ -111,7 +121,13 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     return row;
   });
 
-  const renderCell = (cell: any, problems: ProblemInfo[]) => {
+  const renderCell = (
+    cell: {
+      info: { header: string };
+      value: ProblemStats | string | number | null;
+    },
+    problems: ProblemInfo[]
+  ) => {
     // Check if it's a problem column
     if (cell.info.header.startsWith("problem_")) {
       const stats = cell.value as ProblemStats | null;
@@ -278,7 +294,13 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           getTableProps,
           getHeaderProps,
           getRowProps,
-        }: any) => (
+        }: {
+          rows: typeof rows;
+          headers: typeof headers;
+          getTableProps: () => Record<string, string>;
+          getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
+          getRowProps: (args: { row: { id: string } }) => Record<string, string>;
+        }) => (
           <TableContainer style={{ overflow: "visible" }}>
             <Table
               {...getTableProps()}
@@ -292,7 +314,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
             >
               <TableHead>
                 <TableRow>
-                  {headers.map((header: any) => {
+                  {headers.map((header) => {
                     const headerProps = getHeaderProps({ header });
                     const isProblemColumn = header.key.startsWith("problem_");
                     const problem = isProblemColumn
@@ -355,11 +377,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row: any) => {
+                {rows.map((row) => {
                   const { key, ...rowProps } = getRowProps({ row });
                   return (
                     <TableRow key={key} {...rowProps}>
-                      {row.cells.map((cell: any) => (
+                      {row.cells.map((cell) => (
                         <TableCell
                           key={cell.id}
                           style={{
