@@ -248,12 +248,12 @@ const ContestAdminLogsPage = () => {
   // Filter events when search term or event type filter changes
   useEffect(() => {
     let filtered = sortedEvents;
-    
+
     // Apply event type filter
     if (selectedTypes && selectedTypes.length > 0) {
       filtered = filtered.filter((e) => selectedTypes.includes(e.eventType));
     }
-    
+
     // Apply search term filter
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -264,9 +264,13 @@ const ContestAdminLogsPage = () => {
           e.reason?.toLowerCase().includes(lowerSearch)
       );
     }
-    
-    setFilteredEvents(filtered);
-    setPage(1); // Reset to first page on filter change
+
+    const timerId = setTimeout(() => {
+      setFilteredEvents(filtered);
+      setPage(1); // Reset to first page on filter change
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [searchTerm, sortedEvents, selectedTypes]);
 
   // Comprehensive event type mapping

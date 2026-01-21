@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   Button,
@@ -42,13 +42,7 @@ const ContestAdminsPage: React.FC = () => {
   } | null>(null);
   const { confirm, modalProps } = useConfirmModal();
 
-  useEffect(() => {
-    if (contestId) {
-      loadAdmins();
-    }
-  }, [contestId]);
-
-  const loadAdmins = async () => {
+  const loadAdmins = useCallback(async () => {
     if (!contestId) return;
     try {
       const data = await getContestAdmins(contestId);
@@ -57,7 +51,13 @@ const ContestAdminsPage: React.FC = () => {
       console.error("Failed to load admins", error);
       setNotification({ kind: "error", message: "無法載入管理員列表" });
     }
-  };
+  }, [contestId]);
+
+  useEffect(() => {
+    if (contestId) {
+      loadAdmins();
+    }
+  }, [contestId, loadAdmins]);
 
   const handleAddAdmin = async (username: string) => {
     if (!contestId) return;

@@ -31,19 +31,16 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     "calc(var(--cds-spacing-09) + var(--cds-spacing-07))",
   ];
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Get current user from localStorage
-  useEffect(() => {
+  const [currentUser, setCurrentUser] = useState<any>(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user", e);
-      }
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user", e);
+      return null;
     }
-  }, []);
+  });
 
   // Fetch submissions for this problem, filtered by current user
   const { data, isLoading, isFetching, refetch } = useContestSubmissions({
@@ -147,4 +144,3 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
 };
 
 export default ContestProblemSubmissions;
-

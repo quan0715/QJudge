@@ -61,7 +61,16 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [problemFilter, setProblemFilter] = useState<string>("all");
   const [onlyMine, setOnlyMine] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user", e);
+      return null;
+    }
+  });
   const [animationKey, setAnimationKey] = useState(0);
 
   // Get contest problems from context
@@ -92,22 +101,15 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user", e);
-      }
-    }
-  }, []);
-
   // Trigger animation when data changes
   useEffect(() => {
     if (data) {
-      setAnimationKey((prev) => prev + 1);
+      const timerId = setTimeout(() => {
+        setAnimationKey((prev) => prev + 1);
+      }, 0);
+      return () => clearTimeout(timerId);
     }
+    return undefined;
   }, [data]);
 
   const statusOptions = [

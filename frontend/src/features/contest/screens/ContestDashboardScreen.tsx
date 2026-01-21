@@ -30,28 +30,31 @@ const ContestDashboard = () => {
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [lockModalOpen, setLockModalOpen] = useState(false);
-
-  useEffect(() => {
+  const [currentUser, setCurrentUser] = useState<any>(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user", e);
-      }
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user", e);
+      return null;
     }
-  }, []);
+  });
+  const [lockModalOpen, setLockModalOpen] = useState(false);
 
   // Find my rank from context standings
   useEffect(() => {
-    if (currentUser && scoreboardData?.rows?.length) {
-      const myEntry = scoreboardData.rows.find(
+    if (!currentUser) {
+      setMyRank(null);
+      return;
+    }
+    const timerId = setTimeout(() => {
+      const myEntry = scoreboardData?.rows?.find(
         (s) => s.displayName === currentUser.username
       );
       setMyRank(myEntry || null);
-    }
+    }, 0);
+    return () => clearTimeout(timerId);
   }, [currentUser, scoreboardData]);
 
   const handleSubmissionClose = () => {
