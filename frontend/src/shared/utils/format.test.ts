@@ -52,9 +52,13 @@ describe("Format Utilities", () => {
       expect(getLanguageLabel("c")).toBe("C");
     });
 
+    it("should return Rust for rust", () => {
+      expect(getLanguageLabel("rust")).toBe("Rust");
+    });
+
     it("should return original value for unknown language", () => {
       // @ts-expect-error - testing unknown language
-      expect(getLanguageLabel("rust")).toBe("rust");
+      expect(getLanguageLabel("elixir")).toBe("elixir");
     });
   });
 

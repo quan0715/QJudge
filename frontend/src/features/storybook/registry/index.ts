@@ -123,7 +123,6 @@ import CategoryTagStories from "@/shared/ui/tag/CategoryTag.stories";
 import DifficultyBadgeStories from "@/shared/ui/tag/DifficultyBadge.stories";
 import AcrBadgeStories from "@/shared/ui/tag/AcrBadge.stories";
 import { SubmissionStatusBadgeStories } from "@/shared/ui/tag/SubmissionStatusBadge.stories";
-import { ContestStatusBadgeStories } from "@/shared/ui/tag/ContestStatusBadge.stories";
 import NotFoundStories from "@/features/app/components/NotFound.stories";
 import ServerErrorStories from "@/features/app/components/ServerError.stories";
 import ConfirmModalStories from "@/shared/ui/modal/ConfirmModal.stories";
@@ -159,7 +158,6 @@ registerStory(
   "shared/ui/tag/SubmissionStatusBadge",
   SubmissionStatusBadgeStories
 );
-registerStory("shared/ui/tag/ContestStatusBadge", ContestStatusBadgeStories);
 registerStory("shared/ui/modal/ConfirmModal", ConfirmModalStories);
 registerStory("features/app/components/ErrorBoundary", ErrorBoundaryStories);
 registerStory("features/app/components/NotFound", NotFoundStories);

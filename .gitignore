@@ -58,6 +58,7 @@ lerna-debug.log*
 
 # React / Frontend
 /frontend/build
+/frontend/coverage/
 /frontend/.env.local
 /frontend/.env.development.local
 /frontend/.env.test.local

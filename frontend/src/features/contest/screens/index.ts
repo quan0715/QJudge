@@ -8,7 +8,6 @@ export { default as ContestStandingsScreen } from "./ContestStandingsScreen";
 export { default as ContestSubmissionListScreen } from "./ContestSubmissionListScreen";
 
 // Settings Screens
-export { default as ContestAdminOverviewScreen } from "./settings/ContestAdminOverviewScreen";
 export { default as ContestAdminsScreen } from "./settings/ContestAdminsScreen";
 export { default as ContestLogsScreen } from "./settings/ContestLogsScreen";
 export { default as ContestParticipantsScreen } from "./settings/ContestParticipantsScreen";
