@@ -48,6 +48,13 @@ refactor: refactor submission processing logic
 
 ## Pull Request Process
 
+### Branching and PR Flow
+
+- Use `dev` as the primary local branch; sync `dev` with `main` before starting work
+- Create feature branches from `dev` (e.g. `feature/...`)
+- Open PRs from feature branches into `dev` first
+- Open PRs from `dev` to `main` for release/merge
+
 1. Ensure all tests pass
 2. Update relevant documentation
 3. Request review from at least one maintainer
@@ -60,4 +67,3 @@ If you encounter issues while contributing:
 
 - Ask questions in Issues
 - Contact project maintainers
-
