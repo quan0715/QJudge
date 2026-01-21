@@ -138,8 +138,6 @@ logs
 Thumbs.db
 
 # AI/Agent tools
-.cursor/
 .agent/
 .claude/
-.codex/
 .opencode/
