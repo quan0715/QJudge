@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "build:docs": "tsc -b && vite build --config vite.config.docs.ts",
     "check:docs": "node scripts/check-docs-translations.js",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=9999",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
