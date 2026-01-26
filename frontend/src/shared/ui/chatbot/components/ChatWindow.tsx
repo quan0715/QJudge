@@ -6,6 +6,8 @@ import {
   InlineNotification,
   Modal,
   TextInput,
+  OverflowMenu,
+  OverflowMenuItem,
 } from "@carbon/react";
 import { Edit, ChevronRight, Idea, DocumentAdd, CheckmarkOutline, Edit as EditIcon, TrashCan } from "@carbon/icons-react";
 import type {
@@ -74,6 +76,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInputValue, setRenameInputValue] = useState(currentSession?.title || "");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // 建議的 prompts（針對題目編輯情境）
   const suggestedPrompts = useMemo(() => {
@@ -158,41 +161,22 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         {/* 右側：操作按鈕 */}
         <div className={styles.headerActions}>
           {currentSession && (
-            <>
-              <IconButton
-                label="重命名"
-                kind="ghost"
-                size="sm"
+            <OverflowMenu flipped>
+              <OverflowMenuItem
+                itemText="重命名"
                 onClick={() => {
                   setRenameInputValue(currentSession.title);
                   setIsRenameModalOpen(true);
                 }}
-                align="left"
-              >
-                <Edit size={16} />
-              </IconButton>
-              <IconButton
-                label="刪除"
-                kind="ghost"
-                size="sm"
-                onClick={async () => {
-                  if (
-                    onDeleteSession &&
-                    window.confirm(`確定要刪除「${currentSession.title}」嗎？`)
-                  ) {
-                    setIsDeleting(true);
-                    try {
-                      await onDeleteSession(currentSession.id);
-                    } finally {
-                      setIsDeleting(false);
-                    }
-                  }
+              />
+              <OverflowMenuItem
+                isDelete
+                itemText="刪除"
+                onClick={() => {
+                  setIsDeleteConfirmOpen(true);
                 }}
-                align="left"
-              >
-                <TrashCan size={16} />
-              </IconButton>
-            </>
+              />
+            </OverflowMenu>
           )}
           <IconButton
             label="新增對話"
@@ -304,6 +288,38 @@ export const ChatWindow: FC<ChatWindowProps> = ({
               autoFocus
             />
           </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {currentSession && (
+        <Modal
+          isOpen={isDeleteConfirmOpen}
+          modalHeading="確認刪除"
+          primaryButtonText="刪除"
+          secondaryButtonText="取消"
+          danger
+          onRequestClose={() => setIsDeleteConfirmOpen(false)}
+          onRequestSubmit={async () => {
+            if (onDeleteSession) {
+              setIsDeleting(true);
+              try {
+                await onDeleteSession(currentSession.id);
+                setIsDeleteConfirmOpen(false);
+              } catch (err) {
+                console.error("Failed to delete session:", err);
+              } finally {
+                setIsDeleting(false);
+              }
+            }
+          }}
+          size="sm"
+        >
+          <p>
+            確定要刪除對話「<strong>{currentSession.title}</strong>」嗎？
+            <br />
+            此操作無法復原。
+          </p>
         </Modal>
       )}
     </div>
