@@ -50,6 +50,13 @@ interface BackendSessionListItem {
   message_count: number;
 }
 
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 interface BackendSession {
   id: string;
   title: string;
@@ -98,13 +105,15 @@ async function requestJson<T>(
 const chatbotRepository: ChatbotRepository = {
   async getSessions(): Promise<ChatSession[]> {
     try {
-      const result = await requestJson<BackendSessionListItem[]>(
-        httpClient.get(`${BASE_URL}/`),
-        "無法載入對話列表"
-      );
+      const response = await requestJson<
+        PaginatedResponse<BackendSessionListItem>
+      >(httpClient.get(`${BASE_URL}/`), "無法載入對話列表");
+
+      // DRF 返回分頁格式，extract results array
+      const sessions = response.results || [];
 
       // 轉換後端格式到前端格式
-      return result.map((session) => ({
+      return sessions.map((session) => ({
         id: session.session_id,
         title: session.title,
         messages: [], // 列表時不載入訊息
