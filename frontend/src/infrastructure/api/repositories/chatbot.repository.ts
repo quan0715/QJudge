@@ -154,26 +154,21 @@ const chatbotRepository: ChatbotRepository = {
   },
 
   async createSession(): Promise<ChatSession> {
-    try {
-      const data = await requestJson<BackendSessionCreate>(
-        httpClient.post(`${BASE_URL}/new_session/`, {}),
-        "無法建立新對話"
-      );
+    // 只在前端生成臨時 session ID
+    // 真正的後端 session 會在第一條訊息發送時建立
+    const sessionId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      return {
-        id: data.id,
-        title: data.title || "新對話",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: {
-          backend_session_id: data.id,
-        },
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "未知錯誤";
-      throw new Error(errorMessage);
-    }
+    return {
+      id: sessionId,
+      title: "新對話",
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      metadata: {
+        // 表示這是一個臨時 session，還未在後端創建
+        backend_session_id: undefined,
+      },
+    };
   },
 
   async deleteSession(sessionId: string | number): Promise<void> {
@@ -265,28 +260,10 @@ const chatbotRepository: ChatbotRepository = {
     onToolResult?: (toolInfo: ToolInfo) => void
   ) {
     try {
-      // Step 1: 確定是否需要先建立後端 session
-      let urlSessionId = sessionId.toString();
-
-      // 嘗試建立新 session（如果需要）
-      try {
-        const newSessionResponse = await httpClient.post(
-          `${BASE_URL}/new_session/`,
-          {}
-        );
-        if (newSessionResponse.ok) {
-          const newSessionData: BackendSessionCreate =
-            await newSessionResponse.json();
-          urlSessionId = newSessionData.id;
-          console.debug(
-            "Created new backend session:",
-            newSessionData.id
-          );
-        }
-      } catch (e) {
-        console.warn("Failed to create backend session, using provided ID:", e);
-        // 繼續使用原始 sessionId
-      }
+      // Step 1: 使用傳遞的 session ID
+      // 如果是臨時 ID（temp-xxx），應該已在 useChatbot 中呼叫過 /new_session/
+      // 此處只需直接使用傳遞的 ID（可能是後端 session ID）
+      const urlSessionId = sessionId.toString();
 
       // Step 2: 準備請求 payload
       const payload: any = {

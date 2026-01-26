@@ -254,6 +254,46 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       // 檢查是否為第一則訊息（session 中沒有訊息）
       const isFirstMessage = currentSession?.messages.length === 0;
 
+      // 如果是第一條訊息且沒有後端 session ID，先建立
+      let sessionIdForRequest = currentSessionId;
+      const backendSessionId = currentSession?.metadata?.backend_session_id;
+
+      if (isFirstMessage && !backendSessionId) {
+        try {
+          const newSessionResponse = await fetch(`/api/v1/ai/sessions/new_session/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (!newSessionResponse.ok) {
+            throw new Error("Failed to create backend session");
+          }
+
+          const newSessionData = await newSessionResponse.json();
+          sessionIdForRequest = newSessionData.id;
+
+          // 更新 session 的後端 ID
+          // 注意：保持前端 session.id 不變，只在 metadata 中記錄後端 ID
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === currentSessionId
+                ? {
+                    ...session,
+                    metadata: {
+                      ...session.metadata,
+                      backend_session_id: newSessionData.id,
+                    },
+                  }
+                : session
+            )
+          );
+        } catch (err) {
+          console.error("Failed to create backend session:", err);
+          setError("無法建立對話，請稍後再試");
+          return;
+        }
+      }
+
       // 如果是第一則訊息且有背景資訊，加上背景資訊前綴
       if (isFirstMessage && backgroundInfo) {
         const bgPrefix = buildBackgroundInfoPrefix(backgroundInfo);
@@ -301,7 +341,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       try {
         await chatbotRepository.sendMessageStream(
-          currentSessionId,
+          sessionIdForRequest,
           trimmedContent,
           // onDelta - 逐步更新 AI 訊息
           (delta) => {
