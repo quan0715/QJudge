@@ -86,6 +86,8 @@ interface MarkdownRendererProps {
   enableHighlight?: boolean;
   /** Enable copy button for code blocks */
   enableCopy?: boolean;
+  /** Allow raw HTML in markdown (unsafe for untrusted content) */
+  allowRawHtml?: boolean;
   /** Additional className for styling */
   className?: string;
   /** Inline styles */
@@ -182,7 +184,7 @@ const CodeBlock: React.FC<{
  *
  * Features:
  * - GitHub Flavored Markdown (tables, task lists, strikethrough)
- * - Raw HTML support (aside, div, etc.)
+ * - Raw HTML support (aside, div, etc.) (optional)
  * - Math formulas with KaTeX (optional)
  * - Syntax highlighting (optional)
  * - Copy button for code blocks (optional)
@@ -206,12 +208,17 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   enableMath = false,
   enableHighlight = false,
   enableCopy = false,
+  allowRawHtml = true,
   className = "",
   style,
 }) => {
   // Build plugins based on options
   const remarkPlugins: any[] = [remarkGfm];
-  const rehypePlugins: any[] = [rehypeRaw, rehypeSlug];
+  const rehypePlugins: any[] = [rehypeSlug];
+
+  if (allowRawHtml) {
+    rehypePlugins.unshift(rehypeRaw);
+  }
 
   if (enableMath) {
     remarkPlugins.push(remarkMath);

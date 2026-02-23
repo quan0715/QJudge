@@ -3,3 +3,4 @@
  */
 
 export * from "./solver.types";
+export * from "./chatbot.types";

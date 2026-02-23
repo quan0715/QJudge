@@ -13,6 +13,7 @@ import {
   Password,
   Edit,
   Code,
+  Settings,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -197,6 +198,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               {tContest("avatar.editNickname")}
             </button>
           )}
+
+          {/* Settings Link */}
+          <button
+            type="button"
+            className="user-menu-link"
+            onClick={() => {
+              navigate("/settings");
+              setIsExpandedInternal(false);
+              onExpandedChange?.(false);
+            }}
+          >
+            <Settings size={16} />
+            {t("settings.title", "設定")}
+          </button>
 
           {/* Dev Tools */}
           {import.meta.env.DEV && (

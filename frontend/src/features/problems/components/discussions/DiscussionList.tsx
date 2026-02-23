@@ -5,70 +5,27 @@ import {
   Tag,
   InlineNotification,
   SkeletonText,
-  Modal,
-  TextInput,
 } from "@carbon/react";
-import { Add, Chat, Close } from "@carbon/icons-react";
+import { Add, Chat } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
-import { MarkdownField } from "@/shared/ui/markdown/markdownEditor/MarkdownField";
 import { formatSmartTime } from "@/shared/utils/format";
 import { useDiscussionList } from "@/features/problems/hooks/useProblemDiscussions";
 import {
   ProblemDiscussionThread,
-  type DiscussionReply,
   type DiscussionEntityType,
 } from "@/shared/ui/discussion";
 import type {
   Discussion,
   DiscussionComment,
 } from "@/core/entities/discussion.entity";
+import { buildDiscussionReplies } from "@/features/problems/utils/discussionReplies";
 import { CreateDiscussionModal } from "./CreateDiscussionModal";
+import DiscussionReplyForm from "./DiscussionReplyForm";
+import DiscussionEditModal from "./DiscussionEditModal";
 import "./Discussions.scss";
 
-/**
- * Convert flat comments array to nested DiscussionReply tree structure
- */
-function commentsToReplies(comments: DiscussionComment[]): DiscussionReply[] {
-  // Build a map of id -> reply object
-  const replyMap = new Map<string, DiscussionReply>();
-  const rootReplies: DiscussionReply[] = [];
-
-  // First pass: create all reply objects
-  for (const comment of comments) {
-    if (comment.isDeleted) continue; // Skip deleted comments
-
-    const reply: DiscussionReply = {
-      id: comment.id,
-      content: comment.content,
-      authorUsername: comment.author.username,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-      likeCount: comment.likeCount,
-      isLiked: comment.isLiked,
-      replies: [],
-    };
-    replyMap.set(comment.id, reply);
-  }
-
-  // Second pass: build tree structure
-  for (const comment of comments) {
-    if (comment.isDeleted) continue;
-
-    const reply = replyMap.get(comment.id);
-    if (!reply) continue;
-
-    if (comment.parentId && replyMap.has(comment.parentId)) {
-      // Has parent - add to parent's replies
-      const parent = replyMap.get(comment.parentId);
-      parent?.replies?.push(reply);
-    } else {
-      // No parent or parent not found - root level reply
-      rootReplies.push(reply);
-    }
-  }
-
-  return rootReplies;
-}
+const commentsToReplies = (comments: DiscussionComment[]) =>
+  buildDiscussionReplies(comments);
 
 /**
  * Reply target interface - tracks which discussion/comment is being replied to
@@ -460,50 +417,17 @@ export const DiscussionList: React.FC<DiscussionListProps> = ({
 
                 {/* Inline Reply Form */}
                 {isReplying && (
-                  <div className="discussion-list__reply-form">
-                    {replyTarget.parentCommentId && (
-                      <div className="discussion-list__reply-to">回覆評論</div>
-                    )}
-                    {replyError && (
-                      <InlineNotification
-                        kind="error"
-                        title="錯誤"
-                        subtitle={replyError}
-                        onClose={() => setReplyError(null)}
-                        lowContrast
-                        style={{ marginBottom: "0.5rem" }}
-                      />
-                    )}
-                    <MarkdownField
-                      id={`reply-${discussion.id}-${
-                        replyTarget.parentCommentId || "main"
-                      }`}
-                      value={replyContent}
-                      onChange={setReplyContent}
-                      placeholder="輸入您的回覆（支援 Markdown）..."
-                      minHeight="100px"
-                      disabled={isCreatingComment}
-                    />
-                    <div className="discussion-list__reply-actions">
-                      <Button
-                        kind="ghost"
-                        size="sm"
-                        renderIcon={Close}
-                        onClick={handleCancelReply}
-                        disabled={isCreatingComment}
-                      >
-                        取消
-                      </Button>
-                      <Button
-                        kind="primary"
-                        size="sm"
-                        onClick={handleSubmitReply}
-                        disabled={isCreatingComment || !replyContent.trim()}
-                      >
-                        {isCreatingComment ? "發送中..." : "回覆"}
-                      </Button>
-                    </div>
-                  </div>
+                  <DiscussionReplyForm
+                    fieldId={`reply-${discussion.id}-${replyTarget?.parentCommentId || "main"}`}
+                    isReplyingToComment={!!replyTarget?.parentCommentId}
+                    replyError={replyError}
+                    replyContent={replyContent}
+                    isCreatingComment={isCreatingComment}
+                    onChange={setReplyContent}
+                    onCancel={handleCancelReply}
+                    onSubmit={handleSubmitReply}
+                    onClearError={() => setReplyError(null)}
+                  />
                 )}
               </div>
             );
@@ -530,44 +454,23 @@ export const DiscussionList: React.FC<DiscussionListProps> = ({
         isLoading={isCreating}
       />
 
-      {/* Edit Modal */}
-      <Modal
+      <DiscussionEditModal
         open={!!editTarget}
-        onRequestClose={handleCancelEdit}
-        modalHeading={
-          editTarget?.type === "discussion" ? "編輯討論" : "編輯評論"
-        }
-        primaryButtonText={
-          isUpdatingDiscussion || isUpdatingComment ? "儲存中..." : "儲存"
-        }
-        secondaryButtonText="取消"
-        onRequestSubmit={handleSubmitEdit}
-        primaryButtonDisabled={
+        showTitle={editTarget?.type === "discussion"}
+        titleValue={editTitle}
+        contentValue={editContent}
+        isSaving={isUpdatingDiscussion || isUpdatingComment}
+        disableSubmit={
           isUpdatingDiscussion ||
           isUpdatingComment ||
           !editContent.trim() ||
           (editTarget?.type === "discussion" && !editTitle.trim())
         }
-      >
-        {editTarget?.type === "discussion" && (
-          <TextInput
-            id="edit-title"
-            labelText="標題"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            placeholder="討論標題"
-            style={{ marginBottom: "1rem" }}
-          />
-        )}
-        <MarkdownField
-          id="edit-content"
-          labelText="內容"
-          value={editContent}
-          onChange={setEditContent}
-          placeholder="請輸入內容（支援 Markdown）..."
-          minHeight="150px"
-        />
-      </Modal>
+        onChangeTitle={setEditTitle}
+        onChangeContent={setEditContent}
+        onClose={handleCancelEdit}
+        onSubmit={handleSubmitEdit}
+      />
     </div>
   );
 };

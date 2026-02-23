@@ -1,0 +1,134 @@
+.api-key-panel {
+  // Empty state
+  &__empty {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  &__empty-icon {
+    color: var(--cds-icon-secondary);
+    margin-bottom: 1rem;
+  }
+
+  &__empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--cds-text-primary);
+  }
+
+  &__empty-description {
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0;
+
+    a {
+      color: var(--cds-link-primary);
+      text-decoration: underline;
+
+      &:hover {
+        color: var(--cds-link-primary-hover);
+      }
+    }
+  }
+
+  // Info state
+  &__info {
+    padding: 1rem 0;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  &__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--cds-text-primary);
+  }
+
+  &__status {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__details {
+    background: var(--cds-layer-01);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+
+  &__detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__detail-label {
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary);
+  }
+
+  &__detail-value {
+    font-size: 0.875rem;
+    color: var(--cds-text-primary);
+    font-weight: 500;
+  }
+
+  &__stats {
+    margin-bottom: 1.5rem;
+  }
+
+  &__stats-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--cds-text-primary);
+  }
+
+  &__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  &__stat-item {
+    background: var(--cds-layer-01);
+    padding: 1rem;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__stat-label {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--cds-text-primary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+}

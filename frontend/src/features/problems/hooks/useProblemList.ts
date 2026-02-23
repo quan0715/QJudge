@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { getPaginatedProblems } from "@/infrastructure/api/repositories/problem.repository";
 import type { Difficulty, Problem } from "@/core/entities/problem.entity";
 
 export interface ProblemListFilters {
@@ -7,6 +7,11 @@ export interface ProblemListFilters {
   difficulties: Difficulty[];
   tagSlugs: string[];
   status: ("solved" | "unsolved")[];
+}
+
+export interface ProblemListPagination {
+  page: number;
+  pageSize: number;
 }
 
 const filterByStatus = (
@@ -18,18 +23,62 @@ const filterByStatus = (
   return problems.filter((p) => (target === "solved" ? p.isSolved : !p.isSolved));
 };
 
-export const useProblemList = (filters: ProblemListFilters) => {
+export const useProblemList = (
+  filters: ProblemListFilters,
+  pagination?: ProblemListPagination
+) => {
   return useQuery({
-    queryKey: ["problem-list", filters],
+    queryKey: ["problem-list", filters, pagination],
     queryFn: async () => {
-      const problems = await getProblems({
+      const result = await getPaginatedProblems({
         search: filters.search || undefined,
         difficulty: filters.difficulties.length ? filters.difficulties : undefined,
         tags: filters.tagSlugs.length ? filters.tagSlugs : undefined,
-        // TODO: backend does not yet support status/page/page_size; filter locally and add TODO in PR
+        page: pagination?.page || 1,
+        page_size: pagination?.pageSize || 20,
       });
-      return filterByStatus(problems, filters.status);
+
+      // Apply client-side status filtering (backend doesn't support this yet)
+      const filteredResults = filterByStatus(result.results, filters.status);
+
+      return {
+        problems: filteredResults,
+        totalCount: result.count,
+        hasNext: !!result.next,
+        hasPrevious: !!result.previous,
+      };
     },
+    staleTime: 60_000,
+    gcTime: 300_000,
+    retry: 1,
+  });
+};
+
+export const useInfiniteProblemList = (
+  filters: ProblemListFilters,
+  pageSize: number = 20
+) => {
+  return useInfiniteQuery({
+    queryKey: ["problem-list-infinite", filters, pageSize],
+    queryFn: async ({ pageParam }) => {
+      const result = await getPaginatedProblems({
+        search: filters.search || undefined,
+        difficulty: filters.difficulties.length ? filters.difficulties : undefined,
+        tags: filters.tagSlugs.length ? filters.tagSlugs : undefined,
+        page: pageParam,
+        page_size: pageSize,
+      });
+
+      const filteredResults = filterByStatus(result.results, filters.status);
+
+      return {
+        problems: filteredResults,
+        totalCount: result.count,
+        nextPage: result.next ? pageParam + 1 : undefined,
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
     staleTime: 60_000,
     gcTime: 300_000,
     retry: 1,

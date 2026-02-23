@@ -16,6 +16,9 @@ from .views import (
     UserStatsView,
     UserPreferencesView,
     ChangePasswordView,
+    UserAPIKeyView,
+    ValidateAPIKeyView,
+    GetUsageStatsView,
 )
 
 app_name = 'users'
@@ -43,7 +46,12 @@ urlpatterns = [
     
     # Password management
     path('change-password', ChangePasswordView.as_view(), name='change-password'),
-    
+
+    # API Key management
+    path('me/api-key', UserAPIKeyView.as_view(), name='api-key'),
+    path('me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
+    path('me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
+
     # User management (admin only)
     path('search', UserSearchView.as_view(), name='user-search'),
     path('<int:pk>/role', UserRoleUpdateView.as_view(), name='user-role-update'),

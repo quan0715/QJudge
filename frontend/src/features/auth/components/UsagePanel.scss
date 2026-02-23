@@ -1,0 +1,64 @@
+.usage-panel {
+  &__summary {
+    margin-bottom: 2rem;
+  }
+
+  &__section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--cds-text-primary);
+  }
+
+  &__summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  &__summary-card {
+    padding: 1.5rem;
+  }
+
+  &__summary-label {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  &__summary-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--cds-text-primary);
+    margin-bottom: 0.25rem;
+  }
+
+  &__summary-detail {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+  }
+
+  &__filters {
+    margin-bottom: 2rem;
+  }
+
+  &__filters-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+
+    > * {
+      flex: 1;
+    }
+
+    .cds--date-picker {
+      flex: 2;
+    }
+  }
+
+  &__table {
+    margin-top: 1rem;
+  }
+}

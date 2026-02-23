@@ -28,7 +28,8 @@
     "environment": "環境設定",
     "createContest": "建立競賽",
     "createProblem": "新增題目",
-    "editProblem": "編輯題目"
+    "editProblem": "編輯題目",
+    "teacherDashboard": "教師後台"
   },
   "tab": {
     "overview": "總覽",
@@ -256,6 +257,8 @@
     "endTime": "結束時間",
     "startDate": "開始日期",
     "endDate": "結束日期",
+    "startDateTime": "開始日期時間",
+    "endDateTime": "結束日期時間",
     "password": "密碼",
     "visibility": "可見性"
   },

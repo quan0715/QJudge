@@ -18,11 +18,10 @@ import type {
   ExecutionType,
 } from "@/core/types/solver.types";
 import { INITIAL_EXECUTION_STATE } from "@/core/types/solver.types";
+import { transformSubmissionToResult, transformTestRunToResult } from "./solverAdapters";
+import { loadCode, loadCustomCases, saveCode, saveCustomCases as persistCustomCases } from "./solverStorage";
 
-// Re-export types for backward compatibility
 export type { ResultMode, ExecutionState, SubmissionResult, TestCaseResult, ExecutionStatus, ExecutionType };
-
-// Alias for backward compatibility
 export type TestResult = TestRunResult;
 
 interface UseProblemSolverProps {
@@ -97,27 +96,6 @@ export function useProblemSolver({
   // Unified Execution State
   const [executionState, setExecutionState] = useState<ExecutionState>(INITIAL_EXECUTION_STATE);
 
-  // Storage key helpers - different keys for contest vs standalone mode
-  const getCodeKey = useCallback(
-    (problemId: string, lang: string) => {
-      if (contestId) {
-        return `qjudge:contest:${contestId}:problem:${problemId}:code:${lang}`;
-      }
-      return `qjudge:problem:${problemId}:code:${lang}`;
-    },
-    [contestId]
-  );
-
-  const getCustomCasesKey = useCallback(
-    (problemId: string) => {
-      if (contestId) {
-        return `qjudge:contest:${contestId}:problem:${problemId}:custom_test_cases`;
-      }
-      return `qjudge:problem:${problemId}:custom_test_cases`;
-    },
-    [contestId]
-  );
-
   // Initialize when problem changes
   useEffect(() => {
     if (!problem) return;
@@ -144,7 +122,7 @@ export function useProblemSolver({
     
     setLanguage(targetLang);
 
-    const savedCode = localStorage.getItem(getCodeKey(problem.id, targetLang));
+    const savedCode = loadCode(problem.id, targetLang, contestId);
     if (savedCode) {
       setCode(savedCode);
     } else {
@@ -164,16 +142,7 @@ export function useProblemSolver({
         enabled: true,
       }));
 
-    let customCases: TestCaseItem[] = [];
-    try {
-      const savedCustom = localStorage.getItem(getCustomCasesKey(problem.id));
-      if (savedCustom) {
-        const parsed = JSON.parse(savedCustom);
-        if (Array.isArray(parsed)) customCases = parsed;
-      }
-    } catch (e) {
-      console.error("Failed to parse custom test cases", e);
-    }
+    const customCases = loadCustomCases(problem.id, contestId);
 
     setTestCases([...publicCases, ...customCases]);
   }, [problem?.id, contestId]);
@@ -181,21 +150,18 @@ export function useProblemSolver({
   // Save code
   useEffect(() => {
     if (problem?.id && code && language) {
-      localStorage.setItem(getCodeKey(problem.id, language), code);
+      saveCode(problem.id, language, code, contestId);
     }
-  }, [code, language, problem?.id, getCodeKey]);
+  }, [code, language, problem?.id, contestId]);
 
   // Save custom cases
   const saveCustomCases = useCallback(
     (cases: TestCaseItem[]) => {
       if (!problem?.id) return;
       const customOnly = cases.filter((c) => c.source === "custom");
-      localStorage.setItem(
-        getCustomCasesKey(problem.id),
-        JSON.stringify(customOnly)
-      );
+      persistCustomCases(problem.id, customOnly, contestId);
     },
-    [problem?.id, getCustomCasesKey]
+    [problem?.id, contestId]
   );
 
   const toggleResult = useCallback(() => {
@@ -210,7 +176,7 @@ export function useProblemSolver({
     (newLang: string) => {
       if (!problem?.id) return;
       setLanguage(newLang);
-      const savedCode = localStorage.getItem(getCodeKey(problem.id, newLang));
+      const savedCode = loadCode(problem.id, newLang, contestId);
       if (savedCode) {
         setCode(savedCode);
       } else {
@@ -218,7 +184,7 @@ export function useProblemSolver({
         setCode(tmpl || "");
       }
     },
-    [problem?.id, languageConfigs, getCodeKey]
+    [problem?.id, languageConfigs, contestId]
   );
 
   const addTestCase = useCallback(
@@ -262,84 +228,6 @@ export function useProblemSolver({
     [saveCustomCases]
   );
 
-  // Helper to transform test-run API response to TestResult format
-  const transformTestRunToResult = useCallback((data: any): TestResult => {
-    const results = data.results || [];
-    const cases = results.map((r: any, idx: number) => ({
-      id: r.id?.toString() || `case_${idx}`,
-      // 'info' status for custom cases means execution completed (no expected output to compare)
-      // 'AC' means passed, anything else is considered failed
-      passed: r.status === "AC",
-      input: r.input,
-      expectedOutput: r.expected_output, // May be undefined for custom cases
-      actualOutput: r.output,
-      error: r.error_message,
-      executionTime: r.exec_time,
-      memoryUsage: r.memory_usage,
-      isHidden: false,
-      // Store original status for UI display (e.g., 'info' for custom cases)
-      status: r.status,
-    }));
-    
-    // For test run: 'info' status means executed but no comparison (custom case)
-    // Count AC as passed, 'info' is neutral (not failed), other statuses are failed
-    const passed = cases.filter((r: any) => r.status === "AC").length;
-    const infoCount = cases.filter((r: any) => r.status === "info").length;
-    const failed = results.length - passed - infoCount;
-
-    return {
-      type: "run",
-      passed,
-      failed,
-      total: results.length,
-      cases,
-      error: data.error_message,
-    };
-  }, []);
-
-  // Helper to transform submission data to result format
-  const transformSubmissionToResult = useCallback((data: any): SubmissionResult => {
-    const results = data.results || [];
-    const totalTestCases = data.totalTestCases ?? results.length;
-    const cases = results.map((r: any, idx: number) => ({
-      id: r.id?.toString() || `case_${idx}`,
-      passed: r.status === "AC",
-      input: r.input,
-      expectedOutput: r.expectedOutput,
-      actualOutput: r.output,
-      error: r.errorMessage,
-      executionTime: r.execTime,
-      memoryUsage: r.memoryUsage,
-      isHidden: r.isHidden,
-    }));
-    const passed = cases.filter((r: any) => r.passed).length;
-
-    let uiStatus = data.status;
-    const isPending = data.status === "pending" || data.status === "judging";
-    
-    if (!isPending) {
-      // Basic mapping logic
-      if (["AC", "WA", "TLE", "MLE", "RE", "CE", "KR", "SE"].includes(data.status)) {
-        uiStatus = data.status;
-      } else {
-        uiStatus = "RE"; // Default unknown to RE/Error
-      }
-    } else {
-      uiStatus = "Pending";
-    }
-
-    return {
-      type: "submit",
-      status: uiStatus,
-      passed,
-      total: totalTestCases,
-      score: data.score,
-      error: data.errorMessage,
-      submissionId: data.id,
-      cases,
-    };
-  }, []);
-
   // Execute test run using the dedicated test-run endpoint
   const executeTestRun = useCallback(async () => {
     if (!problem?.id) return;
@@ -378,7 +266,7 @@ export function useProblemSolver({
         error: err.message || "測試執行失敗"
       });
     }
-  }, [problem?.id, code, language, testCases, transformTestRunToResult]);
+  }, [problem?.id, code, language, testCases]);
 
   // Execute formal submission
   const executeSubmit = useCallback(async () => {
@@ -437,7 +325,7 @@ export function useProblemSolver({
         error: err.message || "提交失敗"
       });
     }
-  }, [problem?.id, contestId, code, language, transformSubmissionToResult]);
+  }, [problem?.id, contestId, code, language]);
 
   const runTest = useCallback(() => {
     setResultOpen(true);

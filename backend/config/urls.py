@@ -7,6 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from apps.core.db_views import DatabaseStatusView, DatabaseSyncView
+from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
@@ -17,6 +18,11 @@ urlpatterns = [
     path('api/v1/labs/', include('apps.labs.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
+    path('api/v1/ai/', include('apps.ai.urls')),
+    # User API Key management
+    path('api/v1/users/me/api-key', UserAPIKeyView.as_view(), name='api-key'),
+    path('api/v1/users/me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
+    path('api/v1/users/me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
     # Database Admin (development only)
     path('api/admin/database/', DatabaseStatusView.as_view(), name='database-status'),
     path('api/admin/database/sync/', DatabaseSyncView.as_view(), name='database-sync'),

@@ -1,8 +1,7 @@
 import type { ChatbotRepository } from "@/core/ports/chatbot.repository";
 import type {
   SendMessageOptions,
-  UserInputRequest,
-  ThinkingInfo,
+  StreamCallbacks,
   ToolInfo,
   ChatMessage,
   ChatSession,
@@ -25,11 +24,44 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
 }
 
 interface AIServiceStreamEvent {
-  type: "delta" | "session" | "done" | "error" | "init";
+  type:
+    | "init"
+    | "session"
+    | "delta"
+    | "thinking"
+    | "tool_start"
+    | "tool_result"
+    | "usage"
+    | "user_input_request"
+    | "done"
+    | "error";
   content?: string;
   session_id?: string;
   backend_session_id?: string;
   frontend_session_id?: string;
+  is_new_session?: boolean;
+
+  // thinking 事件字段
+  thinking?: string;
+  signature?: string;
+
+  // tool_start/tool_result 事件字段
+  tool_name?: string;
+  tool_use_id?: string;
+  input?: Record<string, unknown>;
+  result?: string | Record<string, unknown>;
+  is_error?: boolean;
+  start_time_ms?: number;
+  duration_ms?: number;
+  skill_metadata?: {
+    skill?: string;
+    gate?: string;
+  };
+
+  // usage 事件字段
+  input_tokens?: number;
+  output_tokens?: number;
+  cost_cents?: number;
 }
 
 interface BackendMessage {
@@ -63,11 +95,6 @@ interface BackendSession {
   messages: BackendMessage[];
   created_at: string;
   updated_at: string;
-}
-
-interface BackendSessionCreate {
-  id: string;
-  title: string;
 }
 
 /**
@@ -119,9 +146,6 @@ const chatbotRepository: ChatbotRepository = {
         messages: [], // 列表時不載入訊息
         createdAt: new Date(session.created_at),
         updatedAt: new Date(session.updated_at),
-        metadata: {
-          message_count: session.message_count,
-        },
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "未知錯誤";
@@ -169,6 +193,13 @@ const chatbotRepository: ChatbotRepository = {
         backend_session_id: undefined,
       },
     };
+  },
+
+  async createBackendSession(): Promise<{ id: string; status: string }> {
+    return await requestJson<{ id: string; status: string }>(
+      httpClient.post(`${BASE_URL}/new_session/`),
+      "無法創建後端會話"
+    );
   },
 
   async deleteSession(sessionId: string | number): Promise<void> {
@@ -250,23 +281,19 @@ const chatbotRepository: ChatbotRepository = {
   async sendMessageStream(
     sessionId: string | number,
     content: string,
-    onDelta: (content: string) => void,
-    onToolStart: (toolName: string) => void,
-    onDone: () => void,
-    onError: (error: string) => void,
-    options?: SendMessageOptions,
-    onUserInputRequest?: (request: UserInputRequest) => void,
-    onThinking?: (thinkingInfo: ThinkingInfo) => void,
-    onToolResult?: (toolInfo: ToolInfo) => void
+    callbacks: StreamCallbacks,
+    options?: SendMessageOptions
   ) {
     try {
-      // Step 1: 使用傳遞的 session ID
-      // 如果是臨時 ID（temp-xxx），應該已在 useChatbot 中呼叫過 /new_session/
-      // 此處只需直接使用傳遞的 ID（可能是後端 session ID）
+      // 使用傳遞的 session ID
       const urlSessionId = sessionId.toString();
 
-      // Step 2: 準備請求 payload
-      const payload: any = {
+      // 準備請求 payload
+      const payload: {
+        content: string;
+        system_prompt?: string;
+        skill?: string;
+      } = {
         content,
         system_prompt: options?.context
           ? JSON.stringify(options.context)
@@ -293,7 +320,7 @@ const chatbotRepository: ChatbotRepository = {
       if (!response.ok) {
         const errorText = await response.text();
         if (response.status === 401) {
-          onError("請先登入以使用 AI 助教功能");
+          callbacks.onError?.("請先登入以使用 AI 助教功能");
           return;
         }
         throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -306,6 +333,12 @@ const chatbotRepository: ChatbotRepository = {
 
       const decoder = new TextDecoder();
       let buffer = "";
+
+      // 維護當前訊息狀態（累積更新）
+      const currentMessage: Partial<ChatMessage> = {
+        content: "",
+        isThinking: true,
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -322,12 +355,129 @@ const chatbotRepository: ChatbotRepository = {
           try {
             const event: AIServiceStreamEvent = JSON.parse(line.slice(6));
 
-            if (event.type === "delta" && event.content) {
-              onDelta(event.content);
-            } else if (event.type === "done") {
-              onDone();
-            } else if (event.type === "error" && event.content) {
-              onError(event.content);
+            // 將低級 SSE 事件轉換為高級回調
+            switch (event.type) {
+              case "init":
+                console.debug("SSE Event: init", {
+                  backendSessionId: event.backend_session_id,
+                  isNewSession: event.is_new_session,
+                });
+                // init 事件不需要傳遞給 Hook
+                break;
+
+              case "session":
+                console.debug("SSE Event: session", {
+                  sessionId: event.session_id,
+                });
+                // session 事件不需要傳遞給 Hook
+                break;
+
+              case "thinking":
+                console.debug("SSE Event: thinking", {
+                  thinkingLength: event.thinking?.length,
+                });
+                if (event.thinking) {
+                  currentMessage.thinkingInfo = {
+                    thinking: event.thinking,
+                    signature: event.signature || "",
+                  };
+                  currentMessage.isThinking = true;
+                  callbacks.onMessageUpdate?.(currentMessage);
+                }
+                break;
+
+              case "tool_start":
+                console.debug("SSE Event: tool_start", {
+                  toolName: event.tool_name,
+                  toolUseId: event.tool_use_id,
+                });
+                if (event.tool_name) {
+                  currentMessage.toolName = event.tool_name;
+                  currentMessage.isThinking = false;
+                  callbacks.onMessageUpdate?.(currentMessage);
+                }
+                break;
+
+              case "tool_result": {
+                console.debug("SSE Event: tool_result", {
+                  toolName: event.tool_name,
+                  toolUseId: event.tool_use_id,
+                  duration: event.duration_ms,
+                });
+                const toolInfo: ToolInfo = {
+                  toolName: event.tool_name || "",
+                  toolUseId: event.tool_use_id || "",
+                  inputData: event.input,
+                  result: event.result,
+                  isError: event.is_error,
+                  startTimeMs: event.start_time_ms,
+                  durationMs: event.duration_ms,
+                  skillMetadata: event.skill_metadata,
+                };
+                currentMessage.toolExecutions = [
+                  ...(currentMessage.toolExecutions || []),
+                  toolInfo,
+                ];
+                currentMessage.toolName = undefined;
+                callbacks.onMessageUpdate?.(currentMessage);
+                break;
+              }
+
+              case "usage":
+                console.debug("SSE Event: usage", {
+                  inputTokens: event.input_tokens,
+                  outputTokens: event.output_tokens,
+                  costCents: event.cost_cents,
+                });
+                // usage 事件用於日誌，不傳遞給 Hook
+                break;
+
+              case "delta":
+                if (event.content) {
+                  console.debug("SSE Event: delta", {
+                    contentLength: event.content.length,
+                  });
+                  currentMessage.content = (currentMessage.content || "") + event.content;
+                  currentMessage.isThinking = false;
+                  callbacks.onMessageUpdate?.(currentMessage);
+                }
+                break;
+
+              case "user_input_request":
+                console.debug("SSE Event: user_input_request");
+                if (callbacks.onUserInputRequest && event.content) {
+                  try {
+                    const request = JSON.parse(event.content);
+                    callbacks.onUserInputRequest(request);
+                  } catch (e) {
+                    console.debug("Failed to parse user input request:", e);
+                  }
+                }
+                break;
+
+              case "done": {
+                console.debug("SSE Event: done");
+                // 獲取完整 session 並調用 onComplete
+                try {
+                  const freshSession = await this.getSession(sessionId);
+                  callbacks.onComplete?.(freshSession);
+                } catch (err) {
+                  console.warn("Failed to fetch session after done:", err);
+                }
+                break;
+              }
+
+              case "error":
+                console.debug("SSE Event: error", {
+                  errorContent: event.content,
+                });
+                if (event.content) {
+                  callbacks.onError?.(event.content);
+                }
+                break;
+
+              default:
+                console.debug("SSE Event: unknown type", { type: event.type });
             }
           } catch (e) {
             console.debug("Failed to parse stream event:", e);
@@ -335,18 +485,81 @@ const chatbotRepository: ChatbotRepository = {
         }
       }
 
-      // 處理最後一行
+      // 處理最後一行（如果有）
       const finalLine = buffer.trim();
       if (finalLine.startsWith("data: ")) {
         try {
           const event: AIServiceStreamEvent = JSON.parse(finalLine.slice(6));
 
-          if (event.type === "delta" && event.content) {
-            onDelta(event.content);
-          } else if (event.type === "done") {
-            onDone();
-          } else if (event.type === "error" && event.content) {
-            onError(event.content);
+          // 處理最後一個事件（邏輯同上）
+          switch (event.type) {
+            case "thinking":
+              if (event.thinking) {
+                currentMessage.thinkingInfo = {
+                  thinking: event.thinking,
+                  signature: event.signature || "",
+                };
+                currentMessage.isThinking = true;
+                callbacks.onMessageUpdate?.(currentMessage);
+              }
+              break;
+            case "tool_start":
+              if (event.tool_name) {
+                currentMessage.toolName = event.tool_name;
+                currentMessage.isThinking = false;
+                callbacks.onMessageUpdate?.(currentMessage);
+              }
+              break;
+            case "tool_result": {
+              const toolInfo: ToolInfo = {
+                toolName: event.tool_name || "",
+                toolUseId: event.tool_use_id || "",
+                inputData: event.input,
+                result: event.result,
+                isError: event.is_error,
+                startTimeMs: event.start_time_ms,
+                durationMs: event.duration_ms,
+                skillMetadata: event.skill_metadata,
+              };
+              currentMessage.toolExecutions = [
+                ...(currentMessage.toolExecutions || []),
+                toolInfo,
+              ];
+              currentMessage.toolName = undefined;
+              callbacks.onMessageUpdate?.(currentMessage);
+              break;
+            }
+            case "delta":
+              if (event.content) {
+                currentMessage.content = (currentMessage.content || "") + event.content;
+                currentMessage.isThinking = false;
+                callbacks.onMessageUpdate?.(currentMessage);
+              }
+              break;
+            case "user_input_request":
+              if (callbacks.onUserInputRequest && event.content) {
+                try {
+                  const request = JSON.parse(event.content);
+                  callbacks.onUserInputRequest(request);
+                } catch (e) {
+                  console.debug("Failed to parse user input request:", e);
+                }
+              }
+              break;
+            case "done": {
+              try {
+                const freshSession = await this.getSession(sessionId);
+                callbacks.onComplete?.(freshSession);
+              } catch (err) {
+                console.warn("Failed to fetch session after done:", err);
+              }
+              break;
+            }
+            case "error":
+              if (event.content) {
+                callbacks.onError?.(event.content);
+              }
+              break;
           }
         } catch (e) {
           console.debug("Failed to parse final stream event:", e);
@@ -355,7 +568,7 @@ const chatbotRepository: ChatbotRepository = {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      onError(`無法發送訊息: ${errorMessage}`);
+      callbacks.onError?.(`無法發送訊息: ${errorMessage}`);
     }
   },
 };

@@ -18,6 +18,9 @@ import type {
   UpdatePreferencesRequest,
   ChangePasswordRequest,
   ChangePasswordResponse,
+  APIKeyResponse,
+  SetAPIKeyRequest,
+  UsageStatsResponse,
 } from "@/core/entities/auth.entity";
 
 const API_BASE = "/api/v1/auth";
@@ -152,6 +155,54 @@ export const changePassword = async (
 };
 
 // ============================================================================
+// API Key Management
+// ============================================================================
+
+export const getAPIKeyInfo = async (): Promise<APIKeyResponse> => {
+  return requestJson<APIKeyResponse>(
+    httpClient.get("/api/v1/users/me/api-key"),
+    "Failed to fetch API key info"
+  );
+};
+
+export const setAPIKey = async (
+  data: SetAPIKeyRequest
+): Promise<APIKeyResponse> => {
+  return requestJson<APIKeyResponse>(
+    httpClient.post("/api/v1/users/me/api-key", data),
+    "Failed to set API key"
+  );
+};
+
+export const deleteAPIKey = async (): Promise<{ success: boolean }> => {
+  return requestJson<{ success: boolean }>(
+    httpClient.delete("/api/v1/users/me/api-key"),
+    "Failed to delete API key"
+  );
+};
+
+export const validateAPIKey = async (
+  api_key: string
+): Promise<{ success: boolean; valid: boolean; error?: string }> => {
+  return requestJson<{ success: boolean; valid: boolean; error?: string }>(
+    httpClient.post("/api/v1/users/me/api-key/validate", { api_key }),
+    "Failed to validate API key"
+  );
+};
+
+export const getUsageStats = async (params?: {
+  start_date?: string;
+  end_date?: string;
+  granularity?: "total" | "day" | "week" | "month";
+}): Promise<UsageStatsResponse> => {
+  const query = new URLSearchParams(params as any).toString();
+  return requestJson<UsageStatsResponse>(
+    httpClient.get(`/api/v1/users/me/api-key/usage?${query}`),
+    "Failed to fetch usage stats"
+  );
+};
+
+// ============================================================================
 // Default Export
 // ============================================================================
 
@@ -168,4 +219,9 @@ export default {
   getUserPreferences,
   updateUserPreferences,
   changePassword,
+  getAPIKeyInfo,
+  setAPIKey,
+  deleteAPIKey,
+  validateAPIKey,
+  getUsageStats,
 };

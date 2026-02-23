@@ -40,6 +40,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # AI Service (Claude Agent SDK)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: oj_ai_service
+    restart: always
+    ports:
+      - "8001:8001"  # Exposed for development, can be removed in production
+    env_file:
+      - .env
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
+      - CLAUDE_MAX_TURNS=${CLAUDE_MAX_TURNS:-10}
+    volumes:
+      - ./ai-service:/app  # Mount entire ai-service for hot reload
+    networks:
+      - oj_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Django Backend
   backend:
     build:
@@ -52,7 +77,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application"
+             daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -62,10 +87,13 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - AI_SERVICE_URL=http://ai-service:8001
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      ai-service:
         condition: service_healthy
     networks:
       - oj_network

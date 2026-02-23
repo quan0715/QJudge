@@ -15,6 +15,15 @@ export interface GetProblemsParams {
   search?: string;
   difficulty?: Difficulty[];
   tags?: string[];
+  page?: number;
+  page_size?: number;
+}
+
+export interface PaginatedProblems {
+  results: Problem[];
+  count: number;
+  next: string | null;
+  previous: string | null;
 }
 
 // ============================================================================

@@ -1,0 +1,22 @@
+# FastAPI and ASGI
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+httpx>=0.26.0
+
+# Claude Agent SDK
+claude-agent-sdk>=0.1.0
+
+# Data validation
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# SSE support
+sse-starlette>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# Testing (optional, for development)
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

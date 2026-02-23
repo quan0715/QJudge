@@ -43,6 +43,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.69.0",
     "react-i18next": "^16.4.1",
+    "react-infinite-scroll-component": "^6.1.1",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.0.8",
     "react-router-dom": "^7.9.6",

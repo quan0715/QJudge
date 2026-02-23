@@ -126,6 +126,8 @@ import { SubmissionStatusBadgeStories } from "@/shared/ui/tag/SubmissionStatusBa
 import NotFoundStories from "@/features/app/components/NotFound.stories";
 import ServerErrorStories from "@/features/app/components/ServerError.stories";
 import ConfirmModalStories from "@/shared/ui/modal/ConfirmModal.stories";
+import TriggerModalStories from "@/shared/ui/modal/TriggerModal.stories";
+import ProblemTestCaseListStories from "@/features/problems/components/common/TestCaseList.stories";
 import ErrorBoundaryStories from "@/features/app/components/ErrorBoundary.stories";
 import QJudgeEditorStories from "@/shared/ui/editor/QJudgeEditor.stories";
 import KpiCardStories from "@/shared/ui/dataCard/KpiCard.stories";
@@ -159,6 +161,8 @@ registerStory(
   SubmissionStatusBadgeStories
 );
 registerStory("shared/ui/modal/ConfirmModal", ConfirmModalStories);
+registerStory("shared/ui/modal/TriggerModal", TriggerModalStories);
+registerStory("features/problems/components/common/TestCaseList", ProblemTestCaseListStories);
 registerStory("features/app/components/ErrorBoundary", ErrorBoundaryStories);
 registerStory("features/app/components/NotFound", NotFoundStories);
 registerStory("features/app/components/ServerError", ServerErrorStories);
@@ -198,6 +202,18 @@ registerStory("shared/ui/testcase/TestCaseEntry", TestCaseEntryStories);
 registerStory("shared/ui/testcase/TestCaseList", TestCaseListStories);
 registerStory("shared/ui/testcase/TestCaseDetail", TestCaseDetailStories);
 
+// Import story modules - Shared UI: chatbot
+import AgentAvatarStories from "@/shared/ui/chatbot/components/AgentAvatar.stories";
+import MessageBubbleStories from "@/shared/ui/chatbot/components/MessageBubble.stories";
+import WelcomeScreenStories from "@/shared/ui/chatbot/components/WelcomeScreen.stories";
+import ChatWindowStories from "@/shared/ui/chatbot/components/ChatWindow.stories";
+
+// Register all stories - Shared UI: chatbot
+registerStory("shared/ui/chatbot/AgentAvatar", AgentAvatarStories);
+registerStory("shared/ui/chatbot/MessageBubble", MessageBubbleStories);
+registerStory("shared/ui/chatbot/WelcomeScreen", WelcomeScreenStories);
+registerStory("shared/ui/chatbot/ChatWindow", ChatWindowStories);
+
 // Import story modules - Shared UI: navigation
 
 // Register all stories - Shared UI: navigation
@@ -205,6 +221,7 @@ registerStory("shared/ui/testcase/TestCaseDetail", TestCaseDetailStories);
 // Import story modules - Features: Problems
 import ProblemPreviewSectionStories from "@/features/problems/screens/problems/section/ProblemPreviewSection.stories";
 import ContestPreviewCardStories from "@/features/contest/components/ContestPreviewCard.stories";
+import ChatbotWidgetStories from "@/features/chatbot/components/ChatbotWidget.stories";
 
 // Register all stories - Features: Problems
 registerStory(
@@ -215,6 +232,7 @@ registerStory(
   "features/contest/components/ContestPreviewCard",
   ContestPreviewCardStories
 );
+registerStory("features/chatbot/ChatbotWidget", ChatbotWidgetStories);
 
 // Dynamic import for development (lazy loading)
 export async function loadAllStories(): Promise<void> {

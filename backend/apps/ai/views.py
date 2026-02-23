@@ -465,12 +465,22 @@ class AISessionViewSet(viewsets.ModelViewSet):
             1. 如果前端傳送了 session_id，優先使用前端傳送的 session_id
             2. 如果 session 存在（資料庫查詢到），使用 session.session_id
             3. 否則 session_id = None，ai-service 會初始化新會話
+
+            元數據收集：
+            - 收集所有 thinking、tool_start/result、usage 事件
+            - 保存到 AIMessage.metadata 和 AIExecutionLog
             """
             nonlocal session  # 允許修改外部的 session 變量
 
             full_response = ""
             stream_error = None
             received_session_id = None
+
+            # 元數據收集變量
+            thinking_content = ""
+            all_tools_executed = []
+            collected_usage = None
+            current_tool = None
 
             # 1. 決定使用哪個 session_id 與 ai-service 通信
             # 優先順序：前端傳送的 session_id > 現存會話的 session_id > None（新會話）
@@ -518,30 +528,77 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
                         return
 
-                    # 5. 轉發 SSE 流
+                    # 5. 轉發 SSE 流並完整收集元數據
                     for line in response.iter_lines():
-                        if not line.strip():
-                            continue
+                        # 轉發所有行（包括空行）
+                        if line.strip():
+                            if line.startswith("data: "):
+                                try:
+                                    event = json.loads(line[6:])
+                                    event_type = event.get("type")
 
-                        if line.startswith("data: "):
-                            try:
-                                event = json.loads(line[6:])
+                                    # ===== 元數據收集開始 =====
 
-                                # 捕獲 session 事件（ai-service 返回的 session_id）
-                                if event.get("type") == "session" and event.get("session_id"):
-                                    received_session_id = event.get("session_id")
-                                    logger.info(f"Received session_id from ai-service: {received_session_id}")
+                                    # 捕獲 session 事件（ai-service 返回的 session_id）
+                                    if event_type == "session" and event.get("session_id"):
+                                        received_session_id = event.get("session_id")
+                                        logger.info(f"Received session_id from ai-service: {received_session_id}")
 
-                                # 累積內容
-                                if event.get("type") == "delta" and event.get("content"):
-                                    full_response += event.get("content", "")
+                                    # 累積內容
+                                    if event_type == "delta" and event.get("content"):
+                                        full_response += event.get("content", "")
 
-                                # 轉發事件給前端
-                                yield f"{line}\n\n"
-                            except json.JSONDecodeError:
-                                logger.debug(f"Failed to parse SSE line: {line}")
+                                    # 收集思考過程
+                                    if event_type == "thinking" and event.get("thinking"):
+                                        thinking_content = event.get("thinking", "")
+                                        logger.debug(f"Captured thinking: {len(thinking_content)} chars")
+
+                                    # 收集工具開始事件
+                                    if event_type == "tool_start":
+                                        current_tool = {
+                                            "tool_name": event.get("tool_name"),
+                                            "tool_use_id": event.get("tool_use_id"),
+                                            "input": event.get("input"),
+                                            "start_time_ms": event.get("start_time_ms"),
+                                            "skill_metadata": event.get("skill_metadata"),
+                                        }
+                                        logger.debug(f"Tool start: {current_tool.get('tool_name')}")
+
+                                    # 收集工具結果
+                                    if event_type == "tool_result" and current_tool:
+                                        current_tool["result"] = event.get("result")
+                                        current_tool["is_error"] = event.get("is_error", False)
+                                        current_tool["duration_ms"] = event.get("duration_ms")
+                                        all_tools_executed.append(current_tool)
+                                        logger.debug(
+                                            f"Tool result: {current_tool.get('tool_name')} "
+                                            f"({'error' if current_tool.get('is_error') else 'success'})"
+                                        )
+                                        current_tool = None
+
+                                    # 收集 usage 信息
+                                    if event_type == "usage":
+                                        collected_usage = {
+                                            "input_tokens": event.get("input_tokens"),
+                                            "output_tokens": event.get("output_tokens"),
+                                            "cost_cents": event.get("cost_cents"),
+                                        }
+                                        logger.debug(f"Usage: {collected_usage}")
+
+                                    # ===== 元數據收集結束 =====
+
+                                    # 轉發事件給前端
+                                    yield f"{line}\n\n"
+                                except json.JSONDecodeError:
+                                    logger.debug(f"Failed to parse SSE line: {line}")
+                                    # 即使解析失敗也轉發給前端
+                                    yield f"{line}\n\n"
+                            else:
+                                # 非 data: 行也應該轉發
+                                yield f"{line}\n"
                         else:
-                            yield f"{line}\n"
+                            # 空行也應該轉發
+                            yield "\n"
 
             except Exception as e:
                 stream_error = str(e)
@@ -586,22 +643,51 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         session.updated_at = timezone.now()
                         session.save(update_fields=["updated_at"])
 
-                # 7. 保存 AI 回應訊息
+                # 7. 保存 AI 回應訊息（包含完整元數據）
                 if session and full_response:
+                    # 構建元數據
+                    message_metadata = {}
+                    if thinking_content:
+                        message_metadata["thinking"] = thinking_content
+                    if all_tools_executed:
+                        message_metadata["tools_executed"] = all_tools_executed
+                    if collected_usage:
+                        message_metadata["usage"] = collected_usage
+
                     AIMessage.objects.create(
                         session=session,
                         role=AIMessage.Role.ASSISTANT,
                         content=full_response,
                         message_type=AIMessage.MessageType.TEXT,
+                        metadata=message_metadata if message_metadata else None,
                     )
 
-                # 8. 完成執行日誌
+                # 8. 完成執行日誌（傳遞完整元數據）
                 if log:
+                    # 構建執行日誌的元數據
+                    log_metadata = {
+                        "error": stream_error,
+                        "session_id": received_session_id,
+                    }
+                    if thinking_content:
+                        log_metadata["thinking"] = thinking_content
+                    if all_tools_executed:
+                        log_metadata["tools_executed"] = all_tools_executed
+                    if collected_usage:
+                        log_metadata["usage"] = collected_usage
+
                     complete_execution_log(
                         log=log,
                         ai_response=full_response if full_response else None,
-                        raw_log={"error": stream_error, "session_id": received_session_id},
+                        raw_log=log_metadata,
+                        metadata=log_metadata,
                     )
+
+                    # 保存 token 計數（確保有默認值）
+                    log.input_tokens = collected_usage.get("input_tokens", 0) if collected_usage else 0
+                    log.output_tokens = collected_usage.get("output_tokens", 0) if collected_usage else 0
+                    log.cost_cents = collected_usage.get("cost_cents", 0) if collected_usage else 0
+                    log.save()
 
         response = StreamingHttpResponse(
             generate_stream(), content_type="text/event-stream"

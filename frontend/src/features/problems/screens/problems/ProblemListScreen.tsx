@@ -10,6 +10,7 @@ import {
   Column,
 } from "@carbon/react";
 import { Filter } from "@carbon/icons-react";
+import InfiniteScroll from "react-infinite-scroll-component";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { ProblemFilterSection } from "./section/ProblemFilterSection";
 import {
@@ -20,7 +21,8 @@ import {
   ProblemPreviewSection,
   ProblemPreviewSectionSkeleton,
 } from "./section/ProblemPreviewSection";
-import { useProblemList, useProblemTags } from "@/features/problems/hooks";
+import { LoadingIndicator } from "./section/LoadingIndicator";
+import { useInfiniteProblemList, useProblemTags } from "@/features/problems/hooks";
 import type { Problem } from "@/core/entities/problem.entity";
 import "./screen.scss";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +31,7 @@ const ProblemListScreen: React.FC = () => {
   const { t } = useTranslation("problem");
   const { t: tc } = useTranslation("common");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [pageSize] = React.useState(20);
   const [filters, setFilters] = React.useState<ProblemFilters>({
     search: "",
     difficulties: [],
@@ -40,7 +43,18 @@ const ProblemListScreen: React.FC = () => {
     () => ({ ...filters, search: deferredSearch }),
     [filters, deferredSearch]
   );
-  const { data: problems = [], isLoading } = useProblemList(deferredFilters);
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteProblemList(deferredFilters, pageSize);
+
+  const problems = React.useMemo(
+    () => data?.pages.flatMap((page) => page.problems) || [],
+    [data]
+  );
+  const totalCount = data?.pages[0]?.totalCount || 0;
   const { data: tags = [], isLoading: tagsLoading } = useProblemTags();
   const navigate = useNavigate();
 
@@ -77,17 +91,35 @@ const ProblemListScreen: React.FC = () => {
     navigate(`/problems/${problem.id}/solve`);
   };
 
+  // 當篩選變更時，重置捲動位置
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [deferredFilters]);
+
   const listContent =
     problems.length > 0 ? (
-      <Stack gap={5}>
-        {problems.map((problem: Problem) => (
-          <ProblemPreviewSection
-            key={problem.id}
-            problem={problem}
-            onSelect={handleProblemSelect}
-          />
-        ))}
-      </Stack>
+      <InfiniteScroll
+        dataLength={problems.length}
+        next={fetchNextPage}
+        hasMore={!!hasNextPage}
+        loader={<LoadingIndicator />}
+        endMessage={
+          <div style={{ textAlign: "center", marginTop: "2rem", color: "gray" }}>
+            <p>已載入全部 {totalCount} 題</p>
+          </div>
+        }
+        scrollThreshold={0.9}
+      >
+        <Stack gap={5}>
+          {problems.map((problem: Problem) => (
+            <ProblemPreviewSection
+              key={problem.id}
+              problem={problem}
+              onSelect={handleProblemSelect}
+            />
+          ))}
+        </Stack>
+      </InfiniteScroll>
     ) : (
       <div className="problem-empty">
         <p className="problem-empty__title">

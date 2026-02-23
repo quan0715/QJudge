@@ -73,3 +73,55 @@ export interface ChangePasswordResponse {
   success: boolean;
   message?: string;
 }
+
+// API Key 相關
+export interface APIKeyInfo {
+  has_key: boolean;
+  is_active?: boolean;
+  is_validated?: boolean;
+  key_name?: string;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_requests?: number;
+  total_cost_usd?: number;
+  last_validated_at?: string;
+  created_at?: string;
+}
+
+export interface SetAPIKeyRequest {
+  api_key: string;
+  key_name?: string;
+}
+
+export interface APIKeyResponse {
+  success: boolean;
+  data?: APIKeyInfo;
+  message?: string;
+}
+
+// Usage Statistics 相關
+export interface UsageStatsItem {
+  period: string; // ISO date
+  input_tokens: number;
+  output_tokens: number;
+  requests: number;
+  cost_usd: number;
+}
+
+export interface UsageStatsTotal {
+  input_tokens: number;
+  output_tokens: number;
+  requests: number;
+  cost_usd: number;
+}
+
+export interface UsageStatsData {
+  total: UsageStatsTotal;
+  breakdown: UsageStatsItem[];
+}
+
+export interface UsageStatsResponse {
+  success: boolean;
+  data: UsageStatsData;
+  message?: string;
+}

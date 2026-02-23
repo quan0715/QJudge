@@ -1,4 +1,17 @@
 {
+  "management": {
+    "description": "管理您建立的題目",
+    "problemCount": "共 {{count}} 道題目"
+  },
+  "button": {
+    "createProblem": "新增題目",
+    "create": "建立",
+    "cancel": "取消"
+  },
+  "form": {
+    "title": "標題",
+    "slug": "網址代碼"
+  },
   "section": {
     "description": "題目描述",
     "inputDescription": "輸入說明",
@@ -32,7 +45,9 @@
     "submitConfirmMessage": "此操作將會評測所有隱藏測試案例。",
     "createTitle": "新增題目",
     "createSuccess": "題目建立成功！",
-    "createError": "建立失敗，請稍後再試"
+    "createError": "建立失敗，請稍後再試",
+    "confirmDelete": "確認刪除",
+    "deleteConfirmMessage": "確定要刪除題目「{{title}}」嗎？此操作無法復原。"
   },
   "import": {
     "modalTitle": "從 YAML 匯入題目",

@@ -12,10 +12,10 @@ import { formatSmartTime } from "@/shared/utils/format";
 import { useDiscussionDetail } from "@/features/problems/hooks/useProblemDiscussions";
 import {
   ProblemDiscussionThread,
-  type DiscussionReply,
   type DiscussionEntityType,
 } from "@/shared/ui/discussion";
 import type { DiscussionComment } from "@/core/entities/discussion.entity";
+import { buildDiscussionReplies } from "@/features/problems/utils/discussionReplies";
 import "./Discussions.scss";
 
 interface DiscussionDetailProps {
@@ -25,38 +25,8 @@ interface DiscussionDetailProps {
   onDeleted?: () => void;
 }
 
-/**
- * Convert API comments to ProblemDiscussionThread reply format
- */
-function commentsToReplies(comments: DiscussionComment[]): DiscussionReply[] {
-  // Build a map of parent -> children
-  const childrenMap = new Map<string | null, DiscussionComment[]>();
-
-  comments.forEach((comment) => {
-    const parentId = comment.parentId || null;
-    if (!childrenMap.has(parentId)) {
-      childrenMap.set(parentId, []);
-    }
-    childrenMap.get(parentId)!.push(comment);
-  });
-
-  // Recursively build nested structure
-  function buildReplies(parentId: string | null): DiscussionReply[] {
-    const children = childrenMap.get(parentId) || [];
-    return children.map((comment) => ({
-      id: comment.id,
-      content: comment.isDeleted ? "此評論已被刪除" : comment.content,
-      authorUsername: comment.author.username,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-      likeCount: comment.likeCount || 0,
-      isLiked: comment.isLiked || false,
-      replies: buildReplies(comment.id),
-    }));
-  }
-
-  return buildReplies(null);
-}
+const commentsToReplies = (comments: DiscussionComment[]) =>
+  buildDiscussionReplies(comments, { includeDeleted: true });
 
 /**
  * DiscussionDetail - Shows a single discussion with its comments

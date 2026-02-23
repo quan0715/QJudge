@@ -1,0 +1,167 @@
+import type { FC, KeyboardEvent } from "react";
+import { useState, useCallback, useRef } from "react";
+import { IconButton, Dropdown, Tag } from "@carbon/react";
+import { ArrowUp, Information } from "@carbon/icons-react";
+import type { BackgroundInformation } from "@/core/types/chatbot.types";
+import styles from "../ChatbotWidget.module.scss";
+
+const AVAILABLE_MODELS = [
+  { id: "claude-opus-4-5", label: "Claude Opus 4.5" },
+  { id: "claude-sonnet", label: "Claude Sonnet" },
+  { id: "claude-haiku", label: "Claude Haiku" },
+];
+
+export interface ChatInputProps {
+  onSend: (message: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  problemContext?: {
+    id: number | string;
+    title: string;
+  } | null;
+  backgroundInfo?: BackgroundInformation | null;
+  hasMessages?: boolean;
+}
+
+/**
+ * 聊天輸入框元件
+ * 支援 Enter 送出，Shift+Enter 換行
+ * 包含模型選擇器和發送按鈕
+ */
+export const ChatInput: FC<ChatInputProps> = ({
+  onSend,
+  disabled = false,
+  placeholder = "請說明您想出題或修改題目的方向...",
+  problemContext = null,
+  backgroundInfo = null,
+  hasMessages = false,
+}) => {
+  const [value, setValue] = useState("");
+  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSend = useCallback(() => {
+    if (value.trim() && !disabled) {
+      onSend(value);
+      setValue("");
+      // 重置 textarea 到初始高度
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "90px";
+          }
+        }, 0);
+      }
+    }
+  }, [value, disabled, onSend]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // 檢查是否正在使用輸入法（如中文輸入法選字）
+      // isComposing 為 true 時表示正在組字，不應該發送訊息
+      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend]
+  );
+
+  // 自動調整 textarea 高度
+  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setValue(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + "px";
+    }
+  }, []);
+
+  // 計算背景資訊項目數
+  const bgInfoItemCount = backgroundInfo
+    ? (backgroundInfo.user ? 1 : 0) + (backgroundInfo.problem ? 1 : 0)
+    : 0;
+
+  // 判斷是否會在下一則訊息附加背景資訊
+  const willAttachBgInfo = !hasMessages && bgInfoItemCount > 0;
+
+  return (
+    <div className={styles.chatInputContainer}>
+      <div className={styles.chatInputBox}>
+        {/* Row 0: 題目上下文提示 (chips) + 背景資訊 badge */}
+        {(problemContext || willAttachBgInfo) && (
+          <div className={styles.chatInputContext}>
+            {problemContext && (
+              <Tag
+                type="gray"
+                size="sm"
+                className={styles.contextChip}
+              >
+                正在編輯：{problemContext.title} (#{problemContext.id})
+              </Tag>
+            )}
+            {willAttachBgInfo && (
+              <Tag
+                type="blue"
+                size="sm"
+                renderIcon={Information}
+                className={styles.bgInfoBadge}
+                title="首次訊息將自動附加背景資訊"
+              >
+                包含背景資訊 ({bgInfoItemCount})
+              </Tag>
+            )}
+          </div>
+        )}
+
+        {/* Row 1: 輸入框 */}
+        <textarea
+          ref={textareaRef}
+          id="chatbot-input"
+          className={styles.chatInputTextarea}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          rows={3}
+        />
+
+        {/* Row 2: 控制區 - 模型選擇 + 送出按鈕 */}
+        <div className={styles.chatInputControls}>
+          <Dropdown
+            id="model-selector"
+            titleText=""
+            label={selectedModel.label}
+            items={AVAILABLE_MODELS}
+            itemToString={(item) => (item ? item.label : "")}
+            selectedItem={selectedModel}
+            onChange={({ selectedItem }) => {
+              if (selectedItem) {
+                setSelectedModel(selectedItem);
+              }
+            }}
+            size="sm"
+            light
+            direction="top"
+            className={styles.modelDropdownInline}
+          />
+
+          <IconButton
+            label="送出"
+            kind="secondary"
+            size="sm"
+            onClick={handleSend}
+            disabled={disabled || !value.trim()}
+            className={styles.chatInputButton}
+            align="top-left"
+          >
+            <ArrowUp size={16} />
+          </IconButton>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChatInput;

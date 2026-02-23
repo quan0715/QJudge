@@ -1,0 +1,22 @@
+@use "@carbon/layout";
+
+.contentSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.languageSelector {
+  margin-bottom: layout.$spacing-03;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06; // Increased spacing between fields
+}
+
+.field {
+  // Individual field wrapper - no additional spacing needed
+  // as gap is handled by parent
+}

@@ -23,11 +23,10 @@ interface UseChatbotReturn {
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
-  clearCurrentSession: () => Promise<void>;
   refreshSessions: () => Promise<void>;
   submitUserInput: (
     requestId: string,
-    answers: Record<string, string>
+    answers: Record<string, string>,
   ) => Promise<void>;
   cancelUserInput: () => void;
   clearError: () => void;
@@ -70,7 +69,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       // 取得每個 session 的詳細資料（含 messages）
       const detailedSessions = await Promise.all(
-        apiSessions.map((session) => chatbotRepository.getSession(session.id))
+        apiSessions.map((session) => chatbotRepository.getSession(session.id)),
       );
 
       setSessions(detailedSessions);
@@ -103,13 +102,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsInitializing(true);
       setError(null);
 
-      // 清除舊的 localStorage 資料（遷移後不再使用）
-      try {
-        localStorage.removeItem("ai_sessions");
-      } catch (e) {
-        // Ignore localStorage errors
-      }
-
       try {
         const apiSessions = await chatbotRepository.getSessions();
 
@@ -122,8 +114,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           // 載入詳細資料
           const detailedSessions = await Promise.all(
             apiSessions.map((session) =>
-              chatbotRepository.getSession(session.id)
-            )
+              chatbotRepository.getSession(session.id),
+            ),
           );
 
           // 檢查最新的 session 是否為空
@@ -144,18 +136,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       } catch (err) {
         console.error("Failed to initialize chatbot:", err);
         const errorMessage = err instanceof Error ? err.message : "未知錯誤";
-
-        // 檢查是否是認證錯誤
-        if (
-          errorMessage.includes("登入") ||
-          errorMessage.includes("401")
-        ) {
-          setError("請先登入以使用 AI 助教功能");
-        } else {
-          setError(`初始化失敗：${errorMessage}`);
-        }
-
-        // 認證錯誤或其他錯誤都不建立 fallback session
+        setError(errorMessage);
         setIsInitializing(false);
         return;
       }
@@ -211,7 +192,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError("無法刪除對話");
       }
     },
-    [currentSessionId, createSession]
+    [currentSessionId, createSession],
   );
 
   /**
@@ -224,23 +205,26 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   /**
    * 重新命名 session
    */
-  const renameSession = useCallback(async (sessionId: string, title: string) => {
-    try {
-      setError(null);
-      await chatbotRepository.renameSession(sessionId, title);
+  const renameSession = useCallback(
+    async (sessionId: string, title: string) => {
+      try {
+        setError(null);
+        await chatbotRepository.renameSession(sessionId, title);
 
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === sessionId
-            ? { ...session, title, updatedAt: new Date() }
-            : session
-        )
-      );
-    } catch (err) {
-      console.error("Failed to rename session:", err);
-      setError("無法重新命名對話");
-    }
-  }, []);
+        setSessions((prev) =>
+          prev.map((session) =>
+            session.id === sessionId
+              ? { ...session, title, updatedAt: new Date() }
+              : session,
+          ),
+        );
+      } catch (err) {
+        console.error("Failed to rename session:", err);
+        setError("無法重新命名對話");
+      }
+    },
+    [],
+  );
 
   /**
    * 發送訊息（使用串流）
@@ -260,16 +244,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       if (isFirstMessage && !backendSessionId) {
         try {
-          const newSessionResponse = await fetch(`/api/v1/ai/sessions/new_session/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          });
-
-          if (!newSessionResponse.ok) {
-            throw new Error("Failed to create backend session");
-          }
-
-          const newSessionData = await newSessionResponse.json();
+          const newSessionData = await chatbotRepository.createBackendSession();
           sessionIdForRequest = newSessionData.id;
 
           // 更新 session 的後端 ID
@@ -284,8 +259,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                       backend_session_id: newSessionData.id,
                     },
                   }
-                : session
-            )
+                : session,
+            ),
           );
         } catch (err) {
           console.error("Failed to create backend session:", err);
@@ -331,8 +306,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                 ],
                 updatedAt: new Date(),
               }
-            : session
-        )
+            : session,
+        ),
       );
 
       setIsStreaming(true);
@@ -343,132 +318,69 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         await chatbotRepository.sendMessageStream(
           sessionIdForRequest,
           trimmedContent,
-          // onDelta - 逐步更新 AI 訊息
-          (delta) => {
-            setSessions((prev) =>
-              prev.map((session) =>
-                session.id === currentSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((message) =>
-                        message.id === tempAssistantId
-                          ? {
-                              ...message,
-                              content: message.content + delta,
-                              isThinking: false,
-                            }
-                          : message
-                      ),
-                    }
-                  : session
-              )
-            );
+          {
+            // 高級回調：訊息增量更新（包含所有內容）
+            onMessageUpdate: (messageUpdate) => {
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((message) =>
+                          message.id === tempAssistantId
+                            ? { ...message, ...messageUpdate }
+                            : message,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+            },
+
+            // 完成時更新為完整 session
+            onComplete: (freshSession) => {
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId ? freshSession : session,
+                ),
+              );
+              setIsStreaming(false);
+              setIsLoading(false);
+            },
+
+            // 錯誤處理
+            onError: (errorMsg) => {
+              setError(errorMsg);
+              setIsStreaming(false);
+              setIsLoading(false);
+
+              // 更新臨時 AI 訊息為錯誤訊息
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((message) =>
+                          message.id === tempAssistantId
+                            ? {
+                                ...message,
+                                content: "抱歉，AI 服務暫時無法使用，請稍後再試。",
+                                isThinking: false,
+                              }
+                            : message,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+            },
+
+            // 用戶輸入請求（AskUserQuestion）
+            onUserInputRequest: (request) => {
+              setPendingUserInput(request);
+            },
           },
-          // onToolStart - 工具調用開始
-          (toolName) => {
-            setSessions((prev) =>
-              prev.map((session) =>
-                session.id === currentSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((message) =>
-                        message.id === tempAssistantId
-                          ? { ...message, toolName, isThinking: false }
-                          : message
-                      ),
-                    }
-                  : session
-              )
-            );
-          },
-          // onDone - 從後端重新載入完整 session
-          () => {
-            chatbotRepository
-              .getSession(currentSessionId)
-              .then((freshSession) => {
-                setSessions((prev) =>
-                  prev.map((session) =>
-                    session.id === currentSessionId ? freshSession : session
-                  )
-                );
-              })
-              .catch((err) => {
-                console.warn("Failed to refresh session from backend:", err);
-                // 無法重新整理時，至少清除暫時訊息的思考狀態
-                setSessions((prev) =>
-                  prev.map((session) =>
-                    session.id === currentSessionId
-                      ? {
-                          ...session,
-                          messages: session.messages.map((message) =>
-                            message.id === tempAssistantId
-                              ? {
-                                  ...message,
-                                  isThinking: false,
-                                  toolName: undefined,
-                                }
-                              : message
-                          ),
-                        }
-                      : session
-                  )
-                );
-              });
-            setIsStreaming(false);
-            setIsLoading(false);
-          },
-          // onError
-          (errorMsg) => {
-            setError(errorMsg);
-            setIsStreaming(false);
-            setIsLoading(false);
-          },
-          { context: context ?? undefined, skill: undefined },
-          // onUserInputRequest - AI 需要用戶回答問題
-          (request) => {
-            setPendingUserInput(request);
-          },
-          // onThinking - AI 思考過程
-          (thinkingInfo) => {
-            setSessions((prev) =>
-              prev.map((session) =>
-                session.id === currentSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((message) =>
-                        message.id === tempAssistantId
-                          ? { ...message, thinkingInfo, isThinking: true }
-                          : message
-                      ),
-                    }
-                  : session
-              )
-            );
-          },
-          // onToolResult - 工具執行結果
-          (toolInfo) => {
-            setSessions((prev) =>
-              prev.map((session) =>
-                session.id === currentSessionId
-                  ? {
-                      ...session,
-                      messages: session.messages.map((message) =>
-                        message.id === tempAssistantId
-                          ? {
-                              ...message,
-                              toolExecutions: [
-                                ...(message.toolExecutions || []),
-                                toolInfo,
-                              ],
-                              toolName: undefined,
-                            }
-                          : message
-                      ),
-                    }
-                  : session
-              )
-            );
-          }
+          { context: context ?? undefined, skill: undefined }
         );
       } catch (err) {
         console.error("Stream error:", err);
@@ -484,45 +396,23 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                     message.id === tempAssistantId
                       ? {
                           ...message,
-                          content:
-                            "抱歉，AI 服務暫時無法使用，請稍後再試。",
+                          content: "抱歉，AI 服務暫時無法使用，請稍後再試。",
+                          isThinking: false,
                         }
-                      : message
+                      : message,
                   ),
                 }
-              : session
-          )
+              : session,
+          ),
         );
 
         setIsStreaming(false);
         setIsLoading(false);
       }
     },
-    [currentSessionId, currentSession, backgroundInfo]
+    [currentSessionId, currentSession, backgroundInfo],
   );
 
-  /**
-   * 清除當前 session 的訊息
-   */
-  const clearCurrentSession = useCallback(async () => {
-    if (!currentSessionId) return;
-
-    try {
-      setError(null);
-      const clearedSession = await chatbotRepository.clearSession(
-        currentSessionId
-      );
-
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === currentSessionId ? clearedSession : session
-        )
-      );
-    } catch (err) {
-      console.error("Failed to clear session:", err);
-      setError("無法清除對話");
-    }
-  }, [currentSessionId]);
 
   /**
    * 提交用戶回答（回應 AskUserQuestion）
@@ -532,14 +422,61 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       if (!currentSessionId) return;
 
       try {
-        await chatbotRepository.submitAnswer(currentSessionId, requestId, answers);
+        await chatbotRepository.submitAnswer(
+          currentSessionId,
+          requestId,
+          answers,
+        );
         setPendingUserInput(null);
+
+        // 記錄提交前的消息數量
+        const currentMessageCount = currentSession?.messages.length || 0;
+
+        // 使用輪詢機制重新載入 session，確保獲取 AI 的後續回應
+        const pollSession = async (attempt = 0, maxAttempts = 10) => {
+          if (attempt >= maxAttempts) {
+            console.warn(
+              "Max polling attempts reached, AI may not have responded yet"
+            );
+            return;
+          }
+
+          try {
+            const freshSession =
+              await chatbotRepository.getSession(currentSessionId);
+
+            // 檢查是否有新消息
+            if (freshSession.messages.length > currentMessageCount) {
+              // 有新消息，更新 session
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId ? freshSession : session
+                )
+              );
+            } else {
+              // 沒有新消息，繼續輪詢
+              setTimeout(() => pollSession(attempt + 1, maxAttempts), 500);
+            }
+          } catch (err) {
+            console.warn(
+              `Failed to refresh session (attempt ${attempt + 1}):`,
+              err
+            );
+            // 發生錯誤也繼續輪詢
+            if (attempt < maxAttempts - 1) {
+              setTimeout(() => pollSession(attempt + 1, maxAttempts), 500);
+            }
+          }
+        };
+
+        // 開始輪詢（延遲 300ms 後開始）
+        setTimeout(() => pollSession(), 300);
       } catch (err) {
         console.error("Failed to submit user input:", err);
         setError("無法提交回答");
       }
     },
-    [currentSessionId]
+    [currentSessionId, currentSession],
   );
 
   /**
@@ -572,7 +509,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     switchSession,
     renameSession,
     sendMessage,
-    clearCurrentSession,
     refreshSessions,
     submitUserInput,
     cancelUserInput,

@@ -31,8 +31,7 @@ export function mapProblemDto(dto: any): Problem {
     createdBy: dto.created_by,
     tags: Array.isArray(dto.tags) ? dto.tags.map(mapTagDto) : [],
 
-    isPracticeVisible: !!dto.is_practice_visible,
-    isVisible: dto.is_visible !== undefined ? !!dto.is_visible : true,
+    visibility: dto.visibility || 'private',
     isSolved: !!dto.is_solved,
 
     createdInContest: dto.created_in_contest

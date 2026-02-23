@@ -33,7 +33,7 @@ class ProblemQuerySet(models.QuerySet):
             if action != "list":
                 return self
 
-        queryset = self.filter(is_practice_visible=True)
+        queryset = self.filter(visibility='public')
 
         if user and user.is_authenticated:
             from apps.submissions.models import Submission

@@ -13,22 +13,11 @@ import {
   TableToolbarContent,
   TableToolbarSearch,
   Button,
-  Tag,
   SkeletonText,
 } from "@carbon/react";
-import {
-  Edit,
-  TrashCan,
-  Upload,
-  Add,
-  CheckmarkOutline,
-  CaretUp,
-  CaretDown,
-  Close,
-} from "@carbon/icons-react";
-import { Link } from "react-router-dom";
+import { Upload, Add } from "@carbon/icons-react";
 import type { Problem } from "@/core/entities/problem.entity";
-import { DifficultyBadge } from "@/shared/ui/tag";
+import ProblemTableRow from "./ProblemTableRow";
 
 // Extend Problem to include contest-specific fields if needed for display
 export interface ProblemRowData extends Partial<Problem> {
@@ -73,14 +62,6 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
 }: ProblemTableProps) => {
   const { t: tc } = useTranslation('common');
   
-  const getAcceptanceRate = (problem: ProblemRowData) => {
-    if (!problem.submissionCount) return "0%";
-    return `${(
-      ((problem.acceptedCount || 0) / problem.submissionCount) *
-      100
-    ).toFixed(1)}%`;
-  };
-
   const getHeaders = () => {
     if (mode === "student") {
       return [
@@ -190,8 +171,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
             </TableHead>
             <TableBody>
               {loading
-                ? // Skeleton Rows
-                  Array.from({ length: 5 }).map((_, index) => (
+                ? Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={`skeleton-${index}`}>
                       {headers.map((header) => (
                         <TableCell key={header.key}>
@@ -201,380 +181,20 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
                     </TableRow>
                   ))
                 : rows.map((row) => {
-                    // O(1) lookup using Map instead of O(n) find()
                     const problem = problemMap.get(String(row.id));
                     if (!problem) return null;
 
                     const { key: rowKey, ...rowProps } = getRowProps({ row });
                     return (
-                      <TableRow
+                      <ProblemTableRow
                         key={rowKey}
-                        {...rowProps}
-                        onClick={() => onRowClick?.(problem)}
-                        style={onRowClick ? { cursor: "pointer" } : undefined}
-                        className={onRowClick ? "clickable-row" : undefined}
-                      >
-                        {mode === "contest" ? (
-                          // Contest Mode Columns
-                          <>
-                            <TableCell>
-                              <Tag type="cyan">{problem.label}</Tag>
-                            </TableCell>
-                            <TableCell>{problem.title}</TableCell>
-                            <TableCell>
-                              <DifficultyBadge
-                                difficulty={problem.difficulty || "medium"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.25rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {problem.tags && problem.tags.length > 0 ? (
-                                  problem.tags.map((tag) => (
-                                    <Tag
-                                      key={tag.id}
-                                      type="outline"
-                                      style={
-                                        tag.color
-                                          ? {
-                                              backgroundColor: `${tag.color}15`,
-                                              color: tag.color,
-                                              borderColor: tag.color,
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {tag.name}
-                                    </Tag>
-                                  ))
-                                ) : (
-                                  <span
-                                    style={{
-                                      color: "var(--cds-text-secondary)",
-                                      fontSize: "0.875rem",
-                                    }}
-                                  >
-                                    -
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{problem.score}</TableCell>
-                            {onAction && (
-                              <TableCell>
-                                <div
-                                  style={{ display: "flex", gap: "0.25rem" }}
-                                >
-                                  <Button
-                                    kind="ghost"
-                                    size="sm"
-                                    hasIconOnly
-                                    renderIcon={CaretUp}
-                                    iconDescription="往上移動"
-                                    tooltipPosition="bottom"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onAction?.("move_up", problem);
-                                    }}
-                                  />
-                                  <Button
-                                    kind="ghost"
-                                    size="sm"
-                                    hasIconOnly
-                                    renderIcon={CaretDown}
-                                    iconDescription="往下移動"
-                                    tooltipPosition="bottom"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onAction?.("move_down", problem);
-                                    }}
-                                  />
-                                  <div
-                                    style={{
-                                      width: "1px",
-                                      backgroundColor:
-                                        "var(--cds-border-subtle)",
-                                      margin: "0 0.25rem",
-                                    }}
-                                  />
-                                  <Button
-                                    kind="ghost"
-                                    size="sm"
-                                    renderIcon={TrashCan}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onAction?.("delete", problem);
-                                    }}
-                                    style={{ color: "var(--cds-text-error)" }}
-                                  >
-                                    移除
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            )}
-                          </>
-                        ) : mode === "lab" ? (
-                          // Lab Mode Columns - for managing problems within a lab
-                          <>
-                            <TableCell>
-                              <div style={{ fontWeight: 500 }}>
-                                {problem.title}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <DifficultyBadge
-                                difficulty={problem.difficulty || "medium"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.25rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {problem.tags && problem.tags.length > 0 ? (
-                                  problem.tags.map((tag) => (
-                                    <Tag
-                                      key={tag.id}
-                                      type="outline"
-                                      style={
-                                        tag.color
-                                          ? {
-                                              backgroundColor: `${tag.color}15`,
-                                              color: tag.color,
-                                              borderColor: tag.color,
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {tag.name}
-                                    </Tag>
-                                  ))
-                                ) : (
-                                  <span
-                                    style={{
-                                      color: "var(--cds-text-secondary)",
-                                      fontSize: "0.875rem",
-                                    }}
-                                  >
-                                    -
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div style={{ display: "flex", gap: "0.25rem" }}>
-                                <Button
-                                  kind="ghost"
-                                  size="sm"
-                                  renderIcon={Edit}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onAction?.("edit", problem);
-                                  }}
-                                >
-                                  編輯
-                                </Button>
-                                <Button
-                                  kind="danger--ghost"
-                                  size="sm"
-                                  renderIcon={Close}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onAction?.("remove", problem);
-                                  }}
-                                >
-                                  移除
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </>
-                        ) : mode === "student" ? (
-                          // Student Mode Columns
-                          <>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.5rem",
-                                }}
-                              >
-                                {problem.isSolved && (
-                                  <div
-                                    style={{
-                                      color: "var(--cds-support-success)",
-                                      display: "flex",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <CheckmarkOutline size={16} />
-                                  </div>
-                                )}
-                                <Link
-                                  to={`/problems/${
-                                    problem.displayId || problem.id
-                                  }`}
-                                  style={{
-                                    textDecoration: "none",
-                                    color: "var(--cds-link-primary)",
-                                    fontWeight: 500,
-                                    fontSize: "1rem",
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {problem.title}
-                                </Link>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.25rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {problem.tags && problem.tags.length > 0 ? (
-                                  problem.tags.map((tag) => (
-                                    <Tag
-                                      key={tag.id}
-                                      type="outline"
-                                      size="sm"
-                                      style={
-                                        tag.color
-                                          ? {
-                                              backgroundColor: `${tag.color}15`,
-                                              color: tag.color,
-                                              borderColor: tag.color,
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {tag.name}
-                                    </Tag>
-                                  ))
-                                ) : (
-                                  <span
-                                    style={{
-                                      color: "var(--cds-text-secondary)",
-                                      fontSize: "0.875rem",
-                                    }}
-                                  >
-                                    -
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <DifficultyBadge
-                                difficulty={problem.difficulty || "medium"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <span style={{ fontWeight: 600 }}>
-                                  {getAcceptanceRate(problem)}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "var(--cds-text-secondary)",
-                                    marginLeft: "0.5rem",
-                                  }}
-                                >
-                                  ({problem.acceptedCount || 0}/
-                                  {problem.submissionCount || 0})
-                                </span>
-                              </div>
-                            </TableCell>
-                          </>
-                        ) : (
-                          // Admin Mode Columns (simplified)
-                          <>
-                            <TableCell>
-                              <div style={{ fontWeight: 500 }}>
-                                {problem.title}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <DifficultyBadge
-                                difficulty={problem.difficulty || "medium"}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.25rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {problem.tags && problem.tags.length > 0 ? (
-                                  problem.tags.map((tag) => (
-                                    <Tag
-                                      key={tag.id}
-                                      type="outline"
-                                      style={
-                                        tag.color
-                                          ? {
-                                              backgroundColor: `${tag.color}15`,
-                                              color: tag.color,
-                                              borderColor: tag.color,
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {tag.name}
-                                    </Tag>
-                                  ))
-                                ) : (
-                                  <span
-                                    style={{
-                                      color: "var(--cds-text-secondary)",
-                                      fontSize: "0.875rem",
-                                    }}
-                                  >
-                                    -
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {problem.isVisible ? (
-                                <Tag type="green">可見</Tag>
-                              ) : (
-                                <Tag type="gray">隱藏</Tag>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                kind="ghost"
-                                size="sm"
-                                renderIcon={Edit}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onAction?.("edit", problem);
-                                }}
-                              >
-                                編輯
-                              </Button>
-                            </TableCell>
-                          </>
-                        )}
-                      </TableRow>
+                        rowKey={rowKey}
+                        rowProps={rowProps}
+                        mode={mode}
+                        problem={problem}
+                        onRowClick={onRowClick}
+                        onAction={onAction}
+                      />
                     );
                   })}
             </TableBody>

@@ -26,6 +26,9 @@ body {
   min-height: calc(100vh - 3rem);
   margin-top: 3rem;
   background: var(--cds-background);
+  // Remove default Carbon padding on left/right
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 :root {

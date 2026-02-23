@@ -11,6 +11,11 @@ class Problem(models.Model):
     """
     Core problem model.
     """
+    class ProblemVisibility(models.TextChoices):
+        PUBLIC = 'public', _('公開')    # 所有人可在練習題庫看到
+        PRIVATE = 'private', _('私有')  # 只有建立者+管理員可見（預設）
+        HIDDEN = 'hidden', _('隱藏')    # 封存/棄用題目（向後相容）
+
     DIFFICULTY_CHOICES = [
         ('easy', '簡單'),
         ('medium', '中等'),
@@ -40,8 +45,15 @@ class Problem(models.Model):
         verbose_name='顯示編號'
     )
     
-    # Status
-    is_visible = models.BooleanField(default=True, verbose_name='是否可見')
+    # Status and Visibility
+    visibility = models.CharField(
+        max_length=10,
+        choices=ProblemVisibility.choices,
+        default=ProblemVisibility.PRIVATE,
+        db_index=True,
+        verbose_name='可見性',
+        help_text='控制題目的可見範圍'
+    )
     order = models.IntegerField(default=0, verbose_name='排序')
     
     # Metadata
@@ -54,16 +66,6 @@ class Problem(models.Model):
     )
     
     # Contest specific fields
-    # DEPRECATED: The following fields are deprecated and will be removed in a future version
-    # Use is_practice_visible and created_in_contest instead
-    
-    # New fields for MVP contest-to-practice flow
-    is_practice_visible = models.BooleanField(
-        default=False,
-        db_index=True,
-        verbose_name='顯示在練習題庫',
-        help_text='控制此題是否在練習題庫中顯示給學生'
-    )
     created_in_contest = models.ForeignKey(
         'contests.Contest',
         on_delete=models.SET_NULL,
@@ -126,7 +128,7 @@ class Problem(models.Model):
         ordering = ['order', 'id']
         indexes = [
             models.Index(fields=['difficulty']),
-            models.Index(fields=['is_visible']),
+            models.Index(fields=['visibility']),
         ]
     
     def __str__(self):

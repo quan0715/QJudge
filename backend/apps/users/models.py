@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import EmailValidator
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 
 
 class User(AbstractUser):
@@ -216,16 +217,112 @@ class UserProfile(models.Model):
     def update_statistics(self):
         """Update user statistics based on submissions."""
         from apps.submissions.models import Submission
-        
+
         submissions = Submission.objects.filter(user=self.user, is_test=False)
         self.submission_count = submissions.count()
-        
+
         accepted = submissions.filter(status='AC').values('problem').distinct().count()
         self.solved_count = accepted
-        
+
         if self.submission_count > 0:
             self.accept_rate = (accepted / submissions.values('problem').distinct().count()) * 100
         else:
             self.accept_rate = 0.00
-        
+
         self.save()
+
+
+class UserAPIKey(models.Model):
+    """
+    使用者的 Anthropic API Key（加密存儲）
+    支援 AI 功能的 API Key 管理和用量追蹤
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='api_key',
+        verbose_name='使用者'
+    )
+
+    # 加密的 API Key（使用 Fernet 加密）
+    encrypted_key = models.BinaryField(
+        verbose_name='加密的 API Key'
+    )
+
+    # Key 元資料
+    key_name = models.CharField(
+        max_length=100,
+        default='My API Key',
+        verbose_name='API Key 名稱'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='是否啟用'
+    )
+
+    # 驗證狀態
+    is_validated = models.BooleanField(
+        default=False,
+        verbose_name='是否已驗證'
+    )
+    last_validated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='最後驗證時間'
+    )
+
+    # 累計用量統計
+    total_input_tokens = models.BigIntegerField(
+        default=0,
+        verbose_name='總輸入 Token 數'
+    )
+    total_output_tokens = models.BigIntegerField(
+        default=0,
+        verbose_name='總輸出 Token 數'
+    )
+    total_requests = models.IntegerField(
+        default=0,
+        verbose_name='總請求次數'
+    )
+    total_cost_cents = models.BigIntegerField(
+        default=0,
+        verbose_name='總費用（美分）',
+        help_text='以美分表示，避免浮點精度問題'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='建立時間'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='更新時間'
+    )
+
+    class Meta:
+        db_table = 'user_api_keys'
+        verbose_name = '使用者 API Key'
+        verbose_name_plural = '使用者 API Keys'
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username}'s API Key ({self.key_name})"
+
+    def set_key(self, plain_key: str):
+        """加密並存儲 API Key"""
+        from .encryption import encrypt_api_key
+        self.encrypted_key = encrypt_api_key(plain_key)
+
+    def get_key(self) -> str:
+        """解密並返回 API Key"""
+        from .encryption import decrypt_api_key
+        return decrypt_api_key(self.encrypted_key)
+
+    @property
+    def total_cost_usd(self) -> Decimal:
+        """將美分轉換為 USD"""
+        return Decimal(self.total_cost_cents) / 100

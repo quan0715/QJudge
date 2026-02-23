@@ -293,7 +293,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   difficulty: "difficulty",
   timeLimit: "time_limit",
   memoryLimit: "memory_limit",
-  isVisible: "is_visible",
+  visibility: "visibility",
   existingTagIds: "existing_tag_ids",
   // Translation fields - need special handling
   translationZh: "translations",

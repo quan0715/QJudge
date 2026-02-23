@@ -39,6 +39,13 @@ class ProblemFilter(django_filters.FilterSet):
         choices=Problem.DIFFICULTY_CHOICES,
         conjoined=False  # OR logic: match any of the selected difficulties
     )
+    visibility = django_filters.ChoiceFilter(
+        choices=[
+            ('public', 'Public'),
+            ('private', 'Private'),
+            ('hidden', 'Hidden'),
+        ]
+    )
     tags = django_filters.CharFilter(method='filter_tags')
 
     def filter_tags(self, queryset, name, value):
@@ -55,7 +62,7 @@ class ProblemFilter(django_filters.FilterSet):
 
     class Meta:
         model = Problem
-        fields = ['difficulty', 'is_visible']
+        fields = ['difficulty', 'visibility']
 
 
 class IsAdminOrTeacherOrReadOnly(permissions.BasePermission):
@@ -73,24 +80,24 @@ class IsAdminOrTeacherOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             # Check visibility for non-admin/teacher
-            if not obj.is_visible:
+            if obj.visibility != 'public':
                 return request.user.is_authenticated and (
                     request.user.is_staff or request.user.role in ['admin', 'teacher']
                 )
             return True
-            
+
         # Write permissions (PUT, PATCH, DELETE)
         if not request.user.is_authenticated:
             return False
-            
+
         # Admin can edit everything
         if request.user.is_staff or request.user.role == 'admin':
             return True
-            
+
         # Teacher can only edit their own problems
         if request.user.role == 'teacher':
             return obj.created_by == request.user
-            
+
         return False
 
 
@@ -460,7 +467,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
 
 def _can_view_problem(user, problem: Problem) -> bool:
-    if problem.is_practice_visible:
+    if problem.visibility == 'public':
         return True
     if not user or not user.is_authenticated:
         return False

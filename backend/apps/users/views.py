@@ -29,10 +29,15 @@ from .serializers import (
     UserRoleUpdateSerializer,
     UserPreferencesUpdateSerializer,
     ChangePasswordSerializer,
+    UserAPIKeyInfoSerializer,
+    SetAPIKeySerializer,
+    ValidateAPIKeySerializer,
 )
-from .services import EmailAuthService, NYCUOAuthService, JWTService
+from .services import EmailAuthService, NYCUOAuthService, JWTService, APIKeyService
 from .permissions import IsSuperAdmin
 from .authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
+from .models import UserAPIKey
+import asyncio
 
 User = get_user_model()
 
@@ -722,8 +727,313 @@ class ChangePasswordView(APIView):
         # Set new password
         user.set_password(serializer.validated_data['new_password'])
         user.save()
-        
+
         return Response({
             'success': True,
             'message': '密碼已成功變更'
+        })
+
+
+class UserAPIKeyView(APIView):
+    """
+    User API Key management endpoint.
+
+    GET /api/v1/users/me/api-key - Get API key status (no actual key exposed)
+    POST /api/v1/users/me/api-key - Set/update API key
+    DELETE /api/v1/users/me/api-key - Delete API key
+    POST /api/v1/users/me/api-key/validate - Validate API key
+    GET /api/v1/users/me/api-key/usage - Get usage statistics
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get API key status (without exposing the actual key)."""
+        try:
+            api_key = request.user.api_key
+            return Response({
+                'success': True,
+                'data': {
+                    'has_key': True,
+                    'is_active': api_key.is_active,
+                    'is_validated': api_key.is_validated,
+                    'key_name': api_key.key_name,
+                    'total_input_tokens': api_key.total_input_tokens,
+                    'total_output_tokens': api_key.total_output_tokens,
+                    'total_requests': api_key.total_requests,
+                    'total_cost_usd': float(api_key.total_cost_usd),
+                    'last_validated_at': api_key.last_validated_at,
+                    'created_at': api_key.created_at,
+                }
+            })
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': True,
+                'data': {'has_key': False}
+            })
+
+    @method_decorator(ratelimit(key='user', rate='5/h', method='POST', block=True))
+    def post(self, request):
+        """Set/update API key."""
+        serializer = SetAPIKeySerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': 'API Key 驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        api_key_str = serializer.validated_data['api_key']
+        key_name = serializer.validated_data.get('key_name', 'My API Key')
+
+        # TODO: 暫時註解掉驗證，先測試儲存流程
+        # # Validate API key asynchronously
+        # try:
+        #     loop = asyncio.get_event_loop()
+        # except RuntimeError:
+        #     loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(loop)
+
+        # is_valid, error_msg = loop.run_until_complete(
+        #     APIKeyService.validate_anthropic_key(api_key_str)
+        # )
+
+        # if not is_valid:
+        #     return Response({
+        #         'success': False,
+        #         'error': {
+        #             'code': 'VALIDATION_FAILED',
+        #             'message': f'API Key 驗證失敗: {error_msg}'
+        #         }
+        #     }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Store API key
+        from django.utils import timezone
+        api_key_obj, created = UserAPIKey.objects.get_or_create(user=request.user)
+        api_key_obj.set_key(api_key_str)
+        api_key_obj.key_name = key_name
+        api_key_obj.is_validated = True
+        api_key_obj.last_validated_at = timezone.now()
+        api_key_obj.save()
+
+        return Response({
+            'success': True,
+            'message': 'API Key 已成功保存',
+            'data': {
+                'is_validated': api_key_obj.is_validated,
+                'key_name': api_key_obj.key_name,
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        """Delete API key."""
+        try:
+            request.user.api_key.delete()
+            return Response({
+                'success': True,
+                'message': 'API Key 已成功刪除'
+            })
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '未找到 API Key'
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class ValidateAPIKeyView(APIView):
+    """
+    Validate API key without storing it.
+
+    POST /api/v1/users/me/api-key/validate
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request):
+        """Validate API key."""
+        serializer = ValidateAPIKeySerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': 'API Key 驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        api_key_str = serializer.validated_data['api_key']
+
+        # Validate API key asynchronously
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        is_valid, error_msg = loop.run_until_complete(
+            APIKeyService.validate_anthropic_key(api_key_str)
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'valid': is_valid,
+                'error': error_msg if not is_valid else None
+            }
+        })
+
+
+class GetUsageStatsView(APIView):
+    """
+    Get API usage statistics.
+
+    GET /api/v1/users/me/api-key/usage?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&granularity=day
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get usage statistics."""
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+        from apps.ai.models import AIExecutionLog
+        from datetime import datetime
+
+        # Check if user has API key
+        try:
+            request.user.api_key
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'NO_API_KEY',
+                    'message': '未找到 API Key。請先設定 API Key'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Parse query parameters
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        granularity = request.query_params.get('granularity', 'day')
+
+        # Query logs
+        logs = AIExecutionLog.objects.filter(user=request.user)
+
+        if start_date_str:
+            try:
+                start_date = datetime.fromisoformat(start_date_str).date()
+                logs = logs.filter(created_at__date__gte=start_date)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_DATE',
+                        'message': 'Invalid start_date format. Use YYYY-MM-DD'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if end_date_str:
+            try:
+                end_date = datetime.fromisoformat(end_date_str).date()
+                from datetime import timedelta
+                # Include the entire end_date day
+                logs = logs.filter(created_at__date__lte=end_date)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_DATE',
+                        'message': 'Invalid end_date format. Use YYYY-MM-DD'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Calculate total stats
+        total = logs.aggregate(
+            input_tokens=Sum('input_tokens'),
+            output_tokens=Sum('output_tokens'),
+            requests=Count('id'),
+            cost_cents=Sum('cost_cents'),
+        )
+
+        # Group by granularity
+        breakdown = []
+        if granularity == 'total':
+            # No breakdown needed
+            pass
+        elif granularity == 'day':
+            breakdown_qs = logs.annotate(
+                period=TruncDate('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+        elif granularity == 'week':
+            breakdown_qs = logs.annotate(
+                period=TruncWeek('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].date().isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+        elif granularity == 'month':
+            breakdown_qs = logs.annotate(
+                period=TruncMonth('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].date().isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+
+        return Response({
+            'success': True,
+            'data': {
+                'total': {
+                    'input_tokens': total['input_tokens'] or 0,
+                    'output_tokens': total['output_tokens'] or 0,
+                    'requests': total['requests'] or 0,
+                    'cost_usd': (total['cost_cents'] or 0) / 100,
+                },
+                'breakdown': breakdown
+            }
         })

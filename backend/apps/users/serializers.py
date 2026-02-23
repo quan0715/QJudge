@@ -4,7 +4,7 @@ Serializers for user authentication and profile management.
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, UserProfile
+from .models import User, UserProfile, UserAPIKey
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -249,14 +249,14 @@ class ChangePasswordSerializer(serializers.Serializer):
         required=True,
         style={'input_type': 'password'}
     )
-    
+
     def validate(self, attrs):
         """Validate passwords match and new password strength."""
         if attrs['new_password'] != attrs['new_password_confirm']:
             raise serializers.ValidationError({
                 'new_password_confirm': '新密碼不一致'
             })
-        
+
         # Validate new password strength
         try:
             validate_password(attrs['new_password'])
@@ -264,5 +264,76 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'new_password': list(e.messages)
             })
-        
+
         return attrs
+
+
+class UserAPIKeyInfoSerializer(serializers.Serializer):
+    """Serializer for API Key information response (without exposing the key)."""
+    has_key = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(read_only=True, required=False)
+    is_validated = serializers.BooleanField(read_only=True, required=False)
+    key_name = serializers.CharField(max_length=100, required=False)
+    total_input_tokens = serializers.IntegerField(read_only=True, required=False)
+    total_output_tokens = serializers.IntegerField(read_only=True, required=False)
+    total_requests = serializers.IntegerField(read_only=True, required=False)
+    total_cost_usd = serializers.SerializerMethodField(read_only=True, required=False)
+    last_validated_at = serializers.DateTimeField(read_only=True, required=False)
+    created_at = serializers.DateTimeField(read_only=True, required=False)
+
+    def get_has_key(self, obj):
+        """Check if user has an API key."""
+        if isinstance(obj, dict):
+            return obj.get('has_key', False)
+        return hasattr(obj, 'api_key')
+
+    def get_total_cost_usd(self, obj):
+        """Convert cost from cents to USD."""
+        if isinstance(obj, dict):
+            cost_cents = obj.get('total_cost_cents', 0)
+            return cost_cents / 100
+        if hasattr(obj, 'api_key') and hasattr(obj.api_key, 'total_cost_usd'):
+            return float(obj.api_key.total_cost_usd)
+        return 0.0
+
+
+class SetAPIKeySerializer(serializers.Serializer):
+    """Serializer for setting/updating API Key."""
+    api_key = serializers.CharField(
+        max_length=255,
+        required=True,
+        write_only=True,
+        help_text='Anthropic API Key (sk-ant-...)'
+    )
+    key_name = serializers.CharField(
+        max_length=100,
+        required=False,
+        default='My API Key',
+        help_text='Human-readable name for this API Key'
+    )
+
+    def validate_api_key(self, value):
+        """Validate API key format."""
+        if not value or not value.startswith('sk-ant-'):
+            raise serializers.ValidationError(
+                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
+            )
+        return value
+
+
+class ValidateAPIKeySerializer(serializers.Serializer):
+    """Serializer for validating API Key."""
+    api_key = serializers.CharField(
+        max_length=255,
+        required=True,
+        write_only=True,
+        help_text='Anthropic API Key to validate'
+    )
+
+    def validate_api_key(self, value):
+        """Validate API key format."""
+        if not value or not value.startswith('sk-ant-'):
+            raise serializers.ValidationError(
+                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
+            )
+        return value

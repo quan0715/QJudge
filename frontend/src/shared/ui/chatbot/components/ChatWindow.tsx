@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   IconButton,
   Dropdown,
@@ -78,6 +78,11 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
+  // 當 currentSession 改變時，更新 renameInputValue
+  useEffect(() => {
+    setRenameInputValue(currentSession?.title || "");
+  }, [currentSession?.id]);
+
   // 建議的 prompts（針對題目編輯情境）
   const suggestedPrompts = useMemo(() => {
     const prompts = [];
@@ -145,12 +150,14 @@ export const ChatWindow: FC<ChatWindowProps> = ({
             id="session-selector"
             titleText=""
             label={currentSession?.title || "新對話"}
-            items={sessions}
-            itemToString={(item) => (item ? item.title : "")}
-            selectedItem={currentSession}
+            items={sessions.map((s) => s.id)}
+            itemToString={(itemId) =>
+              sessions.find((s) => s.id === itemId)?.title || ""
+            }
+            selectedItem={currentSession?.id}
             onChange={({ selectedItem }) => {
               if (selectedItem) {
-                onSwitchSession(selectedItem.id);
+                onSwitchSession(selectedItem);
               }
             }}
             size="sm"
@@ -161,7 +168,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         {/* 右側：操作按鈕 */}
         <div className={styles.headerActions}>
           {currentSession && (
-            <OverflowMenu flipped>
+            <OverflowMenu key={`overflow-${currentSession.id}`} flipped>
               <OverflowMenuItem
                 itemText="重命名"
                 onClick={() => {

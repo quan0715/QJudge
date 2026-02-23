@@ -9,6 +9,7 @@ export * from "./discussion.repository";
 export * from "./auth.repository";
 export * from "./announcement.repository";
 export * from "./database.repository";
+export * from "./chatbot.repository";
 
 // Contest Sub-Repositories
 export * from "./contestProblems.repository";
@@ -28,3 +29,4 @@ export { default as discussionRepository } from "./discussion.repository";
 export { default as authRepository } from "./auth.repository";
 export { default as announcementRepository } from "./announcement.repository";
 export { databaseService } from "./database.repository";
+export { default as chatbotRepository } from "./chatbot.repository";
