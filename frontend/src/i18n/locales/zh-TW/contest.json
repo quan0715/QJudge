@@ -58,7 +58,9 @@
     "settings": "設定",
     "participants": "參賽者",
     "logs": "日誌",
-    "admins": "管理員"
+    "admins": "管理員",
+    "examModel": "Exam 模型",
+    "examQuestions": "Exam 題目"
   },
   "hero": {
     "examEnded": "考試已結束",

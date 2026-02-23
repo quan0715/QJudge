@@ -1,9 +1,20 @@
 // ===== Base Types =====
 export type ChatRole = "user" | "assistant";
-export type ChatModel = "haiku" | "sonnet" | "opus";
+export type ChatModel = "claude-haiku" | "claude-sonnet" | "claude-opus";
 
-// ===== Stream Event Base =====
+// ===== v2 SSE Event Types =====
 export type StreamEventType =
+  | "run_started"
+  | "agent_message_delta"
+  | "thinking_delta"
+  | "verification_report"
+  | "tool_call_started"
+  | "tool_call_finished"
+  | "approval_required"
+  | "usage_report"
+  | "run_completed"
+  | "run_failed"
+  // Legacy (kept for transition, will be removed in WP-D)
   | "init"
   | "session"
   | "delta"
@@ -17,7 +28,7 @@ export type StreamEventType =
 
 export interface BaseStreamEvent {
   type: StreamEventType;
-  timestamp: string; // ISO 8601 format
+  timestamp?: string;
   eventId?: string;
 }
 
@@ -29,15 +40,17 @@ export interface ThinkingInfo {
 
 export interface ToolInfo {
   toolName: string;
-  toolUseId: string;
+  toolCallId: string;
   inputData?: Record<string, unknown>;
   result?: string | Record<string, unknown>;
   isError?: boolean;
+  // Legacy fields
+  toolUseId?: string;
   startTimeMs?: number;
   durationMs?: number;
   skillMetadata?: {
-    skill?: string; // e.g., "parse-problem-request"
-    gate?: string; // e.g., "gate0"
+    skill?: string;
+    gate?: string;
   };
 }
 
@@ -51,10 +64,50 @@ export interface UsageInfo {
   inputTokens?: number;
   outputTokens?: number;
   costCents?: number;
+  modelUsed?: string;
 }
 
+// ===== v2: Verification Report =====
+export interface VerificationReport {
+  iteration: number;
+  passed: boolean;
+  issues: string[];
+  summary: string;
+}
+
+// ===== v2: Pending Action / Approval =====
+export interface PendingAction {
+  id: string;
+  session: string;
+  actionType: "create" | "patch";
+  targetProblem?: number | null;
+  payload: Record<string, unknown>;
+  preview: Record<string, unknown>;
+  status: "pending" | "confirmed" | "executed" | "cancelled" | "expired" | "failed";
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface ApprovalRequest {
+  actionId: string;
+  actionType: "create" | "patch";
+  preview: Record<string, unknown>;
+}
+
+// ===== v2: Model Info =====
+export interface ModelInfo {
+  model_id: ChatModel;
+  display_name: string;
+  description: string;
+  is_default: boolean;
+}
+
+// ===== Session Context (legacy, kept for backward compat) =====
 export interface SessionContext {
   claudeSessionId?: string;
+  deepagentThreadId?: string;
+  selectedModel?: string;
+  activePendingActionId?: string;
   currentStage?: string;
   currentSkill?: string;
   gateData?: Record<string, unknown>;
@@ -74,6 +127,9 @@ export interface ChatMessage {
   // Tool executions (collapsed accordion with details)
   toolExecutions?: ToolInfo[];
 
+  // v2: Verification reports
+  verificationReports?: VerificationReport[];
+
   // Legacy fields for backward compatibility
   isThinking?: boolean;
   toolName?: string;
@@ -86,10 +142,11 @@ export interface ChatSession {
   createdAt: Date;
   updatedAt: Date;
   metadata?: {
-    backend_session_id?: string;      // 後端 UUID（來自初始化事件）
-    claude_session_id?: string;        // Claude SDK session ID（來自 session 事件）
-    title_pending?: boolean;           // 等待後端生成標題
-    sync_timestamp?: number;           // 最後同步時間
+    backend_session_id?: string;
+    claude_session_id?: string;
+    deepagent_thread_id?: string;
+    title_pending?: boolean;
+    sync_timestamp?: number;
   };
 }
 
@@ -103,11 +160,17 @@ export interface StreamEvent extends BaseStreamEvent {
   usageInfo?: UsageInfo;
   metadata?: Record<string, unknown>;
 
-  // Init event fields
+  // v2 fields
+  runId?: string;
+  threadId?: string;
+  verificationReport?: VerificationReport;
+  approvalRequest?: ApprovalRequest;
+
+  // Init event fields (legacy)
   backendSessionId?: string;
   isNewSession?: boolean;
 
-  // Session event fields
+  // Session event fields (legacy)
   sessionId?: string;
 
   // Legacy fields for backward compatibility
@@ -121,7 +184,7 @@ export interface StreamEvent extends BaseStreamEvent {
   error?: string;
 }
 
-// ===== Background Context (replaces BackgroundInformation) =====
+// ===== Background Context =====
 export interface UserContext {
   userId?: string;
   userRole?: "student" | "teacher" | "admin";
@@ -129,15 +192,15 @@ export interface UserContext {
 }
 
 export interface PageContext {
-  pageType: string; // e.g., "problem_edit", "problem_solve", "contest_view"
+  pageType: string;
   pageUrl?: string;
-  pageData?: Record<string, unknown>; // Fully flexible page-related data
+  pageData?: Record<string, unknown>;
 }
 
 export interface ChatContext {
   user?: UserContext;
   page?: PageContext;
-  custom?: Record<string, unknown>; // Fully flexible custom context
+  custom?: Record<string, unknown>;
 }
 
 // Legacy interface (for backward compatibility)
@@ -153,7 +216,7 @@ export interface BackgroundInformation {
   };
 }
 
-// ===== Problem Reference (backward compatible) =====
+// ===== Problem Reference =====
 export interface ProblemReference {
   id: number | string;
   title: string;
@@ -165,39 +228,22 @@ export interface ProblemReference {
 // ===== Request/Response Options =====
 export interface SendMessageOptions {
   model?: ChatModel;
-  context?: ChatContext; // New: unified background context
-  reference?: ProblemReference; // Legacy: backward compatible
+  context?: ChatContext;
+  reference?: ProblemReference;
   skill?: string;
   modelOverride?: string;
 }
 
-// ===== Stream Callbacks (High-level abstraction) =====
-/**
- * 高級 SSE 串流回調接口
- * 將低級 SSE 事件（delta, thinking, tool_start 等）抽象為3個核心回調
- */
+// ===== Stream Callbacks =====
 export interface StreamCallbacks {
-  /**
-   * 訊息增量更新（包含所有內容：content, thinking, tools）
-   * Repository 會將所有 SSE 事件聚合到這個回調中
-   */
   onMessageUpdate?: (message: Partial<ChatMessage>) => void;
-
-  /**
-   * 串流完成，返回完整的 session
-   * Hook 可以用完整 session 替換本地狀態
-   */
   onComplete?: (session: ChatSession) => void;
-
-  /**
-   * 錯誤處理
-   */
   onError?: (error: string) => void;
-
-  /**
-   * 用戶輸入請求（AskUserQuestion）
-   */
   onUserInputRequest?: (request: UserInputRequest) => void;
+  /** v2: Approval required callback */
+  onApprovalRequired?: (request: ApprovalRequest) => void;
+  /** v2: Verification report callback */
+  onVerificationReport?: (report: VerificationReport) => void;
 }
 
 // ===== User Input =====
@@ -219,18 +265,9 @@ export interface UserInputRequest {
 }
 
 // ===== Helper Functions =====
-
-/**
- * Extract current stage from tool executions.
- * Stage is inferred from the most recent Skill tool execution's metadata.
- *
- * Example: if toolExecutions has a Skill with skillMetadata.skill="parse-problem-request",
- * returns "Gate 0: 正在解析題目需求" (mapped from predefined stage map).
- */
 export function getCurrentStage(toolExecutions?: ToolInfo[]): string | null {
   if (!toolExecutions?.length) return null;
 
-  // Find the most recent Skill tool execution
   const lastSkillExecution = [...toolExecutions]
     .reverse()
     .find((tool) => tool.toolName === "Skill" && tool.skillMetadata);
@@ -239,7 +276,6 @@ export function getCurrentStage(toolExecutions?: ToolInfo[]): string | null {
 
   const { skill } = lastSkillExecution.skillMetadata;
 
-  // Map skill names to display text
   const stageMap: Record<string, string> = {
     "parse-problem-request": "Gate 0: 正在解析題目需求",
     "generating-problem": "Gate 1: 正在生成題目內容",

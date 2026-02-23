@@ -5,25 +5,31 @@ import json
 import logging
 import httpx
 
+from django.db import transaction
 from django.http import StreamingHttpResponse
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes as perm_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from django.utils import timezone
 
-from .ai_client import MessageType, SessionContext, SessionMode, get_ai_client
-from .models import AIExecutionLog, AIMessage, AISession
+from .ai_client import get_ai_client
+from .models import AIExecutionLog, AIMessage, AIPendingAction, AISession
+from .permissions import IsInternalService, IsTeacherOrAdmin
 from .serializers import (
     AIMessageSerializer,
     AISessionListSerializer,
     AISessionSerializer,
+    CommitActionSerializer,
+    ModelInfoSerializer,
+    PendingActionSerializer,
+    PrepareActionSerializer,
     RenameSessionSerializer,
-    SendMessageSerializer,
+    SendMessageStreamSerializer,
 )
-from apps.users.models import UserAPIKey
 
 logger = logging.getLogger(__name__)
 
@@ -170,29 +176,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
         serializer.save(user=user)
 
-    def _get_session_context(self, session) -> SessionContext:
-        """Build SessionContext from session's stored context."""
-        ctx = session.context or {}
-        return SessionContext(
-            claude_session_id=ctx.get("claude_session_id"),
-            current_stage=ctx.get("current_stage"),
-            current_skill=ctx.get("current_skill"),
-            gate_data=ctx.get("gate_data"),
-            custom_data=ctx.get("custom_data"),
-        )
-
-    def _save_session_context(self, session, ctx: SessionContext):
-        """Save SessionContext to session's context field."""
-        session.context = session.context or {}
-        session.context["claude_session_id"] = ctx.claude_session_id
-        session.context["current_stage"] = ctx.current_stage
-        session.context["current_skill"] = ctx.current_skill
-        if ctx.gate_data:
-            session.context["gate_data"] = ctx.gate_data
-        if ctx.custom_data:
-            session.context["custom_data"] = ctx.custom_data
-        session.save(update_fields=["context", "updated_at"])
-
     @action(detail=False, methods=["post"])
     def new_session(self, request):
         """Create a new session placeholder before first message.
@@ -215,167 +198,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             "id": backend_session_id,
             "status": "pending",
         })
-
-    @action(detail=True, methods=["post"])
-    def send_message(self, request, pk=None):
-        """Send a message and get AI response (non-streaming).
-
-        Request body:
-        - content: str (required) - The message content
-        - skill: str (optional) - Skill to use for this message
-        - session_mode: str (optional) - 'new', 'resume', or 'auto' (default)
-        - model: str (optional) - Model to use: 'haiku', 'sonnet', 'opus' (default: 'haiku')
-        - reference: object (optional) - Problem reference context
-        """
-        session = self.get_object()
-
-        # ===== 檢查用戶 API Key =====
-        try:
-            user_api_key_obj = request.user.api_key
-            if not user_api_key_obj.is_active:
-                return Response({
-                    'success': False,
-                    'error': {
-                        'code': 'API_KEY_INACTIVE',
-                        'message': '您的 API Key 已停用，請到設定頁面更新。'
-                    }
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except UserAPIKey.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'API_KEY_REQUIRED',
-                    'message': '尚未設定 API Key。請到設定頁面新增您的 Anthropic API Key。',
-                    'action_url': '/settings'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 解密 API Key
-        user_api_key = user_api_key_obj.get_key()
-        # ===== API Key 檢查結束 =====
-
-        serializer = SendMessageSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data["content"]
-        skill = serializer.validated_data.get("skill")
-        session_mode_str = serializer.validated_data.get("session_mode", "auto")
-        model = serializer.validated_data.get("model", "haiku")
-        reference = serializer.validated_data.get("reference")
-
-        # Parse session mode
-        try:
-            session_mode = SessionMode(session_mode_str)
-        except ValueError:
-            session_mode = SessionMode.AUTO
-
-        # Check if this is the first message (for auto-naming)
-        is_first_message = session.messages.count() == 0
-
-        # Save user message
-        user_message = AIMessage.objects.create(
-            session=session,
-            role=AIMessage.Role.USER,
-            content=content,
-            message_type=AIMessage.MessageType.TEXT,
-        )
-
-        # Auto-generate session title for first message
-        if is_first_message and not session.context.get("title"):
-            import threading
-            threading.Thread(
-                target=update_session_title_async,
-                args=(session, content, user_api_key),
-                daemon=True,
-            ).start()
-
-        # Create execution log
-        log = create_execution_log(
-            user=request.user,
-            session=session,
-            user_message=content,
-        )
-
-        # Get AI response
-        try:
-            client = get_ai_client()
-
-            # Build conversation history
-            history = self._build_conversation_history(session)
-            conversation = history + [{"role": "user", "content": content}]
-
-            # Get current session context
-            session_ctx = self._get_session_context(session)
-
-            # Run async query in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(
-                    client.chat(
-                        conversation=conversation,
-                        # system_prompt is now managed by AI-Service
-                        skill=skill,
-                        session_mode=session_mode,
-                        session_context=session_ctx,
-                        model_override=model,
-                        reference=reference,
-                        user_api_key=user_api_key,  # 傳遞用戶 API Key
-                    )
-                )
-            finally:
-                loop.close()
-
-            # Save updated session context
-            self._save_session_context(session, result.session_context)
-
-            # Complete execution log
-            complete_execution_log(
-                log=log,
-                ai_response=result.content,
-                metadata=result.metadata,
-            )
-
-            # Save assistant message
-            assistant_message = AIMessage.objects.create(
-                session=session,
-                role=AIMessage.Role.ASSISTANT,
-                content=result.content,
-                message_type=AIMessage.MessageType.TEXT,
-                metadata=result.metadata,
-            )
-
-            return Response(
-                {
-                    "user_message": AIMessageSerializer(user_message).data,
-                    "assistant_message": AIMessageSerializer(assistant_message).data,
-                    "session_context": result.session_context.to_dict(),
-                }
-            )
-
-        except Exception as e:
-            logger.exception(f"Error getting AI response: {e}")
-            # Complete execution log with error
-            complete_execution_log(
-                log=log,
-                ai_response=None,
-                metadata={"error": str(e)},
-            )
-            # Save error message
-            error_message = AIMessage.objects.create(
-                session=session,
-                role=AIMessage.Role.ASSISTANT,
-                content="抱歉，AI 服務暫時無法使用，請稍後再試。",
-                message_type=AIMessage.MessageType.ERROR,
-                metadata={"error": str(e)},
-            )
-            return Response(
-                {
-                    "user_message": AIMessageSerializer(user_message).data,
-                    "assistant_message": AIMessageSerializer(error_message).data,
-                    "error": str(e),
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @action(detail=True, methods=["post"])
     def send_message_stream(self, request, pk=None):
@@ -416,14 +238,13 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 logger.debug(f"Session {pk} not found - will create new session for user {request.user.id}")
                 session = None
 
-        serializer = SendMessageSerializer(data=request.data)
+        serializer = SendMessageStreamSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data["content"]
         skill = serializer.validated_data.get("skill")
         system_prompt = serializer.validated_data.get("system_prompt")
-        reference = serializer.validated_data.get("reference")
         # 前端可能傳送已保存的 claude_session_id
-        frontend_session_id = serializer.validated_data.get("session_id")
+        frontend_session_id = None
 
         # Check if this is the first message (for auto-naming)
         is_first_message = session is None or session.messages.count() == 0
@@ -476,11 +297,11 @@ class AISessionViewSet(viewsets.ModelViewSet):
             stream_error = None
             received_session_id = None
 
-            # 元數據收集變量
-            thinking_content = ""
+            # 元數據收集變量 (v2 events)
             all_tools_executed = []
             collected_usage = None
             current_tool = None
+            collected_thinking = ""
 
             # 1. 決定使用哪個 session_id 與 ai-service 通信
             # 優先順序：前端傳送的 session_id > 現存會話的 session_id > None（新會話）
@@ -494,16 +315,32 @@ class AISessionViewSet(viewsets.ModelViewSet):
             else:  # 新會話
                 logger.debug(f"Creating new session for user {request.user.id}")
 
-            # 2. 構建 ai-service 請求
+            # 2. 構建 ai-service 請求 (v2 ChatRequest schema)
             ai_service_payload = {
-                "conversation": [{"role": "user", "content": content}],
-                "session_id": ai_service_session_id,  # None 表示創建新會話，否則恢復
+                "content": content,
+                "conversation": [],
             }
+
+            # v2: model_id from serializer
+            model_id = serializer.validated_data.get("model_id")
+            if model_id:
+                ai_service_payload["model_id"] = model_id
+
+            # v2: thread_id for DeepAgent resume
+            if ai_service_session_id:
+                ai_service_payload["thread_id"] = ai_service_session_id
 
             if system_prompt:
                 ai_service_payload["system_prompt"] = system_prompt
             if skill:
                 ai_service_payload["skill"] = skill
+
+            # v2: session_id and user_id for write tool binding
+            if session:
+                ai_service_payload["session_id"] = session.session_id
+            elif ai_service_session_id:
+                ai_service_payload["session_id"] = ai_service_session_id
+            ai_service_payload["user_id"] = request.user.id
 
             try:
                 # 3. 發送初始化事件（告知前端這個請求使用的 backend_session_id）
@@ -522,53 +359,49 @@ class AISessionViewSet(viewsets.ModelViewSet):
                     timeout=120.0
                 ) as response:
                     if response.status_code != 200:
+                        response.read()
                         error_text = response.text
                         logger.error(f"ai-service error: {response.status_code} - {error_text}")
                         stream_error = f"ai-service error: {response.status_code}"
                         yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
                         return
 
-                    # 5. 轉發 SSE 流並完整收集元數據
+                    # 5. 轉發 SSE 流並完整收集元數據 (v2 events)
                     for line in response.iter_lines():
-                        # 轉發所有行（包括空行）
                         if line.strip():
                             if line.startswith("data: "):
                                 try:
                                     event = json.loads(line[6:])
                                     event_type = event.get("type")
 
-                                    # ===== 元數據收集開始 =====
+                                    # ===== v2 元數據收集 =====
 
-                                    # 捕獲 session 事件（ai-service 返回的 session_id）
-                                    if event_type == "session" and event.get("session_id"):
-                                        received_session_id = event.get("session_id")
-                                        logger.info(f"Received session_id from ai-service: {received_session_id}")
+                                    # run_started: 捕獲 thread_id 作為 session_id
+                                    if event_type == "run_started" and event.get("thread_id"):
+                                        received_session_id = event["thread_id"]
+                                        logger.info(f"run_started: thread_id={received_session_id[:8]}...")
 
-                                    # 累積內容
-                                    if event_type == "delta" and event.get("content"):
-                                        full_response += event.get("content", "")
+                                    # thinking_delta: 累積思考內容
+                                    if event_type == "thinking_delta" and event.get("content"):
+                                        collected_thinking += event["content"]
 
-                                    # 收集思考過程
-                                    if event_type == "thinking" and event.get("thinking"):
-                                        thinking_content = event.get("thinking", "")
-                                        logger.debug(f"Captured thinking: {len(thinking_content)} chars")
+                                    # agent_message_delta: 累積回應內容
+                                    if event_type == "agent_message_delta" and event.get("content"):
+                                        full_response += event["content"]
 
-                                    # 收集工具開始事件
-                                    if event_type == "tool_start":
+                                    # tool_call_started: 記錄工具調用
+                                    if event_type == "tool_call_started":
                                         current_tool = {
                                             "tool_name": event.get("tool_name"),
-                                            "tool_use_id": event.get("tool_use_id"),
-                                            "input": event.get("input"),
-                                            "start_time_ms": event.get("start_time_ms"),
-                                            "skill_metadata": event.get("skill_metadata"),
+                                            "tool_call_id": event.get("tool_call_id"),
+                                            "input": event.get("input_data"),
                                         }
                                         logger.debug(f"Tool start: {current_tool.get('tool_name')}")
 
-                                    # 收集工具結果
-                                    if event_type == "tool_result" and current_tool:
+                                    # tool_call_finished: 記錄工具結果
+                                    if event_type == "tool_call_finished" and current_tool:
                                         current_tool["result"] = event.get("result")
                                         current_tool["is_error"] = event.get("is_error", False)
-                                        current_tool["duration_ms"] = event.get("duration_ms")
                                         all_tools_executed.append(current_tool)
                                         logger.debug(
                                             f"Tool result: {current_tool.get('tool_name')} "
@@ -576,12 +409,13 @@ class AISessionViewSet(viewsets.ModelViewSet):
                                         )
                                         current_tool = None
 
-                                    # 收集 usage 信息
-                                    if event_type == "usage":
+                                    # usage_report: 收集 token 用量
+                                    if event_type == "usage_report":
                                         collected_usage = {
                                             "input_tokens": event.get("input_tokens"),
                                             "output_tokens": event.get("output_tokens"),
                                             "cost_cents": event.get("cost_cents"),
+                                            "model_used": event.get("model_used"),
                                         }
                                         logger.debug(f"Usage: {collected_usage}")
 
@@ -591,13 +425,10 @@ class AISessionViewSet(viewsets.ModelViewSet):
                                     yield f"{line}\n\n"
                                 except json.JSONDecodeError:
                                     logger.debug(f"Failed to parse SSE line: {line}")
-                                    # 即使解析失敗也轉發給前端
                                     yield f"{line}\n\n"
                             else:
-                                # 非 data: 行也應該轉發
                                 yield f"{line}\n"
                         else:
-                            # 空行也應該轉發
                             yield "\n"
 
             except Exception as e:
@@ -643,12 +474,26 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         session.updated_at = timezone.now()
                         session.save(update_fields=["updated_at"])
 
-                # 7. 保存 AI 回應訊息（包含完整元數據）
+                # 7. Auto-generate session title for first message
+                if session and is_first_message and not (session.context or {}).get("title"):
+                    import re as _re, threading as _threading
+                    title_content = _re.sub(
+                        r"<background_information>[\s\S]*?</background_information>\s*",
+                        "",
+                        content,
+                    ).strip() or content[:100]
+                    _threading.Thread(
+                        target=update_session_title_async,
+                        args=(session, title_content, ""),
+                        daemon=True,
+                    ).start()
+
+                # 8. 保存 AI 回應訊息（包含完整元數據）
                 if session and full_response:
                     # 構建元數據
                     message_metadata = {}
-                    if thinking_content:
-                        message_metadata["thinking"] = thinking_content
+                    if collected_thinking:
+                        message_metadata["thinking"] = collected_thinking
                     if all_tools_executed:
                         message_metadata["tools_executed"] = all_tools_executed
                     if collected_usage:
@@ -662,15 +507,13 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         metadata=message_metadata if message_metadata else None,
                     )
 
-                # 8. 完成執行日誌（傳遞完整元數據）
+                # 9. 完成執行日誌（傳遞完整元數據）
                 if log:
                     # 構建執行日誌的元數據
                     log_metadata = {
                         "error": stream_error,
                         "session_id": received_session_id,
                     }
-                    if thinking_content:
-                        log_metadata["thinking"] = thinking_content
                     if all_tools_executed:
                         log_metadata["tools_executed"] = all_tools_executed
                     if collected_usage:
@@ -804,10 +647,671 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def _build_conversation_history(self, session):
-        """Build conversation history for context."""
-        messages = session.messages.order_by("created_at")[:20]  # Limit to last 20
-        history = []
-        for msg in messages:
-            history.append({"role": msg.role, "content": msg.content})
-        return history
+    @action(detail=True, methods=["post"])
+    def resume_stream(self, request, pk=None):
+        """Resume an interrupted agent and stream the result.
+
+        Proxies to ai-service /api/chat/resume endpoint.
+
+        Request body:
+        - decision: str (required) - "approve" or "reject"
+        """
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        decision = request.data.get("decision")
+        if decision not in ("approve", "reject"):
+            return Response(
+                {"error": "decision must be 'approve' or 'reject'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Look up existing session
+        try:
+            session = AISession.objects.get(session_id=pk, user=request.user)
+        except AISession.DoesNotExist:
+            return Response(
+                {"error": "Session not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        def generate_resume():
+            """Proxy resume request to ai-service."""
+            resume_payload = {
+                "thread_id": session.session_id,
+                "decision": decision,
+                "session_id": session.session_id,
+                "user_id": request.user.id,
+            }
+
+            full_response = ""
+            collected_usage = None
+
+            try:
+                with httpx.stream(
+                    "POST",
+                    "http://ai-service:8001/api/chat/resume",
+                    json=resume_payload,
+                    timeout=120.0,
+                ) as response:
+                    if response.status_code != 200:
+                        response.read()
+                        error_text = response.text
+                        logger.error(f"ai-service resume error: {response.status_code} - {error_text}")
+                        yield f"data: {json.dumps({'type': 'error', 'content': f'ai-service error: {response.status_code}'})}\n\n"
+                        return
+
+                    for line in response.iter_lines():
+                        if line.strip():
+                            if line.startswith("data: "):
+                                try:
+                                    event = json.loads(line[6:])
+                                    event_type = event.get("type")
+
+                                    if event_type == "agent_message_delta" and event.get("content"):
+                                        full_response += event["content"]
+
+                                    if event_type == "usage_report":
+                                        collected_usage = {
+                                            "input_tokens": event.get("input_tokens"),
+                                            "output_tokens": event.get("output_tokens"),
+                                            "cost_cents": event.get("cost_cents"),
+                                            "model_used": event.get("model_used"),
+                                        }
+
+                                    yield f"{line}\n\n"
+                                except json.JSONDecodeError:
+                                    yield f"{line}\n\n"
+                            else:
+                                yield f"{line}\n"
+                        else:
+                            yield "\n"
+
+            except Exception as e:
+                logger.exception(f"Error proxying resume to ai-service: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+            finally:
+                # Save AI response if any
+                if full_response:
+                    message_metadata = {}
+                    if collected_usage:
+                        message_metadata["usage"] = collected_usage
+
+                    AIMessage.objects.create(
+                        session=session,
+                        role=AIMessage.Role.ASSISTANT,
+                        content=full_response,
+                        message_type=AIMessage.MessageType.TEXT,
+                        metadata=message_metadata if message_metadata else None,
+                    )
+
+                session.updated_at = timezone.now()
+                session.save(update_fields=["updated_at"])
+
+        response = StreamingHttpResponse(
+            generate_resume(), content_type="text/event-stream"
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
+    # ================================================================
+    # v2 Actions
+    # ================================================================
+
+    @action(detail=True, methods=["get"], url_path="pending-actions/active")
+    def pending_actions_active(self, request, pk=None):
+        """Get active pending action for this session (for page refresh recovery)."""
+        session = self.get_object()
+        action_obj = (
+            AIPendingAction.objects
+            .filter(session=session, status=AIPendingAction.Status.PENDING)
+            .order_by("-created_at")
+            .first()
+        )
+        if action_obj is None:
+            return Response({"active_action": None})
+
+        # Lazy expiry check
+        if action_obj.is_expired():
+            action_obj.status = AIPendingAction.Status.EXPIRED
+            action_obj.save(update_fields=["status"])
+            return Response({"active_action": None})
+
+        return Response({"active_action": PendingActionSerializer(action_obj).data})
+
+    @action(detail=True, methods=["post"], url_path="actions/(?P<action_id>[^/.]+)/confirm")
+    def confirm_action(self, request, pk=None, action_id=None):
+        """Confirm a pending action. Commit happens on next prompt (v2.2 protocol)."""
+        session = self.get_object()
+
+        try:
+            with transaction.atomic():
+                action_obj = (
+                    AIPendingAction.objects
+                    .select_for_update()
+                    .get(id=action_id, session=session)
+                )
+
+                # Idempotent: already confirmed/executed
+                if action_obj.status in (AIPendingAction.Status.CONFIRMED, AIPendingAction.Status.EXECUTED):
+                    return Response(PendingActionSerializer(action_obj).data)
+
+                if action_obj.status != AIPendingAction.Status.PENDING:
+                    return Response(
+                        {"error": f"Action is {action_obj.status}, cannot confirm."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                # Lazy expiry
+                if action_obj.is_expired():
+                    action_obj.status = AIPendingAction.Status.EXPIRED
+                    action_obj.save(update_fields=["status"])
+                    return Response(
+                        {"error": "Action has expired."},
+                        status=status.HTTP_410_GONE,
+                    )
+
+                action_obj.status = AIPendingAction.Status.CONFIRMED
+                action_obj.save(update_fields=["status"])
+
+                # Update session context
+                session.context = session.context or {}
+                session.context["active_pending_action_id"] = str(action_obj.id)
+                session.save(update_fields=["context", "updated_at"])
+
+        except AIPendingAction.DoesNotExist:
+            return Response(
+                {"error": "Action not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(PendingActionSerializer(action_obj).data)
+
+    @action(detail=True, methods=["post"], url_path="actions/(?P<action_id>[^/.]+)/cancel")
+    def cancel_action(self, request, pk=None, action_id=None):
+        """Cancel a pending action."""
+        session = self.get_object()
+
+        try:
+            with transaction.atomic():
+                action_obj = (
+                    AIPendingAction.objects
+                    .select_for_update()
+                    .get(id=action_id, session=session)
+                )
+
+                # Idempotent
+                if action_obj.status == AIPendingAction.Status.CANCELLED:
+                    return Response(PendingActionSerializer(action_obj).data)
+
+                if action_obj.status not in (AIPendingAction.Status.PENDING, AIPendingAction.Status.CONFIRMED):
+                    return Response(
+                        {"error": f"Action is {action_obj.status}, cannot cancel."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                action_obj.status = AIPendingAction.Status.CANCELLED
+                action_obj.save(update_fields=["status"])
+
+                # Clear session pending
+                session.context = session.context or {}
+                session.context.pop("active_pending_action_id", None)
+                session.save(update_fields=["context", "updated_at"])
+
+        except AIPendingAction.DoesNotExist:
+            return Response(
+                {"error": "Action not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(PendingActionSerializer(action_obj).data)
+
+
+# ============================================================
+# Model List (Public)
+# ============================================================
+
+class ModelListView(APIView):
+    """GET /api/v1/ai/models/ — return available model options."""
+
+    permission_classes = [IsAuthenticated]
+
+    MODELS = [
+        {
+            "model_id": "claude-haiku",
+            "display_name": "Claude Haiku",
+            "description": "快速、低成本",
+            "is_default": False,
+        },
+        {
+            "model_id": "claude-sonnet",
+            "display_name": "Claude Sonnet",
+            "description": "平衡效能與成本",
+            "is_default": True,
+        },
+        {
+            "model_id": "claude-opus",
+            "display_name": "Claude Opus",
+            "description": "最強推理能力",
+            "is_default": False,
+        },
+    ]
+
+    def get(self, request):
+        return Response({"models": self.MODELS})
+
+
+# ============================================================
+# Internal API (HMAC-protected, for ai-service tool calls)
+# ============================================================
+
+class InternalPrepareActionView(APIView):
+    """POST /api/v1/ai/internal/problem-actions/prepare
+
+    Called by ai-service tool: creates AIPendingAction with preview.
+    """
+
+    permission_classes = [IsInternalService]
+
+    def post(self, request):
+        serializer = PrepareActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        session_id = serializer.validated_data["session_id"]
+        user_id = serializer.validated_data["user_id"]
+        action_type = serializer.validated_data["action_type"]
+        payload = serializer.validated_data["payload"]
+
+        # Resolve session and user
+        try:
+            session = AISession.objects.get(session_id=session_id)
+        except AISession.DoesNotExist:
+            return Response(
+                {"error": f"Session {session_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": f"User {user_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Build preview (for now, preview = payload; can be enriched later)
+        preview = payload
+        target_problem_id = payload.get("target_problem_id") if action_type == "patch" else None
+
+        # Create pending action
+        action_obj = AIPendingAction.objects.create(
+            session=session,
+            user=user,
+            action_type=action_type,
+            target_problem_id=target_problem_id,
+            payload=payload,
+            preview=preview,
+            expires_at=timezone.now() + timezone.timedelta(minutes=30),
+        )
+
+        # Update session context
+        session.context = session.context or {}
+        session.context["active_pending_action_id"] = str(action_obj.id)
+        session.save(update_fields=["context", "updated_at"])
+
+        return Response({
+            "action_id": str(action_obj.id),
+            "preview": preview,
+            "validation_issues": [],  # TODO: add validation in future
+        }, status=status.HTTP_201_CREATED)
+
+
+class InternalCommitActionView(APIView):
+    """POST /api/v1/ai/internal/problem-actions/commit
+
+    Called by ai-service tool after user confirms.
+    Executes the actual create/patch with transaction safety.
+    """
+
+    permission_classes = [IsInternalService]
+
+    def post(self, request):
+        serializer = CommitActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        action_id = serializer.validated_data["action_id"]
+
+        try:
+            with transaction.atomic():
+                action_obj = (
+                    AIPendingAction.objects
+                    .select_for_update()
+                    .get(id=action_id)
+                )
+
+                # Idempotent: already executed
+                if action_obj.status == AIPendingAction.Status.EXECUTED:
+                    return Response({
+                        "status": "already_executed",
+                        "problem_id": action_obj.executed_problem.id if action_obj.executed_problem else None,
+                    })
+
+                if action_obj.status != AIPendingAction.Status.CONFIRMED:
+                    return Response(
+                        {"error": f"Action status is {action_obj.status}, expected confirmed."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                # Execute based on action type
+                try:
+                    if action_obj.action_type == AIPendingAction.ActionType.CREATE:
+                        problem = self._execute_create(action_obj)
+                    else:
+                        problem = self._execute_patch(action_obj)
+
+                    action_obj.status = AIPendingAction.Status.EXECUTED
+                    action_obj.executed_problem = problem
+                    action_obj.save(update_fields=["status", "executed_problem"])
+
+                    # Clear session pending
+                    session = action_obj.session
+                    session.context = session.context or {}
+                    session.context.pop("active_pending_action_id", None)
+                    session.context["last_executed_problem_id"] = problem.id
+                    session.save(update_fields=["context", "updated_at"])
+
+                    return Response({
+                        "status": "executed",
+                        "problem_id": problem.id,
+                    })
+
+                except Exception as exc:
+                    action_obj.status = AIPendingAction.Status.FAILED
+                    action_obj.error_message = str(exc)
+                    action_obj.save(update_fields=["status", "error_message"])
+                    logger.exception("Commit action failed: %s", exc)
+                    return Response(
+                        {"error": str(exc)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+
+        except AIPendingAction.DoesNotExist:
+            return Response(
+                {"error": "Action not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    # Fields that live on Problem vs ProblemTranslation
+    _PROBLEM_FIELDS = {"title", "difficulty", "time_limit", "memory_limit"}
+    _TRANSLATION_FIELDS = {"description", "input_description", "output_description", "hint"}
+
+    def _execute_create(self, action_obj):
+        """Create a new problem + translations from payload.
+
+        Supports two formats:
+        - Legacy flat: {title, description, ...} → creates single zh-TW translation
+        - Multi-lang: {title, translations: [{language, title, description, ...}, ...]}
+        """
+        from apps.problems.models import Problem, ProblemTranslation
+        payload = action_obj.payload
+
+        problem = Problem.objects.create(
+            title=payload.get("title", "Untitled"),
+            difficulty=payload.get("difficulty", "medium"),
+            time_limit=payload.get("time_limit", 1000),
+            memory_limit=payload.get("memory_limit", 128),
+            created_by=action_obj.user,
+        )
+
+        translations_data = payload.get("translations")
+        if translations_data and isinstance(translations_data, list):
+            # Multi-language format
+            for t in translations_data:
+                ProblemTranslation.objects.create(
+                    problem=problem,
+                    language=t.get("language", "zh-TW"),
+                    title=t.get("title", payload.get("title", "Untitled")),
+                    description=t.get("description", ""),
+                    input_description=t.get("input_description", ""),
+                    output_description=t.get("output_description", ""),
+                    hint=t.get("hint", ""),
+                )
+        else:
+            # Legacy flat format → single zh-TW translation
+            ProblemTranslation.objects.create(
+                problem=problem,
+                language="zh-TW",
+                title=payload.get("title", "Untitled"),
+                description=payload.get("description", ""),
+                input_description=payload.get("input_description", payload.get("input_format", "")),
+                output_description=payload.get("output_description", payload.get("output_format", "")),
+                hint=payload.get("hint", ""),
+            )
+
+        return problem
+
+    def _execute_patch(self, action_obj):
+        """Apply RFC6902 JSON Patch to existing problem + translations + test cases.
+
+        Supports patch paths:
+        - /difficulty, /title, ... — Problem fields (flat)
+        - /translation/description, ... — nested under "translation" (default lang)
+        - /description, /input_description, ... — flat translation fields (legacy)
+        - /translations — full array of translation objects (multi-lang)
+        - /translations/0/description, /translations/1/... — indexed translation ops
+        - /sample_test_cases — replace sample test cases array
+        """
+        import jsonpatch
+        from apps.problems.models import Problem, ProblemTranslation, TestCase
+
+        problem = Problem.objects.select_for_update().get(id=action_obj.target_problem_id)
+        existing_translations = list(
+            ProblemTranslation.objects
+            .select_for_update()
+            .filter(problem=problem)
+            .order_by("language")
+        )
+
+        payload = action_obj.payload
+
+        # Build current document matching all supported patch paths
+        current_doc = {
+            "title": problem.title,
+            "difficulty": problem.difficulty,
+            "time_limit": problem.time_limit,
+            "memory_limit": problem.memory_limit,
+        }
+
+        # "translations" — full array for multi-lang ops
+        current_doc["translations"] = []
+        for t in existing_translations:
+            current_doc["translations"].append({
+                "language": t.language,
+                "title": t.title,
+                "description": t.description,
+                "input_description": t.input_description,
+                "output_description": t.output_description,
+                "hint": t.hint,
+            })
+
+        # "translation" — singular shorthand (first / default translation)
+        default_trans = next(
+            (t for t in existing_translations if t.language in ("zh-TW", "zh-hant")),
+            existing_translations[0] if existing_translations else None,
+        )
+        if default_trans:
+            trans_dict = {
+                "title": default_trans.title,
+                "description": default_trans.description,
+                "input_description": default_trans.input_description,
+                "output_description": default_trans.output_description,
+                "hint": default_trans.hint,
+            }
+            current_doc["translation"] = trans_dict
+            # Flat aliases for legacy /description paths
+            current_doc.update(trans_dict)
+
+        # Include current sample test cases
+        sample_cases = list(
+            TestCase.objects.filter(problem=problem, is_sample=True).order_by("order")
+        )
+        current_doc["sample_test_cases"] = [
+            {"input": tc.input_data, "output": tc.output_data, "order": tc.order}
+            for tc in sample_cases
+        ]
+
+        # Apply patch
+        patch_ops = payload.get("json_patch_ops", [])
+        patch = jsonpatch.JsonPatch(patch_ops)
+        patched_doc = patch.apply(current_doc)
+
+        # ---- Write back to Problem ----
+        problem_changed = False
+        for key in self._PROBLEM_FIELDS:
+            new_val = patched_doc.get(key)
+            if new_val is not None and getattr(problem, key, None) != new_val:
+                setattr(problem, key, new_val)
+                problem_changed = True
+        if problem_changed:
+            problem.save()
+
+        # ---- Write back Translations ----
+        patched_translations = patched_doc.get("translations")
+        if patched_translations is not None and isinstance(patched_translations, list):
+            # Full translations array was patched — reconcile with DB
+            existing_by_lang = {t.language: t for t in existing_translations}
+            seen_langs = set()
+            for t_data in patched_translations:
+                lang = t_data.get("language", "zh-TW")
+                seen_langs.add(lang)
+                db_trans = existing_by_lang.get(lang)
+                if db_trans:
+                    # Update existing
+                    changed = False
+                    for key in ("title", *self._TRANSLATION_FIELDS):
+                        new_val = t_data.get(key)
+                        if new_val is not None and getattr(db_trans, key, None) != new_val:
+                            setattr(db_trans, key, new_val)
+                            changed = True
+                    if changed:
+                        db_trans.save()
+                else:
+                    # Create new language translation
+                    ProblemTranslation.objects.create(
+                        problem=problem,
+                        language=lang,
+                        title=t_data.get("title", problem.title),
+                        description=t_data.get("description", ""),
+                        input_description=t_data.get("input_description", ""),
+                        output_description=t_data.get("output_description", ""),
+                        hint=t_data.get("hint", ""),
+                    )
+        else:
+            # Fallback: write back singular /translation and flat paths to default translation
+            if default_trans:
+                patched_trans = patched_doc.get("translation", {})
+                trans_changed = False
+                for key in self._TRANSLATION_FIELDS:
+                    new_val = patched_trans.get(key, patched_doc.get(key))
+                    if new_val is not None and getattr(default_trans, key, None) != new_val:
+                        setattr(default_trans, key, new_val)
+                        trans_changed = True
+                if trans_changed:
+                    default_trans.save()
+
+        # ---- Write back sample test cases ----
+        new_samples = patched_doc.get("sample_test_cases")
+        if new_samples is not None and isinstance(new_samples, list):
+            TestCase.objects.filter(problem=problem, is_sample=True).delete()
+            for idx, tc in enumerate(new_samples):
+                TestCase.objects.create(
+                    problem=problem,
+                    input_data=tc.get("input", ""),
+                    output_data=tc.get("output", ""),
+                    is_sample=True,
+                    order=tc.get("order", idx),
+                )
+
+        return problem
+
+
+class InternalPendingActionDetailView(APIView):
+    """GET /api/v1/ai/internal/pending-actions/{action_id}
+
+    Returns pending action details (for ai-service to build approval preview).
+    """
+
+    permission_classes = [IsInternalService]
+
+    def get(self, request, action_id):
+        try:
+            action_obj = AIPendingAction.objects.get(id=action_id)
+        except AIPendingAction.DoesNotExist:
+            return Response(
+                {"error": "Action not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response({
+            "action_id": str(action_obj.id),
+            "action_type": action_obj.action_type,
+            "status": action_obj.status,
+            "preview": action_obj.preview or {},
+            "payload": action_obj.payload or {},
+            "target_problem_id": action_obj.target_problem_id,
+            "created_at": action_obj.created_at.isoformat(),
+        })
+
+
+class InternalProblemContextView(APIView):
+    """GET /api/v1/ai/internal/problems/{id}/context
+
+    Returns problem data for agent to read.
+    """
+
+    permission_classes = [IsInternalService]
+
+    def get(self, request, problem_id):
+        from apps.problems.models import Problem
+        try:
+            problem = Problem.objects.get(id=problem_id)
+        except Problem.DoesNotExist:
+            return Response(
+                {"error": "Problem not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Build all translations
+        translations_data = [
+            {
+                "language": t.language,
+                "title": t.title,
+                "description": t.description,
+                "input_description": t.input_description,
+                "output_description": t.output_description,
+                "hint": t.hint or "",
+            }
+            for t in problem.translations.order_by("language")
+        ]
+
+        # Sample test cases only
+        sample_cases = [
+            {"input": tc.input_data, "output": tc.output_data, "order": tc.order}
+            for tc in problem.test_cases.filter(is_sample=True).order_by("order")
+        ]
+
+        return Response({
+            "id": problem.id,
+            "title": problem.title,
+            "difficulty": problem.difficulty,
+            "time_limit": problem.time_limit,
+            "memory_limit": problem.memory_limit,
+            "translations": translations_data,
+            "sample_test_cases": sample_cases,
+        })

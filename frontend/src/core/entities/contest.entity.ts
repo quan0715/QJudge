@@ -195,6 +195,25 @@ export interface ContestQuestion {
   updatedAt: string;
 }
 
+export type ExamQuestionType =
+  | "true_false"
+  | "single_choice"
+  | "multiple_choice"
+  | "essay";
+
+export interface ExamQuestion {
+  id: string;
+  contestId: string;
+  questionType: ExamQuestionType;
+  prompt: string;
+  options: string[];
+  correctAnswer?: unknown;
+  score: number;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Clarification {
   id: string;
   question: string;

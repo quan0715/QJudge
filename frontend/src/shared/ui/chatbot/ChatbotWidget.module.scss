@@ -104,10 +104,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-04 $spacing-05;
+  padding: $spacing-03 $spacing-04;
   background-color: $layer-02;
   border-bottom: 1px solid $border-subtle-01;
   flex-shrink: 0;
+  min-height: 40px;
 
   :global([data-carbon-theme="g100"]) &,
   :global([data-carbon-theme="g90"]) & {
@@ -185,10 +186,21 @@
 
 .headerActions {
   display: flex;
-  gap: $spacing-02;
+  align-items: center;
+  gap: $spacing-01;
+  flex-shrink: 0;
 
   button {
     color: $icon-secondary;
+  }
+
+  // OverflowMenu 對齊修正
+  :global(.cds--overflow-menu) {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -401,6 +413,7 @@
     color: $text-primary;
     position: relative;
     margin-left: 0;
+    white-space: normal; // markdown handles its own whitespace
 
     // 使用偽元素在訊息開頭創建短線標示（約 1.5 行高）
     &::before {
@@ -715,6 +728,63 @@
   }
 }
 
+// Approval Banner
+.approvalBanner {
+  flex-shrink: 0;
+  padding: $spacing-03;
+  border-top: 1px solid $border-subtle-01;
+
+  :global(.cds--inline-notification) {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+.approvalActions {
+  display: flex;
+  gap: $spacing-03;
+  padding: $spacing-03 $spacing-03 0;
+}
+
+.approvalConfirmBtn {
+  @include type-style("body-compact-01");
+  padding: $spacing-02 $spacing-05;
+  background-color: $support-success;
+  color: $text-on-color;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &:focus {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.approvalCancelBtn {
+  @include type-style("body-compact-01");
+  padding: $spacing-02 $spacing-05;
+  background-color: transparent;
+  color: $text-secondary;
+  border: 1px solid $border-subtle-01;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+
+  &:focus {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
 // Chat Input Container - unified section
 .chatInputContainer {
   padding: $spacing-04;
@@ -965,6 +1035,12 @@
     margin-bottom: $spacing-02;
     font-weight: 600;
     color: $text-primary;
+  }
+
+  // CodeSnippet 填滿容器寬度
+  :global(.cds--snippet--multi) {
+    max-width: 100%;
+    width: 100%;
   }
 }
 

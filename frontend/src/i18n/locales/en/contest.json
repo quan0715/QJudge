@@ -37,7 +37,9 @@
     "settings": "Settings",
     "participants": "Participants",
     "logs": "Logs",
-    "admins": "Admins"
+    "admins": "Admins",
+    "examModel": "Exam Model",
+    "examQuestions": "Exam Questions"
   },
   "hero": {
     "examEnded": "Exam Ended",

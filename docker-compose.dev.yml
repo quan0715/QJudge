@@ -38,7 +38,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # AI Service (Claude Agent SDK) - Dev Mode
+  # AI Service (LangChain DeepAgent) - Dev Mode
   ai-service:
     build:
       context: ./ai-service
@@ -50,12 +50,17 @@ services:
       - .env
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
-      - CLAUDE_MAX_TURNS=${CLAUDE_MAX_TURNS:-10}
+      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
+      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
+      - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-dev}
+      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
+      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
     volumes:
-      - ./ai-service:/app  # Mount entire ai-service for hot reload
+      - ./ai-service:/app
     networks:
       - oj_network_dev
+    depends_on:
+      - postgres
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -69,6 +74,7 @@ services:
       dockerfile: Dockerfile
       args:
         DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_backend_dev
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -81,6 +87,7 @@ services:
     environment:
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
       - AI_SERVICE_URL=http://ai-service:8001
+      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,11 +100,7 @@ services:
 
   # Celery Worker (Dev Mode)
   celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_celery_dev
     command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
     volumes:
@@ -121,11 +124,7 @@ services:
 
   # Celery Beat (Dev Mode - Scheduler for periodic tasks)
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_celery_beat_dev
     command: celery -A config beat -l info
     volumes:

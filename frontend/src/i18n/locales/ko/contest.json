@@ -37,7 +37,9 @@
     "settings": "설정",
     "participants": "참가자",
     "logs": "로그",
-    "admins": "관리자"
+    "admins": "관리자",
+    "examModel": "Exam 모델",
+    "examQuestions": "Exam 문항"
   },
   "hero": {
     "examEnded": "시험 종료",

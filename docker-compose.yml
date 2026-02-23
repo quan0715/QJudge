@@ -40,7 +40,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # AI Service (Claude Agent SDK)
+  # AI Service (LangChain DeepAgent)
   ai-service:
     build:
       context: ./ai-service
@@ -48,17 +48,22 @@ services:
     container_name: oj_ai_service
     restart: always
     ports:
-      - "8001:8001"  # Exposed for development, can be removed in production
+      - "8001:8001"
     env_file:
       - .env
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
-      - CLAUDE_MAX_TURNS=${CLAUDE_MAX_TURNS:-10}
+      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
+      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
+      - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-01}
+      - HMAC_SECRET=${HMAC_SECRET}
+      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
     volumes:
-      - ./ai-service:/app  # Mount entire ai-service for hot reload
+      - ./ai-service:/app
     networks:
       - oj_network
+    depends_on:
+      - postgres
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -88,6 +93,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - AI_SERVICE_URL=http://ai-service:8001
+      - HMAC_SECRET=${HMAC_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

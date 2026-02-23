@@ -88,5 +88,54 @@ class Migration(migrations.Migration):
             ALTER TABLE ai_aimessage ENABLE TRIGGER ALL;
             ALTER TABLE ai_aiexecutionlog ENABLE TRIGGER ALL;
             """,
+            state_operations=[
+                # Tell Django that AISession PK changed from id to session_id
+                migrations.RemoveField(
+                    model_name='aisession',
+                    name='id',
+                ),
+                migrations.RemoveField(
+                    model_name='aisession',
+                    name='stage',
+                ),
+                migrations.RemoveField(
+                    model_name='aisession',
+                    name='is_active',
+                ),
+                migrations.AddField(
+                    model_name='aisession',
+                    name='session_id',
+                    field=models.CharField(
+                        max_length=36,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='Claude SDK Session ID',
+                        help_text='由 Claude Agent SDK 返回的唯一會話 ID',
+                    ),
+                ),
+                # Update FK fields to reference new PK type
+                migrations.AlterField(
+                    model_name='aimessage',
+                    name='session',
+                    field=models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='messages',
+                        to='ai.aisession',
+                        verbose_name='Session',
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name='aiexecutionlog',
+                    name='session',
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='execution_logs',
+                        to='ai.aisession',
+                        verbose_name='Session',
+                    ),
+                ),
+            ],
         ),
     ]

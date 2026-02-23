@@ -15,6 +15,7 @@ export * from "./chatbot.repository";
 export * from "./contestProblems.repository";
 export * from "./contestParticipants.repository";
 export * from "./exam.repository";
+export * from "./examQuestions.repository";
 export * from "./contestQuestions.repository";
 export * from "./clarification.repository";
 export * from "./contestAnnouncements.repository";

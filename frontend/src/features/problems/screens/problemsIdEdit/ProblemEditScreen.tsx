@@ -60,6 +60,7 @@ interface ProblemEditScreenContentProps {
   handleDelete: () => Promise<void>;
   handleExportConfirm: (onClose: () => void) => void;
   onBack: () => void;
+  onProblemUpdated: () => void;
 }
 
 const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
@@ -70,6 +71,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   handleDelete,
   handleExportConfirm,
   onBack,
+  onProblemUpdated,
 }) => {
   const { user } = useAuth();
   const { autoSave } = useProblemEdit();
@@ -165,6 +167,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
               difficulty: watchedValues.difficulty,
             },
           }}
+          onProblemUpdated={onProblemUpdated}
         />
       </div>
 
@@ -214,9 +217,14 @@ const ProblemEditPageInner: React.FC = () => {
     formState: { errors, touchedFields },
   } = methods;
 
-  const { problem, formSchema, isLoading, error } = useProblemDetail(id, {
+  const { problem, formSchema, isLoading, error, refetch } = useProblemDetail(id, {
     scope: "manage",
   });
+
+  // Agent commit 成功後重新載入題目資料（useEffect 會自動 reset form）
+  const handleProblemUpdated = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // Compute sections with validation state
   const sectionsWithValidation: NavSection[] = useMemo(() => {
@@ -397,6 +405,7 @@ const ProblemEditPageInner: React.FC = () => {
             handleDelete={handleDelete}
             handleExportConfirm={handleExportConfirm}
             onBack={() => navigate(-1)}
+            onProblemUpdated={handleProblemUpdated}
           />
         </ProblemEditProvider>
       </FormProvider>

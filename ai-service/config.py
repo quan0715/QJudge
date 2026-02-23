@@ -19,10 +19,17 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # Claude Settings
+    # Anthropic Settings
     anthropic_api_key: str = ""
-    claude_model: str = "haiku"  # 預設使用 Haiku（較快、較便宜）
-    claude_max_turns: int = 10
+
+    # DeepAgent / LangGraph Settings
+    ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)
+    default_model_id: str = "claude-sonnet"
+
+    # Internal API (Tool Gateway)
+    backend_internal_url: str = "http://backend:8000"
+    ai_service_id: str = "ai-service-1"
+    hmac_secret: str = ""
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]

@@ -2,10 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (with retry for flaky network)
+RUN for i in 1 2 3 4 5; do \
+      apt-get update && \
+      apt-get install -y --no-install-recommends curl && \
+      break || sleep 10; \
+    done && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .

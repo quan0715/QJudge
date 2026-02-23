@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type {
+  ApprovalRequest,
   BackgroundInformation,
   ChatMessage,
+  ChatModel,
   ChatSession,
   UserInputRequest,
   ChatContext,
@@ -18,17 +20,20 @@ interface UseChatbotReturn {
   isInitializing: boolean;
   error: string | null;
   pendingUserInput: UserInputRequest | null;
+  pendingApproval: ApprovalRequest | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, modelId?: ChatModel) => Promise<void>;
   refreshSessions: () => Promise<void>;
   submitUserInput: (
     requestId: string,
     answers: Record<string, string>,
   ) => Promise<void>;
   cancelUserInput: () => void;
+  confirmAction: () => Promise<void>;
+  cancelAction: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -39,22 +44,38 @@ interface UseChatbotOptions {
   backgroundInfo?: BackgroundInformation | null;
   /** 背景上下文（統一的背景資訊結構） */
   context?: ChatContext | null;
+  /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
+  onProblemUpdated?: () => void;
 }
 
 /**
  * Chatbot 狀態管理 hook
  * 連接後端 API，支援多 session 管理
  */
+const LAST_SESSION_KEY = "chatbot_last_session_id";
+
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
-  const { enabled = true, backgroundInfo = null, context = null } = options;
+  const { enabled = true, backgroundInfo = null, context = null, onProblemUpdated } = options;
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+
+  // 包裝 setCurrentSessionId，同步寫入 localStorage
+  const setCurrentSessionId = useCallback((id: string | null) => {
+    _setCurrentSessionId(id);
+    currentSessionIdRef.current = id;
+    if (id) {
+      try { localStorage.setItem(LAST_SESSION_KEY, id); } catch { /* ignore */ }
+    }
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingUserInput, setPendingUserInput] =
     useState<UserInputRequest | null>(null);
+  const [pendingApproval, setPendingApproval] =
+    useState<ApprovalRequest | null>(null);
 
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
@@ -75,14 +96,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setSessions(detailedSessions);
 
       // 如果沒有當前選中的 session，選擇第一個
-      if (detailedSessions.length > 0 && !currentSessionId) {
+      if (detailedSessions.length > 0 && !currentSessionIdRef.current) {
         setCurrentSessionId(detailedSessions[0].id);
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
       setError("無法載入對話記錄");
     }
-  }, [currentSessionId]);
+  }, [setCurrentSessionId]);
 
   /**
    * 初始化：從後端 API 載入 sessions
@@ -102,6 +123,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsInitializing(true);
       setError(null);
 
+      // 嘗試從 localStorage 恢復上次的 session
+      let savedSessionId: string | null = null;
+      try { savedSessionId = localStorage.getItem(LAST_SESSION_KEY); } catch { /* ignore */ }
+
       try {
         const apiSessions = await chatbotRepository.getSessions();
 
@@ -118,19 +143,27 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             ),
           );
 
-          // 檢查最新的 session 是否為空
-          const latestSession = detailedSessions[0];
-          const isLatestEmpty = latestSession.messages.length === 0;
+          // 如果 localStorage 有記住的 session 且仍存在，直接恢復
+          const savedSession = savedSessionId
+            ? detailedSessions.find((s) => s.id === savedSessionId)
+            : null;
 
-          if (isLatestEmpty) {
-            // 重用空白 session
+          if (savedSession) {
             setSessions(detailedSessions);
-            setCurrentSessionId(latestSession.id);
+            setCurrentSessionId(savedSession.id);
           } else {
-            // 最新 session 有內容，創建新的
-            const newSession = await chatbotRepository.createSession();
-            setSessions([newSession, ...detailedSessions]);
-            setCurrentSessionId(newSession.id);
+            // 沒有記住的 session，走原本的邏輯
+            const latestSession = detailedSessions[0];
+            const isLatestEmpty = latestSession.messages.length === 0;
+
+            if (isLatestEmpty) {
+              setSessions(detailedSessions);
+              setCurrentSessionId(latestSession.id);
+            } else {
+              const newSession = await chatbotRepository.createSession();
+              setSessions([newSession, ...detailedSessions]);
+              setCurrentSessionId(newSession.id);
+            }
           }
         }
       } catch (err) {
@@ -163,7 +196,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setError("無法創建新對話");
       return null;
     }
-  }, []);
+  }, [setCurrentSessionId]);
 
   /**
    * 刪除 session
@@ -230,7 +263,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
    * 發送訊息（使用串流）
    */
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, modelId?: ChatModel) => {
       if (!content.trim() || !currentSessionId) return;
 
       let trimmedContent = content.trim();
@@ -382,8 +415,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             onUserInputRequest: (request) => {
               setPendingUserInput(request);
             },
+
+            // v2: Approval required (preview-then-confirm)
+            onApprovalRequired: (request) => {
+              setPendingApproval(request);
+              setIsStreaming(false);
+              setIsLoading(false);
+            },
           },
-          { context: context ?? undefined, skill: undefined },
+          { model: modelId, context: context ?? undefined, skill: undefined },
         );
       } catch (err) {
         console.error("Stream error:", err);
@@ -416,6 +456,132 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     [currentSessionId, currentSession, backgroundInfo, context],
   );
 
+
+  /**
+   * Resume interrupted agent stream after approval/rejection.
+   * Shared logic for confirmAction and cancelAction.
+   */
+  const resumeAgent = useCallback(
+    async (decision: "approve" | "reject") => {
+      if (!currentSessionId) return;
+
+      // Add a temporary assistant message for the resume response
+      const tempAssistantId = `temp-resume-${Date.now()}`;
+      const tempAssistantMessage: ChatMessage = {
+        id: tempAssistantId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        isThinking: true,
+      };
+
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === currentSessionId
+            ? {
+                ...session,
+                messages: [...session.messages, tempAssistantMessage],
+                updatedAt: new Date(),
+              }
+            : session,
+        ),
+      );
+
+      setIsStreaming(true);
+      setIsLoading(true);
+
+      try {
+        await chatbotRepository.resumeAgentStream(
+          currentSessionId,
+          decision,
+          {
+            onMessageUpdate: (messageUpdate) => {
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId
+                    ? {
+                        ...session,
+                        messages: session.messages.map((message) =>
+                          message.id === tempAssistantId
+                            ? { ...message, ...messageUpdate }
+                            : message,
+                        ),
+                      }
+                    : session,
+                ),
+              );
+            },
+
+            onComplete: (freshSession) => {
+              setSessions((prev) =>
+                prev.map((session) =>
+                  session.id === currentSessionId ? freshSession : session,
+                ),
+              );
+              setIsStreaming(false);
+              setIsLoading(false);
+            },
+
+            onError: (errorMsg) => {
+              setError(errorMsg);
+              setIsStreaming(false);
+              setIsLoading(false);
+            },
+          },
+        );
+      } catch (err) {
+        console.error("Resume stream error:", err);
+        setError("無法恢復 agent 執行");
+        setIsStreaming(false);
+        setIsLoading(false);
+      }
+    },
+    [currentSessionId],
+  );
+
+  /**
+   * 確認 pending action（human-in-the-loop 流程）
+   * 1. Confirm action on backend
+   * 2. Resume agent stream with "approve" decision
+   */
+  const confirmAction = useCallback(async () => {
+    if (!currentSessionId || !pendingApproval) return;
+
+    const { actionId } = pendingApproval;
+    setPendingApproval(null); // 立刻隱藏 banner
+    setError(null);
+
+    try {
+      await chatbotRepository.confirmAction(currentSessionId, actionId);
+      await resumeAgent("approve");
+      // Commit 成功，通知父頁面重新載入資料
+      onProblemUpdated?.();
+    } catch (err) {
+      console.error("Failed to confirm action:", err);
+      setError("確認操作失敗，請重試");
+    }
+  }, [currentSessionId, pendingApproval, resumeAgent, onProblemUpdated]);
+
+  /**
+   * 取消 pending action
+   * 1. Cancel action on backend
+   * 2. Resume agent stream with "reject" decision
+   */
+  const cancelAction = useCallback(async () => {
+    if (!currentSessionId || !pendingApproval) return;
+
+    const { actionId } = pendingApproval;
+    setPendingApproval(null); // 立刻隱藏 banner
+    setError(null);
+
+    try {
+      await chatbotRepository.cancelAction(currentSessionId, actionId);
+      await resumeAgent("reject");
+    } catch (err) {
+      console.error("Failed to cancel action:", err);
+      setError("取消操作失敗");
+    }
+  }, [currentSessionId, pendingApproval, resumeAgent]);
 
   /**
    * 提交用戶回答（回應 AskUserQuestion）
@@ -507,6 +673,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isInitializing,
     error,
     pendingUserInput,
+    pendingApproval,
     createSession,
     deleteSession,
     switchSession,
@@ -515,6 +682,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     refreshSessions,
     submitUserInput,
     cancelUserInput,
+    confirmAction,
+    cancelAction,
     clearError,
   };
 }

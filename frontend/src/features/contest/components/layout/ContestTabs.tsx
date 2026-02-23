@@ -49,6 +49,8 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
     if (permissions?.canViewAllSubmissions) {
       tabs.push({ label: t("tabs.participants"), key: "participants" });
       tabs.push({ label: t("tabs.logs"), key: "logs" });
+      tabs.push({ label: t("tabs.examModel"), key: "exam-model" });
+      tabs.push({ label: t("tabs.examQuestions"), key: "exam-questions" });
     }
 
     // Admins tab - only visible to those who can edit (owner/admins)

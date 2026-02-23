@@ -10,6 +10,8 @@ import type {
   Clarification,
   ContestAnnouncement,
   ContestQuestion,
+  ExamQuestion,
+  ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
 import type { Submission } from "@/core/entities/submission.entity";
@@ -157,6 +159,38 @@ export interface IContestQuestionRepository {
     questionId: string,
     data: { answer: string; is_public?: boolean }
   ): Promise<ContestQuestion>;
+}
+
+export interface IExamQuestionRepository {
+  getExamQuestions(contestId: string): Promise<ExamQuestion[]>;
+  createExamQuestion(
+    contestId: string,
+    data: {
+      question_type: ExamQuestionType;
+      prompt: string;
+      options?: string[];
+      correct_answer?: unknown;
+      score: number;
+      order?: number;
+    }
+  ): Promise<ExamQuestion>;
+  updateExamQuestion(
+    contestId: string,
+    questionId: string,
+    data: {
+      question_type?: ExamQuestionType;
+      prompt?: string;
+      options?: string[];
+      correct_answer?: unknown;
+      score?: number;
+      order?: number;
+    }
+  ): Promise<ExamQuestion>;
+  deleteExamQuestion(contestId: string, questionId: string): Promise<void>;
+  reorderExamQuestions(
+    contestId: string,
+    orders: Array<{ id: string; order: number }>
+  ): Promise<ExamQuestion[]>;
 }
 
 // ============================================================================

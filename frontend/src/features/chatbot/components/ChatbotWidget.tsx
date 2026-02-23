@@ -17,6 +17,8 @@ export interface ChatbotWidgetProps {
   } | null;
   /** 背景資訊（用於第一則訊息） */
   backgroundInfo?: BackgroundInformation | null;
+  /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
+  onProblemUpdated?: () => void;
 }
 
 /**
@@ -27,6 +29,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
   defaultExpanded = true,
   problemContext = null,
   backgroundInfo = null,
+  onProblemUpdated,
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   // 追蹤是否曾經展開過，用於延遲初始化（一旦展開過就永遠為 true）
@@ -41,6 +44,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     isInitializing,
     error,
     pendingUserInput,
+    pendingApproval,
     createSession,
     switchSession,
     deleteSession,
@@ -48,8 +52,10 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     sendMessage,
     submitUserInput,
     cancelUserInput,
+    confirmAction,
+    cancelAction,
     clearError,
-  } = useChatbot({ enabled: hasBeenExpanded, backgroundInfo });
+  } = useChatbot({ enabled: hasBeenExpanded, backgroundInfo, onProblemUpdated });
 
   const handleToggle = useCallback(() => {
     setIsExpanded((prev) => {
@@ -103,6 +109,9 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
               pendingUserInput={pendingUserInput}
               onSubmitUserInput={submitUserInput}
               onCancelUserInput={cancelUserInput}
+              pendingApproval={pendingApproval}
+              onConfirmAction={confirmAction}
+              onCancelAction={cancelAction}
             />
           )}
         </div>

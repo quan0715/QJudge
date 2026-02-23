@@ -1,13 +1,18 @@
 [project]
 name = "ai-service"
-version = "1.0.0"
-description = "AI Service for QJudge - Claude Agent SDK powered problem generation"
+version = "2.0.0"
+description = "AI Service for QJudge - DeepAgent powered problem generation"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "httpx>=0.26.0",
-    "claude-agent-sdk>=0.1.0",
+    "deepagents>=0.4.0",
+    "langgraph>=0.4.0",
+    "langgraph-checkpoint-postgres>=3.0.0",
+    "langchain-anthropic>=0.3.0",
+    "langchain-core>=0.3.0",
+    "psycopg[binary]>=3.1.0",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.2.0",
     "sse-starlette>=2.0.0",

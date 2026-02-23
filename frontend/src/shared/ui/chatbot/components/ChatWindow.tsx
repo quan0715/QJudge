@@ -9,12 +9,14 @@ import {
   OverflowMenu,
   OverflowMenuItem,
 } from "@carbon/react";
-import { Edit, ChevronRight, Idea, DocumentAdd, CheckmarkOutline, Edit as EditIcon, TrashCan } from "@carbon/icons-react";
+import { Edit, ChevronRight, Idea, DocumentAdd, CheckmarkOutline, Edit as EditIcon } from "@carbon/icons-react";
 import type {
   ChatMessage,
+  ChatModel,
   ChatSession,
   BackgroundInformation,
   UserInputRequest,
+  ApprovalRequest,
 } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
@@ -29,7 +31,10 @@ export interface ChatWindowProps {
   isLoading: boolean;
   isStreaming: boolean;
   error: string | null;
-  onSend: (message: string) => void;
+  onSend: (message: string, modelId?: ChatModel) => void;
+  pendingApproval?: ApprovalRequest | null;
+  onConfirmAction?: () => void;
+  onCancelAction?: () => void;
   onCreateSession: () => void;
   onSwitchSession: (sessionId: string) => void;
   onDeleteSession?: (sessionId: string) => Promise<void>;
@@ -71,6 +76,9 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   pendingUserInput = null,
   onSubmitUserInput,
   onCancelUserInput,
+  pendingApproval = null,
+  onConfirmAction,
+  onCancelAction,
 }) => {
   const messages: ChatMessage[] = currentSession?.messages ?? [];
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -228,10 +236,37 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         welcomeScreen={welcomeScreen}
       />
 
+      {/* Approval Banner */}
+      {pendingApproval && onConfirmAction && onCancelAction && (
+        <div className={styles.approvalBanner}>
+          <InlineNotification
+            kind="warning"
+            title={pendingApproval.actionType === "create" ? "建立題目確認" : "修改題目確認"}
+            subtitle="Agent 已準備好執行操作，請確認或取消。"
+            lowContrast
+            hideCloseButton
+          />
+          <div className={styles.approvalActions}>
+            <button
+              className={styles.approvalConfirmBtn}
+              onClick={onConfirmAction}
+            >
+              確認執行
+            </button>
+            <button
+              className={styles.approvalCancelBtn}
+              onClick={onCancelAction}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 輸入區 */}
       <ChatInput
         onSend={onSend}
-        disabled={isLoading}
+        disabled={isLoading || !!pendingApproval}
         problemContext={problemContext}
         backgroundInfo={backgroundInfo}
         hasMessages={messages.length > 0}
@@ -251,7 +286,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {/* Rename Session Modal */}
       {currentSession && (
         <Modal
-          isOpen={isRenameModalOpen}
+          open={isRenameModalOpen}
           modalHeading="重命名對話"
           primaryButtonText="儲存"
           secondaryButtonText="取消"
@@ -283,11 +318,10 @@ export const ChatWindow: FC<ChatWindowProps> = ({
               placeholder="輸入新的對話名稱"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  // Trigger submit
                   const submitBtn = e.currentTarget
                     .closest(".cds--modal")
                     ?.querySelector(
-                      '.cds--btn[kind="primary"]'
+                      ".cds--btn--primary"
                     ) as HTMLButtonElement;
                   submitBtn?.click();
                 }
@@ -301,12 +335,13 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {/* Delete Confirmation Modal */}
       {currentSession && (
         <Modal
-          isOpen={isDeleteConfirmOpen}
+          open={isDeleteConfirmOpen}
           modalHeading="確認刪除"
-          primaryButtonText="刪除"
+          primaryButtonText={isDeleting ? "刪除中..." : "刪除"}
+          primaryButtonDisabled={isDeleting}
           secondaryButtonText="取消"
           danger
-          onRequestClose={() => setIsDeleteConfirmOpen(false)}
+          onRequestClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
           onRequestSubmit={async () => {
             if (onDeleteSession) {
               setIsDeleting(true);

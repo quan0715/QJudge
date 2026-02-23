@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import AIMessage, AISession
+from .models import AIMessage, AIPendingAction, AISession
 
 
 class AIMessageSerializer(serializers.ModelSerializer):
@@ -87,44 +87,74 @@ class AISessionListSerializer(serializers.ModelSerializer):
         return f"對話 {obj.session_id[:8]}..."
 
 
-class ProblemReferenceSerializer(serializers.Serializer):
-    """Serializer for problem reference context."""
-
-    id = serializers.IntegerField()
-    title = serializers.CharField(max_length=200)
-    difficulty = serializers.CharField(max_length=20, required=False, allow_null=True)
-    description = serializers.CharField(max_length=2000, required=False, allow_null=True)
-    tags = serializers.ListField(
-        child=serializers.CharField(max_length=50),
-        required=False,
-        allow_null=True,
-    )
-
-
-class SendMessageSerializer(serializers.Serializer):
-    """Serializer for sending a message."""
-
-    content = serializers.CharField(max_length=10000)
-    skill = serializers.CharField(max_length=100, required=False, allow_null=True)
-    system_prompt = serializers.CharField(max_length=5000, required=False, allow_null=True)
-    session_id = serializers.CharField(max_length=200, required=False, allow_null=True,
-                                       help_text="Claude SDK session ID for resuming existing session")
-    session_mode = serializers.ChoiceField(
-        choices=["new", "resume", "auto"],
-        required=False,
-        default="auto",
-        help_text="Session handling mode: 'new' starts fresh, 'resume' requires existing session, 'auto' resumes if available",
-    )
-    model = serializers.ChoiceField(
-        choices=["haiku", "sonnet", "opus"],
-        required=False,
-        default="haiku",
-        help_text="Model to use: 'haiku' (fast/cheap), 'sonnet' (balanced), 'opus' (powerful)",
-    )
-    reference = ProblemReferenceSerializer(required=False, allow_null=True)
-
-
 class RenameSessionSerializer(serializers.Serializer):
     """Serializer for renaming a session."""
 
     title = serializers.CharField(max_length=100)
+
+
+# ============================================================
+# v2 Serializers
+# ============================================================
+
+
+class SendMessageStreamSerializer(serializers.Serializer):
+    """Serializer for POST send_message_stream (v2 contract)."""
+
+    content = serializers.CharField(max_length=10000)
+    model_id = serializers.ChoiceField(
+        choices=["claude-haiku", "claude-sonnet", "claude-opus"],
+        required=False,
+        default="claude-sonnet",
+    )
+    api_key_override = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    system_prompt = serializers.CharField(max_length=10000, required=False, allow_null=True)
+    skill = serializers.CharField(max_length=100, required=False, allow_null=True)
+
+
+class ModelInfoSerializer(serializers.Serializer):
+    """Serializer for model info."""
+
+    model_id = serializers.CharField()
+    display_name = serializers.CharField()
+    description = serializers.CharField()
+    is_default = serializers.BooleanField()
+
+
+class PendingActionSerializer(serializers.ModelSerializer):
+    """Serializer for AIPendingAction."""
+
+    class Meta:
+        model = AIPendingAction
+        fields = [
+            "id",
+            "session",
+            "action_type",
+            "target_problem",
+            "payload",
+            "preview",
+            "status",
+            "created_at",
+            "expires_at",
+        ]
+        read_only_fields = fields
+
+
+class PrepareActionSerializer(serializers.Serializer):
+    """Serializer for internal prepare action request."""
+
+    session_id = serializers.CharField(max_length=100)
+    user_id = serializers.IntegerField()
+    action_type = serializers.ChoiceField(choices=["create", "patch"])
+    payload = serializers.JSONField()
+
+
+class CommitActionSerializer(serializers.Serializer):
+    """Serializer for internal commit action request."""
+
+    action_id = serializers.UUIDField()

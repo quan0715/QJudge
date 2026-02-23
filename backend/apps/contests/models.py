@@ -177,6 +177,61 @@ class ContestProblem(models.Model):
         unique_together = ['contest', 'problem']
 
 
+class ExamQuestionType(models.TextChoices):
+    TRUE_FALSE = "true_false", "是非題"
+    SINGLE_CHOICE = "single_choice", "單選題"
+    MULTIPLE_CHOICE = "multiple_choice", "多選題"
+    ESSAY = "essay", "問答題"
+
+
+class ExamQuestion(models.Model):
+    """
+    Configurable exam question for paper-style contests.
+    """
+
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name='exam_questions',
+        verbose_name='考試'
+    )
+    question_type = models.CharField(
+        max_length=30,
+        choices=ExamQuestionType.choices,
+        default=ExamQuestionType.SINGLE_CHOICE,
+        verbose_name='題型'
+    )
+    prompt = models.TextField(verbose_name='題目內容')
+    options = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='選項',
+        help_text='選擇題選項，陣列格式'
+    )
+    correct_answer = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='標準答案',
+        help_text='是非/選擇題可存標準答案，問答題可留空'
+    )
+    score = models.PositiveIntegerField(default=1, verbose_name='配分')
+    order = models.IntegerField(default=0, verbose_name='排序')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'exam_questions'
+        verbose_name = '考卷題目'
+        verbose_name_plural = '考卷題目'
+        ordering = ['order', 'id']
+        indexes = [
+            models.Index(fields=['contest', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.contest_id}#{self.id}({self.question_type})"
+
+
 class ExamStatus(models.TextChoices):
     """Explicit state for student exam participation."""
     NOT_STARTED = 'not_started', '未開始'

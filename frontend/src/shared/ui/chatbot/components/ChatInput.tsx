@@ -2,17 +2,17 @@ import type { FC, KeyboardEvent } from "react";
 import { useState, useCallback, useRef } from "react";
 import { IconButton, Dropdown, Tag } from "@carbon/react";
 import { ArrowUp, Information } from "@carbon/icons-react";
-import type { BackgroundInformation } from "@/core/types/chatbot.types";
+import type { BackgroundInformation, ChatModel } from "@/core/types/chatbot.types";
 import styles from "../ChatbotWidget.module.scss";
 
-const AVAILABLE_MODELS = [
-  { id: "claude-opus-4-5", label: "Claude Opus 4.5" },
-  { id: "claude-sonnet", label: "Claude Sonnet" },
-  { id: "claude-haiku", label: "Claude Haiku" },
+const AVAILABLE_MODELS: { id: ChatModel; label: string }[] = [
+  { id: "claude-sonnet", label: "Sonnet 4.6" },
+  { id: "claude-haiku", label: "Haiku 4.5" },
+  { id: "claude-opus", label: "Opus 4.6" },
 ];
 
 export interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, modelId: ChatModel) => void;
   disabled?: boolean;
   placeholder?: string;
   problemContext?: {
@@ -42,7 +42,7 @@ export const ChatInput: FC<ChatInputProps> = ({
 
   const handleSend = useCallback(() => {
     if (value.trim() && !disabled) {
-      onSend(value);
+      onSend(value, selectedModel.id);
       setValue("");
       // 重置 textarea 到初始高度
       if (textareaRef.current) {

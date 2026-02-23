@@ -20,6 +20,8 @@ import ContestSettingsScreen from "@/features/contest/screens/settings/ContestSe
 import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
+import ContestExamModelScreen from "@/features/contest/screens/settings/ContestExamModelScreen";
+import ContestExamQuestionsScreen from "@/features/contest/screens/settings/ContestExamQuestionsScreen";
 
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
@@ -139,6 +141,10 @@ const ContestDashboard = () => {
         return <ContestParticipantsScreen />;
       case "logs":
         return <ContestLogsScreen />;
+      case "exam-model":
+        return <ContestExamModelScreen />;
+      case "exam-questions":
+        return <ContestExamQuestionsScreen />;
       case "admins":
         return <ContestAdminsScreen />;
       default:

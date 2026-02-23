@@ -354,8 +354,14 @@ if os.getenv("DOCKER_SECCOMP_PROFILE") == "":
     DOCKER_SECCOMP_PROFILE = None
 
 # AI Service settings
-# URL for the AI Service container (Claude Agent SDK)
+# URL for the AI Service container (LangChain DeepAgent)
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
+
+# HMAC secret for internal API authentication between ai-service and backend
+AI_SERVICE_HMAC_SECRET = os.getenv("HMAC_SECRET", "")
+
+# Allowed service IDs for internal API
+AI_SERVICE_ALLOWED_IDS = os.getenv("AI_SERVICE_ALLOWED_IDS", "ai-service-01,ai-service-dev").split(",")
 
 # API Key Encryption settings
 # Fernet symmetric encryption key for storing user API keys

@@ -1,97 +1,94 @@
-"""Pydantic schemas for API request/response models."""
+"""Pydantic schemas for the v2 AI Service API contract."""
 
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class MessageRole(str, Enum):
     """Role of a message in conversation."""
-
     USER = "user"
     ASSISTANT = "assistant"
 
 
 class ChatMessage(BaseModel):
     """A single message in the conversation."""
-
     role: MessageRole
     content: str
 
 
 class ChatRequest(BaseModel):
-    """Request body for chat endpoint."""
-
-    conversation: list[ChatMessage] = Field(
-        ...,
-        description="Conversation history",
-        min_length=1,
+    """Request body for POST /api/chat/stream (v2 contract)."""
+    content: str = Field(..., max_length=10000, description="User message content")
+    model_id: str = Field(
+        default="claude-sonnet",
+        pattern=r"^claude-(haiku|sonnet|opus)$",
+        description="Canonical model ID",
     )
-    system_prompt: Optional[str] = Field(
+    api_key_override: str | None = Field(
         default=None,
+        description="Single-use API key override (never persisted)",
+    )
+    system_prompt: str | None = Field(
+        default=None,
+        max_length=10000,
         description="Optional system prompt override",
     )
-    skill: Optional[str] = Field(
+    skill: str | None = Field(
         default=None,
-        description="Optional skill name to use (e.g., 'parse-problem-request')",
+        max_length=100,
+        description="Optional skill name",
     )
-    session_id: Optional[str] = Field(
+    thread_id: str | None = Field(
         default=None,
-        description="Claude SDK session ID for resuming context",
+        max_length=100,
+        description="DeepAgent thread ID for resume (None = new thread)",
     )
-    user_api_key: Optional[str] = Field(
+    session_id: str | None = Field(
         default=None,
-        description="User's Anthropic API key (optional for testing)",
+        max_length=200,
+        description="Backend session ID (for write tool binding)",
+    )
+    user_id: int | None = Field(
+        default=None,
+        description="Backend user ID (for write tool binding)",
+    )
+    conversation: list[ChatMessage] = Field(
+        default_factory=list,
+        description="Conversation history for context",
     )
 
 
-class UsageInfo(BaseModel):
-    """Usage information for a request."""
-
-    input_tokens: int = Field(..., description="Number of input tokens used")
-    output_tokens: int = Field(..., description="Number of output tokens used")
-    cost_cents: int = Field(..., description="Cost in cents (USD * 100)")
-    model: str = Field(..., description="Model used for the request")
-
-
-class StreamEvent(BaseModel):
-    """SSE event for streaming response.
-
-    Event types:
-    - delta: Text content (streaming)
-    - session: Session ID information
-    - tool_use: Tool execution started
-    - tool_result: Tool execution completed
-    - done: Completion signal
-    - error: Error message
-    - usage: Usage information (tokens, cost)
-    """
-
-    type: Literal["delta", "session", "tool_use", "tool_result", "done", "error", "usage"]
-    content: Optional[str] = Field(default=None, description="Text content for delta/error events")
-    session_id: Optional[str] = Field(default=None, description="Session ID for session/done/delta events")
-    usage: Optional[UsageInfo] = Field(default=None, description="Usage info for usage events")
-
-    # Tool-related fields
-    tool_name: Optional[str] = Field(default=None, description="Tool name for tool_use events")
-    tool_input: Optional[dict[str, Any]] = Field(default=None, description="Tool input for tool_use events")
-    tool_id: Optional[str] = Field(default=None, description="Tool ID for tool_use/tool_result events")
-    is_error: Optional[bool] = Field(default=None, description="Error flag for tool_result events")
+class ResumeRequest(BaseModel):
+    """Request body for POST /api/chat/resume."""
+    thread_id: str = Field(..., max_length=100, description="DeepAgent thread ID to resume")
+    decision: str = Field(
+        ...,
+        pattern=r"^(approve|reject)$",
+        description="User decision: 'approve' or 'reject'",
+    )
+    session_id: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Backend session ID (for write tool binding on resume)",
+    )
+    user_id: int | None = Field(
+        default=None,
+        description="Backend user ID (for write tool binding on resume)",
+    )
 
 
-class HealthStatus(str, Enum):
-    """Health check status."""
-
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
+class ModelInfo(BaseModel):
+    """Model information for GET /api/models."""
+    model_id: str
+    display_name: str
+    description: str
+    is_default: bool
 
 
 class HealthResponse(BaseModel):
     """Response for health check endpoint."""
-
-    status: HealthStatus
-    claude_api: Literal["connected", "disconnected", "unknown"]
-    skills_loaded: int
-    version: str
+    status: str
+    version: str = "2.0.0"
+    checkpoint_db: str = "unknown"

@@ -3,6 +3,14 @@ import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
+import {
+  ExamV2RegistrationScreen,
+  ExamV2PrecheckScreen,
+  ExamV2AnsweringScreen,
+  ExamV2SubmitReviewScreen,
+  ExamV2GradingScreen,
+  ExamV2ResultScreen,
+} from "./screens";
 
 /**
  * Contest List 路由（需在 RequireAuth + MainLayout 內使用）
@@ -24,5 +32,13 @@ export const contestDetailRoutes = (
     <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
     {/* Problem Solving Page */}
     <Route path="solve/:problemId" element={<ContestProblemScreen />} />
+    {/* Exam v2 Flow (API-connected student flow) */}
+    <Route path="exam-v2" element={<Navigate to="registration" replace />} />
+    <Route path="exam-v2/registration" element={<ExamV2RegistrationScreen />} />
+    <Route path="exam-v2/precheck" element={<ExamV2PrecheckScreen />} />
+    <Route path="exam-v2/answering" element={<ExamV2AnsweringScreen />} />
+    <Route path="exam-v2/submit-review" element={<ExamV2SubmitReviewScreen />} />
+    <Route path="exam-v2/grading" element={<ExamV2GradingScreen />} />
+    <Route path="exam-v2/result" element={<ExamV2ResultScreen />} />
   </Route>
 );

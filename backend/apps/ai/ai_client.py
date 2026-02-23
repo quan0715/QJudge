@@ -8,26 +8,12 @@ import json
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, AsyncGenerator, Optional
+from typing import Optional
 
 import httpx
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
-
-
-class MessageType(str, Enum):
-    """Types of messages from the AI Service stream."""
-
-    DELTA = "delta"
-    TOOL_START = "tool_start"
-    TOOL_END = "tool_end"
-    METADATA = "metadata"
-    SESSION = "session"
-    USER_INPUT_REQUEST = "user_input_request"
-    DONE = "done"
-    ERROR = "error"
-    USAGE = "usage"
 
 
 class SessionMode(str, Enum):
@@ -68,39 +54,6 @@ class SessionContext:
             gate_data=data.get("gate_data"),
             custom_data=data.get("custom_data"),
         )
-
-
-@dataclass
-class UserInputRequest:
-    """User input request from the agent."""
-
-    request_id: str
-    questions: list[dict]
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "UserInputRequest":
-        """Create from dictionary."""
-        return cls(
-            request_id=data.get("request_id", ""),
-            questions=data.get("questions", []),
-        )
-
-
-@dataclass
-class StreamMessage:
-    """A message from the AI Service stream."""
-
-    type: MessageType
-    content: str = ""
-    stage: Optional[str] = None
-    skill_used: Optional[str] = None
-    session_id: Optional[str] = None
-    session_context: Optional[SessionContext] = None
-    tool_name: Optional[str] = None
-    tool_input: Optional[dict] = None
-    user_input_request: Optional[UserInputRequest] = None
-    error: Optional[str] = None
-    usage: Optional[dict] = None  # Usage data: {input_tokens, output_tokens, cost_cents, model}
 
 
 @dataclass
@@ -261,114 +214,6 @@ class AIServiceClient:
             except httpx.RequestError as e:
                 logger.error(f"AI Service request error: {e}")
                 raise AIServiceError(f"Cannot connect to AI Service: {e}") from e
-
-    async def chat_stream(
-        self,
-        conversation: list[dict],
-        system_prompt: Optional[str] = None,
-        skill: Optional[str] = None,
-        session_mode: SessionMode = SessionMode.AUTO,
-        session_context: Optional[SessionContext] = None,
-        claude_session_id: Optional[str] = None,
-        max_tokens: int = 4096,
-        model_override: Optional[str] = None,
-        reference: Optional[dict] = None,
-        user_api_key: Optional[str] = None,
-    ) -> AsyncGenerator[StreamMessage, None]:
-        """Send a chat request to AI Service with streaming response.
-
-        Args:
-            conversation: List of message dicts with 'role' and 'content'
-            system_prompt: Optional system prompt override
-            skill: Optional skill name to use
-            session_mode: How to handle session (new/resume/auto)
-            session_context: Full session context (preferred)
-            claude_session_id: Legacy session ID field
-            max_tokens: Maximum response tokens
-            model_override: Optional model override
-            reference: Optional problem reference context
-            user_api_key: User's Anthropic API Key
-
-        Yields:
-            StreamMessage objects with response content
-        """
-        payload = self._build_request_payload(
-            conversation=conversation,
-            system_prompt=system_prompt,
-            skill=skill,
-            session_mode=session_mode,
-            session_context=session_context,
-            claude_session_id=claude_session_id,
-            max_tokens=max_tokens,
-            model_override=model_override,
-            reference=reference,
-            user_api_key=user_api_key,
-        )
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            try:
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/api/chat/stream",
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-
-                    async for line in response.aiter_lines():
-                        if not line.startswith("data: "):
-                            continue
-
-                        data_str = line[6:]  # Remove "data: " prefix
-                        if not data_str:
-                            continue
-
-                        try:
-                            data = json.loads(data_str)
-                            msg_type = MessageType(data.get("type", "delta"))
-
-                            # Parse session context if present
-                            ctx = None
-                            if data.get("session_context"):
-                                ctx = SessionContext.from_dict(data["session_context"])
-
-                            # Parse user input request if present
-                            ui_request = None
-                            if data.get("user_input_request"):
-                                ui_request = UserInputRequest.from_dict(
-                                    data["user_input_request"]
-                                )
-
-                            yield StreamMessage(
-                                type=msg_type,
-                                content=data.get("content", ""),
-                                stage=data.get("stage"),
-                                skill_used=data.get("skill_used"),
-                                session_id=data.get("claude_session_id"),
-                                session_context=ctx,
-                                tool_name=data.get("tool_name"),
-                                tool_input=data.get("tool_input"),
-                                user_input_request=ui_request,
-                                error=data.get("error"),
-                                usage=data.get("usage"),
-                            )
-
-                        except (json.JSONDecodeError, ValueError) as e:
-                            logger.warning(f"Failed to parse SSE data: {e}")
-                            continue
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"AI Service HTTP error: {e.response.status_code}")
-                yield StreamMessage(
-                    type=MessageType.ERROR,
-                    error=f"AI Service error: {e.response.status_code}",
-                )
-
-            except httpx.RequestError as e:
-                logger.error(f"AI Service request error: {e}")
-                yield StreamMessage(
-                    type=MessageType.ERROR,
-                    error=f"Cannot connect to AI Service: {e}",
-                )
 
     async def health_check(self) -> dict:
         """Check AI Service health status.

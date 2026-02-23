@@ -1,0 +1,149 @@
+.typeSelector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.typeOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 7.25rem;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
+  border-radius: 0;
+  background: var(--cds-layer-01, #262626);
+  color: var(--cds-text-primary, #f4f4f4);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.typeOption:hover {
+  border-color: var(--cds-border-interactive, #0f62fe);
+}
+
+.typeOptionActive {
+  border-color: var(--cds-border-interactive, #0f62fe);
+  background: var(--cds-layer-selected-01, #393939);
+}
+
+.typeTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.typeSubtitle {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary, #c6c6c6);
+}
+
+.modeDescription {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--cds-border-interactive, #0f62fe);
+  background: var(--cds-layer-02, #393939);
+}
+
+.modeDescription p {
+  margin: 0.35rem 0 0;
+  color: var(--cds-text-secondary, #c6c6c6);
+}
+
+.nameInput {
+  margin-bottom: 1rem;
+}
+
+.formGrid {
+  margin-bottom: 1rem;
+}
+
+.gridCell {
+  margin-bottom: 1rem;
+}
+
+.timeFieldsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fieldBlock {
+  min-width: 0;
+}
+
+.dateField :global(.cds--date-picker),
+.dateField :global(.cds--date-picker-container),
+.dateField :global(.cds--date-picker-input__wrapper),
+.timeField :global(.cds--time-picker),
+.timeField :global(.cds--time-picker__input-field) {
+  width: 100%;
+}
+
+.quickDuration {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.quickDurationButton {
+  border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
+  background: transparent;
+  color: var(--cds-text-secondary, #c6c6c6);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.quickDurationButton:hover {
+  border-color: var(--cds-border-interactive, #0f62fe);
+  color: var(--cds-text-primary, #f4f4f4);
+}
+
+.quickDurationButtonActive {
+  border-color: var(--cds-border-interactive, #0f62fe);
+  color: var(--cds-text-primary, #f4f4f4);
+  background: var(--cds-layer-selected-01, #393939);
+}
+
+.endTimeHint {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
+  background: var(--cds-layer-02, #393939);
+}
+
+.endTimeHintTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary, #c6c6c6);
+  margin-bottom: 0.35rem;
+}
+
+.endTimeHintValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cds-text-primary, #f4f4f4);
+}
+
+.privacySection {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (max-width: 672px) {
+  .typeSelector {
+    grid-template-columns: 1fr;
+  }
+
+  .timeFieldsRow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -9,21 +9,16 @@ ENV PYTHONUNBUFFERED=1 \
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies (including WeasyPrint requirements for PDF generation)
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    gcc \
-    # WeasyPrint dependencies for PDF export
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi-dev \
-    libcairo2 \
-    shared-mime-info \
-    # Fonts for Chinese characters and emoji
-    fonts-noto-cjk \
-    fonts-noto-color-emoji \
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (with retry for flaky network)
+RUN for i in 1 2 3 4 5; do \
+      apt-get update && \
+      apt-get install -y --no-install-recommends \
+        postgresql-client gcc \
+        libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
+        libffi-dev libcairo2 shared-mime-info \
+        fonts-noto-cjk fonts-noto-color-emoji && \
+      break || sleep 10; \
+    done && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 # Install Python dependencies

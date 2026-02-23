@@ -1,7 +1,11 @@
 """AI Chat models for session and message storage."""
 
+import uuid
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class AISession(models.Model):
@@ -203,3 +207,106 @@ class AIExecutionLog(models.Model):
     def __str__(self):
         user_str = self.user.username if self.user else "Anonymous"
         return f"AILog #{self.pk} - {user_str} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class AIPendingAction(models.Model):
+    """Pending action awaiting user confirmation before write.
+
+    State machine: pending -> confirmed -> executed
+                   pending -> cancelled
+                   pending -> expired (lazy check)
+                   confirmed -> executed
+                   confirmed -> failed
+    """
+
+    class ActionType(models.TextChoices):
+        CREATE = "create", "建立題目"
+        PATCH = "patch", "修改題目"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "等待確認"
+        CONFIRMED = "confirmed", "已確認"
+        EXECUTED = "executed", "已執行"
+        CANCELLED = "cancelled", "已取消"
+        EXPIRED = "expired", "已過期"
+        FAILED = "failed", "執行失敗"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        AISession,
+        on_delete=models.CASCADE,
+        related_name="pending_actions",
+        verbose_name="Session",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_pending_actions",
+        verbose_name="用戶",
+    )
+    action_type = models.CharField(
+        max_length=20,
+        choices=ActionType.choices,
+        verbose_name="動作類型",
+    )
+    target_problem = models.ForeignKey(
+        "problems.Problem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pending_patches",
+        verbose_name="目標題目",
+    )
+    payload = models.JSONField(
+        verbose_name="寫入資料",
+        help_text="完整題目 JSON (create) 或 RFC6902 patch ops (patch)",
+    )
+    preview = models.JSONField(
+        verbose_name="預覽資料",
+        help_text="人可讀的預覽",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name="狀態",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    expires_at = models.DateTimeField(
+        verbose_name="過期時間",
+        help_text="預設 created_at + 30 分鐘",
+    )
+    executed_problem = models.ForeignKey(
+        "problems.Problem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="executed_actions",
+        verbose_name="寫入的題目",
+    )
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="錯誤訊息",
+    )
+
+    class Meta:
+        verbose_name = "AI 待確認動作"
+        verbose_name_plural = "AI 待確認動作"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["session", "status"]),
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            base_time = self.created_at or timezone.now()
+            self.expires_at = base_time + timedelta(minutes=30)
+        super().save(*args, **kwargs)
+
+    def is_expired(self) -> bool:
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"PendingAction {self.id} [{self.action_type}/{self.status}]"

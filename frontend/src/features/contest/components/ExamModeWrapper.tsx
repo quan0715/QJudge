@@ -77,6 +77,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     | {
         status?: string;
         message?: string;
+        error?: boolean | string;
+        locked?: boolean;
       }
     | null
   >(null);

@@ -2,9 +2,10 @@
 Views for contests app.
 """
 from django.utils import timezone
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Max
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -14,6 +15,7 @@ from .models import (
     Contest,
     ContestParticipant,
     ContestProblem,
+    ExamQuestion,
     ContestAnnouncement,
     Clarification,
     ExamEvent,
@@ -28,6 +30,7 @@ from .serializers import (
     ContestAnnouncementSerializer,
     ContestProblemSerializer,
     ContestProblemCreateSerializer,
+    ExamQuestionSerializer,
     ClarificationSerializer,
     ClarificationCreateSerializer,
     ClarificationReplySerializer,
@@ -1815,6 +1818,107 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 {'detail': 'Problem not found in this contest.'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class ContestExamQuestionViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for exam paper questions in contest admin backend.
+    """
+
+    serializer_class = ExamQuestionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def _get_contest(self):
+        contest_pk = self.kwargs.get('contest_pk')
+        return get_object_or_404(Contest, pk=contest_pk)
+
+    def _ensure_admin_permission(self, contest):
+        role = get_user_role_in_contest(self.request.user, contest)
+        if role not in ['admin', 'teacher']:
+            raise PermissionDenied('Only contest owner/admin can manage exam questions')
+
+    def get_queryset(self):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        return ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+
+    def perform_create(self, serializer):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        if 'order' not in self.request.data:
+            last_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
+            serializer.save(contest=contest, order=(last_order if last_order is not None else -1) + 1)
+            return
+
+        serializer.save(contest=contest)
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            self.request.user,
+            'update_problem',
+            f"Created exam question #{serializer.instance.id}"
+        )
+
+    def perform_update(self, serializer):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        serializer.save()
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            self.request.user,
+            'update_problem',
+            f"Updated exam question #{serializer.instance.id}"
+        )
+
+    def perform_destroy(self, instance):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        question_id = instance.id
+        instance.delete()
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            self.request.user,
+            'update_problem',
+            f"Deleted exam question #{question_id}"
+        )
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request, contest_pk=None):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+
+        orders = request.data.get('orders', [])
+        if not isinstance(orders, list) or not orders:
+            return Response({'error': 'No orders provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        for item in orders:
+            question_id = item.get('id')
+            new_order = item.get('order')
+            if question_id is None or new_order is None:
+                continue
+            ExamQuestion.objects.filter(contest=contest, id=question_id).update(order=new_order)
+
+        questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+        for idx, question in enumerate(questions):
+            if question.order != idx:
+                question.order = idx
+                question.save(update_fields=['order'])
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            "Reordered exam questions"
+        )
+
+        serialized = self.get_serializer(
+            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            many=True
+        )
+        return Response(serialized.data)
 
 
 class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):

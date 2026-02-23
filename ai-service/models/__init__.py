@@ -4,16 +4,14 @@ from .schemas import (
     ChatMessage,
     ChatRequest,
     HealthResponse,
-    HealthStatus,
     MessageRole,
-    StreamEvent,
+    ModelInfo,
 )
 
 __all__ = [
     "ChatMessage",
     "ChatRequest",
     "HealthResponse",
-    "HealthStatus",
     "MessageRole",
-    "StreamEvent",
+    "ModelInfo",
 ]

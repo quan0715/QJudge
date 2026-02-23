@@ -53,21 +53,11 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
     return content.replace(/<background_information>[\s\S]*?<\/background_information>\s*/g, "").trim();
   };
 
-  // 清理 AI 訊息中的多餘空行 - 最多保留一個換行
+  // 清理 AI 訊息中的多餘空行 - 保留段落間距（兩個換行），壓縮三個以上
   const cleanupExcessiveEmptyLines = (content: string): string => {
-    // 1. 將多個連續換行替換為單個換行
-    content = content.replace(/\n{2,}/g, "\n");
-
-    // 2. 移除開頭和結尾的空行和空白
-    content = content.trim();
-
-    // 3. 移除只包含空白的行
-    content = content
-      .split("\n")
-      .map((line) => line.trim())
-      .join("\n");
-
-    return content;
+    // 將三個以上連續換行壓縮為兩個（保留 markdown 段落分隔）
+    content = content.replace(/\n{3,}/g, "\n\n");
+    return content.trim();
   };
 
   // 顯示思考過程（可折疊）
@@ -166,6 +156,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
           <MarkdownRenderer
             enableHighlight
             enableCopy
+            enableMath
             allowRawHtml={false}
             className={styles.markdownContent}
           >
