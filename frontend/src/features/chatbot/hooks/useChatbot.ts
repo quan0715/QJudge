@@ -344,6 +344,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                   session.id === currentSessionId ? freshSession : session,
                 ),
               );
+              if (freshSession.id !== currentSessionId) {
+                setCurrentSessionId(freshSession.id);
+              }
               setIsStreaming(false);
               setIsLoading(false);
             },
@@ -380,7 +383,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setPendingUserInput(request);
             },
           },
-          { context: context ?? undefined, skill: undefined }
+          { context: context ?? undefined, skill: undefined },
         );
       } catch (err) {
         console.error("Stream error:", err);
@@ -410,7 +413,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setIsLoading(false);
       }
     },
-    [currentSessionId, currentSession, backgroundInfo],
+    [currentSessionId, currentSession, backgroundInfo, context],
   );
 
 

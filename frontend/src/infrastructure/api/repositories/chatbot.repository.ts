@@ -15,11 +15,70 @@ const BASE_URL = "/api/v1/ai/sessions";
  * Backend returns created_at as ISO 8601 string, we need to convert to Date and map to timestamp
  */
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
+  const metadata = backendMsg.metadata ?? {};
+  const thinking =
+    typeof metadata.thinking === "string"
+      ? metadata.thinking
+      : undefined;
+  const tools = Array.isArray(metadata.tools_executed)
+    ? metadata.tools_executed
+        .map((tool): ToolInfo | null => {
+          if (!tool || typeof tool !== "object") return null;
+          const toolRecord = tool as Record<string, unknown>;
+          return {
+            toolName:
+              typeof toolRecord.tool_name === "string"
+                ? toolRecord.tool_name
+                : "",
+            toolUseId:
+              typeof toolRecord.tool_use_id === "string"
+                ? toolRecord.tool_use_id
+                : "",
+            inputData:
+              typeof toolRecord.input === "object" &&
+              toolRecord.input !== null
+                ? (toolRecord.input as Record<string, unknown>)
+                : undefined,
+            result:
+              typeof toolRecord.result === "string" ||
+              (typeof toolRecord.result === "object" &&
+                toolRecord.result !== null)
+                ? (toolRecord.result as string | Record<string, unknown>)
+                : undefined,
+            isError:
+              typeof toolRecord.is_error === "boolean"
+                ? toolRecord.is_error
+                : undefined,
+            startTimeMs:
+              typeof toolRecord.start_time_ms === "number"
+                ? toolRecord.start_time_ms
+                : undefined,
+            durationMs:
+              typeof toolRecord.duration_ms === "number"
+                ? toolRecord.duration_ms
+                : undefined,
+            skillMetadata:
+              typeof toolRecord.skill_metadata === "object" &&
+              toolRecord.skill_metadata !== null
+                ? (toolRecord.skill_metadata as { skill?: string; gate?: string })
+                : undefined,
+          };
+        })
+        .filter((tool): tool is ToolInfo => tool !== null)
+    : undefined;
+
   return {
     id: backendMsg.id.toString(),
     role: backendMsg.role as "user" | "assistant",
     content: backendMsg.content,
     timestamp: new Date(backendMsg.created_at), // Convert ISO string to Date
+    thinkingInfo: thinking
+      ? {
+          thinking,
+          signature: "",
+        }
+      : undefined,
+    toolExecutions: tools,
   };
 }
 
@@ -90,7 +149,7 @@ interface PaginatedResponse<T> {
 }
 
 interface BackendSession {
-  id: string;
+  session_id: string;
   title: string;
   messages: BackendMessage[];
   created_at: string;
@@ -165,7 +224,7 @@ const chatbotRepository: ChatbotRepository = {
       );
 
       return {
-        id: data.id,
+        id: data.session_id,
         title: data.title,
         messages,
         createdAt: new Date(data.created_at),
@@ -227,7 +286,7 @@ const chatbotRepository: ChatbotRepository = {
       );
 
       return {
-        id: data.id,
+        id: data.session_id,
         title: data.title,
         messages: [],
         createdAt: new Date(data.created_at),
@@ -247,7 +306,7 @@ const chatbotRepository: ChatbotRepository = {
       );
 
       return {
-        id: data.id,
+        id: data.session_id,
         title: data.title,
         messages: [],
         createdAt: new Date(data.created_at),
@@ -263,9 +322,9 @@ const chatbotRepository: ChatbotRepository = {
     sessionId: string | number,
     requestId: string,
     answers: Record<string, string>
-  ): Promise<any> {
+  ): Promise<{ success: boolean; message?: string }> {
     try {
-      return await requestJson<any>(
+      return await requestJson<{ success: boolean; message?: string }>(
         httpClient.post(
           `${BASE_URL}/${sessionId.toString()}/submit_answer/`,
           { request_id: requestId, answers }
@@ -287,6 +346,7 @@ const chatbotRepository: ChatbotRepository = {
     try {
       // 使用傳遞的 session ID
       const urlSessionId = sessionId.toString();
+      let resolvedSessionId = urlSessionId;
 
       // 準備請求 payload
       const payload: {
@@ -369,7 +429,9 @@ const chatbotRepository: ChatbotRepository = {
                 console.debug("SSE Event: session", {
                   sessionId: event.session_id,
                 });
-                // session 事件不需要傳遞給 Hook
+                if (event.session_id) {
+                  resolvedSessionId = event.session_id;
+                }
                 break;
 
               case "thinking":
@@ -459,7 +521,7 @@ const chatbotRepository: ChatbotRepository = {
                 console.debug("SSE Event: done");
                 // 獲取完整 session 並調用 onComplete
                 try {
-                  const freshSession = await this.getSession(sessionId);
+                  const freshSession = await this.getSession(resolvedSessionId);
                   callbacks.onComplete?.(freshSession);
                 } catch (err) {
                   console.warn("Failed to fetch session after done:", err);
@@ -548,7 +610,7 @@ const chatbotRepository: ChatbotRepository = {
               break;
             case "done": {
               try {
-                const freshSession = await this.getSession(sessionId);
+                const freshSession = await this.getSession(resolvedSessionId);
                 callbacks.onComplete?.(freshSession);
               } catch (err) {
                 console.warn("Failed to fetch session after done:", err);
