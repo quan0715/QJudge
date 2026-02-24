@@ -65,7 +65,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
     try {
       await onVisibilityChange(pendingVisibility);
       setVisibilityModalOpen(false);
-    } catch (error) {
+    } catch {
       // Error handling is done by parent
     }
   };
@@ -76,7 +76,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
     try {
       await onDelete();
       setDeleteModalOpen(false);
-    } catch (error) {
+    } catch {
       // Error handling is done by parent
     }
   };

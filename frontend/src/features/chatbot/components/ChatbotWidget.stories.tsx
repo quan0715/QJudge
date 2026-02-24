@@ -153,7 +153,7 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
       description: "浮動按鈕的各種狀態展示",
       render: () => {
         const FloatingButtonDemo = () => {
-          const [expanded, setExpanded] = useState(false);
+          const [expanded, _setExpanded] = useState(false);
 
           return (
             <div

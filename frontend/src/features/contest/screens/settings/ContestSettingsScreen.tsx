@@ -169,7 +169,7 @@ const ContestAdminSettingsPage = () => {
       setNotification({ kind: "success", message: t("settings.archived") });
       setFormInitialized(false);
       refreshContest();
-    } catch (error) {
+    } catch {
       setNotification({ kind: "error", message: t("settings.archiveFailed") });
     }
   };
@@ -184,7 +184,7 @@ const ContestAdminSettingsPage = () => {
         message: t("settings.publishPracticeSuccess"),
       });
       setPublishModalOpen(false);
-    } catch (error) {
+    } catch (error: unknown) {
       const message =
         error instanceof Error
           ? error.message
@@ -210,7 +210,7 @@ const ContestAdminSettingsPage = () => {
     try {
       await deleteContest(contestId);
       navigate("/contests");
-    } catch (error) {
+    } catch {
       setNotification({ kind: "error", message: t("settings.deleteFailed") });
     }
   };

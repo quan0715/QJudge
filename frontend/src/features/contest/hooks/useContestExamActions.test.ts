@@ -12,7 +12,6 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 import {
   startExam,
   leaveContest,
-  registerContest,
   endExam,
 } from "@/infrastructure/api/repositories";
 

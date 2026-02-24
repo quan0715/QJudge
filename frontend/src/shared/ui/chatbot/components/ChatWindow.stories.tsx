@@ -1,5 +1,4 @@
 import type { StoryModule } from "@/shared/types/story.types";
-import type { ChatSession } from "@/core/types/chatbot.types";
 import { WelcomeScreen } from "./WelcomeScreen";
 
 /**
@@ -10,44 +9,6 @@ import { WelcomeScreen } from "./WelcomeScreen";
  * 在 Storybook 中需要 mock 數據和回調函數，
  * 因此展示基本組件狀態而不直接包裝 ChatWindow
  */
-
-const mockSessions: ChatSession[] = [
-  {
-    id: "1",
-    title: "Two Sum 解題",
-    messages: [
-      {
-        id: "msg-1",
-        role: "user",
-        content: "怎樣優化 Two Sum 的解決方案？",
-        timestamp: new Date(Date.now() - 120000),
-      },
-      {
-        id: "msg-2",
-        role: "assistant",
-        content:
-          "我們可以使用 Hash Map 來優化。用一個字典存儲已見過的數字，時間複雜度從 O(n²) 降到 O(n)。",
-        timestamp: new Date(Date.now() - 60000),
-      },
-    ],
-    createdAt: new Date(Date.now() - 3600000),
-    updatedAt: new Date(Date.now() - 60000),
-  },
-  {
-    id: "2",
-    title: "演算法複習",
-    messages: [
-      {
-        id: "msg-3",
-        role: "user",
-        content: "什麼是動態規劃？",
-        timestamp: new Date(Date.now() - 86400000),
-      },
-    ],
-    createdAt: new Date(Date.now() - 172800000),
-    updatedAt: new Date(Date.now() - 86400000),
-  },
-];
 
 const storyModule: StoryModule = {
   meta: {

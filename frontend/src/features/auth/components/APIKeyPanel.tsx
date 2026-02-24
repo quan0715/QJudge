@@ -28,7 +28,7 @@ import type { APIKeyInfo } from "@/core/entities/auth.entity";
 import "./APIKeyPanel.scss";
 
 export const APIKeyPanel: React.FC = () => {
-  const { t } = useTranslation();
+  useTranslation();
   const [apiKeyInfo, setAPIKeyInfo] = useState<APIKeyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);

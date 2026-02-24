@@ -32,7 +32,7 @@ import "./UsagePanel.scss";
 type Granularity = "day" | "week" | "month";
 
 export const UsagePanel: React.FC = () => {
-  const { t } = useTranslation();
+  useTranslation();
   const [usageData, setUsageData] = useState<UsageStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

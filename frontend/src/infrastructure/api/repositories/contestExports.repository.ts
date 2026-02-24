@@ -83,7 +83,7 @@ export const downloadContestFile = async (
         errorData.detail ||
         "Failed to download contest file";
       throw new Error(message);
-    } catch (parseError) {
+    } catch {
       // If can't parse JSON, throw generic error with status
       throw new Error(`Download failed: ${res.status} ${res.statusText}`);
     }

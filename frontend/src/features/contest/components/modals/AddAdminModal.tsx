@@ -23,9 +23,6 @@ export const AddAdminModal: React.FC<AddAdminModalProps> = ({
       await onSubmit(username.trim());
       setUsername('');
       onClose();
-    } catch (error) {
-      // Error is handled by parent for notification
-      throw error;  
     } finally {
       setAdding(false);
     }

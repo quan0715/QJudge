@@ -338,7 +338,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         );
 
       case "not_started":
-      default:
+      default: {
         // Check if contest hasn't started yet (time-based)
         const contestNotStartedYet = new Date(contest.startTime) > new Date();
         if (contestNotStartedYet) {
@@ -356,6 +356,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             </Button>
           </div>
         );
+      }
     }
   };
 
