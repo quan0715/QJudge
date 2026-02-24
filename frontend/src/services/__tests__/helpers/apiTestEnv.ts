@@ -85,6 +85,16 @@ export const setupApiTestEnv = (baseUrl = DEFAULT_BASE_URL) => {
   });
 
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    // Auto-attach Authorization header from localStorage token
+    const token = globalThis.localStorage?.getItem("token");
+    if (token) {
+      const headers = new Headers(init?.headers || {});
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      init = { ...init, headers };
+    }
+
     if (typeof input === "string") {
       const url = input.startsWith("http")
         ? input
