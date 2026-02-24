@@ -25,7 +25,9 @@
 
 可選：`hint`
 
-## C. 測資欄位（`test_cases[]`）
+## C. 測資欄位
+
+### C-1. CRUD payload（`test_cases[]`）欄位
 
 - `input_data`
 - `output_data`
@@ -35,6 +37,20 @@
 - `order`
 
 注意：字串內容不會自動 trim，換行與空白必須自行處理。
+
+### C-2. DeepAgent patch（`/sample_test_cases`、`/test_cases`）欄位
+
+- `input`
+- `output`
+- `is_sample`（`/test_cases` 需要）
+- `is_hidden`（`/test_cases` 需要）
+- `score`（`/test_cases` 需要）
+- `order`
+
+欄位命名對照：
+
+- CRUD `test_cases[]` 用 `input_data` / `output_data`
+- patch `json_patch_ops` 用 `input` / `output`
 
 ## D. 語言設定欄位（`language_configs[]`）
 
@@ -53,10 +69,25 @@
 - `/title`, `/difficulty`, `/time_limit`, `/memory_limit`
 - `/translations`（整包或索引路徑）
 - `/sample_test_cases`
+- `/test_cases`（整包覆蓋，含 sample + hidden）
+
+`/test_cases` 每筆需使用 patch 欄位：
+
+- `input`
+- `output`
+- `is_sample`
+- `is_hidden`
+- `score`
+- `order`
 
 目前不支援直接 patch：
 
 - `required_keywords`
 - `forbidden_keywords`
 - `language_configs`
-- 完整 hidden `test_cases`
+
+建議：
+
+- 需要整包替換測資時，優先使用 `prepare_test_cases_update`（底層即產生 `/test_cases` patch）。
+- 使用 `/test_cases` 時必須提供完整陣列（sample + hidden），否則未提供的舊測資會被刪除。
+- 使用 `/test_cases` 或 `/sample_test_cases` 時，請用 `input`/`output`，不要用 `input_data`/`output_data`。

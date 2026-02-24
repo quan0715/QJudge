@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +31,13 @@ class Settings(BaseSettings):
     backend_internal_url: str = "http://backend:8000"
     ai_service_id: str = "ai-service-1"
     hmac_secret: str = ""
-    ai_internal_token: str = ""
+    ai_internal_token: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AI_INTERNAL_TOKEN",
+            "AI_SERVICE_INTERNAL_TOKEN",  # backward-compatible fallback
+        ),
+    )
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
