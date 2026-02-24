@@ -1,4 +1,16 @@
 services:
+  # Judge Environment Image (built once, used by backend/celery via Docker socket)
+  judge-image:
+    build:
+      context: ./backend/judge
+      dockerfile: Dockerfile.judge
+    image: oj-judge:latest
+    container_name: oj_judge_image_dev
+    command: ["true"]
+    restart: "no"
+    networks:
+      - oj_network_dev
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -54,6 +66,7 @@ services:
       - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
       - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-dev}
       - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
+      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
     volumes:
       - ./ai-service:/app
@@ -88,7 +101,10 @@ services:
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
+      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
     depends_on:
+      judge-image:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
@@ -113,6 +129,8 @@ services:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
     depends_on:
+      judge-image:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
