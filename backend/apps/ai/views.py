@@ -1135,6 +1135,24 @@ class InternalCommitActionView(SchemaAPIView):
                 hint=payload.get("hint", ""),
             )
 
+        # ---- Persist test cases ----
+        test_cases_data = payload.get("test_cases", [])
+        sample_cases_data = payload.get("sample_test_cases", [])
+        all_tc = test_cases_data or sample_cases_data
+        if all_tc and isinstance(all_tc, list):
+            from apps.problems.models import TestCase
+            for idx, tc in enumerate(all_tc):
+                is_from_full = bool(test_cases_data)
+                TestCase.objects.create(
+                    problem=problem,
+                    input_data=tc.get("input", tc.get("input_data", "")),
+                    output_data=tc.get("output", tc.get("output_data", "")),
+                    is_sample=tc.get("is_sample", True) if is_from_full else True,
+                    is_hidden=tc.get("is_hidden", False) if is_from_full else False,
+                    score=tc.get("score", 0),
+                    order=tc.get("order", idx),
+                )
+
         return problem
 
     def _execute_patch(self, action_obj):
@@ -1269,6 +1287,12 @@ class InternalCommitActionView(SchemaAPIView):
                         output_description=t_data.get("output_description", ""),
                         hint=t_data.get("hint", ""),
                     )
+            # Delete translations for languages removed from the patched array
+            stale_langs = set(existing_by_lang.keys()) - seen_langs
+            if stale_langs:
+                ProblemTranslation.objects.filter(
+                    problem=problem, language__in=stale_langs
+                ).delete()
         else:
             # Fallback: write back singular /translation and flat paths to default translation
             if default_trans:
