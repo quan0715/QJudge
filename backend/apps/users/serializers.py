@@ -135,43 +135,6 @@ class TokenRefreshSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=True)
 
 
-class PasswordResetRequestSerializer(serializers.Serializer):
-    """Serializer for password reset request."""
-    email = serializers.EmailField(required=True)
-
-
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    """Serializer for password reset confirmation."""
-    token = serializers.CharField(required=True)
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    password_confirm = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    
-    
-    def validate(self, attrs):
-        """Validate passwords match."""
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({
-                'password_confirm': '密碼不一致'
-            })
-        
-        try:
-            validate_password(attrs['password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                'password': list(e.messages)
-            })
-        
-        return attrs
-
-
 class UserSearchSerializer(serializers.ModelSerializer):
     """Serializer for user search results in admin interface."""
     
@@ -266,35 +229,6 @@ class ChangePasswordSerializer(serializers.Serializer):
             })
 
         return attrs
-
-
-class UserAPIKeyInfoSerializer(serializers.Serializer):
-    """Serializer for API Key information response (without exposing the key)."""
-    has_key = serializers.SerializerMethodField()
-    is_active = serializers.BooleanField(read_only=True, required=False)
-    is_validated = serializers.BooleanField(read_only=True, required=False)
-    key_name = serializers.CharField(max_length=100, required=False)
-    total_input_tokens = serializers.IntegerField(read_only=True, required=False)
-    total_output_tokens = serializers.IntegerField(read_only=True, required=False)
-    total_requests = serializers.IntegerField(read_only=True, required=False)
-    total_cost_usd = serializers.SerializerMethodField(read_only=True, required=False)
-    last_validated_at = serializers.DateTimeField(read_only=True, required=False)
-    created_at = serializers.DateTimeField(read_only=True, required=False)
-
-    def get_has_key(self, obj):
-        """Check if user has an API key."""
-        if isinstance(obj, dict):
-            return obj.get('has_key', False)
-        return hasattr(obj, 'api_key')
-
-    def get_total_cost_usd(self, obj):
-        """Convert cost from cents to USD."""
-        if isinstance(obj, dict):
-            cost_cents = obj.get('total_cost_cents', 0)
-            return cost_cents / 100
-        if hasattr(obj, 'api_key') and hasattr(obj.api_key, 'total_cost_usd'):
-            return float(obj.api_key.total_cost_usd)
-        return 0.0
 
 
 class SetAPIKeySerializer(serializers.Serializer):

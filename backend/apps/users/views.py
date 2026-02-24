@@ -7,8 +7,7 @@ Security:
 - Authorization header authentication is exempt from CSRF (tokens aren't sent automatically).
 """
 import secrets
-from rest_framework import status, generics
-from rest_framework.views import APIView
+from rest_framework import status, generics, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -18,18 +17,19 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
+import logging
 
 from .serializers import (
     UserSerializer,
     RegisterSerializer,
     LoginSerializer,
     OAuthCallbackSerializer,
+    TokenRefreshSerializer,
     UserProfileSerializer,
     UserSearchSerializer,
     UserRoleUpdateSerializer,
     UserPreferencesUpdateSerializer,
     ChangePasswordSerializer,
-    UserAPIKeyInfoSerializer,
     SetAPIKeySerializer,
     ValidateAPIKeySerializer,
 )
@@ -40,11 +40,18 @@ from .models import UserAPIKey
 import asyncio
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+class SchemaAPIView(generics.GenericAPIView):
+    """APIView with serializer support for schema generation."""
+
+    serializer_class = serializers.Serializer
+
+
 @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
-class RegisterView(APIView):
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(SchemaAPIView):
     """
     User registration with email/password.
     Rate limited to 5 requests per minute per IP.
@@ -52,6 +59,7 @@ class RegisterView(APIView):
     POST /api/v1/auth/email/register
     """
     permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
     
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -90,19 +98,20 @@ class RegisterView(APIView):
             return response
             
         except Exception as e:
+            logger.exception("Registration failed: %s", e)
             return Response({
                 'success': False,
                 'error': {
                     'code': 'REGISTRATION_FAILED',
-                    'message': str(e)
+                    'message': '註冊失敗，請稍後再試'
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
+@method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class LoginView(APIView):
+class LoginView(SchemaAPIView):
     """
     User login with email/password.
     Rate limited to 10 requests per minute per IP.
@@ -114,6 +123,7 @@ class LoginView(APIView):
     - CSRF token in a readable cookie (csrftoken) for subsequent requests
     """
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
     
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -152,7 +162,7 @@ class LoginView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class DevTokenView(APIView):
+class DevTokenView(SchemaAPIView):
     """
     Development-only helper to generate JWT tokens for a test user.
 
@@ -160,6 +170,7 @@ class DevTokenView(APIView):
     Body: { role: "student"|"teacher"|"admin", email?, username?, password? }
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
 
     def post(self, request):
         if not settings.DEBUG:
@@ -225,13 +236,14 @@ class DevTokenView(APIView):
         return response
 
 
-class NYCUOAuthLoginView(APIView):
+class NYCUOAuthLoginView(SchemaAPIView):
     """
     Initiate NYCU OAuth login.
     
     GET /api/v1/auth/nycu/login
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
     
     def get(self, request):
         
@@ -250,18 +262,18 @@ class NYCUOAuthLoginView(APIView):
         })
 
 
-
-@method_decorator([csrf_exempt, ensure_csrf_cookie], name='dispatch')
-class NYCUOAuthCallbackView(APIView):
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
+class NYCUOAuthCallbackView(SchemaAPIView):
     """
     Handle NYCU OAuth callback.
     
     POST /api/v1/auth/nycu-oauth/callback
     
-    Note: csrf_exempt is needed because this receives external OAuth callback.
     ensure_csrf_cookie ensures the response includes CSRF token for subsequent requests.
     """
     permission_classes = [AllowAny]
+    serializer_class = OAuthCallbackSerializer
     
     def post(self, request):
         serializer = OAuthCallbackSerializer(data=request.data)
@@ -297,18 +309,18 @@ class NYCUOAuthCallbackView(APIView):
             return response
             
         except Exception as e:
+            logger.exception("NYCU OAuth callback failed: %s", e)
             return Response({
                 'success': False,
                 'error': {
                     'code': 'AUTH_003',
                     'message': 'NYCU OAuth 授權失敗',
-                    'details': str(e)
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class TokenRefreshView(APIView):
+class TokenRefreshView(SchemaAPIView):
     """
     Refresh access token.
     
@@ -321,6 +333,7 @@ class TokenRefreshView(APIView):
     Note: ensure_csrf_cookie ensures updated CSRF token is provided.
     """
     permission_classes = [AllowAny]
+    serializer_class = TokenRefreshSerializer
     
     def post(self, request):
         # Try to get refresh token from cookie first, then from body
@@ -371,7 +384,7 @@ class TokenRefreshView(APIView):
             return response
 
 
-class LogoutView(APIView):
+class LogoutView(SchemaAPIView):
     """
     Logout user by blacklisting their refresh token and clearing cookies.
     This invalidates both access and refresh tokens.
@@ -379,6 +392,7 @@ class LogoutView(APIView):
     POST /api/v1/auth/logout
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
     
     def post(self, request):
         try:
@@ -420,13 +434,14 @@ class LogoutView(APIView):
             return response
 
 
-class CurrentUserView(APIView):
+class CurrentUserView(SchemaAPIView):
     """
     Get current authenticated user information.
     
     GET /api/v1/users/me
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
     
     def get(self, request):
         serializer = UserSerializer(request.user)
@@ -459,7 +474,7 @@ class CurrentUserView(APIView):
         })
 
 
-class UserSearchView(APIView):
+class UserSearchView(SchemaAPIView):
     """
     Search users by username or email (admin only).
     If no query provided, returns all users (paginated).
@@ -468,6 +483,7 @@ class UserSearchView(APIView):
     GET /api/v1/users/search  (list all users)
     """
     permission_classes = [IsSuperAdmin]
+    serializer_class = serializers.Serializer
     
     def get(self, request):
         query = request.query_params.get('q', '').strip()
@@ -505,13 +521,14 @@ class UserSearchView(APIView):
         })
 
 
-class UserRoleUpdateView(APIView):
+class UserRoleUpdateView(SchemaAPIView):
     """
     Update user role (admin only).
     
     PATCH /api/v1/users/{id}/role
     """
     permission_classes = [IsSuperAdmin]
+    serializer_class = UserRoleUpdateSerializer
     
     def patch(self, request, pk):
         serializer = UserRoleUpdateSerializer(data=request.data)
@@ -573,12 +590,13 @@ class UserRoleUpdateView(APIView):
         })
 
 
-class UserStatsView(APIView):
+class UserStatsView(SchemaAPIView):
     """
     Get current user statistics.
     GET /api/v1/users/me/stats
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
 
     def get(self, request):
         user = request.user
@@ -612,7 +630,7 @@ class UserStatsView(APIView):
         })
 
 
-class UserPreferencesView(APIView):
+class UserPreferencesView(SchemaAPIView):
     """
     Get and update current user preferences.
     
@@ -620,6 +638,7 @@ class UserPreferencesView(APIView):
     PATCH /api/v1/auth/me/preferences - Update preferences
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserPreferencesUpdateSerializer
     
     def get(self, request):
         """Get current user preferences."""
@@ -679,7 +698,7 @@ class UserPreferencesView(APIView):
         })
 
 
-class ChangePasswordView(APIView):
+class ChangePasswordView(SchemaAPIView):
     """
     Change password for current user.
     
@@ -688,6 +707,7 @@ class ChangePasswordView(APIView):
     Requires current password verification.
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
     
     def post(self, request):
         user = request.user
@@ -734,7 +754,7 @@ class ChangePasswordView(APIView):
         })
 
 
-class UserAPIKeyView(APIView):
+class UserAPIKeyView(SchemaAPIView):
     """
     User API Key management endpoint.
 
@@ -746,6 +766,7 @@ class UserAPIKeyView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = SetAPIKeySerializer
 
     def get(self, request):
         """Get API key status (without exposing the actual key)."""
@@ -790,26 +811,19 @@ class UserAPIKeyView(APIView):
         api_key_str = serializer.validated_data['api_key']
         key_name = serializer.validated_data.get('key_name', 'My API Key')
 
-        # TODO: 暫時註解掉驗證，先測試儲存流程
-        # # Validate API key asynchronously
-        # try:
-        #     loop = asyncio.get_event_loop()
-        # except RuntimeError:
-        #     loop = asyncio.new_event_loop()
-        #     asyncio.set_event_loop(loop)
+        # Validate API key asynchronously
+        is_valid, error_msg = asyncio.run(
+            APIKeyService.validate_anthropic_key(api_key_str)
+        )
 
-        # is_valid, error_msg = loop.run_until_complete(
-        #     APIKeyService.validate_anthropic_key(api_key_str)
-        # )
-
-        # if not is_valid:
-        #     return Response({
-        #         'success': False,
-        #         'error': {
-        #             'code': 'VALIDATION_FAILED',
-        #             'message': f'API Key 驗證失敗: {error_msg}'
-        #         }
-        #     }, status=status.HTTP_400_BAD_REQUEST)
+        if not is_valid:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_FAILED',
+                    'message': f'API Key 驗證失敗: {error_msg}'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Store API key
         from django.utils import timezone
@@ -847,7 +861,7 @@ class UserAPIKeyView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 
-class ValidateAPIKeyView(APIView):
+class ValidateAPIKeyView(SchemaAPIView):
     """
     Validate API key without storing it.
 
@@ -855,6 +869,7 @@ class ValidateAPIKeyView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = ValidateAPIKeySerializer
 
     @method_decorator(ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
@@ -874,13 +889,7 @@ class ValidateAPIKeyView(APIView):
         api_key_str = serializer.validated_data['api_key']
 
         # Validate API key asynchronously
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        is_valid, error_msg = loop.run_until_complete(
+        is_valid, error_msg = asyncio.run(
             APIKeyService.validate_anthropic_key(api_key_str)
         )
 
@@ -893,7 +902,7 @@ class ValidateAPIKeyView(APIView):
         })
 
 
-class GetUsageStatsView(APIView):
+class GetUsageStatsView(SchemaAPIView):
     """
     Get API usage statistics.
 
@@ -901,6 +910,7 @@ class GetUsageStatsView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
 
     def get(self, request):
         """Get usage statistics."""

@@ -2,8 +2,7 @@
 Views for problems app.
 """
 from django.db.models import Case, ExpressionWrapper, F, FloatField, Value, When
-from rest_framework import viewsets, permissions, filters, status, serializers
-from rest_framework.views import APIView
+from rest_framework import viewsets, permissions, filters, status, serializers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -28,6 +27,12 @@ from .serializers import (
     ProblemDiscussionSerializer,
     ProblemDiscussionCommentSerializer,
 )
+
+
+class SchemaAPIView(generics.GenericAPIView):
+    """APIView with serializer support for schema generation."""
+
+    serializer_class = serializers.Serializer
 
 
 class ProblemFilter(django_filters.FilterSet):
@@ -180,7 +185,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         Returns execution results immediately.
         """
         from apps.problems.models import TestCase
-        from apps.submissions.tasks import MockTestCase, USE_REAL_JUDGE
+        from apps.submissions.tasks import MockTestCase
 
         problem = self.get_object()
         serializer = TestRunSerializer(data=request.data)
@@ -202,19 +207,17 @@ class ProblemViewSet(viewsets.ModelViewSet):
         ]
         test_cases.extend(custom_cases)
 
-        # Prepare judge (real or mock)
-        judge = None
-        if USE_REAL_JUDGE:
-            try:
-                from apps.judge.judge_factory import get_judge
-                judge = get_judge(language)
-            except ValueError as exc:
-                return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as exc:  # pragma: no cover - safety net
-                return Response(
-                    {'error': f'Judge system error: {str(exc)}'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+        # Prepare judge
+        try:
+            from apps.judge.judge_factory import get_judge
+            judge = get_judge(language)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover - safety net
+            return Response(
+                {'error': f'Judge system error: {str(exc)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         results = []
         max_exec_time = 0
@@ -223,39 +226,19 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         for tc in test_cases:
             try:
-                if judge:
-                    expected_output = getattr(tc, 'output_data', '') or ''
-                    exec_result = judge.execute(
-                        code=source_code,
-                        input_data=tc.input_data,
-                        expected_output=expected_output,
-                        time_limit=problem.time_limit,
-                        memory_limit=problem.memory_limit,
-                    )
-                    raw_status = exec_result.get('status', 'SE')
-                    exec_time = exec_result.get('time', 0)
-                    memory = exec_result.get('memory', 0)
-                    output = exec_result.get('output', '')
-                    error_msg = exec_result.get('error', '')
-                else:
-                    # Mock judging fallback
-                    import random
-                    code_lower = source_code.lower()
-                    if "compile_error" in code_lower:
-                        raw_status = 'CE'
-                        error_msg = "Compilation error"
-                    elif "runtime_error" in code_lower:
-                        raw_status = 'RE'
-                        error_msg = "Runtime error"
-                    elif "timeout" in code_lower:
-                        raw_status = 'TLE'
-                        error_msg = "Time limit exceeded"
-                    else:
-                        raw_status = 'AC'
-                        error_msg = ""
-                    exec_time = random.randint(10, 100)
-                    memory = random.randint(1024, 10240)
-                    output = "Mock output"
+                expected_output = getattr(tc, 'output_data', '') or ''
+                exec_result = judge.execute(
+                    code=source_code,
+                    input_data=tc.input_data,
+                    expected_output=expected_output,
+                    time_limit=problem.time_limit,
+                    memory_limit=problem.memory_limit,
+                )
+                raw_status = exec_result.get('status', 'SE')
+                exec_time = exec_result.get('time', 0)
+                memory = exec_result.get('memory', 0)
+                output = exec_result.get('output', '')
+                error_msg = exec_result.get('error', '')
             except Exception as exc:  # pragma: no cover - safety net
                 raw_status = 'SE'
                 exec_time = 0
@@ -374,7 +357,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             from django.shortcuts import get_object_or_404
             from rest_framework.exceptions import PermissionDenied
             
-            # Get the problem directly (bypass is_practice_visible filter)
+            # Get the problem directly (bypass practice visibility filtering)
             problem = get_object_or_404(Problem, id=id)
             
             # Verify the problem is part of this contest
@@ -484,8 +467,9 @@ def _is_privileged(user, problem: Problem) -> bool:
     return problem.created_by_id == user.id
 
 
-class ProblemDiscussionListCreateView(APIView):
+class ProblemDiscussionListCreateView(SchemaAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProblemDiscussionSerializer
 
     def get_problem(self, request, problem_id: int) -> Problem:
         problem = get_object_or_404(Problem, id=problem_id)
@@ -512,8 +496,9 @@ class ProblemDiscussionListCreateView(APIView):
         )
 
 
-class ProblemDiscussionDetailView(APIView):
+class ProblemDiscussionDetailView(SchemaAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProblemDiscussionSerializer
 
     def get_object(self, request, pk: int) -> ProblemDiscussion:
         discussion = get_object_or_404(ProblemDiscussion.objects.select_related("problem", "user"), id=pk)
@@ -553,8 +538,9 @@ class ProblemDiscussionDetailView(APIView):
         )
 
 
-class ProblemDiscussionCommentListCreateView(APIView):
+class ProblemDiscussionCommentListCreateView(SchemaAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProblemDiscussionCommentSerializer
 
     def get_discussion(self, request, discussion_id: int) -> ProblemDiscussion:
         discussion = get_object_or_404(
@@ -591,10 +577,11 @@ class ProblemDiscussionCommentListCreateView(APIView):
         )
 
 
-class ProblemDiscussionCommentDetailView(APIView):
+class ProblemDiscussionCommentDetailView(SchemaAPIView):
     """View for editing and deleting comments."""
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProblemDiscussionCommentSerializer
 
     def get_object(self, request, pk: int) -> ProblemDiscussionComment:
         comment = get_object_or_404(
@@ -630,10 +617,11 @@ class ProblemDiscussionCommentDetailView(APIView):
         )
 
 
-class DiscussionLikeView(APIView):
+class DiscussionLikeView(SchemaAPIView):
     """Toggle like on a discussion."""
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.Serializer
 
     def post(self, request, pk: int):
         discussion = get_object_or_404(
@@ -662,10 +650,11 @@ class DiscussionLikeView(APIView):
         )
 
 
-class CommentLikeView(APIView):
+class CommentLikeView(SchemaAPIView):
     """Toggle like on a comment."""
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.Serializer
 
     def post(self, request, pk: int):
         comment = get_object_or_404(

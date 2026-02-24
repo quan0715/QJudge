@@ -5,24 +5,25 @@ import json
 import logging
 import httpx
 
+from django.conf import settings
 from django.db import transaction
 from django.http import StreamingHttpResponse
-from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes as perm_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import status, viewsets, generics, serializers
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.views import APIView
 
 from django.utils import timezone
 
 from .ai_client import get_ai_client
 from .models import AIExecutionLog, AIMessage, AIPendingAction, AISession
-from .permissions import IsInternalService, IsTeacherOrAdmin
+from .permissions import IsInternalService
 from .serializers import (
     AIMessageSerializer,
     AISessionListSerializer,
     AISessionSerializer,
+    CodeRunRequestSerializer,
     CommitActionSerializer,
     ModelInfoSerializer,
     PendingActionSerializer,
@@ -33,9 +34,27 @@ from .serializers import (
 
 logger = logging.getLogger(__name__)
 
+
+class SchemaAPIView(generics.GenericAPIView):
+    """APIView with serializer support for schema generation."""
+
+    serializer_class = serializers.Serializer
+
 # System prompt is now managed by AI-Service
 # Backend should NOT specify system_prompt; AI-Service decides based on conversation context
 # This ensures consistency and centralized management of chat style guidelines
+
+
+def _build_ai_service_headers() -> dict[str, str]:
+    """Build required auth headers for ai-service calls."""
+    token = getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("AI_SERVICE_INTERNAL_TOKEN is not configured")
+    return {"X-AI-Internal-Token": token}
+
+
+def _ai_service_base_url() -> str:
+    return getattr(settings, "AI_SERVICE_URL", "http://ai-service:8001").rstrip("/")
 
 
 def create_execution_log(user, session, user_message):
@@ -142,7 +161,7 @@ def update_session_title_async(session, user_message: str, user_api_key: str):
 class AISessionViewSet(viewsets.ModelViewSet):
     """ViewSet for AI chat sessions."""
 
-    permission_classes = [AllowAny]  # Allow all by default, require auth on specific actions
+    permission_classes = [IsAuthenticated]
     serializer_class = AISessionSerializer
 
     def get_queryset(self):
@@ -165,16 +184,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new session for the current user."""
-        # Only authenticated users can create persistent sessions through API
-        if not self.request.user.is_authenticated:
-            raise PermissionDenied("Authentication required to create sessions")
-
-        user = self.request.user
-
-        # Deactivate other active sessions
-        AISession.objects.filter(user=user, is_active=True).update(is_active=False)
-
-        serializer.save(user=user)
+        serializer.save(user=self.request.user)
 
     @action(detail=False, methods=["post"])
     def new_session(self, request):
@@ -234,6 +244,11 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 session = AISession.objects.get(session_id=pk, user=request.user)
                 logger.debug(f"Found existing session {pk} for user {request.user.id}")
             except AISession.DoesNotExist:
+                if AISession.objects.filter(session_id=pk).exists():
+                    return Response(
+                        {"error": "Session not found"},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
                 # pk 不存在於資料庫，可能是新會話的 backend_session_id
                 logger.debug(f"Session {pk} not found - will create new session for user {request.user.id}")
                 session = None
@@ -242,9 +257,17 @@ class AISessionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data["content"]
         skill = serializer.validated_data.get("skill")
-        system_prompt = serializer.validated_data.get("system_prompt")
         # 前端可能傳送已保存的 claude_session_id
         frontend_session_id = None
+
+        if skill and not (
+            request.user.is_staff
+            or getattr(request.user, "role", "") in ("teacher", "admin")
+        ):
+            return Response(
+                {"error": "Only teacher/admin can use skill override"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Check if this is the first message (for auto-naming)
         is_first_message = session is None or session.messages.count() == 0
@@ -330,8 +353,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             if ai_service_session_id:
                 ai_service_payload["thread_id"] = ai_service_session_id
 
-            if system_prompt:
-                ai_service_payload["system_prompt"] = system_prompt
             if skill:
                 ai_service_payload["skill"] = skill
 
@@ -343,6 +364,14 @@ class AISessionViewSet(viewsets.ModelViewSet):
             ai_service_payload["user_id"] = request.user.id
 
             try:
+                try:
+                    ai_headers = _build_ai_service_headers()
+                except RuntimeError as exc:
+                    stream_error = str(exc)
+                    logger.error(stream_error)
+                    yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
+                    return
+
                 # 3. 發送初始化事件（告知前端這個請求使用的 backend_session_id）
                 init_event = {
                     "type": "init",
@@ -354,8 +383,9 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 # 4. 代理請求到 ai-service
                 with httpx.stream(
                     "POST",
-                    "http://ai-service:8001/api/chat/stream",
+                    f"{_ai_service_base_url()}/api/chat/stream",
                     json=ai_service_payload,
+                    headers=ai_headers,
                     timeout=120.0
                 ) as response:
                     if response.status_code != 200:
@@ -504,7 +534,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         role=AIMessage.Role.ASSISTANT,
                         content=full_response,
                         message_type=AIMessage.MessageType.TEXT,
-                        metadata=message_metadata if message_metadata else None,
+                        metadata=message_metadata,
                     )
 
                 # 9. 完成執行日誌（傳遞完整元數據）
@@ -580,7 +610,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         """Get session context (for debugging/inspection)."""
         session = self.get_object()
         return Response({
-            "session_id": str(session.id),
+            "session_id": session.session_id,
             "context": session.context or {},
         })
 
@@ -691,10 +721,18 @@ class AISessionViewSet(viewsets.ModelViewSet):
             collected_usage = None
 
             try:
+                try:
+                    ai_headers = _build_ai_service_headers()
+                except RuntimeError as exc:
+                    logger.error(str(exc))
+                    yield f"data: {json.dumps({'type': 'error', 'content': str(exc)})}\n\n"
+                    return
+
                 with httpx.stream(
                     "POST",
-                    "http://ai-service:8001/api/chat/resume",
+                    f"{_ai_service_base_url()}/api/chat/resume",
                     json=resume_payload,
+                    headers=ai_headers,
                     timeout=120.0,
                 ) as response:
                     if response.status_code != 200:
@@ -746,7 +784,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         role=AIMessage.Role.ASSISTANT,
                         content=full_response,
                         message_type=AIMessage.MessageType.TEXT,
-                        metadata=message_metadata if message_metadata else None,
+                        metadata=message_metadata,
                     )
 
                 session.updated_at = timezone.now()
@@ -876,10 +914,11 @@ class AISessionViewSet(viewsets.ModelViewSet):
 # Model List (Public)
 # ============================================================
 
-class ModelListView(APIView):
+class ModelListView(SchemaAPIView):
     """GET /api/v1/ai/models/ — return available model options."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = ModelInfoSerializer
 
     MODELS = [
         {
@@ -910,13 +949,14 @@ class ModelListView(APIView):
 # Internal API (HMAC-protected, for ai-service tool calls)
 # ============================================================
 
-class InternalPrepareActionView(APIView):
+class InternalPrepareActionView(SchemaAPIView):
     """POST /api/v1/ai/internal/problem-actions/prepare
 
     Called by ai-service tool: creates AIPendingAction with preview.
     """
 
     permission_classes = [IsInternalService]
+    serializer_class = PrepareActionSerializer
 
     def post(self, request):
         serializer = PrepareActionSerializer(data=request.data)
@@ -973,7 +1013,7 @@ class InternalPrepareActionView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class InternalCommitActionView(APIView):
+class InternalCommitActionView(SchemaAPIView):
     """POST /api/v1/ai/internal/problem-actions/commit
 
     Called by ai-service tool after user confirms.
@@ -981,6 +1021,7 @@ class InternalCommitActionView(APIView):
     """
 
     permission_classes = [IsInternalService]
+    serializer_class = CommitActionSerializer
 
     def post(self, request):
         serializer = CommitActionSerializer(data=request.data)
@@ -1166,6 +1207,22 @@ class InternalCommitActionView(APIView):
             for tc in sample_cases
         ]
 
+        # Include ALL test cases (sample + hidden) for /test_cases patch path
+        all_cases = list(
+            TestCase.objects.filter(problem=problem).order_by("order")
+        )
+        current_doc["test_cases"] = [
+            {
+                "input": tc.input_data,
+                "output": tc.output_data,
+                "is_sample": tc.is_sample,
+                "is_hidden": tc.is_hidden,
+                "score": tc.score,
+                "order": tc.order,
+            }
+            for tc in all_cases
+        ]
+
         # Apply patch
         patch_ops = payload.get("json_patch_ops", [])
         patch = jsonpatch.JsonPatch(patch_ops)
@@ -1225,29 +1282,47 @@ class InternalCommitActionView(APIView):
                 if trans_changed:
                     default_trans.save()
 
-        # ---- Write back sample test cases ----
-        new_samples = patched_doc.get("sample_test_cases")
-        if new_samples is not None and isinstance(new_samples, list):
-            TestCase.objects.filter(problem=problem, is_sample=True).delete()
-            for idx, tc in enumerate(new_samples):
+        # ---- Write back test cases ----
+        # Full test_cases array (sample + hidden) takes priority over sample_test_cases
+        new_all_cases = patched_doc.get("test_cases")
+        if new_all_cases is not None and isinstance(new_all_cases, list):
+            # Delete ALL existing test cases and rebuild
+            TestCase.objects.filter(problem=problem).delete()
+            for idx, tc in enumerate(new_all_cases):
                 TestCase.objects.create(
                     problem=problem,
                     input_data=tc.get("input", ""),
                     output_data=tc.get("output", ""),
-                    is_sample=True,
+                    is_sample=tc.get("is_sample", False),
+                    is_hidden=tc.get("is_hidden", False),
+                    score=tc.get("score", 0),
                     order=tc.get("order", idx),
                 )
+        else:
+            # Fallback: only sample_test_cases were patched
+            new_samples = patched_doc.get("sample_test_cases")
+            if new_samples is not None and isinstance(new_samples, list):
+                TestCase.objects.filter(problem=problem, is_sample=True).delete()
+                for idx, tc in enumerate(new_samples):
+                    TestCase.objects.create(
+                        problem=problem,
+                        input_data=tc.get("input", ""),
+                        output_data=tc.get("output", ""),
+                        is_sample=True,
+                        order=tc.get("order", idx),
+                    )
 
         return problem
 
 
-class InternalPendingActionDetailView(APIView):
+class InternalPendingActionDetailView(SchemaAPIView):
     """GET /api/v1/ai/internal/pending-actions/{action_id}
 
     Returns pending action details (for ai-service to build approval preview).
     """
 
     permission_classes = [IsInternalService]
+    serializer_class = PendingActionSerializer
 
     def get(self, request, action_id):
         try:
@@ -1269,13 +1344,14 @@ class InternalPendingActionDetailView(APIView):
         })
 
 
-class InternalProblemContextView(APIView):
+class InternalProblemContextView(SchemaAPIView):
     """GET /api/v1/ai/internal/problems/{id}/context
 
     Returns problem data for agent to read.
     """
 
     permission_classes = [IsInternalService]
+    serializer_class = serializers.Serializer
 
     def get(self, request, problem_id):
         from apps.problems.models import Problem
@@ -1314,4 +1390,118 @@ class InternalProblemContextView(APIView):
             "memory_limit": problem.memory_limit,
             "translations": translations_data,
             "sample_test_cases": sample_cases,
+        })
+
+
+class InternalTestCasesView(SchemaAPIView):
+    """GET /api/v1/ai/internal/problems/{id}/test-cases
+
+    Returns ALL test cases (sample + hidden) for a problem.
+    """
+
+    permission_classes = [IsInternalService]
+    serializer_class = serializers.Serializer
+
+    def get(self, request, problem_id):
+        from apps.problems.models import Problem, TestCase
+        try:
+            problem = Problem.objects.get(id=problem_id)
+        except Problem.DoesNotExist:
+            return Response(
+                {"error": "Problem not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        cases = TestCase.objects.filter(problem=problem).order_by("order")
+        return Response({
+            "problem_id": problem.id,
+            "test_cases": [
+                {
+                    "id": tc.id,
+                    "input_data": tc.input_data,
+                    "output_data": tc.output_data,
+                    "is_sample": tc.is_sample,
+                    "is_hidden": tc.is_hidden,
+                    "score": tc.score,
+                    "order": tc.order,
+                }
+                for tc in cases
+            ],
+        })
+
+
+class InternalCodeRunView(SchemaAPIView):
+    """POST /api/v1/ai/internal/code/run
+
+    Execute code against test cases in a sandbox.
+    Returns per-case results and a summary.
+    """
+
+    permission_classes = [IsInternalService]
+    serializer_class = CodeRunRequestSerializer
+
+    def post(self, request):
+        serializer = CodeRunRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        code = serializer.validated_data["code"]
+        language = serializer.validated_data["language"]
+        test_cases = serializer.validated_data["test_cases"]
+        time_limit = serializer.validated_data["time_limit"]
+        memory_limit = serializer.validated_data["memory_limit"]
+
+        # Enforce limits
+        if len(test_cases) > 20:
+            return Response(
+                {"error": "Maximum 20 test cases per request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.judge.judge_factory import get_judge
+
+        try:
+            judge = get_judge(language)
+        except ValueError as exc:
+            return Response(
+                {"error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        results = []
+        passed = 0
+        failed = 0
+
+        for tc in test_cases:
+            input_data = tc["input"]
+            expected_output = tc["expected_output"]
+
+            result = judge.execute(
+                code=code,
+                input_data=input_data,
+                expected_output=expected_output,
+                time_limit=time_limit,
+                memory_limit=memory_limit,
+            )
+
+            result["input"] = input_data
+            result["expected_output"] = expected_output
+            results.append(result)
+
+            if result["status"] == "AC":
+                passed += 1
+            else:
+                failed += 1
+
+            # Stop on CE (compilation error) — no point running more cases
+            if result["status"] == "CE":
+                break
+
+        return Response({
+            "results": results,
+            "summary": {
+                "passed": passed,
+                "failed": failed,
+                "total": len(test_cases),
+                "ran": len(results),
+            },
         })

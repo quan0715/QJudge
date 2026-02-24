@@ -1,6 +1,8 @@
 """
 Views for contests app.
 """
+import logging
+
 from django.utils import timezone
 from django.db.models import Q, Sum, Max
 from rest_framework import viewsets, permissions, filters, status
@@ -46,6 +48,8 @@ from .permissions import (
 from .services.scoreboard import ScoreboardScope, ScoreboardService
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
+
+logger = logging.getLogger(__name__)
 
 
 class ContestViewSet(viewsets.ModelViewSet):
@@ -538,7 +542,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         # Check password if private
         if contest.visibility == 'private':
             password = request.data.get('password')
-            if password != contest.password:
+            if not contest.verify_contest_password(password):
                 return Response(
                     {'message': 'Invalid password'},
                     status=status.HTTP_403_FORBIDDEN
@@ -1030,8 +1034,9 @@ class ContestViewSet(viewsets.ModelViewSet):
             return response
             
         except Exception as e:
+            logger.exception("Failed to generate contest export: %s", e)
             return Response(
-                {'error': f'Failed to generate file: {str(e)}'},
+                {'error': 'Failed to generate file'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -1098,8 +1103,9 @@ class ContestViewSet(viewsets.ModelViewSet):
             return response
             
         except Exception as e:
+            logger.exception("Failed to generate participant report: %s", e)
             return Response(
-                {'error': f'Failed to generate report: {str(e)}'},
+                {'error': 'Failed to generate report'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -1156,8 +1162,9 @@ class ContestViewSet(viewsets.ModelViewSet):
             return response
             
         except Exception as e:
+            logger.exception("Failed to generate personal report: %s", e)
             return Response(
-                {'error': f'Failed to generate report: {str(e)}'},
+                {'error': 'Failed to generate report'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -1284,11 +1291,12 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
     return participant, None
 
 
-class ExamViewSet(viewsets.ViewSet):
+class ExamViewSet(viewsets.GenericViewSet):
     """
     ViewSet for Exam Mode operations.
     """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ExamEventCreateSerializer
     
     @action(detail=False, methods=['post'], url_path='start')
     def start_exam(self, request, contest_pk=None):
@@ -1713,10 +1721,9 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         # Use ProblemAdminSerializer to create the problem
         from apps.problems.serializers import ProblemAdminSerializer
         
-        # Ensure problem is hidden from practice and linked to contest
+        # Ensure contest-created problem is not exposed in practice list.
         data = request.data.copy()
-        data['is_practice_visible'] = False
-        data['is_visible'] = True # Visible in general (so it can be seen in contest)
+        data['visibility'] = 'private'
         
         serializer = ProblemAdminSerializer(data=data, context={'request': request})
         serializer.is_valid(raise_exception=True)

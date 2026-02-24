@@ -122,8 +122,7 @@ class ProblemCRUDTests(TestCase):
             slug='crud-p1',
             created_by=self.teacher,
             difficulty='medium',
-            is_visible=True,
-            is_practice_visible=True
+            visibility='public'
         )
         self.problem.tags.add(self.tag1)
 
@@ -184,8 +183,7 @@ class ProblemCRUDTests(TestCase):
             title='Hidden',
             slug='hidden',
             created_by=self.teacher,
-            is_visible=False,
-            is_practice_visible=False
+            visibility='hidden'
         )
         
         response = self.client.get('/api/v1/problems/')
@@ -299,7 +297,7 @@ class ProblemFilterTests(TestCase):
             title='Easy Array',
             slug='easy-array',
             difficulty='easy',
-            is_practice_visible=True,
+            visibility='public',
             created_by=self.teacher,
         )
         self.p1_easy_array.tags.add(self.tag_array)
@@ -308,7 +306,7 @@ class ProblemFilterTests(TestCase):
             title='Medium DP',
             slug='medium-dp',
             difficulty='medium',
-            is_practice_visible=True,
+            visibility='public',
             created_by=self.teacher,
         )
         self.p2_medium_dp.tags.add(self.tag_dp)
@@ -317,7 +315,7 @@ class ProblemFilterTests(TestCase):
             title='Hard Graph',
             slug='hard-graph',
             difficulty='hard',
-            is_practice_visible=True,
+            visibility='public',
             created_by=self.teacher,
         )
         self.p3_hard_graph.tags.add(self.tag_graph)
@@ -326,7 +324,7 @@ class ProblemFilterTests(TestCase):
             title='Medium Array DP',
             slug='medium-array-dp',
             difficulty='medium',
-            is_practice_visible=True,
+            visibility='public',
             created_by=self.teacher,
         )
         self.p4_medium_array_dp.tags.add(self.tag_array, self.tag_dp)
@@ -430,7 +428,7 @@ class ProblemTestRunTests(TestCase):
             difficulty='easy',
             time_limit=1000,
             memory_limit=128,
-            is_practice_visible=True,
+            visibility='public',
         )
         ProblemTestCase.objects.create(
             problem=self.problem,
@@ -443,9 +441,7 @@ class ProblemTestRunTests(TestCase):
 
     def test_test_run_uses_samples_and_returns_results(self):
         """Test-run should execute sample cases and not create submissions."""
-        with patch('apps.submissions.tasks.USE_REAL_JUDGE', True), patch(
-            'apps.judge.judge_factory.get_judge'
-        ) as mock_get_judge:
+        with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
             mock_judge.execute.return_value = {
                 'status': 'AC',

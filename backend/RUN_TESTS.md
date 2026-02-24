@@ -103,3 +103,33 @@ docker compose -f docker-compose.dev.yml exec -T postgres \
 1. 先跑單一 smoke case（確認環境）
 2. 再跑目標 app 測試
 3. 最後才跑全量測試與 coverage
+
+## 六、Schema 與穩定性檢查（建議）
+
+### 1) 產生 OpenAPI schema
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.dev \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  python manage.py spectacular --file schema.yml
+```
+
+### 2) 避免 pytest 平行執行造成 test DB race
+
+當多個 `pytest` 指令同時跑、且都嘗試建立同一個 `test_online_judge`，可能出現：
+- `database "test_online_judge" already exists`
+- `database "test_online_judge" does not exist`
+
+建議：
+
+- 同一時間只跑一個 pytest process（sequential）
+- 加上 `--reuse-db` 減少重建
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov --reuse-db' \
+  pytest <test-path> -q
+```
