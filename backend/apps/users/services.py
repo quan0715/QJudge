@@ -4,6 +4,7 @@ Authentication services for different auth providers.
 import requests
 import secrets
 from datetime import timedelta
+from urllib.parse import urlencode
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth import authenticate
@@ -132,8 +133,8 @@ class NYCUOAuthService:
             'state': state,
             'scope': 'profile',
         }
-        
-        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+
+        query_string = urlencode(params)
         return f"{settings.NYCU_OAUTH_AUTHORIZE_URL}?{query_string}"
     
     @staticmethod
@@ -155,16 +156,20 @@ class NYCUOAuthService:
             Exception: If OAuth exchange fails
         """
         # Exchange code for access token
-        token_response = requests.post(
-            settings.NYCU_OAUTH_TOKEN_URL,
-            data={
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': redirect_uri,
-                'client_id': settings.NYCU_OAUTH_CLIENT_ID,
-                'client_secret': settings.NYCU_OAUTH_CLIENT_SECRET,
-            }
-        )
+        try:
+            token_response = requests.post(
+                settings.NYCU_OAUTH_TOKEN_URL,
+                data={
+                    'grant_type': 'authorization_code',
+                    'code': code,
+                    'redirect_uri': redirect_uri,
+                    'client_id': settings.NYCU_OAUTH_CLIENT_ID,
+                    'client_secret': settings.NYCU_OAUTH_CLIENT_SECRET,
+                },
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth token endpoint') from exc
         
         if token_response.status_code != 200:
             raise Exception('Failed to exchange authorization code')
@@ -173,10 +178,14 @@ class NYCUOAuthService:
         access_token = token_data['access_token']
         
         # Get user info
-        userinfo_response = requests.get(
-            settings.NYCU_OAUTH_USERINFO_URL,
-            headers={'Authorization': f"Bearer {access_token}"}
-        )
+        try:
+            userinfo_response = requests.get(
+                settings.NYCU_OAUTH_USERINFO_URL,
+                headers={'Authorization': f"Bearer {access_token}"},
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth userinfo endpoint') from exc
         
         if userinfo_response.status_code != 200:
             raise Exception('Failed to get user information')

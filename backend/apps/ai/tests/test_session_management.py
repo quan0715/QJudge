@@ -1,106 +1,115 @@
 """Tests for AI session management functionality."""
 
-from django.test import TestCase
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
+from django.test import TestCase
 from rest_framework import status
+from rest_framework.test import APIClient
 
-from apps.ai.models import AISession, AIMessage
+from apps.ai.models import AIMessage, AISession
 
 User = get_user_model()
 
 
 class SessionCRUDTestCase(TestCase):
-    """Test basic CRUD operations for sessions."""
+    """Test basic session operations for authenticated users."""
 
     def setUp(self):
-        """Set up test data."""
         self.client = APIClient()
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
-            password="testpass123"
+            password="testpass123",
+        )
+        self.other_user = User.objects.create_user(
+            username="other",
+            email="other@example.com",
+            password="testpass123",
         )
         self.session = AISession.objects.create(
+            session_id="99999999-9999-9999-9999-999999999999",
             user=self.user,
-            stage=AISession.Stage.GATE0
+            context={"title": "Test Session"},
+        )
+        self.other_session = AISession.objects.create(
+            session_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            user=self.other_user,
+            context={"title": "Other Session"},
         )
 
-    def test_create_session(self):
-        """Test creating a new session."""
+    def test_new_session_placeholder(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.post("/api/v1/ai/sessions/", {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["user"], self.user.id)
+        response = self.client.post("/api/v1/ai/sessions/new_session/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "pending")
+        self.assertTrue(response.data["id"])
 
     def test_retrieve_session(self):
-        """Test retrieving a specific session."""
         self.client.force_authenticate(user=self.user)
         response = self.client.get(
-            f"/api/v1/ai/sessions/{self.session.id}/",
-            format="json"
+            f"/api/v1/ai/sessions/{self.session.session_id}/",
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["id"], self.session.id)
+        self.assertEqual(response.data["session_id"], self.session.session_id)
 
-    def test_update_session(self):
-        """Test updating session context."""
+    def test_update_session_context(self):
         self.client.force_authenticate(user=self.user)
-        update_data = {"context": {"key": "value"}}
+        update_data = {"context": {"key": "value", "title": "Updated"}}
         response = self.client.patch(
-            f"/api/v1/ai/sessions/{self.session.id}/",
+            f"/api/v1/ai/sessions/{self.session.session_id}/",
             update_data,
-            format="json"
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["context"]["key"], "value")
+        self.assertEqual(response.data["context"]["title"], "Updated")
 
     def test_delete_session(self):
-        """Test deleting a session."""
         self.client.force_authenticate(user=self.user)
         response = self.client.delete(
-            f"/api/v1/ai/sessions/{self.session.id}/",
-            format="json"
+            f"/api/v1/ai/sessions/{self.session.session_id}/",
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        # Verify session is deleted
-        self.assertFalse(AISession.objects.filter(id=self.session.id).exists())
+        self.assertFalse(AISession.objects.filter(session_id=self.session.session_id).exists())
+
+    def test_cannot_access_other_user_session(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(
+            f"/api/v1/ai/sessions/{self.other_session.session_id}/",
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class SessionMessageManagementTestCase(TestCase):
-    """Test message creation and retrieval within sessions."""
+    """Test message retrieval within sessions."""
 
     def setUp(self):
-        """Set up test data."""
         self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="msguser",
+            email="msg@example.com",
+            password="testpass123",
         )
         self.session = AISession.objects.create(
+            session_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
             user=self.user,
-            stage=AISession.Stage.GATE0
+            context={"title": "Message Session"},
         )
 
     def test_retrieve_session_with_messages(self):
-        """Test retrieving a session includes its messages."""
-        # Create some messages
-        AIMessage.objects.create(
-            session=self.session,
-            role=AIMessage.Role.USER,
-            content="Hello"
-        )
+        AIMessage.objects.create(session=self.session, role=AIMessage.Role.USER, content="Hello")
         AIMessage.objects.create(
             session=self.session,
             role=AIMessage.Role.ASSISTANT,
-            content="Hi there!"
+            content="Hi there!",
         )
 
         client = APIClient()
         client.force_authenticate(user=self.user)
         response = client.get(
-            f"/api/v1/ai/sessions/{self.session.id}/",
-            format="json"
+            f"/api/v1/ai/sessions/{self.session.session_id}/",
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["message_count"], 2)
@@ -108,75 +117,84 @@ class SessionMessageManagementTestCase(TestCase):
 
 
 class SessionContextManagementTestCase(TestCase):
-    """Test session context storage and retrieval."""
+    """Test session context endpoint."""
 
     def setUp(self):
-        """Set up test data."""
         self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="ctxuser",
+            email="ctx@example.com",
+            password="testpass123",
         )
         self.session = AISession.objects.create(
+            session_id="cccccccc-cccc-cccc-cccc-cccccccccccc",
             user=self.user,
-            stage=AISession.Stage.GATE0,
-            context={"title": "Test Session"}
+            context={"title": "Context Session"},
         )
 
     def test_context_retrieved_in_session(self):
-        """Test that session context is included in responses."""
         client = APIClient()
         client.force_authenticate(user=self.user)
         response = client.get(
-            f"/api/v1/ai/sessions/{self.session.id}/",
-            format="json"
+            f"/api/v1/ai/sessions/{self.session.session_id}/",
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["context"]["title"], "Test Session")
+        self.assertEqual(response.data["context"]["title"], "Context Session")
 
     def test_context_endpoint(self):
-        """Test the context-specific endpoint."""
         client = APIClient()
         client.force_authenticate(user=self.user)
         response = client.get(
-            f"/api/v1/ai/sessions/{self.session.id}/context/",
-            format="json"
+            f"/api/v1/ai/sessions/{self.session.session_id}/context/",
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("context", response.data)
+        self.assertEqual(response.data["context"]["title"], "Context Session")
+        self.assertEqual(response.data["session_id"], self.session.session_id)
 
 
-class AnonymousSessionLifecycleTestCase(TestCase):
-    """Test the lifecycle of anonymous sessions."""
+class SessionListIsolationTestCase(TestCase):
+    """Test authenticated users only see their own sessions."""
 
     def setUp(self):
-        """Set up test data."""
         self.client = APIClient()
-        self.session = AISession.objects.create(
-            user=None,  # Anonymous
-            stage=AISession.Stage.GATE0
+        self.user = User.objects.create_user(
+            username="listuser",
+            email="list@example.com",
+            password="testpass123",
+        )
+        self.other_user = User.objects.create_user(
+            username="listother",
+            email="listother@example.com",
+            password="testpass123",
         )
 
-    def test_anonymous_session_has_no_owner(self):
-        """Anonymous sessions should have user=NULL."""
-        self.assertIsNone(self.session.user)
-
-    def test_anonymous_session_can_be_accessed_without_auth(self):
-        """Anonymous sessions should be accessible without authentication."""
-        # This is tested in test_session_access_control.py
-        # But we verify the model property here
-        self.assertIsNone(self.session.user)
-        self.assertTrue(AISession.objects.filter(
-            id=self.session.id,
-            user__isnull=True
-        ).exists())
-
-    def test_messages_can_be_created_in_anonymous_session(self):
-        """Messages should be creatable in anonymous sessions."""
-        message = AIMessage.objects.create(
-            session=self.session,
-            role=AIMessage.Role.USER,
-            content="Anonymous message"
+        AISession.objects.create(
+            session_id="dddddddd-dddd-dddd-dddd-dddddddddddd",
+            user=self.user,
+            context={"title": "mine-1"},
         )
-        self.assertEqual(message.session, self.session)
-        self.assertEqual(message.content, "Anonymous message")
+        AISession.objects.create(
+            session_id="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+            user=self.user,
+            context={"title": "mine-2"},
+        )
+        AISession.objects.create(
+            session_id="ffffffff-ffff-ffff-ffff-ffffffffffff",
+            user=self.other_user,
+            context={"title": "other"},
+        )
+
+    def test_list_only_own_sessions(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/v1/ai/sessions/", format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        ids = {item["session_id"] for item in results}
+        self.assertEqual(
+            ids,
+            {
+                "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+            },
+        )

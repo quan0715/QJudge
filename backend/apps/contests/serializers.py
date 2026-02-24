@@ -318,6 +318,13 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'anonymous_mode_enabled',
         ]
         read_only_fields = ['id']
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+                'required': False,
+                'allow_blank': True,
+            }
+        }
     
     def validate(self, data):
         """Validate contest data."""
@@ -368,8 +375,21 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
         validated_data['owner'] = request.user
         validated_data['status'] = 'draft'  # Always start as draft
 
-        
-        return super().create(validated_data)
+        raw_password = validated_data.pop("password", None)
+        contest = super().create(validated_data)
+        if raw_password:
+            contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        return contest
+
+    def update(self, instance, validated_data):
+        """Update contest and safely hash password when provided."""
+        raw_password = validated_data.pop("password", None)
+        contest = super().update(instance, validated_data)
+        if raw_password is not None:
+            contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        return contest
 
 
 # ============================================================================

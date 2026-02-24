@@ -34,7 +34,7 @@ class ProblemDiscussionAPITests(TestCase):
             title="Sample Problem",
             slug="sample-problem",
             difficulty="easy",
-            is_practice_visible=True,
+            visibility='public',
             created_by=self.teacher,
         )
 

@@ -92,7 +92,7 @@ class Command(BaseCommand):
             'difficulty': 'easy',
             'time_limit': 1000,
             'memory_limit': 128,
-            'is_visible': True,
+            'visibility': 'public',
             'order': 1,
             'created_by': creator
         }
@@ -169,7 +169,7 @@ print(a + b)''',
             'difficulty': 'medium',
             'time_limit': 2000,
             'memory_limit': 256,
-            'is_visible': True,
+            'visibility': 'public',
             'order': 2,
             'created_by': creator
         }

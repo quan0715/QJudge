@@ -62,7 +62,7 @@ class PrivilegedSubmissionTestCase(TestCase):
             difficulty='easy',
             time_limit=1000,
             memory_limit=128,
-            is_visible=True,
+            visibility='public',
             created_by=self.teacher
         )
         
@@ -137,7 +137,7 @@ class PrivilegedSubmissionTestCase(TestCase):
 
     def _mock_judge(self):
         """Helper to mock the judge for submissions"""
-        patcher = patch('apps.judge.judge_factory.get_judge')
+        patcher = patch('apps.submissions.tasks.get_judge')
         mock_get_judge = patcher.start()
         mock_judge = MagicMock()
         mock_get_judge.return_value = mock_judge
@@ -157,7 +157,6 @@ class PrivilegedSubmissionTestCase(TestCase):
             'contest': contest.id,
             'language': 'cpp',
             'code': '#include <iostream>\nint main() { return 0; }',
-            'is_test': False
         })
 
     # ==================== Admin Tests ====================

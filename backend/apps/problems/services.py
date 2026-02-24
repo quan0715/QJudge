@@ -159,7 +159,7 @@ class ProblemService:
     def create_contest_problem(contest, created_by, title="New Problem") -> Problem:
         """
         Create a new empty problem for a contest.
-        Uses new MVP fields: is_practice_visible=False, created_in_contest=contest
+        Uses new fields: visibility='private', created_in_contest=contest
         """
         # Generate Q number for contest problem
         display_id = ProblemService.generate_contest_problem_id()

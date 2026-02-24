@@ -15,7 +15,7 @@ def problem(user_factory):
         title="Test Problem",
         slug="test-problem",
         created_by=owner,
-        is_visible=True,
+        visibility="public",
     )
 
 
@@ -75,13 +75,13 @@ class TestSubmissionUserFilter:
     def test_filter_submissions_by_different_user(
         self, api_client, user_factory, submission_factory
     ):
-        """Test filtering submissions by another user's ID."""
+        """Practice list is always scoped to viewer for non-privileged users."""
         user1 = user_factory(username="user1", email="user1@example.com")
         user2 = user_factory(username="user2", email="user2@example.com")
 
         # Create submissions
         submission_factory(user1)
-        sub2 = submission_factory(user2)
+        submission_factory(user2)
 
         # Authenticate as user1 but filter by user2
         api_client.force_authenticate(user=user1)
@@ -94,19 +94,18 @@ class TestSubmissionUserFilter:
         data = response.json()
         results = data.get("results", data)
 
-        # Should get user2's submission
-        assert len(results) == 1
-        assert results[0]["id"] == sub2.id
+        # User filter is applied on top of own-scope queryset, so this becomes empty
+        assert len(results) == 0
 
     def test_filter_without_user_returns_all_practice(
         self, api_client, user_factory, submission_factory
     ):
-        """Test that not filtering by user returns all practice submissions."""
+        """Without explicit user filter, non-privileged users still only see own data."""
         user1 = user_factory(username="user1", email="user1@example.com")
         user2 = user_factory(username="user2", email="user2@example.com")
 
         # Create submissions
-        submission_factory(user1)
+        sub1 = submission_factory(user1)
         submission_factory(user2)
 
         api_client.force_authenticate(user=user1)
@@ -117,13 +116,14 @@ class TestSubmissionUserFilter:
         data = response.json()
         results = data.get("results", data)
 
-        # Should get all practice submissions
-        assert len(results) == 2
+        # Should only get own practice submissions
+        assert len(results) == 1
+        assert results[0]["id"] == sub1.id
 
     def test_filter_by_nonexistent_user(
         self, api_client, user_factory, submission_factory
     ):
-        """Test filtering by a non-existent user ID returns empty results."""
+        """Invalid user filter is rejected by django-filter validation."""
         user1 = user_factory(username="user1", email="user1@example.com")
         submission_factory(user1)
 
@@ -133,9 +133,4 @@ class TestSubmissionUserFilter:
             "/api/v1/submissions/?source_type=practice&user=99999"
         )
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        results = data.get("results", data)
-
-        # Should return empty
-        assert len(results) == 0
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

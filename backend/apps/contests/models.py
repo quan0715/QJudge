@@ -3,6 +3,7 @@ Models for contests and exams.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.utils import timezone
 from apps.problems.models import Problem
 from .managers import ContestQuerySet
@@ -128,6 +129,42 @@ class Contest(models.Model):
     
     def __str__(self):
         return self.name
+
+    def set_contest_password(self, raw_password: str | None) -> None:
+        """Hash and store contest password."""
+        if not raw_password:
+            self.password = None
+            return
+        self.password = make_password(raw_password)
+
+    def verify_contest_password(self, raw_password: str | None) -> bool:
+        """Verify contest password and upgrade legacy plaintext values."""
+        if not raw_password or not self.password:
+            return False
+
+        stored_password = self.password
+        try:
+            if check_password(raw_password, stored_password):
+                return True
+        except ValueError:
+            pass
+
+        # Backward compatibility for legacy plaintext passwords.
+        if raw_password == stored_password:
+            self.password = make_password(raw_password)
+            self.save(update_fields=["password"])
+            return True
+        return False
+
+    def has_hashed_password(self) -> bool:
+        """Return True when contest password is stored using Django hashers."""
+        if not self.password:
+            return False
+        try:
+            identify_hasher(self.password)
+            return True
+        except Exception:
+            return False
     
     @property
     def computed_status(self):

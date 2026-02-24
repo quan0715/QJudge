@@ -84,6 +84,12 @@ class AIServiceClient:
         )
         self.timeout = timeout
 
+    def _auth_headers(self) -> dict[str, str]:
+        token = getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
+        if not token:
+            raise AIServiceError("AI_SERVICE_INTERNAL_TOKEN is not configured")
+        return {"X-AI-Internal-Token": token}
+
     def _build_request_payload(
         self,
         conversation: list[dict],
@@ -185,6 +191,7 @@ class AIServiceClient:
                 response = await client.post(
                     f"{self.base_url}/api/chat",
                     json=payload,
+                    headers=self._auth_headers(),
                 )
                 response.raise_for_status()
                 data = response.json()
@@ -223,7 +230,10 @@ class AIServiceClient:
         """
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                response = await client.get(f"{self.base_url}/health")
+                response = await client.get(
+                    f"{self.base_url}/health",
+                    headers=self._auth_headers(),
+                )
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
@@ -238,7 +248,10 @@ class AIServiceClient:
         """
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                response = await client.get(f"{self.base_url}/api/skills")
+                response = await client.get(
+                    f"{self.base_url}/api/skills",
+                    headers=self._auth_headers(),
+                )
                 response.raise_for_status()
                 data = response.json()
                 return data.get("skills", [])
@@ -263,6 +276,7 @@ class AIServiceClient:
                 response = await client.post(
                     f"{self.base_url}/api/chat/answer",
                     json={"request_id": request_id, "answers": answers},
+                    headers=self._auth_headers(),
                 )
                 response.raise_for_status()
                 return response.json()
