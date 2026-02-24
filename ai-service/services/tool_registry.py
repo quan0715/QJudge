@@ -32,7 +32,51 @@ def create_read_tools(tool_client: InternalToolClient) -> list[BaseTool]:
         logger.info("load_problem_context problem_id=%s", problem_id)
         return await tool_client.load_problem_context(problem_id=problem_id)
 
-    return [load_problem_context]
+    @tool
+    async def get_test_cases(problem_id: int) -> dict[str, Any]:
+        """Load ALL test cases for a problem, including hidden ones.
+
+        Returns every test case with id, input_data, output_data,
+        is_sample, is_hidden, score, and order fields.
+
+        Args:
+            problem_id: The ID of the problem.
+        """
+        logger.info("get_test_cases problem_id=%s", problem_id)
+        return await tool_client.get_test_cases(problem_id=problem_id)
+
+    @tool
+    async def run_code(
+        code: str,
+        language: str,
+        test_cases: list[dict[str, str]],
+        time_limit: int = 1000,
+        memory_limit: int = 128,
+    ) -> dict[str, Any]:
+        """Execute code in a sandbox and check against test cases.
+
+        Runs the given code against each test case sequentially. Stops on
+        compilation error (CE). Returns per-case results and a summary.
+
+        Max 20 test cases per call, time_limit max 10000ms, code max 100KB.
+
+        Args:
+            code: Source code to execute.
+            language: Programming language ("cpp", "c++", "python", "py").
+            test_cases: List of {"input": "...", "expected_output": "..."}.
+            time_limit: Time limit in milliseconds (default 1000).
+            memory_limit: Memory limit in MB (default 128).
+        """
+        logger.info("run_code language=%s cases=%d", language, len(test_cases))
+        return await tool_client.run_code(
+            code=code,
+            language=language,
+            test_cases=test_cases,
+            time_limit=time_limit,
+            memory_limit=memory_limit,
+        )
+
+    return [load_problem_context, get_test_cases, run_code]
 
 
 def create_write_tools(
@@ -111,4 +155,61 @@ def create_write_tools(
         logger.info("commit_problem_action action_id=%s", action_id)
         return await tool_client.commit_action(action_id=action_id)
 
-    return [prepare_problem_create, prepare_problem_patch, commit_problem_action]
+    @tool
+    async def prepare_test_cases_update(
+        target_problem_id: int,
+        test_cases: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Prepare a full replacement of all test cases for a problem.
+
+        Stages a 'patch' action that replaces the entire test_cases array.
+        Each test case must have: input, output, is_sample, is_hidden, score, order.
+
+        This does NOT commit — you must call commit_problem_action afterward.
+
+        Args:
+            target_problem_id: The problem to update test cases for.
+            test_cases: Full list of test case objects to replace existing ones.
+        """
+        logger.info(
+            "prepare_test_cases_update session=%s user=%s problem=%s cases=%d",
+            session_id, user_id, target_problem_id, len(test_cases),
+        )
+
+        # Build preview summary
+        sample_count = sum(1 for tc in test_cases if tc.get("is_sample"))
+        hidden_count = sum(1 for tc in test_cases if tc.get("is_hidden"))
+        preview = {
+            "action": "replace_all_test_cases",
+            "target_problem_id": target_problem_id,
+            "total": len(test_cases),
+            "sample_count": sample_count,
+            "hidden_count": hidden_count,
+            "test_cases_summary": [
+                {
+                    "order": tc.get("order", i),
+                    "is_sample": tc.get("is_sample", False),
+                    "is_hidden": tc.get("is_hidden", False),
+                    "input_preview": tc.get("input", "")[:100],
+                    "output_preview": tc.get("output", "")[:100],
+                }
+                for i, tc in enumerate(test_cases)
+            ],
+        }
+
+        json_patch_ops = [
+            {"op": "replace", "path": "/test_cases", "value": test_cases},
+        ]
+
+        return await tool_client.prepare_action(
+            session_id=session_id,
+            user_id=user_id,
+            action_type="patch",
+            payload={
+                "target_problem_id": target_problem_id,
+                "json_patch_ops": json_patch_ops,
+                "preview": preview,
+            },
+        )
+
+    return [prepare_problem_create, prepare_problem_patch, commit_problem_action, prepare_test_cases_update]

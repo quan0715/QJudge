@@ -5,10 +5,12 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AISessionViewSet,
+    InternalCodeRunView,
     InternalCommitActionView,
     InternalPendingActionDetailView,
     InternalPrepareActionView,
     InternalProblemContextView,
+    InternalTestCasesView,
     ModelListView,
 )
 
@@ -42,5 +44,15 @@ urlpatterns = [
         "internal/problems/<int:problem_id>/context",
         InternalProblemContextView.as_view(),
         name="ai-internal-problem-context",
+    ),
+    path(
+        "internal/problems/<int:problem_id>/test-cases",
+        InternalTestCasesView.as_view(),
+        name="ai-internal-test-cases",
+    ),
+    path(
+        "internal/code/run",
+        InternalCodeRunView.as_view(),
+        name="ai-internal-code-run",
     ),
 ]

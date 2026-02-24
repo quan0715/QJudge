@@ -165,6 +165,7 @@ def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
     if kind == "on_tool_end":
         run_id = event.get("run_id", "")
         output = data.get("output")
+        # Unwrap LangChain message objects (ToolMessage, AIMessage, etc.)
         if hasattr(output, "content"):
             output = output.content
         is_error = False
@@ -172,9 +173,14 @@ def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
             is_error = output.status == "error"
         elif isinstance(output, dict):
             is_error = output.get("is_error", False)
+        # Ensure output is JSON-serialisable
+        if isinstance(output, bytes):
+            output = output.decode()
+        elif not isinstance(output, (str, dict, list, int, float, bool, type(None))):
+            output = str(output)
         return ToolCallFinished(
             tool_call_id=run_id,
-            result=output if not isinstance(output, bytes) else output.decode(),
+            result=output,
             is_error=is_error,
         )
 

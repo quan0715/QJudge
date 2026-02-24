@@ -113,7 +113,6 @@ class SendMessageStreamSerializer(serializers.Serializer):
         allow_null=True,
         write_only=True,
     )
-    system_prompt = serializers.CharField(max_length=10000, required=False, allow_null=True)
     skill = serializers.CharField(max_length=100, required=False, allow_null=True)
 
 
@@ -158,3 +157,25 @@ class CommitActionSerializer(serializers.Serializer):
     """Serializer for internal commit action request."""
 
     action_id = serializers.UUIDField()
+
+
+# ============================================================
+# Code Run Serializers
+# ============================================================
+
+
+class CodeRunTestCaseSerializer(serializers.Serializer):
+    """Single test case for code execution."""
+
+    input = serializers.CharField(allow_blank=True)
+    expected_output = serializers.CharField(allow_blank=True)
+
+
+class CodeRunRequestSerializer(serializers.Serializer):
+    """Request body for POST /internal/code/run."""
+
+    code = serializers.CharField(max_length=100_000)
+    language = serializers.ChoiceField(choices=["cpp", "c++", "python", "py"])
+    test_cases = CodeRunTestCaseSerializer(many=True)
+    time_limit = serializers.IntegerField(min_value=100, max_value=10_000, default=1000)
+    memory_limit = serializers.IntegerField(min_value=16, max_value=512, default=128)
