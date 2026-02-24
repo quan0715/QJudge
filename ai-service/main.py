@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
-from models.schemas import HealthResponse
+from models.schemas import HealthResponse, ModelsResponse
 from routers import chat_router
 from services.deepagent_runner import DeepAgentRunner
 from services.model_factory import MODEL_INFO
@@ -27,6 +27,10 @@ async def lifespan(app: FastAPI):
 
     if not settings.anthropic_api_key:
         logger.warning("ANTHROPIC_API_KEY not set — LLM calls will fail")
+    if not settings.hmac_secret.strip():
+        raise RuntimeError("HMAC_SECRET must be set and non-empty")
+    if not settings.ai_internal_token.strip():
+        raise RuntimeError("AI_INTERNAL_TOKEN must be set and non-empty")
 
     # Initialize tool client for internal API calls
     tool_client = InternalToolClient(
@@ -39,6 +43,7 @@ async def lifespan(app: FastAPI):
     runner = DeepAgentRunner(
         tool_client=tool_client,
         checkpoint_db_url=settings.ai_state_postgres_url,
+        skills_dir=settings.skills_dir,
     )
 
     if settings.ai_state_postgres_url:
@@ -94,10 +99,10 @@ async def health_check() -> HealthResponse:
     )
 
 
-@app.get("/api/models", tags=["models"])
-async def list_models():
+@app.get("/api/models", response_model=ModelsResponse, tags=["models"])
+async def list_models() -> ModelsResponse:
     """Return available model options."""
-    return {"models": MODEL_INFO}
+    return ModelsResponse(models=MODEL_INFO)
 
 
 @app.get("/", tags=["root"])

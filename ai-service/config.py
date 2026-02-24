@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     backend_internal_url: str = "http://backend:8000"
     ai_service_id: str = "ai-service-1"
     hmac_secret: str = ""
+    ai_internal_token: str = ""
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]

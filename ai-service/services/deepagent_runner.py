@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import logging
 import uuid
+from pathlib import Path
 from typing import Any, AsyncGenerator
 
 from deepagents import create_deep_agent
+from deepagents.backends.utils import create_file_data
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from services.event_adapter import (
-    AgentMessageDelta,
     ApprovalRequired,
     RunCompleted,
     RunFailed,
     RunStarted,
-    ThinkingDelta,
     UsageReport,
     adapt_langgraph_event,
     to_sse_dict,
@@ -27,50 +27,26 @@ from services.tool_registry import create_read_tools, create_write_tools
 
 logger = logging.getLogger(__name__)
 
+_ALLOWED_SKILL_FILE_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".txt"}
+_MAX_SKILL_FILE_BYTES = 256 * 1024
+
 # Default system prompt for the TA agent
-_DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教。你的對話對象是老師（出題者）。
+_DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師（出題者）。
 
-回覆風格：
-- 繁體中文，口語化，簡短直接。像同事對話，不要寫成文章。
-- 不要用 emoji。不要用「您好」「很高興」之類的客套話。
-- 回答盡量精簡。能一句講完就不要分三段。
-- 用條列式而非長篇敘述。Markdown 格式可用但不要過度裝飾。
+回覆要求：
+- 繁體中文，簡短直接，條列優先。
+- 不用 emoji，不要客套開場。
 
-你能做的事：
-- 用 load_problem_context 讀取題目資料（描述、測資、限制等）。
-- 協助分析題目、建議改進、設計測資、檢查完整性。
-- 回答程式設計教學相關問題。
-- 用 prepare_problem_create 建立新題目（草稿）。
-- 用 prepare_problem_patch 修改現有題目。
-- 用 commit_problem_action 提交變更（需要用戶審核確認）。
+工作原則：
+- 內容設計階段優先使用 `contest-problem-authoring-guide`。
+- 資料落地階段（payload/patch/prepare-commit）優先使用 `qjudge-code-problem-format-and-ops`。
+- 題目資料先讀取再回答，不要臆測。
+- 任何 commit 都必須先展示 preview，且得到使用者確認。
 
-寫入流程：
-1. 先用 prepare_problem_create 或 prepare_problem_patch 準備變更，取得 action_id 和 preview。
-2. 在回覆中向用戶展示 preview，說明你打算做什麼。
-3. 呼叫 commit_problem_action(action_id) 提交。系統會自動暫停並請用戶確認。
-4. 用戶確認後系統會自動執行 commit，你不需要再做任何事。
-5. 如果用戶拒絕，commit 會被跳過，你只需回覆確認取消即可。
-
-多語言翻譯：
-題目支援多語言（zh-TW、en 等）。資料結構中有 translations 陣列，每筆包含 language, title, description, input_description, output_description, hint。
-
-建立題目時，在 payload 中用 translations 陣列提供多語言：
-  {"title": "...", "translations": [
-    {"language": "zh-TW", "title": "...", "description": "...", ...},
-    {"language": "en", "title": "...", "description": "...", ...}
-  ]}
-
-修改題目時，JSON Patch 路徑支援：
-  - /translations/0/description — 修改第一個翻譯的描述
-  - /translations/1/description — 修改第二個翻譯的描述
-  - /translations/- — 新增一個語言翻譯（op: "add"）
-    例如: {"op": "add", "path": "/translations/-", "value": {"language": "en", "title": "...", ...}}
-
-如果用戶要求翻譯題目，先用 load_problem_context 讀取現有翻譯，再用 prepare_problem_patch 新增或更新目標語言。
-
-限制：
-- 不要編造題目資料，先用工具讀取再回答。
-- 所有寫入操作都需要用戶確認才會執行。
+可用工具：
+- load_problem_context：讀題目與翻譯內容。
+- prepare_problem_create / prepare_problem_patch：準備變更並產生 preview。
+- commit_problem_action：提交變更（需用戶審核）。
 """
 
 
@@ -81,11 +57,21 @@ class DeepAgentRunner:
         self,
         tool_client: InternalToolClient,
         checkpoint_db_url: str,
+        skills_dir: str = "skills",
     ) -> None:
         self._tool_client = tool_client
         self._checkpoint_db_url = checkpoint_db_url
         self._checkpointer: AsyncPostgresSaver | None = None
         self._checkpointer_cm: Any = None  # context manager
+        service_root = Path(__file__).resolve().parent.parent
+        configured_skills_dir = Path(skills_dir)
+        self._skills_root = (
+            configured_skills_dir
+            if configured_skills_dir.is_absolute()
+            else (service_root / configured_skills_dir).resolve()
+        )
+        self._skills_source = "/skills/"
+        self._skill_content_cache: dict[str, str] | None = None
 
     async def setup(self) -> None:
         """Initialize the Postgres checkpointer and create tables if needed."""
@@ -130,10 +116,61 @@ class DeepAgentRunner:
             model=model,
             tools=tools,
             system_prompt=prompt,
+            skills=[self._skills_source],
             checkpointer=self._checkpointer,
             interrupt_on=interrupt_on,
         )
         return agent
+
+    def _load_skill_contents(self) -> dict[str, str]:
+        """Load and cache text skill files from disk."""
+        if self._skill_content_cache is not None:
+            return self._skill_content_cache
+
+        if not self._skills_root.exists() or not self._skills_root.is_dir():
+            logger.warning("Skills directory not found: %s", self._skills_root)
+            self._skill_content_cache = {}
+            return {}
+
+        contents: dict[str, str] = {}
+        for path in self._skills_root.rglob("*"):
+            if not path.is_file():
+                continue
+
+            if path.suffix.lower() not in _ALLOWED_SKILL_FILE_EXTENSIONS:
+                continue
+
+            try:
+                if path.stat().st_size > _MAX_SKILL_FILE_BYTES:
+                    logger.warning("Skipping oversized skill file: %s", path)
+                    continue
+            except OSError as exc:
+                logger.warning("Skipping unreadable skill file %s: %s", path, exc)
+                continue
+
+            try:
+                content = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                logger.warning("Skipping non-utf8 skill file: %s", path)
+                continue
+            except OSError as exc:
+                logger.warning("Skipping unreadable skill file %s: %s", path, exc)
+                continue
+
+            relative = path.relative_to(self._skills_root).as_posix()
+            virtual_path = f"{self._skills_source}{relative}"
+            contents[virtual_path] = content
+
+        self._skill_content_cache = contents
+        return contents
+
+    def _build_skill_state_files(self) -> dict[str, Any]:
+        """Build `/skills/*` virtual files for DeepAgents SkillsMiddleware."""
+        contents = self._load_skill_contents()
+        return {
+            virtual_path: create_file_data(content)
+            for virtual_path, content in contents.items()
+        }
 
     async def run_stream(
         self,
@@ -176,6 +213,9 @@ class DeepAgentRunner:
         }
 
         agent_input = {"messages": messages}
+        skill_files = self._build_skill_state_files()
+        if skill_files:
+            agent_input["files"] = skill_files
 
         # Emit run_started
         yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
@@ -231,7 +271,7 @@ class DeepAgentRunner:
                 RunFailed(
                     run_id=run_id,
                     error_code="AGENT_ERROR",
-                    message=str(exc),
+                    message="Agent execution failed",
                 )
             )
 
@@ -321,7 +361,7 @@ class DeepAgentRunner:
                 RunFailed(
                     run_id=run_id,
                     error_code="AGENT_ERROR",
-                    message=str(exc),
+                    message="Agent execution failed",
                 )
             )
 

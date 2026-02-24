@@ -5,6 +5,7 @@ from .schemas import (
     ChatRequest,
     HealthResponse,
     MessageRole,
+    ModelsResponse,
     ModelInfo,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "ChatRequest",
     "HealthResponse",
     "MessageRole",
+    "ModelsResponse",
     "ModelInfo",
 ]

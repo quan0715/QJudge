@@ -15,12 +15,22 @@ class MessageRole(str, Enum):
 class ChatMessage(BaseModel):
     """A single message in the conversation."""
     role: MessageRole
-    content: str
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="Conversation message content",
+    )
 
 
 class ChatRequest(BaseModel):
     """Request body for POST /api/chat/stream (v2 contract)."""
-    content: str = Field(..., max_length=10000, description="User message content")
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="User message content",
+    )
     model_id: str = Field(
         default="claude-sonnet",
         pattern=r"^claude-(haiku|sonnet|opus)$",
@@ -38,15 +48,18 @@ class ChatRequest(BaseModel):
     skill: str | None = Field(
         default=None,
         max_length=100,
+        pattern=r"^[a-z0-9][a-z0-9-]{0,99}$",
         description="Optional skill name",
     )
     thread_id: str | None = Field(
         default=None,
+        min_length=1,
         max_length=100,
         description="DeepAgent thread ID for resume (None = new thread)",
     )
     session_id: str | None = Field(
         default=None,
+        min_length=1,
         max_length=200,
         description="Backend session ID (for write tool binding)",
     )
@@ -56,13 +69,19 @@ class ChatRequest(BaseModel):
     )
     conversation: list[ChatMessage] = Field(
         default_factory=list,
+        max_length=50,
         description="Conversation history for context",
     )
 
 
 class ResumeRequest(BaseModel):
     """Request body for POST /api/chat/resume."""
-    thread_id: str = Field(..., max_length=100, description="DeepAgent thread ID to resume")
+    thread_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="DeepAgent thread ID to resume",
+    )
     decision: str = Field(
         ...,
         pattern=r"^(approve|reject)$",
@@ -70,6 +89,7 @@ class ResumeRequest(BaseModel):
     )
     session_id: str | None = Field(
         default=None,
+        min_length=1,
         max_length=200,
         description="Backend session ID (for write tool binding on resume)",
     )
@@ -85,6 +105,11 @@ class ModelInfo(BaseModel):
     display_name: str
     description: str
     is_default: bool
+
+
+class ModelsResponse(BaseModel):
+    """Response for model list endpoint."""
+    models: list[ModelInfo]
 
 
 class HealthResponse(BaseModel):
