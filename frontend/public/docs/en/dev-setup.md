@@ -9,16 +9,24 @@ This guide explains how to set up the QJudge local development environment.
 - Docker & Docker Compose
 - Git
 
-## Quick Start
-
-### 1. Clone the Project
+## Quick Start (Docker, Recommended)
 
 ```bash
-git clone https://github.com/your-org/qjudge.git
-cd qjudge
+git clone https://github.com/quan0715/QJudge.git
+cd QJudge
+cp example.env .env   # Edit .env with your settings
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-### 2. Frontend Setup
+Services will start at:
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+- AI Service: `http://localhost:8001`
+
+## Manual Setup
+
+### 1. Frontend
 
 ```bash
 cd frontend
@@ -26,9 +34,7 @@ npm install
 npm run dev
 ```
 
-Frontend will start at `http://localhost:5173`.
-
-### 3. Backend Setup
+### 2. Backend
 
 ```bash
 cd backend
@@ -39,43 +45,48 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Backend will start at `http://localhost:8000`.
+### 3. Judge System
 
-### 4. Judge System
-
-The judge system runs in Docker:
+The judge image is built automatically with Docker Compose. For standalone builds:
 
 ```bash
-docker compose up -d judge
+docker build -t oj-judge:latest -f backend/judge/Dockerfile.judge backend/judge
 ```
 
 ## Project Structure
 
 ```
-qjudge/
-├── frontend/          # React frontend
-│   ├── src/
-│   │   ├── domains/   # Feature modules
-│   │   ├── ui/        # UI components
-│   │   └── i18n/      # Internationalization
-│   └── public/
-├── backend/           # Django backend
-│   ├── api/           # API endpoints
-│   ├── judge/         # Judge logic
-│   └── core/          # Core modules
-└── docker/            # Docker configuration
+QJudge/
+├── frontend/              # React 19 + TypeScript + Carbon
+│   └── src/
+│       ├── features/      # Feature modules (auth, contest, problems, chatbot)
+│       ├── core/          # Use cases, entities, interfaces
+│       ├── infrastructure/# API repositories, mappers
+│       └── shared/        # Shared UI components
+├── backend/               # Django 4.2 + DRF + Celery
+│   └── apps/
+│       ├── ai/            # AI session, streaming, approval flow
+│       ├── judge/         # Judge engine
+│       ├── contests/      # Contests & exams
+│       └── problems/      # Problem management
+├── ai-service/            # FastAPI + LangGraph DeepAgent
+├── scripts/               # Deploy & utility scripts
+├── docker-compose.yml     # Production compose
+├── docker-compose.dev.yml # Development compose
+└── example.env            # Environment variable template
 ```
 
 ## Common Commands
 
 ### Frontend
 
-| Command         | Description              |
-| --------------- | ------------------------ |
-| `npm run dev`   | Start development server |
-| `npm run build` | Build for production     |
-| `npm run lint`  | Check code style         |
-| `npm run test`  | Run tests                |
+| Command           | Description              |
+| ----------------- | ------------------------ |
+| `npm run dev`     | Start development server |
+| `npm run build`   | Build for production     |
+| `npm run lint`    | Check code style         |
+| `npm run test`    | Run unit tests           |
+| `npm run test:api`| Run API integration tests|
 
 ### Backend
 
@@ -83,46 +94,43 @@ qjudge/
 | ---------------------------------- | ------------------------ |
 | `python manage.py runserver`       | Start development server |
 | `python manage.py migrate`         | Run database migrations  |
-| `python manage.py test`            | Run tests                |
+| `pytest`                           | Run tests                |
 | `python manage.py createsuperuser` | Create admin account     |
 
 ## Environment Variables
 
-### Frontend (.env)
+Copy `example.env` to `.env` and fill in the values. Key variables:
 
-```
-VITE_API_URL=http://localhost:8000
-```
+| Variable | Description |
+| --- | --- |
+| `SECRET_KEY` | Django secret key |
+| `DEBUG` | `True` for development |
+| `DJANGO_SETTINGS_MODULE` | `config.settings.dev` for development |
+| `DB_NAME/USER/PASSWORD/HOST/PORT` | PostgreSQL connection |
+| `REDIS_URL` | Redis connection URL |
+| `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth credentials |
+| `HMAC_SECRET` | AI service internal HMAC auth |
+| `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service auth |
 
-### Backend (.env)
-
-```
-DEBUG=True
-SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite:///db.sqlite3
-```
+See `example.env` for the complete list with documentation.
 
 ## Common Issues
 
+### Backend SSL error with local postgres
+
+If you see `server does not support SSL, but SSL was required`, add to `.env`:
+
+```
+DB_SSLMODE=disable
+```
+
 ### Frontend cannot connect to backend
 
-Ensure backend is running and check CORS settings.
-
-### Database migration fails
-
-Try deleting migration files and regenerating:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
+Ensure backend is running and check `CORS_ALLOWED_ORIGINS` in `.env`.
 
 ### Docker container won't start
 
-Check if Docker service is running:
-
 ```bash
 docker ps
-docker compose logs
+docker compose logs <service-name>
 ```
-
