@@ -42,6 +42,11 @@ describe("useContestTimers", () => {
       useContestTimers({ contest, contestId: contest.id, refreshContest })
     );
 
+    // Flush the setTimeout(0) used for initial computation
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
+
     expect(result.current.isCountdownToStart).toBe(true);
     expect(result.current.timeLeft).toBe("00:00:02");
 
@@ -73,6 +78,11 @@ describe("useContestTimers", () => {
     const { result } = renderHook(() =>
       useContestTimers({ contest, contestId: contest.id, refreshContest })
     );
+
+    // Flush the setTimeout(0) used for initial computation
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
 
     expect(result.current.unlockTimeLeft).toBe("00:00:03");
 
