@@ -43,7 +43,7 @@
   Props: `open`(required), `title`(required), `body`, `primaryLabel`, `secondaryLabel`, `onConfirm`, `onCancel`.  
   Do: 使用 Carbon `Modal` + token；按鈕用 Carbon `Button kind="danger"/"secondary"`。  
   Don't: 客製寬度/陰影；不得覆蓋 `.cds--modal`。  
-  Usage References (示例): src/features/contest/screens/DeleteContestScreen.tsx, src/features/problem/screens/ArchiveProblemScreen.tsx.
+  Usage References (示例): src/features/contest/screens/ContestListScreen.tsx, src/features/problems/screens/problemsIdEdit/ProblemEditScreen.tsx.
 
 - Name: StatusBadge  
   Path: src/shared/ui/status-badge/StatusBadge.tsx  
@@ -54,7 +54,7 @@
   Props: `status`(required: success|warning|error|info|draft), `label`, `size`(sm|md).  
   Do: 使用 Carbon `Tag`/`StatusIcon`; 顏色對應 Carbon tokens。  
   Don't: 自定義背景顏色；不得直接覆蓋 `.cds--tag`。  
-  Usage References (示例): src/features/submission/screens/SubmissionListScreen.tsx, src/features/problem/screens/ProblemDetailScreen.tsx.
+  Usage References (示例): src/features/submissions/screens/SubmissionListScreen.tsx, src/features/problems/screens/ProblemListScreen.tsx.
 
 - Name: StickyTabs  
   Path: src/shared/ui/sticky-tabs/StickyTabs.tsx  

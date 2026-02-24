@@ -6,7 +6,7 @@ usage() {
 Usage: create-pr.sh --title "PR title" [--base dev|main] [--body "PR body"] [--draft] [--no-push]
 
 Examples:
-  create-pr.sh --base dev --title "feat: add contest export"
+  create-pr.sh --base dev --title "feat: add contest export"   # from codex/<name>
   create-pr.sh --base main --title "release: dev to main"
 EOF
 }
@@ -57,9 +57,26 @@ if [[ -z "$title" ]]; then
   exit 1
 fi
 
+if [[ "$base" != "dev" && "$base" != "main" ]]; then
+  echo "Invalid --base: $base (allowed: dev|main)" >&2
+  exit 1
+fi
+
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "$current_branch" == "main" ]]; then
   echo "Refusing to create a PR from main." >&2
+  exit 1
+fi
+
+if [[ "$base" == "dev" ]]; then
+  if [[ "$current_branch" != codex/* ]]; then
+    echo "For --base dev, current branch must start with codex/ (got: $current_branch)." >&2
+    exit 1
+  fi
+fi
+
+if [[ "$base" == "main" && "$current_branch" != "dev" ]]; then
+  echo "For --base main, current branch must be dev (got: $current_branch)." >&2
   exit 1
 fi
 

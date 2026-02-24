@@ -13,6 +13,7 @@
   - api/http.client: HTTP client and error handling
   - api/repositories: concrete repository implementations
   - mappers: DTO-to-Entity transformations
+- src/services: legacy compatibility/testing area; avoid adding new runtime app logic here
 - src/shared: cross-feature UI and utilities; depends on core only; no infrastructure calls
 - src/features/<feature>: feature-specific presentation, workflows, state, and hooks; may depend on shared/core/infrastructure
 - src/styles: global styles only
@@ -24,6 +25,7 @@ app -> features/shared/core
 features -> shared/core/infrastructure
 features -> core/usecases (for complex business logic)
 shared -> core (entities, types only)
+services (legacy) -> core/infrastructure
 usecases -> ports (interfaces only)
 infrastructure/repositories -> core/ports (implements interfaces)
 infrastructure/repositories -> infrastructure/mappers

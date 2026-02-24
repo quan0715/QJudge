@@ -23,7 +23,7 @@ src/
 │       └── components/
 │           ├── ProblemPreviewCard.tsx
 │           └── ProblemPreviewCard.stories.tsx
-└── domains/
+└── features/
     └── storybook/
         ├── registry/index.ts           ← 註冊所有 stories
         └── mocks/                       ← Mock 資料
@@ -270,7 +270,7 @@ registerStory("shared/ui/folder/MyComponent", MyComponentStories);
 
 | Domain  | 組件               | 路徑                           | Stories 數量 |
 | ------- | ------------------ | ------------------------------ | ------------ |
-| problem | ProblemPreviewCard | `features/problem/components/` | 3            |
+| problems | ProblemPreviewCard | `features/problems/components/` | 3            |
 | contest | ContestPreviewCard | `features/contest/components/` | 3            |
 
 ## Core Entity 對應

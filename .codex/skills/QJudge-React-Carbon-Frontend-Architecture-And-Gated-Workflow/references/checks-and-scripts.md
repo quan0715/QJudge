@@ -1,22 +1,33 @@
-# Repo 可執行檢查（示例腳本）
+# Repo 檢查（建議腳本）
 
-- 目的：阻擋新增 `.cds--`/`.bx--` selector 與 `!important`。
-- pre-commit 或 CI bash 片段：
+## 1) Carbon override / !important 檢查（跨平台）
+- 目的：阻擋新增 `.cds--` / `.bx--` selector 與 `!important`。
+- 建議 pre-commit / CI 片段（使用 `rg`，macOS/Linux 都可）：
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT=$(git rev-parse --show-toplevel)
 
-# 阻擋 Carbon class 覆蓋
-if git diff --cached --name-only | grep -E "\\.(css|scss|sass|less|ts|tsx|js|jsx)$" | xargs -r grep -nE "\\.(cds|bx)--" ; then
-  echo "禁止直接覆蓋 Carbon 類名 (.cds-- / .bx--). 請移除或放入 allowlist 並說明理由。" >&2
+CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | rg '\\.(css|scss|sass|less|ts|tsx|js|jsx)$' || true)
+if [[ -z "$CHANGED_FILES" ]]; then
+  exit 0
+fi
+
+if rg -n --no-heading '\\.(cds|bx)--' $CHANGED_FILES; then
+  echo "禁止直接覆蓋 Carbon 類名 (.cds-- / .bx--)。" >&2
   exit 1
 fi
 
-# 阻擋 !important
-if git diff --cached --name-only | grep -E "\\.(css|scss|sass|less|ts|tsx|js|jsx)$" | xargs -r grep -n "!important" ; then
+if rg -n --no-heading '!important' $CHANGED_FILES; then
   echo "禁止使用 !important。" >&2
   exit 1
 fi
 ```
-- 如需允許特例，必須限定在 `src/styles/carbon-overrides.scss` 並在 PR 描述附理由。
+
+- 允許特例：僅限 `src/styles/carbon-overrides.scss`，且 PR 需附理由與回收計畫。
+
+## 2) 架構邊界檢查
+```bash
+node .codex/skills/qjudge-clean-arch-workflow/scripts/lint-naming.js --root frontend/src
+node .codex/skills/qjudge-clean-arch-workflow/scripts/lint-architecture.js --root frontend/src
+```

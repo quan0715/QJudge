@@ -117,6 +117,12 @@ const rules = [
   },
   { match: "infrastructure", allow: ["infrastructure", "core"] },
 
+  // Legacy services layer (kept for compatibility/integration tests)
+  {
+    match: "services",
+    allow: ["services", "core", "infrastructure", "test", "assets", "i18n"],
+  },
+
   // Shared layer - can use app/contexts for global state
   {
     match: "shared",
