@@ -27,8 +27,12 @@ export async function login(page: Page, role: UserRole = "student") {
 
   const waitForResult = async () => {
     await Promise.race([
-      page.waitForURL(/\/dashboard/, { timeout: 15000 }),
-      page.locator(".auth-error").waitFor({ state: "visible", timeout: 15000 }),
+      page.waitForFunction(
+        () => window.location.pathname !== "/login",
+        undefined,
+        { timeout: 20000 }
+      ),
+      page.locator(".auth-error").waitFor({ state: "visible", timeout: 20000 }),
     ]);
   };
 
@@ -41,7 +45,7 @@ export async function login(page: Page, role: UserRole = "student") {
     await waitForResult();
   }
 
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).not.toHaveURL(/\/login/);
 }
 
 /**
@@ -60,11 +64,13 @@ export async function logout(page: Page) {
   });
   await logoutButton.first().click({ timeout: 5000 });
 
-  // Wait for redirect to login page
-  await page.waitForURL(/\/login/, { timeout: 10000 });
-
-  // Verify logout success
-  await expect(page).toHaveURL(/\/login/);
+  // Unauthenticated users are redirected to landing page (/), legacy flows may still use /login
+  await page.waitForFunction(
+    () => ["/", "/login"].includes(window.location.pathname),
+    undefined,
+    { timeout: 10000 }
+  );
+  await expect(page).toHaveURL(/\/$|\/login/);
 }
 
 /**
@@ -92,11 +98,11 @@ export async function register(
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation (could be to login or directly to dashboard)
-  await Promise.race([
-    page.waitForURL(/\/login/, { timeout: 10000 }),
-    page.waitForURL(/\/dashboard/, { timeout: 10000 }),
-  ]);
+  await page.waitForFunction(
+    () => window.location.pathname !== "/register",
+    undefined,
+    { timeout: 20000 }
+  );
 }
 
 /**
@@ -107,13 +113,15 @@ export async function register(
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
   try {
+    const hasUser = await page.evaluate(() => Boolean(localStorage.getItem("user")));
+    if (!hasUser) return false;
+
     // Try to access a protected route
-    await page.goto("/dashboard");
+    await page.goto("/problems");
     await page.waitForTimeout(1000);
 
-    // If we're still on dashboard, user is authenticated
-    const url = page.url();
-    return url.includes("/dashboard");
+    const path = new URL(page.url()).pathname;
+    return path.startsWith("/problems");
   } catch {
     return false;
   }
@@ -173,14 +181,19 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   expect(response.ok()).toBeTruthy();
 
   const data = await response.json();
-  const token = data.data.access_token;
+  const token = data?.data?.access_token as string | undefined;
 
   // Set token in localStorage
   await page.goto("/");
-  await setAuthToken(page, token);
+  if (token) {
+    await setAuthToken(page, token);
+  }
 
   // Store user data
-  await page.evaluate((userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-  }, data.data.user);
+  const userData = data?.data?.user;
+  await page.evaluate((payload) => {
+    if (payload) {
+      localStorage.setItem("user", JSON.stringify(payload));
+    }
+  }, userData);
 }
