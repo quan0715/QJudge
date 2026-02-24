@@ -180,14 +180,25 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
+      - name: Select Playwright Browser Set
+        id: playwright-target
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "browsers=chromium" >> $GITHUB_OUTPUT
+            echo "PR mode: install chromium only"
+          else
+            echo "browsers=chromium webkit" >> $GITHUB_OUTPUT
+            echo "Non-PR mode: install chromium + webkit"
+          fi
+
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps ${{ steps.playwright-target.outputs.browsers }}
         working-directory: frontend
 
       - name: Install Playwright Dependencies (if cached)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit
+        run: npx playwright install-deps ${{ steps.playwright-target.outputs.browsers }}
         working-directory: frontend
 
       - name: Start Frontend Test Server
