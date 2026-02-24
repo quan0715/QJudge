@@ -1,73 +1,60 @@
-# CLAUDE.md
+# 專案協作備忘（QJudge）
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件提供在本專案協作時的快速上下文，內容已對齊 `ta-agent` 分支現狀。
 
-## 開發指令
+## 目前狀態摘要
 
-### Frontend (frontend/)
+- 主要工作分支：`ta-agent`
+- 進行中 PR（Draft）：[https://github.com/quan0715/QJudge/pull/51](https://github.com/quan0715/QJudge/pull/51)
+- AI 助教流程：已切換為 DeepAgent（LangGraph）架構
+- 後端與 AI service 間：新增 HMAC 保護內部端點
+- SSE 串流：前後端事件流已可完整傳遞與保存 metadata
+
+## 常用命令
+
+### Docker 開發環境（推薦）
+
 ```bash
-npm run dev          # 啟動開發伺服器 (Vite HMR)
-npm run build        # 生產環境建置
-npm run lint         # ESLint 檢查
-npm run test         # 單元測試 (Vitest)
-npm run test:e2e     # E2E 測試 (Playwright)
+docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.dev.yml ps
 ```
 
-### Backend (backend/)
+### Frontend
+
 ```bash
-pip install -r requirements/dev.txt
-python manage.py migrate
-python manage.py runserver    # 啟動開發伺服器
-pytest                        # 執行測試
-pytest apps/<app>/ -v         # 測試特定 app
+cd frontend
+npm run dev
+npm run lint
+npm run test:api
 ```
 
-### Docker 開發環境
+### Backend
+
 ```bash
-docker-compose -f docker-compose.dev.yml up
+cd backend
+python manage.py runserver
+pytest
 ```
 
-## 專案架構
+## 測試執行原則（重點）
 
-### 技術棧
-| 層級 | 技術 |
-|------|------|
-| Frontend | React 19, TypeScript, Carbon Design System, Vite |
-| Backend | Django 4.2, Django REST Framework, Celery |
-| Database | PostgreSQL 15, Redis 7 |
-| Judge | Docker 容器隔離執行 |
+- backend 測試建議用 `config.settings.test` + 明確 `DATABASE_URL` 指向 docker postgres
+- 若僅做功能驗證，先用 `PYTEST_ADDOPTS='--no-cov'`，避免 coverage gate 造成噪音
+- frontend `test:api` 依賴本地授權測試帳號/種子資料，失敗時先確認測試資料而非直接判定程式壞掉
 
-### 目錄結構
-- `frontend/src/features/` - 功能模組（auth, contest, problems, submissions 等）
-- `frontend/src/shared/` - 共用元件與工具
-- `frontend/src/core/` - 核心 hooks, context
-- `frontend/src/infrastructure/` - API clients, 設定
-- `backend/apps/` - Django 應用（users, problems, submissions, contests, judge 等）
-- `backend/config/` - Django 設定
+## 專案路徑重點
 
-## Skills 參考
+- `frontend/src/features/`：主要業務模組（chatbot/contest/problems/auth 等）
+- `frontend/src/infrastructure/`：API repository 與 mapper
+- `backend/apps/ai/`：AI session、串流、內部動作與核准流程
+- `ai-service/`：DeepAgent runner、工具註冊、SSE 事件轉接
 
-詳細開發規範請參考 `.claude/skills/`：
+## 技能（Skills）路徑
 
-### qjudge-clean-arch-workflow
-Clean Architecture 責任邊界與 lint 檢查。
-- 架構邊界：`references/architecture-boundaries.md`
-- 架構檢查：`node .claude/skills/qjudge-clean-arch-workflow/scripts/lint-architecture.js --root frontend/src`
+本專案技能位於 `.codex/skills/`，不是 `.claude/skills/`。
 
-### qjudge-pr-workflow
-Git 分支與 PR 工作流程。
-- 從 `dev` 建立 feature branch
-- commit: `bash .claude/skills/qjudge-pr-workflow/scripts/commit-changes.sh "type: message"`
-- PR: `bash .claude/skills/qjudge-pr-workflow/scripts/create-pr.sh --base dev --title "title"`
+常用：
 
-### QJudge-React-Carbon-Frontend-Architecture-And-Gated-Workflow
-前端架構與 Gated 開發流程。
-- **硬性約束**：禁止覆蓋 `.cds--*`/`.bx--*`，禁止 `!important`，Layout 用 Carbon Grid
-- **Feature 路由**：每個 feature 需有 `routes.tsx`，使用 `Screen` 命名
-- **Storybook 同步**：更新 UI 元件時必須同步更新 `.stories.tsx`
-- Gate 切換需明確確認後才進行
-
-### vercel-react-best-practices
-React 效能優化指南（45 條規則）。
-- 優先順序：Eliminating Waterfalls > Bundle Size > Server-Side > Client-Side > Re-render
-- 詳見：`.claude/skills/vercel-react-best-practices/SKILL.md`
+- `.codex/skills/qjudge-clean-arch-workflow/`
+- `.codex/skills/qjudge-pr-workflow/`
+- `.codex/skills/vercel-react-best-practices/`
