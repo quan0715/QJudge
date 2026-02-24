@@ -1,0 +1,9 @@
+[run]
+source = apps
+omit =
+    apps/judge/*
+    apps/*/management/commands/*
+
+[report]
+show_missing = True
+skip_covered = False

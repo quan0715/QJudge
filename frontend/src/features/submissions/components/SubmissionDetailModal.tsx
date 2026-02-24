@@ -443,24 +443,6 @@ const SubmissionDetailModal = ({
                         </div>
                       )}
                     </div>
-                  ) : submission.isTest &&
-                    submission.customTestCases &&
-                    submission.customTestCases.length > 0 ? (
-                    /* Pending custom test cases */
-                    <TestResultList
-                      results={submission.customTestCases.map((tc, index) => ({
-                        id: `custom-${index}`,
-                        testCaseId: `custom-${index}`,
-                        status: "pending" as const,
-                        execTime: 0,
-                        memoryUsage: 0,
-                        isHidden: false,
-                        input: tc.input,
-                        expectedOutput: tc.output,
-                      }))}
-                      layout="horizontal"
-                      size="md"
-                    />
                   ) : (
                     <div
                       style={{

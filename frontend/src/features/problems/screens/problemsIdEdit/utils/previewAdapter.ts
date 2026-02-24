@@ -33,8 +33,7 @@ export const formSchemaToPreview = (
     mleCount: 0,
     reCount: 0,
     ceCount: 0,
-    isPracticeVisible: false,
-    isVisible: formData.isVisible ?? true,
+    visibility: formData.visibility || "private",
     isSolved: false,
   };
 };

@@ -4,6 +4,7 @@ import styles from "./ContainerCard.module.scss";
 interface ContainerCardProps {
   children: React.ReactNode;
   title?: React.ReactNode;
+  subtitle?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -13,6 +14,7 @@ interface ContainerCardProps {
 const ContainerCard: React.FC<ContainerCardProps> = ({
   children,
   title,
+  subtitle,
   action,
   className,
   style,
@@ -26,9 +28,21 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
       {(title || action) && (
         <div className={styles.header}>
           {title && (
-            <h4 className={styles.title}>
-              {title}
-            </h4>
+            <div>
+              <h4 className={styles.title}>{title}</h4>
+              {subtitle ? (
+                <p
+                  style={{
+                    margin: "0.25rem 0 0",
+                    color: "var(--cds-text-secondary)",
+                    fontSize: "0.875rem",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
           )}
           {action && (
             <div className={styles.action}>

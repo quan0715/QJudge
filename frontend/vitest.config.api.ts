@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node", // Use Node environment for API tests
-    include: ["src/services/__tests__/**/*.integration.test.ts"],
+    include: ["src/infrastructure/api/__tests__/integration/**/*.integration.test.ts"],
     testTimeout: 30000, // API tests may take longer
     hookTimeout: 30000,
     // Run serially to avoid rate limiting issues

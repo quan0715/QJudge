@@ -49,9 +49,6 @@ export function mapSubmissionDto(dto: any): Submission {
     memoryUsage: dto.memory_usage ?? dto.memoryUsage,
     createdAt: dto.created_at ?? dto.createdAt ?? "",
     contestId: dto.contest?.toString() || dto.contest_id?.toString(),
-    // @deprecated - Backend no longer uses is_test. Test runs use /problems/{id}/test_run/ endpoint.
-    // Kept for backwards compatibility but will always be false for new submissions.
-    isTest: false,
   };
 }
 
@@ -83,8 +80,5 @@ export function mapSubmissionDetailDto(dto: any): SubmissionDetail {
     results: Array.isArray(dto.results)
       ? dto.results.map(mapTestResultDto)
       : [],
-    // @deprecated - Custom test cases now use /problems/{id}/test_run/ endpoint.
-    // Kept for backwards compatibility with legacy data.
-    customTestCases: dto.custom_test_cases || [],
   };
 }

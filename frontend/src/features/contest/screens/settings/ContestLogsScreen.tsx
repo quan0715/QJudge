@@ -455,20 +455,12 @@ const ContestAdminLogsPage = () => {
                   getHeaderProps,
                   getRowProps,
                   getTableProps,
-                }: {
-                  rows: typeof rows;
-                  headers: typeof headers;
-                  getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
-                  getRowProps: (args: { row: { id: string } }) => Record<string, string>;
-                  getTableProps: () => Record<string, string>;
-                }) => (
+                }: any) => (
                   <TableContainer>
                     <TableToolbar>
                       <TableToolbarContent>
                         <TableToolbarSearch
-                          onChange={(e: { target?: { value?: string } }) =>
-                            setSearchTerm(e.target?.value || "")
-                          }
+                          onChange={(_, value) => setSearchTerm(value || "")}
                           placeholder="搜尋事件..."
                           persistent
                         />
@@ -482,9 +474,9 @@ const ContestAdminLogsPage = () => {
                             selectedItems={eventFilterOptions.filter((opt) =>
                               selectedEventTypes.includes(opt.id)
                             )}
-                            onChange={({ selectedItems }: { selectedItems?: Array<{ id: string }> }) => {
+                            onChange={({ selectedItems }) => {
                               setSelectedEventTypes(
-                                selectedItems?.map((item) => item.id) || []
+                                (selectedItems ?? []).map((item: any) => item.id)
                               );
                             }}
                             size="md"
@@ -495,7 +487,7 @@ const ContestAdminLogsPage = () => {
                     <Table {...getTableProps()}>
                       <TableHead>
                         <TableRow>
-                          {headers.map((header) => {
+                          {headers.map((header: any) => {
                             const { key, ...headerProps } = getHeaderProps({
                               header,
                             });
@@ -508,7 +500,7 @@ const ContestAdminLogsPage = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {rows.map((row) => {
+                        {rows.map((row: any) => {
                           const event = filteredEvents.find(
                             (e, i) =>
                               (e.id ? e.id.toString() : i.toString()) === row.id
@@ -521,14 +513,14 @@ const ContestAdminLogsPage = () => {
                               <TableCell>
                                 {new Date(
                                   row.cells.find(
-                                    (c) => c.info.header === "timestamp"
+                                    (c: any) => c.info.header === "timestamp"
                                   )?.value
                                 ).toLocaleString()}
                               </TableCell>
                               <TableCell>
                                 {
                                   row.cells.find(
-                                    (c) => c.info.header === "userName"
+                                    (c: any) => c.info.header === "userName"
                                   )?.value
                                 }
                               </TableCell>
@@ -536,13 +528,13 @@ const ContestAdminLogsPage = () => {
                                 {event
                                   ? getEventTag(event.eventType)
                                   : row.cells.find(
-                                      (c) => c.info.header === "eventType"
+                                      (c: any) => c.info.header === "eventType"
                                     )?.value}
                               </TableCell>
                               <TableCell>
                                 {
                                   row.cells.find(
-                                    (c) => c.info.header === "reason"
+                                    (c: any) => c.info.header === "reason"
                                   )?.value
                                 }
                               </TableCell>

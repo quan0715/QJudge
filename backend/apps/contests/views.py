@@ -45,6 +45,12 @@ from .permissions import (
     IsContestParticipant,
     get_user_role_in_contest
 )
+from .services.export_service import (
+    ExportValidationError,
+    build_contest_download_response,
+    build_student_report_response,
+    parse_scale,
+)
 from .services.scoreboard import ScoreboardScope, ScoreboardService
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
@@ -981,58 +987,25 @@ class ContestViewSet(viewsets.ModelViewSet):
         Download contest files in PDF or Markdown format.
         Only accessible by contest owners and admins (contains problem content).
         """
-        from django.http import HttpResponse
-        from .exporters import MarkdownExporter, PDFExporter, sanitize_filename
-        
         contest = self.get_object()
-        user = request.user
-        
-        # Permission is already checked by IsContestOwnerOrAdmin
-        # No additional check needed
-        
-        # Get file_format, language, scale, and layout from query params
-        # Use 'file_format' instead of 'format' to avoid conflict with DRF's format suffix feature
-        file_format = request.query_params.get('file_format', 'markdown').lower()
+        file_format = request.query_params.get('file_format', 'markdown')
         language = request.query_params.get('language', 'zh-TW')
-        
-        # Get scale parameter for PDF (0.5 to 2.0, default 1.0)
+        scale = parse_scale(request.query_params.get('scale', '1.0'))
+        layout = request.query_params.get('layout', 'normal')
+
         try:
-            scale = float(request.query_params.get('scale', '1.0'))
-            scale = max(0.5, min(2.0, scale))  # Clamp between 0.5 and 2.0
-        except (ValueError, TypeError):
-            scale = 1.0
-        
-        # Get layout parameter for PDF ('normal' or 'compact', default 'normal')
-        layout = request.query_params.get('layout', 'normal').lower()
-        if layout not in ('normal', 'compact'):
-            layout = 'normal'
-        
-        if file_format not in ['markdown', 'pdf']:
+            return build_contest_download_response(
+                contest=contest,
+                file_format=file_format,
+                language=language,
+                scale=scale,
+                layout=layout,
+            )
+        except ExportValidationError as exc:
             return Response(
-                {'error': 'Invalid format. Choose "markdown" or "pdf"'},
+                {'error': str(exc)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Sanitize contest name for safe filename
-        safe_name = sanitize_filename(contest.name)
-        
-        try:
-            if file_format == 'markdown':
-                exporter = MarkdownExporter(contest, language)
-                content = exporter.export()
-                
-                response = HttpResponse(content, content_type='text/markdown; charset=utf-8')
-                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.md"'
-                
-            else:  # pdf
-                exporter = PDFExporter(contest, language, scale=scale, layout=layout)
-                pdf_file = exporter.export()
-                
-                response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_{safe_name}.pdf"'
-            
-            return response
-            
         except Exception as e:
             logger.exception("Failed to generate contest export: %s", e)
             return Response(
@@ -1049,8 +1022,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         GET /api/v1/contests/{id}/participants/{user_id}/report/
         """
-        from django.http import HttpResponse
-        from .exporters import StudentReportExporter, sanitize_filename
         from apps.users.models import User
         
         contest = self.get_object()
@@ -1073,24 +1044,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Get optional parameters
         language = request.query_params.get('language', 'zh-TW')
-        try:
-            scale = float(request.query_params.get('scale', '1.0'))
-            scale = max(0.5, min(2.0, scale))
-        except (ValueError, TypeError):
-            scale = 1.0
+        scale = parse_scale(request.query_params.get('scale', '1.0'))
         
         try:
-            exporter = StudentReportExporter(contest, target_user, language, scale)
-            pdf_file = exporter.export()
-            
-            safe_contest_name = sanitize_filename(contest.name)
-            safe_username = sanitize_filename(target_user.username)
-            filename = f"report_{contest.id}_{safe_contest_name}_{safe_username}.pdf"
-            
-            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response = build_student_report_response(
+                contest=contest,
+                user=target_user,
+                language=language,
+                scale=scale,
+            )
             
             # Log activity
             ContestActivityViewSet.log_activity(
@@ -1118,9 +1081,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         GET /api/v1/contests/{id}/my_report/
         """
-        from django.http import HttpResponse
-        from .exporters import StudentReportExporter, sanitize_filename
-        
         contest = self.get_object()
         user = request.user
         
@@ -1140,26 +1100,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Get optional parameters
         language = request.query_params.get('language', 'zh-TW')
-        try:
-            scale = float(request.query_params.get('scale', '1.0'))
-            scale = max(0.5, min(2.0, scale))
-        except (ValueError, TypeError):
-            scale = 1.0
+        scale = parse_scale(request.query_params.get('scale', '1.0'))
         
         try:
-            exporter = StudentReportExporter(contest, user, language, scale)
-            pdf_file = exporter.export()
-            
-            safe_contest_name = sanitize_filename(contest.name)
-            safe_username = sanitize_filename(user.username)
-            filename = f"report_{contest.id}_{safe_contest_name}_{safe_username}.pdf"
-            
-            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            
-            return response
+            return build_student_report_response(
+                contest=contest,
+                user=user,
+                language=language,
+                scale=scale,
+            )
             
         except Exception as e:
             logger.exception("Failed to generate personal report: %s", e)

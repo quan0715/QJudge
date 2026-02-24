@@ -59,7 +59,7 @@ class SessionAccessControlTestCase(TestCase):
 
     def test_user_can_send_message_to_own_session(self):
         self.client.force_authenticate(user=self.user1)
-        with patch("apps.ai.views._build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
             "apps.ai.views.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream()

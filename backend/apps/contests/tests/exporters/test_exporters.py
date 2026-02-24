@@ -6,7 +6,7 @@ from io import BytesIO
 from datetime import timedelta
 from django.utils import timezone
 from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamStatus
-from apps.contests.exporters import MarkdownExporter, PDFExporter, StudentReportExporter
+from apps.contests.exporters import MarkdownRenderer, PDFRenderer, StudentReportRenderer
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -83,7 +83,7 @@ class TestContestExporters:
     
     def test_markdown_exporter(self, contest, problem):
         """Test markdown export."""
-        exporter = MarkdownExporter(contest, 'zh-TW')
+        exporter = MarkdownRenderer(contest, 'zh-TW')
         content = exporter.export()
 
         # Check that the content contains expected elements
@@ -121,7 +121,7 @@ class TestContestExporters:
             order=1
         )
 
-        exporter = MarkdownExporter(contest, 'zh-TW')
+        exporter = MarkdownRenderer(contest, 'zh-TW')
         content = exporter.export()
 
         assert '## Problems' in content
@@ -141,7 +141,7 @@ class TestContestExporters:
             output_description='Output description'
         )
         
-        exporter = MarkdownExporter(contest, 'en')
+        exporter = MarkdownRenderer(contest, 'en')
         content = exporter.export()
         
         assert 'Test Contest' in content
@@ -149,7 +149,7 @@ class TestContestExporters:
     
     def test_pdf_exporter(self, contest, problem):
         """Test PDF export."""
-        exporter = PDFExporter(contest, 'zh-TW')
+        exporter = PDFRenderer(contest, 'zh-TW')
         pdf_file = exporter.export()
         
         # Check that a PDF file was created
@@ -165,7 +165,7 @@ class TestContestExporters:
     
     def test_format_problem_content(self, contest, problem):
         """Test problem content formatting."""
-        exporter = MarkdownExporter(contest, 'zh-TW')
+        exporter = MarkdownRenderer(contest, 'zh-TW')
         problem_data = exporter.format_problem_content(problem, 'A')
         
         assert problem_data['label'] == 'A'
@@ -177,7 +177,7 @@ class TestContestExporters:
 
 
 @pytest.mark.django_db
-class TestStudentReportExporter:
+class TestStudentReportRenderer:
     """Test student report exporter functionality."""
     
     @pytest.fixture
@@ -329,8 +329,8 @@ class TestStudentReportExporter:
         return submissions
     
     def test_student_report_exporter_init(self, contest_with_times, student):
-        """Test StudentReportExporter initialization."""
-        exporter = StudentReportExporter(contest_with_times, student, 'zh-TW')
+        """Test StudentReportRenderer initialization."""
+        exporter = StudentReportRenderer(contest_with_times, student, 'zh-TW')
         
         assert exporter.contest == contest_with_times
         assert exporter.user == student
@@ -339,7 +339,7 @@ class TestStudentReportExporter:
     
     def test_get_user_submissions(self, contest_with_times, student, participant, submissions):
         """Test getting user submissions."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         user_submissions = exporter.get_user_submissions()
         
         assert len(user_submissions) == 4
@@ -351,7 +351,7 @@ class TestStudentReportExporter:
     
     def test_calculate_standings(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test standings calculation."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         standings = exporter.calculate_standings()
         
         assert standings['rank'] == 1  # Only participant
@@ -362,7 +362,7 @@ class TestStudentReportExporter:
     
     def test_get_difficulty_stats(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test difficulty statistics."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         stats = exporter.get_difficulty_stats()
         
         assert stats['easy']['solved'] == 1
@@ -374,7 +374,7 @@ class TestStudentReportExporter:
     
     def test_get_last_ac_submission(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test getting last AC submission for a problem."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         
         # Should get the AC submission for easy problem
         ac_submission = exporter.get_last_ac_submission(problems_setup[0].id)
@@ -387,7 +387,7 @@ class TestStudentReportExporter:
     
     def test_highlight_code(self, contest_with_times, student):
         """Test code syntax highlighting."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         
         code = '#include <iostream>\nint main() { return 0; }'
         highlighted = exporter.highlight_code(code, 'cpp')
@@ -401,7 +401,7 @@ class TestStudentReportExporter:
     
     def test_generate_scatter_chart_svg(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test scatter chart SVG generation."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         user_submissions = exporter.get_user_submissions()
         contest_problems = exporter.get_contest_problems()
         
@@ -415,7 +415,7 @@ class TestStudentReportExporter:
     
     def test_generate_cumulative_chart_svg(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test cumulative line chart SVG generation."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         user_submissions = exporter.get_user_submissions()
         
         svg = exporter.generate_cumulative_chart_svg(user_submissions)
@@ -428,7 +428,7 @@ class TestStudentReportExporter:
     
     def test_render_score_cards(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test score cards rendering."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         html = exporter.render_score_cards()
         
         assert 'score-cards' in html
@@ -439,7 +439,7 @@ class TestStudentReportExporter:
     
     def test_render_difficulty_stats(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test difficulty stats rendering."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         html = exporter.render_difficulty_stats()
         
         # Check for difficulty section structure (using donut charts)
@@ -450,7 +450,7 @@ class TestStudentReportExporter:
     
     def test_render_problem_details(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test problem details rendering with AC code."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         html = exporter.render_problem_details()
         
         # Should contain problem sections
@@ -467,7 +467,7 @@ class TestStudentReportExporter:
     
     def test_export_pdf(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test full PDF export."""
-        exporter = StudentReportExporter(contest_with_times, student, 'zh-TW')
+        exporter = StudentReportRenderer(contest_with_times, student, 'zh-TW')
         pdf_file = exporter.export()
         
         # Should return BytesIO
@@ -483,7 +483,7 @@ class TestStudentReportExporter:
     
     def test_export_with_no_submissions(self, contest_with_times, student, participant, problems_setup):
         """Test export when student has no submissions."""
-        exporter = StudentReportExporter(contest_with_times, student, 'zh-TW')
+        exporter = StudentReportRenderer(contest_with_times, student, 'zh-TW')
         pdf_file = exporter.export()
         
         # Should still generate a valid PDF
@@ -493,7 +493,7 @@ class TestStudentReportExporter:
     
     def test_export_with_scale(self, contest_with_times, student, participant, problems_setup, submissions):
         """Test export with custom scale."""
-        exporter = StudentReportExporter(contest_with_times, student, 'zh-TW', scale=1.5)
+        exporter = StudentReportRenderer(contest_with_times, student, 'zh-TW', scale=1.5)
         
         assert exporter.scale == 1.5
         
@@ -503,20 +503,20 @@ class TestStudentReportExporter:
     def test_scale_clamping(self, contest_with_times, student):
         """Test that scale values are properly clamped."""
         # Scale too low
-        exporter_low = StudentReportExporter(contest_with_times, student, scale=0.1)
+        exporter_low = StudentReportRenderer(contest_with_times, student, scale=0.1)
         assert exporter_low.scale == 0.5
         
         # Scale too high
-        exporter_high = StudentReportExporter(contest_with_times, student, scale=5.0)
+        exporter_high = StudentReportRenderer(contest_with_times, student, scale=5.0)
         assert exporter_high.scale == 2.0
         
         # Scale in range
-        exporter_normal = StudentReportExporter(contest_with_times, student, scale=1.2)
+        exporter_normal = StudentReportRenderer(contest_with_times, student, scale=1.2)
         assert exporter_normal.scale == 1.2
     
     def test_empty_chart_svg(self, contest_with_times, student, participant, problems_setup):
         """Test chart SVG when no submissions (empty state)."""
-        exporter = StudentReportExporter(contest_with_times, student)
+        exporter = StudentReportRenderer(contest_with_times, student)
         
         # No submissions
         svg = exporter.generate_scatter_chart_svg([], exporter.get_contest_problems())

@@ -114,6 +114,7 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           DOCKER_IMAGE_JUDGE: oj-judge:latest
           JUDGE_ENGINE_ENABLED: "true"
+          PYTEST_ADDOPTS: --no-cov
         run: pytest apps/submissions/tests/test_performance.py -v --tb=short
         working-directory: backend
 
@@ -132,15 +133,6 @@ jobs:
           coverage report
           coverage xml
         working-directory: backend
-
-      - name: Upload Coverage to Codecov
-        if: always()
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./backend/coverage.xml
-          flags: judge
-          name: judge-tests
-          fail_ci_if_error: false
 
       - name: Cleanup Docker Images
         if: always()

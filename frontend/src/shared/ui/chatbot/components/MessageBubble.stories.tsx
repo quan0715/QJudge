@@ -1,6 +1,6 @@
 import type { StoryModule } from "@/shared/types/story.types";
 import type { ChatMessage } from "@/core/types/chatbot.types";
-import { MessageBubble } from "./MessageBubble";
+import { MessageBubble, type MessageBubbleProps } from "./MessageBubble";
 
 // Mock chat messages for different scenarios
 const mockUserMessage: ChatMessage = {
@@ -60,7 +60,7 @@ const mockAIMessageWithToolExecution: ChatMessage = {
   toolExecutions: [
     {
       toolName: "RunCode",
-      toolUseId: "tool-001",
+      toolCallId: "tool-1",
       inputData: {
         language: "python",
         code: "def solution(n):\n    return n * 2",
@@ -72,7 +72,7 @@ const mockAIMessageWithToolExecution: ChatMessage = {
   ],
 };
 
-const storyModule: StoryModule = {
+const storyModule: StoryModule<MessageBubbleProps> = {
   meta: {
     title: "shared/ui/chatbot/MessageBubble",
     component: MessageBubble,

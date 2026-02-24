@@ -4,7 +4,7 @@ import {
   getContests,
 } from "@/infrastructure/api/repositories/contest.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_CONTESTS, TEST_USERS } from "../../../tests/helpers/data.helper";
+import { TEST_CONTESTS, TEST_USERS } from "@/tests/helpers/data.helper";
 
 describe("contest repository integration", () => {
   let restoreFetch: (() => void) | undefined;

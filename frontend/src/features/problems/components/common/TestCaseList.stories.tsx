@@ -117,7 +117,7 @@ const TestCaseListDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: bo
 const storyModule: StoryModule<{ mode: TestCaseMode; readOnly: boolean }> = {
   meta: {
     title: "features/problems/components/common/TestCaseList",
-    component: TestCaseList,
+    component: TestCaseListDemo,
     category: "features",
     description: "題目與解題流程共用的測資列表（含新增/編輯/檢視）。",
     defaultArgs: {

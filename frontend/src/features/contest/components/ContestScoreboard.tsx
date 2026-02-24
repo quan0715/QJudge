@@ -114,20 +114,14 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       // API returns problems keyed by problem ID (as string)
       // Use nullish coalescing (??) to handle id=0 correctly
       const problemId = String(p.id ?? p.problem_id ?? "");
-      const stats = problemId && s.problems ? s.problems[problemId] : null;
+      const stats = problemId && s.problems ? s.problems[problemId] : undefined;
       row[`problem_${p.id}`] = stats;
     });
 
     return row;
   });
 
-  const renderCell = (
-    cell: {
-      info: { header: string };
-      value: ProblemStats | string | number | null;
-    },
-    problems: ProblemInfo[]
-  ) => {
+  const renderCell = (cell: any, problems: ProblemInfo[]) => {
     // Check if it's a problem column
     if (cell.info.header.startsWith("problem_")) {
       const stats = cell.value as ProblemStats | null;
@@ -264,7 +258,15 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       );
     }
 
-    return cell.value;
+    if (
+      typeof cell.value === "string" ||
+      typeof cell.value === "number" ||
+      cell.value === null ||
+      cell.value === undefined
+    ) {
+      return cell.value;
+    }
+    return null;
   };
 
   if (loading) {
@@ -294,27 +296,16 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           getTableProps,
           getHeaderProps,
           getRowProps,
-        }: {
-          rows: typeof rows;
-          headers: typeof headers;
-          getTableProps: () => Record<string, string>;
-          getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
-          getRowProps: (args: { row: { id: string } }) => Record<string, string>;
-        }) => (
-          <TableContainer style={{ overflow: "visible" }}>
+        }: any) => (
+          <TableContainer>
             <Table
               {...getTableProps()}
               isSortable
               className="contest-scoreboard-table"
-              style={{
-                tableLayout: "auto",
-                minWidth: "max-content", // Allow table to expand beyond container
-                width: "auto",
-              }}
             >
               <TableHead>
                 <TableRow>
-                  {headers.map((header) => {
+                  {headers.map((header: any) => {
                     const headerProps = getHeaderProps({ header });
                     const isProblemColumn = header.key.startsWith("problem_");
                     const problem = isProblemColumn
@@ -377,11 +368,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row) => {
+                {rows.map((row: any) => {
                   const { key, ...rowProps } = getRowProps({ row });
                   return (
                     <TableRow key={key} {...rowProps}>
-                      {row.cells.map((cell) => (
+                      {row.cells.map((cell: any) => (
                         <TableCell
                           key={cell.id}
                           style={{

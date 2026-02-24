@@ -13,18 +13,7 @@ export type StreamEventType =
   | "approval_required"
   | "usage_report"
   | "run_completed"
-  | "run_failed"
-  // Legacy (kept for transition, will be removed in WP-D)
-  | "init"
-  | "session"
-  | "delta"
-  | "thinking"
-  | "tool_start"
-  | "tool_result"
-  | "usage"
-  | "user_input_request"
-  | "done"
-  | "error";
+  | "run_failed";
 
 export interface BaseStreamEvent {
   type: StreamEventType;
@@ -40,34 +29,13 @@ export interface ThinkingInfo {
 
 export interface ToolInfo {
   toolName: string;
-  toolCallId: string;
+  toolCallId?: string;
   inputData?: Record<string, unknown>;
   result?: string | Record<string, unknown>;
   isError?: boolean;
-  // Legacy fields
-  toolUseId?: string;
-  startTimeMs?: number;
   durationMs?: number;
-  skillMetadata?: {
-    skill?: string;
-    gate?: string;
-  };
 }
 
-export interface ErrorInfo {
-  errorCode?: string;
-  errorMessage: string;
-  errorDetails?: Record<string, unknown>;
-}
-
-export interface UsageInfo {
-  inputTokens?: number;
-  outputTokens?: number;
-  costCents?: number;
-  modelUsed?: string;
-}
-
-// ===== v2: Verification Report =====
 export interface VerificationReport {
   iteration: number;
   passed: boolean;
@@ -75,7 +43,12 @@ export interface VerificationReport {
   summary: string;
 }
 
-// ===== v2: Pending Action / Approval =====
+export interface ApprovalRequest {
+  actionId: string;
+  actionType: "create" | "patch";
+  preview: Record<string, unknown>;
+}
+
 export interface PendingAction {
   id: string;
   session: string;
@@ -88,30 +61,11 @@ export interface PendingAction {
   expiresAt: string;
 }
 
-export interface ApprovalRequest {
-  actionId: string;
-  actionType: "create" | "patch";
-  preview: Record<string, unknown>;
-}
-
-// ===== v2: Model Info =====
 export interface ModelInfo {
   model_id: ChatModel;
   display_name: string;
   description: string;
   is_default: boolean;
-}
-
-// ===== Session Context (legacy, kept for backward compat) =====
-export interface SessionContext {
-  claudeSessionId?: string;
-  deepagentThreadId?: string;
-  selectedModel?: string;
-  activePendingActionId?: string;
-  currentStage?: string;
-  currentSkill?: string;
-  gateData?: Record<string, unknown>;
-  customData?: Record<string, unknown>;
 }
 
 // ===== Chat Message & Session =====
@@ -120,17 +74,9 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   timestamp: Date;
-
-  // Thinking process (collapsed accordion)
   thinkingInfo?: ThinkingInfo;
-
-  // Tool executions (collapsed accordion with details)
   toolExecutions?: ToolInfo[];
-
-  // v2: Verification reports
   verificationReports?: VerificationReport[];
-
-  // Legacy fields for backward compatibility
   isThinking?: boolean;
   toolName?: string;
 }
@@ -143,7 +89,6 @@ export interface ChatSession {
   updatedAt: Date;
   metadata?: {
     backend_session_id?: string;
-    claude_session_id?: string;
     deepagent_thread_id?: string;
     title_pending?: boolean;
     sync_timestamp?: number;
@@ -154,34 +99,13 @@ export interface StreamEvent extends BaseStreamEvent {
   content?: string;
   thinkingInfo?: ThinkingInfo;
   toolInfo?: ToolInfo;
-  sessionInfo?: SessionContext;
   userInputRequest?: UserInputRequest;
-  errorInfo?: ErrorInfo;
-  usageInfo?: UsageInfo;
   metadata?: Record<string, unknown>;
-
-  // v2 fields
   runId?: string;
   threadId?: string;
   verificationReport?: VerificationReport;
   approvalRequest?: ApprovalRequest;
-
-  // Init event fields (legacy)
-  backendSessionId?: string;
-  isNewSession?: boolean;
-
-  // Session event fields (legacy)
-  sessionId?: string;
-
-  // Legacy fields for backward compatibility
   toolName?: string;
-  toolInput?: Record<string, unknown>;
-  stage?: string;
-  skillUsed?: string;
-  sessionContext?: SessionContext;
-  claudeSessionId?: string;
-  tokensUsed?: number;
-  error?: string;
 }
 
 // ===== Background Context =====
@@ -203,8 +127,14 @@ export interface ChatContext {
   custom?: Record<string, unknown>;
 }
 
-// Legacy interface (for backward compatibility)
 export interface BackgroundInformation {
+  // Legacy-compatible fields (still used by some stories/UI scaffolds)
+  context?: string;
+  problemId?: string;
+  problemTitle?: string;
+  difficulty?: string;
+  description?: string;
+
   user?: {
     username: string;
     role?: string;
@@ -234,18 +164,6 @@ export interface SendMessageOptions {
   modelOverride?: string;
 }
 
-// ===== Stream Callbacks =====
-export interface StreamCallbacks {
-  onMessageUpdate?: (message: Partial<ChatMessage>) => void;
-  onComplete?: (session: ChatSession) => void;
-  onError?: (error: string) => void;
-  onUserInputRequest?: (request: UserInputRequest) => void;
-  /** v2: Approval required callback */
-  onApprovalRequired?: (request: ApprovalRequest) => void;
-  /** v2: Verification report callback */
-  onVerificationReport?: (report: VerificationReport) => void;
-}
-
 // ===== User Input =====
 export interface UserInputOption {
   label: string;
@@ -264,22 +182,27 @@ export interface UserInputRequest {
   questions: UserInputQuestion[];
 }
 
+// ===== Stream Callbacks =====
+export interface StreamCallbacks {
+  onMessageUpdate?: (message: Partial<ChatMessage>) => void;
+  onComplete?: (session: ChatSession) => void;
+  onError?: (error: string) => void;
+  onUserInputRequest?: (request: UserInputRequest) => void;
+  onApprovalRequired?: (request: ApprovalRequest) => void;
+  onVerificationReport?: (report: VerificationReport) => void;
+}
+
 // ===== Helper Functions =====
 export function getCurrentStage(toolExecutions?: ToolInfo[]): string | null {
   if (!toolExecutions?.length) return null;
 
-  const lastSkillExecution = [...toolExecutions]
-    .reverse()
-    .find((tool) => tool.toolName === "Skill" && tool.skillMetadata);
-
-  if (!lastSkillExecution?.skillMetadata) return null;
-
-  const { skill } = lastSkillExecution.skillMetadata;
+  const lastTool = [...toolExecutions].reverse().find((tool) => !!tool.toolName);
+  if (!lastTool) return null;
 
   const stageMap: Record<string, string> = {
-    "parse-problem-request": "Gate 0: 正在解析題目需求",
-    "generating-problem": "Gate 1: 正在生成題目內容",
+    "prepare_problem_action": "Gate 0: 正在建立變更草稿",
+    "internal_problem_actions_commit": "Gate 1: 正在提交變更",
   };
 
-  return stageMap[skill || ""] || `執行中: ${skill || lastSkillExecution.skillMetadata.gate}`;
+  return stageMap[lastTool.toolName] || `執行中: ${lastTool.toolName}`;
 }

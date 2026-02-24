@@ -1,11 +1,9 @@
 """AI Chat API views."""
 
-import asyncio
 import json
 import logging
 import httpx
 
-from django.conf import settings
 from django.db import transaction
 from django.http import StreamingHttpResponse
 from rest_framework import status, viewsets, generics, serializers
@@ -16,9 +14,16 @@ from rest_framework.exceptions import PermissionDenied
 
 from django.utils import timezone
 
-from .ai_client import get_ai_client
-from .models import AIExecutionLog, AIMessage, AIPendingAction, AISession
+from .models import AIMessage, AIPendingAction, AISession
 from .permissions import IsInternalService
+from .services.pending_actions import execute_create_action, execute_patch_action
+from .services.stream_proxy import (
+    ai_service_base_url,
+    build_ai_service_headers,
+    complete_execution_log,
+    create_execution_log,
+    update_session_title_async,
+)
 from .serializers import (
     AIMessageSerializer,
     AISessionListSerializer,
@@ -39,123 +44,6 @@ class SchemaAPIView(generics.GenericAPIView):
     """APIView with serializer support for schema generation."""
 
     serializer_class = serializers.Serializer
-
-# System prompt is now managed by AI-Service
-# Backend should NOT specify system_prompt; AI-Service decides based on conversation context
-# This ensures consistency and centralized management of chat style guidelines
-
-
-def _build_ai_service_headers() -> dict[str, str]:
-    """Build required auth headers for ai-service calls."""
-    token = getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
-    if not token:
-        raise RuntimeError("AI_SERVICE_INTERNAL_TOKEN is not configured")
-    return {"X-AI-Internal-Token": token}
-
-
-def _ai_service_base_url() -> str:
-    return getattr(settings, "AI_SERVICE_URL", "http://ai-service:8001").rstrip("/")
-
-
-def create_execution_log(user, session, user_message):
-    """建立執行紀錄，回傳 log 物件供後續更新
-
-    Args:
-        user: 認證用戶或 AnonymousUser
-        session: AISession 實例
-        user_message: 用戶訊息內容
-    """
-    # 只在用戶是認證用戶時才設置 user 字段
-    log_user = user if user and user.is_authenticated else None
-    return AIExecutionLog.objects.create(
-        user=log_user,
-        session=session,
-        user_message=user_message,
-        raw_log={},
-    )
-
-
-def complete_execution_log(log, ai_response, raw_log=None, metadata=None):
-    """完成執行紀錄"""
-    log.ai_response = ai_response
-    if raw_log:
-        log.raw_log = raw_log
-    if metadata:
-        log.metadata = metadata
-    log.save()
-
-
-async def generate_session_title(user_message: str, user_api_key: str) -> str:
-    """使用 AI 為 session 產生簡短標題。
-
-    使用 Haiku 模型快速產生，避免阻塞主要流程。
-
-    Args:
-        user_message: 用戶訊息
-        user_api_key: 用戶的 Anthropic API Key
-
-    Returns:
-        生成的標題
-    """
-    client = get_ai_client()
-
-    title_prompt = """根據以下用戶訊息，生成一個簡短的對話標題（5-15 個字）。
-標題應該簡潔描述對話主題，不需要引號或標點符號。
-只回覆標題本身，不要有任何其他文字。
-
-用戶訊息：
-"""
-    try:
-        result = await client.chat(
-            conversation=[{"role": "user", "content": title_prompt + user_message[:500]}],
-            max_tokens=50,
-            model_override="haiku",  # 使用最快的模型
-            user_api_key=user_api_key,  # 傳遞用戶 API Key
-        )
-        # 清理標題（移除引號、多餘空白）
-        title = result.content.strip().strip('"\'')
-        # 限制長度
-        if len(title) > 50:
-            title = title[:47] + "..."
-        return title
-    except Exception as e:
-        logger.warning(f"Failed to generate session title: {e}")
-        # 回退到簡單截取
-        return user_message[:30] + "..." if len(user_message) > 30 else user_message
-
-
-def update_session_title_async(session, user_message: str, user_api_key: str):
-    """在背景執行 session 標題更新。
-
-    注意：此函數在獨立的 thread 中執行，需使用同步方式操作 Django ORM。
-
-    Args:
-        session: AISession 實例
-        user_message: 用戶訊息
-        user_api_key: 用戶的 Anthropic API Key
-    """
-    import django
-    django.db.connections.close_all()  # 關閉舊連線，避免 thread 間共享問題
-
-    # 在新的 event loop 中執行 async AI 呼叫
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        title = loop.run_until_complete(generate_session_title(user_message, user_api_key))
-    finally:
-        loop.close()
-
-    # 使用同步方式更新資料庫（在新連線中）
-    try:
-        from .models import AISession
-        # 重新從資料庫取得 session 以避免 stale data
-        db_session = AISession.objects.get(pk=session.pk)
-        db_session.context = db_session.context or {}
-        db_session.context["title"] = title
-        db_session.save(update_fields=["context", "updated_at"])
-        logger.info(f"Session {session.pk} title updated to: {title}")
-    except Exception as e:
-        logger.error(f"Failed to update session title: {e}")
 
 
 class AISessionViewSet(viewsets.ModelViewSet):
@@ -365,7 +253,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
             try:
                 try:
-                    ai_headers = _build_ai_service_headers()
+                    ai_headers = build_ai_service_headers()
                 except RuntimeError as exc:
                     stream_error = str(exc)
                     logger.error(stream_error)
@@ -383,7 +271,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 # 4. 代理請求到 ai-service
                 with httpx.stream(
                     "POST",
-                    f"{_ai_service_base_url()}/api/chat/stream",
+                    f"{ai_service_base_url()}/api/chat/stream",
                     json=ai_service_payload,
                     headers=ai_headers,
                     timeout=120.0
@@ -722,7 +610,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
             try:
                 try:
-                    ai_headers = _build_ai_service_headers()
+                    ai_headers = build_ai_service_headers()
                 except RuntimeError as exc:
                     logger.error(str(exc))
                     yield f"data: {json.dumps({'type': 'error', 'content': str(exc)})}\n\n"
@@ -730,7 +618,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
                 with httpx.stream(
                     "POST",
-                    f"{_ai_service_base_url()}/api/chat/resume",
+                    f"{ai_service_base_url()}/api/chat/resume",
                     json=resume_payload,
                     headers=ai_headers,
                     timeout=120.0,
@@ -1052,9 +940,9 @@ class InternalCommitActionView(SchemaAPIView):
                 # Execute based on action type
                 try:
                     if action_obj.action_type == AIPendingAction.ActionType.CREATE:
-                        problem = self._execute_create(action_obj)
+                        problem = execute_create_action(action_obj)
                     else:
-                        problem = self._execute_patch(action_obj)
+                        problem = execute_patch_action(action_obj)
 
                     action_obj.status = AIPendingAction.Status.EXECUTED
                     action_obj.executed_problem = problem
@@ -1087,256 +975,6 @@ class InternalCommitActionView(SchemaAPIView):
                 {"error": "Action not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-    # Fields that live on Problem vs ProblemTranslation
-    _PROBLEM_FIELDS = {"title", "difficulty", "time_limit", "memory_limit"}
-    _TRANSLATION_FIELDS = {"description", "input_description", "output_description", "hint"}
-
-    def _execute_create(self, action_obj):
-        """Create a new problem + translations from payload.
-
-        Supports two formats:
-        - Legacy flat: {title, description, ...} → creates single zh-TW translation
-        - Multi-lang: {title, translations: [{language, title, description, ...}, ...]}
-        """
-        from apps.problems.models import Problem, ProblemTranslation
-        payload = action_obj.payload
-
-        problem = Problem.objects.create(
-            title=payload.get("title", "Untitled"),
-            difficulty=payload.get("difficulty", "medium"),
-            time_limit=payload.get("time_limit", 1000),
-            memory_limit=payload.get("memory_limit", 128),
-            created_by=action_obj.user,
-        )
-
-        translations_data = payload.get("translations")
-        if translations_data and isinstance(translations_data, list):
-            # Multi-language format
-            for t in translations_data:
-                ProblemTranslation.objects.create(
-                    problem=problem,
-                    language=t.get("language", "zh-TW"),
-                    title=t.get("title", payload.get("title", "Untitled")),
-                    description=t.get("description", ""),
-                    input_description=t.get("input_description", ""),
-                    output_description=t.get("output_description", ""),
-                    hint=t.get("hint", ""),
-                )
-        else:
-            # Legacy flat format → single zh-TW translation
-            ProblemTranslation.objects.create(
-                problem=problem,
-                language="zh-TW",
-                title=payload.get("title", "Untitled"),
-                description=payload.get("description", ""),
-                input_description=payload.get("input_description", payload.get("input_format", "")),
-                output_description=payload.get("output_description", payload.get("output_format", "")),
-                hint=payload.get("hint", ""),
-            )
-
-        # ---- Persist test cases ----
-        test_cases_data = payload.get("test_cases", [])
-        sample_cases_data = payload.get("sample_test_cases", [])
-        all_tc = test_cases_data or sample_cases_data
-        if all_tc and isinstance(all_tc, list):
-            from apps.problems.models import TestCase
-            for idx, tc in enumerate(all_tc):
-                is_from_full = bool(test_cases_data)
-                TestCase.objects.create(
-                    problem=problem,
-                    input_data=tc.get("input", tc.get("input_data", "")),
-                    output_data=tc.get("output", tc.get("output_data", "")),
-                    is_sample=tc.get("is_sample", True) if is_from_full else True,
-                    is_hidden=tc.get("is_hidden", False) if is_from_full else False,
-                    score=tc.get("score", 0),
-                    order=tc.get("order", idx),
-                )
-
-        return problem
-
-    def _execute_patch(self, action_obj):
-        """Apply RFC6902 JSON Patch to existing problem + translations + test cases.
-
-        Supports patch paths:
-        - /difficulty, /title, ... — Problem fields (flat)
-        - /translation/description, ... — nested under "translation" (default lang)
-        - /description, /input_description, ... — flat translation fields (legacy)
-        - /translations — full array of translation objects (multi-lang)
-        - /translations/0/description, /translations/1/... — indexed translation ops
-        - /sample_test_cases — replace sample test cases array
-        """
-        import jsonpatch
-        from apps.problems.models import Problem, ProblemTranslation, TestCase
-
-        problem = Problem.objects.select_for_update().get(id=action_obj.target_problem_id)
-        existing_translations = list(
-            ProblemTranslation.objects
-            .select_for_update()
-            .filter(problem=problem)
-            .order_by("language")
-        )
-
-        payload = action_obj.payload
-
-        # Build current document matching all supported patch paths
-        current_doc = {
-            "title": problem.title,
-            "difficulty": problem.difficulty,
-            "time_limit": problem.time_limit,
-            "memory_limit": problem.memory_limit,
-        }
-
-        # "translations" — full array for multi-lang ops
-        current_doc["translations"] = []
-        for t in existing_translations:
-            current_doc["translations"].append({
-                "language": t.language,
-                "title": t.title,
-                "description": t.description,
-                "input_description": t.input_description,
-                "output_description": t.output_description,
-                "hint": t.hint,
-            })
-
-        # "translation" — singular shorthand (first / default translation)
-        default_trans = next(
-            (t for t in existing_translations if t.language in ("zh-TW", "zh-hant")),
-            existing_translations[0] if existing_translations else None,
-        )
-        if default_trans:
-            trans_dict = {
-                "title": default_trans.title,
-                "description": default_trans.description,
-                "input_description": default_trans.input_description,
-                "output_description": default_trans.output_description,
-                "hint": default_trans.hint,
-            }
-            current_doc["translation"] = trans_dict
-            # Flat aliases for legacy /description paths
-            current_doc.update(trans_dict)
-
-        # Include current sample test cases
-        sample_cases = list(
-            TestCase.objects.filter(problem=problem, is_sample=True).order_by("order")
-        )
-        current_doc["sample_test_cases"] = [
-            {"input": tc.input_data, "output": tc.output_data, "order": tc.order}
-            for tc in sample_cases
-        ]
-
-        # Include ALL test cases (sample + hidden) for /test_cases patch path
-        all_cases = list(
-            TestCase.objects.filter(problem=problem).order_by("order")
-        )
-        current_doc["test_cases"] = [
-            {
-                "input": tc.input_data,
-                "output": tc.output_data,
-                "is_sample": tc.is_sample,
-                "is_hidden": tc.is_hidden,
-                "score": tc.score,
-                "order": tc.order,
-            }
-            for tc in all_cases
-        ]
-
-        # Apply patch
-        patch_ops = payload.get("json_patch_ops", [])
-        patch = jsonpatch.JsonPatch(patch_ops)
-        patched_doc = patch.apply(current_doc)
-
-        # ---- Write back to Problem ----
-        problem_changed = False
-        for key in self._PROBLEM_FIELDS:
-            new_val = patched_doc.get(key)
-            if new_val is not None and getattr(problem, key, None) != new_val:
-                setattr(problem, key, new_val)
-                problem_changed = True
-        if problem_changed:
-            problem.save()
-
-        # ---- Write back Translations ----
-        patched_translations = patched_doc.get("translations")
-        if patched_translations is not None and isinstance(patched_translations, list):
-            # Full translations array was patched — reconcile with DB
-            existing_by_lang = {t.language: t for t in existing_translations}
-            seen_langs = set()
-            for t_data in patched_translations:
-                lang = t_data.get("language", "zh-TW")
-                seen_langs.add(lang)
-                db_trans = existing_by_lang.get(lang)
-                if db_trans:
-                    # Update existing
-                    changed = False
-                    for key in ("title", *self._TRANSLATION_FIELDS):
-                        new_val = t_data.get(key)
-                        if new_val is not None and getattr(db_trans, key, None) != new_val:
-                            setattr(db_trans, key, new_val)
-                            changed = True
-                    if changed:
-                        db_trans.save()
-                else:
-                    # Create new language translation
-                    ProblemTranslation.objects.create(
-                        problem=problem,
-                        language=lang,
-                        title=t_data.get("title", problem.title),
-                        description=t_data.get("description", ""),
-                        input_description=t_data.get("input_description", ""),
-                        output_description=t_data.get("output_description", ""),
-                        hint=t_data.get("hint", ""),
-                    )
-            # Delete translations for languages removed from the patched array
-            stale_langs = set(existing_by_lang.keys()) - seen_langs
-            if stale_langs:
-                ProblemTranslation.objects.filter(
-                    problem=problem, language__in=stale_langs
-                ).delete()
-        else:
-            # Fallback: write back singular /translation and flat paths to default translation
-            if default_trans:
-                patched_trans = patched_doc.get("translation", {})
-                trans_changed = False
-                for key in self._TRANSLATION_FIELDS:
-                    new_val = patched_trans.get(key, patched_doc.get(key))
-                    if new_val is not None and getattr(default_trans, key, None) != new_val:
-                        setattr(default_trans, key, new_val)
-                        trans_changed = True
-                if trans_changed:
-                    default_trans.save()
-
-        # ---- Write back test cases ----
-        # Full test_cases array (sample + hidden) takes priority over sample_test_cases
-        new_all_cases = patched_doc.get("test_cases")
-        if new_all_cases is not None and isinstance(new_all_cases, list):
-            # Delete ALL existing test cases and rebuild
-            TestCase.objects.filter(problem=problem).delete()
-            for idx, tc in enumerate(new_all_cases):
-                TestCase.objects.create(
-                    problem=problem,
-                    input_data=tc.get("input", ""),
-                    output_data=tc.get("output", ""),
-                    is_sample=tc.get("is_sample", False),
-                    is_hidden=tc.get("is_hidden", False),
-                    score=tc.get("score", 0),
-                    order=tc.get("order", idx),
-                )
-        else:
-            # Fallback: only sample_test_cases were patched
-            new_samples = patched_doc.get("sample_test_cases")
-            if new_samples is not None and isinstance(new_samples, list):
-                TestCase.objects.filter(problem=problem, is_sample=True).delete()
-                for idx, tc in enumerate(new_samples):
-                    TestCase.objects.create(
-                        problem=problem,
-                        input_data=tc.get("input", ""),
-                        output_data=tc.get("output", ""),
-                        is_sample=True,
-                        order=tc.get("order", idx),
-                    )
-
-        return problem
 
 
 class InternalPendingActionDetailView(SchemaAPIView):

@@ -55,7 +55,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
       },
       displayName: row.displayName,
       solved: row.solvedCount,
-      total_score: row.totalScore || row.total_score || 0,
+      total_score: row.totalScore || 0,
       time: row.penalty,
       problems: Object.fromEntries(
         Object.entries(row.problems || {}).map(([key, cell]) => {
