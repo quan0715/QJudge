@@ -3,6 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { StickyTabs } from "@/shared/ui/navigation/StickyTabs";
+import {
+  getAvailableContestTabKeys,
+  type ContestTabKey,
+} from "@/features/contest/tabConfig";
 
 interface ContestTabsProps {
   contest?: ContestDetail | null;
@@ -13,55 +17,24 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
   const { t } = useTranslation("contest");
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Build tabs based on permissions and join status
-  const buildTabs = () => {
-    const permissions = contest?.permissions;
-    const hasJoined = contest?.hasJoined || contest?.isRegistered;
-
-    // Non-joined users can only see overview
-    if (!hasJoined && !permissions?.canEditContest) {
-      return [{ label: t("tabs.overview"), key: "overview" }];
-    }
-
-    // Base tabs visible to all participants
-    const tabs = [
-      { label: t("tabs.overview"), key: "overview" },
-      { label: t("tabs.problems"), key: "problems" },
-      { label: t("tabs.submissions"), key: "submissions" },
-    ];
-
-    // Standings - visible based on contest settings or permission
-    if (
-      permissions?.canViewFullScoreboard ||
-      contest?.scoreboardVisibleDuringContest
-    ) {
-      tabs.push({ label: t("tabs.ranking"), key: "standings" });
-    }
-
-    // Clarifications - always visible for joined users
-    tabs.push({ label: t("tabs.clarifications"), key: "clarifications" });
-
-    // Admin tabs - based on permissions
-    if (permissions?.canEditContest) {
-      tabs.push({ label: t("tabs.settings"), key: "settings" });
-    }
-
-    if (permissions?.canViewAllSubmissions) {
-      tabs.push({ label: t("tabs.participants"), key: "participants" });
-      tabs.push({ label: t("tabs.logs"), key: "logs" });
-      tabs.push({ label: t("tabs.examModel"), key: "exam-model" });
-      tabs.push({ label: t("tabs.examQuestions"), key: "exam-questions" });
-    }
-
-    // Admins tab - only visible to those who can edit (owner/admins)
-    if (permissions?.canEditContest) {
-      tabs.push({ label: t("tabs.admins"), key: "admins" });
-    }
-
-    return tabs;
+  const tabLabelMap: Record<ContestTabKey, string> = {
+    overview: t("tabs.overview"),
+    problems: t("tabs.problems"),
+    submissions: t("tabs.submissions"),
+    standings: t("tabs.ranking"),
+    clarifications: t("tabs.clarifications"),
+    settings: t("tabs.settings"),
+    participants: t("tabs.participants"),
+    logs: t("tabs.logs"),
+    "exam-model": t("tabs.examModel"),
+    "exam-questions": t("tabs.examQuestions"),
+    admins: t("tabs.admins"),
   };
 
-  const currentTabs = buildTabs();
+  const currentTabs = getAvailableContestTabKeys(contest).map((key) => ({
+    key,
+    label: tabLabelMap[key],
+  }));
 
   // Determine active tab index
   const getCurrentTabIndex = () => {

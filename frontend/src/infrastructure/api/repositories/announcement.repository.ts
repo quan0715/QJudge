@@ -47,13 +47,6 @@ export const getAnnouncements = async (): Promise<Announcement[]> => {
   return data.results || data;
 };
 
-export const getAnnouncement = async (id: number): Promise<Announcement> => {
-  return requestJson<Announcement>(
-    httpClient.get(`/api/v1/management/announcements/${id}/`),
-    "Failed to fetch announcement"
-  );
-};
-
 export const createAnnouncement = async (
   data: CreateAnnouncementRequest
 ): Promise<Announcement> => {
@@ -86,7 +79,6 @@ export const deleteAnnouncement = async (id: number): Promise<void> => {
 
 export default {
   getAnnouncements,
-  getAnnouncement,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,

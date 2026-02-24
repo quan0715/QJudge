@@ -81,6 +81,11 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   onCancelAction,
 }) => {
   const messages: ChatMessage[] = currentSession?.messages ?? [];
+  const isUninitializedTempSession = Boolean(
+    currentSession &&
+      currentSession.id.startsWith("temp-") &&
+      !currentSession.metadata?.backend_session_id
+  );
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInputValue, setRenameInputValue] = useState(currentSession?.title || "");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -152,8 +157,14 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {/* 標題列 - 整合 Session 選擇器 */}
       <div className={styles.chatHeader}>
         {/* 左側：Session 下拉選擇器 */}
-        <div className={styles.chatTitleContainer}>
-          <AgentAvatar size="sm" className={styles.chatIcon} />
+        <div
+          className={`${styles.chatTitleContainer} ${
+            isUninitializedTempSession ? styles.chatTitleContainerNoAvatar : ""
+          }`}
+        >
+          {!isUninitializedTempSession && (
+            <AgentAvatar size="sm" className={styles.chatIcon} />
+          )}
           <Dropdown
             id="session-selector"
             titleText=""

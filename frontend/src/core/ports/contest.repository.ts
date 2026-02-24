@@ -9,7 +9,6 @@ import type {
   ExamEvent,
   Clarification,
   ContestAnnouncement,
-  ContestQuestion,
   ExamQuestion,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
@@ -36,7 +35,6 @@ export interface IContestRepository {
   ): Promise<void>;
   enterContest(id: string): Promise<void>;
   leaveContest(id: string): Promise<void>;
-  endContest(id: string): Promise<void>;
   archiveContest(id: string): Promise<void>;
 
   // Scoreboard
@@ -146,19 +144,6 @@ export interface IContestAnnouncementRepository {
     data: { title?: string; content?: string }
   ): Promise<ContestAnnouncement>;
   deleteAnnouncement(contestId: string, announcementId: string): Promise<void>;
-}
-
-export interface IContestQuestionRepository {
-  getQuestions(contestId: string): Promise<ContestQuestion[]>;
-  createQuestion(
-    contestId: string,
-    data: { title: string; content: string }
-  ): Promise<ContestQuestion>;
-  answerQuestion(
-    contestId: string,
-    questionId: string,
-    data: { answer: string; is_public?: boolean }
-  ): Promise<ContestQuestion>;
 }
 
 export interface IExamQuestionRepository {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
@@ -22,6 +22,10 @@ import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsSc
 import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
 import ContestExamModelScreen from "@/features/contest/screens/settings/ContestExamModelScreen";
 import ContestExamQuestionsScreen from "@/features/contest/screens/settings/ContestExamQuestionsScreen";
+import {
+  getAvailableContestTabKeys,
+  type ContestTabKey,
+} from "@/features/contest/tabConfig";
 
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
@@ -68,9 +72,27 @@ const ContestDashboard = () => {
     });
   };
 
-  // Get selected tab from URL (default to 'overview')
-  const selectedTab = searchParams.get("tab") || "overview";
+  const selectedTabParam = searchParams.get("tab") || "overview";
   const selectedSubmissionId = searchParams.get("submissionId");
+
+  const availableTabKeys = useMemo(
+    () => getAvailableContestTabKeys(contest),
+    [contest]
+  );
+
+  const selectedTab = availableTabKeys.includes(selectedTabParam as ContestTabKey)
+    ? selectedTabParam
+    : availableTabKeys[0];
+
+  useEffect(() => {
+    if (!contest) return;
+    if (selectedTabParam === selectedTab) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", selectedTab);
+      return next;
+    });
+  }, [contest, selectedTab, selectedTabParam, setSearchParams]);
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -109,6 +131,7 @@ const ContestDashboard = () => {
 
   // Guard against null contest
   if (!contest) return renderSkeleton();
+
   const renderTabContent = () => {
     switch (selectedTab) {
       case "overview":

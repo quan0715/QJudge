@@ -67,18 +67,6 @@ export const reorderContestProblems = async (
   );
 };
 
-export const publishProblemToPractice = async (
-  contestId: string,
-  problemId: string
-): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(
-      `/api/v1/contests/${contestId}/problems/${problemId}/publish/`
-    ),
-    "Failed to publish problem"
-  );
-};
-
 export const publishContestProblemsToPractice = async (
   contestId: string,
   problemIds?: Array<string | number>

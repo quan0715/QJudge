@@ -1,5 +1,5 @@
 import type { FC, KeyboardEvent } from "react";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { IconButton, Dropdown, Tag } from "@carbon/react";
 import { ArrowUp, Information } from "@carbon/icons-react";
 import type { BackgroundInformation, ChatModel } from "@/core/types/chatbot.types";
@@ -10,6 +10,23 @@ const AVAILABLE_MODELS: { id: ChatModel; label: string }[] = [
   { id: "claude-haiku", label: "Haiku 4.5" },
   { id: "claude-opus", label: "Opus 4.6" },
 ];
+const LAST_MODEL_KEY = "chatbot_last_model";
+const DEFAULT_MODEL: ChatModel = "claude-sonnet";
+
+function resolveInitialModel(): ChatModel {
+  if (typeof window === "undefined") {
+    return DEFAULT_MODEL;
+  }
+  const saved = localStorage.getItem(LAST_MODEL_KEY);
+  if (
+    saved === "claude-sonnet" ||
+    saved === "claude-haiku" ||
+    saved === "claude-opus"
+  ) {
+    return saved;
+  }
+  return DEFAULT_MODEL;
+}
 
 export interface ChatInputProps {
   onSend: (message: string, modelId: ChatModel) => void;
@@ -37,24 +54,36 @@ export const ChatInput: FC<ChatInputProps> = ({
   hasMessages = false,
 }) => {
   const [value, setValue] = useState("");
-  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0]);
+  const [selectedModelId, setSelectedModelId] =
+    useState<ChatModel>(resolveInitialModel);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const selectedModel =
+    AVAILABLE_MODELS.find((m) => m.id === selectedModelId) ??
+    AVAILABLE_MODELS[0];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_MODEL_KEY, selectedModelId);
+    } catch {
+      // Ignore storage failures (private mode / quota).
+    }
+  }, [selectedModelId]);
 
   const handleSend = useCallback(() => {
     if (value.trim() && !disabled) {
-      onSend(value, selectedModel.id);
+      onSend(value, selectedModelId);
       setValue("");
       // 重置 textarea 到初始高度
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
         setTimeout(() => {
           if (textareaRef.current) {
-            textareaRef.current.style.height = "90px";
+            textareaRef.current.style.height = "72px";
           }
         }, 0);
       }
     }
-  }, [value, disabled, onSend]);
+  }, [value, disabled, onSend, selectedModelId]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -138,7 +167,7 @@ export const ChatInput: FC<ChatInputProps> = ({
             selectedItem={selectedModel}
             onChange={({ selectedItem }) => {
               if (selectedItem) {
-                setSelectedModel(selectedItem);
+                setSelectedModelId(selectedItem.id);
               }
             }}
             size="sm"

@@ -16,9 +16,9 @@ export const AgentAvatar: FC<AgentAvatarProps> = ({
   className = "",
 }) => {
   const sizeMap = {
-    sm: 24,
-    md: 32,
-    lg: 48,
+    sm: 20,
+    md: 28,
+    lg: 40,
   };
 
   const dimension = sizeMap[size];

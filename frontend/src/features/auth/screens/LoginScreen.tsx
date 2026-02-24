@@ -27,7 +27,6 @@ const LoginPage = () => {
     try {
       const response = await login({ email, password });
       if (response.success) {
-        localStorage.setItem("token", response.data.access_token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         window.location.href = "/dashboard";
       } else {

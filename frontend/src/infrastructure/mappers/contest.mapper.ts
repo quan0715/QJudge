@@ -6,7 +6,6 @@ import type {
   ScoreboardRow,
   ExamEvent,
   ExamEventStats,
-  ContestQuestion,
   ExamQuestion,
   ContestParticipant,
   Clarification,
@@ -210,20 +209,6 @@ export function mapExamEventStatsDto(dto: any): ExamEventStats {
     exitFullscreenCount: dto.exit_fullscreen_count || 0,
     forbiddenFocusEventCount: dto.forbidden_focus_event_count || 0,
     totalViolations: dto.total_violations || 0,
-  };
-}
-
-export function mapContestQuestionDto(dto: any): ContestQuestion {
-  return {
-    id: dto.id?.toString() || "",
-    title: dto.title || "",
-    content: dto.content || "",
-    answer: dto.answer,
-    isPublic: !!dto.is_public,
-    authorUsername: dto.student_name || dto.author_username,
-    answeredBy: dto.answered_by,
-    createdAt: dto.created_at || "",
-    updatedAt: dto.updated_at || "",
   };
 }
 

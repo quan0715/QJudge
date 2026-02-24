@@ -585,6 +585,11 @@ const chatbotRepository: ChatbotRepository = {
       // ===== v2 Events =====
       case "run_started":
         console.debug("SSE: run_started", { runId: event.run_id, threadId: event.thread_id });
+        // DeepAgent v2 uses thread_id as the canonical session id.
+        // For newly created chats, this replaces the temporary backend session id.
+        if (event.thread_id) {
+          setResolvedId(event.thread_id);
+        }
         break;
 
       case "agent_message_delta":
@@ -672,7 +677,10 @@ const chatbotRepository: ChatbotRepository = {
         // Fetch fresh session
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
-          .catch((err: Error) => console.warn("Failed to fetch session after run_completed:", err));
+          .catch((err: Error) => {
+            console.warn("Failed to fetch session after run_completed:", err);
+            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+          });
         break;
       }
 

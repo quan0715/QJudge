@@ -79,7 +79,6 @@ const SubmissionsScreen = () => {
       const params: GetSubmissionsParams = {
         page,
         page_size: pageSize,
-        is_test: 0,
         source_type: "practice",
       };
 

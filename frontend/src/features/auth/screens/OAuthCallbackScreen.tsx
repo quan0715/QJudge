@@ -31,7 +31,6 @@ const OAuthCallbackPage = () => {
         });
 
         if (response.success) {
-          localStorage.setItem('token', response.data.access_token);
           localStorage.setItem('user', JSON.stringify(response.data.user));
           // Use full page redirect to ensure AuthContext picks up the new state
           window.location.href = '/dashboard';

@@ -208,7 +208,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   enableMath = false,
   enableHighlight = false,
   enableCopy = false,
-  allowRawHtml = true,
+  allowRawHtml = false,
   className = "",
   style,
 }) => {

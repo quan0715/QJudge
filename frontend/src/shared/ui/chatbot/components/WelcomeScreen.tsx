@@ -45,7 +45,7 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = ({
               >
                 {Icon && (
                   <div className={styles.promptIcon}>
-                    <Icon size={20} />
+                    <Icon size={18} />
                   </div>
                 )}
                 <span className={styles.promptText}>{prompt.text}</span>

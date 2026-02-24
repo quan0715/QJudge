@@ -181,15 +181,6 @@ export const deleteAPIKey = async (): Promise<{ success: boolean }> => {
   );
 };
 
-export const validateAPIKey = async (
-  api_key: string
-): Promise<{ success: boolean; valid: boolean; error?: string }> => {
-  return requestJson<{ success: boolean; valid: boolean; error?: string }>(
-    httpClient.post("/api/v1/users/me/api-key/validate", { api_key }),
-    "Failed to validate API key"
-  );
-};
-
 export const getUsageStats = async (params?: {
   start_date?: string;
   end_date?: string;
@@ -222,6 +213,5 @@ export default {
   getAPIKeyInfo,
   setAPIKey,
   deleteAPIKey,
-  validateAPIKey,
   getUsageStats,
 };

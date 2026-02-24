@@ -99,8 +99,6 @@ export const downloadParticipantReport = async (
   language: string = "zh-TW",
   scale: number = 1.0
 ): Promise<void> => {
-  const token = localStorage.getItem("token");
-
   const params = new URLSearchParams({
     language: language,
   });
@@ -112,12 +110,10 @@ export const downloadParticipantReport = async (
     params.append("scale", scale.toString());
   }
 
-  const res = await fetch(
+  const res = await httpClient.get(
     `/api/v1/contests/${contestId}/participants/${userId}/report/?${params.toString()}`,
     {
-      method: "GET",
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
         Accept: "*/*",
       },
     }
