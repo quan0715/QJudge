@@ -57,6 +57,7 @@ services:
       - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
       - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-01}
       - HMAC_SECRET=${HMAC_SECRET}
+      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
       - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
     volumes:
       - ./ai-service:/app
@@ -94,6 +95,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET}
+      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy

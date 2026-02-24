@@ -6,7 +6,6 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from apps.core.db_views import DatabaseStatusView, DatabaseSyncView
 from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
 
 urlpatterns = [
@@ -23,9 +22,6 @@ urlpatterns = [
     path('api/v1/users/me/api-key', UserAPIKeyView.as_view(), name='api-key'),
     path('api/v1/users/me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
     path('api/v1/users/me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
-    # Database Admin (development only)
-    path('api/admin/database/', DatabaseStatusView.as_view(), name='database-status'),
-    path('api/admin/database/sync/', DatabaseSyncView.as_view(), name='database-sync'),
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:

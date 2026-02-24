@@ -76,17 +76,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Database Configuration
-# default: Local Docker PostgreSQL (development)
-# cloud: Supabase Cloud PostgreSQL (production/testing)
-
-# 雲端資料庫連接存活時間設置
-# 預設為 0（Transaction Mode），避免 Session Mode 的 MaxClientsInSessionMode 錯誤
-_cloud_conn_max_age_str = os.getenv("CLOUD_DB_CONN_MAX_AGE", "0")
-if _cloud_conn_max_age_str.lower() == "none":
-    _cloud_conn_max_age = None  # 持久連接（僅適用於直連或低併發場景）
-else:
-    _cloud_conn_max_age = int(_cloud_conn_max_age_str)
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -95,30 +84,12 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
-    },
-    "cloud": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("CLOUD_DB_NAME", "postgres"),
-        "USER": os.getenv("CLOUD_DB_USER", "postgres"),
-        "PASSWORD": os.getenv("CLOUD_DB_PASSWORD", ""),
-        "HOST": os.getenv("CLOUD_DB_HOST", ""),
-        "PORT": os.getenv("CLOUD_DB_PORT", "5432"),
-        "CONN_MAX_AGE": _cloud_conn_max_age,
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
         "OPTIONS": {
-            "connect_timeout": 5,
-            # TCP Keepalive - 保持連接活躍
-            "keepalives": 1,
-            "keepalives_idle": 30,
-            "keepalives_interval": 10,
-            "keepalives_count": 5,
-            # SSL 設置
-            "sslmode": os.getenv("CLOUD_DB_SSLMODE", "require"),
+            "connect_timeout": 10,
         },
-    },
+    }
 }
-
-# Database Router for dynamic switching (dev only)
-DATABASE_ROUTERS = ["apps.core.db_router.DynamicDatabaseRouter"]
 
 # Custom User Model
 AUTH_USER_MODEL = "users.User"
@@ -312,12 +283,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contests.tasks.check_heartbeat_timeout",
         "schedule": 30.0,  # Every 30 seconds
     },
-    # Database backup task (production only)
-    # Runs every 6 hours to backup cloud data to local
-    "backup-cloud-to-local": {
-        "task": "apps.core.tasks.backup_cloud_to_local",
-        "schedule": 60 * 60 * 6,  # Every 6 hours
-    },
 }
 
 # NYCU OAuth settings
@@ -356,6 +321,10 @@ if os.getenv("DOCKER_SECCOMP_PROFILE") == "":
 # AI Service settings
 # URL for the AI Service container (LangChain DeepAgent)
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
+AI_SERVICE_INTERNAL_TOKEN = os.getenv(
+    "AI_SERVICE_INTERNAL_TOKEN",
+    os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
+)
 
 # HMAC secret for internal API authentication between ai-service and backend
 AI_SERVICE_HMAC_SECRET = os.getenv("HMAC_SECRET", "")
