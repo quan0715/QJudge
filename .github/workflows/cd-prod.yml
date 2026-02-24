@@ -1,0 +1,119 @@
+name: CD Prod
+
+on:
+  workflow_run:
+    workflows:
+      - Unit Tests
+      - Judge System Tests
+    types:
+      - completed
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
+
+    steps:
+      - name: Determine SHA
+        id: sha
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          required=(
+            TS_OAUTH_CLIENT_ID
+            TS_OAUTH_SECRET
+            PROD_SSH_HOST
+            PROD_SSH_USER
+            PROD_DEPLOY_PATH
+          )
+          for key in "${required[@]}"; do
+            value="${!key:-}"
+            if [ -z "$value" ]; then
+              echo "Missing required secret: $key" >&2
+              exit 1
+            fi
+          done
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+
+      - name: Check all CI passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          required_workflows=("Unit Tests" "Judge System Tests")
+
+          for workflow in "${required_workflows[@]}"; do
+            echo "Checking: ${workflow}"
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs" \
+              --jq "[.workflow_runs[] | select(.name == \"${workflow}\" and .head_sha == \"${SHA}\")] | first | .conclusion" \
+              2>/dev/null || echo "null")
+
+            if [ "${conclusion}" != "success" ]; then
+              echo "Workflow '${workflow}' has not succeeded for ${SHA} (got: ${conclusion})" >&2
+              echo "Re-run after all CI workflows succeed." >&2
+              exit 1
+            fi
+            echo "  ✓ ${workflow} passed"
+          done
+
+          echo "All CI checks passed for ${SHA}"
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          version: latest
+          ping: ${{ secrets.PROD_SSH_HOST }}
+
+      - name: Upload deploy script
+        env:
+          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
+        run: |
+          cat scripts/deploy-prod.sh | tailscale ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
+            "cat > /tmp/qjudge-deploy-prod.sh && chmod +x /tmp/qjudge-deploy-prod.sh"
+
+      - name: Deploy on server
+        env:
+          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          tailscale ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
+            "/tmp/qjudge-deploy-prod.sh '$PROD_DEPLOY_PATH' '$DEPLOY_SHA'"
