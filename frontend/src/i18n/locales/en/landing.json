@@ -30,6 +30,26 @@
       "description": "Teachers manage sets and track class progress with ease."
     }
   },
+  "miniJudge": {
+    "eyebrow": "Interactive Demo",
+    "title": "Try QJudge in one flow: Problem, Code, Submit, Results",
+    "problem": {
+      "title": "Nth Fibonacci Number",
+      "description": "Given an integer n, return the nth Fibonacci number where F(0)=0 and F(1)=1.",
+      "input": "Input",
+      "output": "Output"
+    },
+    "editor": {
+      "title": "Code Input",
+      "submit": "Run Demo"
+    },
+    "result": {
+      "title": "Test Results",
+      "idle": "No submission yet",
+      "running": "Running...",
+      "summary": "Passed {{passed}} / {{total}}"
+    }
+  },
   "steps": {
     "eyebrow": "How it works",
     "title": "Start in four steps",

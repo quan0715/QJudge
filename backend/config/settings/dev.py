@@ -13,23 +13,24 @@ INSTALLED_APPS += [
     'django_extensions',
 ]
 
-# Add Database Switch Middleware (after SessionMiddleware)
-MIDDLEWARE.insert(
-    MIDDLEWARE.index('django.contrib.sessions.middleware.SessionMiddleware') + 1,
-    'apps.core.db_middleware.DatabaseSwitchMiddleware'
-)
-
 # Enable browsable API in development
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.JSONRenderer',
     'rest_framework.renderers.BrowsableAPIRenderer',
 ]
 
-# Disable CSRF for development (API testing)
-# Note: Enable in production!
+# Keep cookie-based JWT auth in development.
+# The frontend uses HttpOnly cookies and does not attach Authorization header.
+# Removing CookieJWTAuthentication causes every authenticated API call to return 401.
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
+    'apps.users.authentication.CookieJWTAuthentication',
     'rest_framework_simplejwt.authentication.JWTAuthentication',
 ]
+
+# Development runs on http://localhost in many cases; secure cookies would be dropped by browser.
+JWT_AUTH_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 # Email backend for development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

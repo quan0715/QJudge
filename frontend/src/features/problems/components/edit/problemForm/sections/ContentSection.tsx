@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { TextInput, Dropdown } from "@carbon/react";
 import { InlineEditableMarkdown } from "@/shared/ui/markdown/markdownEditor";
 import { AutoSaveField } from "@/features/problems/components/edit/common";
+import styles from "./ContentSection.module.scss";
 
 const LANGUAGE_OPTIONS = [
   { id: "zh", label: "中文 (繁體)" },
@@ -19,9 +20,9 @@ const ContentSection: React.FC = () => {
   const isZh = selectedLanguage === "zh";
 
   return (
-    <div className="content-section">
+    <div className={styles.contentSection}>
       {/* Language Selector */}
-      <div className="content-section__language-selector">
+      <div className={styles.languageSelector}>
         <Dropdown
           id="language-selector"
           titleText="編輯語言版本 / Edit Language Version"
@@ -39,8 +40,8 @@ const ContentSection: React.FC = () => {
 
       {/* Chinese Translation Fields */}
       {isZh && (
-        <div className="content-section__fields">
-          <div className="content-section__field">
+        <div className={styles.fields}>
+          <div className={styles.field}>
             <AutoSaveField name="translationZh.title">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <TextInput
@@ -63,7 +64,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationZh.description">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -84,7 +85,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationZh.inputDescription">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -105,7 +106,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationZh.outputDescription">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -126,7 +127,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationZh.hint">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -151,8 +152,8 @@ const ContentSection: React.FC = () => {
 
       {/* English Translation Fields */}
       {!isZh && (
-        <div className="content-section__fields">
-          <div className="content-section__field">
+        <div className={styles.fields}>
+          <div className={styles.field}>
             <AutoSaveField name="translationEn.title">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <TextInput
@@ -175,7 +176,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationEn.description">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -196,7 +197,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationEn.inputDescription">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -217,7 +218,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationEn.outputDescription">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown
@@ -238,7 +239,7 @@ const ContentSection: React.FC = () => {
             </AutoSaveField>
           </div>
 
-          <div className="content-section__field">
+          <div className={styles.field}>
             <AutoSaveField name="translationEn.hint">
               {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
                 <InlineEditableMarkdown

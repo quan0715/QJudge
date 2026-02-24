@@ -78,7 +78,8 @@
 }
 
 .keywordCard {
-  padding: layout.$spacing-05;
+  // Remove padding - let grid handle spacing
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-04;

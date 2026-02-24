@@ -1,0 +1,4 @@
+interface:
+  display_name: "QJudge Env (Docker Compose)"
+  short_description: "QJudge main/dev/test container workflow and exec-first commands"
+  default_prompt: "Set up or operate QJudge environments with docker compose, using exec into containers for backend/frontend tasks."

@@ -4,11 +4,15 @@ Authentication services for different auth providers.
 import requests
 import secrets
 from datetime import timedelta
+from urllib.parse import urlencode
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class JWTService:
@@ -129,8 +133,8 @@ class NYCUOAuthService:
             'state': state,
             'scope': 'profile',
         }
-        
-        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+
+        query_string = urlencode(params)
         return f"{settings.NYCU_OAUTH_AUTHORIZE_URL}?{query_string}"
     
     @staticmethod
@@ -152,16 +156,20 @@ class NYCUOAuthService:
             Exception: If OAuth exchange fails
         """
         # Exchange code for access token
-        token_response = requests.post(
-            settings.NYCU_OAUTH_TOKEN_URL,
-            data={
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': redirect_uri,
-                'client_id': settings.NYCU_OAUTH_CLIENT_ID,
-                'client_secret': settings.NYCU_OAUTH_CLIENT_SECRET,
-            }
-        )
+        try:
+            token_response = requests.post(
+                settings.NYCU_OAUTH_TOKEN_URL,
+                data={
+                    'grant_type': 'authorization_code',
+                    'code': code,
+                    'redirect_uri': redirect_uri,
+                    'client_id': settings.NYCU_OAUTH_CLIENT_ID,
+                    'client_secret': settings.NYCU_OAUTH_CLIENT_SECRET,
+                },
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth token endpoint') from exc
         
         if token_response.status_code != 200:
             raise Exception('Failed to exchange authorization code')
@@ -170,10 +178,14 @@ class NYCUOAuthService:
         access_token = token_data['access_token']
         
         # Get user info
-        userinfo_response = requests.get(
-            settings.NYCU_OAUTH_USERINFO_URL,
-            headers={'Authorization': f"Bearer {access_token}"}
-        )
+        try:
+            userinfo_response = requests.get(
+                settings.NYCU_OAUTH_USERINFO_URL,
+                headers={'Authorization': f"Bearer {access_token}"},
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth userinfo endpoint') from exc
         
         if userinfo_response.status_code != 200:
             raise Exception('Failed to get user information')
@@ -236,5 +248,83 @@ class NYCUOAuthService:
             email_verified=True,
             is_active=True,
         )
-        
+
         return user
+
+
+class APIKeyService:
+    """Service for managing user API keys and validation."""
+
+    @staticmethod
+    async def validate_anthropic_key(api_key: str) -> tuple[bool, str]:
+        """驗證 Anthropic API Key 是否有效
+
+        Args:
+            api_key (str): 要驗證的 API Key
+
+        Returns:
+            tuple[bool, str]: (是否有效, 錯誤訊息)
+        """
+        try:
+            # 動態導入 anthropic，避免硬依賴
+            try:
+                import anthropic
+            except ImportError:
+                logger.error('anthropic package not installed')
+                return (False, 'anthropic package not installed')
+
+            # 使用提供的 API Key 初始化 client
+            client = anthropic.Anthropic(api_key=api_key)
+
+            # 發送最小測試請求（使用免費的 haiku 模型）
+            response = client.messages.create(
+                model="claude-3-5-haiku-20241022",
+                max_tokens=10,
+                messages=[{"role": "user", "content": "test"}]
+            )
+
+            logger.info(f'Successfully validated API key')
+            return (True, "")
+
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f'Failed to validate API key: {error_msg}')
+
+            # 根據不同錯誤類型返回相應訊息
+            if 'authentication' in error_msg.lower() or 'invalid' in error_msg.lower():
+                return (False, "Invalid API key")
+            elif 'rate' in error_msg.lower():
+                return (False, "Rate limit exceeded")
+            else:
+                return (False, f"Validation failed: {error_msg}")
+
+    @staticmethod
+    def calculate_cost(input_tokens: int, output_tokens: int, model: str = 'haiku') -> int:
+        """計算費用（美分）
+
+        Args:
+            input_tokens (int): 輸入 tokens 數
+            output_tokens (int): 輸出 tokens 數
+            model (str): 使用的模型名稱（haiku/sonnet/opus）
+
+        Returns:
+            int: 費用（美分）
+        """
+        # Anthropic 定價（每百萬 tokens 的 USD）
+        # 更新至最新定價
+        pricing = {
+            'haiku': (0.80, 4.00),      # 3.5-haiku
+            'sonnet': (3.00, 15.00),    # 3.5-sonnet
+            'opus': (15.00, 75.00),     # 3-opus
+        }
+
+        input_price, output_price = pricing.get(model, pricing['haiku'])
+
+        # 計算成本
+        cost_usd = (
+            (input_tokens / 1_000_000) * input_price +
+            (output_tokens / 1_000_000) * output_price
+        )
+
+        # 轉換為美分
+        return int(round(cost_usd * 100))

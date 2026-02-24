@@ -1,0 +1,7 @@
+{
+  "name": "qjudge-code-problem-format-and-ops",
+  "description": "QJudge Code Problem 資料落地（payload、JSON Patch、prepare/commit），不做題意發想",
+  "stage": "format",
+  "enabled": true,
+  "output_format": "json_or_markdown"
+}

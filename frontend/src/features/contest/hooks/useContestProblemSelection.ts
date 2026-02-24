@@ -81,9 +81,9 @@ export function useContestProblemSelection({
         const problem = await getContestProblem(contest.id, selectedProblemId);
         if (!problem) throw new Error("題目不存在");
         setSelectedProblem(problem);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to load problem", err);
-        setError(err.message || "載入題目失敗");
+        setError(err instanceof Error ? err.message : "載入題目失敗");
         setSelectedProblem(null);
       } finally {
         setIsProblemLoading(false);

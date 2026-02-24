@@ -1,128 +1,67 @@
-# 開發環境設定
+# 開發環境設定（Docker Compose Dev）
 
-本文說明如何設定 QJudge 的本地開發環境。
+> 文件狀態：2026-02-24，建議僅使用 `docker-compose.dev.yml`
 
-## 系統需求
+## 1. 前置需求
 
-- Node.js 18+
-- Python 3.10+
-- Docker & Docker Compose
+- Docker Desktop（含 Compose）
 - Git
+- Node.js 20+（僅在需要本機跑前端工具時）
+- Python 3.11+（僅在需要本機跑後端工具時）
 
-## 快速開始
-
-### 1. 複製專案
+## 2. 啟動完整開發環境
 
 ```bash
-git clone https://github.com/your-org/qjudge.git
-cd qjudge
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-### 2. 前端設定
+檢查服務狀態：
+
+```bash
+docker compose -f docker-compose.dev.yml ps
+```
+
+預設入口：
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+- AI Service: `http://localhost:8001`
+
+AI 健康檢查：
+
+```bash
+curl http://localhost:8001/health
+```
+
+## 3. 常用開發命令
+
+### 3.1 查看日誌
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f backend
+docker compose -f docker-compose.dev.yml logs -f ai-service
+docker compose -f docker-compose.dev.yml logs -f frontend
+```
+
+### 3.2 後端測試（推薦設定）
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov' \
+  pytest apps/ai/tests/test_session_creation.py::AISessionCreationTest::test_session_model_with_pk -q
+```
+
+### 3.3 前端 API 測試
 
 ```bash
 cd frontend
-npm install
-npm run dev
+API_BASE_URL=http://localhost:8000 npm run test:api
 ```
 
-前端將在 `http://localhost:5173` 啟動。
+## 4. 目前已知限制
 
-### 3. 後端設定
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-```
-
-後端將在 `http://localhost:8000` 啟動。
-
-### 4. 評測系統
-
-評測系統使用 Docker 運行：
-
-```bash
-docker compose up -d judge
-```
-
-## 專案結構
-
-```
-qjudge/
-├── frontend/          # React 前端
-│   ├── src/
-│   │   ├── domains/   # 功能模組
-│   │   ├── ui/        # UI 組件
-│   │   └── i18n/      # 多語系
-│   └── public/
-├── backend/           # Django 後端
-│   ├── api/           # API 端點
-│   ├── judge/         # 評測邏輯
-│   └── core/          # 核心模組
-└── docker/            # Docker 設定
-```
-
-## 常用指令
-
-### 前端
-
-| 指令            | 說明           |
-| --------------- | -------------- |
-| `npm run dev`   | 啟動開發伺服器 |
-| `npm run build` | 建置生產版本   |
-| `npm run lint`  | 檢查程式碼風格 |
-| `npm run test`  | 執行測試       |
-
-### 後端
-
-| 指令                               | 說明           |
-| ---------------------------------- | -------------- |
-| `python manage.py runserver`       | 啟動開發伺服器 |
-| `python manage.py migrate`         | 執行資料庫遷移 |
-| `python manage.py test`            | 執行測試       |
-| `python manage.py createsuperuser` | 建立管理員帳號 |
-
-## 環境變數
-
-### 前端 (.env)
-
-```
-VITE_API_URL=http://localhost:8000
-```
-
-### 後端 (.env)
-
-```
-DEBUG=True
-SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite:///db.sqlite3
-```
-
-## 常見問題
-
-### 前端無法連接後端
-
-確認後端已啟動，並檢查 CORS 設定。
-
-### 資料庫遷移失敗
-
-嘗試刪除遷移檔案並重新生成：
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### Docker 容器無法啟動
-
-檢查 Docker 服務是否正在運行：
-
-```bash
-docker ps
-docker compose logs
-```
-
+- frontend 全量 `npm run build` 仍受既有 contest/storybook 型別錯誤影響。
+- backend 若使用 `config.settings.dev` 跑測試，可能誤連非本機資料庫。
+- `test:api` 依賴本機測試帳號與種子資料。

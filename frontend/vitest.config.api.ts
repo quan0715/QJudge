@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import path from "path";
 
 /**
  * Vitest config for API Integration Tests
@@ -19,6 +20,11 @@ export default defineConfig({
       forks: {
         singleFork: true,
       },
+    },
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });

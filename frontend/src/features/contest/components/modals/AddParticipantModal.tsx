@@ -23,9 +23,6 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({
       await onSubmit(username);
       setUsername('');
       onClose(); // Close on success
-    } catch (error) {
-      // Error handling is done by parent for notification
-      throw error;
     } finally {
       setAdding(false);
     }

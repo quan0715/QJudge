@@ -1,4 +1,25 @@
 {
+  "management": {
+    "description": "管理您建立的競賽",
+    "contestCount": "共 {{count}} 場競賽"
+  },
+  "button": {
+    "createContest": "新增競賽"
+  },
+  "placeholder": {
+    "contestName": "輸入競賽名稱"
+  },
+  "validation": {
+    "invalidDateTime": "請選擇有效的開始和結束時間",
+    "endBeforeStart": "結束時間必須晚於開始時間"
+  },
+  "error": {
+    "createFailed": "建立競賽失敗"
+  },
+  "modal": {
+    "confirmDelete": "確認刪除",
+    "deleteConfirmMessage": "確定要刪除競賽「{{name}}」嗎？此操作無法復原。"
+  },
   "mode": "競賽模式",
   "timeToStart": "距開始 {{time}}",
   "problemList": "題目列表",
@@ -37,7 +58,9 @@
     "settings": "設定",
     "participants": "參賽者",
     "logs": "日誌",
-    "admins": "管理員"
+    "admins": "管理員",
+    "examModel": "Exam 模型",
+    "examQuestions": "Exam 題目"
   },
   "hero": {
     "examEnded": "考試已結束",

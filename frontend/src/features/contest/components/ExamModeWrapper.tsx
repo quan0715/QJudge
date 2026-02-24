@@ -73,7 +73,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [, setIsProcessingEvent] = useState(false);
   const isProcessingEventRef = useRef(false); // Ref for real-time access in event handlers
   const [pendingApiResponse, setPendingApiResponse] = useState(false);
-  const [lastApiResponse, setLastApiResponse] = useState<any>(null);
+  const [lastApiResponse, setLastApiResponse] = useState<
+    | {
+        status?: string;
+        message?: string;
+        error?: boolean | string;
+        locked?: boolean;
+      }
+    | null
+  >(null);
 
   // Unlock notification state
   const [showUnlockNotification, setShowUnlockNotification] = useState(false);

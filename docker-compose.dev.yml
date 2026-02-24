@@ -1,4 +1,16 @@
 services:
+  # Judge Environment Image (built once, used by backend/celery via Docker socket)
+  judge-image:
+    build:
+      context: ./backend/judge
+      dockerfile: Dockerfile.judge
+    image: oj-judge:latest
+    container_name: oj_judge_image_dev
+    command: ["true"]
+    restart: "no"
+    networks:
+      - oj_network_dev
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -38,6 +50,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # AI Service (LangChain DeepAgent) - Dev Mode
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: oj_ai_service_dev
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
+      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
+      - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-dev}
+      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
+      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
+      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
+    volumes:
+      - ./ai-service:/app
+    networks:
+      - oj_network_dev
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Django Backend (Dev Mode)
   backend:
     build:
@@ -45,6 +87,7 @@ services:
       dockerfile: Dockerfile
       args:
         DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_backend_dev
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -56,21 +99,24 @@ services:
       - .env
     environment:
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - AI_SERVICE_URL=http://ai-service:8001
+      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
+      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
     depends_on:
+      judge-image:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      ai-service:
         condition: service_healthy
     networks:
       - oj_network_dev
 
   # Celery Worker (Dev Mode)
   celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_celery_dev
     command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
     volumes:
@@ -83,6 +129,8 @@ services:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
     depends_on:
+      judge-image:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
@@ -94,11 +142,7 @@ services:
 
   # Celery Beat (Dev Mode - Scheduler for periodic tasks)
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_dev_img
     container_name: oj_celery_beat_dev
     command: celery -A config beat -l info
     volumes:

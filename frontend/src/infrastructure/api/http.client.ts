@@ -115,20 +115,10 @@ export const ensureOk = async (
  * - JWT tokens are stored in HttpOnly cookies by the backend (XSS protection)
  * - CSRF token is included in X-CSRFToken header for state-changing requests
  * - The `credentials: 'include'` option ensures cookies are sent with requests
- *
- * Fallback: For API clients that don't support cookies, the Authorization
- * header can still be used (reads from localStorage). In this case, no CSRF
- * token is needed since the token is not sent automatically.
  */
 const customFetch = async (endpoint: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers || {});
   const method = init.method?.toUpperCase() || "GET";
-
-  // For API clients without cookie support, fall back to localStorage token
-  const token = localStorage.getItem("token");
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   // Add CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
   // This is required when using cookie-based authentication

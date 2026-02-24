@@ -38,7 +38,7 @@ class SubmissionAPITestCase(TestCase):
             difficulty='easy',
             time_limit=1000,
             memory_limit=128,
-            is_visible=True,
+            visibility='public',
             created_by=self.teacher
         )
         
@@ -289,7 +289,7 @@ class SubmissionExecutionTestCase(TestCase):
         self.on_commit_patcher.start()
 
         # Patch get_judge to avoid Docker execution
-        self.get_judge_patcher = patch('apps.judge.judge_factory.get_judge')
+        self.get_judge_patcher = patch('apps.submissions.tasks.get_judge')
         self.mock_get_judge = self.get_judge_patcher.start()
         
         # Setup default mock judge behavior (AC)

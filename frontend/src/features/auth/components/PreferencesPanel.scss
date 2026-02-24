@@ -1,0 +1,23 @@
+.preferences-panel {
+  &__section {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--cds-text-primary);
+  }
+
+  &__section-description {
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary);
+    margin-bottom: 1rem;
+  }
+}

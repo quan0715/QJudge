@@ -75,7 +75,7 @@ class TestMarkdownExporterSnapshots:
             time_limit=1000,
             memory_limit=128,
             difficulty='medium',
-            is_visible=True
+            visibility='public'
         )
 
         ProblemTranslation.objects.create(
@@ -170,7 +170,7 @@ class TestPDFRendererSnapshots:
             time_limit=2000,
             memory_limit=256,
             difficulty='hard',
-            is_visible=True
+            visibility='public'
         )
 
         ProblemTranslation.objects.create(
@@ -259,7 +259,7 @@ class TestStudentReportSnapshots:
                 time_limit=1000,
                 memory_limit=128,
                 difficulty=diff,
-                is_visible=True
+                visibility='public'
             )
 
             ProblemTranslation.objects.create(

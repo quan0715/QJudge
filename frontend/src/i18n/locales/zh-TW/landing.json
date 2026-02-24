@@ -30,6 +30,26 @@
       "description": "教師管理題目集、追蹤學生進度，輕鬆掌握學習成效。"
     }
   },
+  "miniJudge": {
+    "eyebrow": "互動示範",
+    "title": "簡單體驗 QJudge：題目、寫碼、提交、看結果",
+    "problem": {
+      "title": "費氏數列第 n 項",
+      "description": "給定整數 n，回傳第 n 項費氏數列。費氏數列定義為 F(0)=0, F(1)=1。",
+      "input": "輸入",
+      "output": "輸出"
+    },
+    "editor": {
+      "title": "程式碼輸入",
+      "submit": "模擬提交"
+    },
+    "result": {
+      "title": "測試結果",
+      "idle": "尚未提交",
+      "running": "評測中...",
+      "summary": "Passed {{passed}} / {{total}}"
+    }
+  },
   "steps": {
     "eyebrow": "使用流程",
     "title": "四步驟開始你的程式旅程",

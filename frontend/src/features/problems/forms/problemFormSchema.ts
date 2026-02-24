@@ -1,6 +1,7 @@
 import type {
   Difficulty,
   LanguageConfig,
+  ProblemVisibility,
   TestCase,
   Translation,
 } from "@/core/entities/problem.entity";
@@ -19,7 +20,7 @@ export interface ProblemFormSchema {
   difficulty: Difficulty;
   timeLimit: number;
   memoryLimit: number;
-  isVisible: boolean;
+  visibility: ProblemVisibility;
   existingTagIds: number[];
   // Content - Translations
   translationZh: TranslationFields;
@@ -41,7 +42,7 @@ export const DEFAULT_PROBLEM_FORM_VALUES: ProblemFormSchema = {
   difficulty: "medium",
   timeLimit: 1000,
   memoryLimit: 128,
-  isVisible: true,
+  visibility: "private",
   existingTagIds: [],
   translationZh: {
     title: "",

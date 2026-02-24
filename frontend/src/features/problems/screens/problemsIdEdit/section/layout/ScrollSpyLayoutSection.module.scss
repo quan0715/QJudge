@@ -5,20 +5,21 @@ $sidebar-width: layout.rem(220px);
 
 .layout {
   display: flex;
-  height: 100%;
+  flex: 1 1 0; // Take all available space
+  min-height: 0; // Critical: allows flex child to shrink
+  min-width: 0; // Prevent overflow
   background-color: var(--cds-background);
 }
 
 .sidebar {
   width: $sidebar-width;
   min-width: $sidebar-width;
-  height: 100%;
+  // Use align-self: stretch (default) instead of height: 100% for flex compatibility
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   background-color: var(--cds-layer-01);
   border-right: 1px solid var(--cds-border-subtle-01);
-  position: sticky;
-  top: 0;
 }
 
 .sidebarHeader {
@@ -28,11 +29,13 @@ $sidebar-width: layout.rem(220px);
 
 .nav {
   flex: 1;
+  min-height: 0; // Critical: allows flex child to shrink for proper scrolling
   overflow-y: auto;
 }
 
 .content {
   flex: 1;
+  min-height: 0; // Critical: allows flex child to shrink for proper scrolling
   overflow-y: auto;
   scroll-behavior: smooth;
 }

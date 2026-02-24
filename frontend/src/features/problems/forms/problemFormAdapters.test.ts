@@ -171,8 +171,7 @@ describe("problemFormAdapters", () => {
 
       const payload = yamlToApiPayload(yaml);
 
-      expect(payload.is_visible).toBe(true);
-      expect(payload.is_practice_visible).toBe(false);
+      expect(payload.visibility).toBe("private");
       expect(payload.test_cases).toEqual([]);
       expect(payload.language_configs).toEqual([]);
       expect(payload.required_keywords).toEqual([]);

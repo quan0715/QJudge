@@ -1,0 +1,15 @@
+features/problems/components/common/TestCaseTypes.ts
+features/problems/hooks/solverAdapters.ts
+features/problems/hooks/solverStorage.ts
+features/problems/screens/problems/section/LoadingIndicator.tsx
+features/problems/screens/problemsIdEdit/components/ProblemEditExportModal.tsx
+features/problems/screens/problemsIdEdit/components/ProblemEditHeader.tsx
+features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal.tsx
+features/problems/screens/problemsIdEdit/components/ProblemEditSections.tsx
+features/problems/screens/problemsIdEdit/components/ProblemEditState.tsx
+features/problems/screens/problemsIdEdit/contexts/ProblemEditUIContext.tsx
+services/__tests__/infra.http.integration.test.ts
+services/__tests__/repositories.contest.integration.test.ts
+services/__tests__/repositories.problem.integration.test.ts
+services/__tests__/repositories.submission.integration.test.ts
+services/__tests__/usecases.solver.integration.test.ts

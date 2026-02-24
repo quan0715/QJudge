@@ -326,7 +326,7 @@ test.describe('Exam Mode Detection', () => {
       
       // For admin, detection should be bypassed
       // We can verify this by checking that certain monitoring isn't active
-      const examMonitoring = page.locator('[data-testid="exam-monitoring"]');
+      const _examMonitoring = page.locator('[data-testid="exam-monitoring"]');
       
       // Admin should not see strict exam monitoring
       // (This test may need adjustment based on actual behavior)

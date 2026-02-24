@@ -1,0 +1,27 @@
+# FastAPI and ASGI
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+httpx>=0.26.0
+
+# DeepAgent / LangGraph
+deepagents>=0.4.0
+langgraph>=0.4.0
+langgraph-checkpoint-postgres>=3.0.0
+langchain-anthropic>=0.3.0
+langchain-core>=0.3.0
+psycopg[binary]>=3.1.0
+
+# Data validation
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# SSE support
+sse-starlette>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# Testing (optional, for development)
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

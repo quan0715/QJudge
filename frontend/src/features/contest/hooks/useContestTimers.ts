@@ -114,11 +114,13 @@ export const useContestTimers = ({
   }, [contestId]);
 
   useEffect(() => {
-    updateContestCountdown();
+    const timerId = setTimeout(updateContestCountdown, 0);
+    return () => clearTimeout(timerId);
   }, [updateContestCountdown]);
 
   useEffect(() => {
-    updateUnlockCountdown();
+    const timerId = setTimeout(updateUnlockCountdown, 0);
+    return () => clearTimeout(timerId);
   }, [updateUnlockCountdown]);
 
   useInterval(() => {

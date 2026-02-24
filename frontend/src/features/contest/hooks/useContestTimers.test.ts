@@ -10,7 +10,15 @@ const baseContest = {
   status: "published",
   examModeEnabled: false,
   examStatus: "not_started",
-} as any;
+} satisfies {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  examModeEnabled: boolean;
+  examStatus: string;
+};
 
 describe("useContestTimers", () => {
   beforeEach(() => {
@@ -33,6 +41,11 @@ describe("useContestTimers", () => {
     const { result } = renderHook(() =>
       useContestTimers({ contest, contestId: contest.id, refreshContest })
     );
+
+    // Flush the setTimeout(0) used for initial computation
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
 
     expect(result.current.isCountdownToStart).toBe(true);
     expect(result.current.timeLeft).toBe("00:00:02");
@@ -65,6 +78,11 @@ describe("useContestTimers", () => {
     const { result } = renderHook(() =>
       useContestTimers({ contest, contestId: contest.id, refreshContest })
     );
+
+    // Flush the setTimeout(0) used for initial computation
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
 
     expect(result.current.unlockTimeLeft).toBe("00:00:03");
 

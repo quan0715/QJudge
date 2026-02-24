@@ -4,7 +4,7 @@ Serializers for user authentication and profile management.
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, UserProfile
+from .models import User, UserProfile, UserAPIKey
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -135,43 +135,6 @@ class TokenRefreshSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=True)
 
 
-class PasswordResetRequestSerializer(serializers.Serializer):
-    """Serializer for password reset request."""
-    email = serializers.EmailField(required=True)
-
-
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    """Serializer for password reset confirmation."""
-    token = serializers.CharField(required=True)
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    password_confirm = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    
-    
-    def validate(self, attrs):
-        """Validate passwords match."""
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({
-                'password_confirm': '密碼不一致'
-            })
-        
-        try:
-            validate_password(attrs['password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                'password': list(e.messages)
-            })
-        
-        return attrs
-
-
 class UserSearchSerializer(serializers.ModelSerializer):
     """Serializer for user search results in admin interface."""
     
@@ -249,14 +212,14 @@ class ChangePasswordSerializer(serializers.Serializer):
         required=True,
         style={'input_type': 'password'}
     )
-    
+
     def validate(self, attrs):
         """Validate passwords match and new password strength."""
         if attrs['new_password'] != attrs['new_password_confirm']:
             raise serializers.ValidationError({
                 'new_password_confirm': '新密碼不一致'
             })
-        
+
         # Validate new password strength
         try:
             validate_password(attrs['new_password'])
@@ -264,5 +227,47 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'new_password': list(e.messages)
             })
-        
+
         return attrs
+
+
+class SetAPIKeySerializer(serializers.Serializer):
+    """Serializer for setting/updating API Key."""
+    api_key = serializers.CharField(
+        max_length=255,
+        required=True,
+        write_only=True,
+        help_text='Anthropic API Key (sk-ant-...)'
+    )
+    key_name = serializers.CharField(
+        max_length=100,
+        required=False,
+        default='My API Key',
+        help_text='Human-readable name for this API Key'
+    )
+
+    def validate_api_key(self, value):
+        """Validate API key format."""
+        if not value or not value.startswith('sk-ant-'):
+            raise serializers.ValidationError(
+                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
+            )
+        return value
+
+
+class ValidateAPIKeySerializer(serializers.Serializer):
+    """Serializer for validating API Key."""
+    api_key = serializers.CharField(
+        max_length=255,
+        required=True,
+        write_only=True,
+        help_text='Anthropic API Key to validate'
+    )
+
+    def validate_api_key(self, value):
+        """Validate API key format."""
+        if not value or not value.startswith('sk-ant-'):
+            raise serializers.ValidationError(
+                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
+            )
+        return value

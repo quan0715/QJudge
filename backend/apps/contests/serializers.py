@@ -6,6 +6,8 @@ from django.utils import timezone
 from .models import (
     Contest,
     ContestProblem,
+    ExamQuestion,
+    ExamQuestionType,
     ContestParticipant,
     ContestAnnouncement,
     Clarification,
@@ -316,6 +318,13 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'anonymous_mode_enabled',
         ]
         read_only_fields = ['id']
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+                'required': False,
+                'allow_blank': True,
+            }
+        }
     
     def validate(self, data):
         """Validate contest data."""
@@ -366,8 +375,21 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
         validated_data['owner'] = request.user
         validated_data['status'] = 'draft'  # Always start as draft
 
-        
-        return super().create(validated_data)
+        raw_password = validated_data.pop("password", None)
+        contest = super().create(validated_data)
+        if raw_password:
+            contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        return contest
+
+    def update(self, instance, validated_data):
+        """Update contest and safely hash password when provided."""
+        raw_password = validated_data.pop("password", None)
+        contest = super().update(instance, validated_data)
+        if raw_password is not None:
+            contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        return contest
 
 
 # ============================================================================
@@ -448,6 +470,87 @@ class ContestProblemCreateSerializer(serializers.Serializer):
     # label = serializers.CharField(max_length=10) # Dynamic now
     order = serializers.IntegerField(default=0)
     # score = serializers.IntegerField(default=100)
+
+
+# ============================================================================
+# Exam Question Serializers
+# ============================================================================
+
+class ExamQuestionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for paper-style exam questions.
+    """
+
+    class Meta:
+        model = ExamQuestion
+        fields = [
+            'id',
+            'contest',
+            'question_type',
+            'prompt',
+            'options',
+            'correct_answer',
+            'score',
+            'order',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['contest', 'created_at', 'updated_at']
+
+    def validate_options(self, value):
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError('options must be an array')
+        if not all(isinstance(item, str) and item.strip() for item in value):
+            raise serializers.ValidationError('options must contain non-empty strings')
+        return [item.strip() for item in value]
+
+    def validate_score(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('score must be greater than 0')
+        return value
+
+    def validate(self, attrs):
+        question_type = attrs.get('question_type') or getattr(self.instance, 'question_type', None)
+        options = attrs.get('options')
+        correct_answer = attrs.get('correct_answer')
+
+        if question_type in {ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
+            merged_options = options if options is not None else getattr(self.instance, 'options', [])
+            if len(merged_options) < 2:
+                raise serializers.ValidationError({'options': 'choice questions require at least 2 options'})
+
+        if question_type == ExamQuestionType.TRUE_FALSE:
+            merged_options = options if options is not None else getattr(self.instance, 'options', [])
+            if merged_options and len(merged_options) != 2:
+                raise serializers.ValidationError({'options': 'true_false should have exactly 2 options when provided'})
+
+        if question_type == ExamQuestionType.ESSAY and options is not None and len(options) > 0:
+            raise serializers.ValidationError({'options': 'essay question should not define options'})
+
+        if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
+            merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)
+            if merged_answer in (None, ''):
+                raise serializers.ValidationError({'correct_answer': 'objective question requires correct_answer'})
+
+            if question_type == ExamQuestionType.SINGLE_CHOICE and isinstance(merged_answer, list):
+                raise serializers.ValidationError({'correct_answer': 'single_choice expects one answer index/value'})
+
+            if question_type == ExamQuestionType.MULTIPLE_CHOICE:
+                if not isinstance(merged_answer, list) or len(merged_answer) == 0:
+                    raise serializers.ValidationError({'correct_answer': 'multiple_choice expects a non-empty answer array'})
+
+            if question_type == ExamQuestionType.TRUE_FALSE:
+                if isinstance(merged_answer, bool):
+                    return attrs
+                if isinstance(merged_answer, int) and merged_answer in {0, 1}:
+                    return attrs
+                if isinstance(merged_answer, str) and merged_answer.lower() in {'true', 'false'}:
+                    return attrs
+                raise serializers.ValidationError({'correct_answer': 'true_false expects true/false'})
+
+        return attrs
 
 
 # ============================================================================

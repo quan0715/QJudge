@@ -58,6 +58,7 @@ lerna-debug.log*
 
 # React / Frontend
 /frontend/build
+/frontend/coverage/
 /frontend/.env.local
 /frontend/.env.development.local
 /frontend/.env.test.local
@@ -137,8 +138,6 @@ logs
 Thumbs.db
 
 # AI/Agent tools
-.cursor/
 .agent/
 .claude/
-.codex/
 .opencode/

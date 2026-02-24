@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -7,6 +7,7 @@ import {
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
+import type { User } from "@/core/entities/user.entity";
 import { SubmissionDetailModal, SubmissionTable, type SubmissionRow } from "@/features/submissions/components";
 // Styles loaded via globals.scss (Sass Partials)
 
@@ -31,19 +32,16 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     "calc(var(--cds-spacing-09) + var(--cds-spacing-07))",
   ];
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Get current user from localStorage
-  useEffect(() => {
+  const [currentUser] = useState<User | null>(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user", e);
-      }
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user", e);
+      return null;
     }
-  }, []);
+  });
 
   // Fetch submissions for this problem, filtered by current user
   const { data, isLoading, isFetching, refetch } = useContestSubmissions({
@@ -69,15 +67,25 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   };
 
   // Map submissions to SubmissionRow format for SubmissionTable
-  const submissionRows: SubmissionRow[] = submissions.map((sub: any) => ({
-    id: sub.id.toString(),
-    status: sub.status,
-    language: sub.language || "",
-    score: sub.score ?? 0,
-    exec_time: sub.execTime ?? 0,
-    created_at: sub.createdAt || "",
-    canView: true, // User's own submissions
-  }));
+  const submissionRows: SubmissionRow[] = submissions.map((sub) => {
+    const submission = sub as {
+      id: string | number;
+      status: string;
+      language?: string | null;
+      score?: number | null;
+      execTime?: number | null;
+      createdAt?: string | null;
+    };
+    return {
+      id: submission.id.toString(),
+      status: submission.status,
+      language: submission.language || "",
+      score: submission.score ?? 0,
+      exec_time: submission.execTime ?? 0,
+      created_at: submission.createdAt || "",
+      canView: true,
+    };
+  });
 
   // Loading skeleton
   if (isLoading && submissions.length === 0) {
@@ -147,4 +155,3 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
 };
 
 export default ContestProblemSubmissions;
-

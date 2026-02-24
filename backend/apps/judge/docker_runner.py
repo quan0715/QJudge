@@ -4,6 +4,7 @@ Docker-based C++ code execution service
 import docker
 import tempfile
 import os
+import uuid
 from typing import Dict, Any
 from django.conf import settings
 from .base_judge import BaseJudge
@@ -28,6 +29,16 @@ class CppJudge(BaseJudge):
     def get_language_version(self) -> str:
         """返回語言版本"""
         return "C++20"
+
+    @staticmethod
+    def _build_heredoc_write_command(
+        *, target_file: str, content: str, prefix: str
+    ) -> str:
+        """Build a safe heredoc write command using an unpredictable delimiter."""
+        delimiter = f"{prefix}_{uuid.uuid4().hex}"
+        while delimiter in content:
+            delimiter = f"{prefix}_{uuid.uuid4().hex}"
+        return f"cat > {target_file} <<'{delimiter}'\n{content}\n{delimiter}"
     
     def _ensure_docker_client(self):
         """
@@ -95,26 +106,27 @@ class CppJudge(BaseJudge):
             timeout_sec = time_limit / 1000.0 + 0.5
             
             # 構建完整的命令：寫入代碼 -> 編譯 -> 寫入輸入 -> 執行
-            full_cmd = f'''cat > main.cpp <<'CODEEOF'
-{code}
-CODEEOF
-
-# 編譯
-g++ -O2 -std=c++20 -o main main.cpp 2>&1
-COMPILE_EXIT=$?
-
-if [ $COMPILE_EXIT -ne 0 ]; then
-    exit $COMPILE_EXIT
-fi
-
-# 寫入輸入
-cat > input.txt <<'INPUTEOF'
-{input_data}
-INPUTEOF
-
-# 執行
-timeout {timeout_sec}s ./main < input.txt 2>&1
-'''
+            code_write_cmd = self._build_heredoc_write_command(
+                target_file="main.cpp",
+                content=code,
+                prefix="CPP_CODE",
+            )
+            input_write_cmd = self._build_heredoc_write_command(
+                target_file="input.txt",
+                content=input_data,
+                prefix="CPP_INPUT",
+            )
+            full_cmd = (
+                f"{code_write_cmd}\n\n"
+                "# 編譯\n"
+                "g++ -O2 -std=c++20 -o main main.cpp 2>&1\n"
+                "COMPILE_EXIT=$?\n\n"
+                "if [ $COMPILE_EXIT -ne 0 ]; then\n"
+                "    exit $COMPILE_EXIT\n"
+                "fi\n\n"
+                f"{input_write_cmd}\n\n"
+                f"timeout {timeout_sec}s ./main < input.txt 2>&1\n"
+            )
             
             result = self._run_in_container(
                 full_cmd,
@@ -300,7 +312,7 @@ timeout {timeout_sec}s ./main < input.txt 2>&1
                 # 但這會增加複雜度，暫時使用近似值
                 memory_usage_kb = 4096  # 預設 4MB
                 
-            except Exception as e:
+            except Exception:
                 memory_usage_kb = 0
             
             return {
@@ -336,6 +348,5 @@ timeout {timeout_sec}s ./main < input.txt 2>&1
             if container:
                 try:
                     container.remove(force=True)
-                except:
+                except Exception:
                     pass
-

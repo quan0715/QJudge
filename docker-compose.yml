@@ -40,6 +40,37 @@ services:
       timeout: 5s
       retries: 5
 
+  # AI Service (LangChain DeepAgent)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: oj_ai_service
+    restart: always
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
+      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
+      - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-01}
+      - HMAC_SECRET=${HMAC_SECRET}
+      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
+      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
+    volumes:
+      - ./ai-service:/app
+    networks:
+      - oj_network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Django Backend
   backend:
     build:
@@ -52,7 +83,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application"
+             daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -62,10 +93,15 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - AI_SERVICE_URL=http://ai-service:8001
+      - HMAC_SECRET=${HMAC_SECRET}
+      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      ai-service:
         condition: service_healthy
     networks:
       - oj_network

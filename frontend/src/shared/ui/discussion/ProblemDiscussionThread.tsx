@@ -169,7 +169,7 @@ const ReplyItem: FC<{
 
         {/* 內容 */}
         <div className={styles.contentText}>
-          <MarkdownRenderer>{reply.content}</MarkdownRenderer>
+          <MarkdownRenderer allowRawHtml={false}>{reply.content}</MarkdownRenderer>
         </div>
 
         {/* 互動列 */}
@@ -312,7 +312,7 @@ export const ProblemDiscussionThread: FC<ProblemDiscussionThreadProps> = ({
 
           {/* 內容 */}
           <div className={styles.contentText}>
-            <MarkdownRenderer>{content}</MarkdownRenderer>
+            <MarkdownRenderer allowRawHtml={false}>{content}</MarkdownRenderer>
           </div>
 
           {/* 互動列 */}

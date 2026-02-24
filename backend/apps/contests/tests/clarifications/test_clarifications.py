@@ -75,7 +75,7 @@ def problem(teacher: User) -> Problem:
         slug="clarification-problem",
         difficulty="easy",
         created_by=teacher,
-        is_visible=True,
+        visibility='public',
     )
 
 

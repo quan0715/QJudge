@@ -6,7 +6,7 @@ import type {
   ScoreboardRow,
   ExamEvent,
   ExamEventStats,
-  ContestQuestion,
+  ExamQuestion,
   ContestParticipant,
   Clarification,
   ContestAnnouncement,
@@ -212,15 +212,18 @@ export function mapExamEventStatsDto(dto: any): ExamEventStats {
   };
 }
 
-export function mapContestQuestionDto(dto: any): ContestQuestion {
+export function mapExamQuestionDto(dto: any): ExamQuestion {
   return {
     id: dto.id?.toString() || "",
-    title: dto.title || "",
-    content: dto.content || "",
-    answer: dto.answer,
-    isPublic: !!dto.is_public,
-    authorUsername: dto.student_name || dto.author_username,
-    answeredBy: dto.answered_by,
+    contestId: dto.contest?.toString() || "",
+    questionType: dto.question_type || "essay",
+    prompt: dto.prompt || "",
+    options: Array.isArray(dto.options)
+      ? dto.options.map((item: unknown) => String(item))
+      : [],
+    correctAnswer: dto.correct_answer,
+    score: Number(dto.score || 0),
+    order: Number(dto.order || 0),
     createdAt: dto.created_at || "",
     updatedAt: dto.updated_at || "",
   };

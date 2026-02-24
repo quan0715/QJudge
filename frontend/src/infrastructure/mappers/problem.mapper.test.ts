@@ -54,8 +54,7 @@ describe("Problem Mapper", () => {
           { id: 1, name: "Math", slug: "math" },
           { id: 2, name: "Basic", slug: "basic" },
         ],
-        is_practice_visible: true,
-        is_visible: true,
+        visibility: "public",
         is_solved: false,
         created_at: "2024-01-15T10:00:00Z",
       };
@@ -72,8 +71,7 @@ describe("Problem Mapper", () => {
       expect(result.createdBy).toBe("admin");
       expect(result.tags).toHaveLength(2);
       expect(result.tags[0].name).toBe("Math");
-      expect(result.isPracticeVisible).toBe(true);
-      expect(result.isVisible).toBe(true);
+      expect(result.visibility).toBe("public");
       expect(result.isSolved).toBe(false);
       expect(result.createdAt).toBe("2024-01-15T10:00:00Z");
     });
@@ -92,8 +90,7 @@ describe("Problem Mapper", () => {
       expect(result.submissionCount).toBe(0);
       expect(result.acceptedCount).toBe(0);
       expect(result.tags).toEqual([]);
-      expect(result.isPracticeVisible).toBe(false);
-      expect(result.isVisible).toBe(true);
+      expect(result.visibility).toBe("private");
       expect(result.isSolved).toBe(false);
       expect(result.createdInContest).toBeNull();
     });
@@ -118,30 +115,26 @@ describe("Problem Mapper", () => {
       expect(result.createdInContest?.endTime).toBe("2024-01-15T12:00:00Z");
     });
 
-    it("should convert boolean fields correctly", () => {
-      const dtoWithTrue = {
+    it("should convert boolean and visibility fields correctly", () => {
+      const dtoPublic = {
         id: 1,
-        is_practice_visible: true,
-        is_visible: true,
+        visibility: "public",
         is_solved: true,
       };
-      const dtoWithFalse = {
+      const dtoPrivate = {
         id: 1,
-        is_practice_visible: false,
-        is_visible: false,
+        visibility: "private",
         is_solved: false,
       };
 
-      const resultTrue = mapProblemDto(dtoWithTrue);
-      const resultFalse = mapProblemDto(dtoWithFalse);
+      const resultPublic = mapProblemDto(dtoPublic);
+      const resultPrivate = mapProblemDto(dtoPrivate);
 
-      expect(resultTrue.isPracticeVisible).toBe(true);
-      expect(resultTrue.isVisible).toBe(true);
-      expect(resultTrue.isSolved).toBe(true);
+      expect(resultPublic.visibility).toBe("public");
+      expect(resultPublic.isSolved).toBe(true);
 
-      expect(resultFalse.isPracticeVisible).toBe(false);
-      expect(resultFalse.isVisible).toBe(false);
-      expect(resultFalse.isSolved).toBe(false);
+      expect(resultPrivate.visibility).toBe("private");
+      expect(resultPrivate.isSolved).toBe(false);
     });
   });
 

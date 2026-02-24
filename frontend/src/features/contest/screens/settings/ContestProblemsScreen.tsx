@@ -202,15 +202,15 @@ const ContestAdminProblemsPage = () => {
                 titleText="從題庫與範本選擇 (Clone)"
                 placeholder="搜尋題目 ID 或標題..."
                 items={publicProblems}
-                itemToString={(item: any) => (item ? item.label : "")}
-                onChange={(e: { selectedItem: any }) => {
+                itemToString={(item) => (item ? item.label : "")}
+                onChange={(e: { selectedItem?: { id: string; label: string } | null }) => {
                   setNewProblemId(e.selectedItem ? e.selectedItem.id : "");
                 }}
                 shouldFilterItem={({
                   item,
                   inputValue,
                 }: {
-                  item: any;
+                  item: { id: string; label: string };
                   inputValue: string | null;
                 }) => {
                   if (!inputValue) return true;

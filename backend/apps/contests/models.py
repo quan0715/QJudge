@@ -3,6 +3,7 @@ Models for contests and exams.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.utils import timezone
 from apps.problems.models import Problem
 from .managers import ContestQuerySet
@@ -128,6 +129,42 @@ class Contest(models.Model):
     
     def __str__(self):
         return self.name
+
+    def set_contest_password(self, raw_password: str | None) -> None:
+        """Hash and store contest password."""
+        if not raw_password:
+            self.password = None
+            return
+        self.password = make_password(raw_password)
+
+    def verify_contest_password(self, raw_password: str | None) -> bool:
+        """Verify contest password and upgrade legacy plaintext values."""
+        if not raw_password or not self.password:
+            return False
+
+        stored_password = self.password
+        try:
+            if check_password(raw_password, stored_password):
+                return True
+        except ValueError:
+            pass
+
+        # Backward compatibility for legacy plaintext passwords.
+        if raw_password == stored_password:
+            self.password = make_password(raw_password)
+            self.save(update_fields=["password"])
+            return True
+        return False
+
+    def has_hashed_password(self) -> bool:
+        """Return True when contest password is stored using Django hashers."""
+        if not self.password:
+            return False
+        try:
+            identify_hasher(self.password)
+            return True
+        except Exception:
+            return False
     
     @property
     def computed_status(self):
@@ -175,6 +212,61 @@ class ContestProblem(models.Model):
         verbose_name_plural = '考試題目'
         ordering = ['order']
         unique_together = ['contest', 'problem']
+
+
+class ExamQuestionType(models.TextChoices):
+    TRUE_FALSE = "true_false", "是非題"
+    SINGLE_CHOICE = "single_choice", "單選題"
+    MULTIPLE_CHOICE = "multiple_choice", "多選題"
+    ESSAY = "essay", "問答題"
+
+
+class ExamQuestion(models.Model):
+    """
+    Configurable exam question for paper-style contests.
+    """
+
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name='exam_questions',
+        verbose_name='考試'
+    )
+    question_type = models.CharField(
+        max_length=30,
+        choices=ExamQuestionType.choices,
+        default=ExamQuestionType.SINGLE_CHOICE,
+        verbose_name='題型'
+    )
+    prompt = models.TextField(verbose_name='題目內容')
+    options = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='選項',
+        help_text='選擇題選項，陣列格式'
+    )
+    correct_answer = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='標準答案',
+        help_text='是非/選擇題可存標準答案，問答題可留空'
+    )
+    score = models.PositiveIntegerField(default=1, verbose_name='配分')
+    order = models.IntegerField(default=0, verbose_name='排序')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'exam_questions'
+        verbose_name = '考卷題目'
+        verbose_name_plural = '考卷題目'
+        ordering = ['order', 'id']
+        indexes = [
+            models.Index(fields=['contest', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.contest_id}#{self.id}({self.question_type})"
 
 
 class ExamStatus(models.TextChoices):

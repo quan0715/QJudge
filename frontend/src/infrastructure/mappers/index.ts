@@ -5,3 +5,4 @@ export * from "./contest.mapper";
 export * from "./discussion.mapper";
 export * from "./problem.mapper";
 export * from "./submission.mapper";
+export * from "./chatbot.mapper";

@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Button, Toggle, Modal, TextInput } from "@carbon/react";
-import { TrashCan, ViewOff, View } from "@carbon/icons-react";
+import { Button, Dropdown, Modal, TextInput, InlineLoading } from "@carbon/react";
+import { TrashCan, View, Password, ViewOff } from "@carbon/icons-react";
+import type { ProblemVisibility } from "@/core/entities/problem.entity";
 import styles from "./DangerZoneSection.module.scss";
 
 export interface DangerZoneSectionProps {
   /** Current problem title (for delete confirmation) */
   problemTitle: string;
   /** Current visibility state */
-  isVisible: boolean;
+  visibility: ProblemVisibility;
   /** Callback when visibility changes */
-  onVisibilityChange: (isVisible: boolean) => Promise<void>;
+  onVisibilityChange: (visibility: ProblemVisibility) => Promise<void>;
   /** Callback when delete is confirmed */
   onDelete: () => Promise<void>;
   /** Whether visibility change is in progress */
@@ -22,12 +23,12 @@ export interface DangerZoneSectionProps {
  * DangerZoneSection - Dangerous operations section
  *
  * Contains:
- * - Visibility toggle (with confirmation)
+ * - Visibility dropdown (with confirmation modal)
  * - Delete button (with title confirmation)
  */
 export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
   problemTitle,
-  isVisible,
+  visibility,
   onVisibilityChange,
   onDelete,
   visibilityLoading = false,
@@ -35,16 +36,28 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
 }) => {
   // Visibility confirmation modal
   const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
-  const [pendingVisibility, setPendingVisibility] = useState(isVisible);
+  const [pendingVisibility, setPendingVisibility] = useState<ProblemVisibility>(visibility);
 
   // Delete confirmation modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  // Handle visibility toggle request
-  const handleVisibilityToggle = (newValue: boolean) => {
-    setPendingVisibility(newValue);
-    setVisibilityModalOpen(true);
+  // Visibility options
+  const visibilityOptions = [
+    { id: 'public', label: '公開 - 所有學生可在練習題庫看到' },
+    { id: 'private', label: '私有 - 僅建立者和管理員可見' },
+    { id: 'hidden', label: '隱藏 - 封存題目（不建議使用）' },
+  ];
+
+  // Get current visibility option
+  const selectedVisibility = visibilityOptions.find(opt => opt.id === visibility);
+
+  // Handle visibility dropdown change
+  const handleVisibilityDropdownChange = ({ selectedItem }: { selectedItem: any }) => {
+    if (selectedItem && selectedItem.id !== visibility) {
+      setPendingVisibility(selectedItem.id as ProblemVisibility);
+      setVisibilityModalOpen(true);
+    }
   };
 
   // Confirm visibility change
@@ -52,7 +65,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
     try {
       await onVisibilityChange(pendingVisibility);
       setVisibilityModalOpen(false);
-    } catch (error) {
+    } catch {
       // Error handling is done by parent
     }
   };
@@ -63,40 +76,76 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
     try {
       await onDelete();
       setDeleteModalOpen(false);
-    } catch (error) {
+    } catch {
       // Error handling is done by parent
     }
   };
 
   const canDelete = deleteConfirmText === problemTitle;
 
+  // Get icon for visibility
+  const getVisibilityIcon = (vis: ProblemVisibility) => {
+    switch (vis) {
+      case 'public': return <View size={20} />;
+      case 'private': return <Password size={20} />;
+      case 'hidden': return <ViewOff size={20} />;
+    }
+  };
+
+  // Get visibility description for confirmation modal
+  const getVisibilityDescription = (vis: ProblemVisibility) => {
+    switch (vis) {
+      case 'public':
+        return '公開後，所有學生都可以在練習題庫中看到此題目並進行作答。';
+      case 'private':
+        return '設為私有後，此題目將只對建立者和管理員可見，學生無法看到或作答。';
+      case 'hidden':
+        return '隱藏後，此題目將被封存。建議使用「私有」狀態而非「隱藏」。';
+    }
+  };
+
+  // Get visibility modal heading
+  const getVisibilityModalHeading = (vis: ProblemVisibility) => {
+    switch (vis) {
+      case 'public': return '確定要公開此題目？';
+      case 'private': return '確定要設為私有？';
+      case 'hidden': return '確定要隱藏此題目？';
+    }
+  };
+
   return (
     <div className={styles.dangerZone}>
       <h3 className={styles.title}>Danger Zone</h3>
 
-      {/* Visibility Toggle */}
+      {/* Visibility Dropdown */}
       <div className={styles.item}>
         <div className={styles.itemInfo}>
           <div className={styles.itemIcon}>
-            {isVisible ? <View size={20} /> : <ViewOff size={20} />}
+            {getVisibilityIcon(visibility)}
           </div>
           <div className={styles.itemContent}>
-            <h4 className={styles.itemTitle}>顯示狀態</h4>
+            <h4 className={styles.itemTitle}>題目可見性</h4>
             <p className={styles.itemDescription}>
-              {isVisible
-                ? "此題目目前為公開狀態，學生可以看到並作答"
-                : "此題目目前為隱藏狀態，僅管理員和教師可見"}
+              控制誰可以看到這個題目
             </p>
           </div>
         </div>
-        <Toggle
-          id="visibility-toggle"
-          labelA="隱藏"
-          labelB="公開"
-          toggled={isVisible}
-          onToggle={handleVisibilityToggle}
-          disabled={visibilityLoading}
-        />
+        <div className={styles.visibilityControls}>
+          {visibilityLoading ? (
+            <InlineLoading description="更新中..." />
+          ) : (
+            <Dropdown
+              id="visibility-dropdown"
+              titleText=""
+              label="選擇可見性"
+              items={visibilityOptions}
+              selectedItem={selectedVisibility}
+              itemToString={(item) => (item ? item.label : '')}
+              onChange={handleVisibilityDropdownChange}
+              disabled={visibilityLoading}
+            />
+          )}
+        </div>
       </div>
 
       {/* Delete Button */}
@@ -128,17 +177,13 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
         open={visibilityModalOpen}
         onRequestClose={() => setVisibilityModalOpen(false)}
         onRequestSubmit={confirmVisibilityChange}
-        modalHeading={pendingVisibility ? "確定公開題目？" : "確定隱藏題目？"}
-        primaryButtonText="確認"
+        modalHeading={getVisibilityModalHeading(pendingVisibility)}
+        primaryButtonText="確認變更"
         secondaryButtonText="取消"
         size="sm"
         preventCloseOnClickOutside
       >
-        <p>
-          {pendingVisibility
-            ? "公開後，所有學生都可以看到此題目並進行作答。"
-            : "隱藏後，此題目將只對管理員和教師可見，學生無法看到或作答。"}
-        </p>
+        <p>{getVisibilityDescription(pendingVisibility)}</p>
       </Modal>
 
       {/* Delete Confirmation Modal */}

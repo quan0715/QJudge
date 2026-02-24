@@ -2,17 +2,67 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type { ExamEvent } from "@/core/entities/contest.entity";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
 
-export const startExam = async (contestId: string): Promise<any> => {
-  return requestJson<any>(
+interface ExamSessionResponse {
+  status: string;
+  exam_status?: string;
+  error?: string;
+}
+
+interface ExamEventResponse {
+  status?: string;
+  message?: string;
+  error?: string;
+  violation_count?: number;
+  max_cheat_warnings?: number;
+  locked?: boolean;
+  bypass?: boolean;
+  auto_unlock_at?: string;
+}
+
+interface ContestActivityDto {
+  id?: string | number;
+  user?: string | number;
+  username?: string;
+  action_type?: string;
+  created_at?: string;
+  details?: string;
+}
+
+interface PaginatedActivitiesDto {
+  results?: ContestActivityDto[];
+}
+
+export const startExam = async (contestId: string): Promise<ExamSessionResponse> => {
+  return requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/start/`),
     "Failed to start exam"
   );
 };
 
-export const endExam = async (contestId: string): Promise<any> => {
-  return requestJson<any>(
+export const endExam = async (contestId: string): Promise<ExamSessionResponse> => {
+  return requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`),
     "Failed to end exam"
+  );
+};
+
+export const sendExamHeartbeat = async (
+  contestId: string,
+  payload: { is_focused: boolean; is_fullscreen: boolean }
+): Promise<{
+  status: string;
+  exam_status?: string;
+  violation_count?: number;
+  max_warnings?: number;
+}> => {
+  return requestJson<{
+    status: string;
+    exam_status?: string;
+    violation_count?: number;
+    max_warnings?: number;
+  }>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/heartbeat/`, payload),
+    "Failed to send exam heartbeat"
   );
 };
 
@@ -20,7 +70,7 @@ export const recordExamEvent = async (
   contestId: string,
   eventType: string,
   lockReason?: string
-): Promise<any> => {
+): Promise<ExamEventResponse | null> => {
   const res = await httpClient.post(
     `/api/v1/contests/${contestId}/exam/events/`,
     {
@@ -32,13 +82,13 @@ export const recordExamEvent = async (
     console.error("Failed to record exam event:", eventType);
     return null;
   }
-  return res.json();
+  return (await res.json()) as ExamEventResponse;
 };
 
 export const getExamEvents = async (
   contestId: string
 ): Promise<ExamEvent[]> => {
-  const data = await requestJson<any>(
+  const data = await requestJson<unknown>(
     httpClient.get(`/api/v1/contests/${contestId}/exam/events/`),
     "Failed to fetch exam events"
   );
@@ -48,11 +98,11 @@ export const getExamEvents = async (
 /**
  * Map activity item to ExamEvent format
  */
-const mapActivityToExamEvent = (item: any): ExamEvent => ({
+const mapActivityToExamEvent = (item: ContestActivityDto): ExamEvent => ({
   id: item.id?.toString() || "",
   userId: item.user?.toString() || "",
   userName: item.username || "Unknown",
-  eventType: item.action_type || "other",
+  eventType: (item.action_type as ExamEvent["eventType"]) || "other",
   timestamp: item.created_at || "",
   reason: item.details || "",
 });
@@ -71,7 +121,7 @@ export const getContestActivities = async (
     const errorData = await res.json().catch(() => null);
     throw new Error(errorData?.detail || "Failed to fetch contest activities");
   }
-  const data = await res.json();
+  const data = (await res.json()) as ContestActivityDto[] | PaginatedActivitiesDto;
 
   // Handle both array and paginated response format for backward compatibility
   const results = Array.isArray(data) ? data : data.results || [];

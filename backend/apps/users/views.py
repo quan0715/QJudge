@@ -7,8 +7,7 @@ Security:
 - Authorization header authentication is exempt from CSRF (tokens aren't sent automatically).
 """
 import secrets
-from rest_framework import status, generics
-from rest_framework.views import APIView
+from rest_framework import status, generics, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -18,28 +17,41 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
+import logging
 
 from .serializers import (
     UserSerializer,
     RegisterSerializer,
     LoginSerializer,
     OAuthCallbackSerializer,
+    TokenRefreshSerializer,
     UserProfileSerializer,
     UserSearchSerializer,
     UserRoleUpdateSerializer,
     UserPreferencesUpdateSerializer,
     ChangePasswordSerializer,
+    SetAPIKeySerializer,
+    ValidateAPIKeySerializer,
 )
-from .services import EmailAuthService, NYCUOAuthService, JWTService
+from .services import EmailAuthService, NYCUOAuthService, JWTService, APIKeyService
 from .permissions import IsSuperAdmin
 from .authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
+from .models import UserAPIKey
+import asyncio
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+class SchemaAPIView(generics.GenericAPIView):
+    """APIView with serializer support for schema generation."""
+
+    serializer_class = serializers.Serializer
+
+
 @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
-class RegisterView(APIView):
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(SchemaAPIView):
     """
     User registration with email/password.
     Rate limited to 5 requests per minute per IP.
@@ -47,6 +59,7 @@ class RegisterView(APIView):
     POST /api/v1/auth/email/register
     """
     permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
     
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -85,19 +98,20 @@ class RegisterView(APIView):
             return response
             
         except Exception as e:
+            logger.exception("Registration failed: %s", e)
             return Response({
                 'success': False,
                 'error': {
                     'code': 'REGISTRATION_FAILED',
-                    'message': str(e)
+                    'message': '註冊失敗，請稍後再試'
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
+@method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class LoginView(APIView):
+class LoginView(SchemaAPIView):
     """
     User login with email/password.
     Rate limited to 10 requests per minute per IP.
@@ -109,6 +123,7 @@ class LoginView(APIView):
     - CSRF token in a readable cookie (csrftoken) for subsequent requests
     """
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
     
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -147,7 +162,7 @@ class LoginView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class DevTokenView(APIView):
+class DevTokenView(SchemaAPIView):
     """
     Development-only helper to generate JWT tokens for a test user.
 
@@ -155,6 +170,7 @@ class DevTokenView(APIView):
     Body: { role: "student"|"teacher"|"admin", email?, username?, password? }
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
 
     def post(self, request):
         if not settings.DEBUG:
@@ -220,13 +236,14 @@ class DevTokenView(APIView):
         return response
 
 
-class NYCUOAuthLoginView(APIView):
+class NYCUOAuthLoginView(SchemaAPIView):
     """
     Initiate NYCU OAuth login.
     
     GET /api/v1/auth/nycu/login
     """
     permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
     
     def get(self, request):
         
@@ -245,18 +262,18 @@ class NYCUOAuthLoginView(APIView):
         })
 
 
-
-@method_decorator([csrf_exempt, ensure_csrf_cookie], name='dispatch')
-class NYCUOAuthCallbackView(APIView):
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
+class NYCUOAuthCallbackView(SchemaAPIView):
     """
     Handle NYCU OAuth callback.
     
     POST /api/v1/auth/nycu-oauth/callback
     
-    Note: csrf_exempt is needed because this receives external OAuth callback.
     ensure_csrf_cookie ensures the response includes CSRF token for subsequent requests.
     """
     permission_classes = [AllowAny]
+    serializer_class = OAuthCallbackSerializer
     
     def post(self, request):
         serializer = OAuthCallbackSerializer(data=request.data)
@@ -292,18 +309,18 @@ class NYCUOAuthCallbackView(APIView):
             return response
             
         except Exception as e:
+            logger.exception("NYCU OAuth callback failed: %s", e)
             return Response({
                 'success': False,
                 'error': {
                     'code': 'AUTH_003',
                     'message': 'NYCU OAuth 授權失敗',
-                    'details': str(e)
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class TokenRefreshView(APIView):
+class TokenRefreshView(SchemaAPIView):
     """
     Refresh access token.
     
@@ -316,6 +333,7 @@ class TokenRefreshView(APIView):
     Note: ensure_csrf_cookie ensures updated CSRF token is provided.
     """
     permission_classes = [AllowAny]
+    serializer_class = TokenRefreshSerializer
     
     def post(self, request):
         # Try to get refresh token from cookie first, then from body
@@ -366,7 +384,7 @@ class TokenRefreshView(APIView):
             return response
 
 
-class LogoutView(APIView):
+class LogoutView(SchemaAPIView):
     """
     Logout user by blacklisting their refresh token and clearing cookies.
     This invalidates both access and refresh tokens.
@@ -374,6 +392,7 @@ class LogoutView(APIView):
     POST /api/v1/auth/logout
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
     
     def post(self, request):
         try:
@@ -415,13 +434,14 @@ class LogoutView(APIView):
             return response
 
 
-class CurrentUserView(APIView):
+class CurrentUserView(SchemaAPIView):
     """
     Get current authenticated user information.
     
     GET /api/v1/users/me
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
     
     def get(self, request):
         serializer = UserSerializer(request.user)
@@ -454,7 +474,7 @@ class CurrentUserView(APIView):
         })
 
 
-class UserSearchView(APIView):
+class UserSearchView(SchemaAPIView):
     """
     Search users by username or email (admin only).
     If no query provided, returns all users (paginated).
@@ -463,6 +483,7 @@ class UserSearchView(APIView):
     GET /api/v1/users/search  (list all users)
     """
     permission_classes = [IsSuperAdmin]
+    serializer_class = serializers.Serializer
     
     def get(self, request):
         query = request.query_params.get('q', '').strip()
@@ -500,13 +521,14 @@ class UserSearchView(APIView):
         })
 
 
-class UserRoleUpdateView(APIView):
+class UserRoleUpdateView(SchemaAPIView):
     """
     Update user role (admin only).
     
     PATCH /api/v1/users/{id}/role
     """
     permission_classes = [IsSuperAdmin]
+    serializer_class = UserRoleUpdateSerializer
     
     def patch(self, request, pk):
         serializer = UserRoleUpdateSerializer(data=request.data)
@@ -568,12 +590,13 @@ class UserRoleUpdateView(APIView):
         })
 
 
-class UserStatsView(APIView):
+class UserStatsView(SchemaAPIView):
     """
     Get current user statistics.
     GET /api/v1/users/me/stats
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
 
     def get(self, request):
         user = request.user
@@ -607,7 +630,7 @@ class UserStatsView(APIView):
         })
 
 
-class UserPreferencesView(APIView):
+class UserPreferencesView(SchemaAPIView):
     """
     Get and update current user preferences.
     
@@ -615,6 +638,7 @@ class UserPreferencesView(APIView):
     PATCH /api/v1/auth/me/preferences - Update preferences
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserPreferencesUpdateSerializer
     
     def get(self, request):
         """Get current user preferences."""
@@ -674,7 +698,7 @@ class UserPreferencesView(APIView):
         })
 
 
-class ChangePasswordView(APIView):
+class ChangePasswordView(SchemaAPIView):
     """
     Change password for current user.
     
@@ -683,6 +707,7 @@ class ChangePasswordView(APIView):
     Requires current password verification.
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
     
     def post(self, request):
         user = request.user
@@ -722,8 +747,303 @@ class ChangePasswordView(APIView):
         # Set new password
         user.set_password(serializer.validated_data['new_password'])
         user.save()
-        
+
         return Response({
             'success': True,
             'message': '密碼已成功變更'
+        })
+
+
+class UserAPIKeyView(SchemaAPIView):
+    """
+    User API Key management endpoint.
+
+    GET /api/v1/users/me/api-key - Get API key status (no actual key exposed)
+    POST /api/v1/users/me/api-key - Set/update API key
+    DELETE /api/v1/users/me/api-key - Delete API key
+    POST /api/v1/users/me/api-key/validate - Validate API key
+    GET /api/v1/users/me/api-key/usage - Get usage statistics
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = SetAPIKeySerializer
+
+    def get(self, request):
+        """Get API key status (without exposing the actual key)."""
+        try:
+            api_key = request.user.api_key
+            return Response({
+                'success': True,
+                'data': {
+                    'has_key': True,
+                    'is_active': api_key.is_active,
+                    'is_validated': api_key.is_validated,
+                    'key_name': api_key.key_name,
+                    'total_input_tokens': api_key.total_input_tokens,
+                    'total_output_tokens': api_key.total_output_tokens,
+                    'total_requests': api_key.total_requests,
+                    'total_cost_usd': float(api_key.total_cost_usd),
+                    'last_validated_at': api_key.last_validated_at,
+                    'created_at': api_key.created_at,
+                }
+            })
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': True,
+                'data': {'has_key': False}
+            })
+
+    @method_decorator(ratelimit(key='user', rate='5/h', method='POST', block=True))
+    def post(self, request):
+        """Set/update API key."""
+        serializer = SetAPIKeySerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': 'API Key 驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        api_key_str = serializer.validated_data['api_key']
+        key_name = serializer.validated_data.get('key_name', 'My API Key')
+
+        # Validate API key asynchronously
+        is_valid, error_msg = asyncio.run(
+            APIKeyService.validate_anthropic_key(api_key_str)
+        )
+
+        if not is_valid:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_FAILED',
+                    'message': f'API Key 驗證失敗: {error_msg}'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Store API key
+        from django.utils import timezone
+        api_key_obj, created = UserAPIKey.objects.get_or_create(user=request.user)
+        api_key_obj.set_key(api_key_str)
+        api_key_obj.key_name = key_name
+        api_key_obj.is_validated = True
+        api_key_obj.last_validated_at = timezone.now()
+        api_key_obj.save()
+
+        return Response({
+            'success': True,
+            'message': 'API Key 已成功保存',
+            'data': {
+                'is_validated': api_key_obj.is_validated,
+                'key_name': api_key_obj.key_name,
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        """Delete API key."""
+        try:
+            request.user.api_key.delete()
+            return Response({
+                'success': True,
+                'message': 'API Key 已成功刪除'
+            })
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '未找到 API Key'
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class ValidateAPIKeyView(SchemaAPIView):
+    """
+    Validate API key without storing it.
+
+    POST /api/v1/users/me/api-key/validate
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ValidateAPIKeySerializer
+
+    @method_decorator(ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request):
+        """Validate API key."""
+        serializer = ValidateAPIKeySerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': 'API Key 驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        api_key_str = serializer.validated_data['api_key']
+
+        # Validate API key asynchronously
+        is_valid, error_msg = asyncio.run(
+            APIKeyService.validate_anthropic_key(api_key_str)
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'valid': is_valid,
+                'error': error_msg if not is_valid else None
+            }
+        })
+
+
+class GetUsageStatsView(SchemaAPIView):
+    """
+    Get API usage statistics.
+
+    GET /api/v1/users/me/api-key/usage?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&granularity=day
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.Serializer
+
+    def get(self, request):
+        """Get usage statistics."""
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+        from apps.ai.models import AIExecutionLog
+        from datetime import datetime
+
+        # Check if user has API key
+        try:
+            request.user.api_key
+        except UserAPIKey.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'NO_API_KEY',
+                    'message': '未找到 API Key。請先設定 API Key'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Parse query parameters
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        granularity = request.query_params.get('granularity', 'day')
+
+        # Query logs
+        logs = AIExecutionLog.objects.filter(user=request.user)
+
+        if start_date_str:
+            try:
+                start_date = datetime.fromisoformat(start_date_str).date()
+                logs = logs.filter(created_at__date__gte=start_date)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_DATE',
+                        'message': 'Invalid start_date format. Use YYYY-MM-DD'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if end_date_str:
+            try:
+                end_date = datetime.fromisoformat(end_date_str).date()
+                from datetime import timedelta
+                # Include the entire end_date day
+                logs = logs.filter(created_at__date__lte=end_date)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_DATE',
+                        'message': 'Invalid end_date format. Use YYYY-MM-DD'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Calculate total stats
+        total = logs.aggregate(
+            input_tokens=Sum('input_tokens'),
+            output_tokens=Sum('output_tokens'),
+            requests=Count('id'),
+            cost_cents=Sum('cost_cents'),
+        )
+
+        # Group by granularity
+        breakdown = []
+        if granularity == 'total':
+            # No breakdown needed
+            pass
+        elif granularity == 'day':
+            breakdown_qs = logs.annotate(
+                period=TruncDate('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+        elif granularity == 'week':
+            breakdown_qs = logs.annotate(
+                period=TruncWeek('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].date().isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+        elif granularity == 'month':
+            breakdown_qs = logs.annotate(
+                period=TruncMonth('created_at')
+            ).values('period').annotate(
+                input_tokens=Sum('input_tokens'),
+                output_tokens=Sum('output_tokens'),
+                requests=Count('id'),
+                cost_cents=Sum('cost_cents'),
+            ).order_by('-period')
+
+            for item in breakdown_qs:
+                breakdown.append({
+                    'period': item['period'].date().isoformat(),
+                    'input_tokens': item['input_tokens'] or 0,
+                    'output_tokens': item['output_tokens'] or 0,
+                    'requests': item['requests'] or 0,
+                    'cost_usd': (item['cost_cents'] or 0) / 100,
+                })
+
+        return Response({
+            'success': True,
+            'data': {
+                'total': {
+                    'input_tokens': total['input_tokens'] or 0,
+                    'output_tokens': total['output_tokens'] or 0,
+                    'requests': total['requests'] or 0,
+                    'cost_usd': (total['cost_cents'] or 0) / 100,
+                },
+                'breakdown': breakdown
+            }
         })

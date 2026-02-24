@@ -210,7 +210,6 @@ export const ProblemProvider: React.FC<ProblemProviderProps> = ({
         status: "AC",
         ordering: "exec_time",
         page_size: 10,
-        is_test: 0,
         contest: contestId,
         source_type: contestId ? "contest" : undefined,
       });
@@ -283,7 +282,6 @@ export const ProblemProvider: React.FC<ProblemProviderProps> = ({
       const params: Record<string, any> = {
         problem: problemId,
         ordering: "-created_at",
-        is_test: 0,
         page: submissionsParams.page,
         page_size: submissionsParams.pageSize,
       };

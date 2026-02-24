@@ -248,12 +248,12 @@ const ContestAdminLogsPage = () => {
   // Filter events when search term or event type filter changes
   useEffect(() => {
     let filtered = sortedEvents;
-    
+
     // Apply event type filter
     if (selectedTypes && selectedTypes.length > 0) {
       filtered = filtered.filter((e) => selectedTypes.includes(e.eventType));
     }
-    
+
     // Apply search term filter
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -264,14 +264,18 @@ const ContestAdminLogsPage = () => {
           e.reason?.toLowerCase().includes(lowerSearch)
       );
     }
-    
-    setFilteredEvents(filtered);
-    setPage(1); // Reset to first page on filter change
+
+    const timerId = setTimeout(() => {
+      setFilteredEvents(filtered);
+      setPage(1); // Reset to first page on filter change
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [searchTerm, sortedEvents, selectedTypes]);
 
   // Comprehensive event type mapping
   const getEventTag = (type: string) => {
-    const eventMap: Record<string, { label: string; type: any }> = {
+    const eventMap: Record<string, { label: string; type: "red" | "green" | "gray" | "blue" | "cyan" | "magenta" | "teal" | "purple" | "cool-gray" | "outline" }> = {
       // Registration/Join events
       join: { label: "加入", type: "green" },
       register: { label: "註冊", type: "green" },
@@ -451,12 +455,18 @@ const ContestAdminLogsPage = () => {
                   getHeaderProps,
                   getRowProps,
                   getTableProps,
-                }: any) => (
+                }: {
+                  rows: typeof rows;
+                  headers: typeof headers;
+                  getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
+                  getRowProps: (args: { row: { id: string } }) => Record<string, string>;
+                  getTableProps: () => Record<string, string>;
+                }) => (
                   <TableContainer>
                     <TableToolbar>
                       <TableToolbarContent>
                         <TableToolbarSearch
-                          onChange={(e: any) =>
+                          onChange={(e: { target?: { value?: string } }) =>
                             setSearchTerm(e.target?.value || "")
                           }
                           placeholder="搜尋事件..."
@@ -468,13 +478,13 @@ const ContestAdminLogsPage = () => {
                             titleText=""
                             label="篩選事件類型"
                             items={eventFilterOptions}
-                            itemToString={(item: any) => item?.label || ""}
+                            itemToString={(item) => item?.label || ""}
                             selectedItems={eventFilterOptions.filter((opt) =>
                               selectedEventTypes.includes(opt.id)
                             )}
-                            onChange={({ selectedItems }: any) => {
+                            onChange={({ selectedItems }: { selectedItems?: Array<{ id: string }> }) => {
                               setSelectedEventTypes(
-                                selectedItems?.map((item: any) => item.id) || []
+                                selectedItems?.map((item) => item.id) || []
                               );
                             }}
                             size="md"
@@ -485,7 +495,7 @@ const ContestAdminLogsPage = () => {
                     <Table {...getTableProps()}>
                       <TableHead>
                         <TableRow>
-                          {headers.map((header: any) => {
+                          {headers.map((header) => {
                             const { key, ...headerProps } = getHeaderProps({
                               header,
                             });
@@ -498,7 +508,7 @@ const ContestAdminLogsPage = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {rows.map((row: any) => {
+                        {rows.map((row) => {
                           const event = filteredEvents.find(
                             (e, i) =>
                               (e.id ? e.id.toString() : i.toString()) === row.id
@@ -511,14 +521,14 @@ const ContestAdminLogsPage = () => {
                               <TableCell>
                                 {new Date(
                                   row.cells.find(
-                                    (c: any) => c.info.header === "timestamp"
+                                    (c) => c.info.header === "timestamp"
                                   )?.value
                                 ).toLocaleString()}
                               </TableCell>
                               <TableCell>
                                 {
                                   row.cells.find(
-                                    (c: any) => c.info.header === "userName"
+                                    (c) => c.info.header === "userName"
                                   )?.value
                                 }
                               </TableCell>
@@ -526,13 +536,13 @@ const ContestAdminLogsPage = () => {
                                 {event
                                   ? getEventTag(event.eventType)
                                   : row.cells.find(
-                                      (c: any) => c.info.header === "eventType"
+                                      (c) => c.info.header === "eventType"
                                     )?.value}
                               </TableCell>
                               <TableCell>
                                 {
                                   row.cells.find(
-                                    (c: any) => c.info.header === "reason"
+                                    (c) => c.info.header === "reason"
                                   )?.value
                                 }
                               </TableCell>
@@ -552,7 +562,7 @@ const ContestAdminLogsPage = () => {
                 page={page}
                 pageSize={pageSize}
                 pageSizes={[20, 50, 100, 200]}
-                onChange={({ page: newPage, pageSize: newPageSize }: any) => {
+                onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
                   setPage(newPage);
                   setPageSize(newPageSize);
                 }}

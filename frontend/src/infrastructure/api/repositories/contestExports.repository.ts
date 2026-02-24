@@ -1,13 +1,14 @@
+import { httpClient } from "@/infrastructure/api/http.client";
+
 /**
  * Export contest results as CSV file download
  */
 export const exportContestResults = async (
   contestId: string
 ): Promise<void> => {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`/api/v1/contests/${contestId}/export_results/`, {
+  const res = await httpClient.get(`/api/v1/contests/${contestId}/export_results/`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Accept: "*/*",
     },
   });
 
@@ -42,8 +43,6 @@ export const downloadContestFile = async (
   scale: number = 1.0,
   layout: "normal" | "compact" = "normal"
 ): Promise<Blob> => {
-  const token = localStorage.getItem("token");
-
   // Build query params
   const params = new URLSearchParams({
     file_format: format,
@@ -63,13 +62,10 @@ export const downloadContestFile = async (
     }
   }
 
-  // Use direct fetch instead of httpClient to set correct Accept header for binary downloads
-  const res = await fetch(
+  const res = await httpClient.get(
     `/api/v1/contests/${contestId}/download/?${params.toString()}`,
     {
-      method: "GET",
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
         // Use */* to bypass DRF content negotiation (DRF doesn't have renderers for text/markdown or application/pdf)
         Accept: "*/*",
       },
@@ -87,7 +83,7 @@ export const downloadContestFile = async (
         errorData.detail ||
         "Failed to download contest file";
       throw new Error(message);
-    } catch (parseError) {
+    } catch {
       // If can't parse JSON, throw generic error with status
       throw new Error(`Download failed: ${res.status} ${res.statusText}`);
     }
@@ -107,8 +103,6 @@ export const downloadMyReport = async (
   language: string = "zh-TW",
   scale: number = 1.0
 ): Promise<void> => {
-  const token = localStorage.getItem("token");
-
   const params = new URLSearchParams({
     language: language,
   });
@@ -120,12 +114,10 @@ export const downloadMyReport = async (
     params.append("scale", scale.toString());
   }
 
-  const res = await fetch(
+  const res = await httpClient.get(
     `/api/v1/contests/${contestId}/my_report/?${params.toString()}`,
     {
-      method: "GET",
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
         Accept: "*/*",
       },
     }

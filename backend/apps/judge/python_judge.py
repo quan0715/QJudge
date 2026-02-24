@@ -2,6 +2,7 @@
 Docker-based Python code execution service
 """
 import docker
+import uuid
 from typing import Dict, Any
 from django.conf import settings
 from .base_judge import BaseJudge
@@ -26,6 +27,16 @@ class PythonJudge(BaseJudge):
     def get_language_version(self) -> str:
         """返回語言版本"""
         return "Python 3.11"
+
+    @staticmethod
+    def _build_heredoc_write_command(
+        *, target_file: str, content: str, prefix: str
+    ) -> str:
+        """Build a safe heredoc write command using an unpredictable delimiter."""
+        delimiter = f"{prefix}_{uuid.uuid4().hex}"
+        while delimiter in content:
+            delimiter = f"{prefix}_{uuid.uuid4().hex}"
+        return f"cat > {target_file} <<'{delimiter}'\n{content}\n{delimiter}"
     
     def _ensure_docker_client(self):
         """確保 Docker client 已初始化"""
@@ -72,17 +83,21 @@ class PythonJudge(BaseJudge):
             security_opts = ['no-new-privileges']
             
             # 構建完整的命令：寫入代碼 -> 寫入輸入 -> 執行
-            # 使用 cat 和 heredoc 寫入檔案，注意轉義
-            full_cmd = f'''cat > main.py <<'CODEEOF'
-{code}
-CODEEOF
-
-cat > input.txt <<'INPUTEOF'
-{input_data}
-INPUTEOF
-
-timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1
-'''
+            code_write_cmd = self._build_heredoc_write_command(
+                target_file="main.py",
+                content=code,
+                prefix="PY_CODE",
+            )
+            input_write_cmd = self._build_heredoc_write_command(
+                target_file="input.txt",
+                content=input_data,
+                prefix="PY_INPUT",
+            )
+            full_cmd = (
+                f"{code_write_cmd}\n\n"
+                f"{input_write_cmd}\n\n"
+                f"timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1\n"
+            )
             
             container = self.client.containers.run(
                 self.image,
@@ -178,5 +193,5 @@ timeout {time_limit / 1000.0 + 0.5}s python3 main.py < input.txt 2>&1
             if container:
                 try:
                     container.remove(force=True)
-                except:
+                except Exception:
                     pass

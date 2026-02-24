@@ -32,26 +32,25 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   // Transform ScoreboardData to ContestScoreboard format
   const problems: ProblemInfo[] = useMemo(() => {
     if (!scoreboardData?.problems) return [];
-    return scoreboardData.problems.map((p: any, index) => {
-      // Use p.id directly (from API), fallback to problemId string, then index
-      const problemId = p.id ?? (p.problemId ? parseInt(p.problemId) : null);
+    return scoreboardData.problems.map((p, index) => {
+      const problemId = p.id ?? (p.problemId ? Number(p.problemId) : null);
       return {
         id: problemId ?? index,
-        title: p.title || p.label, // fallback to label as title
+        title: p.title || p.label,
         order: p.order ?? index,
         label: p.label,
         problem_id: problemId ?? undefined,
-        score: p.score || 0, // Include problem score
+        score: p.score || 0,
       };
     });
   }, [scoreboardData?.problems]);
 
   const standings: StandingRow[] = useMemo(() => {
     if (!scoreboardData?.rows) return [];
-    return scoreboardData.rows.map((row: any) => ({
+    return scoreboardData.rows.map((row) => ({
       rank: row.rank,
       user: {
-        id: parseInt(row.userId) || 0,
+        id: Number(row.userId) || 0,
         username: row.displayName,
       },
       displayName: row.displayName,
@@ -59,18 +58,30 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
       total_score: row.totalScore || row.total_score || 0,
       time: row.penalty,
       problems: Object.fromEntries(
-        Object.entries(row.problems || {}).map(([key, cell]: [string, any]) => [
-          key,
-          {
-            // Keep original status from API (AC, WA, CE, RE, TLE, etc.)
-            // Treat non-AC statuses as "WA" for display purposes
-            status: cell?.status === "AC" ? "AC" : cell?.status ? "WA" : null,
-            score: cell?.score ?? 0,
-            tries: cell?.tries ?? 0,
-            time: cell?.time ?? 0,
-            pending: cell?.pending ?? false,
-          },
-        ])
+        Object.entries(row.problems || {}).map(([key, cell]) => {
+          const contestCell = cell as {
+            status?: string | null;
+            score?: number | null;
+            tries?: number | null;
+            time?: number | null;
+            pending?: boolean | null;
+          };
+          return [
+            key,
+            {
+              status:
+                contestCell.status === "AC"
+                  ? "AC"
+                  : contestCell.status
+                    ? "WA"
+                    : null,
+              score: contestCell.score ?? 0,
+              tries: contestCell.tries ?? 0,
+              time: contestCell.time ?? 0,
+              pending: contestCell.pending ?? false,
+            },
+          ];
+        })
       ),
     }));
   }, [scoreboardData?.rows]);

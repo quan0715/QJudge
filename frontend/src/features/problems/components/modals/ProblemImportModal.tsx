@@ -160,6 +160,7 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
           <a
             href="/docs/problem-import-format.md"
             target="_blank"
+            rel="noopener noreferrer"
             style={{ marginLeft: "0.5rem", color: "var(--cds-link-primary)" }}
           >
             {t("import.viewFormat")}

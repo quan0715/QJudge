@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
+import type { User } from "@/core/entities/user.entity";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
@@ -19,6 +20,12 @@ import ContestSettingsScreen from "@/features/contest/screens/settings/ContestSe
 import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
+import ContestExamModelScreen from "@/features/contest/screens/settings/ContestExamModelScreen";
+import ContestExamQuestionsScreen from "@/features/contest/screens/settings/ContestExamQuestionsScreen";
+import {
+  getAvailableContestTabKeys,
+  type ContestTabKey,
+} from "@/features/contest/tabConfig";
 
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
@@ -30,28 +37,31 @@ const ContestDashboard = () => {
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [lockModalOpen, setLockModalOpen] = useState(false);
-
-  useEffect(() => {
+  const [currentUser] = useState<User | null>(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user", e);
-      }
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user", e);
+      return null;
     }
-  }, []);
+  });
+  const [lockModalOpen, setLockModalOpen] = useState(false);
 
   // Find my rank from context standings
   useEffect(() => {
-    if (currentUser && scoreboardData?.rows?.length) {
-      const myEntry = scoreboardData.rows.find(
+    const timerId = setTimeout(() => {
+      if (!currentUser) {
+        setMyRank(null);
+        return;
+      }
+      const myEntry = scoreboardData?.rows?.find(
         (s) => s.displayName === currentUser.username
       );
       setMyRank(myEntry || null);
-    }
+    }, 0);
+    return () => clearTimeout(timerId);
   }, [currentUser, scoreboardData]);
 
   const handleSubmissionClose = () => {
@@ -62,9 +72,27 @@ const ContestDashboard = () => {
     });
   };
 
-  // Get selected tab from URL (default to 'overview')
-  const selectedTab = searchParams.get("tab") || "overview";
+  const selectedTabParam = searchParams.get("tab") || "overview";
   const selectedSubmissionId = searchParams.get("submissionId");
+
+  const availableTabKeys = useMemo(
+    () => getAvailableContestTabKeys(contest),
+    [contest]
+  );
+
+  const selectedTab = availableTabKeys.includes(selectedTabParam as ContestTabKey)
+    ? selectedTabParam
+    : availableTabKeys[0];
+
+  useEffect(() => {
+    if (!contest) return;
+    if (selectedTabParam === selectedTab) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", selectedTab);
+      return next;
+    });
+  }, [contest, selectedTab, selectedTabParam, setSearchParams]);
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -103,6 +131,7 @@ const ContestDashboard = () => {
 
   // Guard against null contest
   if (!contest) return renderSkeleton();
+
   const renderTabContent = () => {
     switch (selectedTab) {
       case "overview":
@@ -135,6 +164,10 @@ const ContestDashboard = () => {
         return <ContestParticipantsScreen />;
       case "logs":
         return <ContestLogsScreen />;
+      case "exam-model":
+        return <ContestExamModelScreen />;
+      case "exam-questions":
+        return <ContestExamQuestionsScreen />;
       case "admins":
         return <ContestAdminsScreen />;
       default:

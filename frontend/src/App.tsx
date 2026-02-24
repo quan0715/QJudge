@@ -9,6 +9,7 @@ import ErrorBoundary from "@/features/app/components/ErrorBoundary";
 import {
   guestRoutes,
   oauthCallbackRoute,
+  settingsRoute,
   AuthLayout,
   AuthProvider,
   RequireAuth,
@@ -23,6 +24,7 @@ import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
 import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
+import { teacherRoutes } from "@/features/teacher";
 import { landingRoute } from "@/features/landing";
 
 // Feature imports - Submissions
@@ -31,6 +33,7 @@ import { submissionRoutes } from "@/features/submissions";
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
+
 
 // Create a client
 const queryClient = new QueryClient({
@@ -79,6 +82,7 @@ function App() {
                             {problemRoutes}
                             {contestListRoute}
                             {submissionRoutes}
+                            {settingsRoute}
                             <Route
                               path="/ranking"
                               element={<div>Ranking Page (Coming Soon)</div>}
@@ -98,9 +102,11 @@ function App() {
                           {contestDetailRoutes}
                         </Route>
 
-                        {/* Teacher/Admin Routes - Legacy redirects */}
+                        {/* Teacher/Admin Routes */}
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<MainLayout />}>
+                            {/* Teacher Dashboard Routes */}
+                            {teacherRoutes}
                             {/* Redirect old management paths to unified contest view */}
                             <Route
                               path="/management/contests/:contestId"

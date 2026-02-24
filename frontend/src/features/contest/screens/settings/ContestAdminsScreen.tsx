@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   Button,
@@ -42,13 +42,7 @@ const ContestAdminsPage: React.FC = () => {
   } | null>(null);
   const { confirm, modalProps } = useConfirmModal();
 
-  useEffect(() => {
-    if (contestId) {
-      loadAdmins();
-    }
-  }, [contestId]);
-
-  const loadAdmins = async () => {
+  const loadAdmins = useCallback(async () => {
     if (!contestId) return;
     try {
       const data = await getContestAdmins(contestId);
@@ -57,7 +51,15 @@ const ContestAdminsPage: React.FC = () => {
       console.error("Failed to load admins", error);
       setNotification({ kind: "error", message: "無法載入管理員列表" });
     }
-  };
+  }, [contestId]);
+
+  useEffect(() => {
+    if (!contestId) return undefined;
+    const timerId = setTimeout(() => {
+      loadAdmins();
+    }, 0);
+    return () => clearTimeout(timerId);
+  }, [contestId, loadAdmins]);
 
   const handleAddAdmin = async (username: string) => {
     if (!contestId) return;
@@ -70,8 +72,10 @@ const ContestAdminsPage: React.FC = () => {
       });
       setAddModalOpen(false);
       loadAdmins();
-    } catch (error: any) {
-      setNotification({ kind: "error", message: error.message || "新增失敗" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "新增失敗";
+      setNotification({ kind: "error", message });
       throw error;
     }
   };
@@ -93,8 +97,10 @@ const ContestAdminsPage: React.FC = () => {
         message: `已移除管理員: ${admin.username}`,
       });
       loadAdmins();
-    } catch (error: any) {
-      setNotification({ kind: "error", message: error.message || "移除失敗" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "移除失敗";
+      setNotification({ kind: "error", message });
     }
   };
 

@@ -110,9 +110,7 @@ class ProblemService:
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
-            is_visible=False,
-            # Use new MVP fields instead of deprecated ones
-            is_practice_visible=False,
+            visibility='private',
             created_in_contest=contest,
             created_by=created_by
         )
@@ -147,8 +145,7 @@ class ProblemService:
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
-            is_visible=True,
-            is_practice_visible=True,
+            visibility='public',
             created_in_contest=source_contest,
             origin_problem=source_problem,
             created_by=created_by,
@@ -162,7 +159,7 @@ class ProblemService:
     def create_contest_problem(contest, created_by, title="New Problem") -> Problem:
         """
         Create a new empty problem for a contest.
-        Uses new MVP fields: is_practice_visible=False, created_in_contest=contest
+        Uses new fields: visibility='private', created_in_contest=contest
         """
         # Generate Q number for contest problem
         display_id = ProblemService.generate_contest_problem_id()
@@ -173,9 +170,7 @@ class ProblemService:
             slug=slug,
             display_id=display_id,
             difficulty='medium',
-            is_visible=False,
-            # New MVP fields
-            is_practice_visible=False,  # Contest problems are not visible in practice by default
+            visibility='private',  # Contest problems are private by default
             created_in_contest=contest,  # Track the source contest
             created_by=created_by
         )

@@ -2,6 +2,7 @@ import { Route } from "react-router-dom";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
+import UserSettingsScreen from "./screens/UserSettingsScreen";
 
 /**
  * Guest 路由（需在 RequireGuest + AuthLayout 內使用）
@@ -18,4 +19,11 @@ export const guestRoutes = (
  */
 export const oauthCallbackRoute = (
   <Route path="/auth/nycu/callback" element={<OAuthCallbackScreen />} />
+);
+
+/**
+ * Settings 路由（需在 RequireAuth + MainLayout 內使用）
+ */
+export const settingsRoute = (
+  <Route path="/settings" element={<UserSettingsScreen />} />
 );

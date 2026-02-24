@@ -21,6 +21,7 @@ interface ContestDownloadModalProps {
  */
 const sanitizeFilename = (filename: string): string => {
   // Remove or replace invalid characters
+  // eslint-disable-next-line no-control-regex
   const sanitized = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
   // Remove leading/trailing dots and spaces
   const trimmed = sanitized.trim().replace(/^[\s.]+|[\s.]+$/g, "");

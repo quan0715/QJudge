@@ -24,8 +24,7 @@ class ContestPublishToPracticeTests(APITestCase):
         self.problem = Problem.objects.create(
             title="Contest Problem",
             slug="contest-problem",
-            is_visible=False,
-            is_practice_visible=False,
+            visibility='hidden',
             created_in_contest=self.contest,
             created_by=self.teacher,
         )
@@ -77,8 +76,7 @@ class ContestPublishToPracticeTests(APITestCase):
         self.assertEqual(len(created_ids), 1)
 
         cloned = Problem.objects.get(id=created_ids[0])
-        self.assertTrue(cloned.is_practice_visible)
-        self.assertTrue(cloned.is_visible)
+        self.assertEqual(cloned.visibility, "public")
         self.assertEqual(cloned.created_in_contest_id, self.contest.id)
         self.assertEqual(cloned.origin_problem_id, self.problem.id)
         self.assertTrue(cloned.display_id.startswith("P"))
@@ -103,8 +101,7 @@ class ContestPublishToPracticeTests(APITestCase):
         second_problem = Problem.objects.create(
             title="Contest Problem 2",
             slug="contest-problem-2",
-            is_visible=False,
-            is_practice_visible=False,
+            visibility='hidden',
             created_in_contest=self.contest,
             created_by=self.teacher,
         )
@@ -150,5 +147,5 @@ class ContestPublishToPracticeTests(APITestCase):
         created_id = resp.data.get("created_problem_id")
         self.assertIsNotNone(created_id)
         self.assertTrue(
-            Problem.objects.filter(id=created_id, origin_problem=self.problem, is_practice_visible=True).exists()
+            Problem.objects.filter(id=created_id, origin_problem=self.problem, visibility='public').exists()
         )

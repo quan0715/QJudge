@@ -2,7 +2,14 @@
 Admin configuration for contests app.
 """
 from django.contrib import admin
-from .models import Contest, ContestProblem, ContestParticipant, Clarification, ExamEvent
+from .models import (
+    Contest,
+    ContestProblem,
+    ContestParticipant,
+    Clarification,
+    ExamEvent,
+    ExamQuestion,
+)
 
 
 class ContestProblemInline(admin.TabularInline):
@@ -37,3 +44,11 @@ class ExamEventAdmin(admin.ModelAdmin):
     list_display = ['event_type', 'contest', 'user', 'created_at']
     list_filter = ['event_type', 'contest']
     search_fields = ['user__username', 'metadata']
+
+
+@admin.register(ExamQuestion)
+class ExamQuestionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'contest', 'question_type', 'score', 'order', 'updated_at']
+    list_filter = ['question_type', 'contest']
+    search_fields = ['prompt']
+    ordering = ['contest', 'order', 'id']

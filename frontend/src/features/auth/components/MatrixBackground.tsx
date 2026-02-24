@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-const MatrixBackground = () => {
+interface MatrixBackgroundProps {
+  variant?: "dark" | "light";
+}
+
+const MatrixBackground = ({ variant = "dark" }: MatrixBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -27,14 +31,25 @@ const MatrixBackground = () => {
         drops[i] = Math.random() * -100; // Start above screen
     }
 
+    const colors =
+      variant === "light"
+        ? {
+            trail: "rgba(255, 255, 255, 0.08)",
+            chars: "rgba(15, 98, 254, 0.45)",
+          }
+        : {
+            trail: "rgba(22, 22, 22, 0.05)",
+            chars: "#42be65",
+          };
+
     const draw = () => {
       // Semi-transparent black to create trail effect
       // Use var(--cds-background) if possible, but canvas needs exact color string. 
       // We'll use a hardcoded dark color that matches Carbon g100/g90 or pure black #161616
-      ctx.fillStyle = 'rgba(22, 22, 22, 0.05)'; 
+      ctx.fillStyle = colors.trail;
       ctx.fillRect(0, 0, width, height);
 
-      ctx.fillStyle = '#42be65'; // Carbon Green for Matrix text
+      ctx.fillStyle = colors.chars;
       ctx.font = `${fontSize}px 'IBM Plex Mono', monospace`;
 
       for (let i = 0; i < drops.length; i++) {
@@ -93,7 +108,7 @@ const MatrixBackground = () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [variant]);
 
   return (
     <canvas 
@@ -105,7 +120,7 @@ const MatrixBackground = () => {
         width: '100%',
         height: '100%',
         zIndex: 0,
-        opacity: 0.15, // Low opacity so it's not distracting
+        opacity: variant === "light" ? 0.08 : 0.15,
         pointerEvents: 'none'
       }}
     />

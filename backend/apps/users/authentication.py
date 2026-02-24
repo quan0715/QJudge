@@ -17,6 +17,11 @@ from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+try:
+    from drf_spectacular.extensions import OpenApiAuthenticationExtension
+except Exception:  # pragma: no cover - optional import path for runtime safety
+    OpenApiAuthenticationExtension = None
+
 
 class CSRFCheck(CsrfViewMiddleware):
     """CSRF check helper that doesn't reject the request, just validates."""
@@ -90,6 +95,28 @@ class CookieJWTAuthentication(JWTAuthentication):
                 detail=f'CSRF validation failed: {reason}. '
                        f'Include X-CSRFToken header with your request.'
             )
+
+
+if OpenApiAuthenticationExtension is not None:
+    class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
+        """
+        OpenAPI auth schema for CookieJWTAuthentication.
+        """
+
+        target_class = "apps.users.authentication.CookieJWTAuthentication"
+        name = "cookieJwtAuth"
+
+        def get_security_definition(self, auto_schema):
+            cookie_name = getattr(settings, "JWT_AUTH_COOKIE", "access_token")
+            return {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": cookie_name,
+                "description": (
+                    "JWT access token in HttpOnly cookie. "
+                    "Authorization: Bearer is also supported."
+                ),
+            }
 
 
 def set_jwt_cookies(response, tokens):

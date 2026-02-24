@@ -8,6 +8,7 @@ import type {
 import type {
   IProblemRepository,
   GetProblemsParams,
+  PaginatedProblems,
   ProblemStatistics,
   TestRunPayload,
   TestRunResult,
@@ -49,6 +50,40 @@ export const getProblems = async (
   );
   const results = data.results || data;
   return Array.isArray(results) ? results.map(mapProblemDto) : [];
+};
+
+export const getPaginatedProblems = async (
+  params?: GetProblemsParams
+): Promise<PaginatedProblems> => {
+  const searchParams = new URLSearchParams();
+
+  if (params) {
+    if (params.scope) searchParams.append("scope", params.scope);
+    if (params.search) searchParams.append("search", params.search);
+    if (params.difficulty && params.difficulty.length > 0) {
+      params.difficulty.forEach((d) => searchParams.append("difficulty", d));
+    }
+    if (params.tags && params.tags.length > 0) {
+      searchParams.append("tags", params.tags.join(","));
+    }
+    if (params.page) searchParams.append("page", params.page.toString());
+    if (params.page_size) searchParams.append("page_size", params.page_size.toString());
+  }
+
+  const queryString = searchParams.toString();
+  const query = queryString ? `?${queryString}` : "";
+
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/problems/${query}`),
+    "Failed to fetch problems"
+  );
+
+  return {
+    results: Array.isArray(data.results) ? data.results.map(mapProblemDto) : [],
+    count: data.count || 0,
+    next: data.next || null,
+    previous: data.previous || null,
+  };
 };
 
 export const getProblem = async (

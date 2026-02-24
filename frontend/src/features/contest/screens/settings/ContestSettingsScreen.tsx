@@ -95,7 +95,7 @@ const ContestAdminSettingsPage = () => {
       maxCheatWarnings: data.maxCheatWarnings || 0,
       allowAutoUnlock: data.allowAutoUnlock || false,
       autoUnlockMinutes: data.autoUnlockMinutes || 0,
-      status: (data.status || "draft") as any,
+      status: data.status || "draft",
       anonymousModeEnabled: data.anonymousModeEnabled || false,
     });
 
@@ -169,7 +169,7 @@ const ContestAdminSettingsPage = () => {
       setNotification({ kind: "success", message: t("settings.archived") });
       setFormInitialized(false);
       refreshContest();
-    } catch (error) {
+    } catch {
       setNotification({ kind: "error", message: t("settings.archiveFailed") });
     }
   };
@@ -184,10 +184,14 @@ const ContestAdminSettingsPage = () => {
         message: t("settings.publishPracticeSuccess"),
       });
       setPublishModalOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("settings.publishPracticeFailed");
       setNotification({
         kind: "error",
-        message: error?.message || t("settings.publishPracticeFailed"),
+        message,
       });
     } finally {
       setPublishing(false);
@@ -206,7 +210,7 @@ const ContestAdminSettingsPage = () => {
     try {
       await deleteContest(contestId);
       navigate("/contests");
-    } catch (error) {
+    } catch {
       setNotification({ kind: "error", message: t("settings.deleteFailed") });
     }
   };
@@ -480,7 +484,7 @@ const ContestAdminSettingsPage = () => {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          visibility: e.target.value as any,
+                          visibility: e.target.value as "public" | "private",
                         })
                       }
                     >
@@ -513,7 +517,7 @@ const ContestAdminSettingsPage = () => {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          status: e.target.value as any,
+                          status: e.target.value as "draft" | "published" | "archived",
                         })
                       }
                     >
@@ -748,10 +752,14 @@ const ContestAdminSettingsPage = () => {
                       kind: "success",
                       message: t("settings.exportSuccess"),
                     });
-                  } catch (error: any) {
+                  } catch (error) {
+                    const message =
+                      error instanceof Error
+                        ? error.message
+                        : t("settings.exportFailed");
                     setNotification({
                       kind: "error",
-                      message: error.message || t("settings.exportFailed"),
+                      message,
                     });
                   }
                 }}

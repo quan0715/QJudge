@@ -1,4 +1,15 @@
 services:
+  judge-image-test:
+    build:
+      context: ./backend/judge
+      dockerfile: Dockerfile.judge
+    image: oj-judge:latest
+    container_name: oj_judge_image_test
+    command: ["true"]
+    restart: "no"
+    networks:
+      - test-network
+
   postgres-test:
     image: postgres:15-alpine
     container_name: oj_postgres_test
@@ -56,6 +67,8 @@ services:
     ports:
       - "8001:8000"
     depends_on:
+      judge-image-test:
+        condition: service_started
       postgres-test:
         condition: service_healthy
       redis-test:
@@ -86,6 +99,8 @@ services:
       - DEBUG=True
       - JUDGE_TMP_DIR=/judge_tmp
     depends_on:
+      judge-image-test:
+        condition: service_started
       postgres-test:
         condition: service_healthy
       redis-test:

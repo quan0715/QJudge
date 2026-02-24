@@ -5,20 +5,18 @@ import { oauthCallback } from "@/infrastructure/api/repositories/auth.repository
 
 const OAuthCallbackPage = () => {
   const [searchParams] = useSearchParams();
-  const [error, setError] = useState('');
+  const code = searchParams.get('code');
+  const errorParam = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
+  const initialError = errorParam
+    ? errorDescription || errorParam
+    : !code
+      ? 'No authorization code found'
+      : '';
+  const [error, setError] = useState(initialError);
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const errorParam = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-
-    if (errorParam) {
-      setError(errorDescription || errorParam);
-      return;
-    }
-
-    if (!code) {
-      setError('No authorization code found');
+    if (initialError || !code) {
       return;
     }
 
@@ -33,7 +31,6 @@ const OAuthCallbackPage = () => {
         });
 
         if (response.success) {
-          localStorage.setItem('token', response.data.access_token);
           localStorage.setItem('user', JSON.stringify(response.data.user));
           // Use full page redirect to ensure AuthContext picks up the new state
           window.location.href = '/dashboard';
@@ -47,7 +44,7 @@ const OAuthCallbackPage = () => {
     };
 
     handleCallback();
-  }, [searchParams]);
+  }, [code, initialError]);
 
   if (error) {
     return (

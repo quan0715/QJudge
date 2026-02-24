@@ -19,7 +19,7 @@ def test_teacher_can_create_problem(api_client, user_factory):
             "title": "Two Sum",
             "slug": "two-sum",
             "difficulty": "easy",
-            "is_practice_visible": True,
+            "visibility": "public",
         },
         format="json",
     )

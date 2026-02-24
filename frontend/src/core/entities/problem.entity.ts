@@ -1,4 +1,5 @@
 export type Difficulty = "easy" | "medium" | "hard";
+export type ProblemVisibility = "public" | "private" | "hidden";
 
 export interface Tag {
   id: string;
@@ -51,9 +52,8 @@ export interface Problem {
   createdBy?: string;
   tags: Tag[];
 
-  // Visibility flags
-  isPracticeVisible: boolean;
-  isVisible: boolean;
+  // Visibility
+  visibility: ProblemVisibility;
 
   // User specific
   isSolved: boolean;
@@ -121,8 +121,7 @@ export interface ProblemUpsertPayload {
   difficulty: Difficulty;
   time_limit: number;
   memory_limit: number;
-  is_visible?: boolean;
-  is_practice_visible?: boolean;
+  visibility?: ProblemVisibility;
   display_id?: string;
   translations: ProblemUpsertTranslation[];
   test_cases?: ProblemUpsertTestCase[];

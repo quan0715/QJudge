@@ -12,7 +12,6 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 import {
   startExam,
   leaveContest,
-  registerContest,
   endExam,
 } from "@/infrastructure/api/repositories";
 
@@ -24,15 +23,23 @@ const messages = {
   exitError: "exit error",
 };
 
-const baseContest = {
-  id: "1",
-  name: "Contest",
-  startTime: "2024-01-01T00:00:00Z",
-  endTime: "2024-01-01T01:00:00Z",
-  status: "published",
-  examModeEnabled: true,
-  examStatus: "not_started",
-} as any;
+  const baseContest = {
+    id: "1",
+    name: "Contest",
+    startTime: "2024-01-01T00:00:00Z",
+    endTime: "2024-01-01T01:00:00Z",
+    status: "published",
+    examModeEnabled: true,
+    examStatus: "not_started",
+  } satisfies {
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    examModeEnabled: boolean;
+    examStatus: string;
+  };
 
 describe("useContestExamActions", () => {
   const navigate = vi.fn();
@@ -58,7 +65,7 @@ describe("useContestExamActions", () => {
   });
 
   it("starts exam, enters fullscreen, refreshes, and navigates", async () => {
-    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
+    vi.mocked(startExam).mockResolvedValue({ status: "started" } as { status: string });
 
     const { result } = renderHook(() =>
       useContestExamActions({
@@ -87,7 +94,7 @@ describe("useContestExamActions", () => {
   });
 
   it("leaves contest only when confirmation resolves true", async () => {
-    vi.mocked(leaveContest).mockResolvedValue(undefined as any);
+    vi.mocked(leaveContest).mockResolvedValue(undefined as void);
     const confirmLeave = vi.fn().mockResolvedValue(true);
 
     const { result } = renderHook(() =>
@@ -114,7 +121,7 @@ describe("useContestExamActions", () => {
 
   it("ends exam before exit and exits fullscreen", async () => {
     const contest = { ...baseContest, examStatus: "in_progress" };
-    vi.mocked(endExam).mockResolvedValue(undefined as any);
+    vi.mocked(endExam).mockResolvedValue(undefined as void);
     Object.defineProperty(document, "fullscreenElement", {
       value: document.documentElement,
       configurable: true,
@@ -142,4 +149,3 @@ describe("useContestExamActions", () => {
     expect(navigate).toHaveBeenCalledWith("/contests");
   });
 });
-

@@ -36,6 +36,7 @@ const Documentation: React.FC<MarkdownContentProps> = ({
     enableMath
     enableHighlight
     enableCopy
+    allowRawHtml
     className={className}
     style={style}
   >

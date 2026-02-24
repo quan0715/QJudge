@@ -23,7 +23,7 @@ export const problemFormSchema = z.object({
     .number()
     .min(16, { message: "記憶體限制至少 16MB" })
     .max(1024, { message: "記憶體限制最多 1024MB" }),
-  isVisible: z.boolean(),
+  visibility: z.enum(["public", "private", "hidden"]),
   existingTagIds: z.array(z.number()),
 
   // Content - Translations (all fields are strings, empty allowed)
@@ -92,7 +92,7 @@ export const SECTION_FIELDS: Record<SectionId, string[]> = {
   ],
   "test-cases": ["testCases"],
   "language-config": ["languageConfigs", "forbiddenKeywords", "requiredKeywords"],
-  "danger-zone": ["isVisible"],
+  "danger-zone": ["visibility"],
 };
 
 /**

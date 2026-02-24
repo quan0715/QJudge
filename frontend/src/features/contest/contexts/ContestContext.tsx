@@ -107,8 +107,10 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       setError(null);
       const data = await getContest(contestId);
       setContest(data || null);
-    } catch (err: any) {
-      setError(err.message || "Failed to load contest");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load contest";
+      setError(message);
       setContest(null);
     }
   }, [contestId]);

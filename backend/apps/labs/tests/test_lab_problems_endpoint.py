@@ -20,8 +20,7 @@ def test_get_lab_problems_returns_200():
     problem = Problem.objects.create(
         title="P1",
         slug="p1",
-        is_visible=True,
-        is_practice_visible=True,
+        visibility='public',
         created_by=teacher,
     )
     LabProblem.objects.create(lab=lab, problem=problem, order=0)

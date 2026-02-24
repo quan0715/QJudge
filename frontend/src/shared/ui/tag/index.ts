@@ -7,4 +7,3 @@ export {
   type SubmissionStatusBadgeProps,
   type SubmissionStatusIconProps,
 } from "./SubmissionStatusBadge";
-export { ContestStatusBadge } from "./ContestStatusBadge";

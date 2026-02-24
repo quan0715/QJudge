@@ -25,8 +25,8 @@ class LanguageConfigAdmin(admin.ModelAdmin):
 
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'difficulty', 'is_visible', 'submission_count', 'acceptance_rate']
-    list_filter = ['difficulty', 'is_visible', 'created_at']
+    list_display = ['id', 'title', 'difficulty', 'visibility', 'submission_count', 'acceptance_rate']
+    list_filter = ['difficulty', 'visibility', 'created_at']
     search_fields = ['title', 'translations__title']
     inlines = [ProblemTranslationInline, TestCaseInline]
     prepopulated_fields = {'slug': ('title',)}

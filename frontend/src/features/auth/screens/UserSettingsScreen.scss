@@ -1,0 +1,54 @@
+.user-settings-screen {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+
+  &__header {
+    margin-bottom: 2rem;
+  }
+
+  &__title {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--cds-text-primary);
+  }
+
+  &__description {
+    font-size: 1rem;
+    color: var(--cds-text-secondary);
+    margin: 0;
+  }
+
+  &__content {
+    background: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 4px;
+
+    // Override Carbon Tabs padding
+    .cds--tabs--contained {
+      .cds--tab-content {
+        padding: 2rem;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .user-settings-screen {
+    padding: 1rem;
+
+    &__title {
+      font-size: 1.5rem;
+    }
+
+    &__content {
+      .cds--tabs--contained {
+        .cds--tab-content {
+          padding: 1rem;
+        }
+      }
+    }
+  }
+}

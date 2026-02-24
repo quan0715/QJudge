@@ -1,0 +1,45 @@
+.questionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.questionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.questionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.questionText {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--cds-text-primary);
+}
+
+.optionsContainer {
+  margin-left: 0.5rem;
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.optionLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.optionDesc {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  font-weight: normal;
+}

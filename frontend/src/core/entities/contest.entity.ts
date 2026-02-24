@@ -183,14 +183,21 @@ export interface ExamEventStats {
   totalViolations: number;
 }
 
-export interface ContestQuestion {
+export type ExamQuestionType =
+  | "true_false"
+  | "single_choice"
+  | "multiple_choice"
+  | "essay";
+
+export interface ExamQuestion {
   id: string;
-  title: string;
-  content: string;
-  answer?: string;
-  isPublic: boolean;
-  authorUsername?: string;
-  answeredBy?: string;
+  contestId: string;
+  questionType: ExamQuestionType;
+  prompt: string;
+  options: string[];
+  correctAnswer?: unknown;
+  score: number;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }

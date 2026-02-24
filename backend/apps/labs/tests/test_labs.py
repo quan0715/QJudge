@@ -42,8 +42,7 @@ def test_teacher_can_add_problem_to_lab(api_client, user_factory):
     problem = Problem.objects.create(
         title="Practice Problem",
         slug="practice-problem",
-        is_visible=True,
-        is_practice_visible=True,
+        visibility='public',
         created_by=teacher,
     )
 

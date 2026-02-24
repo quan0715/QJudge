@@ -27,7 +27,7 @@ export function problemDetailToFormSchema(
     difficulty: problem.difficulty || "medium",
     timeLimit: problem.timeLimit || 1000,
     memoryLimit: problem.memoryLimit || 128,
-    isVisible: problem.isVisible ?? true,
+    visibility: problem.visibility || 'private',
     existingTagIds: problem.tags?.map((t) => parseInt(t.id)) || [],
     translationZh: {
       title: zhTrans?.title || "",
@@ -64,7 +64,7 @@ export function yamlToFormSchema(yaml: ProblemYAML): ProblemFormSchema {
     difficulty: yaml.difficulty,
     timeLimit: yaml.time_limit,
     memoryLimit: yaml.memory_limit,
-    isVisible: yaml.is_visible ?? true,
+    visibility: yaml.visibility || 'private',
     existingTagIds: [], // Tags are not in YAML format
     translationZh: {
       title: zhTrans?.title || "",
@@ -137,7 +137,7 @@ export function formSchemaToApiPayload(
     difficulty: data.difficulty,
     time_limit: data.timeLimit,
     memory_limit: data.memoryLimit,
-    is_visible: data.isVisible,
+    visibility: data.visibility,
     translations,
     test_cases: data.testCases.map((tc, index) => ({
       input_data: tc.input,
@@ -170,9 +170,7 @@ export function yamlToApiPayload(yaml: ProblemYAML): ProblemUpsertPayload {
     difficulty: yaml.difficulty,
     time_limit: yaml.time_limit,
     memory_limit: yaml.memory_limit,
-    is_visible: yaml.is_visible !== undefined ? yaml.is_visible : true,
-    is_practice_visible:
-      yaml.is_practice_visible !== undefined ? yaml.is_practice_visible : false,
+    visibility: yaml.visibility || 'private',
     display_id: yaml.display_id,
     translations: yaml.translations.map((t) => ({
       language: t.language,

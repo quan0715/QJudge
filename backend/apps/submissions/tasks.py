@@ -4,19 +4,15 @@ Supports priority queues:
 - high_priority: Contest submissions (processed first)
 - default: Practice submissions
 """
+import logging
 import time
 from celery import shared_task
 from django.utils import timezone
 from .models import Submission, SubmissionResult
 from apps.problems.models import TestCase
+from apps.judge.judge_factory import get_judge
 
-# Try to import CppJudge, fall back to mock if not available
-try:
-    from apps.judge.docker_runner import CppJudge
-    USE_REAL_JUDGE = True
-except ImportError:
-    USE_REAL_JUDGE = False
-    print("Warning: CppJudge not available, using mock judging")
+logger = logging.getLogger(__name__)
 
 
 class MockTestCase:
@@ -83,52 +79,28 @@ def _judge_submission_impl(submission_id):
         final_status = 'AC'
         
         # Initialize judge
-        if USE_REAL_JUDGE:
-            from apps.judge.judge_factory import get_judge
-            try:
-                judge = get_judge(submission.language)
-            except ValueError:
-                # Fallback or error if language not supported
-                submission.status = 'SE'
-                submission.error_message = f"Unsupported language: {submission.language}"
-                submission.save()
-                return f"Submission {submission_id} failed: Unsupported language"
+        try:
+            judge = get_judge(submission.language)
+        except ValueError:
+            submission.status = 'SE'
+            submission.error_message = f"Unsupported language: {submission.language}"
+            submission.save()
+            return f"Submission {submission_id} failed: Unsupported language"
         
         for tc in test_cases:
-            if USE_REAL_JUDGE:
-                # Real Docker execution
-                result = judge.execute(
-                    code=submission.code,
-                    input_data=tc.input_data,
-                    expected_output=tc.output_data,
-                    time_limit=submission.problem.time_limit,
-                    memory_limit=submission.problem.memory_limit
-                )
-                
-                status = result['status']
-                exec_time = result['time']
-                memory = result['memory']
-                output = result['output']
-                error_msg = result['error']
-            else:
-                # Mock judging (fallback)
-                import random
-                if "compile_error" in submission.code.lower():
-                    status = 'CE'
-                    error_msg = "Compilation error"
-                elif "runtime_error" in submission.code.lower():
-                    status = 'RE'
-                    error_msg = "Runtime error"
-                elif "timeout" in submission.code.lower():
-                    status = 'TLE'
-                    error_msg = "Time limit exceeded"
-                else:
-                    status = 'AC'
-                    error_msg = ""
-                
-                exec_time = random.randint(10, 100)
-                memory = random.randint(1024, 10240)
-                output = "Mock output"
+            result = judge.execute(
+                code=submission.code,
+                input_data=tc.input_data,
+                expected_output=tc.output_data,
+                time_limit=submission.problem.time_limit,
+                memory_limit=submission.problem.memory_limit,
+            )
+
+            status = result['status']
+            exec_time = result['time']
+            memory = result['memory']
+            output = result['output']
+            error_msg = result['error']
             
             # Update stats
             max_exec_time = max(max_exec_time, exec_time)
@@ -177,8 +149,12 @@ def _judge_submission_impl(submission_id):
         # Update statistics
         try:
             submission.user.profile.update_statistics()
-        except:
-            pass
+        except Exception:
+            logger.debug(
+                "Failed to update profile statistics for submission_id=%s",
+                submission_id,
+                exc_info=True,
+            )
         
         # Update problem stats (only for official submissions, not test runs)
         if not submission.is_test:
@@ -205,8 +181,9 @@ def _judge_submission_impl(submission_id):
     except Submission.DoesNotExist:
         return f"Submission {submission_id} not found"
     except Exception as e:
+        logger.exception("Error judging submission_id=%s", submission_id)
         if 'submission' in locals():
             submission.status = 'SE'
-            submission.error_message = str(e)
+            submission.error_message = "Judge internal error"
             submission.save()
-        return f"Error judging submission {submission_id}: {str(e)}"
+        return f"Error judging submission {submission_id}"

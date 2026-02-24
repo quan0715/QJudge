@@ -1,88 +1,135 @@
-# 執行測試指南
+# Backend 測試執行指南（2026-02-24）
 
-## 🚀 快速開始
+本指南以 Docker Compose 開發環境為主，目標是降低環境差異造成的假性失敗。
 
-```bash
-cd backend
+## 一、前置條件
 
-# 執行所有 submission 測試
-pytest apps/submissions/tests/ -v
-
-# 執行特定測試
-pytest apps/submissions/tests/test_performance.py -v
-pytest apps/submissions/tests/test_date_filtering.py -v
-```
-
-## 📋 測試說明
-
-### test_performance.py
-測試 API 性能優化：
-- 查詢數量（避免 N+1）
-- 回應時間
-- 回應大小
-- 資料完整性
-
-### test_date_filtering.py
-測試日期範圍過濾：
-- 預設 3 個月過濾
-- 查看所有歷史
-- 自訂日期範圍
-
-## 🔧 常見問題
-
-### 問題 1: 測試資料庫已存在
-```
-psycopg2.errors.DuplicateDatabase: database "test_postgres" already exists
-```
-
-**解決**:
-```bash
-psql -U postgres -c "DROP DATABASE IF EXISTS test_postgres;"
-```
-
-### 問題 2: Problem model 欄位錯誤
-```
-TypeError: Problem() got unexpected keyword arguments: 'description'
-```
-
-**已修復**: 測試已更新，移除不存在的欄位。
-
-## ✅ 預期結果
-
-所有測試應該通過：
-```
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_list_query_count PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_list_response_time PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_list_response_size PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_list_has_necessary_fields PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_list_with_filters PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_submission_detail_includes_code PASSED
-apps/submissions/tests/test_performance.py::SubmissionAPIPerformanceTestCase::test_practice_submissions_default_filter PASSED
-
-apps/submissions/tests/test_date_filtering.py::DateRangeFilteringTestCase::test_default_returns_only_recent_submissions PASSED
-apps/submissions/tests/test_date_filtering.py::DateRangeFilteringTestCase::test_include_all_returns_all_submissions PASSED
-apps/submissions/tests/test_date_filtering.py::DateRangeFilteringTestCase::test_custom_date_range_filter PASSED
-```
-
-## 📊 執行 Migration
-
-測試通過後，執行 migration：
+先確保開發容器已啟動：
 
 ```bash
-# 檢查 migration
-python manage.py showmigrations submissions
-
-# 執行 migration
-python manage.py migrate submissions
-
-# 驗證索引建立
-python manage.py dbshell
-\d submissions
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-## 🎯 下一步
+## 二、建議測試設定
 
-1. ✅ 測試通過
-2. ✅ 執行 migration
-3. ✅ 部署到 production
-4. ✅ 監控效能改善
+請優先使用 `config.settings.test` 與明確本機 `DATABASE_URL`：
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov' \
+  pytest <test-path> -q
+```
+
+說明：
+
+- `config.settings.test`：避免 `dev` 設定造成資料庫路由副作用
+- `DATABASE_URL`：明確指定 docker 內 postgres，避免誤連 cloud
+- `PYTEST_ADDOPTS='--no-cov'`：先跑功能驗證，不受全域 coverage gate 影響
+
+## 三、常用測試命令
+
+### 1) AI app smoke test
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov' \
+  pytest apps/ai/tests/test_session_creation.py::AISessionCreationTest::test_session_model_with_pk -q
+```
+
+### 2) AI app 全部測試
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov' \
+  pytest apps/ai/tests -q
+```
+
+### 3) submissions 測試
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov' \
+  pytest apps/submissions/tests -q
+```
+
+## 四、常見問題
+
+### 問題 1：誤連 cloud DB
+
+症狀：
+
+- 測試錯誤訊息出現 Supabase host
+- `FATAL: Tenant or user not found`
+
+處理：
+
+- 使用本指南中的 `DJANGO_SETTINGS_MODULE=config.settings.test`
+- 同時指定 `DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge`
+
+### 問題 2：coverage 阻擋測試流程
+
+症狀：
+
+- 測試項目通過，但整體因 coverage 門檻失敗
+
+處理：
+
+- 開發階段先加 `PYTEST_ADDOPTS='--no-cov'`
+- CI 或合併前再執行完整 coverage 流程
+
+### 問題 3：測試資料庫衝突
+
+症狀：
+
+- `database "test_xxx" already exists`
+
+處理：
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U postgres -c "DROP DATABASE IF EXISTS test_online_judge;"
+```
+
+## 五、建議策略
+
+1. 先跑單一 smoke case（確認環境）
+2. 再跑目標 app 測試
+3. 最後才跑全量測試與 coverage
+
+## 六、Schema 與穩定性檢查（建議）
+
+### 1) 產生 OpenAPI schema
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.dev \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  python manage.py spectacular --file schema.yml
+```
+
+### 2) 避免 pytest 平行執行造成 test DB race
+
+當多個 `pytest` 指令同時跑、且都嘗試建立同一個 `test_online_judge`，可能出現：
+- `database "test_online_judge" already exists`
+- `database "test_online_judge" does not exist`
+
+建議：
+
+- 同一時間只跑一個 pytest process（sequential）
+- 加上 `--reuse-db` 減少重建
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T backend \
+  env DJANGO_SETTINGS_MODULE=config.settings.test \
+  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
+  PYTEST_ADDOPTS='--no-cov --reuse-db' \
+  pytest <test-path> -q
+```

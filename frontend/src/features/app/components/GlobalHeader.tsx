@@ -23,6 +23,7 @@ import {
   UserMultiple,
   Bullhorn,
   Settings,
+  Education,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -37,6 +38,7 @@ export const GlobalHeader = () => {
   const { t } = useTranslation();
 
   const isAdmin = user?.role === "admin";
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
   return (
     <>
@@ -77,6 +79,14 @@ export const GlobalHeader = () => {
               >
                 {t("nav.submissions")}
               </HeaderMenuItem>
+              {isTeacherOrAdmin && (
+                <HeaderMenuItem
+                  isCurrentPage={location.pathname.startsWith("/teacher")}
+                  onClick={() => navigate("/teacher")}
+                >
+                  {t("header.teacherDashboard")}
+                </HeaderMenuItem>
+              )}
             </HeaderNavigation>
             <HeaderGlobalBar>
               <UserMenu />
@@ -151,6 +161,43 @@ export const GlobalHeader = () => {
                 >
                   {t("nav.documentation")}
                 </SideNavLink>
+
+                {/* Teacher/Admin items */}
+                {isTeacherOrAdmin && (
+                  <>
+                    <SideNavDivider />
+                    <SideNavMenu
+                      renderIcon={Education}
+                      title={t("header.teacherDashboard")}
+                      defaultExpanded={location.pathname.startsWith("/teacher")}
+                    >
+                      <SideNavMenuItem
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          navigate("/teacher/problems");
+                          onClickSideNavExpand();
+                        }}
+                        isActive={location.pathname === "/teacher/problems"}
+                      >
+                        <Code size={16} style={{ marginRight: "0.5rem" }} />
+                        {t("header.problemManagement")}
+                      </SideNavMenuItem>
+                      <SideNavMenuItem
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          navigate("/teacher/contests");
+                          onClickSideNavExpand();
+                        }}
+                        isActive={location.pathname === "/teacher/contests"}
+                      >
+                        <Trophy size={16} style={{ marginRight: "0.5rem" }} />
+                        {t("header.contestManagement")}
+                      </SideNavMenuItem>
+                    </SideNavMenu>
+                  </>
+                )}
 
                 {/* Admin only items */}
                 {isAdmin && (

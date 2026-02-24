@@ -49,7 +49,7 @@ class TestContestExporters:
             time_limit=1000,
             memory_limit=128,
             difficulty='medium',
-            is_visible=True
+            visibility='public'
         )
         
         # Add translation
@@ -105,7 +105,7 @@ class TestContestExporters:
             time_limit=2000,
             memory_limit=256,
             difficulty='easy',
-            is_visible=True
+            visibility='public'
         )
 
         Translation.objects.create(
@@ -227,7 +227,7 @@ class TestStudentReportExporter:
                 time_limit=1000,
                 memory_limit=128,
                 difficulty=difficulty,
-                is_visible=True
+                visibility='public'
             )
             
             Translation.objects.create(

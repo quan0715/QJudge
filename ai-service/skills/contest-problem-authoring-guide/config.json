@@ -1,0 +1,7 @@
+{
+  "name": "contest-problem-authoring-guide",
+  "description": "程式競賽題目內容設計（需求、題意、測資、品質檢核），不含 payload/patch 寫入",
+  "stage": "authoring",
+  "enabled": true,
+  "output_format": "markdown"
+}
