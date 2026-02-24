@@ -18,20 +18,29 @@ export type UserRole = keyof typeof TEST_USERS;
 export async function login(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
-  // Navigate to login page
-  await page.goto("/login");
+  const submitOnce = async () => {
+    await page.goto("/login");
+    await page.fill("#email", user.email);
+    await page.fill("#password", user.password);
+    await page.click('button[type="submit"]');
+  };
 
-  // Fill in credentials
-  await page.fill("#email", user.email);
-  await page.fill("#password", user.password);
+  const waitForResult = async () => {
+    await Promise.race([
+      page.waitForURL(/\/dashboard/, { timeout: 15000 }),
+      page.locator(".auth-error").waitFor({ state: "visible", timeout: 15000 }),
+    ]);
+  };
 
-  // Submit form
-  await page.click('button[type="submit"]');
+  // WebKit in CI can occasionally miss the first submit/navigation; retry once.
+  await submitOnce();
+  await waitForResult();
 
-  // Wait for navigation to dashboard (longer timeout for slower browsers like WebKit)
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  if (!page.url().includes("/dashboard")) {
+    await submitOnce();
+    await waitForResult();
+  }
 
-  // Verify login success by checking for user info or dashboard content
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
@@ -41,23 +50,15 @@ export async function login(page: Page, role: UserRole = "student") {
  * @param page - Playwright page object
  */
 export async function logout(page: Page) {
-  // Click on user menu button - use role-based selector for reliability
   const userMenuButton = page.getByRole("button", {
     name: /使用者選單|User Menu/i,
   });
-
   await userMenuButton.click({ timeout: 5000 });
 
-  // Wait for the panel to open
-  await page.waitForTimeout(500);
-
-  // Find and click the logout item in the switcher menu
-  const logoutItem = page.locator(
-    '.cds--switcher__item [aria-label*="登出"], .cds--switcher__item [aria-label*="Logout"]'
-  );
-
-  // Force click to bypass any overlay issues
-  await logoutItem.first().click({ force: true, timeout: 5000 });
+  const logoutButton = page.getByRole("button", {
+    name: /登出|Logout/i,
+  });
+  await logoutButton.first().click({ timeout: 5000 });
 
   // Wait for redirect to login page
   await page.waitForURL(/\/login/, { timeout: 10000 });
