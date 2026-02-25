@@ -87,6 +87,10 @@ class ResumeRequest(BaseModel):
         pattern=r"^(approve|reject)$",
         description="User decision: 'approve' or 'reject'",
     )
+    api_key_override: str | None = Field(
+        default=None,
+        description="Single-use API key override (never persisted)",
+    )
     session_id: str | None = Field(
         default=None,
         min_length=1,

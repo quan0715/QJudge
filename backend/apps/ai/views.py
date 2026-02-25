@@ -582,6 +582,21 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # 取得使用者的 API Key（若有設定）
+        user_api_key = None
+        try:
+            user_api_key_obj = request.user.api_key
+            if user_api_key_obj.is_active:
+                user_api_key = user_api_key_obj.get_key()
+        except Exception:
+            pass
+
+        if not user_api_key:
+            return Response(
+                {"error": "請先在設定頁面設定您的 API Key"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Look up existing session
         try:
             session = AISession.objects.get(session_id=pk, user=request.user)
@@ -598,6 +613,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 "decision": decision,
                 "session_id": session.session_id,
                 "user_id": request.user.id,
+                "api_key_override": user_api_key,
             }
 
             full_response = ""
