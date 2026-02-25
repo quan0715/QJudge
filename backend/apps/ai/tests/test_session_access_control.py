@@ -8,8 +8,19 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.ai.models import AIExecutionLog, AISession
+from apps.users.models import UserAPIKey
 
 User = get_user_model()
+
+FAKE_KEY = "sk-ant-api03-fakekey1234567890"
+
+
+def _create_user_with_api_key(username, email, password="testpass123"):
+    user = User.objects.create_user(username=username, email=email, password=password)
+    api_key = UserAPIKey.objects.create(user=user, is_validated=True, is_active=True)
+    api_key.set_key(FAKE_KEY)
+    api_key.save()
+    return user
 
 
 class SessionAccessControlTestCase(TestCase):
@@ -17,16 +28,8 @@ class SessionAccessControlTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user1 = User.objects.create_user(
-            username="user1",
-            email="user1@example.com",
-            password="testpass123",
-        )
-        self.user2 = User.objects.create_user(
-            username="user2",
-            email="user2@example.com",
-            password="testpass123",
-        )
+        self.user1 = _create_user_with_api_key("user1", "user1@example.com")
+        self.user2 = _create_user_with_api_key("user2", "user2@example.com")
 
         self.user1_session = AISession.objects.create(
             session_id="11111111-1111-1111-1111-111111111111",

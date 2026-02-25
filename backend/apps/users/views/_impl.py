@@ -811,10 +811,8 @@ class UserAPIKeyView(SchemaAPIView):
         api_key_str = serializer.validated_data['api_key']
         key_name = serializer.validated_data.get('key_name', 'My API Key')
 
-        # Validate API key asynchronously
-        is_valid, error_msg = asyncio.run(
-            APIKeyService.validate_anthropic_key(api_key_str)
-        )
+        # Validate API key
+        is_valid, error_msg = APIKeyService.validate_anthropic_key(api_key_str)
 
         if not is_valid:
             return Response({
@@ -888,10 +886,8 @@ class ValidateAPIKeyView(SchemaAPIView):
 
         api_key_str = serializer.validated_data['api_key']
 
-        # Validate API key asynchronously
-        is_valid, error_msg = asyncio.run(
-            APIKeyService.validate_anthropic_key(api_key_str)
-        )
+        # Validate API key
+        is_valid, error_msg = APIKeyService.validate_anthropic_key(api_key_str)
 
         return Response({
             'success': True,
@@ -919,17 +915,22 @@ class GetUsageStatsView(SchemaAPIView):
         from apps.ai.models import AIExecutionLog
         from datetime import datetime
 
-        # Check if user has API key
+        # If user has no API key, return empty stats instead of error
         try:
             request.user.api_key
         except UserAPIKey.DoesNotExist:
             return Response({
-                'success': False,
-                'error': {
-                    'code': 'NO_API_KEY',
-                    'message': '未找到 API Key。請先設定 API Key'
+                'success': True,
+                'data': {
+                    'total': {
+                        'input_tokens': 0,
+                        'output_tokens': 0,
+                        'requests': 0,
+                        'cost_usd': 0,
+                    },
+                    'breakdown': [],
                 }
-            }, status=status.HTTP_400_BAD_REQUEST)
+            })
 
         # Parse query parameters
         start_date_str = request.query_params.get('start_date')

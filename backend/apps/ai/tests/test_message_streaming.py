@@ -1,5 +1,6 @@
 """Tests for AI message streaming functionality."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -8,8 +9,22 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.ai.models import AIMessage, AISession
+from apps.users.models import UserAPIKey
 
 User = get_user_model()
+
+FAKE_KEY = "sk-ant-api03-fakekey1234567890"
+
+
+def _create_user_with_api_key(username, email, password="testpass123"):
+    """Helper: create a user and attach an active, validated API key."""
+    user = User.objects.create_user(
+        username=username, email=email, password=password,
+    )
+    api_key = UserAPIKey.objects.create(user=user, is_validated=True, is_active=True)
+    api_key.set_key(FAKE_KEY)
+    api_key.save()
+    return user
 
 
 class MessageStreamingTestCase(TestCase):
@@ -17,16 +32,8 @@ class MessageStreamingTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123",
-        )
-        self.other_user = User.objects.create_user(
-            username="otheruser",
-            email="other@example.com",
-            password="testpass123",
-        )
+        self.user = _create_user_with_api_key("testuser", "test@example.com")
+        self.other_user = _create_user_with_api_key("otheruser", "other@example.com")
         self.session = AISession.objects.create(
             session_id="44444444-4444-4444-4444-444444444444",
             user=self.user,
@@ -148,6 +155,42 @@ class MessageStreamingTestCase(TestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             payload = b"".join(response.streaming_content).decode("utf-8", errors="ignore")
             self.assertIn('"type": "error"', payload)
+
+    def test_send_message_without_api_key_returns_400(self):
+        """Users without an API key should get 400 on streaming."""
+        user_no_key = User.objects.create_user(
+            username="nokey", email="nokey@example.com", password="testpass123",
+        )
+        self.client.force_authenticate(user=user_no_key)
+        response = self.client.post(
+            f"/api/v1/ai/sessions/{self.session.session_id}/send_message_stream/",
+            {"content": "Hello"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("API Key", response.data["error"])
+
+    def test_api_key_override_passed_to_ai_service(self):
+        """Verify api_key_override is included in the ai-service payload."""
+        self.client.force_authenticate(user=self.user)
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), \
+             patch("apps.ai.views.httpx.stream") as mock_stream:
+            mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
+                self.session.session_id
+            )
+            response = self.client.post(
+                f"/api/v1/ai/sessions/{self.session.session_id}/send_message_stream/",
+                {"content": "Hello"},
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            _ = b"".join(response.streaming_content)
+
+            # Check the payload sent to httpx.stream
+            call_args = mock_stream.call_args
+            payload = call_args.kwargs.get("json") or call_args[1].get("json")
+            self.assertIn("api_key_override", payload)
+            self.assertEqual(payload["api_key_override"], FAKE_KEY)
 
 
 class MessagePersistenceTestCase(TestCase):

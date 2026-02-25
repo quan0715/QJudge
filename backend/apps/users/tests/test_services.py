@@ -218,7 +218,7 @@ class APIKeyServiceTests(TestCase):
         fake_module = types.SimpleNamespace(Anthropic=FakeClient)
 
         with patch.dict(sys.modules, {"anthropic": fake_module}):
-            valid, error = asyncio.run(APIKeyService.validate_anthropic_key("sk-test"))
+            valid, error = APIKeyService.validate_anthropic_key("sk-test")
 
         self.assertTrue(valid)
         self.assertEqual(error, "")
@@ -237,7 +237,7 @@ class APIKeyServiceTests(TestCase):
         fake_module = types.SimpleNamespace(Anthropic=FakeClient)
 
         with patch.dict(sys.modules, {"anthropic": fake_module}):
-            valid, error = asyncio.run(APIKeyService.validate_anthropic_key("invalid"))
+            valid, error = APIKeyService.validate_anthropic_key("invalid")
 
         self.assertFalse(valid)
         self.assertEqual(error, "Invalid API key")

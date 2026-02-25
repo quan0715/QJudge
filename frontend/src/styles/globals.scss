@@ -1,3 +1,6 @@
+@use "@carbon/styles/scss/config" with (
+  $css--font-face: false
+);
 @use "@carbon/react";
 @use "./scrollbar" as *;
 

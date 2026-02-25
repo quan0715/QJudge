@@ -52,7 +52,6 @@ services:
     env_file:
       - .env
     environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
       - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
       - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-01}
