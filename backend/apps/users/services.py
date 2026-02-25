@@ -256,7 +256,7 @@ class APIKeyService:
     """Service for managing user API keys and validation."""
 
     @staticmethod
-    async def validate_anthropic_key(api_key: str) -> tuple[bool, str]:
+    def validate_anthropic_key(api_key: str) -> tuple[bool, str]:
         """驗證 Anthropic API Key 是否有效
 
         Args:
@@ -276,9 +276,9 @@ class APIKeyService:
             # 使用提供的 API Key 初始化 client
             client = anthropic.Anthropic(api_key=api_key)
 
-            # 發送最小測試請求（使用免費的 haiku 模型）
+            # 發送最小測試請求（使用最便宜的 haiku 模型）
             response = client.messages.create(
-                model="claude-3-5-haiku-20241022",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=10,
                 messages=[{"role": "user", "content": "test"}]
             )

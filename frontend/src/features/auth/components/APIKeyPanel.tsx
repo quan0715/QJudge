@@ -96,7 +96,11 @@ export const APIKeyPanel: React.FC = () => {
         setSuccess(null);
       }, 1500);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || "儲存失敗";
+      const rawError = err.response?.data?.error;
+      const errorMsg =
+        typeof rawError === "string"
+          ? rawError
+          : rawError?.message || err.message || "儲存失敗";
       setError(errorMsg);
     } finally {
       setIsSaving(false);

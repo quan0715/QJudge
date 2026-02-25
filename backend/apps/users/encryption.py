@@ -55,7 +55,8 @@ def decrypt_api_key(encrypted_key: bytes) -> str:
     """
     cipher = get_cipher()
     try:
-        return cipher.decrypt(encrypted_key).decode()
+        raw = bytes(encrypted_key) if not isinstance(encrypted_key, bytes) else encrypted_key
+        return cipher.decrypt(raw).decode()
     except InvalidToken:
         raise ValueError('Failed to decrypt API key. The key may be corrupted.')
     except Exception as e:

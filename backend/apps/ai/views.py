@@ -122,6 +122,21 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
+        # 取得使用者的 API Key（若有設定）
+        user_api_key = None
+        try:
+            user_api_key_obj = request.user.api_key
+            if user_api_key_obj.is_active:
+                user_api_key = user_api_key_obj.get_key()
+        except Exception:
+            pass  # 使用者未設定 API Key，ai-service 會 fallback 到 env var
+
+        if not user_api_key:
+            return Response(
+                {"error": "請先在設定頁面設定您的 API Key"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # 獲取或創建 session
         session = None
 
@@ -231,6 +246,10 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 "content": content,
                 "conversation": [],
             }
+
+            # 傳遞使用者 API Key 給 ai-service
+            if user_api_key:
+                ai_service_payload["api_key_override"] = user_api_key
 
             # v2: model_id from serializer
             model_id = serializer.validated_data.get("model_id")
