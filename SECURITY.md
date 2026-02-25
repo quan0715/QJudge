@@ -144,13 +144,19 @@
 # .env 設定範例
 SECRET_KEY=<使用強隨機字串>
 DEBUG=False
-ALLOWED_HOSTS=your-domain.com
+ALLOWED_HOSTS=q-judge.com,localhost,127.0.0.1,backend
+DJANGO_ENV=production
 
 # 資料庫（使用強密碼）
 DB_PASSWORD=<強密碼>
+DB_SSLMODE=disable  # Docker 內部 postgres 不需要 SSL
 
-# Redis（設定密碼）
-REDIS_URL=redis://:password@localhost:6379/0
+# AI Service 內部驗證
+HMAC_SECRET=<openssl rand -hex 32>
+AI_SERVICE_INTERNAL_TOKEN=<openssl rand -hex 32>
+
+# Redis
+REDIS_URL=redis://redis:6379/0
 ```
 
 ### Nginx 設定
