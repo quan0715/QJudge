@@ -139,6 +139,7 @@ async def generate_resume_events(
         async for sse_dict in runner.resume_stream(
             thread_id=request.thread_id,
             decision=request.decision,
+            api_key=request.api_key_override,
             session_id=request.session_id,
             user_id=request.user_id,
         ):
