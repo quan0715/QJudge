@@ -7,13 +7,13 @@ name: Judge System Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "backend/apps/judge/**"
       - "backend/apps/submissions/**"
       - ".github/workflows/judge-tests.yml"
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "backend/apps/judge/**"
       - "backend/apps/submissions/**"

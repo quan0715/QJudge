@@ -24,7 +24,7 @@ on:
 
   # 自動觸發
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "frontend/src/infrastructure/api/**"
       - "frontend/tests/e2e/**"
@@ -33,13 +33,17 @@ on:
       - "docker-compose.test.yml"
       - ".github/workflows/integration-tests.yml"
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "frontend/src/infrastructure/api/**"
       - "frontend/tests/e2e/**"
       - "backend/apps/**/views.py"
       - "backend/apps/**/serializers.py"
       - "docker-compose.test.yml"
+
+concurrency:
+  group: integration-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ============================================
@@ -103,32 +107,13 @@ jobs:
         run: docker compose -f docker-compose.test.yml down -v
 
   # ============================================
-  # E2E Tests (parallel by suite)
+  # E2E Tests (single environment + Chromium)
   # ============================================
   e2e-tests:
-    name: E2E Tests (${{ matrix.suite.name }})
+    name: E2E Tests (chromium)
     if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_type != 'api-only'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        suite:
-          - name: auth
-            spec: tests/e2e/auth.e2e.spec.ts
-            allow_failure: false
-          - name: problems
-            spec: tests/e2e/problems.e2e.spec.ts
-            allow_failure: false
-          - name: submission
-            spec: tests/e2e/submission.e2e.spec.ts
-            allow_failure: false
-          - name: contest
-            spec: tests/e2e/contest.e2e.spec.ts
-            allow_failure: true
-
-    # Keep auth/contest failures non-blocking on PR so domain E2E feedback still lands.
-    continue-on-error: ${{ matrix.suite.allow_failure || (github.event_name == 'pull_request' && matrix.suite.name == 'auth') }}
 
     steps:
       - name: Checkout code
@@ -180,25 +165,14 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
-      - name: Select Playwright Browser Set
-        id: playwright-target
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "browsers=chromium" >> $GITHUB_OUTPUT
-            echo "PR mode: install chromium only"
-          else
-            echo "browsers=chromium webkit" >> $GITHUB_OUTPUT
-            echo "Non-PR mode: install chromium + webkit"
-          fi
-
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps ${{ steps.playwright-target.outputs.browsers }}
+        run: npx playwright install --with-deps chromium
         working-directory: frontend
 
       - name: Install Playwright Dependencies (if cached)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps ${{ steps.playwright-target.outputs.browsers }}
+        run: npx playwright install-deps chromium
         working-directory: frontend
 
       - name: Start Frontend Test Server
@@ -216,28 +190,21 @@ jobs:
           docker compose -f docker-compose.test.yml logs frontend-test
           exit 1
 
-      - name: Run E2E Suite
+      - name: Run E2E Suites
         env:
           E2E_REUSE_ENV: "true"
           CI: "true"
         run: |
-          PROJECT_ARG=""
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PROJECT_ARG="--project=chromium"
-            echo "PR mode: run Chromium only for faster and more stable feedback"
-          fi
-
           npx playwright test -c playwright.config.e2e.ts \
-            ${{ matrix.suite.spec }} \
             --reporter=html,list \
-            $PROJECT_ARG
+            --project=chromium
         working-directory: frontend
 
       - name: Upload Playwright HTML Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-e2e-${{ matrix.suite.name }}
+          name: playwright-report-e2e
           path: frontend/playwright-report-e2e/
           retention-days: 30
 
@@ -245,7 +212,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-test-results-${{ matrix.suite.name }}
+          name: playwright-test-results
           path: frontend/test-results/
           retention-days: 14
 

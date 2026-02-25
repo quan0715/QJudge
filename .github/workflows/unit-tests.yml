@@ -6,13 +6,13 @@ name: Unit Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "frontend/**"
       - "backend/**"
       - ".github/workflows/unit-tests.yml"
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "frontend/**"
       - "backend/**"
