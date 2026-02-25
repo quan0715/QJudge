@@ -126,6 +126,9 @@ jobs:
           - name: contest
             spec: tests/e2e/contest.e2e.spec.ts
             allow_failure: true
+          - name: api-key
+            spec: tests/e2e/api-key.e2e.spec.ts
+            allow_failure: false
 
     # Keep auth/contest failures non-blocking on PR so domain E2E feedback still lands.
     continue-on-error: ${{ matrix.suite.allow_failure || (github.event_name == 'pull_request' && matrix.suite.name == 'auth') }}
