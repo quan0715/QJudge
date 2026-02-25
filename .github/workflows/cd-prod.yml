@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows:
       - Unit Tests
+      - Integration Tests
       - Judge System Tests
     types:
       - completed
@@ -74,13 +75,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          required_workflows=("Unit Tests" "Judge System Tests")
+          required_workflows=("Unit Tests" "Integration Tests" "Judge System Tests")
 
           for workflow in "${required_workflows[@]}"; do
             echo "Checking: ${workflow}"
             conclusion=$(gh api "repos/${{ github.repository }}/actions/runs" \
               --jq "[.workflow_runs[] | select(.name == \"${workflow}\" and .head_sha == \"${SHA}\")] | first | .conclusion" \
               2>/dev/null || echo "null")
+
+            if [ "${conclusion}" = "null" ]; then
+              echo "  - ${workflow} did not run for ${SHA} (path-filtered), skipping"
+              continue
+            fi
 
             if [ "${conclusion}" != "success" ]; then
               echo "Workflow '${workflow}' has not succeeded for ${SHA} (got: ${conclusion})" >&2
