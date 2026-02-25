@@ -10,7 +10,7 @@ import {
   TEST_CODE_SAMPLES,
   TEST_PROBLEMS,
   TEST_USERS,
-} from "../../../tests/helpers/data.helper";
+} from "@/tests/helpers/data.helper";
 
 describe("solver use case integration", () => {
   let restoreFetch: (() => void) | undefined;

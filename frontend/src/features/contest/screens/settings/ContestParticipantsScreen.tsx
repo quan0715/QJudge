@@ -383,7 +383,7 @@ const ContestAdminParticipantsPage = () => {
               selectedItem={statusFilterOptions.find(
                 (opt) => opt.id === statusFilter
               )}
-              onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
+              onChange={({ selectedItem }) => {
                 setStatusFilter(selectedItem?.id || "all");
                 setPage(1); // Reset to first page when filter changes
               }}
@@ -414,18 +414,12 @@ const ContestAdminParticipantsPage = () => {
               getHeaderProps,
               getRowProps,
               getTableProps,
-            }: {
-              rows: typeof rows;
-              headers: typeof headers;
-              getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
-              getRowProps: (args: { row: { id: string } }) => Record<string, string>;
-              getTableProps: () => Record<string, string>;
-            }) => (
+            }: any) => (
               <TableContainer>
                 <Table {...getTableProps()}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header) => {
+                      {headers.map((header: any) => {
                         const { key, ...headerProps } = getHeaderProps({
                           header,
                         });
@@ -467,7 +461,7 @@ const ContestAdminParticipantsPage = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows.map((row) => {
+                    {rows.map((row: any) => {
                       const p = participants.find(
                         (item) => item.userId.toString() === row.id
                       );
@@ -646,8 +640,11 @@ const ContestAdminParticipantsPage = () => {
               selectedItem={examStatusOptions.find(
                 (opt) => opt.id === editExamStatus
               )}
-              onChange={({ selectedItem }: { selectedItem?: { id: ExamStatusType; label: string } | null }) =>
-                setEditExamStatus(selectedItem?.id as ExamStatusType)
+              onChange={({ selectedItem }) =>
+                setEditExamStatus(
+                  ((selectedItem?.id as ExamStatusType | undefined) ??
+                    "not_started") as ExamStatusType
+                )
               }
             />
 

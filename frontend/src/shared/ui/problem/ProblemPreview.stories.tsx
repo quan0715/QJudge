@@ -25,8 +25,7 @@ const createMockProblemDetail = (
     { id: "2", name: "雜湊表", slug: "hash-table" },
   ],
   isSolved: false,
-  isPracticeVisible: true,
-  isVisible: true,
+  visibility: "public",
   description: "",
   translations: [
     {

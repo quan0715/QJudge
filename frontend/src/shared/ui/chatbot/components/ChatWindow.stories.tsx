@@ -1,4 +1,5 @@
 import type { StoryModule } from "@/shared/types/story.types";
+import { ChatWindow, type ChatWindowProps } from "./ChatWindow";
 import { WelcomeScreen } from "./WelcomeScreen";
 
 /**
@@ -10,9 +11,10 @@ import { WelcomeScreen } from "./WelcomeScreen";
  * 因此展示基本組件狀態而不直接包裝 ChatWindow
  */
 
-const storyModule: StoryModule = {
+const storyModule: StoryModule<ChatWindowProps> = {
   meta: {
     title: "shared/ui/chatbot/ChatWindow",
+    component: ChatWindow,
     category: "features",
     description:
       "聊天窗口組件 - 展示訊息列表、會話切換、歡迎屏幕等功能。" +

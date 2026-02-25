@@ -5,7 +5,7 @@ import type { ReactNode, ComponentType } from "react";
  */
 export type ArgType = {
   /** 控制項類型 */
-  control: "text" | "number" | "boolean" | "select" | "multi-select" | "array" | "object";
+  control: "text" | "number" | "boolean" | "select" | "radio" | "multi-select" | "array" | "object";
   /** 顯示標籤 */
   label?: string;
   /** 說明文字 */

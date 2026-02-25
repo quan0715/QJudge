@@ -10,7 +10,7 @@ from pathlib import Path
 
 from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamStatus
 from apps.contests.exporters import (
-    MarkdownExporter,
+    MarkdownRenderer,
     PDFRenderer,
     StudentReportRenderer,
 )
@@ -54,8 +54,8 @@ def normalize_markdown(md: str) -> str:
 
 
 @pytest.mark.django_db
-class TestMarkdownExporterSnapshots:
-    """Snapshot tests for MarkdownExporter."""
+class TestMarkdownRendererSnapshots:
+    """Snapshot tests for MarkdownRenderer."""
 
     @pytest.fixture
     def setup_contest(self, db):
@@ -106,7 +106,7 @@ class TestMarkdownExporterSnapshots:
 
     def test_markdown_export_structure(self, setup_contest):
         """Test markdown export has correct structure."""
-        exporter = MarkdownExporter(setup_contest, 'zh-TW')
+        exporter = MarkdownRenderer(setup_contest, 'zh-TW')
         content = exporter.export()
 
         # Verify key sections exist
@@ -120,7 +120,7 @@ class TestMarkdownExporterSnapshots:
 
     def test_markdown_export_english(self, setup_contest):
         """Test markdown export in English."""
-        exporter = MarkdownExporter(setup_contest, 'en')
+        exporter = MarkdownRenderer(setup_contest, 'en')
         content = exporter.export()
 
         assert 'Contest Information' in content
@@ -129,7 +129,7 @@ class TestMarkdownExporterSnapshots:
 
     def test_markdown_export_snapshot(self, setup_contest):
         """Compare markdown output against snapshot."""
-        exporter = MarkdownExporter(setup_contest, 'zh-TW')
+        exporter = MarkdownRenderer(setup_contest, 'zh-TW')
         content = exporter.export()
         normalized = normalize_markdown(content)
 

@@ -38,12 +38,6 @@ export interface Submission {
   
   // Optional context
   contestId?: string;
-  /**
-   * @deprecated Backend no longer uses is_test for submissions.
-   * Test runs now use a separate endpoint: /api/v1/problems/{id}/test_run/
-   * This field is kept for backwards compatibility but will always be false.
-   */
-  isTest?: boolean;
 }
 
 export interface SubmissionDetail extends Submission {
@@ -53,12 +47,4 @@ export interface SubmissionDetail extends Submission {
   problem?: Problem; // Expanded problem info
   results?: TestResult[];
   totalTestCases?: number;
-  /**
-   * @deprecated Custom test cases are now handled by the test-run endpoint.
-   * This field is kept for backwards compatibility with legacy data.
-   */
-  customTestCases?: {
-    input: string;
-    output: string;
-  }[];
 }

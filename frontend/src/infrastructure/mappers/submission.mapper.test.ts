@@ -98,8 +98,6 @@ describe("Submission Mapper", () => {
       expect(result.memoryUsage).toBe(2048);
       expect(result.createdAt).toBe("2024-01-15T10:00:00Z");
       expect(result.contestId).toBe("10");
-      // isTest is deprecated and always returns false
-      expect(result.isTest).toBe(false);
     });
 
     it("should handle problem as ID only", () => {
@@ -150,19 +148,6 @@ describe("Submission Mapper", () => {
       expect(result.status).toBe("pending");
       expect(result.execTime).toBe(0);
       expect(result.createdAt).toBe("");
-      expect(result.isTest).toBe(false);
-    });
-
-    it("should always return false for isTest (deprecated field)", () => {
-      // isTest is deprecated - test runs now use /problems/{id}/test_run/ endpoint
-      // The mapper always returns false regardless of dto.is_test value
-      const dtoWithTrue = { id: 1, is_test: true };
-      const dtoWithFalse = { id: 1, is_test: false };
-      const dtoWithUndefined = { id: 1 };
-
-      expect(mapSubmissionDto(dtoWithTrue).isTest).toBe(false);
-      expect(mapSubmissionDto(dtoWithFalse).isTest).toBe(false);
-      expect(mapSubmissionDto(dtoWithUndefined).isTest).toBe(false);
     });
   });
 
@@ -197,8 +182,6 @@ describe("Submission Mapper", () => {
             memory_usage: 120,
           },
         ],
-        // custom_test_cases is deprecated but still mapped for backwards compatibility
-        custom_test_cases: [{ input: "1", output: "1" }],
       };
 
       const result = mapSubmissionDetailDto(dto);
@@ -209,8 +192,6 @@ describe("Submission Mapper", () => {
       expect(result.user?.email).toBe("user@test.com");
       expect(result.results).toHaveLength(2);
       expect(result.results?.[0].status).toBe("AC");
-      // customTestCases is deprecated but still supported for legacy data
-      expect(result.customTestCases).toHaveLength(1);
     });
 
     it("should handle missing optional fields", () => {
@@ -226,7 +207,6 @@ describe("Submission Mapper", () => {
       expect(result.user).toBeUndefined();
       expect(result.problem).toBeUndefined();
       expect(result.results).toEqual([]);
-      expect(result.customTestCases).toEqual([]);
     });
 
     it("should include base submission fields", () => {

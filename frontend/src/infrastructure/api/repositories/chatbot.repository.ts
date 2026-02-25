@@ -27,24 +27,13 @@ interface V2StreamEvent {
     | "approval_required"
     | "usage_report"
     | "run_completed"
-    | "run_failed"
-    // legacy (still handled for transition)
-    | "init"
-    | "session"
-    | "delta"
-    | "thinking"
-    | "tool_start"
-    | "tool_result"
-    | "usage"
-    | "user_input_request"
-    | "done"
-    | "error";
+    | "run_failed";
 
   // run_started
   run_id?: string;
   thread_id?: string;
 
-  // agent_message_delta / delta
+  // agent_message_delta
   content?: string;
 
   // verification_report
@@ -77,17 +66,6 @@ interface V2StreamEvent {
   error_code?: string;
   message?: string;
 
-  // legacy fields
-  session_id?: string;
-  backend_session_id?: string;
-  is_new_session?: boolean;
-  thinking?: string;
-  signature?: string;
-  tool_use_id?: string;
-  input?: Record<string, unknown>;
-  start_time_ms?: number;
-  duration_ms?: number;
-  skill_metadata?: { skill?: string; gate?: string };
 }
 
 // ===== Backend response types =====
@@ -137,7 +115,6 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
           return {
             toolName: typeof t.tool_name === "string" ? t.tool_name : "",
             toolCallId: typeof t.tool_call_id === "string" ? t.tool_call_id : "",
-            toolUseId: typeof t.tool_use_id === "string" ? t.tool_use_id : "",
             inputData:
               typeof t.input === "object" && t.input !== null
                 ? (t.input as Record<string, unknown>)
@@ -397,7 +374,7 @@ const chatbotRepository: ChatbotRepository = {
 
           try {
             const event: V2StreamEvent = JSON.parse(line.slice(6));
-            if (event.type === "run_completed" || event.type === "run_failed" || event.type === "done" || event.type === "error") {
+            if (event.type === "run_completed" || event.type === "run_failed") {
               hasTerminalEvent = true;
             }
             this._handleStreamEvent(
@@ -418,7 +395,7 @@ const chatbotRepository: ChatbotRepository = {
       if (finalLine.startsWith("data: ")) {
         try {
           const event: V2StreamEvent = JSON.parse(finalLine.slice(6));
-          if (event.type === "run_completed" || event.type === "run_failed" || event.type === "done" || event.type === "error") {
+          if (event.type === "run_completed" || event.type === "run_failed") {
             hasTerminalEvent = true;
           }
           this._handleStreamEvent(
@@ -523,7 +500,7 @@ const chatbotRepository: ChatbotRepository = {
 
           try {
             const event: V2StreamEvent = JSON.parse(line.slice(6));
-            if (event.type === "run_completed" || event.type === "run_failed" || event.type === "done" || event.type === "error") {
+            if (event.type === "run_completed" || event.type === "run_failed") {
               hasTerminalEvent = true;
             }
             this._handleStreamEvent(
@@ -544,7 +521,7 @@ const chatbotRepository: ChatbotRepository = {
       if (finalLine.startsWith("data: ")) {
         try {
           const event: V2StreamEvent = JSON.parse(finalLine.slice(6));
-          if (event.type === "run_completed" || event.type === "run_failed" || event.type === "done" || event.type === "error") {
+          if (event.type === "run_completed" || event.type === "run_failed") {
             hasTerminalEvent = true;
           }
           this._handleStreamEvent(
@@ -690,95 +667,6 @@ const chatbotRepository: ChatbotRepository = {
           message: event.message,
         });
         callbacks.onError?.(event.message || "Agent 執行失敗");
-        break;
-
-      // ===== Legacy Events (kept for transition) =====
-      case "init":
-        console.debug("SSE: init (legacy)", { backendSessionId: event.backend_session_id });
-        break;
-
-      case "session":
-        if (event.session_id) {
-          setResolvedId(event.session_id);
-        }
-        break;
-
-      case "delta":
-        if (event.content) {
-          currentMessage.content = (currentMessage.content || "") + event.content;
-          currentMessage.isThinking = false;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
-        }
-        break;
-
-      case "thinking":
-        if (event.thinking) {
-          currentMessage.thinkingInfo = {
-            thinking: event.thinking,
-            signature: event.signature || "",
-          };
-          currentMessage.isThinking = true;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
-        }
-        break;
-
-      case "tool_start":
-        if (event.tool_name) {
-          currentMessage.toolName = event.tool_name;
-          currentMessage.isThinking = false;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
-        }
-        break;
-
-      case "tool_result": {
-        const legacyTool: ToolInfo = {
-          toolName: event.tool_name || "",
-          toolCallId: event.tool_use_id || "",
-          toolUseId: event.tool_use_id || "",
-          inputData: event.input,
-          result: event.result,
-          isError: event.is_error,
-          startTimeMs: event.start_time_ms,
-          durationMs: event.duration_ms,
-          skillMetadata: event.skill_metadata,
-        };
-        currentMessage.toolExecutions = [
-          ...(currentMessage.toolExecutions || []),
-          legacyTool,
-        ];
-        currentMessage.toolName = undefined;
-        callbacks.onMessageUpdate?.({ ...currentMessage });
-        break;
-      }
-
-      case "usage":
-        console.debug("SSE: usage (legacy)", {
-          inputTokens: event.input_tokens,
-          outputTokens: event.output_tokens,
-        });
-        break;
-
-      case "user_input_request":
-        if (callbacks.onUserInputRequest && event.content) {
-          try {
-            const request = JSON.parse(event.content);
-            callbacks.onUserInputRequest(request);
-          } catch (e) {
-            console.debug("Failed to parse user input request:", e);
-          }
-        }
-        break;
-
-      case "done":
-        this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
-          .catch((err: Error) => console.warn("Failed to fetch session after done:", err));
-        break;
-
-      case "error":
-        if (event.content) {
-          callbacks.onError?.(event.content);
-        }
         break;
 
       default:

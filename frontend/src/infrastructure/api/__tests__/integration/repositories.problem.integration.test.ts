@@ -5,7 +5,7 @@ import {
   getProblems,
 } from "@/infrastructure/api/repositories/problem.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_PROBLEMS, TEST_USERS } from "../../../tests/helpers/data.helper";
+import { TEST_PROBLEMS, TEST_USERS } from "@/tests/helpers/data.helper";
 
 describe("problem repository integration", () => {
   let restoreFetch: (() => void) | undefined;

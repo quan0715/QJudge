@@ -359,59 +359,45 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate', 'origin_problem']
     
-    def _handle_tags(self, problem, validated_data):
-        """Helper to handle tag association."""
-        existing_tag_ids = validated_data.pop('existing_tag_ids', [])
-        new_tag_names = validated_data.pop('new_tag_names', [])
-        tags_data = validated_data.pop('tags', None) # Legacy support
+    def _handle_tags(self, problem, existing_tag_ids=None, new_tag_names=None):
+        """Associate tags from canonical write fields only."""
+        if existing_tag_ids is None and new_tag_names is None:
+            return
 
-        # If new UX fields are present, use them
-        if existing_tag_ids is not None or new_tag_names is not None:
-            all_tags = []
-            
-            # 1. Fetch existing tags
-            if existing_tag_ids:
-                existing_tags = Tag.objects.filter(id__in=existing_tag_ids)
-                all_tags.extend(existing_tags)
-            
-            # 2. Create or get new tags
-            if new_tag_names:
-                # Deduplicate names first
-                unique_names = set()
-                for name in new_tag_names:
-                    cleaned_name = name.strip()
-                    if cleaned_name:
-                        unique_names.add(cleaned_name)
-                
-                for name in unique_names:
-                    # Generate slug from name
-                    from django.utils.text import slugify
-                    slug = slugify(name)
-                    if not slug:
-                        # Fallback for non-ascii names if slugify returns empty
-                        import uuid
-                        slug = f"tag-{uuid.uuid4().hex[:8]}"
-                    
+        all_tags = []
+
+        if existing_tag_ids:
+            existing_tags = Tag.objects.filter(id__in=existing_tag_ids)
+            all_tags.extend(existing_tags)
+
+        if new_tag_names:
+            unique_names = set()
+            for name in new_tag_names:
+                cleaned_name = name.strip()
+                if cleaned_name:
+                    unique_names.add(cleaned_name)
+
+            for name in unique_names:
+                from django.utils.text import slugify
+                slug = slugify(name)
+                if not slug:
+                    import uuid
+                    slug = f"tag-{uuid.uuid4().hex[:8]}"
+
+                try:
+                    tag, _ = Tag.objects.get_or_create(
+                        slug=slug,
+                        defaults={'name': name}
+                    )
+                except Exception:
                     try:
-                        tag, created = Tag.objects.get_or_create(
-                            slug=slug,
-                            defaults={'name': name}
-                        )
-                    except Exception:
-                        # Handle race condition or duplicate slug/name that get_or_create missed
-                        try:
-                            tag = Tag.objects.get(name=name)
-                        except Tag.DoesNotExist:
-                             # If still can't find/create, skip or log
-                             continue
+                        tag = Tag.objects.get(name=name)
+                    except Tag.DoesNotExist:
+                        continue
 
-                    all_tags.append(tag)
-            
-            problem.tags.set(all_tags)
-            
-        # Fallback to legacy 'tags' field if provided and new fields are NOT provided
-        elif tags_data is not None:
-            problem.tags.set(tags_data)
+                all_tags.append(tag)
+
+        problem.tags.set(all_tags)
 
     def create(self, validated_data):
         translations_data = validated_data.pop('translations', [])
@@ -421,7 +407,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         # Extract tag data but don't process yet
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
-        tags_data = validated_data.pop('tags', None)
         
         # Auto-generate slug if empty
         if not validated_data.get('slug'):
@@ -432,14 +417,11 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         
         problem = Problem.objects.create(**validated_data)
         
-        # Handle Tags
-        # Re-inject tag data to use helper
-        tag_context = {
-            'existing_tag_ids': existing_tag_ids,
-            'new_tag_names': new_tag_names,
-            'tags': tags_data
-        }
-        self._handle_tags(problem, tag_context)
+        self._handle_tags(
+            problem,
+            existing_tag_ids=existing_tag_ids,
+            new_tag_names=new_tag_names,
+        )
         
         for trans_data in translations_data:
             ProblemTranslation.objects.create(problem=problem, **trans_data)
@@ -460,7 +442,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         # Extract tag data
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
-        tags_data = validated_data.pop('tags', None)
         
         
         # Auto-generate slug if empty
@@ -479,13 +460,11 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         
-        # Handle Tags
-        tag_context = {
-            'existing_tag_ids': existing_tag_ids,
-            'new_tag_names': new_tag_names,
-            'tags': tags_data
-        }
-        self._handle_tags(instance, tag_context)
+        self._handle_tags(
+            instance,
+            existing_tag_ids=existing_tag_ids,
+            new_tag_names=new_tag_names,
+        )
         
         # Update translations (simple replacement for now)
         if translations_data:

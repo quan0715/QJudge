@@ -19,7 +19,7 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
 import logging
 
-from .serializers import (
+from ..serializers import (
     UserSerializer,
     RegisterSerializer,
     LoginSerializer,
@@ -33,10 +33,10 @@ from .serializers import (
     SetAPIKeySerializer,
     ValidateAPIKeySerializer,
 )
-from .services import EmailAuthService, NYCUOAuthService, JWTService, APIKeyService
-from .permissions import IsSuperAdmin
-from .authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
-from .models import UserAPIKey
+from ..services import EmailAuthService, NYCUOAuthService, JWTService, APIKeyService
+from ..permissions import IsSuperAdmin
+from ..authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
+from ..models import UserAPIKey
 import asyncio
 
 User = get_user_model()
@@ -645,7 +645,7 @@ class UserPreferencesView(SchemaAPIView):
         user = request.user
         
         # Ensure user has a profile
-        from .models import UserProfile
+        from ..models import UserProfile
         profile, _ = UserProfile.objects.get_or_create(user=user)
         
         serializer = UserProfileSerializer(profile)
@@ -659,7 +659,7 @@ class UserPreferencesView(SchemaAPIView):
         user = request.user
         
         # Ensure user has a profile
-        from .models import UserProfile
+        from ..models import UserProfile
         profile, _ = UserProfile.objects.get_or_create(user=user)
         
         serializer = UserPreferencesUpdateSerializer(data=request.data)

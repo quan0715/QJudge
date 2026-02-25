@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { login, clearAuth } from "../helpers/auth.helper";
+import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import { TEST_PROBLEMS } from "../helpers/data.helper";
 
 test.describe("Submission E2E Tests", () => {
@@ -14,10 +14,10 @@ test.describe("Submission E2E Tests", () => {
 
   test.beforeEach(async ({ page }) => {
     // Clear any previous auth state
-    await page.goto("/login");
+    await page.goto("/");
     await clearAuth(page);
-    // Login as student before each test
-    await login(page, "student");
+    // Login via API to keep domain tests independent from auth UI flows
+    await loginViaAPI(page, "student");
   });
 
   test("should display problem detail page", async ({ page }) => {
@@ -73,16 +73,21 @@ test.describe("Submission E2E Tests", () => {
     await aPlusBProblem.click();
     await page.waitForURL(/\/problems\/[^/]+/);
 
-    // Wait for page to load
-    await page.waitForTimeout(1000);
-
-    // Click on "解題與提交" tab (it's a button with role="tab")
+    // New solver UI may not expose a "Solve" tab. If tab exists, switch to it.
     const codingTab = page.getByRole("tab", { name: /解題與提交|Solve/i });
-    await codingTab.click();
+    if ((await codingTab.count()) > 0) {
+      await codingTab.first().click();
+    }
 
-    // Verify we're on coding tab by checking for submit button
+    // Verify coding interface is ready.
+    const editor = page.locator(
+      '.monaco-editor, [aria-label="Editor content"], [role="textbox"][aria-label="Editor content"]'
+    );
+    await expect(editor.first()).toBeVisible({ timeout: 10000 });
+
+    // Verify submit action is available.
     const submitButton = page.locator(
-      'button:has-text("提交"), button:has-text("Submit")'
+      'button:has-text("繳交"), button:has-text("提交"), button:has-text("Submit")'
     );
     await expect(submitButton.first()).toBeVisible({ timeout: 10000 });
   });
@@ -104,9 +109,9 @@ test.describe("Submission E2E Tests", () => {
     // Find and click submit button
     const submitButton = page
       .locator(
-        'button:has-text("提交"), button:has-text("Submit"), button[type="submit"]'
+        'button:has-text("繳交"), button:has-text("提交"), button:has-text("Submit"), button[type="submit"]'
       )
-      .filter({ hasText: /提交|Submit/i });
+      .filter({ hasText: /繳交|提交|Submit/i });
 
     if ((await submitButton.count()) > 0) {
       await submitButton.first().click();

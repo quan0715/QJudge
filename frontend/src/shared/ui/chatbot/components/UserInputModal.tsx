@@ -141,9 +141,9 @@ export function UserInputModal({
                     name={`question-${qIndex}`}
                     orientation="vertical"
                     valueSelected={answers[question.question] as string}
-                    onChange={(value: string) =>
-                      handleSingleSelect(question.question, value)
-                    }
+                    onChange={(selection) => {
+                      handleSingleSelect(question.question, String(selection ?? ""));
+                    }}
                   >
                     {question.options.map((option, oIndex) => (
                       <RadioButton

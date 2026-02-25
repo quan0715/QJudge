@@ -134,7 +134,7 @@ jobs:
         working-directory: backend
 
       - name: Generate Coverage Report
-        if: always()
+        if: success()
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
           REDIS_URL: redis://localhost:6379/0
@@ -142,13 +142,15 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           JUDGE_ENGINE_ENABLED: "false"
         run: |
-          pip install coverage
-          coverage run --source='apps' -m pytest \
+          pytest \
             --ignore=apps/judge/ \
             --ignore=apps/submissions/tests/test_performance.py \
+            --cov=apps \
+            --cov-config=.coveragerc \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=80 \
             -q
-          coverage report
-          coverage xml
         working-directory: backend
 
       - name: Upload Backend Coverage

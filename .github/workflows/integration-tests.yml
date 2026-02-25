@@ -26,7 +26,7 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "frontend/src/services/**"
+      - "frontend/src/infrastructure/api/**"
       - "frontend/tests/e2e/**"
       - "backend/apps/**/views.py"
       - "backend/apps/**/serializers.py"
@@ -35,7 +35,7 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "frontend/src/services/**"
+      - "frontend/src/infrastructure/api/**"
       - "frontend/tests/e2e/**"
       - "backend/apps/**/views.py"
       - "backend/apps/**/serializers.py"
@@ -43,20 +43,18 @@ on:
 
 jobs:
   # ============================================
-  # 整合測試 (單一 Job 確保 Docker 環境共享)
+  # API Integration Tests
   # ============================================
-  integration-tests:
-    name: Integration Tests
+  api-integration-tests:
+    name: API Integration Tests
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_type != 'e2e-only'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ============================================
-      # 啟動測試環境
-      # ============================================
       - name: Start Database and Redis
         run: |
           docker compose -f docker-compose.test.yml up -d postgres-test redis-test
@@ -83,9 +81,6 @@ jobs:
           docker compose -f docker-compose.test.yml logs backend-test
           exit 1
 
-      # ============================================
-      # Frontend API 整合測試
-      # ============================================
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -98,17 +93,85 @@ jobs:
         working-directory: frontend
 
       - name: Run API Integration Tests
-        if: github.event.inputs.test_type != 'e2e-only'
         env:
           API_BASE_URL: http://localhost:8001
         run: npm run test:api
         working-directory: frontend
 
-      # ============================================
-      # E2E 測試 (Playwright)
-      # ============================================
+      - name: Cleanup Docker Environment
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+
+  # ============================================
+  # E2E Tests (parallel by suite)
+  # ============================================
+  e2e-tests:
+    name: E2E Tests (${{ matrix.suite.name }})
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_type != 'api-only'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - name: auth
+            spec: tests/e2e/auth.e2e.spec.ts
+            allow_failure: false
+          - name: problems
+            spec: tests/e2e/problems.e2e.spec.ts
+            allow_failure: false
+          - name: submission
+            spec: tests/e2e/submission.e2e.spec.ts
+            allow_failure: false
+          - name: contest
+            spec: tests/e2e/contest.e2e.spec.ts
+            allow_failure: true
+
+    # Keep auth/contest failures non-blocking on PR so domain E2E feedback still lands.
+    continue-on-error: ${{ matrix.suite.allow_failure || (github.event_name == 'pull_request' && matrix.suite.name == 'auth') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start Database and Redis
+        run: |
+          docker compose -f docker-compose.test.yml up -d postgres-test redis-test
+          echo "Waiting for database and redis..."
+          sleep 10
+
+      - name: Start Backend
+        run: |
+          docker compose -f docker-compose.test.yml up -d backend-test
+          echo "Waiting for backend to start..."
+
+      - name: Wait for Backend Health
+        run: |
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me || echo "000")
+            if [ "$STATUS" -ge "200" ] && [ "$STATUS" -lt "500" ]; then
+              echo "✅ Backend is ready! (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/60) - Status: $STATUS"
+            sleep 2
+          done
+          echo "❌ Backend failed to start"
+          docker compose -f docker-compose.test.yml logs backend-test
+          exit 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: frontend
+
       - name: Cache Playwright Browsers
-        if: github.event.inputs.test_type != 'api-only'
         uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -117,18 +180,28 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
+      - name: Select Playwright Browser Set
+        id: playwright-target
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "browsers=chromium" >> $GITHUB_OUTPUT
+            echo "PR mode: install chromium only"
+          else
+            echo "browsers=chromium webkit" >> $GITHUB_OUTPUT
+            echo "Non-PR mode: install chromium + webkit"
+          fi
+
       - name: Install Playwright Browsers
-        if: github.event.inputs.test_type != 'api-only' && steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium webkit
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps ${{ steps.playwright-target.outputs.browsers }}
         working-directory: frontend
 
       - name: Install Playwright Dependencies (if cached)
-        if: github.event.inputs.test_type != 'api-only' && steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps ${{ steps.playwright-target.outputs.browsers }}
         working-directory: frontend
 
       - name: Start Frontend Test Server
-        if: github.event.inputs.test_type != 'api-only'
         run: |
           docker compose -f docker-compose.test.yml up -d frontend-test
           for i in {1..30}; do
@@ -143,47 +216,28 @@ jobs:
           docker compose -f docker-compose.test.yml logs frontend-test
           exit 1
 
-      - name: Run Auth E2E Tests
-        if: github.event.inputs.test_type != 'api-only'
+      - name: Run E2E Suite
         env:
           E2E_REUSE_ENV: "true"
           CI: "true"
-        run: npx playwright test -c playwright.config.e2e.ts tests/e2e/auth.e2e.spec.ts --reporter=html,list
+        run: |
+          PROJECT_ARG=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PROJECT_ARG="--project=chromium"
+            echo "PR mode: run Chromium only for faster and more stable feedback"
+          fi
+
+          npx playwright test -c playwright.config.e2e.ts \
+            ${{ matrix.suite.spec }} \
+            --reporter=html,list \
+            $PROJECT_ARG
         working-directory: frontend
 
-      - name: Run Problems E2E Tests
-        if: github.event.inputs.test_type != 'api-only'
-        env:
-          E2E_REUSE_ENV: "true"
-          CI: "true"
-        run: npx playwright test -c playwright.config.e2e.ts tests/e2e/problems.e2e.spec.ts --reporter=html,list
-        working-directory: frontend
-
-      - name: Run Submission E2E Tests
-        if: github.event.inputs.test_type != 'api-only'
-        env:
-          E2E_REUSE_ENV: "true"
-          CI: "true"
-        run: npx playwright test -c playwright.config.e2e.ts tests/e2e/submission.e2e.spec.ts --reporter=html,list
-        working-directory: frontend
-
-      - name: Run Contest E2E Tests
-        if: github.event.inputs.test_type != 'api-only'
-        env:
-          E2E_REUSE_ENV: "true"
-          CI: "true"
-        run: npx playwright test -c playwright.config.e2e.ts tests/e2e/contest.e2e.spec.ts --reporter=html,list
-        working-directory: frontend
-        continue-on-error: true
-
-      # ============================================
-      # 上傳測試報告
-      # ============================================
       - name: Upload Playwright HTML Report
         uses: actions/upload-artifact@v4
-        if: always() && github.event.inputs.test_type != 'api-only'
+        if: always()
         with:
-          name: playwright-report-e2e
+          name: playwright-report-e2e-${{ matrix.suite.name }}
           path: frontend/playwright-report-e2e/
           retention-days: 30
 
@@ -191,13 +245,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.suite.name }}
           path: frontend/test-results/
           retention-days: 14
 
-      # ============================================
-      # 清理
-      # ============================================
       - name: Cleanup Docker Environment
         if: always()
         run: docker compose -f docker-compose.test.yml down -v

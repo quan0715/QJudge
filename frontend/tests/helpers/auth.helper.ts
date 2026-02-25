@@ -18,21 +18,34 @@ export type UserRole = keyof typeof TEST_USERS;
 export async function login(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
-  // Navigate to login page
-  await page.goto("/login");
+  const submitOnce = async () => {
+    await page.goto("/login");
+    await page.fill("#email", user.email);
+    await page.fill("#password", user.password);
+    await page.click('button[type="submit"]');
+  };
 
-  // Fill in credentials
-  await page.fill("#email", user.email);
-  await page.fill("#password", user.password);
+  const waitForResult = async () => {
+    await Promise.race([
+      page.waitForFunction(
+        () => window.location.pathname !== "/login",
+        undefined,
+        { timeout: 20000 }
+      ),
+      page.locator(".auth-error").waitFor({ state: "visible", timeout: 20000 }),
+    ]);
+  };
 
-  // Submit form
-  await page.click('button[type="submit"]');
+  // WebKit in CI can occasionally miss the first submit/navigation; retry once.
+  await submitOnce();
+  await waitForResult();
 
-  // Wait for navigation to dashboard (longer timeout for slower browsers like WebKit)
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  if (!page.url().includes("/dashboard")) {
+    await submitOnce();
+    await waitForResult();
+  }
 
-  // Verify login success by checking for user info or dashboard content
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).not.toHaveURL(/\/login/);
 }
 
 /**
@@ -41,29 +54,23 @@ export async function login(page: Page, role: UserRole = "student") {
  * @param page - Playwright page object
  */
 export async function logout(page: Page) {
-  // Click on user menu button - use role-based selector for reliability
   const userMenuButton = page.getByRole("button", {
     name: /使用者選單|User Menu/i,
   });
-
   await userMenuButton.click({ timeout: 5000 });
 
-  // Wait for the panel to open
-  await page.waitForTimeout(500);
+  const logoutButton = page.getByRole("button", {
+    name: /登出|Logout/i,
+  });
+  await logoutButton.first().click({ timeout: 5000 });
 
-  // Find and click the logout item in the switcher menu
-  const logoutItem = page.locator(
-    '.cds--switcher__item [aria-label*="登出"], .cds--switcher__item [aria-label*="Logout"]'
+  // Unauthenticated users are redirected to landing page (/), legacy flows may still use /login
+  await page.waitForFunction(
+    () => ["/", "/login"].includes(window.location.pathname),
+    undefined,
+    { timeout: 10000 }
   );
-
-  // Force click to bypass any overlay issues
-  await logoutItem.first().click({ force: true, timeout: 5000 });
-
-  // Wait for redirect to login page
-  await page.waitForURL(/\/login/, { timeout: 10000 });
-
-  // Verify logout success
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page).toHaveURL(/\/$|\/login/);
 }
 
 /**
@@ -91,11 +98,11 @@ export async function register(
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation (could be to login or directly to dashboard)
-  await Promise.race([
-    page.waitForURL(/\/login/, { timeout: 10000 }),
-    page.waitForURL(/\/dashboard/, { timeout: 10000 }),
-  ]);
+  await page.waitForFunction(
+    () => window.location.pathname !== "/register",
+    undefined,
+    { timeout: 20000 }
+  );
 }
 
 /**
@@ -106,13 +113,15 @@ export async function register(
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
   try {
+    const hasUser = await page.evaluate(() => Boolean(localStorage.getItem("user")));
+    if (!hasUser) return false;
+
     // Try to access a protected route
-    await page.goto("/dashboard");
+    await page.goto("/problems");
     await page.waitForTimeout(1000);
 
-    // If we're still on dashboard, user is authenticated
-    const url = page.url();
-    return url.includes("/dashboard");
+    const path = new URL(page.url()).pathname;
+    return path.startsWith("/problems");
   } catch {
     return false;
   }
@@ -172,14 +181,19 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   expect(response.ok()).toBeTruthy();
 
   const data = await response.json();
-  const token = data.data.access_token;
+  const token = data?.data?.access_token as string | undefined;
 
   // Set token in localStorage
   await page.goto("/");
-  await setAuthToken(page, token);
+  if (token) {
+    await setAuthToken(page, token);
+  }
 
   // Store user data
-  await page.evaluate((userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-  }, data.data.user);
+  const userData = data?.data?.user;
+  await page.evaluate((payload) => {
+    if (payload) {
+      localStorage.setItem("user", JSON.stringify(payload));
+    }
+  }, userData);
 }

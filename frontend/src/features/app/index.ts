@@ -14,6 +14,3 @@ export {
 // Screens
 export { default as NotFoundScreen } from "./screens/NotFoundScreen";
 export { default as ServerErrorScreen } from "./screens/ServerErrorScreen";
-
-// Providers
-export { AppProviders } from "./providers/AppProviders";

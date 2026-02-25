@@ -57,8 +57,8 @@ const TriggerModal = forwardRef<TriggerModalHandle, TriggerModalProps>(({
     }
     if (!trigger) return null;
 
-    const originalOnClick = trigger.props.onClick;
-    return React.cloneElement(trigger, {
+    const originalOnClick = (trigger.props as { onClick?: (event: React.MouseEvent) => void }).onClick;
+    return React.cloneElement(trigger as React.ReactElement<any>, {
       onClick: (event: React.MouseEvent) => {
         if (typeof originalOnClick === "function") {
           originalOnClick(event);

@@ -1,7 +1,7 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_USERS } from "../../../tests/helpers/data.helper";
+import { TEST_USERS } from "@/tests/helpers/data.helper";
 
 describe("infrastructure http client integration", () => {
   let restoreFetch: (() => void) | undefined;

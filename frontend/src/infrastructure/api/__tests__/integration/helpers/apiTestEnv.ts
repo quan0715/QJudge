@@ -1,9 +1,13 @@
 import { login } from "@/infrastructure/api/repositories/auth.repository";
 import type { LoginCredentials } from "@/core/entities/auth.entity";
 
+const processEnv =
+  ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process
+    ?.env ?? {});
+
 const DEFAULT_BASE_URL =
-  process.env.API_BASE_URL ||
-  process.env.VITE_API_TARGET ||
+  processEnv.API_BASE_URL ||
+  processEnv.VITE_API_TARGET ||
   "http://localhost:8001";
 
 const createLocalStorage = (): Storage => {
@@ -52,21 +56,21 @@ const ensureDomGlobals = () => {
       }
     }
 
-    globalThis.CustomEvent = TestCustomEvent as typeof CustomEvent;
+    globalThis.CustomEvent = TestCustomEvent as unknown as typeof CustomEvent;
   }
 
   if (!globalThis.window) {
-    globalThis.window = {
+    (globalThis as unknown as { window?: Window }).window = {
       location: { pathname: "/", href: "" },
       dispatchEvent: () => true,
-    } as Window;
+    } as unknown as Window;
   }
 
   if (!globalThis.document) {
-    globalThis.document = {
+    (globalThis as unknown as { document?: Document }).document = {
       cookie: "",
       documentElement: {},
-    } as Document;
+    } as unknown as Document;
   }
 };
 

@@ -405,26 +405,15 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                       getTableProps,
                       getHeaderProps,
                       getRowProps,
-                    }: {
-                      rows: typeof rows;
-                      headers: typeof headers;
-                      getTableProps: () => Record<string, string>;
-                      getHeaderProps: (args: { header: { key: string; header: string } }) => Record<string, string>;
-                      getRowProps: (args: { row: { id: string } }) => Record<string, string>;
-                    }) => (
+                    }: any) => (
                       <TableContainer
                         title=""
                         description=""
-                        style={{
-                          backgroundColor: "transparent",
-                          padding: "0",
-                          boxShadow: "none",
-                        }}
                       >
                         <Table {...getTableProps()}>
                           <TableHead>
                             <TableRow>
-                              {headers.map((header) => {
+                              {headers.map((header: any) => {
                                 const { key, ...headerProps } = getHeaderProps({
                                   header,
                                 });
@@ -437,7 +426,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {rows.map((row, rowIndex) => {
+                            {rows.map((row: any, rowIndex: number) => {
                               const { key, ...rowProps } = getRowProps({ row });
                               return (
                                 <TableRow
@@ -456,7 +445,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
                                     transformOrigin: "center top",
                                   }}
                                 >
-                                  {row.cells.map((cell) => (
+                                  {row.cells.map((cell: any) => (
                                     <TableCell key={cell.id}>
                                       {cell.value}
                                     </TableCell>

@@ -705,10 +705,12 @@ const ContestExamQuestionsScreen: React.FC = () => {
                       selectedItems={answerOptions.filter((item) =>
                         form.multiAnswerIndexes.includes(item.id)
                       )}
-                      onChange={({ selectedItems }: { selectedItems?: Array<{ id: string }> }) => {
+                      onChange={({ selectedItems }) => {
                         setForm((prev) => ({
                           ...prev,
-                          multiAnswerIndexes: selectedItems?.map((item) => item.id) || [],
+                          multiAnswerIndexes: (selectedItems ?? []).map(
+                            (item: any) => item.id
+                          ),
                         }));
                       }}
                     />

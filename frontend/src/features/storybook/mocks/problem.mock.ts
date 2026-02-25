@@ -33,8 +33,7 @@ interface CreateProblemOptions {
   submissionCount?: number;
   tags?: Tag[];
   isSolved?: boolean;
-  isPracticeVisible?: boolean;
-  isVisible?: boolean;
+  visibility?: "public" | "private" | "hidden";
 }
 
 export function createMockProblem(options: CreateProblemOptions = {}): Problem {
@@ -47,8 +46,7 @@ export function createMockProblem(options: CreateProblemOptions = {}): Problem {
     submissionCount = 100,
     tags = [],
     isSolved = false,
-    isPracticeVisible = true,
-    isVisible = true,
+    visibility = "public",
   } = options;
 
   const acceptedCount = Math.round(submissionCount * (acceptanceRate / 100));
@@ -69,8 +67,7 @@ export function createMockProblem(options: CreateProblemOptions = {}): Problem {
     ceCount: Math.round(remaining * 0.1),
     tags,
     isSolved,
-    isPracticeVisible,
-    isVisible,
+    visibility,
   };
 }
 

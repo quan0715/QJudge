@@ -1,5 +1,6 @@
 import type { UserRole } from "./user.entity";
 import type { SubmissionStatus } from "./submission.entity";
+import type { Difficulty } from "./problem.entity";
 
 export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
@@ -49,7 +50,7 @@ export interface ContestProblemSummary {
   order?: number;
   score?: number; // Problem score/points
   userStatus?: SubmissionStatus;
-  difficulty?: string;
+  difficulty?: Difficulty;
 }
 
 export interface ContestParticipant {

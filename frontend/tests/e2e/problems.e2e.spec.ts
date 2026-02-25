@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { login, clearAuth } from "../helpers/auth.helper";
+import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import { TEST_PROBLEMS } from "../helpers/data.helper";
 
 test.describe("Problem List E2E Tests", () => {
@@ -14,10 +14,10 @@ test.describe("Problem List E2E Tests", () => {
 
   test.beforeEach(async ({ page }) => {
     // Clear any previous auth state
-    await page.goto("/login");
+    await page.goto("/");
     await clearAuth(page);
-    // Login as student before each test
-    await login(page, "student");
+    // Login via API to keep domain tests independent from auth UI flows
+    await loginViaAPI(page, "student");
   });
 
   test("should display problem list page", async ({ page }) => {
@@ -101,19 +101,17 @@ test.describe("Problem List E2E Tests", () => {
     await expect(page).toHaveURL(/\/problems/);
   });
 
-  test("should display problems in a table format", async ({ page }) => {
+  test("should display problems in list/card layout", async ({ page }) => {
     await page.goto("/problems");
     await page.waitForLoadState("networkidle");
 
     // Wait for content to load
     await page.waitForTimeout(2000);
 
-    // Check if problems are displayed in table or list
-    const tableOrList = page.locator(
-      'table, [role="table"], .problem-list, .cds--data-table'
-    );
-
-    await expect(tableOrList.first()).toBeVisible({ timeout: 10000 });
+    // Current UI is card/list based (not always table-based).
+    await expect(
+      page.locator("text=/已載入全部\\s*\\d+\\s*題|Loaded all/i")
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("should show problem details with time and memory limits", async ({

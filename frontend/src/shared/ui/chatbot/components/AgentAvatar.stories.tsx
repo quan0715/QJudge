@@ -1,7 +1,7 @@
 import type { StoryModule } from "@/shared/types/story.types";
-import { AgentAvatar } from "./AgentAvatar";
+import { AgentAvatar, type AgentAvatarProps } from "./AgentAvatar";
 
-const storyModule: StoryModule = {
+const storyModule: StoryModule<AgentAvatarProps> = {
   meta: {
     title: "shared/ui/chatbot/AgentAvatar",
     component: AgentAvatar,

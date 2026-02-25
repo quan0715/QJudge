@@ -51,7 +51,7 @@ class MessageStreamingTestCase(TestCase):
 
     def test_send_message_stream_to_own_session(self):
         self.client.force_authenticate(user=self.user)
-        with patch("apps.ai.views._build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
             "apps.ai.views.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
@@ -78,7 +78,7 @@ class MessageStreamingTestCase(TestCase):
     def test_message_saved_after_streaming(self):
         self.client.force_authenticate(user=self.user)
 
-        with patch("apps.ai.views._build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
             "apps.ai.views.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
@@ -109,7 +109,7 @@ class MessageStreamingTestCase(TestCase):
         backend_session_id = "66666666-6666-6666-6666-666666666666"
         ai_thread_id = "77777777-7777-7777-7777-777777777777"
 
-        with patch("apps.ai.views._build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
             "apps.ai.views.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
@@ -130,7 +130,7 @@ class MessageStreamingTestCase(TestCase):
     def test_ai_service_error_handling(self):
         self.client.force_authenticate(user=self.user)
 
-        with patch("apps.ai.views._build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
+        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
             "apps.ai.views.httpx.stream"
         ) as mock_stream:
             mock_response = MagicMock()
