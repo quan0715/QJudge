@@ -36,6 +36,7 @@ if SECRET_KEY == "django-insecure-default-key-change-in-production":
 
 # Security settings
 SECURE_SSL_REDIRECT = True
+SECURE_REDIRECT_EXEMPT = [r'^api/v1/ai/internal/']
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
