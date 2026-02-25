@@ -22,7 +22,6 @@ from .services.stream_proxy import (
     build_ai_service_headers,
     complete_execution_log,
     create_execution_log,
-    update_session_title_async,
 )
 from .serializers import (
     AIMessageSerializer,
@@ -186,15 +185,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 message_type=AIMessage.MessageType.TEXT,
             )
             user_message_id = msg.id
-
-        # Auto-generate session title for first message (disabled during testing)
-        # if is_first_message and not session.context.get("title"):
-        #     import threading
-        #     threading.Thread(
-        #         target=update_session_title_async,
-        #         args=(session, content, user_api_key),
-        #         daemon=True,
-        #     ).start()
 
         # Create execution log for streaming (only if session exists)
         log = None
@@ -411,21 +401,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
                         session.updated_at = timezone.now()
                         session.save(update_fields=["updated_at"])
 
-                # 7. Auto-generate session title for first message
-                if session and is_first_message and not (session.context or {}).get("title"):
-                    import re as _re, threading as _threading
-                    title_content = _re.sub(
-                        r"<background_information>[\s\S]*?</background_information>\s*",
-                        "",
-                        content,
-                    ).strip() or content[:100]
-                    _threading.Thread(
-                        target=update_session_title_async,
-                        args=(session, title_content, ""),
-                        daemon=True,
-                    ).start()
-
-                # 8. 保存 AI 回應訊息（包含完整元數據）
+                # 7. 保存 AI 回應訊息（包含完整元數據）
                 if session and full_response:
                     # 構建元數據
                     message_metadata = {}
