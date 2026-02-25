@@ -2,13 +2,9 @@ name: CD Prod
 
 on:
   workflow_run:
-    workflows:
-      - Unit Tests
-      - Integration Tests
-    types:
-      - completed
-    branches:
-      - main
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
   workflow_dispatch:
 
@@ -65,47 +61,6 @@ jobs:
           PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
           PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-
-      - name: Check all CI passed
-        if: github.event_name != 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.sha.outputs.sha }}
-        run: |
-          set -euo pipefail
-
-          required_workflows=("Unit Tests" "Integration Tests")
-
-          for workflow in "${required_workflows[@]}"; do
-            echo "Checking: ${workflow}"
-
-            # Get status and conclusion of the latest run for this SHA
-            run_info=$(gh api "repos/${{ github.repository }}/actions/runs" \
-              --jq "[.workflow_runs[] | select(.name == \"${workflow}\" and .head_sha == \"${SHA}\")] | first | {status, conclusion}" \
-              2>/dev/null || echo '{"status":null,"conclusion":null}')
-
-            status=$(echo "$run_info" | jq -r '.status // "null"')
-            conclusion=$(echo "$run_info" | jq -r '.conclusion // "null"')
-
-            if [ "${status}" = "null" ]; then
-              echo "  - ${workflow} did not run for ${SHA} (path-filtered), skipping"
-              continue
-            fi
-
-            if [ "${status}" != "completed" ]; then
-              echo "Workflow '${workflow}' is still running (status: ${status})" >&2
-              echo "CD will re-trigger when it completes." >&2
-              exit 1
-            fi
-
-            if [ "${conclusion}" != "success" ]; then
-              echo "Workflow '${workflow}' failed for ${SHA} (conclusion: ${conclusion})" >&2
-              exit 1
-            fi
-            echo "  ✓ ${workflow} passed"
-          done
-
-          echo "All CI checks passed for ${SHA}"
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4

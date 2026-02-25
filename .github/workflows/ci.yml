@@ -1,0 +1,335 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - "docker-compose.test.yml"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - "docker-compose.test.yml"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================
+  # Frontend Unit Tests
+  # ============================================
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Unit Tests with Coverage
+        run: npm run test:coverage
+        working-directory: frontend
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          retention-days: 14
+
+  # ============================================
+  # Backend Unit Tests (no Judge)
+  # ============================================
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_oj
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      SECRET_KEY: test-secret-key-for-ci
+      JUDGE_ENGINE_ENABLED: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+        working-directory: backend
+
+      - name: Migrate
+        run: python manage.py migrate --noinput
+        working-directory: backend
+
+      - name: Run Tests
+        run: |
+          pytest \
+            --ignore=apps/judge/ \
+            --ignore=apps/submissions/tests/test_performance.py \
+            -v --tb=short
+        working-directory: backend
+
+      - name: Coverage Report
+        if: success()
+        run: |
+          pytest \
+            --ignore=apps/judge/ \
+            --ignore=apps/submissions/tests/test_performance.py \
+            --cov=apps \
+            --cov-config=.coveragerc \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=80 \
+            -q
+        working-directory: backend
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/coverage.xml
+          retention-days: 14
+
+  # ============================================
+  # Judge System Tests (needs Docker)
+  # ============================================
+  judge:
+    name: Judge Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_oj
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_oj
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      SECRET_KEY: test-secret-key-for-ci
+      DOCKER_IMAGE_JUDGE: oj-judge:latest
+      JUDGE_ENGINE_ENABLED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+        working-directory: backend
+
+      - name: Build Judge Docker Image
+        run: docker build -t oj-judge:latest -f backend/judge/Dockerfile.judge backend/judge
+
+      - name: Verify Judge Image
+        run: |
+          docker images | grep oj-judge
+          docker run --rm oj-judge:latest g++ --version
+
+      - name: Migrate
+        run: python manage.py migrate --noinput
+        working-directory: backend
+
+      - name: Judge Tests
+        run: python manage.py test apps.judge --verbosity=2
+        working-directory: backend
+
+      - name: Multi-language Tests
+        run: python manage.py test apps.judge.test_multilang --verbosity=2
+        working-directory: backend
+
+      - name: Submission Integration Tests
+        env:
+          PYTEST_ADDOPTS: --no-cov
+        run: pytest apps/submissions/tests/test_performance.py -v --tb=short
+        working-directory: backend
+
+      - name: Cleanup
+        if: always()
+        run: docker rmi oj-judge:latest || true
+
+  # ============================================
+  # E2E Tests (Playwright + Docker Compose)
+  # ============================================
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start test environment
+        run: |
+          docker compose -f docker-compose.test.yml up -d postgres-test redis-test
+          sleep 10
+          docker compose -f docker-compose.test.yml up -d backend-test
+
+      - name: Wait for Backend
+        run: |
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me || echo "000")
+            if [ "$STATUS" -ge "200" ] && [ "$STATUS" -lt "500" ]; then
+              echo "✅ Backend is ready! (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/60) - Status: $STATUS"
+            sleep 2
+          done
+          echo "❌ Backend failed to start"
+          docker compose -f docker-compose.test.yml logs backend-test
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: API Integration Tests
+        env:
+          API_BASE_URL: http://localhost:8001
+        run: npm run test:api
+        working-directory: frontend
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Install Playwright System Dependencies (cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: frontend
+
+      - name: Start Frontend
+        run: |
+          docker compose -f docker-compose.test.yml up -d frontend-test
+          for i in {1..30}; do
+            if curl -sf http://localhost:5174/ > /dev/null 2>&1; then
+              echo "✅ Frontend is ready!"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/30)"
+            sleep 2
+          done
+          echo "❌ Frontend failed to start"
+          docker compose -f docker-compose.test.yml logs frontend-test
+          exit 1
+
+      - name: Run E2E Tests
+        env:
+          E2E_REUSE_ENV: "true"
+          CI: "true"
+        run: npx playwright test -c playwright.config.e2e.ts --reporter=html,list --project=chromium
+        working-directory: frontend
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-e2e
+          path: frontend/playwright-report-e2e/
+          retention-days: 30
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          retention-days: 14
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v

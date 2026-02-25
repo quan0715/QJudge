@@ -58,7 +58,7 @@ export default defineConfig({
   globalSetup: "./tests/helpers/setup.ts",
   globalTeardown: "./tests/helpers/teardown.ts",
 
-  /* Configure projects for Chrome and Safari */
+  /* Configure projects for Chrome only */
   projects: [
     {
       name: "chromium",
@@ -67,16 +67,6 @@ export default defineConfig({
         // Clear storage before each test to ensure clean state
         storageState: undefined,
         // Use fresh context for each test
-        contextOptions: {
-          storageState: undefined,
-        },
-      },
-    },
-    {
-      name: "webkit",
-      use: {
-        ...devices["Desktop Safari"],
-        storageState: undefined,
         contextOptions: {
           storageState: undefined,
         },

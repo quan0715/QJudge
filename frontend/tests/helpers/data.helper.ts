@@ -128,6 +128,8 @@ export const API_ENDPOINTS = {
     list: "/api/v1/problems/",
     detail: (id: string | number) => `/api/v1/problems/${id}/`,
     statistics: (id: string | number) => `/api/v1/problems/${id}/statistics/`,
+    tags: "/api/v1/problems/tags/",
+    tagDetail: (slug: string) => `/api/v1/problems/tags/${slug}/`,
   },
   submissions: {
     list: "/api/v1/submissions/",
