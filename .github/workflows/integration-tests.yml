@@ -167,7 +167,12 @@ jobs:
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Install Playwright System Dependencies (cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: frontend
 
       - name: Start Frontend Test Server
