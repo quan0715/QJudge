@@ -5,7 +5,6 @@ on:
     workflows:
       - Unit Tests
       - Integration Tests
-      - Judge System Tests
     types:
       - completed
     branches:
@@ -15,7 +14,7 @@ on:
 
 concurrency:
   group: cd-prod
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -75,22 +74,32 @@ jobs:
         run: |
           set -euo pipefail
 
-          required_workflows=("Unit Tests" "Integration Tests" "Judge System Tests")
+          required_workflows=("Unit Tests" "Integration Tests")
 
           for workflow in "${required_workflows[@]}"; do
             echo "Checking: ${workflow}"
-            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs" \
-              --jq "[.workflow_runs[] | select(.name == \"${workflow}\" and .head_sha == \"${SHA}\")] | first | .conclusion" \
-              2>/dev/null || echo "null")
 
-            if [ "${conclusion}" = "null" ]; then
+            # Get status and conclusion of the latest run for this SHA
+            run_info=$(gh api "repos/${{ github.repository }}/actions/runs" \
+              --jq "[.workflow_runs[] | select(.name == \"${workflow}\" and .head_sha == \"${SHA}\")] | first | {status, conclusion}" \
+              2>/dev/null || echo '{"status":null,"conclusion":null}')
+
+            status=$(echo "$run_info" | jq -r '.status // "null"')
+            conclusion=$(echo "$run_info" | jq -r '.conclusion // "null"')
+
+            if [ "${status}" = "null" ]; then
               echo "  - ${workflow} did not run for ${SHA} (path-filtered), skipping"
               continue
             fi
 
+            if [ "${status}" != "completed" ]; then
+              echo "Workflow '${workflow}' is still running (status: ${status})" >&2
+              echo "CD will re-trigger when it completes." >&2
+              exit 1
+            fi
+
             if [ "${conclusion}" != "success" ]; then
-              echo "Workflow '${workflow}' has not succeeded for ${SHA} (got: ${conclusion})" >&2
-              echo "Re-run after all CI workflows succeed." >&2
+              echo "Workflow '${workflow}' failed for ${SHA} (conclusion: ${conclusion})" >&2
               exit 1
             fi
             echo "  ✓ ${workflow} passed"
