@@ -72,9 +72,15 @@ test.describe("API Key Management E2E Tests", () => {
     await login(page, "student");
   });
 
+  /** Navigate to /settings and switch to the API Key tab. */
+  async function gotoAPIKeyTab(page: Page) {
+    await page.goto("/settings");
+    await page.getByRole("tab", { name: "API Key" }).click();
+  }
+
   test("should show empty API key state", async ({ page }) => {
     await mockAPIKeyEndpoints(page, { hasKey: false });
-    await page.goto("/settings");
+    await gotoAPIKeyTab(page);
 
     await expect(page.getByText("尚未設定 API Key")).toBeVisible({
       timeout: 15000,
@@ -86,7 +92,7 @@ test.describe("API Key Management E2E Tests", () => {
 
   test("should show API key info when key exists", async ({ page }) => {
     await mockAPIKeyEndpoints(page, { hasKey: true, keyName: "My Test Key" });
-    await page.goto("/settings");
+    await gotoAPIKeyTab(page);
 
     await expect(page.getByText("API Key 資訊")).toBeVisible({
       timeout: 15000,
@@ -97,7 +103,7 @@ test.describe("API Key Management E2E Tests", () => {
 
   test("should open modal and reject invalid key format", async ({ page }) => {
     await mockAPIKeyEndpoints(page, { hasKey: false });
-    await page.goto("/settings");
+    await gotoAPIKeyTab(page);
 
     const addBtn = page.getByRole("button", { name: /新增 API Key/ });
     await addBtn.click({ timeout: 15000 });
@@ -108,25 +114,27 @@ test.describe("API Key Management E2E Tests", () => {
 
     // Type invalid key and submit
     await input.fill("invalid-key");
-    await page.getByText("儲存").click();
+    await page.getByRole("button", { name: "儲存" }).click();
 
-    // Should show format error
-    await expect(page.getByText(/無效的 API Key 格式/)).toBeVisible({
+    // Should show format error (appears in both notification and form, use first)
+    await expect(page.getByText(/無效的 API Key 格式/).first()).toBeVisible({
       timeout: 5000,
     });
   });
 
   test("should save valid API key successfully", async ({ page }) => {
     let postCalled = false;
+    let saved = false;
 
-    await mockAPIKeyEndpoints(page, { hasKey: false });
-
-    // Override POST handler
+    // Single route handler with state tracking (later routes take priority)
     await page.route(
-      (url) => url.pathname === "/api/v1/users/me/api-key",
+      (url) =>
+        url.pathname === "/api/v1/users/me/api-key" &&
+        !url.search.includes("usage"),
       (route) => {
         if (route.request().method() === "POST") {
           postCalled = true;
+          saved = true;
           return route.fulfill({
             status: 201,
             contentType: "application/json",
@@ -137,24 +145,25 @@ test.describe("API Key Management E2E Tests", () => {
             }),
           });
         }
-        // After save, return key info on GET
         if (route.request().method() === "GET") {
           return route.fulfill({
             status: 200,
             contentType: "application/json",
             body: JSON.stringify({
               success: true,
-              data: {
-                has_key: true,
-                is_validated: true,
-                is_active: true,
-                key_name: "My API Key",
-                total_requests: 0,
-                total_input_tokens: 0,
-                total_output_tokens: 0,
-                total_cost_usd: 0,
-                created_at: new Date().toISOString(),
-              },
+              data: saved
+                ? {
+                    has_key: true,
+                    is_validated: true,
+                    is_active: true,
+                    key_name: "My API Key",
+                    total_requests: 0,
+                    total_input_tokens: 0,
+                    total_output_tokens: 0,
+                    total_cost_usd: 0,
+                    created_at: new Date().toISOString(),
+                  }
+                : { has_key: false },
             }),
           });
         }
@@ -162,13 +171,28 @@ test.describe("API Key Management E2E Tests", () => {
       }
     );
 
-    await page.goto("/settings");
+    // Mock usage endpoint
+    await page.route("**/api/v1/users/me/api-key/usage*", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            total: { input_tokens: 0, output_tokens: 0, requests: 0, cost_usd: 0 },
+            breakdown: [],
+          },
+        }),
+      })
+    );
+
+    await gotoAPIKeyTab(page);
 
     const addBtn = page.getByRole("button", { name: /新增 API Key/ });
     await addBtn.click({ timeout: 15000 });
 
     await page.locator("#api-key-input").fill("sk-ant-api03-validtestkey123");
-    await page.getByText("儲存").click();
+    await page.getByRole("button", { name: "儲存" }).click();
 
     // Should switch to key info view
     await expect(page.getByText("API Key 資訊")).toBeVisible({
@@ -221,7 +245,7 @@ test.describe("API Key Management E2E Tests", () => {
       }
     );
 
-    await page.goto("/settings");
+    await gotoAPIKeyTab(page);
     await expect(page.getByText("My Key")).toBeVisible({ timeout: 15000 });
 
     // Accept the confirm dialog
