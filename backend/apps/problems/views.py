@@ -70,6 +70,24 @@ class ProblemFilter(django_filters.FilterSet):
         fields = ['difficulty', 'visibility']
 
 
+class IsAdminOnly(permissions.BasePermission):
+    """Only allow admin users."""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (
+            request.user.is_staff or request.user.role == 'admin'
+        )
+
+
+class IsAdminOrTeacherOrTagReadOnly(permissions.BasePermission):
+    """Permission for Tag: admin/teacher can write, others read-only. No object-level owner check."""
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.is_authenticated and (
+            request.user.is_staff or request.user.role in ['admin', 'teacher']
+        )
+
+
 class IsAdminOrTeacherOrReadOnly(permissions.BasePermission):
     """
     Custom permission to allow admins and teachers to edit,
@@ -690,7 +708,12 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
     permission_classes = [IsAdminOrTeacherOrReadOnly]
     lookup_field = 'slug'
-    
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [IsAdminOnly()]
+        return [IsAdminOrTeacherOrTagReadOnly()]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         # Optional: filter by name search

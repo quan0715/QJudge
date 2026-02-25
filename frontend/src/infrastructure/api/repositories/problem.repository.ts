@@ -154,6 +154,34 @@ export const getTags = async (): Promise<Tag[]> => {
   }
 };
 
+export const createTag = async (
+  data: { name: string; color?: string; description?: string }
+): Promise<Tag> => {
+  const responseData = await requestJson<any>(
+    httpClient.post("/api/v1/problems/tags/", data),
+    "Failed to create tag"
+  );
+  return mapTagDto(responseData);
+};
+
+export const updateTag = async (
+  slug: string,
+  data: { name?: string; color?: string; description?: string }
+): Promise<Tag> => {
+  const responseData = await requestJson<any>(
+    httpClient.patch(`/api/v1/problems/tags/${slug}/`, data),
+    "Failed to update tag"
+  );
+  return mapTagDto(responseData);
+};
+
+export const deleteTag = async (slug: string): Promise<void> => {
+  await ensureOk(
+    httpClient.delete(`/api/v1/problems/tags/${slug}/`),
+    "Failed to delete tag"
+  );
+};
+
 export const getProblemStatistics = async (
   problemId: string,
   params?: { contest?: string; limit?: number }

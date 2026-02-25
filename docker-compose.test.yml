@@ -44,6 +44,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
     container_name: oj_backend_test
     command: >
       sh -c "
@@ -83,6 +85,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
     container_name: oj_celery_test
     command: celery -A config worker -l info
     environment:

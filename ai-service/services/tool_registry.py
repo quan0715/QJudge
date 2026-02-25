@@ -101,7 +101,20 @@ def create_write_tools(
         call commit_problem_action after presenting the preview to the user.
 
         Args:
-            payload: Full problem data (title, description, test cases, etc.).
+            payload: Full problem data. Required structure:
+                - title (str): Problem title.
+                - difficulty (str): "easy", "medium", or "hard".
+                - time_limit (int): Time limit in ms (default 1000).
+                - memory_limit (int): Memory limit in MB (default 128).
+                - translations (list, REQUIRED): At least one translation object with:
+                    - language (str): "zh-TW" or "en".
+                    - title (str): Translated title.
+                    - description (str): Problem description.
+                    - input_description (str): Input format description.
+                    - output_description (str): Output format description.
+                    - hint (str, optional): Hint text.
+                - test_cases (list, optional): Test case objects with
+                  input_data, output_data, is_sample, is_hidden, score, order.
         """
         logger.info("prepare_problem_create session=%s user=%s", session_id, user_id)
         return await tool_client.prepare_action(

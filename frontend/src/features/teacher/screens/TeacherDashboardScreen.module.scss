@@ -1,0 +1,39 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.page {
+  width: 100%;
+  // Carbon Content adds padding-top for the 48px header;
+  // use viewport height minus header to fill remaining space.
+  height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cds-background);
+}
+
+.main {
+  flex: 1 1 0;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: layout.$spacing-07 layout.$spacing-05 layout.$spacing-09;
+}
+
+.title {
+  @include type.type-style("productive-heading-05");
+  margin-bottom: layout.$spacing-06;
+  color: var(--cds-text-primary);
+}

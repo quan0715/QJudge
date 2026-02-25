@@ -2,16 +2,20 @@
 
 ## A. Problem payload 主要欄位（CRUD）
 
-- `title`
+- `title`（必填）
 - `difficulty`: `easy|medium|hard`
 - `time_limit`（毫秒）
 - `memory_limit`（MB）
 - `visibility`: `public|private|hidden`
-- `translations[]`
+- `translations[]`（必填，至少一筆，見 B 節）
 - `test_cases[]`
 - `forbidden_keywords[]`
 - `required_keywords[]`
 - `language_configs[]`
+
+**不需提供的欄位：**
+- `slug`：由後端從 `title` 自動生成，重複時自動加後綴。不要在 payload 中提供。
+- `display_id`：由後端自動分配。
 
 ## B. 多語系欄位（`translations[]`）
 
@@ -60,7 +64,9 @@
 
 ### `prepare_problem_create` + commit
 
-目前 commit 實際落地以 Problem 基本欄位與 `translations[]` 為主；其他欄位請優先考慮 CRUD 或 YAML import。
+- `translations[]` 是**必填**欄位，至少需包含一筆 `zh-TW` 翻譯。
+- `slug` 不需提供，後端會從 title 自動生成（支援中文），重複時自動加後綴。
+- 目前 commit 實際落地以 Problem 基本欄位與 `translations[]` 為主；其他欄位請優先考慮 CRUD 或 YAML import。
 
 ### `prepare_problem_patch` + commit
 

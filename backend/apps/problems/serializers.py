@@ -60,10 +60,29 @@ class LanguageConfigSerializer(serializers.ModelSerializer):
 
 class TagSerializer(serializers.ModelSerializer):
     """Serializer for tags."""
+    slug = serializers.SlugField(required=False, allow_blank=True)
+
     class Meta:
         model = Tag
         fields = ['id', 'name', 'slug', 'description', 'color', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def create(self, validated_data):
+        from django.utils.text import slugify
+        slug = validated_data.get('slug')
+        if not slug:
+            slug = slugify(validated_data['name'])
+            if not slug:
+                import uuid
+                slug = f"tag-{uuid.uuid4().hex[:8]}"
+            # Handle conflicts by appending a number
+            base_slug = slug
+            counter = 1
+            while Tag.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            validated_data['slug'] = slug
+        return super().create(validated_data)
 
 
 class TestRunSerializer(serializers.Serializer):

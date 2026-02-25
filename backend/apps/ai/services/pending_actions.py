@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import uuid
+
 import jsonpatch
+from django.utils.text import slugify
 
 from apps.problems.models import Problem, ProblemTranslation, TestCase
 
@@ -16,10 +19,31 @@ def execute_create_action(action_obj):
 
     translations_data = payload.get("translations")
     if not isinstance(translations_data, list) or not translations_data:
-        raise ValueError("payload.translations is required and must be a non-empty list")
+        # Fallback: construct translations from top-level fields if present
+        if payload.get("description") or payload.get("title"):
+            translations_data = [{
+                "language": payload.get("language", "zh-TW"),
+                "title": payload.get("title", "Untitled"),
+                "description": payload.get("description", ""),
+                "input_description": payload.get("input_description", ""),
+                "output_description": payload.get("output_description", ""),
+                "hint": payload.get("hint", ""),
+            }]
+        else:
+            raise ValueError("payload.translations is required and must be a non-empty list")
+
+    # Generate unique slug from title
+    title = payload.get("title", "Untitled")
+    base_slug = slugify(title, allow_unicode=True) or f"problem-{uuid.uuid4().hex[:8]}"
+    slug = base_slug
+    counter = 1
+    while Problem.objects.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
 
     problem = Problem.objects.create(
-        title=payload.get("title", "Untitled"),
+        title=title,
+        slug=slug,
         difficulty=payload.get("difficulty", "medium"),
         time_limit=payload.get("time_limit", 1000),
         memory_limit=payload.get("memory_limit", 128),
