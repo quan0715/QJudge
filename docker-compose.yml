@@ -86,6 +86,8 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
     ports:
       - "8000:8000"
     env_file:
@@ -95,6 +97,7 @@ services:
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
+      - JUDGE_TMP_DIR=/judge_tmp
     depends_on:
       postgres:
         condition: service_healthy
