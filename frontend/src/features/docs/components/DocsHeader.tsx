@@ -29,15 +29,10 @@ interface DocConfig {
 const DocsHeader: React.FC = () => {
   const { i18n } = useTranslation();
   const { t: tDocs } = useTranslation("docs");
-  const { setTheme } = useTheme();
+  const { preference, setPreference } = useTheme();
   const location = useLocation();
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(false);
   const [docsConfig, setDocsConfig] = useState<DocConfig | null>(null);
-  const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
-    // Use unified localStorage key (same as useUserPreferences)
-    const stored = localStorage.getItem("themePreference");
-    return (stored as ThemeValue) || "system";
-  });
 
   // Get current doc slug from URL
   const currentDocSlug =
@@ -67,20 +62,7 @@ const DocsHeader: React.FC = () => {
   };
 
   const handleThemeChange = (value: ThemeValue) => {
-    setCurrentTheme(value);
-    // Use unified localStorage key (same as useUserPreferences)
-    localStorage.setItem("themePreference", value);
-
-    if (value === "system") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      setTheme(prefersDark ? "g100" : "white");
-    } else if (value === "dark") {
-      setTheme("g100");
-    } else {
-      setTheme("white");
-    }
+    setPreference(value);
   };
 
   return (
@@ -150,7 +132,7 @@ const DocsHeader: React.FC = () => {
               {/* Theme Section */}
               <div style={{ padding: "0.75rem 1rem" }}>
                 <ThemeSwitch
-                  value={currentTheme}
+                  value={preference}
                   onChange={handleThemeChange}
                 />
               </div>

@@ -13,6 +13,7 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
 import styles from "./DocumentationScreen.module.scss";
 
+
 interface DocConfig {
   sections: Array<{
     id: string;
@@ -25,18 +26,13 @@ const DocumentationScreen: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("docs");
-  const { setTheme } = useTheme();
+  const { preference, setPreference } = useTheme();
 
   const [config, setConfig] = useState<DocConfig | null>(null);
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [currentTheme, setCurrentTheme] = useState<ThemeValue>(() => {
-    // Use unified localStorage key (same as useUserPreferences)
-    const stored = localStorage.getItem("themePreference");
-    return (stored as ThemeValue) || "system";
-  });
 
   // Load documentation config
   useEffect(() => {
@@ -126,22 +122,8 @@ const DocumentationScreen: React.FC = () => {
   // Get current document title
   const currentTitle = currentSlug ? t(`nav.items.${currentSlug}`) : "";
 
-  // Theme handling
   const handleThemeChange = (value: ThemeValue) => {
-    setCurrentTheme(value);
-    // Use unified localStorage key (same as useUserPreferences)
-    localStorage.setItem("themePreference", value);
-
-    if (value === "system") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      setTheme(prefersDark ? "g100" : "white");
-    } else if (value === "dark") {
-      setTheme("g100");
-    } else {
-      setTheme("white");
-    }
+    setPreference(value);
   };
 
   const handleLanguageSelect = (langId: string) => {
@@ -180,7 +162,7 @@ const DocumentationScreen: React.FC = () => {
           {/* Theme Section */}
           <div className={styles.settingsSection}>
             <ThemeSwitch
-              value={currentTheme}
+              value={preference}
               onChange={handleThemeChange}
             />
           </div>

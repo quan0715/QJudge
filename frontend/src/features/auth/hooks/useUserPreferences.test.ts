@@ -20,6 +20,8 @@ vi.mock("@/features/auth/contexts/AuthContext", () => ({
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({
   useTheme: vi.fn(() => ({
     theme: "g100",
+    preference: "system",
+    setPreference: vi.fn(),
     setTheme: vi.fn(),
     toggleTheme: vi.fn(),
   })),
@@ -80,6 +82,8 @@ describe("useUserPreferences", () => {
 
     vi.mocked(useTheme).mockReturnValue({
       theme: "g100",
+      preference: "system",
+      setPreference: vi.fn(),
       setTheme: vi.fn(),
       toggleTheme: vi.fn(),
     });
@@ -137,10 +141,12 @@ describe("useUserPreferences", () => {
   });
 
   it("should update theme preference", async () => {
-    const setTheme = vi.fn();
+    const setPreference = vi.fn();
     vi.mocked(useTheme).mockReturnValue({
       theme: "g100",
-      setTheme,
+      preference: "system",
+      setPreference,
+      setTheme: vi.fn(),
       toggleTheme: vi.fn(),
     });
 
@@ -150,7 +156,7 @@ describe("useUserPreferences", () => {
       await result.current.updateTheme("light");
     });
 
-    expect(result.current.themePreference).toBe("light");
+    expect(setPreference).toHaveBeenCalledWith("light");
   });
 
   it("should sync theme preference to backend when logged in", async () => {
