@@ -12,14 +12,18 @@
   background-color: $background;
 }
 
-// Minimal top bar
+// ─── Sticky top bar ───
 .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: $spacing-03 $spacing-05;
   flex-shrink: 0;
   gap: $spacing-04;
+  background-color: $background;
 }
 
 .toolbarLeft {
@@ -35,6 +39,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: $spacing-05;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $text-secondary;
+}
+
+.timerText {
+  @include type-style("heading-compact-01");
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
+}
+
+.progress {
+  width: 160px;
 }
 
 .toolbarRight {
@@ -64,6 +91,7 @@
   flex: 1;
   overflow-y: auto;
   display: flex;
+  align-items: center;
   justify-content: center;
   padding: $spacing-07 $spacing-05;
 }
@@ -71,22 +99,6 @@
 .questionInner {
   width: 100%;
   max-width: 720px;
-}
-
-// Inline next-question prompt
-.nextPrompt {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-04;
-  margin-top: $spacing-08;
-  padding-top: $spacing-06;
-  border-top: 1px solid $border-subtle-00;
-}
-
-.nextPromptText {
-  @include type-style("body-compact-01");
-  color: $text-helper;
 }
 
 // Bottom nav strip

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -7,8 +7,9 @@ import {
   Switch,
   Tag,
   Loading,
+  ProgressBar,
 } from "@carbon/react";
-import { ArrowLeft, ArrowRight, ChevronLeft } from "@carbon/icons-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, Time } from "@carbon/icons-react";
 import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
@@ -20,6 +21,20 @@ import type { ExamQuestion } from "@/core/entities/contest.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
+
+// Mock countdown: 1h 30m from now
+const MOCK_DURATION_SEC = 90 * 60;
+
+function useCountdown(totalSec: number) {
+  const [remaining, setRemaining] = useState(totalSec);
+  useEffect(() => {
+    const id = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+  return { remaining, display: `${mm}:${ss}`, total: totalSec };
+}
 
 const StudentExamDemoScreen: FC = () => {
   const navigate = useNavigate();
@@ -34,6 +49,15 @@ const StudentExamDemoScreen: FC = () => {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   // Cache fetched problem details for coding problems
   const [problemDetails, setProblemDetails] = useState<Record<string, ProblemDetail>>({});
+
+  // Mock countdown timer
+  const countdown = useCountdown(MOCK_DURATION_SEC);
+
+  // Scroll to top on question change (single mode)
+  const questionAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeIndex]);
 
   // Build unified exam items list
   const items: ExamItem[] = useMemo(() => {
@@ -63,6 +87,10 @@ const StudentExamDemoScreen: FC = () => {
     }
     return ids;
   }, [answers]);
+
+  const progressPct = items.length > 0
+    ? Math.round((answeredIds.size / items.length) * 100)
+    : 0;
 
   // Fetch contest data (standalone, no ContestProvider)
   useEffect(() => {
@@ -154,7 +182,7 @@ const StudentExamDemoScreen: FC = () => {
 
     return (
       <div className={styles.singleContent}>
-        <div className={styles.questionArea}>
+        <div className={styles.questionArea} ref={questionAreaRef}>
           <div className={styles.questionInner}>
             {item.kind === "question" ? (
               <ExamQuestionCard
@@ -189,22 +217,6 @@ const StudentExamDemoScreen: FC = () => {
                 ) : (
                   <Loading withOverlay={false} small description="載入題目中..." />
                 )}
-              </div>
-            )}
-
-            {!isLast && (
-              <div className={styles.nextPrompt}>
-                <span className={styles.nextPromptText}>
-                  準備好了嗎？
-                </span>
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  renderIcon={ArrowRight}
-                  onClick={() => setActiveIndex((i) => i + 1)}
-                >
-                  前往第 {activeIndex + 2} 題
-                </Button>
               </div>
             )}
           </div>
@@ -289,6 +301,21 @@ const StudentExamDemoScreen: FC = () => {
           <span className={styles.title}>{contest.name}</span>
           <Tag size="sm" type="purple">Demo 模式</Tag>
         </div>
+
+        <div className={styles.toolbarCenter}>
+          <div className={styles.timer}>
+            <Time size={16} />
+            <span className={styles.timerText}>{countdown.display}</span>
+          </div>
+          <div className={styles.progress}>
+            <ProgressBar
+              label={`${answeredIds.size}/${items.length} 已作答`}
+              value={progressPct}
+              size="small"
+            />
+          </div>
+        </div>
+
         <div className={styles.toolbarRight}>
           <ContentSwitcher
             size="sm"

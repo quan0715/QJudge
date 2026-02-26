@@ -156,7 +156,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
 
       {question.prompt ? (
         <div className={styles.prompt}>
-          <MarkdownRenderer>{question.prompt}</MarkdownRenderer>
+          <MarkdownRenderer enableHighlight enableCopy>{question.prompt}</MarkdownRenderer>
         </div>
       ) : (
         <div className={styles.promptEmpty}>（尚未填寫題目敘述）</div>
