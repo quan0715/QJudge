@@ -21,7 +21,7 @@ const ExamDangerZoneSection: React.FC<ExamDangerZoneSectionProps> = ({
   const handleArchive = async () => {
     const accepted = await confirm({
       title: `確定要封存「${contestName}」？`,
-      message: "封存後競賽將不再顯示於列表中，但資料不會被刪除。",
+      body: "封存後競賽將不再顯示於列表中，但資料不會被刪除。",
       confirmLabel: "封存",
       cancelLabel: "取消",
     });
@@ -33,7 +33,7 @@ const ExamDangerZoneSection: React.FC<ExamDangerZoneSectionProps> = ({
   const handleDelete = async () => {
     const accepted = await confirm({
       title: `確定要刪除「${contestName}」？`,
-      message: "此操作無法還原，所有競賽資料（含題目、提交紀錄、排名等）將被永久刪除。",
+      body: "此操作無法還原，所有競賽資料（含題目、提交紀錄、排名等）將被永久刪除。",
       danger: true,
       confirmLabel: "永久刪除",
       cancelLabel: "取消",

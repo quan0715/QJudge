@@ -33,7 +33,8 @@ export function useExamPdfExport({
           questions,
           mode,
         });
-        const blob = await pdf(doc).toBlob();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blob = await pdf(doc as any).toBlob();
         const url = URL.createObjectURL(blob);
 
         const suffix = mode === "answer" ? "答案卷" : "題目卷";

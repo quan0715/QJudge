@@ -55,7 +55,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
             legendText=""
             orientation="vertical"
             valueSelected={answer as string | undefined}
-            onChange={(val: string) => handleChange(val)}
+            onChange={(val: string | number | undefined) => handleChange(String(val ?? ""))}
             disabled={readOnly}
           >
             <RadioButton labelText="是 (True)" value="true" id={`${question.id}-true`} />
@@ -70,7 +70,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
             legendText=""
             orientation="vertical"
             valueSelected={answer as string | undefined}
-            onChange={(val: string) => handleChange(val)}
+            onChange={(val: string | number | undefined) => handleChange(String(val ?? ""))}
             disabled={readOnly}
           >
             {question.options.map((opt, i) => (

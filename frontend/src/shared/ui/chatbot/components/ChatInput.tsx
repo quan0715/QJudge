@@ -183,7 +183,7 @@ export const ChatInput: FC<ChatInputProps> = ({
           {isStreaming ? (
             <IconButton
               label="停止生成"
-              kind="danger--ghost"
+              kind="ghost"
               size="sm"
               onClick={onStop}
               className={styles.chatInputButton}

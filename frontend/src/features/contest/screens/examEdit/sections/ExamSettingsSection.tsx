@@ -79,10 +79,11 @@ const ExamSettingsSection: React.FC<ExamSettingsSectionProps> = ({ registerRef }
                   }
                   style={{ maxWidth: "200px" }}
                 />
-                <FieldSaveIndicator
-                  status={getFieldSaveState("maxCheatWarnings")?.status || "idle"}
-                  style={{ marginTop: "1.5rem" }}
-                />
+                <div style={{ marginTop: "1.5rem" }}>
+                  <FieldSaveIndicator
+                    status={getFieldSaveState("maxCheatWarnings")?.status || "idle"}
+                  />
+                </div>
               </div>
             </div>
 

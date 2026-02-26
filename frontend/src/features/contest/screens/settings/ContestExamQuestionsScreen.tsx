@@ -54,6 +54,7 @@ const TYPE_LABEL: Record<ExamQuestionType, string> = {
   true_false: "是非題",
   single_choice: "單選題",
   multiple_choice: "多選題",
+  short_answer: "簡答題",
   essay: "問答題",
 };
 

@@ -105,10 +105,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
               onChange={(e) => handleTextChange("name", e.target.value)}
             />
           </div>
-          <FieldSaveIndicator
-            status={getFieldSaveState("name")?.status || "idle"}
-            style={indicatorOffset}
-          />
+          <div style={indicatorOffset}>
+            <FieldSaveIndicator status={getFieldSaveState("name")?.status || "idle"} />
+          </div>
         </div>
 
         {/* Description */}
@@ -122,10 +121,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
               rows={3}
             />
           </div>
-          <FieldSaveIndicator
-            status={getFieldSaveState("description")?.status || "idle"}
-            style={indicatorOffset}
-          />
+          <div style={indicatorOffset}>
+            <FieldSaveIndicator status={getFieldSaveState("description")?.status || "idle"} />
+          </div>
         </div>
 
         {/* Rules */}
@@ -140,10 +138,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
               rows={3}
             />
           </div>
-          <FieldSaveIndicator
-            status={getFieldSaveState("rules")?.status || "idle"}
-            style={indicatorOffset}
-          />
+          <div style={indicatorOffset}>
+            <FieldSaveIndicator status={getFieldSaveState("rules")?.status || "idle"} />
+          </div>
         </div>
 
         {/* Start Time */}
@@ -186,10 +183,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
                 }
               }}
             />
-            <FieldSaveIndicator
-              status={getFieldSaveState("startTime")?.status || "idle"}
-              style={indicatorOffset}
-            />
+            <div style={indicatorOffset}>
+              <FieldSaveIndicator status={getFieldSaveState("startTime")?.status || "idle"} />
+            </div>
           </div>
         </div>
 
@@ -233,10 +229,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
                 }
               }}
             />
-            <FieldSaveIndicator
-              status={getFieldSaveState("endTime")?.status || "idle"}
-              style={indicatorOffset}
-            />
+            <div style={indicatorOffset}>
+              <FieldSaveIndicator status={getFieldSaveState("endTime")?.status || "idle"} />
+            </div>
           </div>
         </div>
 
@@ -255,10 +250,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
                 <SelectItem value="archived" text="已封存" />
               </Select>
             </div>
-            <FieldSaveIndicator
-              status={getFieldSaveState("status")?.status || "idle"}
-              style={indicatorOffset}
-            />
+            <div style={indicatorOffset}>
+              <FieldSaveIndicator status={getFieldSaveState("status")?.status || "idle"} />
+            </div>
           </div>
 
           <div style={fieldRow}>
@@ -273,10 +267,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
                 <SelectItem value="private" text="私人" />
               </Select>
             </div>
-            <FieldSaveIndicator
-              status={getFieldSaveState("visibility")?.status || "idle"}
-              style={indicatorOffset}
-            />
+            <div style={indicatorOffset}>
+              <FieldSaveIndicator status={getFieldSaveState("visibility")?.status || "idle"} />
+            </div>
           </div>
         </div>
 
@@ -293,10 +286,9 @@ const ExamBasicInfoSection: React.FC<ExamBasicInfoSectionProps> = ({ registerRef
                 onChange={(e) => handleTextChange("password", e.target.value)}
               />
             </div>
-            <FieldSaveIndicator
-              status={getFieldSaveState("password")?.status || "idle"}
-              style={indicatorOffset}
-            />
+            <div style={indicatorOffset}>
+              <FieldSaveIndicator status={getFieldSaveState("password")?.status || "idle"} />
+            </div>
           </div>
         )}
       </div>
