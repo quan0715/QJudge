@@ -50,6 +50,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     deleteSession,
     renameSession,
     sendMessage,
+    stopStreaming,
     submitUserInput,
     cancelUserInput,
     confirmAction,
@@ -98,6 +99,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
               isStreaming={isStreaming}
               error={error}
               onSend={sendMessage}
+              onStopStreaming={stopStreaming}
               onCreateSession={createSession}
               onSwitchSession={switchSession}
               onDeleteSession={deleteSession}

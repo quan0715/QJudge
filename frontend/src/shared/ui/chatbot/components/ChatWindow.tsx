@@ -32,6 +32,7 @@ export interface ChatWindowProps {
   isStreaming: boolean;
   error: string | null;
   onSend: (message: string, modelId?: ChatModel) => void;
+  onStopStreaming?: () => void;
   pendingApproval?: ApprovalRequest | null;
   onConfirmAction?: () => void;
   onCancelAction?: () => void;
@@ -65,6 +66,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   isStreaming,
   error,
   onSend,
+  onStopStreaming,
   onCreateSession,
   onSwitchSession,
   onDeleteSession,
@@ -277,7 +279,9 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {/* 輸入區 */}
       <ChatInput
         onSend={onSend}
+        onStop={onStopStreaming}
         disabled={isLoading || !!pendingApproval}
+        isStreaming={isStreaming}
         problemContext={problemContext}
         backgroundInfo={backgroundInfo}
         hasMessages={messages.length > 0}

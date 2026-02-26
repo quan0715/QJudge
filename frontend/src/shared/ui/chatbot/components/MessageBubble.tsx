@@ -1,5 +1,7 @@
+import { useState, useCallback } from "react";
 import type { FC } from "react";
 import { InlineLoading, Accordion, AccordionItem, Tag, CodeSnippet } from "@carbon/react";
+import { Copy, Checkmark } from "@carbon/icons-react";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import { getCurrentStage } from "@/core/types/chatbot.types";
@@ -21,6 +23,17 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
   isTyping = false,
 }) => {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const textToCopy = isUser
+      ? filterBackgroundInfo(message.content)
+      : message.content;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [message.content, isUser]);
 
   // 顯示工具調用狀態
   const renderToolStatus = () => {
@@ -188,6 +201,18 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
             minute: "2-digit",
           })}
         </div>
+        {message.content && !isTyping && (
+          <div className={styles.messageActions}>
+            <button
+              className={`${styles.copyButton} ${copied ? styles.copyButtonCopied : ""}`}
+              onClick={handleCopy}
+              title="複製文字"
+            >
+              {copied ? <Checkmark size={12} /> : <Copy size={12} />}
+              {copied ? "已複製" : "複製"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

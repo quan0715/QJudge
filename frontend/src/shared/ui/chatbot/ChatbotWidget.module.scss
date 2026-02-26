@@ -329,34 +329,21 @@
   display: flex;
   align-items: flex-start;
   gap: $spacing-02;
-  transition: all 150ms motion(standard, productive);
   border-radius: 4px;
   padding: $spacing-02;
   margin: -$spacing-02;
-
-  &:hover {
-    background-color: $layer-hover-01;
-  }
 }
 
 .messageBubble.user {
   max-width: 90%;
   align-self: flex-end;
   flex-direction: row-reverse;
-
-  &:hover {
-    background-color: rgba(24, 118, 210, 0.08);
-  }
 }
 
 .messageBubble.assistant {
   width: 100%;
   align-self: flex-start;
   flex-direction: row;
-
-  &:hover {
-    background-color: $layer-hover-01;
-  }
 }
 
 // Message Avatar (only for assistant)
@@ -1033,6 +1020,7 @@
 .toolInputData,
 .toolResultData {
   margin-bottom: $spacing-02;
+  overflow: hidden;
 
   strong {
     display: block;
@@ -1041,14 +1029,68 @@
     color: $text-primary;
   }
 
-  // CodeSnippet 填滿容器寬度
+  // CodeSnippet 填滿容器寬度，移除固有 max-width
   :global(.cds--snippet--multi) {
-    max-width: 100%;
+    max-width: none;
     width: 100%;
+  }
+
+  :global(.cds--snippet__container) {
+    max-width: none;
+  }
+
+  :global(.cds--snippet--multi .cds--snippet__container pre) {
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 
 // 階段指示器
 .stageIndicator {
   margin-bottom: $spacing-03;
+}
+
+// 訊息底部操作列（複製按鈕）
+.messageActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  margin-top: $spacing-02;
+  opacity: 0;
+  transition: opacity 150ms ease;
+
+  .messageBubble:hover & {
+    opacity: 1;
+  }
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  padding: 2px $spacing-02;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: $text-secondary;
+  cursor: pointer;
+  @include type-style("label-01");
+  font-size: 11px;
+
+  &:hover {
+    background-color: $layer-hover-01;
+    color: $text-primary;
+  }
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+.copyButtonCopied {
+  color: $support-success;
+
+  &:hover {
+    color: $support-success;
+  }
 }

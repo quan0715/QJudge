@@ -162,6 +162,7 @@ export interface SendMessageOptions {
   reference?: ProblemReference;
   skill?: string;
   modelOverride?: string;
+  signal?: AbortSignal;
 }
 
 // ===== User Input =====

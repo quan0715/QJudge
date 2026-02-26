@@ -457,6 +457,7 @@ const chatbotRepository: ChatbotRepository = {
             "Content-Type": "application/json",
             "X-QJudge-Agent-Contract": "v2",
           },
+          signal: options?.signal,
         }
       );
 
