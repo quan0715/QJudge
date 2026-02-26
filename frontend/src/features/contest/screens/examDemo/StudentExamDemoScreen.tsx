@@ -142,9 +142,9 @@ const StudentExamDemoScreen: FC = () => {
             bestIdx = idx;
           }
         }
-        if (bestRatio > 0) setAllModeActiveIndex(bestIdx);
+        if (bestRatio > 0.3) setAllModeActiveIndex(bestIdx);
       },
-      { root: container, threshold: [0, 0.25, 0.5, 0.75, 1] }
+      { root: container, threshold: [0.3, 0.5, 0.7, 1] }
     );
 
     allItemRefs.current.forEach((el) => observer.observe(el));
@@ -434,24 +434,24 @@ const StudentExamDemoScreen: FC = () => {
       </div>
 
       <div className={styles.body}>
-        {/* Nav list toggle button — left center */}
         {viewMode === "single" && (
-          <button
-            className={styles.navToggle}
-            onClick={() => setNavVisible((v) => !v)}
-            aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
-          >
-            <List size={20} />
-          </button>
-        )}
-
-        {viewMode === "single" && navVisible && (
-          <ExamNavigator
-            items={items}
-            activeIndex={activeIndex}
-            answeredIds={answeredIds}
-            onSelect={handleSetActiveIndex}
-          />
+          <div className={`${styles.navWrapper} ${navVisible ? "" : styles.navWrapperHidden}`}>
+            {navVisible && (
+              <ExamNavigator
+                items={items}
+                activeIndex={activeIndex}
+                answeredIds={answeredIds}
+                onSelect={handleSetActiveIndex}
+              />
+            )}
+            <button
+              className={styles.navToggle}
+              onClick={() => setNavVisible((v) => !v)}
+              aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
+            >
+              <List size={20} />
+            </button>
+          </div>
         )}
         {viewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>

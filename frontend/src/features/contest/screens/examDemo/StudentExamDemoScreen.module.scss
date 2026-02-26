@@ -144,10 +144,22 @@
   position: relative;
 }
 
-// Nav toggle button (left-center, show/hide navigator)
+// Nav wrapper (contains navigator + toggle button)
+.navWrapper {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navWrapperHidden {
+  width: 0;
+}
+
+// Nav toggle button (right edge of nav panel, or left edge when hidden)
 .navToggle {
   position: absolute;
-  left: 0;
+  right: -32px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 15;
@@ -230,7 +242,7 @@
 }
 
 .allItemDimmed {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 // Coding problem card (borderless)
