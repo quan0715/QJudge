@@ -1,0 +1,38 @@
+@use "../tokens" as *;
+
+// Message List
+.messageList {
+  flex: 1;
+  min-height: 0; // Critical: allows flex child to shrink for proper scrolling
+  overflow-y: auto;
+  padding: $spacing-04;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  background-color: $layer-01;
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    background-color: $gray-90;
+  }
+}
+
+// Loading Indicator
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: $spacing-03 $spacing-04;
+  background-color: $layer-02;
+  border-radius: $spacing-03;
+  border: 1px solid $border-subtle-01;
+  align-self: flex-start;
+  @include type-style("label-01");
+  color: $text-secondary;
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    background-color: $gray-80;
+    border-color: $gray-70;
+  }
+}

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { InlineLoading } from "@carbon/react";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import { MessageBubble } from "./MessageBubble";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./MessageList.module.scss";
 
 export interface MessageListProps {
   messages: ChatMessage[];

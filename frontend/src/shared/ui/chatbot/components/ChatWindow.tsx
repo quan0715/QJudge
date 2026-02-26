@@ -23,7 +23,7 @@ import { ChatInput } from "./ChatInput";
 import { UserInputModal } from "./UserInputModal";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { AgentAvatar } from "./AgentAvatar";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./ChatWindow.module.scss";
 
 export interface ChatWindowProps {
   sessions: ChatSession[];

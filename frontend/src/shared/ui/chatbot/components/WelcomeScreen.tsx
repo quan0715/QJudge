@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { AgentAvatar } from "./AgentAvatar";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./WelcomeScreen.module.scss";
 
 export interface SuggestedPrompt {
   icon?: React.ComponentType<{ size?: number }>;

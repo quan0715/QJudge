@@ -6,7 +6,7 @@ import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import { getCurrentStage } from "@/core/types/chatbot.types";
 import { AgentAvatar } from "./AgentAvatar";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./MessageBubble.module.scss";
 
 export interface MessageBubbleProps {
   message: ChatMessage;

@@ -3,7 +3,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { IconButton, Dropdown, Tag } from "@carbon/react";
 import { ArrowUp, StopFilled, Information } from "@carbon/icons-react";
 import type { BackgroundInformation, ChatModel } from "@/core/types/chatbot.types";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./ChatInput.module.scss";
 
 const AVAILABLE_MODELS: { id: ChatModel; label: string }[] = [
   { id: "claude-sonnet", label: "Sonnet 4.6" },
