@@ -18,7 +18,7 @@ import {
   RequireTeacherOrAdmin,
 } from "@/features/auth";
 import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, examDemoRoute } from "@/features/contest";
+import { contestListRoute, contestDetailRoutes, examDemoRoute, examV2Routes } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -26,6 +26,7 @@ import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
 import { teacherRoutes } from "@/features/teacher";
 import { landingRoute } from "@/features/landing";
+import { classroomRoutes } from "@/features/classroom";
 
 // Feature imports - Submissions
 import { submissionRoutes } from "@/features/submissions";
@@ -81,6 +82,7 @@ function App() {
                             {dashboardRoute}
                             {problemRoutes}
                             {contestListRoute}
+                            {classroomRoutes}
                             {submissionRoutes}
                             {settingsRoute}
                             <Route
@@ -100,6 +102,9 @@ function App() {
 
                           {/* Contest Routes - Outside MainLayout with Custom Header */}
                           {contestDetailRoutes}
+
+                          {/* Exam v2 Flow - Standalone full page */}
+                          {examV2Routes}
 
                           {/* Student Exam Demo - Standalone full page */}
                           {examDemoRoute}

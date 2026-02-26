@@ -1,11 +1,11 @@
 import { Route, Navigate } from "react-router-dom";
 import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
+import ExamV2Layout from "./components/layout/ExamV2Layout";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
 import ExamEditScreen from "./screens/examEdit/ExamEditScreen";
 import {
-  ExamV2RegistrationScreen,
   ExamV2PrecheckScreen,
   ExamV2AnsweringScreen,
   ExamV2SubmitReviewScreen,
@@ -36,14 +36,21 @@ export const contestDetailRoutes = (
     <Route path="solve/:problemId" element={<ContestProblemScreen />} />
     {/* Exam Edit Page (admin/teacher only) */}
     <Route path="exam/edit" element={<ExamEditScreen />} />
-    {/* Exam v2 Flow (API-connected student flow) */}
-    <Route path="exam-v2" element={<Navigate to="registration" replace />} />
-    <Route path="exam-v2/registration" element={<ExamV2RegistrationScreen />} />
-    <Route path="exam-v2/precheck" element={<ExamV2PrecheckScreen />} />
-    <Route path="exam-v2/answering" element={<ExamV2AnsweringScreen />} />
-    <Route path="exam-v2/submit-review" element={<ExamV2SubmitReviewScreen />} />
-    <Route path="exam-v2/grading" element={<ExamV2GradingScreen />} />
-    <Route path="exam-v2/result" element={<ExamV2ResultScreen />} />
+  </Route>
+);
+
+/**
+ * Exam v2 Flow — 獨立全頁面，不嵌套在 ContestLayout 內
+ * 使用 ExamV2Layout 提供 ContestContext
+ */
+export const examV2Routes = (
+  <Route path="/contests/:contestId/exam-v2" element={<ExamV2Layout />}>
+    <Route index element={<Navigate to="precheck" replace />} />
+    <Route path="precheck" element={<ExamV2PrecheckScreen />} />
+    <Route path="answering" element={<ExamV2AnsweringScreen />} />
+    <Route path="submit-review" element={<ExamV2SubmitReviewScreen />} />
+    <Route path="grading" element={<ExamV2GradingScreen />} />
+    <Route path="result" element={<ExamV2ResultScreen />} />
   </Route>
 );
 

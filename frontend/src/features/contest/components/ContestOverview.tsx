@@ -84,8 +84,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                 const base = `/contests/${contest.id}/exam-v2`;
                 if (status === "submitted") navigate(`${base}/result`);
                 else if (status === "in_progress") navigate(`${base}/answering`);
-                else if (contest.isRegistered) navigate(`${base}/precheck`);
-                else navigate(`${base}/registration`);
+                else navigate(`${base}/precheck`);
               }}
             >
               {contest.examStatus === "submitted"
