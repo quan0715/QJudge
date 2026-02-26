@@ -229,6 +229,12 @@
   padding: $spacing-07 $spacing-05 $spacing-09;
 }
 
+// Spacer to allow first/last item to center in viewport
+.allSpacer {
+  flex-shrink: 0;
+  height: 40vh;
+}
+
 .allItem {
   width: 100%;
   max-width: 720px;

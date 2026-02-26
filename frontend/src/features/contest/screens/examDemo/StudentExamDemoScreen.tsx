@@ -360,6 +360,7 @@ const StudentExamDemoScreen: FC = () => {
 
   const renderAllMode = () => (
     <div className={styles.allContent} ref={allContentRef}>
+      <div className={styles.allSpacer} />
       {items.map((item, index) => {
         const dimClass = index !== allModeActiveIndex ? styles.allItemDimmed : "";
         return (
@@ -403,6 +404,7 @@ const StudentExamDemoScreen: FC = () => {
         </div>
         );
       })}
+      <div className={styles.allSpacer} />
     </div>
   );
 
