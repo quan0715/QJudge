@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
   ContentSwitcher,
@@ -9,7 +9,7 @@ import {
   Loading,
 } from "@carbon/react";
 import { ArrowLeft, ArrowRight, ChevronLeft } from "@carbon/icons-react";
-import { useContest } from "@/features/contest/contexts/ContestContext";
+import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { ProblemPreview, ProblemHeaderCard } from "@/shared/ui/problem";
@@ -17,13 +17,16 @@ import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { ExamNavigator } from "../../components/exam/ExamNavigator";
 import type { ExamItem, ExamViewMode } from "../../types/examDemo.types";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
 
 const StudentExamDemoScreen: FC = () => {
   const navigate = useNavigate();
-  const { contest, loading: contestLoading } = useContest();
+  const { contestId } = useParams<{ contestId: string }>();
 
+  const [contest, setContest] = useState<ContestDetail | null>(null);
+  const [contestLoading, setContestLoading] = useState(true);
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
@@ -61,28 +64,54 @@ const StudentExamDemoScreen: FC = () => {
     return ids;
   }, [answers]);
 
+  // Fetch contest data (standalone, no ContestProvider)
+  useEffect(() => {
+    if (!contestId) return;
+    setContestLoading(true);
+    getContest(contestId)
+      .then((c) => setContest(c ?? null))
+      .catch(() => setContest(null))
+      .finally(() => setContestLoading(false));
+  }, [contestId]);
+
   // Fetch exam questions
   useEffect(() => {
-    if (!contest?.id) return;
+    if (!contestId) return;
     setLoadingQuestions(true);
-    getExamQuestions(contest.id)
+    getExamQuestions(contestId)
       .then(setExamQuestions)
       .catch(() => setExamQuestions([]))
       .finally(() => setLoadingQuestions(false));
-  }, [contest?.id]);
+  }, [contestId]);
 
   // Fetch problem detail for current coding problem in single mode
   const currentItem = items[activeIndex];
   useEffect(() => {
-    if (!contest?.id || !currentItem || currentItem.kind !== "coding") return;
+    if (!contestId || !currentItem || currentItem.kind !== "coding") return;
     const pid = currentItem.data.problemId;
     if (problemDetails[pid]) return;
-    getContestProblem(contest.id, currentItem.data.id).then((detail) => {
+    getContestProblem(contestId, currentItem.data.id).then((detail) => {
       if (detail) {
         setProblemDetails((prev) => ({ ...prev, [pid]: detail }));
       }
     });
-  }, [contest?.id, currentItem, problemDetails]);
+  }, [contestId, currentItem, problemDetails]);
+
+  // Pre-fetch all coding problem details for "all" mode
+  useEffect(() => {
+    if (viewMode !== "all" || !contestId) return;
+    const codingItems = items.filter((i) => i.kind === "coding");
+    for (const item of codingItems) {
+      const pid = item.data.problemId;
+      if (problemDetails[pid]) continue;
+      getContestProblem(contestId, item.data.id).then((detail) => {
+        if (detail) {
+          setProblemDetails((prev) => ({ ...prev, [pid]: detail }));
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, contestId, items.length]);
 
   const handleAnswerChange = useCallback((questionId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));

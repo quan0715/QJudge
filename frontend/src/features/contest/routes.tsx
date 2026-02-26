@@ -44,7 +44,15 @@ export const contestDetailRoutes = (
     <Route path="exam-v2/submit-review" element={<ExamV2SubmitReviewScreen />} />
     <Route path="exam-v2/grading" element={<ExamV2GradingScreen />} />
     <Route path="exam-v2/result" element={<ExamV2ResultScreen />} />
-    {/* Student Exam Demo */}
-    <Route path="exam-demo" element={<StudentExamDemoScreen />} />
   </Route>
+);
+
+/**
+ * Student Exam Demo — 獨立全頁面，不嵌套在 ContestLayout 內
+ */
+export const examDemoRoute = (
+  <Route
+    path="/contests/:contestId/exam-demo"
+    element={<StudentExamDemoScreen />}
+  />
 );

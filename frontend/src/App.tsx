@@ -18,7 +18,7 @@ import {
   RequireTeacherOrAdmin,
 } from "@/features/auth";
 import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes } from "@/features/contest";
+import { contestListRoute, contestDetailRoutes, examDemoRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -100,6 +100,9 @@ function App() {
 
                           {/* Contest Routes - Outside MainLayout with Custom Header */}
                           {contestDetailRoutes}
+
+                          {/* Student Exam Demo - Standalone full page */}
+                          {examDemoRoute}
                         </Route>
 
                         {/* Teacher/Admin Routes */}

@@ -43,6 +43,13 @@
   }
 }
 
+.promptEmpty {
+  @include type-style("body-compact-01");
+  color: $text-placeholder;
+  margin-bottom: $spacing-05;
+  font-style: italic;
+}
+
 .answerArea {
   padding-top: $spacing-04;
   border-top: 1px solid $border-subtle-01;

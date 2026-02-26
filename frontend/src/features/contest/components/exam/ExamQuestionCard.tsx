@@ -154,9 +154,13 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
         <span className={styles.score}>{question.score} 分</span>
       </div>
 
-      <div className={styles.prompt}>
-        <MarkdownRenderer content={question.prompt} />
-      </div>
+      {question.prompt ? (
+        <div className={styles.prompt}>
+          <MarkdownRenderer>{question.prompt}</MarkdownRenderer>
+        </div>
+      ) : (
+        <div className={styles.promptEmpty}>（尚未填寫題目敘述）</div>
+      )}
 
       <div className={styles.answerArea}>
         <div className={styles.answerLabel}>作答區</div>
