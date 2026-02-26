@@ -188,6 +188,7 @@ export type ExamQuestionType =
   | "true_false"
   | "single_choice"
   | "multiple_choice"
+  | "short_answer"
   | "essay";
 
 export interface ExamQuestion {

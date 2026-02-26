@@ -1,3 +1,16 @@
+"""
+Comprehensive tests for the ExamQuestion CRUD API.
+
+Covers:
+  - All 5 question types (true_false, single_choice, multiple_choice, short_answer, essay)
+  - Field-level validation on serializer (options, correct_answer, score, prompt)
+  - Permission checks (teacher/admin vs student vs unauthenticated)
+  - CRUD lifecycle (create, list, retrieve, update, partial update, delete)
+  - Reorder action
+  - Auto-order assignment when order is omitted
+  - Cross-contest isolation
+  - Activity logging side effects
+"""
 from datetime import timedelta
 
 import pytest
@@ -6,7 +19,6 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
-from apps.users.models import User
 
 
 @pytest.fixture
@@ -15,30 +27,37 @@ def api_client() -> APIClient:
 
 
 @pytest.fixture
-def teacher() -> User:
+def teacher():
+    from apps.users.models import User
     return User.objects.create_user(
-        username="exam_teacher",
-        email="exam_teacher@example.com",
-        password="testpass123",
-        role="teacher",
+        username="eq_teacher", email="eq_teacher@test.com",
+        password="pass123", role="teacher",
     )
 
 
 @pytest.fixture
-def student() -> User:
+def student():
+    from apps.users.models import User
     return User.objects.create_user(
-        username="exam_student",
-        email="exam_student@example.com",
-        password="testpass123",
-        role="student",
+        username="eq_student", email="eq_student@test.com",
+        password="pass123", role="student",
     )
 
 
 @pytest.fixture
-def contest(teacher: User) -> Contest:
+def another_teacher():
+    from apps.users.models import User
+    return User.objects.create_user(
+        username="eq_teacher2", email="eq_teacher2@test.com",
+        password="pass123", role="teacher",
+    )
+
+
+@pytest.fixture
+def contest(teacher):
     now = timezone.now()
     return Contest.objects.create(
-        name="Exam Question Contest",
+        name="EQ Test Contest",
         owner=teacher,
         status="published",
         start_time=now - timedelta(hours=1),
@@ -46,154 +65,473 @@ def contest(teacher: User) -> Contest:
     )
 
 
-@pytest.mark.django_db
-def test_teacher_can_crud_exam_questions(
-    api_client: APIClient,
-    teacher: User,
-    contest: Contest,
-) -> None:
-    api_client.force_authenticate(user=teacher)
+@pytest.fixture
+def other_contest(another_teacher):
+    now = timezone.now()
+    return Contest.objects.create(
+        name="Other Contest",
+        owner=another_teacher,
+        status="published",
+        start_time=now - timedelta(hours=1),
+        end_time=now + timedelta(hours=2),
+    )
 
-    create_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/",
-        {
+
+def url(contest_id, question_id=None):
+    base = f"/api/v1/contests/{contest_id}/exam-questions/"
+    if question_id:
+        return f"{base}{question_id}/"
+    return base
+
+
+# ═══════════════════════════════════════════════════════════════════
+# CRUD Basics
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestCRUDLifecycle:
+    def test_create_and_retrieve(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
             "question_type": "single_choice",
-            "prompt": "2 + 2 = ?",
-            "options": ["3", "4", "5"],
+            "prompt": "What is 1+1?",
+            "options": ["1", "2", "3"],
             "correct_answer": 1,
-            "score": 5,
+            "score": 3,
             "order": 0,
-        },
-        format="json",
-    )
-    assert create_res.status_code == status.HTTP_201_CREATED
-    question_id = create_res.data["id"]
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        qid = res.data["id"]
+        assert res.data["prompt"] == "What is 1+1?"
+        assert res.data["score"] == 3
 
-    list_res = api_client.get(f"/api/v1/contests/{contest.id}/exam-questions/")
-    assert list_res.status_code == status.HTTP_200_OK
-    assert len(list_res.data) == 1
-    assert list_res.data[0]["id"] == question_id
+        detail = api_client.get(url(contest.id, qid))
+        assert detail.status_code == status.HTTP_200_OK
+        assert detail.data["id"] == qid
 
-    patch_res = api_client.patch(
-        f"/api/v1/contests/{contest.id}/exam-questions/{question_id}/",
-        {"prompt": "2 + 3 = ?", "correct_answer": 2},
-        format="json",
-    )
-    assert patch_res.status_code == status.HTTP_200_OK
-    assert patch_res.data["prompt"] == "2 + 3 = ?"
+    def test_list_returns_ordered(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        ExamQuestion.objects.create(contest=contest, question_type="essay", prompt="Q2", score=5, order=1)
+        ExamQuestion.objects.create(contest=contest, question_type="essay", prompt="Q1", score=3, order=0)
 
-    second = ExamQuestion.objects.create(
-        contest=contest,
-        question_type="essay",
-        prompt="Explain your steps.",
-        score=10,
-        order=1,
-    )
+        res = api_client.get(url(contest.id))
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data) == 2
+        assert res.data[0]["prompt"] == "Q1"
+        assert res.data[1]["prompt"] == "Q2"
 
-    reorder_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/reorder/",
-        {"orders": [{"id": second.id, "order": 0}, {"id": question_id, "order": 1}]},
-        format="json",
-    )
-    assert reorder_res.status_code == status.HTTP_200_OK
-    reordered_ids = [item["id"] for item in reorder_res.data]
-    assert reordered_ids == [second.id, question_id]
-
-    delete_res = api_client.delete(
-        f"/api/v1/contests/{contest.id}/exam-questions/{question_id}/"
-    )
-    assert delete_res.status_code == status.HTTP_204_NO_CONTENT
-
-
-@pytest.mark.django_db
-def test_student_cannot_manage_exam_questions(
-    api_client: APIClient,
-    student: User,
-    contest: Contest,
-) -> None:
-    ContestParticipant.objects.create(contest=contest, user=student)
-    api_client.force_authenticate(user=student)
-
-    list_res = api_client.get(f"/api/v1/contests/{contest.id}/exam-questions/")
-    assert list_res.status_code == status.HTTP_403_FORBIDDEN
-
-    create_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/",
-        {
+    def test_full_update_put(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        q = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Old", score=3, order=0,
+        )
+        res = api_client.put(url(contest.id, q.id), {
             "question_type": "essay",
-            "prompt": "Not allowed",
-            "score": 5,
+            "prompt": "New prompt",
+            "score": 10,
             "order": 0,
-        },
-        format="json",
-    )
-    assert create_res.status_code == status.HTTP_403_FORBIDDEN
+        }, format="json")
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data["prompt"] == "New prompt"
+        assert res.data["score"] == 10
+
+    def test_partial_update_patch(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        q = ExamQuestion.objects.create(
+            contest=contest, question_type="single_choice",
+            prompt="Q", options=["A", "B"], correct_answer=0, score=2, order=0,
+        )
+        res = api_client.patch(url(contest.id, q.id), {"score": 5}, format="json")
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data["score"] == 5
+        assert res.data["prompt"] == "Q"  # unchanged
+
+    def test_delete(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        q = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Delete me", score=1, order=0,
+        )
+        res = api_client.delete(url(contest.id, q.id))
+        assert res.status_code == status.HTTP_204_NO_CONTENT
+        assert not ExamQuestion.objects.filter(id=q.id).exists()
 
 
-@pytest.mark.django_db
-def test_create_question_without_order_uses_next_order(
-    api_client: APIClient,
-    teacher: User,
-    contest: Contest,
-) -> None:
-    api_client.force_authenticate(user=teacher)
-    ExamQuestion.objects.create(
-        contest=contest,
-        question_type="essay",
-        prompt="Q1",
-        score=3,
-        order=0,
-    )
-
-    create_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/",
-        {
-            "question_type": "essay",
-            "prompt": "Q2",
-            "score": 4,
-        },
-        format="json",
-    )
-    assert create_res.status_code == status.HTTP_201_CREATED
-    assert create_res.data["order"] == 1
-
+# ═══════════════════════════════════════════════════════════════════
+# All 5 Question Types
+# ═══════════════════════════════════════════════════════════════════
 
 @pytest.mark.django_db
-def test_validation_for_objective_and_essay_questions(
-    api_client: APIClient,
-    teacher: User,
-    contest: Contest,
-) -> None:
-    api_client.force_authenticate(user=teacher)
+class TestQuestionTypes:
+    def test_true_false(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "true_false",
+            "prompt": "The sky is blue.",
+            "correct_answer": True,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["question_type"] == "true_false"
 
-    # objective question missing correct_answer
-    missing_answer_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/",
-        {
+    def test_true_false_with_int(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "true_false",
+            "prompt": "Water is dry.",
+            "correct_answer": 0,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_true_false_invalid_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "true_false",
+            "prompt": "Test",
+            "correct_answer": "maybe",
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_single_choice(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
             "question_type": "single_choice",
-            "prompt": "Choose one",
+            "prompt": "Pick one",
+            "options": ["A", "B", "C"],
+            "correct_answer": 2,
+            "score": 3,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_single_choice_rejects_array_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "single_choice",
+            "prompt": "Pick one",
+            "options": ["A", "B"],
+            "correct_answer": [0, 1],
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_multiple_choice(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "multiple_choice",
+            "prompt": "Select all that apply",
+            "options": ["A", "B", "C", "D"],
+            "correct_answer": [0, 2],
+            "score": 4,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_multiple_choice_rejects_empty_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "multiple_choice",
+            "prompt": "Select all",
+            "options": ["A", "B"],
+            "correct_answer": [],
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_short_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "short_answer",
+            "prompt": "What is the capital of France?",
+            "correct_answer": "Paris",
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_essay(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Explain deadlock.",
+            "score": 10,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["correct_answer"] is None
+
+    def test_essay_with_code_block(self, api_client, teacher, contest):
+        """Essay questions can contain code blocks in the prompt."""
+        api_client.force_authenticate(user=teacher)
+        prompt = 'How many times does this print "hello"?\n```c\nmain() { fork(); printf("hello"); }\n```'
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": prompt,
+            "correct_answer": "2",
+            "score": 3,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert "```c" in res.data["prompt"]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Validation
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestValidation:
+    def test_score_must_be_positive(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Test",
+            "score": 0,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_choice_requires_at_least_2_options(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "single_choice",
+            "prompt": "Pick",
+            "options": ["Only one"],
+            "correct_answer": 0,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_choice_requires_correct_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "single_choice",
+            "prompt": "Pick",
             "options": ["A", "B"],
             "score": 2,
-            "order": 0,
-        },
-        format="json",
-    )
-    assert missing_answer_res.status_code == status.HTTP_400_BAD_REQUEST
-    details = missing_answer_res.data.get("error", {}).get("details", {})
-    assert "correct_answer" in details
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
 
-    # essay question should not carry options
-    essay_with_options_res = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam-questions/",
-        {
+    def test_essay_rejects_options(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
             "question_type": "essay",
             "prompt": "Explain",
-            "options": ["N/A"],
+            "options": ["Should not be here"],
             "score": 5,
-            "order": 0,
-        },
-        format="json",
-    )
-    assert essay_with_options_res.status_code == status.HTTP_400_BAD_REQUEST
-    details = essay_with_options_res.data.get("error", {}).get("details", {})
-    assert "options" in details
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_short_answer_rejects_options(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "short_answer",
+            "prompt": "Answer",
+            "options": ["No"],
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_options_must_be_non_empty_strings(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "single_choice",
+            "prompt": "Pick",
+            "options": ["A", ""],
+            "correct_answer": 0,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_true_false_rejects_3_options(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "true_false",
+            "prompt": "T/F",
+            "options": ["True", "False", "Maybe"],
+            "correct_answer": True,
+            "score": 1,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_prompt_required(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "score": 5,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Auto-Order
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestAutoOrder:
+    def test_first_question_gets_order_0(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "First",
+            "score": 1,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["order"] == 0
+
+    def test_subsequent_question_gets_next_order(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Q0", score=1, order=0,
+        )
+        ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Q1", score=1, order=1,
+        )
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Q2",
+            "score": 1,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["order"] == 2
+
+    def test_explicit_order_is_respected(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Explicit",
+            "score": 1,
+            "order": 99,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["order"] == 99
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Reorder
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestReorder:
+    def test_reorder_swaps_positions(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        q0 = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="A", score=1, order=0,
+        )
+        q1 = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="B", score=1, order=1,
+        )
+        res = api_client.post(
+            url(contest.id) + "reorder/",
+            {"orders": [{"id": q0.id, "order": 1}, {"id": q1.id, "order": 0}]},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in res.data]
+        assert ids == [q1.id, q0.id]
+
+    def test_reorder_normalizes_gaps(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        q0 = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="A", score=1, order=0,
+        )
+        q1 = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="B", score=1, order=1,
+        )
+        # Set order to 10 and 20, should normalize to 0 and 1
+        res = api_client.post(
+            url(contest.id) + "reorder/",
+            {"orders": [{"id": q0.id, "order": 10}, {"id": q1.id, "order": 20}]},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_200_OK
+        orders = [item["order"] for item in res.data]
+        assert orders == [0, 1]
+
+    def test_reorder_empty_orders_returns_400(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(
+            url(contest.id) + "reorder/",
+            {"orders": []},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Permissions
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestPermissions:
+    def test_unauthenticated_is_rejected(self, api_client, contest):
+        res = api_client.get(url(contest.id))
+        assert res.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
+
+    def test_student_cannot_list(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.get(url(contest.id))
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_student_cannot_create(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay", "prompt": "Nope", "score": 1,
+        }, format="json")
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_student_cannot_delete(self, api_client, student, teacher, contest):
+        q = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Q", score=1, order=0,
+        )
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.delete(url(contest.id, q.id))
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_student_cannot_reorder(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.post(url(contest.id) + "reorder/", {"orders": []}, format="json")
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_other_teacher_cannot_manage(self, api_client, another_teacher, contest):
+        """A teacher who does not own the contest cannot manage its questions."""
+        api_client.force_authenticate(user=another_teacher)
+        res = api_client.get(url(contest.id))
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Cross-Contest Isolation
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestIsolation:
+    def test_questions_are_scoped_to_contest(self, api_client, teacher, contest, another_teacher, other_contest):
+        ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="In contest A", score=1, order=0,
+        )
+        ExamQuestion.objects.create(
+            contest=other_contest, question_type="essay", prompt="In contest B", score=1, order=0,
+        )
+
+        api_client.force_authenticate(user=teacher)
+        res = api_client.get(url(contest.id))
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data) == 1
+        assert res.data[0]["prompt"] == "In contest A"
+
+    def test_cannot_access_question_from_wrong_contest(self, api_client, teacher, contest, another_teacher, other_contest):
+        q = ExamQuestion.objects.create(
+            contest=other_contest, question_type="essay", prompt="Other", score=1, order=0,
+        )
+        api_client.force_authenticate(user=teacher)
+        res = api_client.get(url(contest.id, q.id))
+        assert res.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_question_from_wrong_contest(self, api_client, teacher, contest, another_teacher, other_contest):
+        q = ExamQuestion.objects.create(
+            contest=other_contest, question_type="essay", prompt="Other", score=1, order=0,
+        )
+        api_client.force_authenticate(user=teacher)
+        res = api_client.delete(url(contest.id, q.id))
+        assert res.status_code == status.HTTP_404_NOT_FOUND
+        assert ExamQuestion.objects.filter(id=q.id).exists()

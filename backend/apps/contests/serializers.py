@@ -526,8 +526,8 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             if merged_options and len(merged_options) != 2:
                 raise serializers.ValidationError({'options': 'true_false should have exactly 2 options when provided'})
 
-        if question_type == ExamQuestionType.ESSAY and options is not None and len(options) > 0:
-            raise serializers.ValidationError({'options': 'essay question should not define options'})
+        if question_type in {ExamQuestionType.ESSAY, ExamQuestionType.SHORT_ANSWER} and options is not None and len(options) > 0:
+            raise serializers.ValidationError({'options': f'{question_type} question should not define options'})
 
         if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)

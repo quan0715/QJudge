@@ -18,26 +18,6 @@ export interface ScrollSpyLayoutProps {
   className?: string;
 }
 
-/**
- * ScrollSpyLayout - Main layout with scroll-spy navigation
- *
- * Layout structure:
- * ```
- * +------------------+----------------------------------------+
- * |   Left Sidebar   |         Content Area                   |
- * |                  |         (Scrollable)                   |
- * |   [Header]       |                                        |
- * |   [Problem List] |   Section 1                            |
- * |   ─────────────  |   Section 2                            |
- * |   [Scroll-spy]   |   Section 3                            |
- * |   - Section 1    |   ...                                  |
- * |   - Section 2    |                                        |
- * |   - Section 3    |                                        |
- * |   ─────────────  |                                        |
- * |   [Preview Btn]  |                                        |
- * +------------------+----------------------------------------+
- * ```
- */
 export const ScrollSpyLayout: React.FC<ScrollSpyLayoutProps> = ({
   sections,
   onPreviewClick,

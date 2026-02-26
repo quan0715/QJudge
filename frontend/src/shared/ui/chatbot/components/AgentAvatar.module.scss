@@ -1,0 +1,26 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/themes" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+// Avatar Size Variants
+.agentAvatar {
+  display: block;
+
+  &--sm {
+    width: 20px;
+    height: 20px;
+  }
+
+  &--md {
+    width: 28px;
+    height: 28px;
+  }
+
+  &--lg {
+    width: 40px;
+    height: 40px;
+  }
+}

@@ -1,0 +1,84 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.card {
+  padding: 0;
+  max-width: 720px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: $spacing-05;
+}
+
+.label {
+  @include type-style("heading-compact-02");
+  color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.score {
+  @include type-style("body-compact-01");
+  color: $text-helper;
+}
+
+.prompt {
+  margin-bottom: $spacing-06;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: $text-primary;
+
+  :global(.markdown-body) {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+
+    p, li, td, th {
+      font-size: inherit;
+      line-height: inherit;
+    }
+  }
+}
+
+.promptEmpty {
+  @include type-style("body-01");
+  color: $text-placeholder;
+  margin-bottom: $spacing-06;
+  font-style: italic;
+}
+
+.answerArea {
+  padding-top: $spacing-05;
+}
+
+.answerLabel {
+  @include type-style("label-01");
+  color: $text-helper;
+  margin-bottom: $spacing-04;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.textArea {
+  width: 100%;
+
+  textarea {
+    min-height: 160px;
+  }
+}
+
+.shortInput {
+  max-width: 520px;
+}

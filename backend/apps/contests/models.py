@@ -218,6 +218,7 @@ class ExamQuestionType(models.TextChoices):
     TRUE_FALSE = "true_false", "是非題"
     SINGLE_CHOICE = "single_choice", "單選題"
     MULTIPLE_CHOICE = "multiple_choice", "多選題"
+    SHORT_ANSWER = "short_answer", "簡答題"
     ESSAY = "essay", "問答題"
 
 

@@ -15,6 +15,9 @@ export {
   ExamV2ResultScreen,
 } from "./examV2";
 
+// Exam Demo Screen
+export { default as StudentExamDemoScreen } from "./examDemo/StudentExamDemoScreen";
+
 // Settings Screens
 export { default as ContestAdminsScreen } from "./settings/ContestAdminsScreen";
 export { default as ContestLogsScreen } from "./settings/ContestLogsScreen";

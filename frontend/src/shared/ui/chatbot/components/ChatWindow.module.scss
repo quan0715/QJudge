@@ -1,0 +1,193 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/themes" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+// Chat Window - full height in panel mode
+.chatWindow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0; // Critical: allows flex child to shrink for proper scrolling
+}
+
+// Chat Header
+.chatHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-02 $spacing-03;
+  background-color: $layer-02;
+  border-bottom: 1px solid $border-subtle-01;
+  flex-shrink: 0;
+  min-height: 36px;
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    background-color: $gray-80;
+    border-bottom-color: $gray-70;
+  }
+}
+
+// Chat Title Container (with icon and dropdown)
+.chatTitleContainer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  flex: 1;
+  min-width: 0;
+}
+
+.chatTitleContainerNoAvatar {
+  gap: 0;
+}
+
+.chatIcon {
+  fill: $icon-primary;
+  flex-shrink: 0;
+}
+
+// Session Dropdown
+.sessionDropdown {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+
+  // 隱藏 title text（不顯示標籤）
+  :global(.cds--label) {
+    display: none;
+  }
+
+  // 調整 dropdown 容器樣式
+  :global(.cds--dropdown) {
+    border: none;
+    background-color: transparent;
+
+    &:hover {
+      background-color: $layer-hover-01;
+    }
+  }
+
+  // 調整選中項目的顯示文字
+  :global(.cds--list-box__label) {
+    @include type-style("body-compact-01");
+    color: $text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // 移除邊框
+  :global(.cds--list-box) {
+    border: none;
+    box-shadow: none;
+  }
+
+  // 調整箭頭圖標
+  :global(.cds--list-box__menu-icon) {
+    svg {
+      fill: $icon-secondary;
+    }
+  }
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    :global(.cds--dropdown) {
+      &:hover {
+        background-color: $gray-70;
+      }
+    }
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-01;
+  flex-shrink: 0;
+
+  button {
+    color: $icon-secondary;
+  }
+
+  // OverflowMenu 對齊修正
+  :global(.cds--overflow-menu) {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Error Container
+.errorContainer {
+  flex-shrink: 0;
+  padding: $spacing-03;
+
+  :global(.cds--inline-notification) {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+// Approval Banner
+.approvalBanner {
+  flex-shrink: 0;
+  padding: $spacing-03;
+  border-top: 1px solid $border-subtle-01;
+
+  :global(.cds--inline-notification) {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+.approvalActions {
+  display: flex;
+  gap: $spacing-03;
+  padding: $spacing-03 $spacing-03 0;
+}
+
+.approvalConfirmBtn {
+  @include type-style("body-compact-01");
+  padding: $spacing-02 $spacing-05;
+  background-color: $support-success;
+  color: $text-on-color;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &:focus {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.approvalCancelBtn {
+  @include type-style("body-compact-01");
+  padding: $spacing-02 $spacing-05;
+  background-color: transparent;
+  color: $text-secondary;
+  border: 1px solid $border-subtle-01;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+
+  &:focus {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}

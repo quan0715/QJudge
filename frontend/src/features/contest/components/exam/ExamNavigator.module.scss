@@ -1,0 +1,108 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+.navigator {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  min-width: 200px;
+  overflow-y: auto;
+}
+
+.navHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: $spacing-04;
+  color: $text-helper;
+  @include type-style("label-01");
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  flex-shrink: 0;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-02 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: $spacing-03 $spacing-04;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background-color 100ms motion(standard, productive);
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+}
+
+.itemActive {
+  background-color: transparent;
+  border-left: 3px solid $interactive;
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+}
+
+.itemNumber {
+  @include type-style("body-compact-01");
+  font-weight: 600;
+  color: $text-primary;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: $layer-02;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.itemNumberAnswered {
+  background-color: $support-success;
+  color: $text-on-color;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemType {
+  @include type-style("label-01");
+  color: $text-helper;
+}
+
+.itemTitle {
+  @include type-style("body-compact-01");
+  color: $text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.summary {
+  padding: $spacing-04;
+  flex-shrink: 0;
+}
+
+.summaryText {
+  @include type-style("label-01");
+  color: $text-helper;
+}

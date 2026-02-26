@@ -1,5 +1,4 @@
 import React from "react";
-// import { useTheme } from '@/shared/ui/theme/ThemeContext';
 
 interface ContentPageProps {
   children: React.ReactNode;

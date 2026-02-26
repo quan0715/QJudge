@@ -1,9 +1,9 @@
 import type { FC, KeyboardEvent } from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { IconButton, Dropdown, Tag } from "@carbon/react";
-import { ArrowUp, Information } from "@carbon/icons-react";
+import { ArrowUp, StopFilled, Information } from "@carbon/icons-react";
 import type { BackgroundInformation, ChatModel } from "@/core/types/chatbot.types";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./ChatInput.module.scss";
 
 const AVAILABLE_MODELS: { id: ChatModel; label: string }[] = [
   { id: "claude-sonnet", label: "Sonnet 4.6" },
@@ -30,7 +30,9 @@ function resolveInitialModel(): ChatModel {
 
 export interface ChatInputProps {
   onSend: (message: string, modelId: ChatModel) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  isStreaming?: boolean;
   placeholder?: string;
   problemContext?: {
     id: number | string;
@@ -47,7 +49,9 @@ export interface ChatInputProps {
  */
 export const ChatInput: FC<ChatInputProps> = ({
   onSend,
+  onStop,
   disabled = false,
+  isStreaming = false,
   placeholder = "請說明您想出題或修改題目的方向...",
   problemContext = null,
   backgroundInfo = null,
@@ -176,17 +180,30 @@ export const ChatInput: FC<ChatInputProps> = ({
             className={styles.modelDropdownInline}
           />
 
-          <IconButton
-            label="送出"
-            kind="secondary"
-            size="sm"
-            onClick={handleSend}
-            disabled={disabled || !value.trim()}
-            className={styles.chatInputButton}
-            align="top-left"
-          >
-            <ArrowUp size={16} />
-          </IconButton>
+          {isStreaming ? (
+            <IconButton
+              label="停止生成"
+              kind="ghost"
+              size="sm"
+              onClick={onStop}
+              className={styles.chatInputButton}
+              align="top-left"
+            >
+              <StopFilled size={16} />
+            </IconButton>
+          ) : (
+            <IconButton
+              label="送出"
+              kind="secondary"
+              size="sm"
+              onClick={handleSend}
+              disabled={disabled || !value.trim()}
+              className={styles.chatInputButton}
+              align="top-left"
+            >
+              <ArrowUp size={16} />
+            </IconButton>
+          )}
         </div>
       </div>
     </div>

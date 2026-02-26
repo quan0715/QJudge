@@ -5,6 +5,7 @@
  */
 
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery";
 import type {
   Discussion,
   DiscussionComment,
@@ -54,12 +55,7 @@ export const getDiscussions = async (
   problemId: string,
   params?: { page?: number; page_size?: number }
 ): Promise<DiscussionListResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.page) queryParams.append("page", params.page.toString());
-  if (params?.page_size)
-    queryParams.append("page_size", params.page_size.toString());
-
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
+  const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<any>(
     httpClient.get(`/api/v1/problems/${problemId}/discussions/${query}`),
     "無法載入討論"
@@ -120,12 +116,7 @@ export const getComments = async (
   discussionId: string,
   params?: { page?: number; page_size?: number }
 ): Promise<CommentListResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.page) queryParams.append("page", params.page.toString());
-  if (params?.page_size)
-    queryParams.append("page_size", params.page_size.toString());
-
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
+  const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<any>(
     httpClient.get(
       `/api/v1/problems/problem-discussions/${discussionId}/comments/${query}`

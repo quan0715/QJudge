@@ -9,7 +9,6 @@ export type ContestTabKey =
   | "settings"
   | "participants"
   | "logs"
-  | "exam-model"
   | "exam-questions"
   | "admins";
 
@@ -44,7 +43,7 @@ export const getAvailableContestTabKeys = (
     }
 
     if (permissions?.canViewAllSubmissions) {
-      tabs.push("participants", "logs", "exam-model", "exam-questions");
+      tabs.push("participants", "logs", "exam-questions");
     }
 
     if (permissions?.canEditContest) {

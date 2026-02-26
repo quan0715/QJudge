@@ -1,0 +1,153 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/themes" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+// Chat Input Container - unified section
+.chatInputContainer {
+  padding: $spacing-03;
+  border-top: 1px solid $border-subtle-01;
+  background-color: $layer-02;
+  flex-shrink: 0;
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    border-top-color: $gray-70;
+    background-color: $gray-80;
+  }
+}
+
+// Unified input box wrapper
+.chatInputBox {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding: $spacing-03;
+  border: 1px solid $border-subtle-01;
+  border-radius: 8px;
+  background-color: $field-01;
+  transition: border-color 150ms motion(standard, productive),
+              box-shadow 150ms motion(standard, productive);
+
+  &:focus-within {
+    border-color: $interactive;
+    box-shadow: 0 0 0 1px $interactive;
+  }
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    background-color: $gray-80;
+    border-color: $gray-70;
+
+    &:focus-within {
+      border-color: $interactive;
+    }
+  }
+}
+
+// Row 0: Problem Context (chips above input)
+.chatInputContext {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  padding: 0 0 $spacing-02 0;
+  margin-bottom: $spacing-02;
+  border-bottom: 1px solid $border-subtle-01;
+  flex-wrap: wrap;
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    border-bottom-color: $gray-70;
+  }
+}
+
+.contextChip {
+  max-width: 300px;
+
+  :global(.cds--tag__label) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.bgInfoBadge {
+  :global(.cds--tag) {
+    cursor: help;
+  }
+}
+
+// Row 1: Textarea
+.chatInputTextarea {
+  width: 100%;
+  min-height: 72px; // 約 2-3 行
+  max-height: 168px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: $text-primary;
+  font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:disabled {
+    color: $text-disabled;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+}
+
+// Row 2: Controls - Model selector (left) + Send button (right)
+.chatInputControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-02;
+  padding-top: $spacing-02;
+  margin-top: $spacing-02;
+  border-top: 1px solid rgba(141, 141, 141, 0.2);
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    border-top-color: rgba(141, 141, 141, 0.3);
+  }
+}
+
+.chatInputButton {
+  flex-shrink: 0;
+  margin-left: auto; // 確保按鈕靠右
+}
+
+.modelDropdownInline {
+  flex-shrink: 0;
+  width: 136px;
+
+  :global(.cds--list-box__field) {
+    padding: $spacing-02 $spacing-03 !important;
+    height: 32px;
+  }
+
+  :global(.cds--list-box) {
+    background-color: transparent;
+    border: 1px solid $border-subtle-01;
+  }
+
+  :global([data-carbon-theme="g100"]) &,
+  :global([data-carbon-theme="g90"]) & {
+    :global(.cds--list-box) {
+      background-color: transparent;
+      border-color: $gray-70;
+    }
+  }
+}

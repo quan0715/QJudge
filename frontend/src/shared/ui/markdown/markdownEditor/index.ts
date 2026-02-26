@@ -10,4 +10,3 @@ export {
   MarkdownEditorProvider,
   useMarkdownEditor,
 } from "./MarkdownEditorContext";
-export { GlobalMarkdownEditorModal } from "./GlobalMarkdownEditorModal";

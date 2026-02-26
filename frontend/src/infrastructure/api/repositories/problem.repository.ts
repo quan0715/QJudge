@@ -1,4 +1,5 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery";
 import type {
   Problem,
   ProblemDetail,
@@ -31,17 +32,12 @@ export const getProblems = async (
   if (typeof params === "string") {
     query = params ? `?scope=${params}` : "";
   } else if (params) {
-    const searchParams = new URLSearchParams();
-    if (params.scope) searchParams.append("scope", params.scope);
-    if (params.search) searchParams.append("search", params.search);
-    if (params.difficulty && params.difficulty.length > 0) {
-      params.difficulty.forEach((d) => searchParams.append("difficulty", d));
-    }
-    if (params.tags && params.tags.length > 0) {
-      searchParams.append("tags", params.tags.join(","));
-    }
-    const queryString = searchParams.toString();
-    query = queryString ? `?${queryString}` : "";
+    query = buildQuery({
+      scope: params.scope,
+      search: params.search,
+      difficulty: params.difficulty,
+      tags: params.tags?.length ? params.tags.join(",") : undefined,
+    });
   }
 
   const data = await requestJson<any>(
@@ -55,23 +51,16 @@ export const getProblems = async (
 export const getPaginatedProblems = async (
   params?: GetProblemsParams
 ): Promise<PaginatedProblems> => {
-  const searchParams = new URLSearchParams();
-
-  if (params) {
-    if (params.scope) searchParams.append("scope", params.scope);
-    if (params.search) searchParams.append("search", params.search);
-    if (params.difficulty && params.difficulty.length > 0) {
-      params.difficulty.forEach((d) => searchParams.append("difficulty", d));
-    }
-    if (params.tags && params.tags.length > 0) {
-      searchParams.append("tags", params.tags.join(","));
-    }
-    if (params.page) searchParams.append("page", params.page.toString());
-    if (params.page_size) searchParams.append("page_size", params.page_size.toString());
-  }
-
-  const queryString = searchParams.toString();
-  const query = queryString ? `?${queryString}` : "";
+  const query = params
+    ? buildQuery({
+        scope: params.scope,
+        search: params.search,
+        difficulty: params.difficulty,
+        tags: params.tags?.length ? params.tags.join(",") : undefined,
+        page: params.page,
+        page_size: params.page_size,
+      })
+    : "";
 
   const data = await requestJson<any>(
     httpClient.get(`/api/v1/problems/${query}`),
@@ -186,11 +175,7 @@ export const getProblemStatistics = async (
   problemId: string,
   params?: { contest?: string; limit?: number }
 ): Promise<ProblemStatistics> => {
-  const queryParams = new URLSearchParams();
-  if (params?.contest) queryParams.append("contest", params.contest);
-  if (params?.limit) queryParams.append("limit", params.limit.toString());
-
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
+  const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<any>(
     httpClient.get(`/api/v1/problems/${problemId}/statistics/${query}`),
     "Failed to fetch problem statistics"

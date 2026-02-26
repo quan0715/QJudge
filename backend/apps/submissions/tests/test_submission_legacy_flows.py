@@ -91,10 +91,8 @@ def run_on_commit_immediately(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def judge_mocks(mocker: MockerFixture) -> Dict[str, Mock]:
-    return {
-        "practice": mocker.patch("apps.submissions.views.judge_submission.delay"),
-        "contest": mocker.patch("apps.submissions.views.judge_contest_submission.delay"),
-    }
+    mock = mocker.patch("apps.submissions.tasks.judge_submission.apply_async")
+    return {"judge": mock}
 
 
 @pytest.fixture(autouse=True)
@@ -125,8 +123,7 @@ def test_forbidden_keyword_sets_kr_and_skips_judge(
     submission = Submission.objects.get(id=response.data["id"])
     assert submission.status == "KR"
     assert "禁用關鍵字" in submission.error_message
-    judge_mocks["practice"].assert_not_called()
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -152,7 +149,7 @@ def test_required_keyword_missing_sets_kr(
     submission = Submission.objects.get(id=response.data["id"])
     assert submission.status == "KR"
     assert "必須關鍵字" in submission.error_message
-    judge_mocks["practice"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -177,7 +174,7 @@ def test_practice_submission_triggers_judge(
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
     assert submission.source_type == "practice"
-    judge_mocks["practice"].assert_called_once_with(submission.id)
+    judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="default")
 
 
 @pytest.mark.django_db
@@ -205,7 +202,7 @@ def test_contest_submission_rejected_when_not_published(
     assert response.status_code == 403
     assert "Contest is not published" in get_error_message(response)
     assert Submission.objects.count() == 0
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -236,7 +233,7 @@ def test_contest_submission_rejected_before_start(
 
     assert response.status_code == 403
     assert "Contest has not started yet" in get_error_message(response)
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -267,7 +264,7 @@ def test_contest_submission_rejected_after_end(
 
     assert response.status_code == 403
     assert "Contest has ended" in get_error_message(response)
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -293,7 +290,7 @@ def test_contest_submission_requires_registration(
 
     assert response.status_code == 403
     assert "not registered" in get_error_message(response).lower()
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -330,7 +327,7 @@ def test_contest_submission_blocked_by_exam_state(
 
     assert response.status_code == 403
     assert expected_snippet in get_error_message(response).lower()
-    judge_mocks["contest"].assert_not_called()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -357,7 +354,7 @@ def test_contest_submission_privileged_bypasses_restrictions(
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
     assert submission.source_type == "contest"
-    judge_mocks["contest"].assert_called_once_with(submission.id)
+    judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
 @pytest.mark.django_db
@@ -384,4 +381,4 @@ def test_contest_submission_triggers_judge(
 
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
-    judge_mocks["contest"].assert_called_once_with(submission.id)
+    judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")

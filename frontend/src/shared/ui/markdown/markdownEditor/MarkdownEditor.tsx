@@ -28,7 +28,7 @@ export interface MarkdownEditorProps {
  * Follows Carbon Design System styling.
  * 
  * Supports two modes:
- * - Modal mode (default): Used inside GlobalMarkdownEditorModal
+ * - Modal mode (default): Used inside a modal dialog
  * - Inline mode: Fills available container height, suitable for embedding
  */
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({

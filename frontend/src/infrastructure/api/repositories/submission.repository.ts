@@ -1,4 +1,5 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
 import type {
   ISubmissionRepository,
@@ -33,16 +34,10 @@ export const submitSolution = async (
 export const getSubmissions = async (
   params?: GetSubmissionsParams
 ): Promise<GetSubmissionsResult> => {
-  const queryParams = new URLSearchParams();
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null)
-        queryParams.append(key, String(value));
-    });
-  }
+  const query = buildQuery(params as Record<string, unknown>);
 
   const data = await requestJson<any>(
-    httpClient.get(`/api/v1/submissions/?${queryParams.toString()}`),
+    httpClient.get(`/api/v1/submissions/${query}`),
     "Failed to fetch submissions"
   );
   const results = data.results || data;

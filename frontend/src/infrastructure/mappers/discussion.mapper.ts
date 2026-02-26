@@ -5,6 +5,7 @@ import type {
   DiscussionListResponse,
   CommentListResponse,
 } from "@/core/entities/discussion.entity";
+import { mapPaginatedResponse } from "./pagination.mapper";
 
 /**
  * Map author DTO to DiscussionAuthor entity
@@ -64,24 +65,12 @@ export function mapCommentDto(dto: any): DiscussionComment {
  * Map paginated discussion list response
  */
 export function mapDiscussionListResponse(data: any): DiscussionListResponse {
-  const results = data.results || data;
-  return {
-    results: Array.isArray(results) ? results.map(mapDiscussionDto) : [],
-    count: data.count || (Array.isArray(results) ? results.length : 0),
-    next: data.next || null,
-    previous: data.previous || null,
-  };
+  return mapPaginatedResponse(data, mapDiscussionDto);
 }
 
 /**
  * Map paginated comment list response
  */
 export function mapCommentListResponse(data: any): CommentListResponse {
-  const results = data.results || data;
-  return {
-    results: Array.isArray(results) ? results.map(mapCommentDto) : [],
-    count: data.count || (Array.isArray(results) ? results.length : 0),
-    next: data.next || null,
-    previous: data.previous || null,
-  };
+  return mapPaginatedResponse(data, mapCommentDto);
 }

@@ -20,6 +20,8 @@ vi.mock("@/features/auth/contexts/AuthContext", () => ({
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({
   useTheme: vi.fn(() => ({
     theme: "g100",
+    preference: "system",
+    setPreference: vi.fn(),
     setTheme: vi.fn(),
     toggleTheme: vi.fn(),
   })),
@@ -80,6 +82,8 @@ describe("useUserPreferences", () => {
 
     vi.mocked(useTheme).mockReturnValue({
       theme: "g100",
+      preference: "system",
+      setPreference: vi.fn(),
       setTheme: vi.fn(),
       toggleTheme: vi.fn(),
     });
@@ -107,6 +111,19 @@ describe("useUserPreferences", () => {
   });
 
   it("should load preferences from backend when user is logged in", async () => {
+    // Track preference value so setPreference updates it
+    let currentPreference: string = "system";
+    const setPreference = vi.fn((val: string) => {
+      currentPreference = val;
+    });
+    vi.mocked(useTheme).mockImplementation(() => ({
+      theme: "g100",
+      preference: currentPreference as any,
+      setPreference,
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    }));
+
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 1,
@@ -133,14 +150,17 @@ describe("useUserPreferences", () => {
 
     expect(getUserPreferences).toHaveBeenCalled();
     expect(result.current.preferences).toEqual(mockPreferences);
+    expect(setPreference).toHaveBeenCalledWith("dark");
     expect(result.current.themePreference).toBe("dark");
   });
 
   it("should update theme preference", async () => {
-    const setTheme = vi.fn();
+    const setPreference = vi.fn();
     vi.mocked(useTheme).mockReturnValue({
       theme: "g100",
-      setTheme,
+      preference: "system",
+      setPreference,
+      setTheme: vi.fn(),
       toggleTheme: vi.fn(),
     });
 
@@ -150,7 +170,7 @@ describe("useUserPreferences", () => {
       await result.current.updateTheme("light");
     });
 
-    expect(result.current.themePreference).toBe("light");
+    expect(setPreference).toHaveBeenCalledWith("light");
   });
 
   it("should sync theme preference to backend when logged in", async () => {

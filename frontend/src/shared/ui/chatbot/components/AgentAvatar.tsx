@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import agentAvatarWebp from "@/assets/agent-avatar.webp";
-import styles from "../ChatbotWidget.module.scss";
+import styles from "./AgentAvatar.module.scss";
 
 export interface AgentAvatarProps {
   size?: "sm" | "md" | "lg";

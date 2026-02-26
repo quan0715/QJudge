@@ -1,0 +1,284 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: $background;
+  position: relative;
+}
+
+// ─── Top bar (auto-hide on scroll) ───
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  flex-shrink: 0;
+  gap: $spacing-04;
+  background-color: $background;
+  transition: transform 200ms motion(standard, productive),
+              opacity 200ms motion(standard, productive);
+}
+
+.toolbarHidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  min-width: 0;
+}
+
+.title {
+  @include type-style("heading-compact-01");
+  color: $text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: $spacing-05;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $text-secondary;
+}
+
+.timerText {
+  @include type-style("heading-compact-01");
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
+}
+
+// ─── Vertical mode switcher (right-center) ───
+.modeSwitcher {
+  position: fixed;
+  right: $spacing-05;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-03;
+  border: 1px solid $border-subtle-01;
+  background-color: $background;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: background-color 100ms motion(standard, productive),
+              color 100ms motion(standard, productive);
+
+  &:not(:first-child) {
+    border-top: none;
+  }
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+}
+
+.modeBtnActive {
+  background-color: $background-inverse;
+  color: $text-inverse;
+  border-color: $background-inverse;
+
+  &:hover {
+    background-color: $background-inverse;
+  }
+}
+
+// ─── Slide transitions (single mode) ───
+@keyframes slideInFromRight {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.slideInRight {
+  animation: slideInFromRight 280ms motion(entrance, productive) both;
+}
+
+.slideInLeft {
+  animation: slideInFromLeft 280ms motion(entrance, productive) both;
+}
+
+// Main content area
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+// Nav wrapper (contains navigator + toggle button)
+.navWrapper {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navWrapperHidden {
+  width: 0;
+}
+
+// Nav toggle button (right edge of nav panel, or left edge when hidden)
+.navToggle {
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  background-color: $layer-01;
+  color: $text-secondary;
+  cursor: pointer;
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
+  transition: background-color 100ms motion(standard, productive);
+
+  &:hover {
+    background-color: $layer-hover-01;
+    color: $text-primary;
+  }
+}
+
+// ─── Single-question mode ───
+.singleContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.questionArea {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-07 $spacing-05;
+}
+
+.questionInner {
+  width: 100%;
+  max-width: 720px;
+}
+
+// Bottom nav strip
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-03 $spacing-05;
+  flex-shrink: 0;
+}
+
+.navInfo {
+  @include type-style("label-01");
+  color: $text-helper;
+  letter-spacing: 0.32px;
+}
+
+// ─── All-questions mode ───
+.allContent {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-07 $spacing-05 $spacing-09;
+}
+
+.allItem {
+  width: 100%;
+  max-width: 720px;
+  padding-bottom: $spacing-07;
+  margin-bottom: $spacing-07;
+  transition: opacity 400ms motion(standard, productive);
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $border-subtle-00;
+  }
+}
+
+.allItemDimmed {
+  opacity: 0.4;
+}
+
+// Coding problem card (borderless)
+.codingCard {
+  max-width: 720px;
+}
+
+.codingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: $spacing-05;
+}
+
+.codingLabel {
+  @include type-style("heading-compact-02");
+  color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.codingScore {
+  @include type-style("body-compact-01");
+  color: $text-helper;
+}
+
+// Loading / empty states
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100%;
+  color: $text-secondary;
+  @include type-style("body-01");
+  flex-direction: column;
+  gap: $spacing-04;
+}

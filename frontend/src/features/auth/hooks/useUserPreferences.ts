@@ -14,22 +14,6 @@ import type {
   UpdatePreferencesRequest,
 } from "@/core/entities/auth.entity";
 
-// Map between user preference theme and Carbon theme
-const themeMap = {
-  light: "white" as const,
-  dark: "g100" as const,
-};
-
-// Get system preferred theme
-const getSystemTheme = (): "light" | "dark" => {
-  if (typeof window !== "undefined" && window.matchMedia) {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
-  return "dark";
-};
-
 // Module-level state to prevent multiple instances from loading simultaneously
 let globalLoadedForUserId: number | null = null;
 let globalIsLoading = false;
@@ -64,52 +48,18 @@ export interface UseUserPreferencesReturn {
   refresh: () => Promise<void>;
 }
 
-// Get initial theme preference from localStorage
-const getInitialThemePreference = (): ThemePreference => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("themePreference") as ThemePreference;
-    if (saved && ["light", "dark", "system"].includes(saved)) {
-      return saved;
-    }
-  }
-  return "system";
-};
-
 export const useUserPreferences = (): UseUserPreferencesReturn => {
   const { user } = useAuth();
-  const { setTheme } = useTheme();
+  const { preference, setPreference, theme } = useTheme();
   const { setContentLanguage, contentLanguage } = useContentLanguage();
 
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  // Initialize from localStorage instead of defaulting to "system"
-  const [themePreference, setThemePreference] = useState<ThemePreference>(
-    getInitialThemePreference
-  );
-  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(
-    getSystemTheme()
-  );
 
-  // Calculate effective theme
-  const effectiveTheme =
-    themePreference === "system" ? systemTheme : themePreference;
-
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? "dark" : "light");
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  // Apply theme when effective theme changes
-  useEffect(() => {
-    setTheme(themeMap[effectiveTheme]);
-  }, [effectiveTheme, setTheme]);
+  // Derive effectiveTheme from ThemeContext's resolved theme
+  const effectiveTheme: "light" | "dark" =
+    theme === "g100" || theme === "g90" ? "dark" : "light";
 
   // Store setContentLanguage in a ref to avoid dependency issues
   const setContentLanguageRef = useRef(setContentLanguage);
@@ -118,13 +68,6 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   // Load preferences from backend when user is logged in
   const loadPreferences = useCallback(async () => {
     if (!user) {
-      // Load from localStorage for non-logged-in users
-      const savedTheme = localStorage.getItem(
-        "themePreference"
-      ) as ThemePreference;
-      if (savedTheme) {
-        setThemePreference(savedTheme);
-      }
       globalLoadedForUserId = null;
       return;
     }
@@ -142,7 +85,8 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       const response = await getUserPreferences();
       if (response.success && response.data) {
         setPreferences(response.data);
-        setThemePreference(response.data.preferred_theme);
+        // Sync backend preference into ThemeContext (single source of truth)
+        setPreference(response.data.preferred_theme);
         // Use ref to avoid dependency on setContentLanguage
         setContentLanguageRef.current(
           response.data.preferred_language as typeof contentLanguage
@@ -156,7 +100,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       setLoading(false);
       globalIsLoading = false;
     }
-  }, [user]); // Only depend on user
+  }, [user, setPreference]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load preferences on mount or when user changes
   useEffect(() => {
@@ -165,15 +109,15 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
 
   // Update theme preference
   const updateTheme = useCallback(
-    async (theme: ThemePreference) => {
-      setThemePreference(theme);
-      localStorage.setItem("themePreference", theme);
+    async (newPref: ThemePreference) => {
+      // Update ThemeContext (which also persists to localStorage)
+      setPreference(newPref);
 
       if (user) {
         try {
-          await updateUserPreferences({ preferred_theme: theme });
+          await updateUserPreferences({ preferred_theme: newPref });
           setPreferences((prev) =>
-            prev ? { ...prev, preferred_theme: theme } : null
+            prev ? { ...prev, preferred_theme: newPref } : null
           );
         } catch (err) {
           console.error("Failed to update theme preference:", err);
@@ -181,7 +125,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
         }
       }
     },
-    [user]
+    [user, setPreference]
   );
 
   // Update language preference
@@ -267,7 +211,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     preferences,
     loading,
     error,
-    themePreference,
+    themePreference: preference,
     effectiveTheme,
     updateTheme,
     language: contentLanguage,

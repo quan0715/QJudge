@@ -26,6 +26,7 @@ interface UseChatbotReturn {
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
   sendMessage: (content: string, modelId?: ChatModel) => Promise<void>;
+  stopStreaming: () => void;
   refreshSessions: () => Promise<void>;
   submitUserInput: (
     requestId: string,
@@ -76,6 +77,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     useState<UserInputRequest | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+
+  // AbortController for cancelling streaming
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
@@ -347,6 +351,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsLoading(true);
       setError(null);
 
+      // Create AbortController for this stream
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       try {
         await chatbotRepository.sendMessageStream(
           sessionIdForRequest,
@@ -423,9 +431,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setIsLoading(false);
             },
           },
-          { model: modelId, context: context ?? undefined, skill: undefined },
+          { model: modelId, context: context ?? undefined, skill: undefined, signal: abortController.signal },
         );
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setIsStreaming(false);
+          setIsLoading(false);
+          return;
+        }
         console.error("Stream error:", err);
         setError("無法發送訊息");
 
@@ -664,6 +678,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     setError(null);
   }, []);
 
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
+    setIsLoading(false);
+  }, []);
+
   return {
     sessions,
     currentSessionId,
@@ -679,6 +702,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     switchSession,
     renameSession,
     sendMessage,
+    stopStreaming,
     refreshSessions,
     submitUserInput,
     cancelUserInput,

@@ -231,9 +231,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     setShowEndConfirm(true);
   };
 
-  // Wrapper for onJoin to match the prop name expected by the button
-  // const onJoinContest = onJoin;
-  // We use handleJoinClick instead
+
 
   const renderActions = () => {
     // Check if contest has ended (time-based)
