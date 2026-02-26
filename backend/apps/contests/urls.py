@@ -8,7 +8,8 @@ from .views import (
     ExamViewSet,
     ContestProblemViewSet,
     ContestExamQuestionViewSet,
-    ContestActivityViewSet
+    ContestActivityViewSet,
+    ExamAnswerViewSet,
 )
 from apps.submissions.views import SubmissionViewSet
 
@@ -26,6 +27,7 @@ contest_router.register(r'problems', ContestProblemViewSet, basename='contest-pr
 contest_router.register(r'exam-questions', ContestExamQuestionViewSet, basename='contest-exam-questions')
 contest_router.register(r'submissions', SubmissionViewSet, basename='contest-submissions')
 contest_router.register(r'activities', ContestActivityViewSet, basename='contest-activities')
+contest_router.register(r'exam-answers', ExamAnswerViewSet, basename='contest-exam-answers')
 
 urlpatterns = [
     path('', include(router.urls)),

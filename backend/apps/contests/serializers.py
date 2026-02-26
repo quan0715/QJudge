@@ -14,6 +14,7 @@ from .models import (
     ExamEvent,
     ContestActivity,
     ExamStatus,
+    ExamAnswer,
 )
 from django.db.models import Sum
 from .permissions import get_user_role_in_contest, get_contest_permissions
@@ -776,6 +777,64 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             return 0
             
         return int((unlock_at - now).total_seconds())
+
+
+# ============================================================================
+# Exam Answer Serializers
+# ============================================================================
+
+
+class ExamAnswerSerializer(serializers.ModelSerializer):
+    """Read serializer for exam answers (student view)."""
+    question_id = serializers.IntegerField(source='question.id', read_only=True)
+
+    class Meta:
+        model = ExamAnswer
+        fields = [
+            'id', 'question_id', 'answer',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ExamAnswerDetailSerializer(serializers.ModelSerializer):
+    """Read serializer with grading info (for results / TA view)."""
+    question_id = serializers.IntegerField(source='question.id', read_only=True)
+    graded_by_username = serializers.CharField(
+        source='graded_by.username', read_only=True, default=None
+    )
+
+    class Meta:
+        model = ExamAnswer
+        fields = [
+            'id', 'question_id', 'answer',
+            'is_correct', 'score', 'feedback',
+            'graded_by_username', 'graded_at',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+
+class ExamAnswerSubmitSerializer(serializers.Serializer):
+    """Serializer for submitting/updating a single answer."""
+    question_id = serializers.IntegerField()
+    answer = serializers.JSONField()
+
+    def validate_answer(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError('answer must be a JSON object')
+        return value
+
+
+class ExamAnswerGradeSerializer(serializers.Serializer):
+    """Serializer for TA grading a single answer."""
+    score = serializers.DecimalField(max_digits=6, decimal_places=2)
+    feedback = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate_score(self, value):
+        if value < 0:
+            raise serializers.ValidationError('score must be >= 0')
+        return value
 
 
 # ============================================================================
