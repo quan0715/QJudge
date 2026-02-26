@@ -111,6 +111,19 @@ describe("useUserPreferences", () => {
   });
 
   it("should load preferences from backend when user is logged in", async () => {
+    // Track preference value so setPreference updates it
+    let currentPreference: string = "system";
+    const setPreference = vi.fn((val: string) => {
+      currentPreference = val;
+    });
+    vi.mocked(useTheme).mockImplementation(() => ({
+      theme: "g100",
+      preference: currentPreference as any,
+      setPreference,
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    }));
+
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 1,
@@ -137,6 +150,7 @@ describe("useUserPreferences", () => {
 
     expect(getUserPreferences).toHaveBeenCalled();
     expect(result.current.preferences).toEqual(mockPreferences);
+    expect(setPreference).toHaveBeenCalledWith("dark");
     expect(result.current.themePreference).toBe("dark");
   });
 

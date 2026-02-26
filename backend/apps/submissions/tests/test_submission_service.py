@@ -93,7 +93,7 @@ def judge_mock(mocker: MockerFixture) -> Mock:
 
 @pytest.fixture(autouse=True)
 def silence_contest_activity(mocker: MockerFixture) -> Mock:
-    return mocker.patch("apps.submissions.services.ContestActivityViewSet.log_activity")
+    return mocker.patch("apps.contests.views.ContestActivityViewSet.log_activity")
 
 
 # ---------------------------------------------------------------------------
