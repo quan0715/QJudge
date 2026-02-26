@@ -22,6 +22,7 @@ import {
   submitExamAnswer,
   getMyExamAnswers,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { recordExamEvent } from "@/infrastructure/api/repositories/exam.repository";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { ExamNavigator } from "../../components/exam/ExamNavigator";
 import type { ExamItem, ExamViewMode } from "../../types/examDemo.types";
@@ -79,7 +80,7 @@ function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
 
 const ExamV2AnsweringScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { contestId, contest, heartbeat } = useExamV2Flow();
+  const { contestId, contest, heartbeat, submitExam } = useExamV2Flow();
 
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
@@ -152,12 +153,42 @@ const ExamV2AnsweringScreen: React.FC = () => {
     heartbeat().catch(() => {/* logged elsewhere */});
   }, isInProgress ? 30000 : null);
 
+  // Anti-cheat: monitor tab visibility, window blur, fullscreen exit
+  useEffect(() => {
+    if (!contestId || !isInProgress) return;
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        recordExamEvent(contestId, "tab_hidden").catch(() => {});
+      }
+    };
+    const onBlur = () => {
+      recordExamEvent(contestId, "window_blur").catch(() => {});
+    };
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        recordExamEvent(contestId, "exit_fullscreen").catch(() => {});
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, [contestId, isInProgress]);
+
   // Auto-submit when time expires
   useEffect(() => {
     if (countdown.remaining === 0 && isInProgress && contestId) {
-      navigate(`/contests/${contestId}/exam-v2/submit-review`);
+      submitExam().finally(() => {
+        navigate(`/contests/${contestId}/exam-v2/submit-review`);
+      });
     }
-  }, [countdown.remaining, isInProgress, contestId, navigate]);
+  }, [countdown.remaining, isInProgress, contestId, navigate, submitExam]);
 
   // Slide animation
   const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
