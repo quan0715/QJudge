@@ -124,31 +124,35 @@ const StudentExamDemoScreen: FC = () => {
     questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeIndex]);
 
-  // IntersectionObserver for all-mode: track which question is most visible
+  // Scroll-based active detection for all-mode: find item closest to viewport center
   const [allModeActiveIndex, setAllModeActiveIndex] = useState(0);
   useEffect(() => {
     if (viewMode !== "all") return;
     const container = allContentRef.current;
     if (!container) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let bestIdx = allModeActiveIndex;
-        let bestRatio = 0;
-        for (const entry of entries) {
-          const idx = Number(entry.target.getAttribute("data-index"));
-          if (entry.intersectionRatio > bestRatio) {
-            bestRatio = entry.intersectionRatio;
-            bestIdx = idx;
-          }
-        }
-        if (bestRatio > 0.3) setAllModeActiveIndex(bestIdx);
-      },
-      { root: container, threshold: [0.3, 0.5, 0.7, 1] }
-    );
+    const onScroll = () => {
+      const containerRect = container.getBoundingClientRect();
+      const centerY = containerRect.top + containerRect.height / 2;
+      let closestIdx = 0;
+      let closestDist = Infinity;
 
-    allItemRefs.current.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+      allItemRefs.current.forEach((el, idx) => {
+        const rect = el.getBoundingClientRect();
+        const itemCenterY = rect.top + rect.height / 2;
+        const dist = Math.abs(itemCenterY - centerY);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestIdx = idx;
+        }
+      });
+
+      setAllModeActiveIndex(closestIdx);
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    onScroll(); // initial check
+    return () => container.removeEventListener("scroll", onScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, allContentRef.current, allItemRefs.current.size]);
 
@@ -237,6 +241,14 @@ const StudentExamDemoScreen: FC = () => {
 
   const handleAnswerChange = useCallback((questionId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  }, []);
+
+  // Scroll to a specific item in all-mode
+  const handleScrollToItem = useCallback((index: number) => {
+    const el = allItemRefs.current.get(index);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }, []);
 
   const handleBack = () => {
@@ -434,25 +446,23 @@ const StudentExamDemoScreen: FC = () => {
       </div>
 
       <div className={styles.body}>
-        {viewMode === "single" && (
-          <div className={`${styles.navWrapper} ${navVisible ? "" : styles.navWrapperHidden}`}>
-            {navVisible && (
-              <ExamNavigator
-                items={items}
-                activeIndex={activeIndex}
-                answeredIds={answeredIds}
-                onSelect={handleSetActiveIndex}
-              />
-            )}
-            <button
-              className={styles.navToggle}
-              onClick={() => setNavVisible((v) => !v)}
-              aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
-            >
-              <List size={20} />
-            </button>
-          </div>
-        )}
+        <div className={`${styles.navWrapper} ${navVisible ? "" : styles.navWrapperHidden}`}>
+          {navVisible && (
+            <ExamNavigator
+              items={items}
+              activeIndex={viewMode === "single" ? activeIndex : allModeActiveIndex}
+              answeredIds={answeredIds}
+              onSelect={viewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
+            />
+          )}
+          <button
+            className={styles.navToggle}
+            onClick={() => setNavVisible((v) => !v)}
+            aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
+          >
+            <List size={20} />
+          </button>
+        </div>
         {viewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>
     </div>
