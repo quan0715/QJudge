@@ -230,7 +230,7 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
 }
 
 export function mapContestUpdateRequestToDto(request: any): any {
-  return {
+  const dto: any = {
     name: request.name,
     description: request.description,
     rules: request.rules,
@@ -247,4 +247,9 @@ export function mapContestUpdateRequestToDto(request: any): any {
     allow_auto_unlock: request.allowAutoUnlock,
     auto_unlock_minutes: request.autoUnlockMinutes,
   };
+  // Strip undefined keys so PATCH only sends changed fields
+  Object.keys(dto).forEach((k) => {
+    if (dto[k] === undefined) delete dto[k];
+  });
+  return dto;
 }

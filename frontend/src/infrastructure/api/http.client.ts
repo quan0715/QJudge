@@ -82,7 +82,17 @@ const readJson = async (response: Response): Promise<any> => {
 
 const getErrorMessage = (data: any, fallback: string) => {
   if (!data) return fallback;
-  return data.detail || data.message || data.error || fallback;
+  if (data.detail) return data.detail;
+  if (data.message) return data.message;
+  if (data.error) return data.error;
+  // Django field-level validation errors: { field: ["msg", ...] }
+  if (typeof data === "object") {
+    const msgs = Object.entries(data)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+      .join("; ");
+    if (msgs) return msgs;
+  }
+  return fallback;
 };
 
 export const requestJson = async <T>(
