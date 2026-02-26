@@ -91,7 +91,7 @@ def run_on_commit_immediately(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def judge_mocks(mocker: MockerFixture) -> Dict[str, Mock]:
-    mock = mocker.patch("apps.submissions.services.judge_submission.apply_async")
+    mock = mocker.patch("apps.submissions.tasks.judge_submission.apply_async")
     return {"judge": mock}
 
 

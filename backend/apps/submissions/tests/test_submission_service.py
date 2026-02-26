@@ -88,7 +88,7 @@ def run_on_commit_immediately(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def judge_mock(mocker: MockerFixture) -> Mock:
-    return mocker.patch("apps.submissions.services.judge_submission.apply_async")
+    return mocker.patch("apps.submissions.tasks.judge_submission.apply_async")
 
 
 @pytest.fixture(autouse=True)
