@@ -4,25 +4,19 @@
 @use "@carbon/react/scss/theme" as *;
 
 .card {
-  padding: $spacing-05;
-  border: 1px solid $border-subtle-01;
-  border-radius: 8px;
-  background-color: $layer-01;
-
-  & + & {
-    margin-top: $spacing-05;
-  }
+  padding: 0;
+  max-width: 720px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing-04;
+  align-items: baseline;
+  margin-bottom: $spacing-05;
 }
 
 .label {
-  @include type-style("heading-compact-02");
+  @include type-style("heading-03");
   color: $text-primary;
   display: flex;
   align-items: center;
@@ -30,51 +24,53 @@
 }
 
 .score {
-  @include type-style("label-01");
-  color: $text-secondary;
+  @include type-style("body-compact-01");
+  color: $text-helper;
 }
 
 .prompt {
-  margin-bottom: $spacing-05;
+  margin-bottom: $spacing-06;
 
   :global(.markdown-body) {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.75;
+    color: $text-primary;
   }
 }
 
 .promptEmpty {
-  @include type-style("body-compact-01");
+  @include type-style("body-01");
   color: $text-placeholder;
-  margin-bottom: $spacing-05;
+  margin-bottom: $spacing-06;
   font-style: italic;
 }
 
 .answerArea {
-  padding-top: $spacing-04;
-  border-top: 1px solid $border-subtle-01;
+  padding-top: $spacing-05;
 }
 
 .answerLabel {
   @include type-style("label-01");
-  color: $text-secondary;
-  margin-bottom: $spacing-03;
+  color: $text-helper;
+  margin-bottom: $spacing-04;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
 }
 
 .optionList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-03;
+  gap: $spacing-04;
 }
 
 .textArea {
   width: 100%;
 
   textarea {
-    min-height: 120px;
+    min-height: 160px;
   }
 }
 
 .shortInput {
-  max-width: 480px;
+  max-width: 520px;
 }

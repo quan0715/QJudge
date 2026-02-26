@@ -150,45 +150,64 @@ const StudentExamDemoScreen: FC = () => {
   const renderSingleMode = () => {
     const item = items[activeIndex];
     if (!item) return null;
+    const isLast = activeIndex === items.length - 1;
 
     return (
       <div className={styles.singleContent}>
         <div className={styles.questionArea}>
-          {item.kind === "question" ? (
-            <ExamQuestionCard
-              question={item.data}
-              index={activeIndex}
-              answer={answers[item.data.id]}
-              onAnswerChange={handleAnswerChange}
-            />
-          ) : (
-            <div className={styles.codingCard}>
-              <div className={styles.codingHeader}>
-                <span className={styles.codingLabel}>
-                  {item.data.label}. {item.data.title}
-                  <Tag size="sm" type="green">程式題</Tag>
-                </span>
-                {item.data.score != null && (
-                  <span className={styles.codingScore}>{item.data.score} 分</span>
+          <div className={styles.questionInner}>
+            {item.kind === "question" ? (
+              <ExamQuestionCard
+                question={item.data}
+                index={activeIndex}
+                answer={answers[item.data.id]}
+                onAnswerChange={handleAnswerChange}
+              />
+            ) : (
+              <div className={styles.codingCard}>
+                <div className={styles.codingHeader}>
+                  <span className={styles.codingLabel}>
+                    {item.data.label}. {item.data.title}
+                    <Tag size="sm" type="green">程式題</Tag>
+                  </span>
+                  {item.data.score != null && (
+                    <span className={styles.codingScore}>{item.data.score} 分</span>
+                  )}
+                </div>
+                {problemDetails[item.data.problemId] ? (
+                  <>
+                    <ProblemHeaderCard
+                      problem={problemDetails[item.data.problemId]}
+                      showAcRate={false}
+                      showTags={false}
+                    />
+                    <ProblemPreview
+                      problem={problemDetails[item.data.problemId]}
+                      compact
+                    />
+                  </>
+                ) : (
+                  <Loading withOverlay={false} small description="載入題目中..." />
                 )}
               </div>
-              {problemDetails[item.data.problemId] ? (
-                <>
-                  <ProblemHeaderCard
-                    problem={problemDetails[item.data.problemId]}
-                    showAcRate={false}
-                    showTags={false}
-                  />
-                  <ProblemPreview
-                    problem={problemDetails[item.data.problemId]}
-                    compact
-                  />
-                </>
-              ) : (
-                <Loading withOverlay={false} small description="載入題目中..." />
-              )}
-            </div>
-          )}
+            )}
+
+            {!isLast && (
+              <div className={styles.nextPrompt}>
+                <span className={styles.nextPromptText}>
+                  準備好了嗎？
+                </span>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={ArrowRight}
+                  onClick={() => setActiveIndex((i) => i + 1)}
+                >
+                  前往第 {activeIndex + 2} 題
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className={styles.navButtons}>
@@ -208,7 +227,7 @@ const StudentExamDemoScreen: FC = () => {
             kind="ghost"
             size="sm"
             renderIcon={ArrowRight}
-            disabled={activeIndex === items.length - 1}
+            disabled={isLast}
             onClick={() => setActiveIndex((i) => i + 1)}
           >
             下一題
@@ -220,40 +239,38 @@ const StudentExamDemoScreen: FC = () => {
 
   const renderAllMode = () => (
     <div className={styles.allContent}>
-      {items.map((item, index) => {
-        if (item.kind === "question") {
-          return (
+      {items.map((item, index) => (
+        <div key={item.data.id} className={styles.allItem}>
+          {item.kind === "question" ? (
             <ExamQuestionCard
-              key={item.data.id}
               question={item.data}
               index={index}
               answer={answers[item.data.id]}
               onAnswerChange={handleAnswerChange}
             />
-          );
-        }
-        return (
-          <div key={item.data.id} className={styles.codingCard}>
-            <div className={styles.codingHeader}>
-              <span className={styles.codingLabel}>
-                第 {index + 1} 題 — {item.data.label}. {item.data.title}
-                <Tag size="sm" type="green">程式題</Tag>
-              </span>
-              {item.data.score != null && (
-                <span className={styles.codingScore}>{item.data.score} 分</span>
+          ) : (
+            <div className={styles.codingCard}>
+              <div className={styles.codingHeader}>
+                <span className={styles.codingLabel}>
+                  第 {index + 1} 題 — {item.data.label}. {item.data.title}
+                  <Tag size="sm" type="green">程式題</Tag>
+                </span>
+                {item.data.score != null && (
+                  <span className={styles.codingScore}>{item.data.score} 分</span>
+                )}
+              </div>
+              {problemDetails[item.data.problemId] ? (
+                <ProblemPreview
+                  problem={problemDetails[item.data.problemId]}
+                  compact
+                />
+              ) : (
+                <Loading withOverlay={false} small description="載入題目中..." />
               )}
             </div>
-            {problemDetails[item.data.problemId] ? (
-              <ProblemPreview
-                problem={problemDetails[item.data.problemId]}
-                compact
-              />
-            ) : (
-              <Loading withOverlay={false} small description="載入題目中..." />
-            )}
-          </div>
-        );
-      })}
+          )}
+        </div>
+      ))}
     </div>
   );
 

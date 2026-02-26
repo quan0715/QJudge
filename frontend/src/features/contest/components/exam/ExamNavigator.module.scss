@@ -9,16 +9,15 @@
   flex-direction: column;
   width: 200px;
   min-width: 200px;
-  background-color: $layer-01;
-  border-right: 1px solid $border-subtle-01;
   overflow-y: auto;
 }
 
 .title {
-  @include type-style("heading-compact-01");
+  @include type-style("label-01");
   padding: $spacing-04;
-  color: $text-primary;
-  border-bottom: 1px solid $border-subtle-01;
+  color: $text-helper;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
   flex-shrink: 0;
 }
 
@@ -46,11 +45,11 @@
 }
 
 .itemActive {
-  background-color: $layer-selected-01;
+  background-color: transparent;
   border-left: 3px solid $interactive;
 
   &:hover {
-    background-color: $layer-selected-01;
+    background-color: $layer-hover-01;
   }
 }
 
@@ -63,7 +62,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 50%;
   background-color: $layer-02;
   flex-shrink: 0;
   font-size: 12px;
@@ -83,7 +82,7 @@
 
 .itemType {
   @include type-style("label-01");
-  color: $text-secondary;
+  color: $text-helper;
 }
 
 .itemTitle {
@@ -97,11 +96,10 @@
 
 .summary {
   padding: $spacing-04;
-  border-top: 1px solid $border-subtle-01;
   flex-shrink: 0;
 }
 
 .summaryText {
   @include type-style("label-01");
-  color: $text-secondary;
+  color: $text-helper;
 }

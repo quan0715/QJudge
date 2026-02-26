@@ -2,22 +2,22 @@
 @use "@carbon/react/scss/type" as *;
 @use "@carbon/react/scss/colors" as *;
 @use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
 
 .container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
+  background-color: $background;
 }
 
-// Top bar: back button + title + mode switcher
+// Minimal top bar
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: $spacing-03 $spacing-05;
-  border-bottom: 1px solid $border-subtle-01;
-  background-color: $layer-01;
   flex-shrink: 0;
   gap: $spacing-04;
 }
@@ -30,8 +30,8 @@
 }
 
 .title {
-  @include type-style("heading-compact-02");
-  color: $text-primary;
+  @include type-style("heading-compact-01");
+  color: $text-secondary;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -52,7 +52,7 @@
   overflow: hidden;
 }
 
-// Single-question mode content
+// ─── Single-question mode ───
 .singleContent {
   flex: 1;
   display: flex;
@@ -63,52 +63,82 @@
 .questionArea {
   flex: 1;
   overflow-y: auto;
-  padding: $spacing-05;
+  display: flex;
+  justify-content: center;
+  padding: $spacing-07 $spacing-05;
 }
 
+.questionInner {
+  width: 100%;
+  max-width: 720px;
+}
+
+// Inline next-question prompt
+.nextPrompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-04;
+  margin-top: $spacing-08;
+  padding-top: $spacing-06;
+  border-top: 1px solid $border-subtle-00;
+}
+
+.nextPromptText {
+  @include type-style("body-compact-01");
+  color: $text-helper;
+}
+
+// Bottom nav strip
 .navButtons {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: $spacing-03 $spacing-05;
-  border-top: 1px solid $border-subtle-01;
-  background-color: $layer-01;
   flex-shrink: 0;
 }
 
 .navInfo {
-  @include type-style("body-compact-01");
-  color: $text-secondary;
+  @include type-style("label-01");
+  color: $text-helper;
+  letter-spacing: 0.32px;
 }
 
-// All-questions mode content
+// ─── All-questions mode ───
 .allContent {
   flex: 1;
   overflow-y: auto;
-  padding: $spacing-05;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-07 $spacing-05 $spacing-09;
 }
 
-// Coding problem card (for all-questions mode)
-.codingCard {
-  padding: $spacing-05;
-  border: 1px solid $border-subtle-01;
-  border-radius: 8px;
-  background-color: $layer-01;
+.allItem {
+  width: 100%;
+  max-width: 720px;
+  padding-bottom: $spacing-07;
+  margin-bottom: $spacing-07;
 
-  & + & {
-    margin-top: $spacing-05;
+  &:not(:last-child) {
+    border-bottom: 1px solid $border-subtle-00;
   }
+}
+
+// Coding problem card (borderless)
+.codingCard {
+  max-width: 720px;
 }
 
 .codingHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing-04;
+  align-items: baseline;
+  margin-bottom: $spacing-05;
 }
 
 .codingLabel {
-  @include type-style("heading-compact-02");
+  @include type-style("heading-03");
   color: $text-primary;
   display: flex;
   align-items: center;
@@ -116,8 +146,8 @@
 }
 
 .codingScore {
-  @include type-style("label-01");
-  color: $text-secondary;
+  @include type-style("body-compact-01");
+  color: $text-helper;
 }
 
 // Loading / empty states
@@ -125,10 +155,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  height: 100vh;
   width: 100%;
   color: $text-secondary;
-  @include type-style("body-compact-01");
+  @include type-style("body-01");
   flex-direction: column;
   gap: $spacing-04;
 }
