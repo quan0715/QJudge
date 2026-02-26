@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, InlineNotification } from "@carbon/react";
-import { Download, DocumentPdf } from "@carbon/icons-react";
+import { Download, DocumentPdf, ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ContainerCard from "@/shared/layout/ContainerCard";
@@ -19,6 +20,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   maxWidth,
 }) => {
   const { t } = useTranslation("contest");
+  const navigate = useNavigate();
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [reportDownloading, setReportDownloading] = useState(false);
   const [reportNotification, setReportNotification] = useState<{
@@ -59,6 +61,41 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
           hideCloseButton
           style={{ marginBottom: "1.5rem", maxWidth: "100%" }}
         />
+      )}
+
+      {/* Exam Entry */}
+      {contest.examModeEnabled && (
+        <ContainerCard
+          title="考試入口"
+          style={{ marginBottom: "1.5rem" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+            <p style={{ color: "var(--cds-text-secondary)", margin: 0, fontSize: "0.875rem" }}>
+              {contest.examStatus === "submitted"
+                ? "你已完成交卷，可前往查看結果。"
+                : contest.examStatus === "in_progress"
+                  ? "考試進行中，點擊繼續作答。"
+                  : "點擊下方按鈕進入考試流程。"}
+            </p>
+            <Button
+              renderIcon={ArrowRight}
+              onClick={() => {
+                const status = contest.examStatus;
+                const base = `/contests/${contest.id}/exam-v2`;
+                if (status === "submitted") navigate(`${base}/result`);
+                else if (status === "in_progress") navigate(`${base}/answering`);
+                else if (contest.isRegistered) navigate(`${base}/precheck`);
+                else navigate(`${base}/registration`);
+              }}
+            >
+              {contest.examStatus === "submitted"
+                ? "查看考試結果"
+                : contest.examStatus === "in_progress"
+                  ? "繼續作答"
+                  : "進入考試"}
+            </Button>
+          </div>
+        </ContainerCard>
       )}
 
       {/* Download Contest Files Section - Only for admins/teachers */}
