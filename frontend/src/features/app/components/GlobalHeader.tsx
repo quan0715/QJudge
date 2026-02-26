@@ -24,6 +24,7 @@ import {
   Bullhorn,
   Settings,
   Education,
+  Collaborate,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -78,6 +79,12 @@ export const GlobalHeader = () => {
                 onClick={() => navigate("/submissions")}
               >
                 {t("nav.submissions")}
+              </HeaderMenuItem>
+              <HeaderMenuItem
+                isCurrentPage={location.pathname.startsWith("/classrooms")}
+                onClick={() => navigate("/classrooms")}
+              >
+                {t("nav.classrooms", "教室")}
               </HeaderMenuItem>
               {isTeacherOrAdmin && (
                 <HeaderMenuItem
@@ -148,6 +155,18 @@ export const GlobalHeader = () => {
                   isActive={location.pathname.startsWith("/submissions")}
                 >
                   {t("nav.submissions")}
+                </SideNavLink>
+                <SideNavLink
+                  renderIcon={Collaborate}
+                  href="#"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate("/classrooms");
+                    onClickSideNavExpand();
+                  }}
+                  isActive={location.pathname.startsWith("/classrooms")}
+                >
+                  {t("nav.classrooms", "教室")}
                 </SideNavLink>
                 <SideNavLink
                   renderIcon={Book}

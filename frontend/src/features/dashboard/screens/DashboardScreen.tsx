@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Grid, Column, Tile, SkeletonPlaceholder } from "@carbon/react";
-import { Trophy } from "@carbon/icons-react";
+import { Trophy, Education } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/shared/layout/PageHeader";
@@ -10,7 +10,9 @@ import ContestPreviewCard from "@/features/contest/components/ContestPreviewCard
 import { getUserStats } from "@/infrastructure/api/repositories/auth.repository";
 import { getAnnouncements, type Announcement } from "@/infrastructure/api/repositories/announcement.repository";
 import { getContests } from "@/infrastructure/api/repositories";
+import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import type { Contest } from "@/core/entities/contest.entity";
+import type { Classroom } from "@/core/entities/classroom.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import "./DashboardScreen.scss";
@@ -33,6 +35,7 @@ const DashboardScreen = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isContestOngoing = (contest: Contest) => {
@@ -49,10 +52,11 @@ const DashboardScreen = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [statsData, announcementsData, contestsData] = await Promise.all([
+        const [statsData, announcementsData, contestsData, classroomsData] = await Promise.all([
           getUserStats().catch(() => null),
           getAnnouncements().catch(() => []),
           getContests().catch(() => []),
+          getClassrooms().catch(() => []),
         ]);
 
         if (cancelled) return;
@@ -67,6 +71,7 @@ const DashboardScreen = () => {
           .filter(isContestOngoing)
           .slice(0, 6);
         setContests(ongoingContests);
+        setClassrooms((classroomsData || []).slice(0, 4));
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to fetch dashboard data:", error);
@@ -153,6 +158,38 @@ const DashboardScreen = () => {
             )}
           </Tile>
         </Column>
+
+        {classrooms.length > 0 && (
+          <Column lg={16} md={8} sm={4} className="dashboard-page__column">
+            <Tile className="dashboard-page__section">
+              <div className="dashboard-page__section-header">
+                <Education size={24} />
+                <div>
+                  <h4 className="dashboard-page__section-title">
+                    {t("dashboard.classrooms.title", { defaultValue: "我的教室" })}
+                  </h4>
+                  <p className="dashboard-page__section-subtitle">
+                    {t("dashboard.classrooms.subtitle", { defaultValue: "已加入的教室" })}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.75rem" }}>
+                {classrooms.map((c) => (
+                  <Tile
+                    key={c.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/classrooms/${c.id}`)}
+                  >
+                    <strong>{c.name}</strong>
+                    <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
+                      {c.memberCount} {t("classroom.members", { defaultValue: "成員" })} · {c.ownerUsername}
+                    </p>
+                  </Tile>
+                ))}
+              </div>
+            </Tile>
+          </Column>
+        )}
 
         <Column lg={16} md={8} sm={4}>
           <AnnouncementsSection

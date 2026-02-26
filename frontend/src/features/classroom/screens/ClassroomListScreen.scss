@@ -1,0 +1,49 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.classroom-list {
+  padding-top: layout.$spacing-05;
+  padding-bottom: layout.$spacing-09;
+}
+
+.classroom-list__grid {
+  row-gap: layout.$spacing-05;
+}
+
+.classroom-list__card-grid {
+  display: grid;
+  gap: layout.$spacing-04;
+  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
+}
+
+.classroom-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-09 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.classroom-list__empty-icon {
+  color: var(--cds-icon-disabled);
+}
+
+.classroom-list__empty p {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+}
+
+.classroom-list__skeleton-grid {
+  display: grid;
+  gap: layout.$spacing-04;
+  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
+}
+
+.classroom-list__skeleton-card {
+  padding: layout.$spacing-05;
+  background: var(--cds-layer);
+  min-height: layout.rem(120px);
+}

@@ -11,6 +11,9 @@ export * from "./announcement.repository";
 export * from "./database.repository";
 export * from "./chatbot.repository";
 
+// Classroom Repository
+export * from "./classroom.repository";
+
 // Contest Sub-Repositories
 export * from "./contestProblems.repository";
 export * from "./contestParticipants.repository";

@@ -1,0 +1,234 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.classroom-detail {
+  padding-top: layout.$spacing-05;
+  padding-bottom: layout.$spacing-09;
+}
+
+.classroom-detail__grid {
+  row-gap: layout.$spacing-05;
+}
+
+// ── Hero Banner ────────────────────────────────────────
+.classroom-detail__hero {
+  position: relative;
+  background: var(--cds-layer);
+  border-bottom: 3px solid var(--cds-border-interactive);
+  padding: layout.$spacing-07 layout.$spacing-06;
+  margin-bottom: layout.$spacing-05;
+}
+
+.classroom-detail__hero-top {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-03;
+}
+
+.classroom-detail__hero-icon {
+  color: var(--cds-icon-interactive);
+}
+
+.classroom-detail__hero-title {
+  @include type.type-style("productive-heading-05");
+  margin: 0;
+}
+
+.classroom-detail__hero-desc {
+  @include type.type-style("body-long-01");
+  color: var(--cds-text-secondary);
+  max-width: 640px;
+  margin: 0 0 layout.$spacing-04;
+}
+
+.classroom-detail__hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  align-items: center;
+}
+
+// ── Stat Chips ─────────────────────────────────────────
+.classroom-detail__stats {
+  display: flex;
+  gap: layout.$spacing-04;
+  flex-wrap: wrap;
+  margin-bottom: layout.$spacing-05;
+}
+
+.classroom-detail__stat-chip {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  background: var(--cds-layer);
+  min-width: layout.rem(160px);
+  flex: 1;
+}
+
+.classroom-detail__stat-icon {
+  color: var(--cds-icon-secondary);
+}
+
+.classroom-detail__stat-value {
+  @include type.type-style("productive-heading-04");
+  margin: 0;
+  line-height: 1;
+}
+
+.classroom-detail__stat-label {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+// ── Section ────────────────────────────────────────────
+.classroom-detail__section {
+  margin-bottom: layout.$spacing-06;
+}
+
+.classroom-detail__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-04;
+}
+
+.classroom-detail__section-title {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.classroom-detail__section-title h3 {
+  @include type.type-style("productive-heading-03");
+  margin: 0;
+}
+
+.classroom-detail__section-icon {
+  color: var(--cds-icon-secondary);
+}
+
+// ── Card Grid ──────────────────────────────────────────
+.classroom-detail__card-grid {
+  display: grid;
+  gap: layout.$spacing-04;
+  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
+}
+
+// ── Contest Card ───────────────────────────────────────
+.classroom-detail__contest-card {
+  min-height: layout.rem(130px);
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.classroom-detail__contest-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-03;
+}
+
+.classroom-detail__contest-card-name {
+  @include type.type-style("heading-02");
+  margin: 0;
+}
+
+.classroom-detail__contest-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.classroom-detail__contest-card-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+
+// ── Announcement List ──────────────────────────────────
+.classroom-detail__announcement {
+  display: flex;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  background: var(--cds-layer);
+  position: relative;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+}
+
+.classroom-detail__announcement-marker {
+  flex-shrink: 0;
+  width: layout.rem(4px);
+  border-radius: 2px;
+  background: var(--cds-border-interactive);
+  align-self: stretch;
+}
+
+.classroom-detail__announcement-marker--warning {
+  background: var(--cds-support-warning);
+}
+
+.classroom-detail__announcement-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.classroom-detail__announcement-title {
+  @include type.type-style("body-short-02");
+  font-weight: 600;
+  margin: 0 0 layout.$spacing-02;
+}
+
+.classroom-detail__announcement-body {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.classroom-detail__announcement-date {
+  @include type.type-style("label-01");
+  color: var(--cds-text-placeholder);
+  margin-top: layout.$spacing-02;
+}
+
+// ── Empty State ────────────────────────────────────────
+.classroom-detail__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-07 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.classroom-detail__empty-icon {
+  color: var(--cds-icon-disabled);
+}
+
+.classroom-detail__empty p {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+}
+
+// ── Invite Code (inline in Members tab) ───────────────
+.classroom-detail__invite-inline {
+  margin-bottom: layout.$spacing-05;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  background: var(--cds-layer);
+  border-left: 3px solid var(--cds-border-interactive);
+}

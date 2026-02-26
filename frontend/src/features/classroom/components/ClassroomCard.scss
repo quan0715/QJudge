@@ -1,0 +1,45 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.classroom-card {
+  min-height: layout.rem(140px);
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.classroom-card__header {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-03;
+}
+
+.classroom-card__icon {
+  color: var(--cds-icon-interactive);
+  flex-shrink: 0;
+}
+
+.classroom-card__name {
+  @include type.type-style("heading-02");
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classroom-card__desc {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  margin: 0 0 layout.$spacing-04;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.classroom-card__footer {
+  display: flex;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
