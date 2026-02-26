@@ -16,7 +16,7 @@
 }
 
 .label {
-  @include type-style("heading-03");
+  @include type-style("heading-compact-02");
   color: $text-primary;
   display: flex;
   align-items: center;

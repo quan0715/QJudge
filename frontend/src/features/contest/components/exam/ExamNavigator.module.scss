@@ -10,15 +10,33 @@
   width: 200px;
   min-width: 200px;
   overflow-y: auto;
+  transition: width 200ms motion(standard, productive),
+              min-width 200ms motion(standard, productive);
 }
 
-.title {
-  @include type-style("label-01");
+.collapsed {
+  width: 40px;
+  min-width: 40px;
+}
+
+.collapseToggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
   padding: $spacing-04;
+  border: none;
+  background: transparent;
+  cursor: pointer;
   color: $text-helper;
+  @include type-style("label-01");
   text-transform: uppercase;
   letter-spacing: 0.32px;
   flex-shrink: 0;
+  white-space: nowrap;
+
+  &:hover {
+    color: $text-primary;
+  }
 }
 
 .list {

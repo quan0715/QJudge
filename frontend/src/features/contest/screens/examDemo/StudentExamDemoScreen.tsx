@@ -7,7 +7,6 @@ import {
   Switch,
   Tag,
   Loading,
-  ProgressBar,
 } from "@carbon/react";
 import { ArrowLeft, ArrowRight, ChevronLeft, Time } from "@carbon/icons-react";
 import { getContest } from "@/infrastructure/api/repositories";
@@ -47,6 +46,7 @@ const StudentExamDemoScreen: FC = () => {
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [navCollapsed, setNavCollapsed] = useState(false);
   // Cache fetched problem details for coding problems
   const [problemDetails, setProblemDetails] = useState<Record<string, ProblemDetail>>({});
 
@@ -87,10 +87,6 @@ const StudentExamDemoScreen: FC = () => {
     }
     return ids;
   }, [answers]);
-
-  const progressPct = items.length > 0
-    ? Math.round((answeredIds.size / items.length) * 100)
-    : 0;
 
   // Fetch contest data (standalone, no ContestProvider)
   useEffect(() => {
@@ -307,13 +303,6 @@ const StudentExamDemoScreen: FC = () => {
             <Time size={16} />
             <span className={styles.timerText}>{countdown.display}</span>
           </div>
-          <div className={styles.progress}>
-            <ProgressBar
-              label={`${answeredIds.size}/${items.length} 已作答`}
-              value={progressPct}
-              size="small"
-            />
-          </div>
         </div>
 
         <div className={styles.toolbarRight}>
@@ -337,6 +326,8 @@ const StudentExamDemoScreen: FC = () => {
             activeIndex={activeIndex}
             answeredIds={answeredIds}
             onSelect={setActiveIndex}
+            collapsed={navCollapsed}
+            onToggleCollapse={() => setNavCollapsed((c) => !c)}
           />
         )}
         {viewMode === "single" ? renderSingleMode() : renderAllMode()}

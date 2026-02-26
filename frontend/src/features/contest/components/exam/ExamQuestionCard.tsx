@@ -53,6 +53,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
           <RadioButtonGroup
             name={`q-${question.id}`}
             legendText=""
+            orientation="vertical"
             valueSelected={answer as string | undefined}
             onChange={(val: string) => handleChange(val)}
             disabled={readOnly}
@@ -67,6 +68,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
           <RadioButtonGroup
             name={`q-${question.id}`}
             legendText=""
+            orientation="vertical"
             valueSelected={answer as string | undefined}
             onChange={(val: string) => handleChange(val)}
             disabled={readOnly}
