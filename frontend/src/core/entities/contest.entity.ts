@@ -113,6 +113,9 @@ export interface ContestDetail extends Contest {
   allowAutoUnlock: boolean;
   autoUnlockMinutes: number;
 
+  // Results
+  resultsPublished: boolean;
+
   // User specific extended state
   hasStarted?: boolean;
   startedAt?: string;

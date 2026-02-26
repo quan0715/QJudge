@@ -1,77 +1,192 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, InlineNotification, Stack, Tag } from "@carbon/react";
-import ExamFlowTemplateScreen from "./ExamFlowTemplateScreen";
+import {
+  Button,
+  InlineNotification,
+  Stack,
+  Tag,
+  Tile,
+  Modal,
+} from "@carbon/react";
+import {
+  Checkmark,
+  WarningAlt,
+  ArrowLeft,
+  SendFilled,
+} from "@carbon/icons-react";
 import { useExamV2Flow } from "./useExamV2Flow";
+import { useContest } from "@/features/contest/contexts/ContestContext";
+import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.repository";
+import type { ExamQuestion } from "@/core/entities/contest.entity";
 
 const ExamV2SubmitReviewScreen: React.FC = () => {
   const navigate = useNavigate();
   const { contestId, contest, loading, error, clearError, submitExam } =
     useExamV2Flow();
 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
+  const [loadingAnswers, setLoadingAnswers] = useState(true);
+
+  const examQuestions: ExamQuestion[] = useMemo(
+    () => contest?.examQuestions ?? [],
+    [contest]
+  );
+
+  // Load answered questions
+  useEffect(() => {
+    if (!contestId) return;
+    setLoadingAnswers(true);
+    getMyExamAnswers(contestId)
+      .then((answers) => {
+        const ids = new Set<string>();
+        for (const a of answers) {
+          const val = a.answer;
+          const hasContent =
+            val &&
+            (("selected" in val && val.selected) ||
+              ("text" in val && val.text));
+          if (hasContent) ids.add(a.questionId);
+        }
+        setAnsweredIds(ids);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAnswers(false));
+  }, [contestId]);
+
   const canSubmit =
     contest?.examStatus === "in_progress" ||
     contest?.examStatus === "paused" ||
     contest?.examStatus === "locked";
 
+  const unanswered = examQuestions.filter((q) => !answeredIds.has(String(q.id)));
+  const totalCount = examQuestions.length;
+  const answeredCount = totalCount - unanswered.length;
+
   const handleSubmitExam = async () => {
+    setShowConfirm(false);
     const success = await submitExam();
     if (!success || !contestId) return;
     navigate(`/contests/${contestId}/exam-v2/grading`);
   };
 
   return (
-    <ExamFlowTemplateScreen
-      stepKey="submit-review"
-      title="Exam v2：交卷前檢查"
-      description="交卷前統一檢查未作答題，避免遺漏。"
-      bullets={[
-        "交卷會呼叫 `/contests/:id/exam/end/`，狀態切到 submitted。",
-        "submitted 後不可再作答（除非管理者 reopen）。",
-        "交卷後導向批改中頁面。",
-      ]}
-      notice="目前未作答題目清單尚未接 paper 題型 API；先串手動交卷流程。"
-      actionPanel={
-        <Stack gap={4}>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Tag type={canSubmit ? "blue" : "gray"}>
-              {`目前狀態：${contest?.examStatus || "not_started"}`}
+    <div style={{ maxWidth: 720, margin: "2rem auto", padding: "0 1rem" }}>
+      <h2 style={{ marginBottom: "0.5rem" }}>交卷前確認</h2>
+      <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
+        請確認作答情況，交卷後將無法再修改答案。
+      </p>
+
+      {error && (
+        <InlineNotification
+          kind="error"
+          lowContrast
+          hideCloseButton
+          title="交卷失敗"
+          subtitle={error}
+          onCloseButtonClick={clearError}
+          style={{ marginBottom: "1rem" }}
+        />
+      )}
+
+      <Stack gap={5}>
+        {/* Summary */}
+        <Tile>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+            <Tag type={answeredCount === totalCount ? "green" : "red"}>
+              {`已作答 ${answeredCount} / ${totalCount} 題`}
             </Tag>
             <Tag type="teal">
               {contest?.endTime
-                ? `系統截止：${new Date(contest.endTime).toLocaleString()}`
+                ? `截止：${new Date(contest.endTime).toLocaleString("zh-TW")}`
                 : "未設定截止時間"}
             </Tag>
           </div>
 
-          {error ? (
-            <InlineNotification
-              kind="error"
-              lowContrast
-              hideCloseButton
-              title="交卷失敗"
-              subtitle={error}
-              onCloseButtonClick={clearError}
-            />
-          ) : null}
+          {loadingAnswers ? (
+            <p style={{ color: "var(--cds-text-secondary)" }}>載入作答狀態中...</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {examQuestions.map((q, i) => {
+                const done = answeredIds.has(String(q.id));
+                return (
+                  <div
+                    key={q.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      padding: "0.5rem 0.75rem",
+                      background: done ? "transparent" : "var(--cds-support-error-inverse)",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    {done ? (
+                      <Checkmark size={16} style={{ color: "var(--cds-support-success)" }} />
+                    ) : (
+                      <WarningAlt size={16} style={{ color: "var(--cds-support-error)" }} />
+                    )}
+                    <span>
+                      第 {i + 1} 題
+                      {q.prompt && ` — ${q.prompt.slice(0, 60)}${q.prompt.length > 60 ? "..." : ""}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Tile>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Button
-              kind="secondary"
-              disabled={!contestId}
-              onClick={() =>
-                contestId && navigate(`/contests/${contestId}/exam-v2/answering`)
-              }
-            >
-              回作答頁
-            </Button>
-            <Button kind="danger" disabled={!canSubmit || loading} onClick={handleSubmitExam}>
-              確認交卷
-            </Button>
-          </div>
-        </Stack>
-      }
-    />
+        {unanswered.length > 0 && !loadingAnswers && (
+          <InlineNotification
+            kind="warning"
+            lowContrast
+            hideCloseButton
+            title={`有 ${unanswered.length} 題尚未作答`}
+            subtitle="建議返回作答頁完成所有題目再交卷。"
+          />
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Button
+            kind="secondary"
+            renderIcon={ArrowLeft}
+            disabled={!contestId}
+            onClick={() =>
+              contestId && navigate(`/contests/${contestId}/exam-v2/answering`)
+            }
+          >
+            回作答頁
+          </Button>
+          <Button
+            kind="danger"
+            renderIcon={SendFilled}
+            disabled={!canSubmit || loading}
+            onClick={() => setShowConfirm(true)}
+          >
+            確認交卷
+          </Button>
+        </div>
+      </Stack>
+
+      <Modal
+        open={showConfirm}
+        danger
+        modalHeading="確認交卷"
+        primaryButtonText="確定交卷"
+        secondaryButtonText="取消"
+        onRequestSubmit={handleSubmitExam}
+        onRequestClose={() => setShowConfirm(false)}
+      >
+        <p>
+          交卷後將無法再修改答案。
+          {unanswered.length > 0 && (
+            <strong> 你還有 {unanswered.length} 題尚未作答。</strong>
+          )}
+        </p>
+        <p>確定要交卷嗎？</p>
+      </Modal>
+    </div>
   );
 };
 

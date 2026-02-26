@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.contests",
     "apps.announcements",
     "apps.labs",
+    "apps.classrooms",
     "apps.ai",  # AI Chat
     "drf_spectacular",
 ]
@@ -156,6 +157,14 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "120/min",
+        "exam_heartbeat": "4/min",
+        "exam_events": "30/min",
+    },
 }
 
 # Simple JWT settings

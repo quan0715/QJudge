@@ -126,6 +126,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'my_nickname',
             'participant_count',
             'admins',
+            'results_published',
         ]
 
     def get_my_nickname(self, obj):
@@ -317,6 +318,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'auto_unlock_minutes',
             'status',
             'anonymous_mode_enabled',
+            'results_published',
         ]
         read_only_fields = ['id']
         extra_kwargs = {
@@ -803,6 +805,11 @@ class ExamAnswerSerializer(serializers.ModelSerializer):
 class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     """Read serializer with grading info (for results / TA view)."""
     question_id = serializers.IntegerField(source='question.id', read_only=True)
+    question_prompt = serializers.CharField(source='question.prompt', read_only=True)
+    question_type = serializers.CharField(source='question.question_type', read_only=True)
+    max_score = serializers.DecimalField(
+        source='question.points', max_digits=6, decimal_places=2, read_only=True
+    )
     graded_by_username = serializers.CharField(
         source='graded_by.username', read_only=True, default=None
     )
@@ -810,8 +817,8 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExamAnswer
         fields = [
-            'id', 'question_id', 'answer',
-            'is_correct', 'score', 'feedback',
+            'id', 'question_id', 'question_prompt', 'question_type', 'max_score',
+            'answer', 'is_correct', 'score', 'feedback',
             'graded_by_username', 'graded_at',
             'created_at', 'updated_at',
         ]

@@ -1,79 +1,166 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, InlineNotification, Stack, Tag } from "@carbon/react";
-import ExamFlowTemplateScreen from "./ExamFlowTemplateScreen";
+import {
+  Button,
+  InlineNotification,
+  Stack,
+  Tag,
+  Tile,
+  DataTable,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+} from "@carbon/react";
+import { Renew, ArrowLeft } from "@carbon/icons-react";
 import { useExamV2Flow } from "./useExamV2Flow";
+import {
+  getExamResults,
+  type ExamAnswerDetail,
+} from "@/infrastructure/api/repositories/examAnswers.repository";
 
 const ExamV2ResultScreen: React.FC = () => {
   const navigate = useNavigate();
   const { contestId, contest, refreshContest } = useExamV2Flow();
 
+  const [results, setResults] = useState<ExamAnswerDetail[]>([]);
+  const [loadingResults, setLoadingResults] = useState(true);
+  const [resultError, setResultError] = useState<string | null>(null);
+
+  const published = !!contest?.resultsPublished;
+
+  useEffect(() => {
+    if (!contestId || !published) {
+      setLoadingResults(false);
+      return;
+    }
+    setLoadingResults(true);
+    getExamResults(contestId)
+      .then(setResults)
+      .catch((e) => setResultError(e?.message || "無法載入成績"))
+      .finally(() => setLoadingResults(false));
+  }, [contestId, published]);
+
+  const totalScore = results.reduce((sum, r) => sum + (r.score ?? 0), 0);
+  const totalMax = results.reduce((sum, r) => sum + (r.maxScore ?? 0), 0);
+
+  const rows = results.map((r, i) => ({
+    id: String(r.id),
+    index: i + 1,
+    prompt: r.questionPrompt?.slice(0, 80) || `第 ${i + 1} 題`,
+    type: r.questionType || "-",
+    score: r.score != null ? `${r.score}` : "未批改",
+    maxScore: r.maxScore != null ? `${r.maxScore}` : "-",
+    feedback: r.feedback || "-",
+  }));
+
+  const headers = [
+    { key: "index", header: "#" },
+    { key: "prompt", header: "題目" },
+    { key: "type", header: "題型" },
+    { key: "score", header: "得分" },
+    { key: "maxScore", header: "滿分" },
+    { key: "feedback", header: "評語" },
+  ];
+
   return (
-    <ExamFlowTemplateScreen
-      stepKey="result"
-      title="Exam v2：發布後結果"
-      description="成績發布後，學生查看總分、題目分數、評語與紀錄。"
-      bullets={[
-        "結果頁整合 contest standings / submissions 現有 API。",
-        "若尚未發布，顯示等待提示並可返回批改中頁面。",
-        "後續可擴充問答題評語與重評紀錄區塊。",
-      ]}
-      notice="目前以現有 standings 與 contest 狀態作為結果可見性依據。"
-      actionPanel={
-        <Stack gap={4}>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Tag type="teal">{`Exam 狀態：${contest?.examStatus || "not_started"}`}</Tag>
-            <Tag type={contest?.scoreboardVisibleDuringContest ? "green" : "gray"}>
-              {contest?.scoreboardVisibleDuringContest
-                ? "進行中可看排行榜"
-                : "進行中隱藏排行榜"}
-            </Tag>
-          </div>
+    <div style={{ maxWidth: 800, margin: "2rem auto", padding: "0 1rem" }}>
+      <h2 style={{ marginBottom: "0.5rem" }}>考試結果</h2>
+      <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
+        {published ? "成績已發布，以下為你的作答結果。" : "成績尚未發布，請耐心等待。"}
+      </p>
 
-          {contest?.examStatus !== "submitted" ? (
-            <InlineNotification
-              kind="warning"
-              lowContrast
-              hideCloseButton
-              title="結果尚不可用"
-              subtitle="學生尚未完成交卷或結果尚未發布。"
-            />
-          ) : (
-            <InlineNotification
-              kind="success"
-              lowContrast
-              hideCloseButton
-              title="可查看結果"
-              subtitle="你可以進入排行榜與提交紀錄查看目前結果。"
-            />
-          )}
+      <Stack gap={5}>
+        {!published && (
+          <InlineNotification
+            kind="info"
+            lowContrast
+            hideCloseButton
+            title="成績尚未發布"
+            subtitle="助教批改完成並發布成績後，你將可以查看詳細結果。"
+          />
+        )}
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Button kind="secondary" onClick={() => void refreshContest()}>
-              重新整理狀態
-            </Button>
-            <Button
-              kind="primary"
-              disabled={!contestId}
-              onClick={() =>
-                contestId && navigate(`/contests/${contestId}?tab=standings`)
-              }
-            >
-              查看排行榜
-            </Button>
-            <Button
-              kind="tertiary"
-              disabled={!contestId}
-              onClick={() =>
-                contestId && navigate(`/contests/${contestId}?tab=submissions`)
-              }
-            >
-              查看提交紀錄
-            </Button>
-          </div>
-        </Stack>
-      }
-    />
+        {resultError && (
+          <InlineNotification
+            kind="error"
+            lowContrast
+            hideCloseButton
+            title="載入失敗"
+            subtitle={resultError}
+          />
+        )}
+
+        {published && !loadingResults && results.length > 0 && (
+          <>
+            <Tile>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+                <h3 style={{ margin: 0 }}>
+                  總分：{totalScore} / {totalMax}
+                </h3>
+                <Tag type={totalScore >= totalMax * 0.6 ? "green" : "red"}>
+                  {Math.round((totalScore / (totalMax || 1)) * 100)}%
+                </Tag>
+              </div>
+            </Tile>
+
+            <DataTable rows={rows} headers={headers}>
+              {({ rows: tableRows, headers: tableHeaders, getTableProps, getHeaderProps, getRowProps }) => (
+                <Table {...getTableProps()} size="md">
+                  <TableHead>
+                    <TableRow>
+                      {tableHeaders.map((h) => (
+                        <TableHeader {...getHeaderProps({ header: h })} key={h.key}>
+                          {h.header}
+                        </TableHeader>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {tableRows.map((row) => (
+                      <TableRow {...getRowProps({ row })} key={row.id}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </DataTable>
+          </>
+        )}
+
+        {published && !loadingResults && results.length === 0 && (
+          <InlineNotification
+            kind="info"
+            lowContrast
+            hideCloseButton
+            title="無作答記錄"
+            subtitle="未找到你的作答資料。"
+          />
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Button
+            kind="secondary"
+            renderIcon={ArrowLeft}
+            onClick={() => contestId && navigate(`/contests/${contestId}`)}
+          >
+            返回考試首頁
+          </Button>
+          <Button
+            kind="tertiary"
+            renderIcon={Renew}
+            onClick={() => void refreshContest()}
+          >
+            重新整理
+          </Button>
+        </div>
+      </Stack>
+    </div>
   );
 };
 

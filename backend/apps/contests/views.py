@@ -13,6 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 
 from .access_policy import ContestAccessPolicy
+from apps.core.throttles import ExamHeartbeatThrottle, ExamEventsThrottle
 from .models import (
     Contest,
     ContestParticipant,
@@ -1364,7 +1365,9 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         return Response({'status': 'finished', 'exam_status': ExamStatus.SUBMITTED})
 
-    @action(detail=False, methods=['post'], url_path='heartbeat', permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['post'], url_path='heartbeat',
+            permission_classes=[permissions.IsAuthenticated],
+            throttle_classes=[ExamHeartbeatThrottle])
     def heartbeat(self, request, contest_pk=None):
         """
         Exam heartbeat to verify client connectivity.
@@ -1415,7 +1418,9 @@ class ExamViewSet(viewsets.GenericViewSet):
             'max_warnings': contest.max_cheat_warnings,
         })
 
-    @action(detail=False, methods=['post', 'get'], url_path='events', permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['post', 'get'], url_path='events',
+            permission_classes=[permissions.IsAuthenticated],
+            throttle_classes=[ExamEventsThrottle])
     def events(self, request, contest_pk=None):
         """
         Handle exam events.

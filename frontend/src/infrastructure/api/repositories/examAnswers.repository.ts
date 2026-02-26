@@ -16,6 +16,9 @@ export interface ExamAnswerDetailDto extends ExamAnswerDto {
   feedback: string;
   graded_by_username: string | null;
   graded_at: string | null;
+  question_prompt?: string;
+  question_type?: string;
+  max_score?: string | null;
 }
 
 export interface ExamAnswer {
@@ -32,6 +35,9 @@ export interface ExamAnswerDetail extends ExamAnswer {
   feedback: string;
   gradedByUsername: string | null;
   gradedAt: string | null;
+  questionPrompt?: string;
+  questionType?: string;
+  maxScore?: number | null;
 }
 
 // ── Mappers ──
@@ -51,6 +57,9 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
   feedback: dto.feedback ?? "",
   gradedByUsername: dto.graded_by_username,
   gradedAt: dto.graded_at,
+  questionPrompt: dto.question_prompt,
+  questionType: dto.question_type,
+  maxScore: dto.max_score != null ? Number(dto.max_score) : null,
 });
 
 // ── Student API ──

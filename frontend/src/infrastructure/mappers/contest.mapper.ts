@@ -58,6 +58,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     maxCheatWarnings: dto.max_cheat_warnings || 0,
     allowAutoUnlock: !!dto.allow_auto_unlock,
     autoUnlockMinutes: dto.auto_unlock_minutes || 0,
+    resultsPublished: !!dto.results_published,
     myNickname: dto.my_nickname,
 
     hasStarted: !!dto.has_started,
@@ -246,6 +247,7 @@ export function mapContestUpdateRequestToDto(request: any): any {
     max_cheat_warnings: request.maxCheatWarnings,
     allow_auto_unlock: request.allowAutoUnlock,
     auto_unlock_minutes: request.autoUnlockMinutes,
+    results_published: request.resultsPublished,
   };
   // Strip undefined keys so PATCH only sends changed fields
   Object.keys(dto).forEach((k) => {
