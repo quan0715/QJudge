@@ -4,7 +4,7 @@ Serializers for classrooms.
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from .models import Classroom, ClassroomMember, ClassroomContest
+from .models import Classroom, ClassroomMember, ClassroomContest, ClassroomAnnouncement
 from .permissions import get_user_role_in_classroom
 
 User = get_user_model()
@@ -51,6 +51,25 @@ class BoundContestSerializer(serializers.ModelSerializer):
         fields = ['contest_id', 'contest_name', 'bound_at']
 
 
+class ClassroomAnnouncementSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(
+        source='created_by.username', read_only=True, default=None
+    )
+
+    class Meta:
+        model = ClassroomAnnouncement
+        fields = [
+            'id', 'title', 'content', 'is_pinned',
+            'created_by_username', 'created_at', 'updated_at',
+        ]
+
+
+class ClassroomAnnouncementWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassroomAnnouncement
+        fields = ['title', 'content', 'is_pinned']
+
+
 class AdminUserSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     username = serializers.CharField()
@@ -64,6 +83,7 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
     contests = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
     invite_code = serializers.SerializerMethodField()
+    announcements = serializers.SerializerMethodField()
 
     class Meta:
         model = Classroom
@@ -71,7 +91,7 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'owner_username',
             'member_count', 'is_archived', 'invite_code', 'invite_code_enabled',
             'current_user_role', 'members', 'contests', 'admins',
-            'created_at', 'updated_at',
+            'announcements', 'created_at', 'updated_at',
         ]
 
     def get_member_count(self, obj):
@@ -106,6 +126,11 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
     def get_admins(self, obj):
         return AdminUserSerializer(
             obj.admins.all(), many=True
+        ).data
+
+    def get_announcements(self, obj):
+        return ClassroomAnnouncementSerializer(
+            obj.announcements.select_related('created_by'), many=True
         ).data
 
 

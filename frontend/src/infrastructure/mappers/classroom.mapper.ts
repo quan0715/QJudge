@@ -3,6 +3,7 @@ import type {
   ClassroomDetail,
   ClassroomMember,
   BoundContest,
+  ClassroomAnnouncement,
 } from "@/core/entities/classroom.entity";
 
 export function mapClassroomDto(dto: any): Classroom {
@@ -36,6 +37,18 @@ export function mapBoundContestDto(dto: any): BoundContest {
   };
 }
 
+export function mapClassroomAnnouncementDto(dto: any): ClassroomAnnouncement {
+  return {
+    id: dto.id?.toString() || "",
+    title: dto.title || "",
+    content: dto.content || "",
+    isPinned: !!dto.is_pinned,
+    createdByUsername: dto.created_by_username ?? null,
+    createdAt: dto.created_at || "",
+    updatedAt: dto.updated_at || "",
+  };
+}
+
 export function mapClassroomDetailDto(dto: any): ClassroomDetail {
   const base = mapClassroomDto(dto);
   return {
@@ -50,6 +63,9 @@ export function mapClassroomDetailDto(dto: any): ClassroomDetail {
       : [],
     admins: Array.isArray(dto.admins)
       ? dto.admins.map((a: any) => ({ id: a.id, username: a.username }))
+      : [],
+    announcements: Array.isArray(dto.announcements)
+      ? dto.announcements.map(mapClassroomAnnouncementDto)
       : [],
     updatedAt: dto.updated_at || "",
   };

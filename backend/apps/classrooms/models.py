@@ -111,3 +111,34 @@ class ClassroomContest(models.Model):
 
     def __str__(self):
         return f'{self.classroom.name} ↔ {self.contest.name}'
+
+
+class ClassroomAnnouncement(models.Model):
+    """
+    Announcement for a classroom.
+    """
+    classroom = models.ForeignKey(
+        Classroom,
+        on_delete=models.CASCADE,
+        related_name='announcements',
+        verbose_name='教室',
+    )
+    title = models.CharField(max_length=255, verbose_name='標題')
+    content = models.TextField(verbose_name='內容')
+    is_pinned = models.BooleanField(default=False, verbose_name='置頂')
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_classroom_announcements',
+        verbose_name='發布者',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='發布時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        ordering = ['-is_pinned', '-created_at']
+
+    def __str__(self):
+        return self.title

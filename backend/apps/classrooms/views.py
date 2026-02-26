@@ -7,12 +7,14 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from .models import Classroom, ClassroomMember, ClassroomContest
+from .models import Classroom, ClassroomMember, ClassroomContest, ClassroomAnnouncement
 from .serializers import (
     ClassroomListSerializer,
     ClassroomDetailSerializer,
     ClassroomCreateUpdateSerializer,
     ClassroomMemberSerializer,
+    ClassroomAnnouncementSerializer,
+    ClassroomAnnouncementWriteSerializer,
     JoinClassroomSerializer,
     AddMembersSerializer,
     RemoveMemberSerializer,
@@ -214,3 +216,47 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if deleted == 0:
             return Response({'detail': 'Binding not found.'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'detail': 'Contest unbound.'})
+
+    # ── Announcements ────────────────────────────────────
+
+    @action(detail=True, methods=['get'], url_path='announcements')
+    def list_announcements(self, request, pk=None):
+        classroom = self.get_object()
+        qs = classroom.announcements.select_related('created_by')
+        return Response(ClassroomAnnouncementSerializer(qs, many=True).data)
+
+    @action(detail=True, methods=['post'], url_path='announcements/create',
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+    def create_announcement(self, request, pk=None):
+        classroom = self.get_object()
+        serializer = ClassroomAnnouncementWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(classroom=classroom, created_by=request.user)
+        return Response(
+            ClassroomAnnouncementSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['patch'], url_path=r'announcements/(?P<ann_id>\d+)',
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+    def update_announcement(self, request, pk=None, ann_id=None):
+        classroom = self.get_object()
+        try:
+            announcement = classroom.announcements.get(pk=ann_id)
+        except ClassroomAnnouncement.DoesNotExist:
+            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ClassroomAnnouncementWriteSerializer(
+            announcement, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ClassroomAnnouncementSerializer(announcement).data)
+
+    @action(detail=True, methods=['delete'], url_path=r'announcements/(?P<ann_id>\d+)/delete',
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+    def delete_announcement(self, request, pk=None, ann_id=None):
+        classroom = self.get_object()
+        deleted, _ = classroom.announcements.filter(pk=ann_id).delete()
+        if deleted == 0:
+            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)

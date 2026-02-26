@@ -19,66 +19,30 @@ import {
   ArrowLeft,
   Add,
   TrashCan,
+  Edit as EditIcon,
   Trophy,
   Bullhorn,
   UserMultiple,
   Calendar,
   Education,
   ArrowRight,
-  WarningAlt,
+  Pin,
 } from "@carbon/icons-react";
 import {
   getClassroom,
   removeMember,
   regenerateCode,
   unbindContest,
+  deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
-import type { ClassroomDetail, BoundContest } from "@/core/entities/classroom.entity";
+import type { ClassroomDetail, ClassroomAnnouncement, BoundContest } from "@/core/entities/classroom.entity";
+import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { InviteCodeDisplay } from "../components/InviteCodeDisplay";
 import { MemberTable } from "../components/MemberTable";
 import { AddMembersModal } from "../components/AddMembersModal";
 import { BindContestModal } from "../components/BindContestModal";
+import { AnnouncementModal } from "../components/AnnouncementModal";
 import "./ClassroomDetailScreen.scss";
-
-// ── Mock Data (課程公告 — 尚無 data model) ─────────────
-interface ClassroomAnnouncement {
-  id: string;
-  title: string;
-  body: string;
-  date: string;
-  important: boolean;
-}
-
-const MOCK_ANNOUNCEMENTS: ClassroomAnnouncement[] = [
-  {
-    id: "1",
-    title: "期中考範圍公告",
-    body: "期中考涵蓋 Week 1 ~ Week 7 內容，包含 Stack、Queue、Tree 基本操作。考試時間 90 分鐘，可攜帶一張 A4 筆記。",
-    date: "2026-02-25",
-    important: true,
-  },
-  {
-    id: "2",
-    title: "作業 3 截止日延期",
-    body: "因應同學反映，作業 3 截止日延期至 3/5（三）23:59。請把握時間完成。",
-    date: "2026-02-22",
-    important: false,
-  },
-  {
-    id: "3",
-    title: "助教 Office Hours 時間調整",
-    body: "本週起助教 Office Hours 改為每週二 14:00-16:00、每週四 15:00-17:00，地點不變（EC-322）。",
-    date: "2026-02-20",
-    important: false,
-  },
-  {
-    id: "4",
-    title: "歡迎加入本課程",
-    body: "請確認已完成選課並加入 QJudge 教室。若有帳號問題請聯繫助教。",
-    date: "2026-02-10",
-    important: false,
-  },
-];
 
 // ── Component ──────────────────────────────────────────
 
@@ -91,6 +55,8 @@ const ClassroomDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [bindContestOpen, setBindContestOpen] = useState(false);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
 
   const isPrivileged =
     classroom?.currentUserRole === "admin" ||
@@ -122,6 +88,12 @@ const ClassroomDetailScreen: React.FC = () => {
   const handleRegenerateCode = async () => {
     if (!classroomId) return;
     await regenerateCode(classroomId);
+    fetchData();
+  };
+
+  const handleDeleteAnnouncement = async (annId: string) => {
+    if (!classroomId) return;
+    await deleteAnnouncement(classroomId, annId);
     fetchData();
   };
 
@@ -231,7 +203,7 @@ const ClassroomDetailScreen: React.FC = () => {
             <div className="classroom-detail__stat-chip">
               <Bullhorn size={24} className="classroom-detail__stat-icon" />
               <div>
-                <p className="classroom-detail__stat-value">{MOCK_ANNOUNCEMENTS.length}</p>
+                <p className="classroom-detail__stat-value">{classroom.announcements.length}</p>
                 <p className="classroom-detail__stat-label">{t("classroom.announcementCount", "公告")}</p>
               </div>
             </div>
@@ -252,7 +224,13 @@ const ClassroomDetailScreen: React.FC = () => {
                 <Grid fullWidth>
                   {/* Announcements */}
                   <Column lg={10} md={8} sm={4}>
-                    <AnnouncementSection announcements={MOCK_ANNOUNCEMENTS} />
+                    <AnnouncementSection
+                      announcements={classroom.announcements}
+                      isPrivileged={!!isPrivileged}
+                      onCreateClick={() => { setEditingAnnouncement(null); setAnnouncementModalOpen(true); }}
+                      onEdit={(a) => { setEditingAnnouncement(a); setAnnouncementModalOpen(true); }}
+                      onDelete={handleDeleteAnnouncement}
+                    />
                   </Column>
 
                   {/* Quick Glance: Contests */}
@@ -387,6 +365,13 @@ const ClassroomDetailScreen: React.FC = () => {
             onClose={() => setBindContestOpen(false)}
             onBound={() => { setBindContestOpen(false); fetchData(); }}
           />
+          <AnnouncementModal
+            open={announcementModalOpen}
+            classroomId={classroomId!}
+            announcement={editingAnnouncement}
+            onClose={() => setAnnouncementModalOpen(false)}
+            onSaved={() => { setAnnouncementModalOpen(false); fetchData(); }}
+          />
         </>
       )}
     </div>
@@ -442,11 +427,16 @@ const ContestMiniCard: React.FC<{
   </ClickableTile>
 );
 
-/** Announcements section with mock data */
+/** Announcements section */
 const AnnouncementSection: React.FC<{
   announcements: ClassroomAnnouncement[];
-}> = ({ announcements }) => {
+  isPrivileged: boolean;
+  onCreateClick: () => void;
+  onEdit: (a: ClassroomAnnouncement) => void;
+  onDelete: (id: string) => void;
+}> = ({ announcements, isPrivileged, onCreateClick, onEdit, onDelete }) => {
   const { t } = useTranslation();
+
   return (
     <div className="classroom-detail__section">
       <div className="classroom-detail__section-header">
@@ -454,28 +444,89 @@ const AnnouncementSection: React.FC<{
           <Bullhorn size={20} className="classroom-detail__section-icon" />
           <h3>{t("classroom.announcements", "課程公告")}</h3>
         </div>
-        <Tag type="gray" size="sm">{t("classroom.mockData", "模擬資料")}</Tag>
+        {isPrivileged && (
+          <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateClick}>
+            {t("classroom.createAnnouncement", "發佈公告")}
+          </Button>
+        )}
       </div>
-      {announcements.map((a) => (
-        <div key={a.id} className="classroom-detail__announcement">
-          <div
-            className={`classroom-detail__announcement-marker${
-              a.important ? " classroom-detail__announcement-marker--warning" : ""
-            }`}
-          />
-          <div className="classroom-detail__announcement-content">
-            <p className="classroom-detail__announcement-title">
-              {a.important && <WarningAlt size={14} style={{ marginRight: 4, color: "var(--cds-support-warning)" }} />}
-              {a.title}
-            </p>
-            <p className="classroom-detail__announcement-body">{a.body}</p>
-            <p className="classroom-detail__announcement-date">{a.date}</p>
-          </div>
+      {announcements.length === 0 ? (
+        <EmptyBlock icon={Bullhorn} message={t("classroom.noAnnouncements", "尚無公告")} />
+      ) : (
+        <div className="classroom-detail__announcement-list">
+          {announcements.map((a) => (
+            <AnnouncementCard
+              key={a.id}
+              announcement={a}
+              isPrivileged={isPrivileged}
+              onEdit={() => onEdit(a)}
+              onDelete={() => onDelete(a.id)}
+            />
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 };
+
+/** Single announcement card */
+const AnnouncementCard: React.FC<{
+  announcement: ClassroomAnnouncement;
+  isPrivileged: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}> = ({ announcement: a, isPrivileged, onEdit, onDelete }) => (
+  <div
+    className={`classroom-detail__ann-card${a.isPinned ? " classroom-detail__ann-card--pinned" : ""}`}
+    onClick={isPrivileged ? onEdit : undefined}
+    style={isPrivileged ? { cursor: "pointer" } : undefined}
+  >
+    {/* Header row */}
+    <div className="classroom-detail__ann-card-header">
+      <div className="classroom-detail__ann-card-title">
+        {a.isPinned && <Pin size={14} className="classroom-detail__ann-card-pin" />}
+        <h4>{a.title}</h4>
+      </div>
+      {isPrivileged && (
+        <div className="classroom-detail__ann-card-actions">
+          <Button
+            kind="ghost"
+            size="sm"
+            hasIconOnly
+            renderIcon={EditIcon}
+            iconDescription="Edit"
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(); }}
+          />
+          <Button
+            kind="ghost"
+            size="sm"
+            hasIconOnly
+            renderIcon={TrashCan}
+            iconDescription="Delete"
+            className="classroom-detail__ann-card-delete"
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }}
+          />
+        </div>
+      )}
+    </div>
+
+    {/* Body — markdown rendered */}
+    <div className="classroom-detail__ann-card-body">
+      <MarkdownRenderer>{a.content}</MarkdownRenderer>
+    </div>
+
+    {/* Footer */}
+    <div className="classroom-detail__ann-card-footer">
+      {a.createdByUsername && (
+        <Tag type="high-contrast" size="sm">{a.createdByUsername}</Tag>
+      )}
+      <span className="classroom-detail__ann-card-date">
+        <Calendar size={12} />
+        {new Date(a.createdAt).toLocaleDateString()}
+      </span>
+    </div>
+  </div>
+);
 
 /** Empty state block */
 const EmptyBlock: React.FC<{

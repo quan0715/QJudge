@@ -6,10 +6,12 @@ import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.cli
 import type {
   Classroom,
   ClassroomDetail,
+  ClassroomAnnouncement,
 } from "@/core/entities/classroom.entity";
 import {
   mapClassroomDto,
   mapClassroomDetailDto,
+  mapClassroomAnnouncementDto,
 } from "@/infrastructure/mappers/classroom.mapper";
 
 export const getClassrooms = async (
@@ -128,5 +130,58 @@ export const unbindContest = async (
       contest_id: Number(contestId),
     }),
     "Failed to unbind contest"
+  );
+};
+
+// ── Announcements ───────────────────────────────────────
+
+export const getAnnouncements = async (
+  classroomId: string
+): Promise<ClassroomAnnouncement[]> => {
+  const data = await requestJson<any[]>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/announcements/`),
+    "Failed to fetch announcements"
+  );
+  return data.map(mapClassroomAnnouncementDto);
+};
+
+export const createAnnouncement = async (
+  classroomId: string,
+  data: { title: string; content: string; is_pinned?: boolean }
+): Promise<ClassroomAnnouncement> => {
+  const res = await requestJson<any>(
+    httpClient.post(
+      `/api/v1/classrooms/${classroomId}/announcements/create/`,
+      data
+    ),
+    "Failed to create announcement"
+  );
+  return mapClassroomAnnouncementDto(res);
+};
+
+export const updateAnnouncement = async (
+  classroomId: string,
+  annId: string,
+  data: { title?: string; content?: string; is_pinned?: boolean }
+): Promise<ClassroomAnnouncement> => {
+  const res = await requestJson<any>(
+    httpClient.patch(
+      `/api/v1/classrooms/${classroomId}/announcements/${annId}/`,
+      data
+    ),
+    "Failed to update announcement"
+  );
+  return mapClassroomAnnouncementDto(res);
+};
+
+export const deleteAnnouncement = async (
+  classroomId: string,
+  annId: string
+): Promise<void> => {
+  await ensureOk(
+    httpClient.delete(
+      `/api/v1/classrooms/${classroomId}/announcements/${annId}/delete/`
+    ),
+    "Failed to delete announcement"
   );
 };
