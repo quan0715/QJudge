@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
-import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
+import { Button, Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
+import { Launch, View } from "@carbon/icons-react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
 import type { User } from "@/core/entities/user.entity";
@@ -21,7 +22,6 @@ import ContestParticipantsScreen from "@/features/contest/screens/settings/Conte
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
 import ContestExamModelScreen from "@/features/contest/screens/settings/ContestExamModelScreen";
-import ContestExamQuestionsScreen from "@/features/contest/screens/settings/ContestExamQuestionsScreen";
 import {
   getAvailableContestTabKeys,
   type ContestTabKey,
@@ -31,6 +31,8 @@ const ContestDashboard = () => {
   const { t } = useTranslation('contest');
   const { t: tc } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { contestId } = useParams<{ contestId: string }>();
 
   // Use contest and standings from context
   const { contest, loading, scoreboardData } = useContest();
@@ -167,7 +169,31 @@ const ContestDashboard = () => {
       case "exam-model":
         return <ContestExamModelScreen />;
       case "exam-questions":
-        return <ContestExamQuestionsScreen />;
+        return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "3rem 1rem" }}>
+            <h3 style={{ fontSize: "var(--cds-heading-03-font-size)", fontWeight: 600 }}>
+              考試題目管理
+            </h3>
+            <p style={{ color: "var(--cds-text-secondary)", textAlign: "center", maxWidth: "480px" }}>
+              使用全螢幕 Exam 編輯器管理考試設定、題目 CRUD、配分等功能。
+            </p>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <Button
+                renderIcon={Launch}
+                onClick={() => navigate(`/contests/${contestId}/exam/edit`)}
+              >
+                開啟 Exam 編輯器
+              </Button>
+              <Button
+                kind="secondary"
+                renderIcon={View}
+                onClick={() => navigate(`/contests/${contestId}/exam-demo`)}
+              >
+                學生預覽
+              </Button>
+            </div>
+          </div>
+        );
       case "admins":
         return <ContestAdminsScreen />;
       default:
