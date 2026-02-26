@@ -9,6 +9,7 @@ from .models import (
     Clarification,
     ExamEvent,
     ExamQuestion,
+    ExamAnswer,
 )
 
 
@@ -52,3 +53,11 @@ class ExamQuestionAdmin(admin.ModelAdmin):
     list_filter = ['question_type', 'contest']
     search_fields = ['prompt']
     ordering = ['contest', 'order', 'id']
+
+
+@admin.register(ExamAnswer)
+class ExamAnswerAdmin(admin.ModelAdmin):
+    list_display = ['id', 'participant', 'question', 'is_correct', 'score', 'graded_by', 'updated_at']
+    list_filter = ['is_correct', 'question__contest']
+    search_fields = ['participant__user__username', 'feedback']
+    readonly_fields = ['created_at', 'updated_at']

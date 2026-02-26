@@ -86,6 +86,13 @@ class Contest(models.Model):
         help_text='False: 學生只能看自己成績；True: 學生可看完整排行榜'
     )
     
+    # Results publication (TA manually opens after grading)
+    results_published = models.BooleanField(
+        default=False,
+        verbose_name='成績已公布',
+        help_text='TA 完成批改後手動設為 True，學生才能查看成績'
+    )
+    
     # Anonymous mode settings
     anonymous_mode_enabled = models.BooleanField(
         default=False,
@@ -491,6 +498,97 @@ class ExamEvent(models.Model):
     
     def __str__(self):
         return f"{self.event_type} by {self.user.username} at {self.created_at}"
+
+
+class ExamAnswer(models.Model):
+    """
+    Student answer for a paper-style exam question.
+    Supports auto-save (upsert on participant+question) and TA grading.
+    """
+    participant = models.ForeignKey(
+        ContestParticipant,
+        on_delete=models.CASCADE,
+        related_name='exam_answers',
+        verbose_name='考生'
+    )
+    question = models.ForeignKey(
+        ExamQuestion,
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='題目'
+    )
+    answer = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='作答內容',
+        help_text='選擇題: {"selected": "A"}, 多選: {"selected": ["A","B"]}, 簡答/問答: {"text": "..."}'
+    )
+
+    # Auto-grading result (for objective questions)
+    is_correct = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name='是否正確',
+        help_text='選擇/是非題自動判定；問答題由 TA 手動設定'
+    )
+
+    # TA grading
+    score = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='得分'
+    )
+    feedback = models.TextField(
+        blank=True,
+        verbose_name='批改評語'
+    )
+    graded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='graded_answers',
+        verbose_name='批改者'
+    )
+    graded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='批改時間'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'exam_answers'
+        verbose_name = '考試作答'
+        verbose_name_plural = '考試作答'
+        unique_together = ['participant', 'question']
+        indexes = [
+            models.Index(fields=['participant', 'question']),
+        ]
+
+    def __str__(self):
+        return f"Answer by P#{self.participant_id} for Q#{self.question_id}"
+
+    def auto_grade(self):
+        """Auto-grade objective questions (true_false, single_choice, multiple_choice)."""
+        q = self.question
+        if q.correct_answer is None:
+            return
+        if q.question_type in (
+            ExamQuestionType.TRUE_FALSE,
+            ExamQuestionType.SINGLE_CHOICE,
+        ):
+            self.is_correct = self.answer.get('selected') == q.correct_answer
+            self.score = q.score if self.is_correct else 0
+        elif q.question_type == ExamQuestionType.MULTIPLE_CHOICE:
+            selected = set(self.answer.get('selected', []))
+            correct = set(q.correct_answer) if isinstance(q.correct_answer, list) else set()
+            self.is_correct = selected == correct
+            self.score = q.score if self.is_correct else 0
 
 
 class ContestActivity(models.Model):
