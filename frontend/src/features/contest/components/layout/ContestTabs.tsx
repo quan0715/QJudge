@@ -26,7 +26,6 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
     settings: t("tabs.settings"),
     participants: t("tabs.participants"),
     logs: t("tabs.logs"),
-    "exam-model": t("tabs.examModel"),
     "exam-questions": t("tabs.examQuestions"),
     admins: t("tabs.admins"),
   };

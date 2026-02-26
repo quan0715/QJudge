@@ -21,7 +21,6 @@ import ContestSettingsScreen from "@/features/contest/screens/settings/ContestSe
 import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
-import ContestExamModelScreen from "@/features/contest/screens/settings/ContestExamModelScreen";
 import {
   getAvailableContestTabKeys,
   type ContestTabKey,
@@ -166,8 +165,6 @@ const ContestDashboard = () => {
         return <ContestParticipantsScreen />;
       case "logs":
         return <ContestLogsScreen />;
-      case "exam-model":
-        return <ContestExamModelScreen />;
       case "exam-questions":
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "3rem 1rem" }}>
