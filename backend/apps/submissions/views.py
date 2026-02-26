@@ -11,7 +11,6 @@ from .serializers import (
     SubmissionDetailSerializer,
     CreateSubmissionSerializer,
 )
-from .tasks import judge_submission, judge_contest_submission
 from .access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from .services import SubmissionService
 
@@ -120,13 +119,14 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Create submission and trigger judging task.
+        All dispatch and activity-logging logic lives in SubmissionService.
         """
         user = self.request.user
         contest = serializer.validated_data.get('contest')
         lab = serializer.validated_data.get('lab')
 
         try:
-            result = SubmissionService.create_submission(
+            submission = SubmissionService.create_and_dispatch(
                 user=user,
                 data=serializer.validated_data,
                 contest_id=contest.id if contest else None,
@@ -136,25 +136,4 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied(exc.message) from exc
 
-        submission = result.submission
         serializer.instance = submission
-        
-        # Log activity for contest submissions
-        if result.should_judge and result.source_type == 'contest' and contest:
-            from apps.contests.views import ContestActivityViewSet
-            problem = serializer.validated_data.get('problem')
-            ContestActivityViewSet.log_activity(
-                contest,
-                user,
-                'submit_code',
-                f"Submitted code for problem: {problem.title if problem else 'Unknown'}"
-            )
-        
-        # Trigger async judging task after transaction commits
-        # Use high_priority queue for contest submissions
-        from django.db import transaction
-        if result.should_judge:
-            if result.source_type == 'contest':
-                transaction.on_commit(lambda: judge_contest_submission.delay(submission.id))
-            else:
-                transaction.on_commit(lambda: judge_submission.delay(submission.id))

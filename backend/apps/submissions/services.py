@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -13,6 +14,8 @@ from apps.submissions.access_policy import SubmissionAccessError, SubmissionAcce
 from apps.submissions.models import Submission
 from apps.users.models import User
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class SubmissionCreateResult:
@@ -23,8 +26,45 @@ class SubmissionCreateResult:
 
 class SubmissionService:
     """
-    Core submission logic extracted from SubmissionViewSet.
+    Core submission logic — creation, keyword validation, queue dispatch,
+    and contest activity logging.
     """
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def create_and_dispatch(
+        cls,
+        *,
+        user: User,
+        data: Dict[str, Any],
+        contest_id: Optional[int] = None,
+        lab_id: Optional[int] = None,
+    ) -> Submission:
+        """
+        Single entry-point used by the view layer.
+        Creates a submission, dispatches judging, and logs contest activity.
+        """
+        result = cls.create_submission(
+            user=user,
+            data=data,
+            contest_id=contest_id,
+            lab_id=lab_id,
+        )
+
+        if result.should_judge:
+            cls._dispatch_judging(result)
+
+        if result.source_type == "contest" and result.should_judge:
+            cls._log_contest_activity(result, user)
+
+        return result.submission
+
+    # ------------------------------------------------------------------
+    # Submission creation (unchanged public contract for backward compat)
+    # ------------------------------------------------------------------
 
     @staticmethod
     def create_submission(
@@ -98,6 +138,38 @@ class SubmissionService:
             should_judge=True,
             source_type=source_type,
         )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _dispatch_judging(result: SubmissionCreateResult) -> None:
+        from apps.submissions.tasks import judge_submission
+
+        queue = "high_priority" if result.source_type == "contest" else "default"
+        sid = result.submission.id
+        transaction.on_commit(
+            lambda: judge_submission.apply_async(args=[sid], queue=queue)
+        )
+
+    @staticmethod
+    def _log_contest_activity(result: SubmissionCreateResult, user: User) -> None:
+        contest = result.submission.contest
+        if not contest:
+            return
+        try:
+            from apps.contests.views import ContestActivityViewSet
+
+            problem = result.submission.problem
+            ContestActivityViewSet.log_activity(
+                contest,
+                user,
+                "submit_code",
+                f"Submitted code for problem: {problem.title if problem else 'Unknown'}",
+            )
+        except Exception:
+            logger.debug("Failed to log contest activity", exc_info=True)
 
     @staticmethod
     def _check_keywords(
