@@ -3,8 +3,6 @@ import type { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
-  ContentSwitcher,
-  Switch,
   Tag,
   Loading,
 } from "@carbon/react";
@@ -24,6 +22,11 @@ import styles from "./StudentExamDemoScreen.module.scss";
 // Mock countdown: 1h 30m from now
 const MOCK_DURATION_SEC = 90 * 60;
 
+const VIEW_MODES: { key: ExamViewMode; label: string }[] = [
+  { key: "single", label: "逐題" },
+  { key: "all", label: "全題" },
+];
+
 function useCountdown(totalSec: number) {
   const [remaining, setRemaining] = useState(totalSec);
   useEffect(() => {
@@ -33,6 +36,31 @@ function useCountdown(totalSec: number) {
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
   return { remaining, display: `${mm}:${ss}`, total: totalSec };
+}
+
+function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
+  const [visible, setVisible] = useState(true);
+  const lastY = useRef(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onScroll = () => {
+      const y = el.scrollTop;
+      if (y < 10) {
+        setVisible(true);
+      } else if (y < lastY.current) {
+        setVisible(true);
+      } else if (y > lastY.current + 5) {
+        setVisible(false);
+      }
+      lastY.current = y;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [ref]);
+
+  return visible;
 }
 
 const StudentExamDemoScreen: FC = () => {
@@ -55,9 +83,15 @@ const StudentExamDemoScreen: FC = () => {
 
   // Scroll to top on question change (single mode)
   const questionAreaRef = useRef<HTMLDivElement>(null);
+  const allContentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeIndex]);
+
+  // Auto-hide toolbar on scroll down, show on scroll up
+  const singleScrollVisible = useScrollDirection(questionAreaRef);
+  const allScrollVisible = useScrollDirection(allContentRef);
+  const toolbarVisible = viewMode === "single" ? singleScrollVisible : allScrollVisible;
 
   // Build unified exam items list
   const items: ExamItem[] = useMemo(() => {
@@ -246,7 +280,7 @@ const StudentExamDemoScreen: FC = () => {
   };
 
   const renderAllMode = () => (
-    <div className={styles.allContent}>
+    <div className={styles.allContent} ref={allContentRef}>
       {items.map((item, index) => (
         <div key={item.data.id} className={styles.allItem}>
           {item.kind === "question" ? (
@@ -284,7 +318,7 @@ const StudentExamDemoScreen: FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.toolbar}>
+      <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
         <div className={styles.toolbarLeft}>
           <Button
             kind="ghost"
@@ -304,19 +338,19 @@ const StudentExamDemoScreen: FC = () => {
             <span className={styles.timerText}>{countdown.display}</span>
           </div>
         </div>
+      </div>
 
-        <div className={styles.toolbarRight}>
-          <ContentSwitcher
-            size="sm"
-            selectedIndex={viewMode === "single" ? 0 : 1}
-            onChange={(e: { index: number }) =>
-              setViewMode(e.index === 0 ? "single" : "all")
-            }
+      {/* Vertical mode switcher — right center */}
+      <div className={styles.modeSwitcher}>
+        {VIEW_MODES.map((m) => (
+          <button
+            key={m.key}
+            className={`${styles.modeBtn} ${viewMode === m.key ? styles.modeBtnActive : ""}`}
+            onClick={() => setViewMode(m.key)}
           >
-            <Switch name="single" text="逐題模式" />
-            <Switch name="all" text="全題模式" />
-          </ContentSwitcher>
-        </div>
+            {m.label}
+          </button>
+        ))}
       </div>
 
       <div className={styles.body}>

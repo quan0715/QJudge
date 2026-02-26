@@ -30,11 +30,19 @@
 
 .prompt {
   margin-bottom: $spacing-06;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: $text-primary;
 
   :global(.markdown-body) {
-    font-size: 18px;
-    line-height: 1.8;
-    color: $text-primary;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+
+    p, li, td, th {
+      font-size: inherit;
+      line-height: inherit;
+    }
   }
 }
 

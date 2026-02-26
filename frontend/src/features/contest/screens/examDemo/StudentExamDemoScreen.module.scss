@@ -10,9 +10,10 @@
   height: 100vh;
   overflow: hidden;
   background-color: $background;
+  position: relative;
 }
 
-// ─── Sticky top bar ───
+// ─── Top bar (auto-hide on scroll) ───
 .toolbar {
   display: flex;
   align-items: center;
@@ -21,6 +22,19 @@
   flex-shrink: 0;
   gap: $spacing-04;
   background-color: $background;
+  transition: transform 200ms motion(standard, productive),
+              opacity 200ms motion(standard, productive);
+}
+
+.toolbarHidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .toolbarLeft {
@@ -57,11 +71,48 @@
   color: $text-primary;
 }
 
-.toolbarRight {
+// ─── Vertical mode switcher (right-center) ───
+.modeSwitcher {
+  position: fixed;
+  right: $spacing-05;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
   display: flex;
-  align-items: center;
-  gap: $spacing-03;
-  flex-shrink: 0;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modeBtn {
+  @include type-style("label-01");
+  padding: $spacing-03 $spacing-04;
+  border: 1px solid $border-subtle-01;
+  background-color: $background;
+  color: $text-secondary;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 100ms motion(standard, productive),
+              color 100ms motion(standard, productive);
+
+  &:not(:first-child) {
+    border-top: none;
+  }
+
+  &:hover {
+    background-color: $layer-hover-01;
+  }
+}
+
+.modeBtnActive {
+  background-color: $background-inverse;
+  color: $text-inverse;
+  border-color: $background-inverse;
+
+  &:hover {
+    background-color: $background-inverse;
+  }
 }
 
 // Main content area
