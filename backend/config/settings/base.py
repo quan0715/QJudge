@@ -35,7 +35,6 @@ INSTALLED_APPS = [
     "apps.problems",
     "apps.submissions",
     "apps.contests",
-    "apps.notifications",
     "apps.announcements",
     "apps.labs",
     "apps.ai",  # AI Chat

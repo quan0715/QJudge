@@ -4,9 +4,6 @@ import {
   MarkdownEditor,
   MarkdownField,
   InlineMarkdownEditor,
-  MarkdownFieldTrigger,
-  MarkdownEditorProvider,
-  GlobalMarkdownEditorModal,
 } from "./index";
 import type { MarkdownEditorProps } from "./MarkdownEditor";
 
@@ -56,32 +53,6 @@ const MarkdownFieldStory = () => {
         helperText="遵循 Markdown 語法，支援數學公式與程式碼區塊"
       />
     </div>
-  );
-};
-
-const TriggerWithModalStory = () => {
-  const [value, setValue] = useState(SAMPLE_MD);
-
-  return (
-    <MarkdownEditorProvider>
-      <div
-        style={{
-          maxWidth: "960px",
-          margin: "0 auto",
-          padding: "1rem",
-          background: "var(--cds-layer-01)",
-        }}
-      >
-        <MarkdownFieldTrigger
-          id="trigger-md"
-          labelText="內容"
-          value={value}
-          onChange={setValue}
-          placeholder="點擊以開啟全螢幕編輯"
-        />
-      </div>
-      <GlobalMarkdownEditorModal />
-    </MarkdownEditorProvider>
   );
 };
 
@@ -165,20 +136,6 @@ const storyModule: StoryModule<MarkdownEditorProps> = {
   onChange={setValue}
   showPreview
 />`,
-    },
-    {
-      name: "Trigger With Modal",
-      description: "使用 Trigger + Global Modal 的全螢幕編輯體驗",
-      render: () => <TriggerWithModalStory />,
-      code: `<MarkdownEditorProvider>
-  <MarkdownFieldTrigger
-    id="trigger-md"
-    labelText="內容"
-    value={value}
-    onChange={setValue}
-  />
-  <GlobalMarkdownEditorModal />
-</MarkdownEditorProvider>`,
     },
   ],
 };

@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom';
-// import { Grid, Column } from '@carbon/react';
 
 const AuthLayout = () => {
   return (

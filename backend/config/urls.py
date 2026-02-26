@@ -15,7 +15,6 @@ urlpatterns = [
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/labs/', include('apps.labs.urls')),
-    path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
     # User API Key management
