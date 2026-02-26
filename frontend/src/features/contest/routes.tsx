@@ -3,6 +3,7 @@ import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
+import ExamEditScreen from "./screens/examEdit/ExamEditScreen";
 import {
   ExamV2RegistrationScreen,
   ExamV2PrecheckScreen,
@@ -10,6 +11,7 @@ import {
   ExamV2SubmitReviewScreen,
   ExamV2GradingScreen,
   ExamV2ResultScreen,
+  StudentExamDemoScreen,
 } from "./screens";
 
 /**
@@ -32,6 +34,8 @@ export const contestDetailRoutes = (
     <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
     {/* Problem Solving Page */}
     <Route path="solve/:problemId" element={<ContestProblemScreen />} />
+    {/* Exam Edit Page (admin/teacher only) */}
+    <Route path="exam/edit" element={<ExamEditScreen />} />
     {/* Exam v2 Flow (API-connected student flow) */}
     <Route path="exam-v2" element={<Navigate to="registration" replace />} />
     <Route path="exam-v2/registration" element={<ExamV2RegistrationScreen />} />
@@ -40,5 +44,7 @@ export const contestDetailRoutes = (
     <Route path="exam-v2/submit-review" element={<ExamV2SubmitReviewScreen />} />
     <Route path="exam-v2/grading" element={<ExamV2GradingScreen />} />
     <Route path="exam-v2/result" element={<ExamV2ResultScreen />} />
+    {/* Student Exam Demo */}
+    <Route path="exam-demo" element={<StudentExamDemoScreen />} />
   </Route>
 );

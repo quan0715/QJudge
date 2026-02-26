@@ -1,0 +1,73 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.card {
+  padding: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  border-radius: 8px;
+  background-color: $layer-01;
+
+  & + & {
+    margin-top: $spacing-05;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-04;
+}
+
+.label {
+  @include type-style("heading-compact-02");
+  color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.score {
+  @include type-style("label-01");
+  color: $text-secondary;
+}
+
+.prompt {
+  margin-bottom: $spacing-05;
+
+  :global(.markdown-body) {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+.answerArea {
+  padding-top: $spacing-04;
+  border-top: 1px solid $border-subtle-01;
+}
+
+.answerLabel {
+  @include type-style("label-01");
+  color: $text-secondary;
+  margin-bottom: $spacing-03;
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+}
+
+.textArea {
+  width: 100%;
+
+  textarea {
+    min-height: 120px;
+  }
+}
+
+.shortInput {
+  max-width: 480px;
+}

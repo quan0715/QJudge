@@ -1,0 +1,134 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+// Top bar: back button + title + mode switcher
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  border-bottom: 1px solid $border-subtle-01;
+  background-color: $layer-01;
+  flex-shrink: 0;
+  gap: $spacing-04;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  min-width: 0;
+}
+
+.title {
+  @include type-style("heading-compact-02");
+  color: $text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  flex-shrink: 0;
+}
+
+// Main content area
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Single-question mode content
+.singleContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.questionArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-05;
+}
+
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-03 $spacing-05;
+  border-top: 1px solid $border-subtle-01;
+  background-color: $layer-01;
+  flex-shrink: 0;
+}
+
+.navInfo {
+  @include type-style("body-compact-01");
+  color: $text-secondary;
+}
+
+// All-questions mode content
+.allContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-05;
+}
+
+// Coding problem card (for all-questions mode)
+.codingCard {
+  padding: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  border-radius: 8px;
+  background-color: $layer-01;
+
+  & + & {
+    margin-top: $spacing-05;
+  }
+}
+
+.codingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-04;
+}
+
+.codingLabel {
+  @include type-style("heading-compact-02");
+  color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.codingScore {
+  @include type-style("label-01");
+  color: $text-secondary;
+}
+
+// Loading / empty states
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: $text-secondary;
+  @include type-style("body-compact-01");
+  flex-direction: column;
+  gap: $spacing-04;
+}
