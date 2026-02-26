@@ -155,31 +155,28 @@
 // ── Announcement Cards ────────────────────────────────
 .classroom-detail__announcement-list {
   display: grid;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-03;
 }
 
 .classroom-detail__ann-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
   background: var(--cds-layer);
   border-left: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-05;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  cursor: pointer;
   transition: box-shadow 0.15s ease, background 0.15s ease;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    background: var(--cds-layer-hover);
   }
 }
 
 .classroom-detail__ann-card--pinned {
   border-left-color: var(--cds-support-warning);
-  background: var(--cds-layer);
-}
-
-.classroom-detail__ann-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-03;
 }
 
 .classroom-detail__ann-card-title {
@@ -191,6 +188,9 @@
   h4 {
     @include type.type-style("heading-02");
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -199,40 +199,9 @@
   color: var(--cds-support-warning);
 }
 
-.classroom-detail__ann-card-actions {
+.classroom-detail__ann-card-meta {
   display: flex;
   flex-shrink: 0;
-  gap: 0;
-}
-
-.classroom-detail__ann-card-delete {
-  color: var(--cds-support-error);
-}
-
-.classroom-detail__ann-card-body {
-  @include type.type-style("body-compact-01");
-  color: var(--cds-text-secondary);
-  margin-bottom: layout.$spacing-03;
-  overflow: hidden;
-
-  // Limit rendered markdown height to keep cards compact
-  max-height: layout.rem(120px);
-  position: relative;
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: layout.$spacing-06;
-    background: linear-gradient(transparent, var(--cds-layer));
-    pointer-events: none;
-  }
-}
-
-.classroom-detail__ann-card-footer {
-  display: flex;
   align-items: center;
   gap: layout.$spacing-03;
   @include type.type-style("label-01");
@@ -243,6 +212,24 @@
   display: inline-flex;
   align-items: center;
   gap: layout.$spacing-02;
+}
+
+// ── Announcement View Modal ─────────────────────────
+.classroom-detail__ann-view {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.classroom-detail__ann-view-meta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+}
+
+.classroom-detail__ann-view-body {
+  padding-top: layout.$spacing-03;
+  border-top: 1px solid var(--cds-border-subtle);
 }
 
 // ── Empty State ────────────────────────────────────────

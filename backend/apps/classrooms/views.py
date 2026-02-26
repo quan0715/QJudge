@@ -238,7 +238,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=['patch'], url_path=r'announcements/(?P<ann_id>\d+)',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
     def update_announcement(self, request, pk=None, ann_id=None):
         classroom = self.get_object()
         try:
@@ -253,7 +253,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response(ClassroomAnnouncementSerializer(announcement).data)
 
     @action(detail=True, methods=['delete'], url_path=r'announcements/(?P<ann_id>\d+)/delete',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
     def delete_announcement(self, request, pk=None, ann_id=None):
         classroom = self.get_object()
         deleted, _ = classroom.announcements.filter(pk=ann_id).delete()

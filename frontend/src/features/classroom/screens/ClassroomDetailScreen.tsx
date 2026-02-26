@@ -6,6 +6,7 @@ import {
   Column,
   Button,
   Tag,
+  Modal,
   SkeletonText,
   SkeletonPlaceholder,
   ClickableTile,
@@ -55,12 +56,15 @@ const ClassroomDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [bindContestOpen, setBindContestOpen] = useState(false);
+  const [viewingAnnouncement, setViewingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
 
   const isPrivileged =
     classroom?.currentUserRole === "admin" ||
     classroom?.currentUserRole === "teacher";
+
+  const isMember = !!classroom?.currentUserRole;
 
   const fetchData = useCallback(async () => {
     if (!classroomId) return;
@@ -228,8 +232,7 @@ const ClassroomDetailScreen: React.FC = () => {
                       announcements={classroom.announcements}
                       isPrivileged={!!isPrivileged}
                       onCreateClick={() => { setEditingAnnouncement(null); setAnnouncementModalOpen(true); }}
-                      onEdit={(a) => { setEditingAnnouncement(a); setAnnouncementModalOpen(true); }}
-                      onDelete={handleDeleteAnnouncement}
+                      onView={setViewingAnnouncement}
                     />
                   </Column>
 
@@ -365,15 +368,36 @@ const ClassroomDetailScreen: React.FC = () => {
             onClose={() => setBindContestOpen(false)}
             onBound={() => { setBindContestOpen(false); fetchData(); }}
           />
-          <AnnouncementModal
-            open={announcementModalOpen}
-            classroomId={classroomId!}
-            announcement={editingAnnouncement}
-            onClose={() => setAnnouncementModalOpen(false)}
-            onSaved={() => { setAnnouncementModalOpen(false); fetchData(); }}
-          />
         </>
       )}
+
+      {/* View announcement modal — all members */}
+      <AnnouncementViewModal
+        announcement={viewingAnnouncement}
+        canEdit={isMember}
+        onClose={() => setViewingAnnouncement(null)}
+        onEdit={() => {
+          setEditingAnnouncement(viewingAnnouncement);
+          setViewingAnnouncement(null);
+          setAnnouncementModalOpen(true);
+        }}
+        onDelete={async () => {
+          if (viewingAnnouncement && classroomId) {
+            await deleteAnnouncement(classroomId, viewingAnnouncement.id);
+            setViewingAnnouncement(null);
+            fetchData();
+          }
+        }}
+      />
+
+      {/* Edit/Create announcement modal — all members */}
+      <AnnouncementModal
+        open={announcementModalOpen}
+        classroomId={classroomId!}
+        announcement={editingAnnouncement}
+        onClose={() => setAnnouncementModalOpen(false)}
+        onSaved={() => { setAnnouncementModalOpen(false); fetchData(); }}
+      />
     </div>
   );
 };
@@ -432,9 +456,8 @@ const AnnouncementSection: React.FC<{
   announcements: ClassroomAnnouncement[];
   isPrivileged: boolean;
   onCreateClick: () => void;
-  onEdit: (a: ClassroomAnnouncement) => void;
-  onDelete: (id: string) => void;
-}> = ({ announcements, isPrivileged, onCreateClick, onEdit, onDelete }) => {
+  onView: (a: ClassroomAnnouncement) => void;
+}> = ({ announcements, isPrivileged, onCreateClick, onView }) => {
   const { t } = useTranslation();
 
   return (
@@ -455,13 +478,7 @@ const AnnouncementSection: React.FC<{
       ) : (
         <div className="classroom-detail__announcement-list">
           {announcements.map((a) => (
-            <AnnouncementCard
-              key={a.id}
-              announcement={a}
-              isPrivileged={isPrivileged}
-              onEdit={() => onEdit(a)}
-              onDelete={() => onDelete(a.id)}
-            />
+            <AnnouncementCard key={a.id} announcement={a} onClick={() => onView(a)} />
           ))}
         </div>
       )}
@@ -469,54 +486,20 @@ const AnnouncementSection: React.FC<{
   );
 };
 
-/** Single announcement card */
+/** Title-only announcement card */
 const AnnouncementCard: React.FC<{
   announcement: ClassroomAnnouncement;
-  isPrivileged: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}> = ({ announcement: a, isPrivileged, onEdit, onDelete }) => (
+  onClick: () => void;
+}> = ({ announcement: a, onClick }) => (
   <div
     className={`classroom-detail__ann-card${a.isPinned ? " classroom-detail__ann-card--pinned" : ""}`}
-    onClick={isPrivileged ? onEdit : undefined}
-    style={isPrivileged ? { cursor: "pointer" } : undefined}
+    onClick={onClick}
   >
-    {/* Header row */}
-    <div className="classroom-detail__ann-card-header">
-      <div className="classroom-detail__ann-card-title">
-        {a.isPinned && <Pin size={14} className="classroom-detail__ann-card-pin" />}
-        <h4>{a.title}</h4>
-      </div>
-      {isPrivileged && (
-        <div className="classroom-detail__ann-card-actions">
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            renderIcon={EditIcon}
-            iconDescription="Edit"
-            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(); }}
-          />
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            renderIcon={TrashCan}
-            iconDescription="Delete"
-            className="classroom-detail__ann-card-delete"
-            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }}
-          />
-        </div>
-      )}
+    <div className="classroom-detail__ann-card-title">
+      {a.isPinned && <Pin size={14} className="classroom-detail__ann-card-pin" />}
+      <h4>{a.title}</h4>
     </div>
-
-    {/* Body — markdown rendered */}
-    <div className="classroom-detail__ann-card-body">
-      <MarkdownRenderer>{a.content}</MarkdownRenderer>
-    </div>
-
-    {/* Footer */}
-    <div className="classroom-detail__ann-card-footer">
+    <div className="classroom-detail__ann-card-meta">
       {a.createdByUsername && (
         <Tag type="high-contrast" size="sm">{a.createdByUsername}</Tag>
       )}
@@ -527,6 +510,49 @@ const AnnouncementCard: React.FC<{
     </div>
   </div>
 );
+
+/** Read-only announcement detail modal */
+const AnnouncementViewModal: React.FC<{
+  announcement: ClassroomAnnouncement | null;
+  canEdit: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}> = ({ announcement, canEdit, onClose, onEdit, onDelete }) => {
+  if (!announcement) return null;
+  return (
+    <Modal
+      open
+      passiveModal={!canEdit}
+      onRequestClose={onClose}
+      onRequestSubmit={onEdit}
+      modalHeading={announcement.title}
+      primaryButtonText={canEdit ? "編輯" : undefined}
+      secondaryButtonText={canEdit ? "刪除" : undefined}
+      onSecondarySubmit={onDelete}
+      size="lg"
+      danger={false}
+    >
+      <div className="classroom-detail__ann-view">
+        <div className="classroom-detail__ann-view-meta">
+          {announcement.isPinned && (
+            <Tag type="red" size="sm"><Pin size={12} /> 置頂</Tag>
+          )}
+          {announcement.createdByUsername && (
+            <Tag type="high-contrast" size="sm">{announcement.createdByUsername}</Tag>
+          )}
+          <span className="classroom-detail__ann-card-date">
+            <Calendar size={12} />
+            {new Date(announcement.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+        <div className="classroom-detail__ann-view-body">
+          <MarkdownRenderer>{announcement.content}</MarkdownRenderer>
+        </div>
+      </div>
+    </Modal>
+  );
+};
 
 /** Empty state block */
 const EmptyBlock: React.FC<{
