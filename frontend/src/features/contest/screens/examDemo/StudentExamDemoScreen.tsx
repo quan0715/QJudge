@@ -5,8 +5,17 @@ import {
   Button,
   Tag,
   Loading,
+  Tooltip,
 } from "@carbon/react";
-import { ArrowLeft, ArrowRight, ChevronLeft, Time } from "@carbon/icons-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronLeft,
+  Time,
+  CenterToFit,
+  ListBulleted,
+  List,
+} from "@carbon/icons-react";
 import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
@@ -22,9 +31,9 @@ import styles from "./StudentExamDemoScreen.module.scss";
 // Mock countdown: 1h 30m from now
 const MOCK_DURATION_SEC = 90 * 60;
 
-const VIEW_MODES: { key: ExamViewMode; label: string }[] = [
-  { key: "single", label: "逐題" },
-  { key: "all", label: "全題" },
+const VIEW_MODES: { key: ExamViewMode; label: string; icon: typeof CenterToFit }[] = [
+  { key: "single", label: "逐題模式", icon: CenterToFit },
+  { key: "all", label: "全題模式", icon: ListBulleted },
 ];
 
 function useCountdown(totalSec: number) {
@@ -74,9 +83,13 @@ const StudentExamDemoScreen: FC = () => {
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
   // Cache fetched problem details for coding problems
   const [problemDetails, setProblemDetails] = useState<Record<string, ProblemDetail>>({});
+  // Slide transition direction for single mode
+  const [slideDir, setSlideDir] = useState<"left" | "right">("right");
+  const [animating, setAnimating] = useState(false);
+  const prevIndexRef = useRef(activeIndex);
 
   // Mock countdown timer
   const countdown = useCountdown(MOCK_DURATION_SEC);
@@ -84,9 +97,60 @@ const StudentExamDemoScreen: FC = () => {
   // Scroll to top on question change (single mode)
   const questionAreaRef = useRef<HTMLDivElement>(null);
   const allContentRef = useRef<HTMLDivElement>(null);
+  // Refs for all-mode IntersectionObserver
+  const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // Trigger slide animation on question change
+  const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
+    setActiveIndex((prev) => {
+      const next = typeof newIndex === "function" ? newIndex(prev) : newIndex;
+      if (next !== prev) {
+        setSlideDir(next > prev ? "right" : "left");
+        setAnimating(true);
+      }
+      prevIndexRef.current = prev;
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (animating) {
+      const t = setTimeout(() => setAnimating(false), 300);
+      return () => clearTimeout(t);
+    }
+  }, [animating, activeIndex]);
+
   useEffect(() => {
     questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeIndex]);
+
+  // IntersectionObserver for all-mode: track which question is most visible
+  const [allModeActiveIndex, setAllModeActiveIndex] = useState(0);
+  useEffect(() => {
+    if (viewMode !== "all") return;
+    const container = allContentRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestIdx = allModeActiveIndex;
+        let bestRatio = 0;
+        for (const entry of entries) {
+          const idx = Number(entry.target.getAttribute("data-index"));
+          if (entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestIdx = idx;
+          }
+        }
+        if (bestRatio > 0) setAllModeActiveIndex(bestIdx);
+      },
+      { root: container, threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+
+    allItemRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, allContentRef.current, allItemRefs.current.size]);
 
   // Auto-hide toolbar on scroll down, show on scroll up
   const singleScrollVisible = useScrollDirection(questionAreaRef);
@@ -209,11 +273,14 @@ const StudentExamDemoScreen: FC = () => {
     const item = items[activeIndex];
     if (!item) return null;
     const isLast = activeIndex === items.length - 1;
+    const slideClass = animating
+      ? slideDir === "right" ? styles.slideInRight : styles.slideInLeft
+      : "";
 
     return (
       <div className={styles.singleContent}>
         <div className={styles.questionArea} ref={questionAreaRef}>
-          <div className={styles.questionInner}>
+          <div className={`${styles.questionInner} ${slideClass}`} key={activeIndex}>
             {item.kind === "question" ? (
               <ExamQuestionCard
                 question={item.data}
@@ -258,7 +325,7 @@ const StudentExamDemoScreen: FC = () => {
             size="sm"
             renderIcon={ArrowLeft}
             disabled={activeIndex === 0}
-            onClick={() => setActiveIndex((i) => i - 1)}
+            onClick={() => handleSetActiveIndex((i) => i - 1)}
           >
             上一題
           </Button>
@@ -270,7 +337,7 @@ const StudentExamDemoScreen: FC = () => {
             size="sm"
             renderIcon={ArrowRight}
             disabled={isLast}
-            onClick={() => setActiveIndex((i) => i + 1)}
+            onClick={() => handleSetActiveIndex((i) => i + 1)}
           >
             下一題
           </Button>
@@ -281,8 +348,18 @@ const StudentExamDemoScreen: FC = () => {
 
   const renderAllMode = () => (
     <div className={styles.allContent} ref={allContentRef}>
-      {items.map((item, index) => (
-        <div key={item.data.id} className={styles.allItem}>
+      {items.map((item, index) => {
+        const dimClass = index !== allModeActiveIndex ? styles.allItemDimmed : "";
+        return (
+        <div
+          key={item.data.id}
+          data-index={index}
+          ref={(el) => {
+            if (el) allItemRefs.current.set(index, el);
+            else allItemRefs.current.delete(index);
+          }}
+          className={`${styles.allItem} ${dimClass}`}
+        >
           {item.kind === "question" ? (
             <ExamQuestionCard
               question={item.data}
@@ -312,7 +389,8 @@ const StudentExamDemoScreen: FC = () => {
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -343,25 +421,36 @@ const StudentExamDemoScreen: FC = () => {
       {/* Vertical mode switcher — right center */}
       <div className={styles.modeSwitcher}>
         {VIEW_MODES.map((m) => (
-          <button
-            key={m.key}
-            className={`${styles.modeBtn} ${viewMode === m.key ? styles.modeBtnActive : ""}`}
-            onClick={() => setViewMode(m.key)}
-          >
-            {m.label}
-          </button>
+          <Tooltip key={m.key} label={m.label} align="left">
+            <button
+              className={`${styles.modeBtn} ${viewMode === m.key ? styles.modeBtnActive : ""}`}
+              onClick={() => setViewMode(m.key)}
+              aria-label={m.label}
+            >
+              <m.icon size={16} />
+            </button>
+          </Tooltip>
         ))}
       </div>
 
       <div className={styles.body}>
+        {/* Nav list toggle button — left center */}
         {viewMode === "single" && (
+          <button
+            className={styles.navToggle}
+            onClick={() => setNavVisible((v) => !v)}
+            aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
+          >
+            <List size={20} />
+          </button>
+        )}
+
+        {viewMode === "single" && navVisible && (
           <ExamNavigator
             items={items}
             activeIndex={activeIndex}
             answeredIds={answeredIds}
-            onSelect={setActiveIndex}
-            collapsed={navCollapsed}
-            onToggleCollapse={() => setNavCollapsed((c) => !c)}
+            onSelect={handleSetActiveIndex}
           />
         )}
         {viewMode === "single" ? renderSingleMode() : renderAllMode()}

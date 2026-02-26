@@ -86,13 +86,14 @@
 }
 
 .modeBtn {
-  @include type-style("label-01");
-  padding: $spacing-03 $spacing-04;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-03;
   border: 1px solid $border-subtle-01;
   background-color: $background;
   color: $text-secondary;
   cursor: pointer;
-  white-space: nowrap;
   transition: background-color 100ms motion(standard, productive),
               color 100ms motion(standard, productive);
 
@@ -115,12 +116,58 @@
   }
 }
 
+// ─── Slide transitions (single mode) ───
+@keyframes slideInFromRight {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.slideInRight {
+  animation: slideInFromRight 280ms motion(entrance, productive) both;
+}
+
+.slideInLeft {
+  animation: slideInFromLeft 280ms motion(entrance, productive) both;
+}
+
 // Main content area
 .body {
   display: flex;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+
+// Nav toggle button (left-center, show/hide navigator)
+.navToggle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  background-color: $layer-01;
+  color: $text-secondary;
+  cursor: pointer;
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
+  transition: background-color 100ms motion(standard, productive);
+
+  &:hover {
+    background-color: $layer-hover-01;
+    color: $text-primary;
+  }
 }
 
 // ─── Single-question mode ───
@@ -175,10 +222,15 @@
   max-width: 720px;
   padding-bottom: $spacing-07;
   margin-bottom: $spacing-07;
+  transition: opacity 400ms motion(standard, productive);
 
   &:not(:last-child) {
     border-bottom: 1px solid $border-subtle-00;
   }
+}
+
+.allItemDimmed {
+  opacity: 0.35;
 }
 
 // Coding problem card (borderless)
