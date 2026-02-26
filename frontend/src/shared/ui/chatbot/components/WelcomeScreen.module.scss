@@ -1,4 +1,9 @@
-@use "../tokens" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/themes" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
 
 // Welcome Screen
 .welcomeScreen {
