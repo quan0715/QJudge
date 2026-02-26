@@ -1,0 +1,44 @@
+@use "@carbon/layout";
+
+$sidebar-width: layout.rem(220px);
+
+.layout {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  background-color: var(--cds-background);
+}
+
+.sidebar {
+  width: $sidebar-width;
+  min-width: $sidebar-width;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background-color: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+}
+
+.sidebarHeader {
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sidebarFooter {
+  padding: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
