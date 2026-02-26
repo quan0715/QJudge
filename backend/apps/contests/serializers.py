@@ -346,8 +346,11 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
                     'password': 'Password is required for private contests.'
                 })
                 
-            # If no password provided, ensure existing password
-            if not password_in_data:
+            # Only require password when creating or changing to private
+            changing_to_private = ('visibility' in data and data['visibility'] == 'private'
+                                   and (not self.instance or self.instance.visibility != 'private'))
+            is_create = self.instance is None
+            if not password_in_data and (is_create or changing_to_private):
                 if not self.instance or not self.instance.password:
                      raise serializers.ValidationError({
                         'password': 'Password is required for private contests.'
