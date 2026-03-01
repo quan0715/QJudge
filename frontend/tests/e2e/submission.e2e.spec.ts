@@ -23,7 +23,6 @@ test.describe("Submission E2E Tests", () => {
   test("should display problem detail page", async ({ page }) => {
     // Navigate to problems and click on A+B Problem
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     const aPlusBProblem = page
       .locator("text=" + TEST_PROBLEMS.aPlusB.title)
@@ -43,7 +42,6 @@ test.describe("Submission E2E Tests", () => {
     page,
   }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Navigate to A+B Problem
     const aPlusBProblem = page
@@ -65,7 +63,6 @@ test.describe("Submission E2E Tests", () => {
 
   test("should display coding tab", async ({ page }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     const aPlusBProblem = page
       .locator("text=" + TEST_PROBLEMS.aPlusB.title)
@@ -95,16 +92,12 @@ test.describe("Submission E2E Tests", () => {
   test("should submit code and see result", async ({ page }) => {
     // Navigate to A+B Problem
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     const aPlusBProblem = page
       .locator("text=" + TEST_PROBLEMS.aPlusB.title)
       .first();
     await aPlusBProblem.click();
     await page.waitForURL(/\/problems\/[^/]+/);
-
-    // Wait for page to fully load
-    await page.waitForTimeout(3000);
 
     // Find and click submit button
     const submitButton = page
@@ -116,25 +109,20 @@ test.describe("Submission E2E Tests", () => {
     if ((await submitButton.count()) > 0) {
       await submitButton.first().click();
 
-      // Wait for submission to be processed
-      // This might show a loading state or redirect to submission page
-      await page.waitForTimeout(5000);
-
-      // Check if we're redirected to submission detail or if result is shown inline
-      const currentUrl = page.url();
-
-      if (currentUrl.includes("/submissions")) {
-        // Redirected to submissions page
-        await expect(page).toHaveURL(/\/submissions/);
-      } else {
-        // Result might be shown on the same page
-        // Look for result indicators
-        await expect(
-          page
-            .locator("text=/AC|WA|TLE|MLE|Accepted|Wrong Answer|通過|錯誤/i")
-            .first()
-        ).toBeVisible({ timeout: 30000 });
-      }
+      // Submission may redirect or render result inline.
+      const result = await Promise.race([
+        page
+          .waitForURL(/\/submissions/, { timeout: 30000 })
+          .then(() => "redirect")
+          .catch(() => null),
+        page
+          .locator("text=/AC|WA|TLE|MLE|Accepted|Wrong Answer|通過|錯誤/i")
+          .first()
+          .waitFor({ state: "visible", timeout: 30000 })
+          .then(() => "inline")
+          .catch(() => null),
+      ]);
+      expect(result).toBeTruthy();
     }
   });
 
@@ -155,7 +143,6 @@ test.describe("Submission E2E Tests", () => {
 
   test("should filter submissions by problem", async ({ page }) => {
     await page.goto("/submissions");
-    await page.waitForLoadState("networkidle");
 
     // Look for filter or search inputs
     const filterInput = page
@@ -164,7 +151,7 @@ test.describe("Submission E2E Tests", () => {
 
     if ((await filterInput.count()) > 0) {
       // Try filtering (implementation depends on actual UI)
-      await page.waitForTimeout(1000);
+      await expect(filterInput).toBeVisible();
     }
 
     // At minimum, verify submissions page is accessible
@@ -173,10 +160,6 @@ test.describe("Submission E2E Tests", () => {
 
   test("should display submission status", async ({ page }) => {
     await page.goto("/submissions");
-    await page.waitForLoadState("networkidle");
-
-    // Wait for any submissions to load
-    await page.waitForTimeout(2000);
 
     // Check if status indicators are present
     const statusElements = page.locator(
@@ -193,11 +176,9 @@ test.describe("Submission E2E Tests", () => {
   test("should navigate to problem from submissions page", async ({ page }) => {
     // First make sure we have something in submissions (by visiting problems)
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Then go to submissions
     await page.goto("/submissions");
-    await page.waitForLoadState("networkidle");
 
     // Look for problem links
     const problemLinks = page
@@ -216,8 +197,6 @@ test.describe("Submission E2E Tests", () => {
     page,
   }) => {
     await page.goto("/submissions");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
 
     // Try to find and click on a submission row
     const submissionRow = page
@@ -228,20 +207,20 @@ test.describe("Submission E2E Tests", () => {
     if ((await submissionRow.count()) > 0) {
       await submissionRow.click();
 
-      // Should navigate to submission detail or show modal
-      await page.waitForTimeout(1000);
-
-      // Check if URL changed or modal appeared
-      const currentUrl = page.url();
-      const modal = page.locator(
-        '[role="dialog"], .modal, .submission-detail-modal'
-      );
-
-      // Either URL changed or modal is visible
-      const urlChanged = currentUrl.includes("/submissions/");
-      const modalVisible = (await modal.count()) > 0;
-
-      expect(urlChanged || modalVisible).toBe(true);
+      // Should navigate to submission detail or show modal.
+      const detailSignal = await Promise.race([
+        page
+          .waitForURL(/\/submissions\/\d+/, { timeout: 10000 })
+          .then(() => "url")
+          .catch(() => null),
+        page
+          .locator('[role="dialog"], .modal, .submission-detail-modal')
+          .first()
+          .waitFor({ state: "visible", timeout: 10000 })
+          .then(() => "modal")
+          .catch(() => null),
+      ]);
+      expect(detailSignal).toBeTruthy();
     }
   });
 
@@ -249,7 +228,6 @@ test.describe("Submission E2E Tests", () => {
     page,
   }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     const aPlusBProblem = page
       .locator("text=" + TEST_PROBLEMS.aPlusB.title)

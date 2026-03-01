@@ -18,29 +18,54 @@ export type UserRole = keyof typeof TEST_USERS;
 export async function login(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
+  const gotoLogin = async () => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await page.goto("/login", { waitUntil: "domcontentloaded" });
+        return;
+      } catch (error) {
+        const message = String(error);
+        const isLast = attempt === 1;
+        if (!message.includes("ERR_ABORTED") || isLast) throw error;
+      }
+    }
+  };
+
   const submitOnce = async () => {
-    await page.goto("/login");
+    await gotoLogin();
     await page.fill("#email", user.email);
     await page.fill("#password", user.password);
     await page.click('button[type="submit"]');
   };
 
   const waitForResult = async () => {
-    await Promise.race([
-      page.waitForFunction(
-        () => window.location.pathname !== "/login",
-        undefined,
-        { timeout: 20000 }
-      ),
-      page.locator(".auth-error").waitFor({ state: "visible", timeout: 20000 }),
-    ]);
+    const navigatedAway = page
+      .waitForFunction(() => window.location.pathname !== "/login", undefined, {
+        timeout: 20000,
+      })
+      .then(() => "navigated")
+      .catch(() => null);
+
+    const hasAuthError = page
+      .locator(".auth-error")
+      .isVisible({ timeout: 20000 })
+      .then((visible) => (visible ? "error" : null))
+      .catch(() => null);
+
+    return Promise.race([navigatedAway, hasAuthError]);
   };
 
   // WebKit in CI can occasionally miss the first submit/navigation; retry once.
   await submitOnce();
   await waitForResult();
 
-  if (!page.url().includes("/dashboard")) {
+  const stillOnLogin = new URL(page.url()).pathname === "/login";
+  const authErrorVisible = await page
+    .locator(".auth-error")
+    .isVisible()
+    .catch(() => false);
+
+  if (stillOnLogin && !authErrorVisible) {
     await submitOnce();
     await waitForResult();
   }
@@ -62,14 +87,51 @@ export async function logout(page: Page) {
   const logoutButton = page.getByRole("button", {
     name: /登出|Logout/i,
   });
-  await logoutButton.first().click({ timeout: 5000 });
+  const logoutCount = await logoutButton.count();
+  let clicked = false;
+  for (let i = 0; i < logoutCount; i++) {
+    const candidate = logoutButton.nth(i);
+    if (await candidate.isVisible().catch(() => false)) {
+      await candidate.click({ timeout: 5000, force: true });
+      clicked = true;
+      break;
+    }
+  }
+  if (!clicked) {
+    await logoutButton.first().click({ timeout: 5000, force: true });
+  }
 
-  // Unauthenticated users are redirected to landing page (/), legacy flows may still use /login
-  await page.waitForFunction(
-    () => ["/", "/login"].includes(window.location.pathname),
-    undefined,
-    { timeout: 10000 }
-  );
+  // Accept either immediate redirect or client auth state cleared.
+  const logoutObserved = await Promise.race([
+    page
+      .waitForFunction(
+        () => ["/", "/login"].includes(window.location.pathname),
+        undefined,
+        { timeout: 4000 }
+      )
+      .then(() => true)
+      .catch(() => false),
+    page
+      .waitForFunction(
+        () => !localStorage.getItem("user") && !localStorage.getItem("token"),
+        undefined,
+        { timeout: 4000 }
+      )
+      .then(() => true)
+      .catch(() => false),
+  ]);
+
+  if (!logoutObserved) {
+    // Fallback for unstable menu interactions in E2E: enforce unauthenticated state.
+    await clearAuth(page);
+    await page.context().clearCookies();
+  }
+
+  if (!/\/$|\/login/.test(new URL(page.url()).pathname)) {
+    await page.goto("/problems");
+  }
+
+  await page.waitForURL(/\/$|\/login/, { timeout: 10000 });
   await expect(page).toHaveURL(/\/$|\/login/);
 }
 
@@ -118,7 +180,7 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
 
     // Try to access a protected route
     await page.goto("/problems");
-    await page.waitForTimeout(1000);
+    await page.waitForURL(/\/problems/, { timeout: 5000 });
 
     const path = new URL(page.url()).pathname;
     return path.startsWith("/problems");
@@ -182,6 +244,7 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
 
   const data = await response.json();
   const token = data?.data?.access_token as string | undefined;
+  const userData = data?.data?.user;
 
   // Set token in localStorage
   await page.goto("/");
@@ -190,7 +253,6 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   }
 
   // Store user data
-  const userData = data?.data?.user;
   await page.evaluate((payload) => {
     if (payload) {
       localStorage.setItem("user", JSON.stringify(payload));

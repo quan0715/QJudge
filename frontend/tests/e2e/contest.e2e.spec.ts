@@ -38,7 +38,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should display test contests in the list", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     // Should see E2E Test Contest
     await expect(page.locator("text=" + TEST_CONTESTS.active.name)).toBeVisible(
@@ -53,7 +52,6 @@ test.describe("Contest E2E Tests", () => {
     page,
   }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     // Look for status indicators
     const statusElements = page.locator(
@@ -66,7 +64,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should navigate to contest detail page", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     // Click on E2E Test Contest
     const contestLink = page
@@ -85,7 +82,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should display contest information", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)
@@ -109,7 +105,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should join an active contest", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     // Navigate to E2E Test Contest
     const contestLink = page
@@ -128,9 +123,6 @@ test.describe("Contest E2E Tests", () => {
     if (await joinButton.isVisible({ timeout: 5000 })) {
       await joinButton.click();
 
-      // Wait for join action to complete
-      await page.waitForTimeout(2000);
-
       // Should see problems list or confirmation
       // Button might change to "已加入" or disappear
       const alreadyJoined = page.locator("text=/已加入|Joined|離開|Leave/i");
@@ -145,7 +137,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should display contest problems", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)
@@ -161,7 +152,6 @@ test.describe("Contest E2E Tests", () => {
       .first();
     if (await joinButton.isVisible({ timeout: 3000 })) {
       await joinButton.click();
-      await page.waitForTimeout(2000);
     }
 
     // Navigate to problems tab
@@ -173,7 +163,6 @@ test.describe("Contest E2E Tests", () => {
 
     if ((await problemsTab.count()) > 0) {
       await problemsTab.click();
-      await page.waitForTimeout(1000);
     }
 
     // Depending on contest/exam mode, problem titles may be hidden before start.
@@ -189,7 +178,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should access problem from contest", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)
@@ -205,7 +193,6 @@ test.describe("Contest E2E Tests", () => {
       .first();
     if (await joinButton.isVisible({ timeout: 3000 })) {
       await joinButton.click();
-      await page.waitForTimeout(2000);
     }
 
     // Click on a problem
@@ -215,19 +202,15 @@ test.describe("Contest E2E Tests", () => {
 
     if ((await problemLink.count()) > 0) {
       await problemLink.click();
-
-      // Should navigate to contest problem page
-      await page.waitForTimeout(2000);
-
-      // URL might be /contests/:id/problems/:id
-      const url = page.url();
-      expect(url).toMatch(/\/contests\/\d+/);
+      // URL might be /contests/:id/problems/:id, fallback to contest detail.
+      await page.waitForURL(/\/contests\/\d+(\/problems\/\d+)?/, {
+        timeout: 10000,
+      });
     }
   });
 
   test("should display contest leaderboard", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)
@@ -243,7 +226,6 @@ test.describe("Contest E2E Tests", () => {
       .first();
     if (await joinButton.isVisible({ timeout: 3000 })) {
       await joinButton.click();
-      await page.waitForTimeout(2000);
     }
 
     // Navigate to leaderboard/ranking tab
@@ -255,7 +237,6 @@ test.describe("Contest E2E Tests", () => {
 
     if ((await leaderboardTab.count()) > 0) {
       await leaderboardTab.click();
-      await page.waitForTimeout(2000);
 
       // Should see ranking table or list
       await expect(
@@ -266,7 +247,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should show own ranking in leaderboard", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)
@@ -282,7 +262,6 @@ test.describe("Contest E2E Tests", () => {
       .first();
     if (await joinButton.isVisible({ timeout: 3000 })) {
       await joinButton.click();
-      await page.waitForTimeout(2000);
     }
 
     // Navigate to leaderboard
@@ -291,7 +270,6 @@ test.describe("Contest E2E Tests", () => {
       .first();
     if ((await leaderboardTab.count()) > 0) {
       await leaderboardTab.click();
-      await page.waitForTimeout(2000);
 
       // Should see student's name or indicator
       await expect(page.locator("text=/student|你|You/i").first()).toBeVisible({
@@ -302,7 +280,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should prevent joining upcoming contest", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     // Try to find Upcoming Contest
     const upcomingContest = page.locator("text=" + TEST_CONTESTS.upcoming.name);
@@ -330,7 +307,6 @@ test.describe("Contest E2E Tests", () => {
 
   test("should display contest time restrictions", async ({ page }) => {
     await page.goto("/contests");
-    await page.waitForLoadState("networkidle");
 
     const contestLink = page
       .locator("text=" + TEST_CONTESTS.active.name)

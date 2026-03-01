@@ -9,6 +9,7 @@ import { test, expect } from "@playwright/test";
 import {
   login,
   logout,
+  loginViaAPI,
   clearAuth,
   isAuthenticated,
 } from "../helpers/auth.helper";
@@ -89,8 +90,11 @@ test.describe("Authentication E2E Tests", () => {
 
       // Submit form
       await page.click('button[type="submit"]');
-
-      await page.waitForTimeout(1000);
+      await page.waitForFunction(
+        () => ["/register", "/error"].includes(window.location.pathname),
+        undefined,
+        { timeout: 5000 }
+      );
 
       // App may show inline error on /register, or navigate to /error via global API handler.
       const path = new URL(page.url()).pathname;
@@ -183,8 +187,9 @@ test.describe("Authentication E2E Tests", () => {
   test.describe("Logout", () => {
     test("should logout successfully", async ({ page }) => {
       // First login
-      await login(page, "student");
+      await loginViaAPI(page, "teacher");
       await expect(page).not.toHaveURL(/\/login/);
+      await page.goto("/dashboard");
 
       // Then logout
       await logout(page);
@@ -239,8 +244,9 @@ test.describe("Authentication E2E Tests", () => {
     test("should clear token from localStorage after logout", async ({
       page,
     }) => {
-      await login(page, "student");
+      await loginViaAPI(page, "teacher");
       await expect(page).not.toHaveURL(/\/login/);
+      await page.goto("/dashboard");
 
       await logout(page);
 

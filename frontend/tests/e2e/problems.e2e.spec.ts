@@ -27,15 +27,12 @@ test.describe("Problem List E2E Tests", () => {
     // Should see problem list page
     await expect(page).toHaveURL(/\/problems/);
 
-    // Should see page header/title
-    await expect(
-      page.locator("h1, h2, .page-header").filter({ hasText: /題目|Problem/i })
-    ).toBeVisible({ timeout: 10000 });
+    // Stable page-level anchor: search input should always be rendered on list screen.
+    await expect(page.locator("#problem-search")).toBeVisible({ timeout: 10000 });
   });
 
   test("should display A+B Problem in the list", async ({ page }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Should see A+B Problem (wait longer for data to load)
     await expect(
@@ -45,7 +42,6 @@ test.describe("Problem List E2E Tests", () => {
 
   test("should display Hello World Problem in the list", async ({ page }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Should see Hello World
     await expect(
@@ -55,7 +51,6 @@ test.describe("Problem List E2E Tests", () => {
 
   test("should display difficulty badges", async ({ page }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Check if difficulty is displayed (Easy badge)
     const difficultyElements = page.locator("text=/easy|簡單|EASY/i");
@@ -66,7 +61,6 @@ test.describe("Problem List E2E Tests", () => {
     page,
   }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Wait for A+B Problem to appear
     const aPlusBProblem = page
@@ -103,10 +97,6 @@ test.describe("Problem List E2E Tests", () => {
 
   test("should display problems in list/card layout", async ({ page }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
-
-    // Wait for content to load
-    await page.waitForTimeout(2000);
 
     // Current UI is card/list based (not always table-based).
     await expect(
@@ -118,7 +108,6 @@ test.describe("Problem List E2E Tests", () => {
     page,
   }) => {
     await page.goto("/problems");
-    await page.waitForLoadState("networkidle");
 
     // Click on A+B Problem
     const aPlusBProblem = page

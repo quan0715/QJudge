@@ -1,0 +1,13 @@
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+
+WORKDIR /app
+
+# Copy package files for dependency caching
+COPY package.json package-lock.json* ./
+
+# Install dependencies (ci is faster and deterministic when lock file exists)
+RUN npm ci || npm install
+
+EXPOSE 5174
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]

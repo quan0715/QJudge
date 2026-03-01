@@ -121,7 +121,7 @@ services:
   frontend-test:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.e2e
     container_name: oj_frontend_test
     command: npm run dev -- --host 0.0.0.0 --port 5174
     environment:

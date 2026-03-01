@@ -17,7 +17,7 @@ async function loginAndGotoTeacher(page: Page, role: UserRole) {
   // Attempt 1: loginViaAPI (fast path)
   await loginViaAPI(page, role);
   await page.goto("/teacher");
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL(/\/teacher|\/login/, { timeout: 10000 });
 
   // Give time for SPA auth check
   const heading = page.locator("h1").filter({ hasText: /教師後台|Teacher/i });
@@ -28,9 +28,8 @@ async function loginAndGotoTeacher(page: Page, role: UserRole) {
   await page.goto("/");
   await clearAuth(page);
   await login(page, role);
-  await page.waitForLoadState("networkidle");
   await page.goto("/teacher");
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL(/\/teacher|\/login/, { timeout: 10000 });
 }
 
 test.describe("Teacher Dashboard E2E Tests", () => {

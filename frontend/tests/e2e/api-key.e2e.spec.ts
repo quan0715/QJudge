@@ -6,7 +6,7 @@
  */
 
 import { test, expect, Page } from "@playwright/test";
-import { login, clearAuth } from "../helpers/auth.helper";
+import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 
 /** Set up route mocks for API key endpoints before navigation. */
 async function mockAPIKeyEndpoints(
@@ -67,15 +67,17 @@ async function mockAPIKeyEndpoints(
 
 test.describe("API Key Management E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
+    await page.goto("/");
     await clearAuth(page);
-    await login(page, "student");
+    await loginViaAPI(page, "student");
   });
 
   /** Navigate to /settings and switch to the API Key tab. */
   async function gotoAPIKeyTab(page: Page) {
     await page.goto("/settings");
-    await page.getByRole("tab", { name: "API Key" }).click();
+    const apiKeyTab = page.getByRole("tab", { name: /API Key/i });
+    await expect(apiKeyTab).toBeVisible({ timeout: 10000 });
+    await apiKeyTab.click();
   }
 
   test("should show empty API key state", async ({ page }) => {

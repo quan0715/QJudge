@@ -16,26 +16,114 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function getHealthUrls(
+  envName: string,
+  defaults: string[]
+): string[] {
+  const envValue = process.env[envName];
+  if (!envValue) return defaults;
+  return envValue
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function getBackendHealthUrls(): string[] {
+  return getHealthUrls("E2E_BACKEND_HEALTH_URLS", [
+    "http://localhost:8001/api/v1/auth/me",
+    "http://backend-test:8000/api/v1/auth/me",
+  ]);
+}
+
+function getFrontendHealthUrls(): string[] {
+  return getHealthUrls("E2E_FRONTEND_HEALTH_URLS", [
+    "http://localhost:5174/",
+    "http://frontend-test:5174/",
+  ]);
+}
+
+async function getUrlStatus(url: string, timeoutMs = 2000): Promise<number | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+    });
+    return response.status;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function getFirstReachableStatus(urls: string[]): Promise<number | null> {
+  for (const url of urls) {
+    const statusCode = await getUrlStatus(url);
+    if (statusCode !== null && statusCode > 0) {
+      return statusCode;
+    }
+  }
+  return null;
+}
+
+function canQueryDocker(composeFile: string, rootDir: string): boolean {
+  try {
+    execSync(`docker compose -f ${composeFile} ps --services`, {
+      encoding: "utf-8",
+      stdio: "pipe",
+      cwd: rootDir,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Check if the E2E environment is already running
  */
-function isEnvironmentRunning(): boolean {
+function isServiceRunning(
+  composeFile: string,
+  rootDir: string,
+  service: string
+): boolean {
   try {
-    // Check if backend is responding
-    const result = execSync(
-      `curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me`,
-      { encoding: "utf-8", stdio: "pipe" }
-    );
-    const statusCode = parseInt(result.trim(), 10);
+    const output = execSync(
+      `docker compose -f ${composeFile} ps --services --status running ${service}`,
+      { encoding: "utf-8", stdio: "pipe", cwd: rootDir }
+    )
+      .trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    return output.includes(service);
+  } catch {
+    return false;
+  }
+}
 
-    // Also check frontend
-    const frontendResult = execSync(
-      `curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/`,
-      { encoding: "utf-8", stdio: "pipe" }
-    );
-    const frontendStatus = parseInt(frontendResult.trim(), 10);
+async function isEnvironmentRunning(
+  composeFile: string,
+  rootDir: string
+): Promise<boolean> {
+  try {
+    if (canQueryDocker(composeFile, rootDir)) {
+      // Prevent false positives when another service occupies exposed ports.
+      if (!isServiceRunning(composeFile, rootDir, "backend-test")) return false;
+      if (!isServiceRunning(composeFile, rootDir, "frontend-test")) return false;
+    }
 
-    return statusCode >= 200 && statusCode < 500 && frontendStatus === 200;
+    const backendStatus = await getFirstReachableStatus(getBackendHealthUrls());
+    const frontendStatus = await getFirstReachableStatus(getFrontendHealthUrls());
+    return (
+      backendStatus !== null &&
+      backendStatus !== 404 &&
+      backendStatus < 500 &&
+      frontendStatus === 200
+    );
   } catch {
     return false;
   }
@@ -44,14 +132,16 @@ function isEnvironmentRunning(): boolean {
 /**
  * Check if backend is responding
  */
-function isBackendRunning(): boolean {
+async function isBackendRunning(
+  composeFile: string,
+  rootDir: string
+): Promise<boolean> {
   try {
-    const result = execSync(
-      `curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me`,
-      { encoding: "utf-8", stdio: "pipe" }
-    );
-    const statusCode = parseInt(result.trim(), 10);
-    return statusCode >= 200 && statusCode < 500;
+    if (canQueryDocker(composeFile, rootDir)) {
+      if (!isServiceRunning(composeFile, rootDir, "backend-test")) return false;
+    }
+    const statusCode = await getFirstReachableStatus(getBackendHealthUrls());
+    return statusCode !== null && statusCode !== 404 && statusCode < 500;
   } catch {
     return false;
   }
@@ -75,7 +165,7 @@ async function globalSetup() {
       let attempts = 0;
 
       while (attempts < maxAttempts) {
-        if (isBackendRunning()) {
+        if (await isBackendRunning(composeFile, rootDir)) {
           console.log("✅ Backend is ready!");
           break;
         }
@@ -94,12 +184,14 @@ async function globalSetup() {
 
       while (attempts < maxAttempts) {
         try {
-          execSync(`curl -sf http://localhost:5174/ -o /dev/null`, {
-            encoding: "utf-8",
-            stdio: "pipe",
-          });
-          console.log("✅ Frontend is ready!");
-          break;
+          const frontendStatus = await getFirstReachableStatus(
+            getFrontendHealthUrls()
+          );
+          if (frontendStatus === 200) {
+            console.log("✅ Frontend is ready!");
+            break;
+          }
+          throw new Error(`Unexpected frontend status: ${frontendStatus}`);
         } catch {
           attempts++;
           if (attempts >= maxAttempts) {
@@ -116,7 +208,7 @@ async function globalSetup() {
     }
 
     // Local development: check if environment is already running
-    if (isEnvironmentRunning()) {
+    if (await isEnvironmentRunning(composeFile, rootDir)) {
       console.log("✅ Environment is already running! Skipping setup.\n");
 
       // Verify test data exists
@@ -174,13 +266,9 @@ EOF`,
 
     while (attempts < maxAttempts) {
       try {
-        const result = execSync(
-          `curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/v1/auth/me`,
-          { encoding: "utf-8", stdio: "pipe" }
-        );
-        const statusCode = parseInt(result.trim(), 10);
+        const statusCode = await getFirstReachableStatus(getBackendHealthUrls());
 
-        if (statusCode >= 200 && statusCode < 500) {
+        if (statusCode !== null && statusCode >= 200 && statusCode < 500) {
           console.log(`✅ Backend is ready! (HTTP ${statusCode})`);
           break;
         }
@@ -202,12 +290,14 @@ EOF`,
 
     while (attempts < maxAttempts) {
       try {
-        execSync(`curl -sf http://localhost:5174/ -o /dev/null`, {
-          encoding: "utf-8",
-          stdio: "pipe",
-        });
-        console.log("✅ Frontend is ready!");
-        break;
+        const frontendStatus = await getFirstReachableStatus(
+          getFrontendHealthUrls()
+        );
+        if (frontendStatus === 200) {
+          console.log("✅ Frontend is ready!");
+          break;
+        }
+        throw new Error(`Unexpected frontend status: ${frontendStatus}`);
       } catch {
         attempts++;
         if (attempts >= maxAttempts) {
