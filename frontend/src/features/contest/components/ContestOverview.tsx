@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Button, InlineNotification, Tag } from "@carbon/react";
-import { Download, DocumentPdf } from "@carbon/icons-react";
+import { DocumentPdf } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
-import { ContestDownloadModal } from "./modals/ContestDownloadModal";
 import { ExamResultsSummary } from "./exam/ExamResultsSummary";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -20,7 +19,6 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   maxWidth,
 }) => {
   const { t } = useTranslation("contest");
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [reportDownloading, setReportDownloading] = useState(false);
   const [reportNotification, setReportNotification] = useState<{
     kind: "success" | "error";
@@ -86,39 +84,6 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
         </ContainerCard>
       )}
 
-      {/* Download Contest Files Section - Only for admins/teachers */}
-      {contest.permissions?.canEditContest && (
-        <ContainerCard
-          title={t("overview.contestFiles")}
-          style={{ marginBottom: "1.5rem" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div
-              style={{
-                color: "var(--cds-text-secondary)",
-                fontSize: "0.875rem",
-              }}
-            >
-              {t("overview.downloadDesc")}
-            </div>
-            <Button
-              kind="primary"
-              size="md"
-              renderIcon={Download}
-              onClick={() => setDownloadModalOpen(true)}
-            >
-              {t("overview.download")}
-            </Button>
-          </div>
-        </ContainerCard>
-      )}
-
       {contest.rules && (
         <ContainerCard
           title={t("overview.contestRules")}
@@ -174,12 +139,6 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
         </ContainerCard>
       )}
 
-      <ContestDownloadModal
-        contestId={contest.id.toString()}
-        contestName={contest.name}
-        open={downloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
-      />
     </SurfaceSection>
   );
 };

@@ -9,6 +9,7 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronLeft,
   Time,
   CenterToFit,
   ListBulleted,
@@ -27,6 +28,8 @@ import {
   usePaperExamAutoSave,
   usePaperExamAntiCheat,
 } from "./hooks";
+import { ExamModals } from "../../components/exam/ExamModals";
+import { ExamOverlays } from "../../components/exam/ExamOverlays";
 import type { ExamViewMode } from "../../types/exam.types";
 import styles from "./PaperExamAnswering.module.scss";
 
@@ -53,7 +56,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const countdown = useCountdownTo(contest?.endTime);
 
   const { handleAnswerChange, saveStatus } = usePaperExamAutoSave({ contestId, setAnswers });
-  usePaperExamAntiCheat({ contestId, isInProgress });
+  const antiCheat = usePaperExamAntiCheat({
+    contestId,
+    isInProgress,
+    examStatus: contest?.examStatus,
+    refreshContest: heartbeat,
+  });
 
   // Heartbeat every 30s
   useInterval(() => {
@@ -238,6 +246,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
     <div className={styles.container}>
       <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
         <div className={styles.toolbarLeft}>
+          <Button
+            kind="ghost"
+            size="sm"
+            hasIconOnly
+            renderIcon={ChevronLeft}
+            iconDescription="返回競賽主頁"
+            onClick={() => contestId && navigate(`/contests/${contestId}`)}
+          />
           <span className={styles.title}>{contest?.name ?? "考試"}</span>
           {contest?.examModeEnabled && (
             <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
@@ -302,6 +318,27 @@ const PaperExamAnsweringScreen: React.FC = () => {
         </div>
         {viewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>
+
+      {/* Anti-cheat modals & overlays */}
+      <ExamModals
+        showWarning={antiCheat.showWarning}
+        pendingApiResponse={antiCheat.pendingApiResponse}
+        lastApiResponse={antiCheat.lastApiResponse}
+        warningEventType={antiCheat.warningEventType}
+        examState={antiCheat.examState}
+        onWarningClose={antiCheat.onWarningClose}
+        showUnlockNotification={antiCheat.showUnlockNotification}
+        onUnlockContinue={antiCheat.onUnlockContinue}
+        warningCountdown={antiCheat.warningCountdown}
+      />
+      <ExamOverlays
+        showGracePeriod={false}
+        gracePeriodCountdown={0}
+        showLockScreen={antiCheat.showLockScreen}
+        lockReason={antiCheat.lockReason}
+        timeLeft={antiCheat.autoUnlockTimeLeft}
+        onBackToContest={() => contestId && navigate(`/contests/${contestId}`)}
+      />
     </div>
   );
 };

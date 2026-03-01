@@ -3,6 +3,7 @@ import { Tile, Tag, Button, Layer, Loading } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useParams } from "react-router-dom";
 import KpiCards from "@/features/contest/components/admin/KpiCards";
+import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { useContest } from "@/features/contest/contexts/ContestContext";
@@ -212,6 +213,19 @@ export default function AdminOverviewPanel({
           </div>
         )}
       </SurfaceSection>
+
+      {/* Announcements & Q&A */}
+      {contestId && (
+        <SurfaceSection maxWidth="1200px" style={{ padding: "1.5rem 2rem" }}>
+          <ContestClarifications
+            contestId={contestId}
+            isTeacherOrAdmin={true}
+            problems={contest.problems}
+            contestStatus={contest.status}
+            contestEndTime={contest.endTime}
+          />
+        </SurfaceSection>
+      )}
     </>
   );
 }

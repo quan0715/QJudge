@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 
@@ -9,6 +9,7 @@ import {
   useContestAdmin,
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
+import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 
@@ -50,9 +51,16 @@ const AdminDashboardInner = () => {
   const { participants } = useContestAdmin();
 
   const kpi = useMemo(() => computeMockKpi(participants), [participants]);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const isExamMode = !!contest?.examModeEnabled && (contest?.problems.length ?? 0) === 0;
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
+  };
+
+  const handlePreview = () => {
+    window.open(`/contests/${contestId}/exam-preview`, "_blank");
   };
 
   const handlePanelChange = (panel: PanelId) => {
@@ -117,11 +125,22 @@ const AdminDashboardInner = () => {
     <AdminDashboardLayout
       contestName={contest?.name || "Loading..."}
       activePanel={activePanel}
-      examMode={!!contest?.examModeEnabled && (contest?.problems.length ?? 0) === 0}
+      examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}
+      onPreview={handlePreview}
+      onExport={() => setExportOpen(true)}
     >
       {renderPanel()}
+
+      {contest && contestId && (
+        <ContestExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          contest={contest}
+          contestId={contestId}
+        />
+      )}
     </AdminDashboardLayout>
   );
 };

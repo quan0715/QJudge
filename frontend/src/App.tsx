@@ -24,7 +24,7 @@ import {
   RequireTeacherOrAdmin,
 } from "@/features/auth";
 import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, contestAdminRoute, paperExamRoutes } from "@/features/contest";
+import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, paperExamRoutes } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -154,6 +154,9 @@ function App() {
 
                           {/* Contest Admin Dashboard - Standalone full page */}
                           {contestAdminRoute}
+
+                          {/* Exam Preview - Standalone full page (Demo mode) */}
+                          {examPreviewRoute}
                         </Route>
 
                         {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}

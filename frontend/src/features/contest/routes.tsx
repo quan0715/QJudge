@@ -6,6 +6,7 @@ import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
 import ExamEditScreen from "./screens/examEdit/ExamEditScreen";
 import AdminDashboardScreen from "./screens/admin/AdminDashboardScreen";
+import StudentExamDemoScreen from "./screens/examDemo/StudentExamDemoScreen";
 import {
   PaperExamPrecheckScreen,
   PaperExamAnsweringScreen,
@@ -44,6 +45,16 @@ export const contestAdminRoute = (
   <Route
     path="/contests/:contestId/admin"
     element={<AdminDashboardScreen />}
+  />
+);
+
+/**
+ * Exam Preview — 獨立全頁面，管理者預覽學生作答畫面（Demo 模式）
+ */
+export const examPreviewRoute = (
+  <Route
+    path="/contests/:contestId/exam-preview"
+    element={<StudentExamDemoScreen />}
   />
 );
 

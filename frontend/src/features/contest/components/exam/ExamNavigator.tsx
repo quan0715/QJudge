@@ -1,5 +1,4 @@
 import { type FC, memo, useEffect, useRef } from "react";
-import { Tooltip } from "@carbon/react";
 import type { ExamItem } from "../../types/exam.types";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./ExamNavigator.module.scss";
@@ -67,19 +66,17 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                   ? fullTitle
                   : item.data.prompt.slice(0, 30) + (item.data.prompt.length > 30 ? "…" : "");
 
-              const tooltipLabel = `第 ${index + 1} 題 · ${typeLabel}${isAnswered ? " ✓" : ""}`;
-
               return (
-                <Tooltip key={id} label={tooltipLabel} align="right" autoAlign>
-                  <button
-                    ref={(el) => {
-                      if (el) itemRefs.current.set(index, el);
-                      else itemRefs.current.delete(index);
-                    }}
-                    className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
-                    onClick={() => onSelect(index)}
-                    aria-current={isActive ? "true" : undefined}
-                  >
+                <button
+                  key={id}
+                  ref={(el) => {
+                    if (el) itemRefs.current.set(index, el);
+                    else itemRefs.current.delete(index);
+                  }}
+                  className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+                  onClick={() => onSelect(index)}
+                  aria-current={isActive ? "true" : undefined}
+                >
                   <span
                     className={`${styles.itemNumber} ${
                       isAnswered ? styles.itemNumberAnswered : ""
@@ -91,8 +88,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                     <span className={styles.itemType}>{typeLabel}</span>
                     <span className={styles.itemTitle}>{title}</span>
                   </div>
-                  </button>
-                </Tooltip>
+                </button>
               );
             })}
           </div>

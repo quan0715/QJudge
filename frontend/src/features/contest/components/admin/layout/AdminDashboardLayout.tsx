@@ -15,6 +15,8 @@ import {
   Settings,
   Launch,
   TaskComplete,
+  View,
+  DocumentDownload,
 } from "@carbon/icons-react";
 import styles from "./AdminDashboardLayout.module.scss";
 
@@ -26,6 +28,8 @@ interface AdminDashboardLayoutProps {
   examMode?: boolean;
   onPanelChange: (panel: PanelId) => void;
   onBack: () => void;
+  onPreview?: () => void;
+  onExport?: () => void;
   children: React.ReactNode;
 }
 
@@ -44,6 +48,8 @@ export default function AdminDashboardLayout({
   examMode,
   onPanelChange,
   onBack,
+  onPreview,
+  onExport,
   children,
 }: AdminDashboardLayoutProps) {
   const fullBleed = activePanel === "exam" || activePanel === "grading";
@@ -55,6 +61,24 @@ export default function AdminDashboardLayout({
           {contestName}
         </HeaderName>
         <HeaderGlobalBar>
+          {onExport && (
+            <HeaderGlobalAction
+              aria-label="匯出 PDF"
+              tooltipAlignment="end"
+              onClick={onExport}
+            >
+              <DocumentDownload size={20} />
+            </HeaderGlobalAction>
+          )}
+          {onPreview && (
+            <HeaderGlobalAction
+              aria-label="預覽作答畫面"
+              tooltipAlignment="end"
+              onClick={onPreview}
+            >
+              <View size={20} />
+            </HeaderGlobalAction>
+          )}
           <HeaderGlobalAction
             aria-label="前往競賽主頁"
             tooltipAlignment="end"
