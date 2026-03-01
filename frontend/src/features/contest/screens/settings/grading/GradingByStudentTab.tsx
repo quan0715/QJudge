@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
 import GradingSplitPanel from "./GradingSplitPanel";
 import type { GradingAnswerRow } from "./gradingTypes";
@@ -63,7 +63,9 @@ export default function GradingByStudentTab({
   }, [studentSummaries, searchQuery]);
 
   // Reset page on search change
-  useMemo(() => setPage(1), [searchQuery]);
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const startIndex = (page - 1) * pageSize;
   const paginated = filtered.slice(startIndex, startIndex + pageSize);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
 import QuestionSidebar from "./QuestionSidebar";
 import GradingSplitPanel from "./GradingSplitPanel";
@@ -51,7 +51,9 @@ export default function GradingByQuestionTab({
   }, [answersByQuestion, selectedQuestionId, filter, searchQuery]);
 
   // Reset page on filter/search change
-  useMemo(() => setPage(1), [searchQuery, filter]);
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filter]);
 
   const startIndex = (page - 1) * pageSize;
   const paginatedAnswers = currentAnswers.slice(
