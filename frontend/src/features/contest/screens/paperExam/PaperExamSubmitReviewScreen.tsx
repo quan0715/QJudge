@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -14,45 +14,49 @@ import {
   ArrowLeft,
   SendFilled,
 } from "@carbon/icons-react";
-import { useExamV2Flow } from "./useExamV2Flow";
-import { useContest } from "@/features/contest/contexts/ContestContext";
+import { usePaperExamFlow } from "./usePaperExamFlow";
 import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 
-const ExamV2SubmitReviewScreen: React.FC = () => {
+const PaperExamSubmitReviewScreen: React.FC = () => {
   const navigate = useNavigate();
   const { contestId, contest, loading, error, clearError, submitExam } =
-    useExamV2Flow();
+    usePaperExamFlow();
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
+  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingAnswers, setLoadingAnswers] = useState(true);
 
-  const examQuestions: ExamQuestion[] = useMemo(
-    () => contest?.examQuestions ?? [],
-    [contest]
-  );
-
-  // Load answered questions
+  // Fetch questions + answers
   useEffect(() => {
     if (!contestId) return;
     setLoadingAnswers(true);
-    getMyExamAnswers(contestId)
-      .then((answers) => {
-        const ids = new Set<string>();
-        for (const a of answers) {
-          const val = a.answer;
-          const hasContent =
-            val &&
-            (("selected" in val && val.selected) ||
-              ("text" in val && val.text));
-          if (hasContent) ids.add(a.questionId);
-        }
-        setAnsweredIds(ids);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingAnswers(false));
+    Promise.all([
+      getExamQuestions(contestId).catch(() => []),
+      getMyExamAnswers(contestId).catch(() => []),
+    ]).then(([questions, answers]) => {
+      setExamQuestions(questions);
+      const ids = new Set<string>();
+      for (const a of answers) {
+        const val = a.answer;
+        const hasContent =
+          val &&
+          (("selected" in val && val.selected) ||
+            ("text" in val && val.text));
+        if (hasContent) ids.add(a.questionId);
+      }
+      setAnsweredIds(ids);
+    }).finally(() => setLoadingAnswers(false));
   }, [contestId]);
+
+  // Exit fullscreen after submission
+  useEffect(() => {
+    if (contest?.examStatus === "submitted" && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, [contest?.examStatus]);
 
   const canSubmit =
     contest?.examStatus === "in_progress" ||
@@ -67,11 +71,12 @@ const ExamV2SubmitReviewScreen: React.FC = () => {
     setShowConfirm(false);
     const success = await submitExam();
     if (!success || !contestId) return;
-    navigate(`/contests/${contestId}/exam-v2/grading`);
+    // Phase 2: 交卷後導回主頁
+    navigate(`/contests/${contestId}`);
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "2rem auto", padding: "0 1rem" }}>
+    <div style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1rem", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <h2 style={{ marginBottom: "0.5rem" }}>交卷前確認</h2>
       <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
         請確認作答情況，交卷後將無法再修改答案。
@@ -90,7 +95,6 @@ const ExamV2SubmitReviewScreen: React.FC = () => {
       )}
 
       <Stack gap={5}>
-        {/* Summary */}
         <Tile>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             <Tag type={answeredCount === totalCount ? "green" : "red"}>
@@ -153,7 +157,7 @@ const ExamV2SubmitReviewScreen: React.FC = () => {
             renderIcon={ArrowLeft}
             disabled={!contestId}
             onClick={() =>
-              contestId && navigate(`/contests/${contestId}/exam-v2/answering`)
+              contestId && navigate(`/contests/${contestId}/paper-exam/answering`)
             }
           >
             回作答頁
@@ -190,4 +194,4 @@ const ExamV2SubmitReviewScreen: React.FC = () => {
   );
 };
 
-export default ExamV2SubmitReviewScreen;
+export default PaperExamSubmitReviewScreen;

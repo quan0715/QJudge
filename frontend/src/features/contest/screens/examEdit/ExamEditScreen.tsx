@@ -75,8 +75,6 @@ const ExamEditScreenContent: React.FC = () => {
             contest={contest}
             questions={questions}
             onQuestionsChange={setQuestions}
-            onArchive={handleArchive}
-            onDelete={handleDelete}
           />
         </div>
       </div>

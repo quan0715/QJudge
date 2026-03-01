@@ -5,12 +5,7 @@ export type ContestTabKey =
   | "problems"
   | "submissions"
   | "standings"
-  | "clarifications"
-  | "settings"
-  | "participants"
-  | "logs"
-  | "exam-questions"
-  | "admins";
+  | "clarifications";
 
 export const getAvailableContestTabKeys = (
   contest?: ContestDetail | null
@@ -29,26 +24,7 @@ export const getAvailableContestTabKeys = (
   if (contest.examModeEnabled) {
     const tabs: ContestTabKey[] = ["overview"];
 
-    if (
-      permissions?.canViewFullScoreboard ||
-      contest.scoreboardVisibleDuringContest
-    ) {
-      tabs.push("standings");
-    }
-
     tabs.push("clarifications");
-
-    if (permissions?.canEditContest) {
-      tabs.push("settings");
-    }
-
-    if (permissions?.canViewAllSubmissions) {
-      tabs.push("participants", "logs", "exam-questions");
-    }
-
-    if (permissions?.canEditContest) {
-      tabs.push("admins");
-    }
 
     return tabs;
   }
@@ -63,18 +39,6 @@ export const getAvailableContestTabKeys = (
   }
 
   tabs.push("clarifications");
-
-  if (permissions?.canEditContest) {
-    tabs.push("settings");
-  }
-
-  if (permissions?.canViewAllSubmissions) {
-    tabs.push("participants", "logs");
-  }
-
-  if (permissions?.canEditContest) {
-    tabs.push("admins");
-  }
 
   return tabs;
 };

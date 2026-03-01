@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams, useNavigate, useParams } from "react-router-dom";
-import { Button, Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
-import { Launch, View } from "@carbon/icons-react";
+import { useSearchParams } from "react-router-dom";
+import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
 import type { User } from "@/core/entities/user.entity";
@@ -16,11 +15,6 @@ import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmi
 import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
 import ContestQAScreen from "@/features/contest/screens/ContestQAScreen";
 
-// Admin Components (rendered as tabs)
-import ContestSettingsScreen from "@/features/contest/screens/settings/ContestSettingsScreen";
-import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
-import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
-import ContestAdminsScreen from "@/features/contest/screens/settings/ContestAdminsScreen";
 import {
   getAvailableContestTabKeys,
   type ContestTabKey,
@@ -30,8 +24,6 @@ const ContestDashboard = () => {
   const { t } = useTranslation('contest');
   const { t: tc } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { contestId } = useParams<{ contestId: string }>();
 
   // Use contest and standings from context
   const { contest, loading, scoreboardData } = useContest();
@@ -158,41 +150,6 @@ const ContestDashboard = () => {
         return <ContestStandingsScreen maxWidth="1056px" />;
       case "clarifications":
         return <ContestQAScreen maxWidth="1056px" />;
-      // Admin tabs
-      case "settings":
-        return <ContestSettingsScreen />;
-      case "participants":
-        return <ContestParticipantsScreen />;
-      case "logs":
-        return <ContestLogsScreen />;
-      case "exam-questions":
-        return (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "3rem 1rem" }}>
-            <h3 style={{ fontSize: "var(--cds-heading-03-font-size)", fontWeight: 600 }}>
-              考試題目管理
-            </h3>
-            <p style={{ color: "var(--cds-text-secondary)", textAlign: "center", maxWidth: "480px" }}>
-              使用全螢幕 Exam 編輯器管理考試設定、題目 CRUD、配分等功能。
-            </p>
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <Button
-                renderIcon={Launch}
-                onClick={() => navigate(`/contests/${contestId}/exam/edit`)}
-              >
-                開啟 Exam 編輯器
-              </Button>
-              <Button
-                kind="secondary"
-                renderIcon={View}
-                onClick={() => navigate(`/contests/${contestId}/exam-demo`)}
-              >
-                學生預覽
-              </Button>
-            </div>
-          </div>
-        );
-      case "admins":
-        return <ContestAdminsScreen />;
       default:
         return (
           <ContestOverview

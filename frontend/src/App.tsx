@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
@@ -18,7 +24,7 @@ import {
   RequireTeacherOrAdmin,
 } from "@/features/auth";
 import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, examDemoRoute, examV2Routes } from "@/features/contest";
+import { contestListRoute, contestDetailRoutes, contestAdminRoute, paperExamRoutes } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -47,6 +53,17 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+type AdminPanelParam = "settings" | "participants" | "logs" | "exam";
+
+function LegacyContestAdminRedirect({ panel }: { panel?: AdminPanelParam }) {
+  const { contestId } = useParams<{ contestId: string }>();
+  if (!contestId) {
+    return <Navigate to="/contests" replace />;
+  }
+  const query = panel ? `?panel=${panel}` : "";
+  return <Navigate to={`/contests/${contestId}/admin${query}`} replace />;
+}
 
 function App() {
   return (
@@ -103,11 +120,8 @@ function App() {
                           {/* Contest Routes - Outside MainLayout with Custom Header */}
                           {contestDetailRoutes}
 
-                          {/* Exam v2 Flow - Standalone full page */}
-                          {examV2Routes}
-
-                          {/* Student Exam Demo - Standalone full page */}
-                          {examDemoRoute}
+                          {/* Paper Exam Flow - Standalone full page */}
+                          {paperExamRoutes}
                         </Route>
 
                         {/* Teacher/Admin Routes */}
@@ -118,50 +132,28 @@ function App() {
                             {/* Redirect old management paths to unified contest view */}
                             <Route
                               path="/management/contests/:contestId"
-                              element={
-                                <Navigate
-                                  to="/contests/:contestId?tab=settings"
-                                  replace
-                                />
-                              }
+                              element={<LegacyContestAdminRedirect panel="settings" />}
                             />
                             <Route
                               path="/management/contests/:contestId/settings"
-                              element={
-                                <Navigate
-                                  to="/contests/:contestId?tab=settings"
-                                  replace
-                                />
-                              }
+                              element={<LegacyContestAdminRedirect panel="settings" />}
                             />
                             <Route
                               path="/management/contests/:contestId/problems"
-                              element={
-                                <Navigate
-                                  to="/contests/:contestId?tab=manage-problems"
-                                  replace
-                                />
-                              }
+                              element={<LegacyContestAdminRedirect panel="exam" />}
                             />
                             <Route
                               path="/management/contests/:contestId/participants"
-                              element={
-                                <Navigate
-                                  to="/contests/:contestId?tab=participants"
-                                  replace
-                                />
-                              }
+                              element={<LegacyContestAdminRedirect panel="participants" />}
                             />
                             <Route
                               path="/management/contests/:contestId/logs"
-                              element={
-                                <Navigate
-                                  to="/contests/:contestId?tab=logs"
-                                  replace
-                                />
-                              }
+                              element={<LegacyContestAdminRedirect panel="logs" />}
                             />
                           </Route>
+
+                          {/* Contest Admin Dashboard - Standalone full page */}
+                          {contestAdminRoute}
                         </Route>
 
                         {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}

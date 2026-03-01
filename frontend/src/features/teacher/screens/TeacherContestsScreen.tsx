@@ -68,12 +68,12 @@ const TeacherContestsScreen = ({
   const handleCreateContest = (contestId?: string) => {
     refetch();
     if (contestId) {
-      navigate(`/contests/${contestId}?tab=settings`);
+      navigate(`/contests/${contestId}/admin?panel=settings`);
     }
   };
 
   const handleEdit = (contestId: string) => {
-    navigate(`/contests/${contestId}?tab=settings`);
+    navigate(`/contests/${contestId}/admin?panel=settings`);
   };
 
   const handleDeleteClick = (contest: { id: string; name: string }) => {

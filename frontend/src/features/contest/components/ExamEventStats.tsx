@@ -11,11 +11,11 @@ import {
   InlineNotification,
 } from "@carbon/react";
 import type { ExamEventStats, ExamEvent } from "@/core/entities/contest.entity";
-import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useContestAdmin } from "@/features/contest/contexts";
 
 const ExamEventStatsComponent: React.FC = () => {
   // Use examEvents from context - no local fetch needed, no timer
-  const { examEvents, isRefreshing } = useContest();
+  const { examEvents, isRefreshing } = useContestAdmin();
 
   // Aggregate events by user
   const stats = useMemo(() => {

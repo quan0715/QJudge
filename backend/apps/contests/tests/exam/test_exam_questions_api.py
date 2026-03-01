@@ -469,6 +469,38 @@ class TestPermissions:
         res = api_client.get(url(contest.id))
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_student_can_list_after_exam_started(self, api_client, student, contest):
+        ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Q", score=1, order=0,
+        )
+        participant = ContestParticipant.objects.create(
+            contest=contest, user=student, exam_status="in_progress"
+        )
+        participant.started_at = timezone.now()
+        participant.save(update_fields=["started_at"])
+        api_client.force_authenticate(user=student)
+        res = api_client.get(url(contest.id))
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data) == 1
+
+    def test_student_cannot_list_before_contest_start(self, api_client, student, teacher):
+        future_contest = Contest.objects.create(
+            name="Future Exam",
+            owner=teacher,
+            status="published",
+            start_time=timezone.now() + timedelta(hours=2),
+            end_time=timezone.now() + timedelta(hours=4),
+        )
+        ExamQuestion.objects.create(
+            contest=future_contest, question_type="essay", prompt="Secret", score=1, order=0,
+        )
+        ContestParticipant.objects.create(
+            contest=future_contest, user=student, exam_status="in_progress", started_at=timezone.now()
+        )
+        api_client.force_authenticate(user=student)
+        res = api_client.get(url(future_contest.id))
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
     def test_student_cannot_create(self, api_client, student, contest):
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)

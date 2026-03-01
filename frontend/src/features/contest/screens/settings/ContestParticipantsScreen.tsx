@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   DataTable,
@@ -31,7 +31,6 @@ import {
 } from "@carbon/icons-react";
 import { AddParticipantModal } from "../../components/modals/AddParticipantModal";
 import {
-  getContestParticipants,
   addContestParticipant,
   unlockParticipant,
   updateParticipant,
@@ -39,6 +38,7 @@ import {
   reopenExam,
   downloadParticipantReport,
 } from "@/infrastructure/api/repositories";
+import { useContestAdmin } from "@/features/contest/contexts";
 import type {
   ContestParticipant,
   ExamStatusType,
@@ -49,8 +49,8 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
 const ContestAdminParticipantsPage = () => {
   const { contestId } = useParams<{ contestId: string }>();
+  const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
 
-  const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [notification, setNotification] = useState<{
     kind: "success" | "error";
     message: string;
@@ -100,28 +100,11 @@ const ContestAdminParticipantsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const loadParticipants = useCallback(async () => {
-    if (!contestId) return;
-    try {
-      const data = await getContestParticipants(contestId);
-      setParticipants(data);
-    } catch (error) {
-      console.error("Failed to load participants", error);
-      setNotification({ kind: "error", message: "無法載入參賽者列表" });
-    }
-  }, [contestId]);
-
-  useEffect(() => {
-    if (contestId) {
-      loadParticipants();
-    }
-  }, [contestId, loadParticipants]);
-
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
     try {
       await addContestParticipant(contestId, username);
-      await loadParticipants();
+      await refreshAdminData();
       setNotification({ kind: "success", message: "參賽者已新增" });
     } catch (error) {
       const message =
@@ -142,7 +125,7 @@ const ContestAdminParticipantsPage = () => {
     if (!confirmed) return;
     try {
       await unlockParticipant(contestId, userId);
-      await loadParticipants();
+      await refreshAdminData();
       setNotification({ kind: "success", message: "已解除鎖定" });
     } catch (error) {
       const message =
@@ -167,7 +150,7 @@ const ContestAdminParticipantsPage = () => {
         lock_reason: editExamStatus === "locked" ? editLockReason : "",
       });
       setEditModalOpen(false);
-      await loadParticipants();
+      await refreshAdminData();
       setNotification({ kind: "success", message: "參賽者狀態已更新" });
     } catch (error) {
       const message =
@@ -189,7 +172,7 @@ const ContestAdminParticipantsPage = () => {
     if (!confirmed) return;
     try {
       await reopenExam(contestId, userId);
-      await loadParticipants();
+      await refreshAdminData();
       setNotification({ kind: "success", message: "已重新開放考試" });
     } catch (error) {
       const message =
@@ -209,7 +192,7 @@ const ContestAdminParticipantsPage = () => {
     if (!confirmed) return;
     try {
       await removeParticipant(contestId, userId);
-      await loadParticipants();
+      await refreshAdminData();
       setNotification({ kind: "success", message: "參賽者已移除" });
     } catch (error) {
       const message =
@@ -332,17 +315,16 @@ const ContestAdminParticipantsPage = () => {
           title="參賽者列表"
           noPadding
           action={
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: 0 }}>
               <Button
-                size="sm"
                 kind="ghost"
                 renderIcon={Renew}
-                onClick={loadParticipants}
+                onClick={refreshAdminData}
                 hasIconOnly
                 iconDescription="重新整理"
+                disabled={isRefreshing}
               />
               <Button
-                size="sm"
                 renderIcon={Add}
                 onClick={() => setAddModalOpen(true)}
               >

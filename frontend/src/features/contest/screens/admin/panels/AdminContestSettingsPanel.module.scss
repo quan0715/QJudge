@@ -1,0 +1,79 @@
+@use "@carbon/layout" as layout;
+
+.root {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: layout.$spacing-06 layout.$spacing-07 layout.$spacing-09;
+
+  @media (max-width: 671px) {
+    padding: layout.$spacing-05 layout.$spacing-03 layout.$spacing-09;
+  }
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: layout.$spacing-03;
+}
+
+.section {
+  margin-top: layout.$spacing-06;
+}
+
+.sectionTitle {
+  margin: 0 0 layout.$spacing-04;
+}
+
+.sectionCard {
+  padding: layout.$spacing-04 layout.$spacing-05;
+  background-color: var(--cds-layer);
+}
+
+// ActionRow / DangerAction — inline layout, stacks on mobile
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-04 0;
+
+  @media (max-width: 671px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: layout.$spacing-03;
+  }
+}
+
+.actionRowContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.actionRowControl {
+  flex-shrink: 0;
+}
+
+// FieldRow — label on top, full-width input
+.fieldRow {
+  padding: layout.$spacing-04 0;
+}
+
+.fieldRowHeader {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+// DangerAction specific
+.dangerRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-06;
+  padding: layout.$spacing-04 0;
+
+  @media (max-width: 671px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: layout.$spacing-03;
+  }
+}

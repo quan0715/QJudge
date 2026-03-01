@@ -297,6 +297,7 @@ def test_contest_submission_requires_registration(
 @pytest.mark.parametrize(
     "exam_status, expected_snippet",
     [
+        (ExamStatus.NOT_STARTED, "start the exam"),
         (ExamStatus.PAUSED, "paused"),
         (ExamStatus.LOCKED, "locked"),
         (ExamStatus.SUBMITTED, "finished"),
@@ -309,7 +310,7 @@ def test_contest_submission_blocked_by_exam_state(
     expected_snippet: str,
 ) -> None:
     user = UserFactory()
-    contest = ContestFactory(status="published")
+    contest = ContestFactory(status="published", exam_mode_enabled=True)
     problem = ProblemFactory(created_by=contest.owner)
     ContestParticipantFactory(contest=contest, user=user, exam_status=exam_status)
 
@@ -328,6 +329,34 @@ def test_contest_submission_blocked_by_exam_state(
     assert response.status_code == 403
     assert expected_snippet in get_error_message(response).lower()
     judge_mocks["judge"].assert_not_called()
+
+
+@pytest.mark.django_db
+def test_contest_submission_allows_not_started_when_exam_mode_disabled(
+    api_client: APIClient,
+    judge_mocks: Dict[str, Mock],
+) -> None:
+    user = UserFactory()
+    contest = ContestFactory(status="published", exam_mode_enabled=False)
+    problem = ProblemFactory(created_by=contest.owner)
+    ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
+
+    api_client.force_authenticate(user=user)
+    response = api_client.post(
+        reverse("submissions:submission-list"),
+        {
+            "problem": problem.id,
+            "contest": contest.id,
+            "language": "python",
+            "code": "print('ok')",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    submission = Submission.objects.get(id=response.data["id"])
+    assert submission.source_type == "contest"
+    judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
 @pytest.mark.django_db

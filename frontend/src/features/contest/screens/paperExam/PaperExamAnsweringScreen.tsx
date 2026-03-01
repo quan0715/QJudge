@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -14,181 +14,85 @@ import {
   ListBulleted,
   List,
   SendFilled,
+  Recording,
 } from "@carbon/icons-react";
-import { useExamV2Flow } from "./useExamV2Flow";
+import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
-import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
-import {
-  submitExamAnswer,
-  getMyExamAnswers,
-} from "@/infrastructure/api/repositories/examAnswers.repository";
-import { recordExamEvent } from "@/infrastructure/api/repositories/exam.repository";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { ExamNavigator } from "../../components/exam/ExamNavigator";
-import type { ExamItem, ExamViewMode } from "../../types/examDemo.types";
-import type { ExamQuestion } from "@/core/entities/contest.entity";
-import styles from "../examDemo/StudentExamDemoScreen.module.scss";
+import {
+  useCountdownTo,
+  useScrollDirection,
+  usePaperExamQuestions,
+  usePaperExamAutoSave,
+  usePaperExamAntiCheat,
+} from "./hooks";
+import type { ExamViewMode } from "../../types/exam.types";
+import styles from "./PaperExamAnswering.module.scss";
 
 const VIEW_MODES: { key: ExamViewMode; label: string; icon: typeof CenterToFit }[] = [
   { key: "single", label: "逐題模式", icon: CenterToFit },
   { key: "all", label: "全題模式", icon: ListBulleted },
 ];
 
-// Debounce delay for auto-save (ms)
-const AUTO_SAVE_DELAY = 2000;
+const SAVE_STATUS_LABEL: Record<string, string> = {
+  idle: "",
+  saving: "儲存中…",
+  saved: "已儲存",
+  error: "儲存失敗",
+};
 
-function useCountdownTo(endTime: string | null | undefined) {
-  const [remaining, setRemaining] = useState(0);
-  useEffect(() => {
-    if (!endTime) return;
-    const calc = () => {
-      const diff = Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000));
-      setRemaining(diff);
-      return diff;
-    };
-    calc();
-    const id = setInterval(() => {
-      if (calc() <= 0) clearInterval(id);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [endTime]);
-
-  const hh = String(Math.floor(remaining / 3600)).padStart(2, "0");
-  const mm = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
-  const ss = String(remaining % 60).padStart(2, "0");
-  return { remaining, display: remaining >= 3600 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}` };
-}
-
-function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
-  const [visible, setVisible] = useState(true);
-  const lastY = useRef(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onScroll = () => {
-      const y = el.scrollTop;
-      if (y < 10) setVisible(true);
-      else if (y < lastY.current) setVisible(true);
-      else if (y > lastY.current + 5) setVisible(false);
-      lastY.current = y;
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [ref]);
-  return visible;
-}
-
-const ExamV2AnsweringScreen: React.FC = () => {
+const PaperExamAnsweringScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { contestId, contest, heartbeat, submitExam } = useExamV2Flow();
+  const { contestId, contest, heartbeat, submitExam } = usePaperExamFlow();
 
-  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
-  const [viewMode, setViewMode] = useState<ExamViewMode>("single");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [navVisible, setNavVisible] = useState(true);
-  const [slideDir, setSlideDir] = useState<"left" | "right">("right");
-  const [animating, setAnimating] = useState(false);
-  const prevIndexRef = useRef(activeIndex);
-
-  // Refs for scroll
-  const questionAreaRef = useRef<HTMLDivElement>(null);
-  const allContentRef = useRef<HTMLDivElement>(null);
-  const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-
-  // Pending saves (debounce)
-  const pendingSaves = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const { items, answers, setAnswers, answeredIds, loadingQuestions } =
+    usePaperExamQuestions(contestId);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const countdown = useCountdownTo(contest?.endTime);
 
-  // Build items from questions only (no coding problems in exam answering)
-  const items: ExamItem[] = useMemo(() =>
-    examQuestions.map((q) => ({ kind: "question" as const, data: q })),
-    [examQuestions]
-  );
-
-  const answeredIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const [id, value] of Object.entries(answers)) {
-      if (value !== undefined && value !== null && value !== "") {
-        if (Array.isArray(value) && value.length === 0) continue;
-        ids.add(id);
-      }
-    }
-    return ids;
-  }, [answers]);
-
-  // Fetch exam questions
-  useEffect(() => {
-    if (!contestId) return;
-    setLoadingQuestions(true);
-    getExamQuestions(contestId)
-      .then(setExamQuestions)
-      .catch(() => setExamQuestions([]))
-      .finally(() => setLoadingQuestions(false));
-  }, [contestId]);
-
-  // Load existing answers on mount
-  useEffect(() => {
-    if (!contestId) return;
-    getMyExamAnswers(contestId)
-      .then((savedAnswers) => {
-        const map: Record<string, unknown> = {};
-        for (const a of savedAnswers) {
-          // Unwrap: answer is { selected: "A" } or { text: "..." }
-          const val = a.answer;
-          if ("selected" in val) map[a.questionId] = val.selected;
-          else if ("text" in val) map[a.questionId] = val.text;
-          else map[a.questionId] = val;
-        }
-        setAnswers(map);
-      })
-      .catch(() => {/* ignore - start fresh */});
-  }, [contestId]);
+  const { handleAnswerChange, saveStatus } = usePaperExamAutoSave({ contestId, setAnswers });
+  usePaperExamAntiCheat({ contestId, isInProgress });
 
   // Heartbeat every 30s
   useInterval(() => {
-    heartbeat().catch(() => {/* logged elsewhere */});
+    heartbeat().catch(() => {});
   }, isInProgress ? 30000 : null);
 
-  // Anti-cheat: monitor tab visibility, window blur, fullscreen exit
-  useEffect(() => {
-    if (!contestId || !isInProgress) return;
+  // UI state
+  const [viewMode, setViewMode] = useState<ExamViewMode>("single");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [navVisible, setNavVisible] = useState(true);
+  const [slideDir, setSlideDir] = useState<"left" | "right">("right");
+  const [animating, setAnimating] = useState(false);
 
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        recordExamEvent(contestId, "tab_hidden").catch(() => {});
-      }
-    };
-    const onBlur = () => {
-      recordExamEvent(contestId, "window_blur").catch(() => {});
-    };
-    const onFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        recordExamEvent(contestId, "exit_fullscreen").catch(() => {});
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("blur", onBlur);
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("blur", onBlur);
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-    };
-  }, [contestId, isInProgress]);
+  const questionAreaRef = useRef<HTMLDivElement>(null);
+  const allContentRef = useRef<HTMLDivElement>(null);
+  const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Auto-submit when time expires
   useEffect(() => {
-    if (countdown.remaining === 0 && isInProgress && contestId) {
+    if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
       submitExam().finally(() => {
-        navigate(`/contests/${contestId}/exam-v2/submit-review`);
+        navigate(`/contests/${contestId}/paper-exam/submit-review`);
       });
     }
   }, [countdown.remaining, isInProgress, contestId, navigate, submitExam]);
+
+  // Guard route: exam-mode users must pass through precheck before answering.
+  useEffect(() => {
+    if (!contestId || !contest?.examModeEnabled) return;
+
+    if (contest.examStatus === "not_started") {
+      navigate(`/contests/${contestId}/paper-exam/precheck`, { replace: true });
+      return;
+    }
+
+    if (contest.examStatus === "submitted") {
+      navigate(`/contests/${contestId}/paper-exam/submit-review`, { replace: true });
+    }
+  }, [contest?.examModeEnabled, contest?.examStatus, contestId, navigate]);
 
   // Slide animation
   const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
@@ -198,7 +102,6 @@ const ExamV2AnsweringScreen: React.FC = () => {
         setSlideDir(next > prev ? "right" : "left");
         setAnimating(true);
       }
-      prevIndexRef.current = prev;
       return next;
     });
   }, []);
@@ -242,28 +145,6 @@ const ExamV2AnsweringScreen: React.FC = () => {
   const singleScrollVisible = useScrollDirection(questionAreaRef);
   const allScrollVisible = useScrollDirection(allContentRef);
   const toolbarVisible = viewMode === "single" ? singleScrollVisible : allScrollVisible;
-
-  // Answer change handler with auto-save
-  const handleAnswerChange = useCallback((questionId: string, value: unknown) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
-
-    // Debounced auto-save
-    if (!contestId) return;
-    const existing = pendingSaves.current.get(questionId);
-    if (existing) clearTimeout(existing);
-
-    const timeout = setTimeout(() => {
-      // Wrap value for API
-      const answerPayload = typeof value === "string"
-        ? { text: value }
-        : { selected: value };
-      submitExamAnswer(contestId, questionId, answerPayload).catch(() => {
-        // silently fail — student can retry
-      });
-      pendingSaves.current.delete(questionId);
-    }, AUTO_SAVE_DELAY);
-    pendingSaves.current.set(questionId, timeout);
-  }, [contestId]);
 
   const handleScrollToItem = useCallback((index: number) => {
     const el = allItemRefs.current.get(index);
@@ -358,18 +239,30 @@ const ExamV2AnsweringScreen: React.FC = () => {
       <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
         <div className={styles.toolbarLeft}>
           <span className={styles.title}>{contest?.name ?? "考試"}</span>
+          {contest?.examModeEnabled && (
+            <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
+              <Tag size="sm" type="red" renderIcon={Recording}>
+                監測中
+              </Tag>
+            </Tooltip>
+          )}
           {!isInProgress && (
             <Tag size="sm" type="red">考試未開始</Tag>
           )}
         </div>
         <div className={styles.toolbarCenter}>
+          {saveStatus !== "idle" && (
+            <span className={`${styles.saveStatus} ${saveStatus === "error" ? styles.saveStatusError : ""}`}>
+              {SAVE_STATUS_LABEL[saveStatus]}
+            </span>
+          )}
           <div className={styles.timer}>
             <Time size={16} />
             <span className={styles.timerText}>{countdown.display}</span>
           </div>
           <Button
             kind="primary" size="sm" renderIcon={SendFilled}
-            onClick={() => contestId && navigate(`/contests/${contestId}/exam-v2/submit-review`)}
+            onClick={() => contestId && navigate(`/contests/${contestId}/paper-exam/submit-review`)}
           >交卷</Button>
         </div>
       </div>
@@ -377,7 +270,7 @@ const ExamV2AnsweringScreen: React.FC = () => {
       {/* Mode switcher */}
       <div className={styles.modeSwitcher}>
         {VIEW_MODES.map((m) => (
-          <Tooltip key={m.key} label={m.label} align="left">
+          <Tooltip key={m.key} label={m.label} align="left" autoAlign>
             <button
               className={`${styles.modeBtn} ${viewMode === m.key ? styles.modeBtnActive : ""}`}
               onClick={() => setViewMode(m.key)}
@@ -413,4 +306,4 @@ const ExamV2AnsweringScreen: React.FC = () => {
   );
 };
 
-export default ExamV2AnsweringScreen;
+export default PaperExamAnsweringScreen;

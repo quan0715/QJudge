@@ -120,7 +120,6 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                   renderIcon={isRefreshing ? InlineLoading : Renew}
                   onClick={refreshStandings}
                   disabled={isRefreshing || loading}
-                  size="sm"
                   hasIconOnly
                   iconDescription={
                     isRefreshing

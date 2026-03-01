@@ -1,0 +1,97 @@
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/motion" as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(15, 98, 254, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%),
+    var(--cds-background);
+  animation: overlayFadeIn 400ms motion(entrance, productive) both;
+}
+
+.title {
+  @include type-style("heading-03");
+  margin: 0 0 $spacing-03 0;
+  color: var(--cds-text-primary);
+  text-align: center;
+}
+
+.message {
+  @include type-style("body-01");
+  margin: 0;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.number {
+  font-size: 8rem;
+  font-weight: 300;
+  margin-top: $spacing-06;
+  line-height: 1;
+  color: var(--cds-text-primary);
+  animation: countPop 600ms motion(entrance, productive) both;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  @include type-style("helper-text-01");
+  margin-top: $spacing-06;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ring {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 2px solid var(--cds-border-subtle-01);
+}
+
+.ringProgress {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--cds-interactive);
+  animation: ringSpin 1s linear infinite;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes countPop {
+  0% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ringSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

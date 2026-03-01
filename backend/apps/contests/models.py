@@ -137,6 +137,17 @@ class Contest(models.Model):
     def __str__(self):
         return self.name
 
+    def has_exam_started(self):
+        """任何學生已開始作答即回傳 True（用於凍結題目判定）"""
+        return self.registrations.filter(
+            exam_status__in=[
+                ExamStatus.IN_PROGRESS,
+                ExamStatus.PAUSED,
+                ExamStatus.LOCKED,
+                ExamStatus.SUBMITTED,
+            ]
+        ).exists()
+
     def set_contest_password(self, raw_password: str | None) -> None:
         """Hash and store contest password."""
         if not raw_password:
@@ -275,6 +286,16 @@ class ExamQuestion(models.Model):
 
     def __str__(self):
         return f"{self.contest_id}#{self.id}({self.question_type})"
+
+    def to_snapshot(self):
+        """產生題目快照，用於凍結學生作答時的題目狀態"""
+        return {
+            'prompt': self.prompt,
+            'options': self.options,
+            'correct_answer': self.correct_answer,
+            'question_type': self.question_type,
+            'score': self.score,
+        }
 
 
 class ExamStatus(models.TextChoices):
@@ -523,6 +544,12 @@ class ExamAnswer(models.Model):
         verbose_name='作答內容',
         help_text='選擇題: {"selected": "A"}, 多選: {"selected": ["A","B"]}, 簡答/問答: {"text": "..."}'
     )
+    question_snapshot = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='題目快照',
+        help_text='首次作答時記錄的題目狀態，用於確保批改時參照學生作答時的題目'
+    )
 
     # Auto-grading result (for objective questions)
     is_correct = models.BooleanField(
@@ -574,21 +601,31 @@ class ExamAnswer(models.Model):
         return f"Answer by P#{self.participant_id} for Q#{self.question_id}"
 
     def auto_grade(self):
-        """Auto-grade objective questions (true_false, single_choice, multiple_choice)."""
-        q = self.question
-        if q.correct_answer is None:
+        """Auto-grade objective questions (true_false, single_choice, multiple_choice).
+        優先使用 question_snapshot 中的資料，確保評分基準與學生作答時一致。
+        """
+        if self.question_snapshot:
+            q_type = self.question_snapshot.get('question_type')
+            correct = self.question_snapshot.get('correct_answer')
+            q_score = self.question_snapshot.get('score', 0)
+        else:
+            q_type = self.question.question_type
+            correct = self.question.correct_answer
+            q_score = self.question.score
+
+        if correct is None:
             return
-        if q.question_type in (
+        if q_type in (
             ExamQuestionType.TRUE_FALSE,
             ExamQuestionType.SINGLE_CHOICE,
         ):
-            self.is_correct = self.answer.get('selected') == q.correct_answer
-            self.score = q.score if self.is_correct else 0
-        elif q.question_type == ExamQuestionType.MULTIPLE_CHOICE:
+            self.is_correct = self.answer.get('selected') == correct
+            self.score = q_score if self.is_correct else 0
+        elif q_type == ExamQuestionType.MULTIPLE_CHOICE:
             selected = set(self.answer.get('selected', []))
-            correct = set(q.correct_answer) if isinstance(q.correct_answer, list) else set()
-            self.is_correct = selected == correct
-            self.score = q.score if self.is_correct else 0
+            correct_set = set(correct) if isinstance(correct, list) else set()
+            self.is_correct = selected == correct_set
+            self.score = q_score if self.is_correct else 0
 
 
 class ContestActivity(models.Model):

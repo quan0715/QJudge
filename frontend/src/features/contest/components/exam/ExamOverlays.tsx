@@ -1,7 +1,8 @@
 import React from "react";
 import { Button } from "@carbon/react";
-import { CheckmarkFilled, Locked } from "@carbon/icons-react";
+import { Locked } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import ExamCountdownOverlay from "./ExamCountdownOverlay";
 
 interface ExamOverlaysProps {
   showGracePeriod: boolean;
@@ -25,80 +26,12 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
   return (
     <>
       {showGracePeriod && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#161616", // Always dark background for cinema/focus mode
-            zIndex: 9998,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            gap: "1.5rem",
-          }}
-        >
-          <div style={{ textAlign: "center", maxWidth: "400px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                marginBottom: "1rem",
-              }}
-            >
-              <CheckmarkFilled
-                size={28}
-                style={{ color: "var(--cds-support-success, #42be65)" }}
-              />
-              <span
-                style={{
-                  fontSize: "1.25rem",
-                  fontWeight: 600,
-                  color: "var(--cds-text-on-color, #fff)",
-                }}
-              >
-                {t("exam.modeEnabled")}
-              </span>
-            </div>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--cds-text-on-color-disabled, #8d8d8d)",
-                marginBottom: "2rem",
-                lineHeight: 1.5,
-              }}
-            >
-              {t("exam.antiCheatStarting")}
-            </p>
-            <div
-              style={{
-                fontSize: "6rem",
-                fontWeight: 300,
-                fontFamily: "'IBM Plex Mono', monospace",
-                color: "var(--cds-text-on-color, #fff)",
-                lineHeight: 1,
-              }}
-            >
-              {gracePeriodCountdown}
-            </div>
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--cds-text-on-color-disabled, #8d8d8d)",
-                marginTop: "2rem",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-              }}
-            >
-              {t("exam.doNotSwitchTabs")}
-            </p>
-          </div>
-        </div>
+        <ExamCountdownOverlay
+          value={gracePeriodCountdown}
+          title={t("exam.modeEnabled")}
+          message={t("exam.antiCheatStarting")}
+          hint={t("exam.doNotSwitchTabs")}
+        />
       )}
 
       {showLockScreen && (

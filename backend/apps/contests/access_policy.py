@@ -153,7 +153,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         'add_participant': 'manage_participants',
         'remove_participant': 'manage_participants',
         'reopen_exam': 'manage_participants',
-        '_list_events': 'view_participants',
 
         # Admin Management
         'admins': 'manage_contest',

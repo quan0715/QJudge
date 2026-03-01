@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Outlet, useParams, useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import {
   Header,
   HeaderName,
@@ -18,12 +18,10 @@ import {
   Renew,
   Locked,
   WarningAltFilled,
+  Settings,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
-import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
-import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
-import { isContestEnded, getContestState } from "@/core/entities/contest.entity";
 import ContestPreRegistrationScreen from "@/features/contest/screens/ContestPreRegistrationScreen";
 import ContestHero from "@/features/contest/components/layout/ContestHero";
 import ContestTabs from "@/features/contest/components/layout/ContestTabs";
@@ -34,193 +32,43 @@ import ContestExitModal from "@/features/contest/components/layout/ContestExitMo
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
+import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
 import styles from "./ContestLayout.module.scss";
 
 const ContestLayout = () => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [contest, setContest] = useState<ContestDetail | null>(null);
-  const [contestLoading, setContestLoading] = useState(true);
-  const [contestNotFound, setContestNotFound] = useState(false);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const {
+    contestId,
+    contest,
+    contestLoading,
+    contestNotFound,
+    isFullscreen,
+    isRefreshing,
+    isSolvePage,
+    isExamActive,
+    hasEnded,
+    isUpcoming,
+    isAdmin,
+    shouldWarnOnExit,
+    userScore,
+    totalMaxScore,
+    refreshContest,
+    navigate,
+  } = useContestLayoutState();
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
 
-  const refreshContest = async () => {
-    if (contestId) {
-      setIsRefreshing(true);
-      try {
-        const c = await getContest(contestId);
-        setContest(c || null);
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
-  };
-
-  // Fetch standings for score display (only on solve page)
-  const fetchStandings = useCallback(async () => {
-    if (!contestId) return;
-    try {
-      const data = await getContestStandings(contestId);
-      setScoreboardData(data);
-    } catch (err) {
-      console.error("Failed to fetch standings:", err);
-    }
-  }, [contestId]);
-
-  // Detect if we're on a solve page - hide hero/tabs for cleaner UI
-  const isSolvePage = location.pathname.includes("/solve/");
-
-  const isExamActive = !!(
-    contest?.examModeEnabled && contest?.examStatus === "in_progress"
-  );
-
-  const hasEnded = !!contest && isContestEnded(contest);
-  
-  // Calculate contest state for pre-registration page
-  const contestState = contest ? getContestState(contest) : null;
-  const isUpcoming = contestState === "upcoming";
-  
-  // Check if user is admin (can edit contest) - admins skip pre-registration page
-  const isAdmin = !!contest?.permissions?.canEditContest;
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const { confirm, modalProps } = useConfirmModal();
 
   const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
     contest,
     contestId,
     refreshContest,
   });
-
-  // Fetch standings when on solve page to display user score
-  useEffect(() => {
-    if (isSolvePage && contest?.id) {
-      fetchStandings();
-    }
-  }, [isSolvePage, contest?.id, fetchStandings]);
-
-  // Calculate user's current score and total max score
-  const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
-  const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
-
-  // Should warn on exit: when exam is in_progress, paused, or locked (not yet submitted)
-  const shouldWarnOnExit = !!(
-    contest?.examModeEnabled &&
-    contest?.status === "published" &&
-    !hasEnded &&
-    (contest?.examStatus === "in_progress" ||
-      contest?.examStatus === "paused" ||
-      contest?.examStatus === "locked")
-  );
-
-  useEffect(() => {
-    if (contestId) {
-      setContestLoading(true);
-      setContestNotFound(false);
-      getContest(contestId)
-        .then((c) => {
-          if (c) {
-            setContest(c);
-            setContestNotFound(false);
-          } else {
-            // Contest not found (API returned undefined/404)
-            setContest(null);
-            setContestNotFound(true);
-          }
-        })
-        .catch(() => {
-          setContest(null);
-          setContestNotFound(true);
-        })
-        .finally(() => {
-          setContestLoading(false);
-        });
-    }
-  }, [contestId]);
-
-  // Redirect to 404 page if contest not found
-  useEffect(() => {
-    if (!contestLoading && contestNotFound) {
-      navigate("/not-found", { replace: true });
-    }
-  }, [contestLoading, contestNotFound, navigate]);
-
-  // Beforeunload warning for exam mode
-  useEffect(() => {
-    if (!shouldWarnOnExit) return;
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "考試進行中，離開或刷新頁面將自動交卷。";
-      return e.returnValue;
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [shouldWarnOnExit]);
-
-  // Redirect paused users to overview
-  useEffect(() => {
-    if (contest?.examStatus === "paused") {
-      const path = window.location.pathname;
-      const restrictedPaths = [
-        "/problems",
-        "/solve",
-        "/submissions",
-        "/standings",
-      ];
-      if (restrictedPaths.some((p) => path.includes(p))) {
-        navigate(`/contests/${contestId}`);
-      }
-    }
-  }, [contest, contestId, navigate]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isExamActive) {
-        e.preventDefault();
-      }
-    };
-
-    if (isExamActive) {
-      window.addEventListener("beforeunload", handleBeforeUnload);
-    }
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isExamActive]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFullscreenNow = !!(
-        document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
-        (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
-      );
-      setIsFullscreen(isFullscreenNow);
-    };
-    
-    // Add listeners for all browser prefixes
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
-    
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
-    };
-  }, []);
-
-  const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const { confirm, modalProps } = useConfirmModal();
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
@@ -257,7 +105,6 @@ const ContestLayout = () => {
     onError: showError,
   });
 
-  // Show loading state while fetching contest
   if (contestLoading) {
     return (
       <div className={styles.loadingContainer}>
@@ -269,13 +116,10 @@ const ContestLayout = () => {
     );
   }
 
-  // If contest not found, the useEffect will redirect to /404
-  // Return null while redirecting
   if (contestNotFound) {
     return null;
   }
 
-  // Helper to render exam status indicators
   const renderExamStatus = () => {
     if (!contest?.examModeEnabled) return null;
 
@@ -322,9 +166,7 @@ const ContestLayout = () => {
     return null;
   };
 
-  // Helper to render main content based on state
   const renderMainContent = () => {
-    // Pre-registration page for upcoming contests (skip for admins)
     if (isUpcoming && contest && !isAdmin) {
       return (
         <div className={styles.scrollableContent}>
@@ -336,7 +178,6 @@ const ContestLayout = () => {
       );
     }
 
-    // Solve page uses full-height layout without ContentPage wrapper
     if (isSolvePage) {
       return (
         <ExamModeWrapper
@@ -356,7 +197,6 @@ const ContestLayout = () => {
       );
     }
 
-    // Default: ContentPage with hero and tabs
     return (
       <ContentPage
         hero={
@@ -404,108 +244,112 @@ const ContestLayout = () => {
   return (
     <div className={styles.root}>
       <Header aria-label="Contest Platform">
-          <HeaderName
-            href={`/contests/${contestId}`}
-            prefix="QJudge"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(`/contests/${contestId}`);
-            }}
-          >
-            {contest?.name || t("mode")}
-          </HeaderName>
-
-          <HeaderNavigation aria-label="Contest Navigation">
-            {showContestTimer && (
-              <div className={styles.headerTimerDisplay}>
-                <Time size={16} />
-                <span>
-                  {isCountdownToStart
-                    ? t("timeToStart", { time: timeLeft })
-                    : timeLeft}
-                </span>
-              </div>
-            )}
-
-            {showScoreDisplay && (
-              <div className={styles.headerScoreDisplay}>
-                <span className={styles.scoreLabel}>分數：</span>
-                <span
-                  className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
-                >
-                  {userScore}
-                </span>
-                <span className={styles.scoreDivider}>/</span>
-                <span className={styles.totalScore}>{totalMaxScore}</span>
-              </div>
-            )}
-          </HeaderNavigation>
-
-          <HeaderGlobalBar>
-            {renderExamStatus()}
-
-            <HeaderGlobalAction
-              aria-label={isRefreshing ? t("refreshing") : t("refresh")}
-              tooltipAlignment="center"
-              onClick={isRefreshing ? undefined : refreshContest}
-            >
-              <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
-            </HeaderGlobalAction>
-
-            <HeaderGlobalAction
-              aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
-              tooltipAlignment="center"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-            </HeaderGlobalAction>
-
-            {/* <UserMenu
-              contestMode
-              contest={contest}
-              onContestRefresh={refreshContest}
-            /> */}
-
-            <Button
-              kind="danger--ghost"
-              renderIcon={Logout}
-              onClick={() => setIsExitModalOpen(true)}
-              className={styles.exitButton}
-            >
-              {t("exit")}
-            </Button>
-          </HeaderGlobalBar>
-        </Header>
-
-        <ExamModeMonitorModal
-          open={monitoringModalOpen}
-          onRequestClose={() => setMonitoringModalOpen(false)}
-        />
-
-        <div className={styles.mainContent}>
-          <div className={styles.contentWrapper}>
-            {renderMainContent()}
-          </div>
-        </div>
-
-        <ContestExitModal
-          open={isExitModalOpen}
-          contest={contest}
-          shouldWarnOnExit={shouldWarnOnExit}
-          onClose={() => setIsExitModalOpen(false)}
-          onConfirm={handleExit}
-        />
-
-        <Modal
-          open={errorModalOpen}
-          modalHeading={tc("message.error")}
-          passiveModal
-          onRequestClose={() => setErrorModalOpen(false)}
+        <HeaderName
+          href={`/contests/${contestId}`}
+          prefix="QJudge"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate(`/contests/${contestId}`);
+          }}
         >
-          <p>{errorMessage}</p>
-        </Modal>
+          {contest?.name || t("mode")}
+        </HeaderName>
 
-        <ConfirmModal {...modalProps} />
+        <HeaderNavigation aria-label="Contest Navigation">
+          {showContestTimer && (
+            <div className={styles.headerTimerDisplay}>
+              <Time size={16} />
+              <span>
+                {isCountdownToStart
+                  ? t("timeToStart", { time: timeLeft })
+                  : timeLeft}
+              </span>
+            </div>
+          )}
+
+          {showScoreDisplay && (
+            <div className={styles.headerScoreDisplay}>
+              <span className={styles.scoreLabel}>分數：</span>
+              <span
+                className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
+              >
+                {userScore}
+              </span>
+              <span className={styles.scoreDivider}>/</span>
+              <span className={styles.totalScore}>{totalMaxScore}</span>
+            </div>
+          )}
+        </HeaderNavigation>
+
+        <HeaderGlobalBar>
+          {renderExamStatus()}
+
+          {isAdmin && (
+            <HeaderGlobalAction
+              aria-label={t("admin")}
+              tooltipAlignment="center"
+              onClick={() => navigate(`/contests/${contestId}/admin`)}
+            >
+              <Settings size={20} />
+            </HeaderGlobalAction>
+          )}
+
+          <HeaderGlobalAction
+            aria-label={isRefreshing ? t("refreshing") : t("refresh")}
+            tooltipAlignment="center"
+            onClick={isRefreshing ? undefined : refreshContest}
+          >
+            <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
+          </HeaderGlobalAction>
+
+          <HeaderGlobalAction
+            aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
+            tooltipAlignment="center"
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </HeaderGlobalAction>
+
+          <Button
+            kind="danger--ghost"
+            renderIcon={Logout}
+            onClick={() => setIsExitModalOpen(true)}
+            className={styles.exitButton}
+          >
+            {t("exit")}
+          </Button>
+        </HeaderGlobalBar>
+      </Header>
+
+      <ExamModeMonitorModal
+        open={monitoringModalOpen}
+        onRequestClose={() => setMonitoringModalOpen(false)}
+      />
+
+      <div className={styles.mainContent}>
+        <div className={styles.contentWrapper}>
+          {renderMainContent()}
+        </div>
+      </div>
+
+      <ContestExitModal
+        open={isExitModalOpen}
+        contest={contest}
+        shouldWarnOnExit={shouldWarnOnExit}
+        onClose={() => setIsExitModalOpen(false)}
+        onConfirm={handleExit}
+      />
+
+      <Modal
+        open={errorModalOpen}
+        modalHeading={tc("message.error")}
+        passiveModal
+        onRequestClose={() => setErrorModalOpen(false)}
+      >
+        <p>{errorMessage}</p>
+      </Modal>
+
+      <ConfirmModal {...modalProps} />
     </div>
   );
 };

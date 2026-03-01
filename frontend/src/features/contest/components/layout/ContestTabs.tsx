@@ -23,11 +23,6 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
     submissions: t("tabs.submissions"),
     standings: t("tabs.ranking"),
     clarifications: t("tabs.clarifications"),
-    settings: t("tabs.settings"),
-    participants: t("tabs.participants"),
-    logs: t("tabs.logs"),
-    "exam-questions": t("tabs.examQuestions"),
-    admins: t("tabs.admins"),
   };
 
   const currentTabs = getAvailableContestTabKeys(contest).map((key) => ({

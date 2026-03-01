@@ -6,20 +6,15 @@ export { default as ContestProblemScreen } from "./ContestProblemScreen";
 export { default as ContestQAScreen } from "./ContestQAScreen";
 export { default as ContestStandingsScreen } from "./ContestStandingsScreen";
 export { default as ContestSubmissionListScreen } from "./ContestSubmissionListScreen";
-export {
-  ExamV2RegistrationScreen,
-  ExamV2PrecheckScreen,
-  ExamV2AnsweringScreen,
-  ExamV2SubmitReviewScreen,
-  ExamV2GradingScreen,
-  ExamV2ResultScreen,
-} from "./examV2";
 
-// Exam Demo Screen
-export { default as StudentExamDemoScreen } from "./examDemo/StudentExamDemoScreen";
+// Paper Exam Screens
+export {
+  PaperExamPrecheckScreen,
+  PaperExamAnsweringScreen,
+  PaperExamSubmitReviewScreen,
+} from "./paperExam";
 
 // Settings Screens
-export { default as ContestAdminsScreen } from "./settings/ContestAdminsScreen";
 export { default as ContestLogsScreen } from "./settings/ContestLogsScreen";
 export { default as ContestParticipantsScreen } from "./settings/ContestParticipantsScreen";
 export { default as ContestProblemsScreen } from "./settings/ContestProblemsScreen";

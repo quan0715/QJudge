@@ -38,6 +38,17 @@ def check_heartbeat_timeout():
     
     count = 0
     for participant in stale_participants:
+        # Avoid creating duplicate timeout events for the same stale heartbeat.
+        already_logged = ExamEvent.objects.filter(
+            contest=participant.contest,
+            user=participant.user,
+            event_type='forbidden_focus_event',
+            metadata__source='heartbeat_timeout',
+            created_at__gte=participant.last_heartbeat,
+        ).exists()
+        if already_logged:
+            continue
+
         # Log heartbeat timeout event (don't auto-lock, just log)
         ExamEvent.objects.create(
             contest=participant.contest,
@@ -67,8 +78,13 @@ def check_contest_end():
     ended_contests = Contest.objects.filter(
         end_time__lte=now,
         status='published',
-        exam_mode_enabled=True
-    )
+        exam_mode_enabled=True,
+        registrations__exam_status__in=[
+            ExamStatus.IN_PROGRESS,
+            ExamStatus.PAUSED,
+            ExamStatus.LOCKED,
+        ],
+    ).distinct()
     
     for contest in ended_contests:
         auto_submit_participants.delay(contest.id)
@@ -86,7 +102,7 @@ def auto_submit_participants(contest_id):
         contest = Contest.objects.get(id=contest_id)
         
         # Double-check: If admin extended end_time, skip
-        if contest.end_time > timezone.now():
+        if contest.end_time and contest.end_time > timezone.now():
             return f"Contest {contest_id} end_time extended, skipping"
         
         count = ContestParticipant.objects.filter(

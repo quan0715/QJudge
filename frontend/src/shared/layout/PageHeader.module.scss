@@ -5,11 +5,6 @@
   max-width: var(--page-header-max-width, 100%);
 }
 
-.noGutter {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
 .row {
   display: flex;
   justify-content: space-between;

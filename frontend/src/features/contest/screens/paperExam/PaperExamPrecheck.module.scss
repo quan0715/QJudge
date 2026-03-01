@@ -1,0 +1,162 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/motion" as *;
+
+// ─── Animated gradient background ───
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: $spacing-05;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 15% 85%, rgba(15, 98, 254, 0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 15%, rgba(120, 60, 220, 0.05) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.15) 0%, transparent 70%),
+    var(--cds-background);
+  background-size: 200% 200%;
+  animation: gradientShift 16s ease-in-out infinite;
+
+  // Subtle vignette overlay
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.25) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  25%  { background-position: 50% 0%; }
+  50%  { background-position: 100% 50%; }
+  75%  { background-position: 50% 100%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container {
+  width: 100%;
+  max-width: 720px;
+}
+
+// ─── Step content with fade-slide transition ───
+.stepContent {
+  animation: stepFadeIn 400ms motion(entrance, productive) both;
+}
+
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─── Check item rows ───
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-04 $spacing-05;
+  background: var(--cds-layer-01);
+  border-radius: 4px;
+  transition: background-color 200ms motion(standard, productive),
+              transform 200ms motion(standard, productive),
+              opacity 200ms motion(standard, productive);
+}
+
+.checkItem[data-status="running"] {
+  background: var(--cds-layer-hover-01);
+}
+
+.checkItem[data-status="pass"] {
+  animation: checkPassPulse 500ms motion(entrance, productive) both;
+}
+
+.checkItem[data-status="fail"] {
+  animation: checkFailShake 400ms motion(entrance, productive) both;
+}
+
+@keyframes checkFailShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes checkPassPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkIconPending {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--cds-border-subtle-01);
+}
+
+.checkIconRunning {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--cds-interactive);
+  border-top-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.checkLabel {
+  font-weight: 500;
+}
+
+.checkDetail {
+  @include type-style("helper-text-01");
+  color: $text-secondary;
+  margin-top: 2px;
+}
+
+// ─── Nav buttons row ───
+.navRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.navRowEnd {
+  display: flex;
+  justify-content: flex-end;
+}

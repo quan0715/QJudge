@@ -59,6 +59,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     allowAutoUnlock: !!dto.allow_auto_unlock,
     autoUnlockMinutes: dto.auto_unlock_minutes || 0,
     resultsPublished: !!dto.results_published,
+    isExamQuestionsFrozen: !!dto.is_exam_questions_frozen,
     myNickname: dto.my_nickname,
 
     hasStarted: !!dto.has_started,

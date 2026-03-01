@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { type FC, memo } from "react";
 import {
   RadioButton,
   RadioButtonGroup,
@@ -35,7 +35,7 @@ interface ExamQuestionCardProps {
   readOnly?: boolean;
 }
 
-export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
+export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   question,
   index,
   answer,
@@ -170,6 +170,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ExamQuestionCard.displayName = "ExamQuestionCard";
 
 export default ExamQuestionCard;

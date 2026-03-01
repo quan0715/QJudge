@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Button,
   IconButton,
+  InlineNotification,
   Modal,
   MultiSelect,
   Select,
@@ -210,12 +211,14 @@ interface QuestionCardProps {
   question: ExamQuestion;
   index: number;
   onClick: (question: ExamQuestion) => void;
+  frozen?: boolean;
 }
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
   question,
   index,
   onClick,
+  frozen = false,
 }) => {
   const dragControls = useDragControls();
 
@@ -225,11 +228,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
       dragListener={false}
       dragControls={dragControls}
       className={styles.card}
+      drag={!frozen}
     >
       {/* Drag handle */}
       <div
         className={styles.dragHandle}
-        onPointerDown={(e) => dragControls.start(e)}
+        onPointerDown={(e) => { if (!frozen) dragControls.start(e); }}
+        style={frozen ? { opacity: 0.3, cursor: "not-allowed" } : undefined}
       >
         <Draggable size={16} />
       </div>
@@ -238,7 +243,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
       <button
         type="button"
         className={styles.cardClickable}
-        onClick={() => onClick(question)}
+        onClick={() => { if (!frozen) onClick(question); }}
+        style={frozen ? { cursor: "default" } : undefined}
       >
         {/* Order number */}
         <div className={styles.orderBadge}>{index + 1}</div>
@@ -275,12 +281,14 @@ interface ExamQuestionsSectionProps {
   contestId: string;
   registerRef: (el: HTMLElement | null) => void;
   onQuestionsChange?: (questions: ExamQuestion[]) => void;
+  frozen?: boolean;
 }
 
 const ExamQuestionsSection: React.FC<ExamQuestionsSectionProps> = ({
   contestId,
   registerRef,
   onQuestionsChange,
+  frozen = false,
 }) => {
   const { showToast } = useToast();
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -635,6 +643,17 @@ const ExamQuestionsSection: React.FC<ExamQuestionsSectionProps> = ({
         <Tag type="blue">{`總配分：${questionSummary.totalScore}`}</Tag>
       </div>
 
+      {frozen && (
+        <InlineNotification
+          kind="warning"
+          lowContrast
+          hideCloseButton
+          title="題目已凍結"
+          subtitle="已有學生開始作答，拖曳排序、編輯及刪除功能已停用。仍可新增題目。"
+          style={{ marginBottom: "1rem" }}
+        />
+      )}
+
       {/* Card list with drag reorder */}
       {questions.length > 0 ? (
         <Reorder.Group
@@ -650,6 +669,7 @@ const ExamQuestionsSection: React.FC<ExamQuestionsSectionProps> = ({
               question={question}
               index={index}
               onClick={openEditModal}
+              frozen={frozen}
             />
           ))}
         </Reorder.Group>
@@ -752,7 +772,7 @@ const ExamQuestionsSection: React.FC<ExamQuestionsSectionProps> = ({
           )}
         </div>
 
-        {/* Delete button inside modal (only in edit mode) */}
+        {/* Delete button inside modal (only in edit mode, disabled when frozen) */}
         {editingQuestion && (
           <div className={styles.modalDangerZone}>
             <Button
@@ -760,6 +780,7 @@ const ExamQuestionsSection: React.FC<ExamQuestionsSectionProps> = ({
               size="sm"
               renderIcon={TrashCan}
               onClick={handleDeleteInModal}
+              disabled={frozen}
             >
               刪除此題目
             </Button>

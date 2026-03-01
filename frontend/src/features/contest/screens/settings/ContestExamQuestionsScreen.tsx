@@ -36,6 +36,7 @@ import {
   type ExamQuestionUpsertPayload,
   updateExamQuestion,
 } from "@/infrastructure/api/repositories";
+import { useContest } from "@/features/contest/contexts/ContestContext";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
@@ -215,6 +216,8 @@ const buildPayload = (form: QuestionFormState): ExamQuestionUpsertPayload => {
 
 const ContestExamQuestionsScreen: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
+  const { contest } = useContest();
+  const frozen = !!contest?.isExamQuestionsFrozen;
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -481,13 +484,23 @@ const ContestExamQuestionsScreen: React.FC = () => {
           />
         ) : null}
 
+        {frozen && (
+          <InlineNotification
+            kind="warning"
+            lowContrast
+            hideCloseButton
+            title="題目已凍結"
+            subtitle="已有學生開始作答，編輯、刪除及排序功能已停用。仍可新增題目。"
+            style={{ marginBottom: "1rem" }}
+          />
+        )}
+
         <ContainerCard
           title="Exam 題目管理"
           subtitle="可在競賽後台直接編輯考卷題目；Coding 題目流程維持既有模式。"
           action={
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: 0 }}>
               <Button
-                size="sm"
                 kind="ghost"
                 renderIcon={Renew}
                 hasIconOnly
@@ -495,7 +508,7 @@ const ContestExamQuestionsScreen: React.FC = () => {
                 onClick={loadQuestions}
                 disabled={loading}
               />
-              <Button size="sm" renderIcon={Add} onClick={openCreateModal}>
+              <Button renderIcon={Add} onClick={openCreateModal}>
                 新增 Exam 題目
               </Button>
             </div>
@@ -549,7 +562,7 @@ const ContestExamQuestionsScreen: React.FC = () => {
                             hasIconOnly
                             iconDescription="上移"
                             renderIcon={ArrowUp}
-                            disabled={index === 0}
+                            disabled={frozen || index === 0}
                             onClick={() => handleMove(index, "up")}
                           />
                           <Button
@@ -558,7 +571,7 @@ const ContestExamQuestionsScreen: React.FC = () => {
                             hasIconOnly
                             iconDescription="下移"
                             renderIcon={ArrowDown}
-                            disabled={index === questions.length - 1}
+                            disabled={frozen || index === questions.length - 1}
                             onClick={() => handleMove(index, "down")}
                           />
                           <Button
@@ -567,6 +580,7 @@ const ContestExamQuestionsScreen: React.FC = () => {
                             hasIconOnly
                             iconDescription="編輯"
                             renderIcon={Edit}
+                            disabled={frozen}
                             onClick={() => openEditModal(question)}
                           />
                           <Button
@@ -575,6 +589,7 @@ const ContestExamQuestionsScreen: React.FC = () => {
                             hasIconOnly
                             iconDescription="刪除"
                             renderIcon={TrashCan}
+                            disabled={frozen}
                             onClick={() => handleDelete(question)}
                           />
                         </div>

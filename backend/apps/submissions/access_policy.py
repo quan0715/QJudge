@@ -52,15 +52,21 @@ class SubmissionAccessPolicy:
         except ContestParticipant.DoesNotExist as exc:
             raise SubmissionAccessError("You are not registered for this contest") from exc
 
-        if participant.has_finished_exam:
-            raise SubmissionAccessError(
-                "You have finished the exam and cannot submit anymore"
-            )
-        if participant.exam_status == ExamStatus.PAUSED:
-            raise SubmissionAccessError(
-                "Your exam is paused. Please resume the exam before submitting."
-            )
-        if participant.exam_status == ExamStatus.LOCKED:
-            raise SubmissionAccessError("You have been locked out of this exam and cannot submit.")
+        # Exam status restrictions only apply in exam mode contests.
+        if contest.exam_mode_enabled:
+            if participant.has_finished_exam:
+                raise SubmissionAccessError(
+                    "You have finished the exam and cannot submit anymore"
+                )
+            if participant.exam_status == ExamStatus.NOT_STARTED:
+                raise SubmissionAccessError(
+                    "You must start the exam before submitting."
+                )
+            if participant.exam_status == ExamStatus.PAUSED:
+                raise SubmissionAccessError(
+                    "Your exam is paused. Please resume the exam before submitting."
+                )
+            if participant.exam_status == ExamStatus.LOCKED:
+                raise SubmissionAccessError("You have been locked out of this exam and cannot submit.")
 
         return False

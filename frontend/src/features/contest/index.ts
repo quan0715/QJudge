@@ -1,7 +1,7 @@
 // Contest Feature - Main exports
 
 // Routes
-export { contestListRoute, contestDetailRoutes, examDemoRoute, examV2Routes } from "./routes";
+export { contestListRoute, contestDetailRoutes, contestAdminRoute, paperExamRoutes } from "./routes";
 
 // Screens
 export * from "./screens";

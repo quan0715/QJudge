@@ -5,7 +5,9 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from datetime import timedelta
-from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from unittest.mock import patch
+
+from apps.contests.models import Contest, ContestParticipant, ExamStatus, ExamEvent
 
 User = get_user_model()
 
@@ -148,6 +150,103 @@ class AutoSubmitTaskTests(TestCase):
         
         participant.refresh_from_db()
         self.assertEqual(participant.exam_status, ExamStatus.IN_PROGRESS)  # Unchanged
+
+    def test_check_contest_end_skips_contests_without_active_participants(self):
+        """Ended contests with no active participants should not enqueue auto-submit task."""
+        from apps.contests.tasks import check_contest_end
+
+        inactive_contest = Contest.objects.create(
+            name='Ended Inactive Contest', owner=self.admin,
+            start_time=timezone.now() - timedelta(hours=2),
+            end_time=timezone.now() - timedelta(minutes=5),
+            status='published', exam_mode_enabled=True
+        )
+        ContestParticipant.objects.create(
+            contest=inactive_contest, user=self.student,
+            exam_status=ExamStatus.SUBMITTED,
+            left_at=timezone.now() - timedelta(minutes=10)
+        )
+
+        with patch('apps.contests.tasks.auto_submit_participants.delay') as delay_mock:
+            check_contest_end()
+            delay_mock.assert_not_called()
+
+    def test_check_contest_end_enqueues_only_active_contests(self):
+        """Only contests with active participant exam states should be enqueued."""
+        from apps.contests.tasks import check_contest_end
+
+        active_contest = Contest.objects.create(
+            name='Ended Active Contest', owner=self.admin,
+            start_time=timezone.now() - timedelta(hours=2),
+            end_time=timezone.now() - timedelta(minutes=5),
+            status='published', exam_mode_enabled=True
+        )
+        ContestParticipant.objects.create(
+            contest=active_contest, user=self.student,
+            exam_status=ExamStatus.IN_PROGRESS
+        )
+
+        inactive_contest = Contest.objects.create(
+            name='Ended Inactive Contest', owner=self.admin,
+            start_time=timezone.now() - timedelta(hours=2),
+            end_time=timezone.now() - timedelta(minutes=5),
+            status='published', exam_mode_enabled=True
+        )
+        ContestParticipant.objects.create(
+            contest=inactive_contest, user=User.objects.create_user(
+                username='student2', email='student2@test.com', password='password'
+            ),
+            exam_status=ExamStatus.SUBMITTED
+        )
+
+        with patch('apps.contests.tasks.auto_submit_participants.delay') as delay_mock:
+            check_contest_end()
+            delay_mock.assert_called_once_with(active_contest.id)
+
+
+@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+class HeartbeatTimeoutTaskTests(TestCase):
+    """Tests for heartbeat timeout task behavior."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='hb_admin', email='hb_admin@test.com', password='password', role='admin'
+        )
+        self.student = User.objects.create_user(
+            username='hb_student', email='hb_student@test.com', password='password'
+        )
+
+    def test_heartbeat_timeout_logs_once_for_same_stale_heartbeat(self):
+        from apps.contests.tasks import check_heartbeat_timeout
+
+        contest = Contest.objects.create(
+            name='Heartbeat Contest',
+            owner=self.admin,
+            start_time=timezone.now() - timedelta(hours=1),
+            end_time=timezone.now() + timedelta(hours=1),
+            status='published',
+            exam_mode_enabled=True,
+        )
+        stale_at = timezone.now() - timedelta(minutes=3)
+        participant = ContestParticipant.objects.create(
+            contest=contest,
+            user=self.student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now() - timedelta(minutes=10),
+            last_heartbeat=stale_at,
+        )
+
+        check_heartbeat_timeout()
+        check_heartbeat_timeout()
+
+        events = ExamEvent.objects.filter(
+            contest=contest,
+            user=self.student,
+            metadata__source='heartbeat_timeout',
+        )
+        self.assertEqual(events.count(), 1)
+        participant.refresh_from_db()
+        self.assertEqual(participant.last_heartbeat, stale_at)
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)

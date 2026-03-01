@@ -37,6 +37,10 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         user = self.request.user
         scope = self.request.query_params.get('scope', 'all')
 
+        # For detail/custom actions, use object-level permissions to determine access.
+        if self.action and self.action != 'list':
+            return Classroom.objects.all()
+
         if user.is_staff or user.is_superuser:
             qs = Classroom.objects.all()
         elif scope == 'manage':
@@ -66,9 +70,20 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return ClassroomDetailSerializer
 
     def get_permissions(self):
-        if self.action in ('update', 'partial_update', 'destroy'):
+        owner_admin_actions = {
+            'update', 'partial_update', 'destroy',
+            'add_members', 'remove_member',
+            'regenerate_code', 'bind_contest', 'unbind_contest',
+            'create_announcement',
+        }
+        member_actions = {
+            'retrieve', 'list_members',
+            'list_announcements', 'update_announcement', 'delete_announcement',
+        }
+
+        if self.action in owner_admin_actions:
             return [permissions.IsAuthenticated(), IsClassroomOwnerOrAdmin()]
-        if self.action == 'retrieve':
+        if self.action in member_actions:
             return [permissions.IsAuthenticated(), IsClassroomMember()]
         return [permissions.IsAuthenticated()]
 

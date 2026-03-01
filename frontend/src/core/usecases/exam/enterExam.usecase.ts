@@ -2,9 +2,9 @@
  * Enter Exam Use Case
  *
  * Handles the business logic for entering/starting an exam:
- * 1. Call startExam API
- * 2. Request fullscreen if exam mode is enabled
- * 3. Return result with navigation path
+ * 1. Exam mode: navigate to precheck first (startExam happens in precheck).
+ * 2. Non-exam mode: call startExam API directly.
+ * 3. Return result with navigation path.
  */
 
 import { startExam } from "@/infrastructure/api/repositories";
@@ -58,6 +58,15 @@ export async function enterExamUseCase(
 ): Promise<EnterExamOutput> {
   const { contestId, examModeEnabled } = input;
 
+  // Exam mode must always go through precheck before anti-cheat activation.
+  if (examModeEnabled) {
+    return {
+      success: true,
+      status: "started",
+      navigateTo: `/contests/${contestId}/paper-exam/precheck`,
+    };
+  }
+
   try {
     const response = await startExam(contestId);
 
@@ -65,11 +74,6 @@ export async function enterExamUseCase(
       response &&
       (response.status === "started" || response.status === "resumed")
     ) {
-      // Request fullscreen if exam mode is enabled
-      if (examModeEnabled) {
-        await requestFullscreen();
-      }
-
       return {
         success: true,
         status: response.status,

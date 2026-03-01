@@ -257,6 +257,25 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.score, 15)
 
+    def test_teacher_grade_answer_rounds_participant_score(self):
+        ans = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse(
+            'contests:contest-exam-answers-grade-answer',
+            kwargs={'contest_pk': self.contest.id, 'pk': ans.id}
+        )
+        resp = self.client.post(url, {
+            'score': 1.6,
+            'feedback': 'Partial credit',
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.score, 2)
+
     def test_student_cannot_grade(self):
         ans = ExamAnswer.objects.create(
             participant=self.participant,

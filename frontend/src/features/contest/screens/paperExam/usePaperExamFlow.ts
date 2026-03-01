@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useContest } from "@/features/contest/contexts/ContestContext";
+import { usePaperExam } from "@/features/contest/contexts/PaperExamContext";
 import {
   registerContest,
-  enterContest,
   startExam,
   endExam,
   sendExamHeartbeat,
@@ -14,9 +13,9 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-export const useExamV2Flow = () => {
+export const usePaperExamFlow = () => {
   const { contestId } = useParams<{ contestId: string }>();
-  const { contest, refreshContest } = useContest();
+  const { contest, refreshContest } = usePaperExam();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +49,8 @@ export const useExamV2Flow = () => {
     setLoading(true);
     setError(null);
     try {
-      await enterContest(id);
+      // 考試模式只需 startExam，不需 enterContest
+      // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
       await startExam(id);
       await refreshContest();
       return true;
@@ -100,4 +100,4 @@ export const useExamV2Flow = () => {
   };
 };
 
-export default useExamV2Flow;
+export default usePaperExamFlow;

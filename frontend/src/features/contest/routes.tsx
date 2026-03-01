@@ -1,18 +1,16 @@
 import { Route, Navigate } from "react-router-dom";
 import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
-import ExamV2Layout from "./components/layout/ExamV2Layout";
+import PaperExamLayout from "./components/layout/PaperExamLayout";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
 import ExamEditScreen from "./screens/examEdit/ExamEditScreen";
+import AdminDashboardScreen from "./screens/admin/AdminDashboardScreen";
 import {
-  ExamV2PrecheckScreen,
-  ExamV2AnsweringScreen,
-  ExamV2SubmitReviewScreen,
-  ExamV2GradingScreen,
-  ExamV2ResultScreen,
-  StudentExamDemoScreen,
-} from "./screens";
+  PaperExamPrecheckScreen,
+  PaperExamAnsweringScreen,
+  PaperExamSubmitReviewScreen,
+} from "./screens/paperExam";
 
 /**
  * Contest List 路由（需在 RequireAuth + MainLayout 內使用）
@@ -40,26 +38,24 @@ export const contestDetailRoutes = (
 );
 
 /**
- * Exam v2 Flow — 獨立全頁面，不嵌套在 ContestLayout 內
- * 使用 ExamV2Layout 提供 ContestContext
+ * Contest Admin Dashboard — 獨立全頁面，TA/Admin 儀表板
  */
-export const examV2Routes = (
-  <Route path="/contests/:contestId/exam-v2" element={<ExamV2Layout />}>
-    <Route index element={<Navigate to="precheck" replace />} />
-    <Route path="precheck" element={<ExamV2PrecheckScreen />} />
-    <Route path="answering" element={<ExamV2AnsweringScreen />} />
-    <Route path="submit-review" element={<ExamV2SubmitReviewScreen />} />
-    <Route path="grading" element={<ExamV2GradingScreen />} />
-    <Route path="result" element={<ExamV2ResultScreen />} />
-  </Route>
+export const contestAdminRoute = (
+  <Route
+    path="/contests/:contestId/admin"
+    element={<AdminDashboardScreen />}
+  />
 );
 
 /**
- * Student Exam Demo — 獨立全頁面，不嵌套在 ContestLayout 內
+ * Paper Exam Flow — 獨立全頁面，不嵌套在 ContestLayout 內
+ * 使用 PaperExamLayout 提供 ContestContext
  */
-export const examDemoRoute = (
-  <Route
-    path="/contests/:contestId/exam-demo"
-    element={<StudentExamDemoScreen />}
-  />
+export const paperExamRoutes = (
+  <Route path="/contests/:contestId/paper-exam" element={<PaperExamLayout />}>
+    <Route index element={<Navigate to="precheck" replace />} />
+    <Route path="precheck" element={<PaperExamPrecheckScreen />} />
+    <Route path="answering" element={<PaperExamAnsweringScreen />} />
+    <Route path="submit-review" element={<PaperExamSubmitReviewScreen />} />
+  </Route>
 );

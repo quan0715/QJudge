@@ -1,0 +1,42 @@
+@use "@carbon/layout";
+
+.editorRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editorContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: layout.$spacing-07;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: layout.$spacing-07;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.skeletonHeader {
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.skeletonBody {
+  padding: layout.$spacing-05;
+}

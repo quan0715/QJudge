@@ -13,6 +13,8 @@ body {
   margin: 0;
   font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
   overflow-x: hidden;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
 
   // Apply thin scrollbar globally
   @include thin-scrollbar-all(6px);

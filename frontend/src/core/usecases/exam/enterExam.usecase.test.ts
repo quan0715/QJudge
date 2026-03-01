@@ -43,16 +43,26 @@ describe("enterExam.usecase", () => {
     expect(result).toBe(false);
   });
 
-  it("starts exam and navigates on started status", async () => {
-    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
-    Object.defineProperty(document.documentElement, "requestFullscreen", {
-      value: vi.fn().mockResolvedValue(undefined),
-      configurable: true,
-    });
-
+  it("exam mode always routes to precheck before startExam", async () => {
     const result = await enterExamUseCase({
       contestId: "contest-1",
       examModeEnabled: true,
+    });
+
+    expect(startExam).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      status: "started",
+      navigateTo: "/contests/contest-1/paper-exam/precheck",
+    });
+  });
+
+  it("starts exam and navigates to problems for non-exam mode", async () => {
+    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
+
+    const result = await enterExamUseCase({
+      contestId: "contest-1",
+      examModeEnabled: false,
     });
 
     expect(startExam).toHaveBeenCalledWith("contest-1");

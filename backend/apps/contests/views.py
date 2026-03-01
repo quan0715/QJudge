@@ -2,8 +2,10 @@
 Views for contests app.
 """
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Sum, Max
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
@@ -35,6 +37,7 @@ from .serializers import (
     ContestProblemSerializer,
     ContestProblemCreateSerializer,
     ExamQuestionSerializer,
+    ExamQuestionStudentSerializer,
     ClarificationSerializer,
     ClarificationCreateSerializer,
     ClarificationReplySerializer,
@@ -438,27 +441,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             return Response({'status': 'reopened', 'exam_status': ExamStatus.PAUSED})
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin], url_path='events')
-    def _list_events(self, request, pk=None):
-        """
-        List exam events for a contest (Teacher/Admin only).
-        """
-        contest = self.get_object()
-        role = get_user_role_in_contest(request.user, contest)
-
-        if role not in ['teacher', 'admin']:
-            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-
-        events = ExamEvent.objects.filter(contest=contest)
-
-        # Optional filtering by user
-        user_id = request.query_params.get('user_id')
-        if user_id:
-            events = events.filter(user_id=user_id)
-
-        serializer = ExamEventCreateSerializer(events, many=True)
-        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_participant')
     def add_participant(self, request, pk=None):
@@ -1464,30 +1446,33 @@ class ExamViewSet(viewsets.GenericViewSet):
             metadata=serializer.validated_data.get('metadata')
         )
 
-        # Increment violation count
-        participant.violation_count += 1
-        
-        # Check threshold - if should lock and not already locked
-        should_lock = participant.violation_count >= contest.max_cheat_warnings
-        if should_lock and participant.exam_status != ExamStatus.LOCKED:
-            participant.exam_status = ExamStatus.LOCKED
-            participant.locked_at = timezone.now()
-            # Use provided lock reason or default
-            custom_reason = serializer.validated_data.get('lock_reason')
-            if custom_reason:
-                participant.lock_reason = custom_reason
-            else:
-                participant.lock_reason = f"System lock: {serializer.validated_data['event_type']}"
-            
-            # Log activity
-            ContestActivityViewSet.log_activity(
-                contest, 
-                request.user, 
-                'lock_user', 
-                f"Auto-locked due to {serializer.validated_data['event_type']}"
-            )
-        
-        participant.save()
+        # Increment violation count with row lock to avoid lost updates under concurrency.
+        with transaction.atomic():
+            participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+            participant.violation_count += 1
+
+            update_fields = ['violation_count']
+            should_lock = participant.violation_count >= contest.max_cheat_warnings
+            if should_lock and participant.exam_status != ExamStatus.LOCKED:
+                participant.exam_status = ExamStatus.LOCKED
+                participant.locked_at = timezone.now()
+                # Use provided lock reason or default
+                custom_reason = serializer.validated_data.get('lock_reason')
+                if custom_reason:
+                    participant.lock_reason = custom_reason
+                else:
+                    participant.lock_reason = f"System lock: {serializer.validated_data['event_type']}"
+                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+
+                # Log activity
+                ContestActivityViewSet.log_activity(
+                    contest,
+                    request.user,
+                    'lock_user',
+                    f"Auto-locked due to {serializer.validated_data['event_type']}"
+                )
+
+            participant.save(update_fields=update_fields)
         
         # Calculate auto unlock time
         auto_unlock_at = None
@@ -1789,10 +1774,11 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     """
-    CRUD for exam paper questions in contest admin backend.
+    CRUD for exam paper questions.
+    - Admin/teacher: full CRUD with correct_answer visible.
+    - Registered students: read-only list (correct_answer hidden).
     """
 
-    serializer_class = ExamQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
@@ -1800,14 +1786,45 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         contest_pk = self.kwargs.get('contest_pk')
         return get_object_or_404(Contest, pk=contest_pk)
 
-    def _ensure_admin_permission(self, contest):
+    def _is_admin(self, contest):
         role = get_user_role_in_contest(self.request.user, contest)
-        if role not in ['admin', 'teacher']:
+        return role in ['admin', 'teacher']
+
+    def _ensure_admin_permission(self, contest):
+        if not self._is_admin(contest):
             raise PermissionDenied('Only contest owner/admin can manage exam questions')
+
+    def _ensure_not_frozen(self, contest, force=False):
+        """檢查考試題目是否已凍結（有學生開始作答後禁止修改/刪除/排序）"""
+        if force:
+            return
+        if contest.has_exam_started():
+            return Response(
+                {'error': '考試已有學生開始作答，題目已凍結。如需強制修改請加 ?force=true 參數。'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return None
+
+    def get_serializer_class(self):
+        contest = self._get_contest()
+        if self._is_admin(contest):
+            return ExamQuestionSerializer
+        return ExamQuestionStudentSerializer
 
     def get_queryset(self):
         contest = self._get_contest()
-        self._ensure_admin_permission(contest)
+        # Students can only list; admin check is enforced per-action for writes
+        if not self._is_admin(contest):
+            # Students must be registered and have started exam to view questions.
+            participant = contest.registrations.filter(user=self.request.user).first()
+            if not participant:
+                raise PermissionDenied('Not registered for this contest')
+            if contest.status != 'published':
+                raise PermissionDenied('Contest is not published')
+            if contest.start_time and timezone.now() < contest.start_time:
+                raise PermissionDenied('Contest has not started yet')
+            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
+                raise PermissionDenied('You must start the exam before viewing questions')
         return ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
 
     def perform_create(self, serializer):
@@ -1830,18 +1847,26 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
+        force = self.request.query_params.get('force', '').lower() == 'true'
+        frozen_response = self._ensure_not_frozen(contest, force)
+        if frozen_response:
+            raise PermissionDenied(frozen_response.data['error'])
         serializer.save()
 
         ContestActivityViewSet.log_activity(
             contest,
             self.request.user,
             'update_problem',
-            f"Updated exam question #{serializer.instance.id}"
+            f"Updated exam question #{serializer.instance.id}" + (" (force)" if force else "")
         )
 
     def perform_destroy(self, instance):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
+        force = self.request.query_params.get('force', '').lower() == 'true'
+        frozen_response = self._ensure_not_frozen(contest, force)
+        if frozen_response:
+            raise PermissionDenied(frozen_response.data['error'])
         question_id = instance.id
         instance.delete()
 
@@ -1849,13 +1874,17 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             contest,
             self.request.user,
             'update_problem',
-            f"Deleted exam question #{question_id}"
+            f"Deleted exam question #{question_id}" + (" (force)" if force else "")
         )
 
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
+        force = request.query_params.get('force', '').lower() == 'true'
+        frozen_response = self._ensure_not_frozen(contest, force)
+        if frozen_response:
+            return frozen_response
 
         orders = request.data.get('orders', [])
         if not isinstance(orders, list) or not orders:
@@ -1965,6 +1994,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             question=question,
             defaults={'answer': serializer.validated_data['answer']}
         )
+        # 首次建立時記錄題目快照（後續更新答案不覆蓋快照）
+        if created:
+            answer_obj.question_snapshot = question.to_snapshot()
         # Auto-grade objective questions
         answer_obj.auto_grade()
         answer_obj.save()
@@ -2037,10 +2069,13 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             participant__contest=contest
         ).select_related('participant__user', 'question', 'graded_by')
 
-        # Optional filter by participant
+        # Optional filter by participant (supports both participant_id and user_id)
         participant_id = request.query_params.get('participant_id')
+        user_id = request.query_params.get('user_id')
         if participant_id:
             answers = answers.filter(participant_id=participant_id)
+        elif user_id:
+            answers = answers.filter(participant__user_id=user_id)
 
         return Response(ExamAnswerDetailSerializer(answers, many=True).data)
 
@@ -2072,7 +2107,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             participant=answer_obj.participant,
             score__isnull=False
         ).aggregate(total=Sum('score'))['total'] or 0
-        answer_obj.participant.score = int(total)
+        rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        answer_obj.participant.score = int(rounded_total)
         answer_obj.participant.save(update_fields=['score'])
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)

@@ -34,23 +34,8 @@ export type ExamSectionId =
   | "danger-zone";
 
 export const SECTION_FIELDS: Record<ExamSectionId, string[]> = {
-  "basic-info": [
-    "name",
-    "description",
-    "rules",
-    "startTime",
-    "endTime",
-    "status",
-    "visibility",
-    "password",
-  ],
-  "exam-settings": [
-    "examModeEnabled",
-    "maxCheatWarnings",
-    "allowMultipleJoins",
-    "allowAutoUnlock",
-    "autoUnlockMinutes",
-  ],
+  "basic-info": [],
+  "exam-settings": [],
   "exam-questions": [],
   "scoring-summary": [],
   "danger-zone": [],

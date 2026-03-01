@@ -239,3 +239,46 @@ def test_rejected_contest_submission_raises_access_error(judge_mock: Mock) -> No
 
     assert Submission.objects.count() == 0
     judge_mock.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_not_started_exam_submission_raises_access_error(judge_mock: Mock) -> None:
+    user = UserFactory()
+    contest = ContestFactory(status="published", exam_mode_enabled=True)
+    problem = ProblemFactory(created_by=contest.owner)
+    ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
+
+    with pytest.raises(SubmissionAccessError, match="start the exam"):
+        SubmissionService.create_and_dispatch(
+            user=user,
+            data={
+                "problem": problem,
+                "language": "python",
+                "code": "print('ok')",
+                "contest": contest,
+            },
+        )
+
+    assert Submission.objects.count() == 0
+    judge_mock.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
+    user = UserFactory()
+    contest = ContestFactory(status="published", exam_mode_enabled=False)
+    problem = ProblemFactory(created_by=contest.owner)
+    ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
+
+    submission = SubmissionService.create_and_dispatch(
+        user=user,
+        data={
+            "problem": problem,
+            "language": "python",
+            "code": "print('ok')",
+            "contest": contest,
+        },
+    )
+
+    assert submission.source_type == "contest"
+    judge_mock.assert_called_once_with(args=[submission.id], queue="high_priority")

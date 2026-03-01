@@ -64,7 +64,7 @@ describe("useContestExamActions", () => {
     vi.clearAllMocks();
   });
 
-  it("starts exam, enters fullscreen, refreshes, and navigates", async () => {
+  it("exam mode start routes to precheck and refreshes contest", async () => {
     vi.mocked(startExam).mockResolvedValue({ status: "started" } as { status: string });
 
     const { result } = renderHook(() =>
@@ -84,13 +84,15 @@ describe("useContestExamActions", () => {
       await result.current.handleStartExam();
     });
 
-    expect(startExam).toHaveBeenCalledWith(baseContest.id);
+    expect(startExam).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(refreshContest).toHaveBeenCalledTimes(1);
     });
-    expect(navigate).toHaveBeenCalledWith(`/contests/${baseContest.id}/problems`);
+    expect(navigate).toHaveBeenCalledWith(
+      `/contests/${baseContest.id}/paper-exam/precheck`
+    );
     expect(onError).not.toHaveBeenCalled();
-    expect(document.documentElement.requestFullscreen).toHaveBeenCalled();
+    expect(document.documentElement.requestFullscreen).not.toHaveBeenCalled();
   });
 
   it("leaves contest only when confirmation resolves true", async () => {

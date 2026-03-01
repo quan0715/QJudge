@@ -1,436 +1,464 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  DataTable,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableToolbar,
-  TableToolbarContent,
-  TableToolbarSearch,
   Button,
-  Loading,
-  InlineNotification,
-  Pagination,
   Tag,
-  Toggle,
   MultiSelect,
+  SkeletonText,
+  SkeletonPlaceholder,
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
-import { LineChart } from "@carbon/charts-react";
+import { StackedBarChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
 import type { ExamEvent } from "@/core/entities/contest.entity";
-import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useContestAdmin } from "@/features/contest/contexts";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
+import styles from "./ContestLogsScreen.module.scss";
 
+// --- Event type config ---
+type Severity = "violation" | "lifecycle" | "submission" | "admin";
+
+// Tag color follows severity category:
+// violation=red, lifecycle=green, submission=blue, admin=purple
+const SEVERITY_TAG: Record<Severity, "red" | "green" | "blue" | "purple"> = {
+  violation: "red",
+  lifecycle: "green",
+  submission: "blue",
+  admin: "purple",
+};
+
+const EVENT_MAP: Record<string, { label: string; severity: Severity }> = {
+  join: { label: "加入", severity: "lifecycle" },
+  register: { label: "註冊", severity: "lifecycle" },
+  unregister: { label: "取消註冊", severity: "admin" },
+  enter_contest: { label: "進入競賽", severity: "lifecycle" },
+  leave: { label: "離開競賽", severity: "lifecycle" },
+  start_exam: { label: "開始考試", severity: "lifecycle" },
+  end_exam: { label: "結束考試", severity: "lifecycle" },
+  auto_submit: { label: "自動提交", severity: "lifecycle" },
+  resume_exam: { label: "繼續考試", severity: "lifecycle" },
+  reopen_exam: { label: "重新開放考試", severity: "lifecycle" },
+  pause_exam: { label: "暫停考試", severity: "lifecycle" },
+  submit: { label: "提交", severity: "submission" },
+  submit_code: { label: "提交程式碼", severity: "submission" },
+  tab_switch: { label: "切換分頁", severity: "violation" },
+  tab_hidden: { label: "隱藏分頁", severity: "violation" },
+  window_blur: { label: "離開視窗", severity: "violation" },
+  exit_fullscreen: { label: "退出全螢幕", severity: "violation" },
+  forbidden_focus_event: { label: "禁止焦點事件", severity: "violation" },
+  cheat_warning: { label: "違規警告", severity: "violation" },
+  lock: { label: "鎖定", severity: "violation" },
+  lock_user: { label: "鎖定用戶", severity: "violation" },
+  unlock: { label: "解鎖", severity: "admin" },
+  unlock_user: { label: "解鎖用戶", severity: "admin" },
+  ask_question: { label: "提問", severity: "lifecycle" },
+  reply_question: { label: "回覆提問", severity: "admin" },
+  announce: { label: "發布公告", severity: "admin" },
+  update_contest: { label: "更新競賽設定", severity: "admin" },
+  update_problem: { label: "更新題目", severity: "admin" },
+  update_participant: { label: "更新參與者", severity: "admin" },
+  publish_problem_to_practice: { label: "發布到練習區", severity: "admin" },
+  other: { label: "其他", severity: "admin" },
+};
+
+const getEventConfig = (type: string) => {
+  const entry = EVENT_MAP[type] || { label: type, severity: "admin" as Severity };
+  return { ...entry, tagType: SEVERITY_TAG[entry.severity] };
+};
+
+const SEVERITY_CLASS: Record<Severity, string> = {
+  violation: styles.severityViolation,
+  lifecycle: styles.severityLifecycle,
+  submission: styles.severitySubmission,
+  admin: styles.severityAdmin,
+};
+
+// --- Category filter ---
+const EVENT_FILTER_OPTIONS = [
+  { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "lock_user", "cheat_warning", "lock", "tab_switch"] },
+  { id: "submission", label: "程式提交", types: ["submit", "submit_code"] },
+  { id: "lifecycle", label: "考試狀態", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave", "join", "ask_question"] },
+  { id: "admin", label: "管理操作", types: ["unregister", "unlock_user", "unlock", "update_participant", "update_contest", "update_problem", "announce", "reply_question", "publish_problem_to_practice", "other"] },
+];
+
+const EVENT_CATEGORIES = {
+  violation: EVENT_FILTER_OPTIONS[0].types,
+  submission: EVENT_FILTER_OPTIONS[1].types,
+  lifecycle: EVENT_FILTER_OPTIONS[2].types,
+  admin: EVENT_FILTER_OPTIONS[3].types,
+};
+
+const PAGE_SIZE = 50;
+const SLOT_MS = 15 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+const parseMs = (value?: string | null): number | null => {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
+};
+
+// --- Helpers ---
+function formatSlotLabel(ts: string) {
+  const d = new Date(ts);
+  const slotMs = Math.floor(d.getTime() / SLOT_MS) * SLOT_MS;
+  const slot = new Date(slotMs);
+  const mm = (slot.getMonth() + 1).toString().padStart(2, "0");
+  const dd = slot.getDate().toString().padStart(2, "0");
+  const hh = slot.getHours().toString().padStart(2, "0");
+  const mi = slot.getMinutes().toString().padStart(2, "0");
+  return { key: slotMs, label: `${mm}/${dd} ${hh}:${mi}` };
+}
+
+function groupByTimeSlot(events: ExamEvent[]) {
+  const groups: { key: number; label: string; events: ExamEvent[] }[] = [];
+  let currentKey = -1;
+  for (const ev of events) {
+    const { key, label } = formatSlotLabel(ev.timestamp);
+    if (key !== currentKey) {
+      currentKey = key;
+      groups.push({ key, label, events: [] });
+    }
+    groups[groups.length - 1].events.push(ev);
+  }
+  return groups;
+}
+
+// --- Skeleton placeholder ---
+const LogsSkeleton = () => (
+  <div className={styles.twoColumn}>
+    <div className={styles.chartsCol}>
+      <ContainerCard title={<SkeletonText width="80px" />}>
+        <div className={styles.summaryGrid}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={styles.summaryItem}>
+              <SkeletonText width="100%" />
+            </div>
+          ))}
+        </div>
+      </ContainerCard>
+      <ContainerCard title={<SkeletonText width="100px" />}>
+        <SkeletonPlaceholder style={{ width: "100%", height: "280px" }} />
+      </ContainerCard>
+    </div>
+    <div className={styles.timelineCol}>
+      <ContainerCard title={<SkeletonText width="80px" />}>
+        <SkeletonText paragraph lineCount={3} style={{ marginBottom: "1rem" }} />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} style={{ marginBottom: "0.5rem" }}>
+            <SkeletonText width="30%" />
+            <SkeletonText paragraph lineCount={2} />
+          </div>
+        ))}
+      </ContainerCard>
+    </div>
+  </div>
+);
+
+// --- Component ---
 const ContestAdminLogsPage = () => {
-  // Use examEvents from context - no local fetch needed
-  const { examEvents, isRefreshing, refreshAdminData, contest } = useContest();
+  const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
   const { theme } = useTheme();
 
-  const [filteredEvents, setFilteredEvents] = useState<ExamEvent[]>([]);
-  const [notification, setNotification] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showChart, setShowChart] = useState(true);
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [indicatorTime, setIndicatorTime] = useState<string | null>(null);
 
-  // Pagination
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const chartScrollRef = useRef<HTMLDivElement>(null);
 
-  // Event type filter options
-  const eventFilterOptions = useMemo(() => [
-    { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "lock_user", "cheat_warning"] },
-    { id: "submission", label: "程式提交", types: ["submit", "submit_code"] },
-    { id: "lifecycle", label: "考試狀態", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave"] },
-    { id: "admin", label: "管理操作", types: ["unregister", "unlock_user", "update_participant", "update_contest", "update_problem", "announce", "ask_question", "reply_question", "publish_problem_to_practice", "other"] },
-  ], []);
+  // --- Sorting & Filtering ---
+  const sortedEvents = useMemo(
+    () =>
+      [...examEvents].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      ),
+    [examEvents],
+  );
 
-  // Sort events by timestamp (most recent first)
-  const sortedEvents = useMemo(() => {
-    return [...examEvents].sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-  }, [examEvents]);
+  const selectedTypes = useMemo(() => {
+    if (selectedEventTypes.length === 0) return null;
+    const types: string[] = [];
+    selectedEventTypes.forEach((catId) => {
+      const cat = EVENT_FILTER_OPTIONS.find((o) => o.id === catId);
+      if (cat) types.push(...cat.types);
+    });
+    return types;
+  }, [selectedEventTypes]);
 
-  // Event categories for chart
-  const eventCategories = useMemo(() => {
-    return {
-      violation: [
-        "tab_hidden",
-        "window_blur",
-        "exit_fullscreen",
-        "forbidden_focus_event",
-        "lock_user",
-        "cheat_warning",
-      ],
-      submission: ["submit", "submit_code"],
-      lifecycle: [
-        "register",
-        "enter_contest",
-        "start_exam",
-        "end_exam",
-        "auto_submit",
-        "resume_exam",
-        "reopen_exam",
-        "pause_exam",
-        "leave",
-      ],
-      admin: [
-        "unregister",
-        "unlock_user",
-        "update_participant",
-        "update_contest",
-        "update_problem",
-        "announce",
-        "ask_question",
-        "reply_question",
-        "publish_problem_to_practice",
-        "other",
-      ],
-    };
+  const filteredEvents = useMemo(() => {
+    let result = sortedEvents;
+    if (selectedTypes && selectedTypes.length > 0) {
+      result = result.filter((e) => selectedTypes.includes(e.eventType));
+    }
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.userName?.toLowerCase().includes(q) ||
+          e.eventType?.toLowerCase().includes(q) ||
+          e.reason?.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [sortedEvents, selectedTypes, searchTerm]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [selectedEventTypes, searchTerm]);
+
+  const visibleEvents = filteredEvents.slice(0, visibleCount);
+  const timeSlotGroups = useMemo(() => groupByTimeSlot(visibleEvents), [visibleEvents]);
+  const hasMore = visibleCount < filteredEvents.length;
+
+  // --- Infinite scroll ---
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + PAGE_SIZE);
   }, []);
 
-  // Prepare timeline chart data
-  const timelineChartData = useMemo(() => {
-    if (!contest) return [];
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const container = scrollContainerRef.current;
+    if (!sentinel || !container || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) handleLoadMore();
+      },
+      { root: container, rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, handleLoadMore]);
 
-    const startTime = contest.startTime ? new Date(contest.startTime) : null;
-    const endTime = contest.endTime ? new Date(contest.endTime) : new Date();
-    const now = new Date();
-    const effectiveEndTime = endTime && endTime < now ? endTime : now;
+  // --- Time indicator: track topmost visible event on scroll ---
+  const handleTimelineScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const cards = container.querySelectorAll("[data-timestamp]");
+    if (!cards.length) return;
 
-    if (!startTime) return [];
-
-    // Group events by 5-minute intervals
-    const intervalMs = 5 * 60 * 1000; // 5 minutes
-    const intervals: Map<
-      number,
-      {
-        violation: number;
-        submission: number;
-        lifecycle: number;
-        admin: number;
+    const containerTop = container.getBoundingClientRect().top;
+    let closest: string | null = null;
+    for (const card of cards) {
+      const rect = (card as HTMLElement).getBoundingClientRect();
+      if (rect.top >= containerTop - 4) {
+        closest = (card as HTMLElement).dataset.timestamp || null;
+        break;
       }
-    > = new Map();
+    }
+    // If scrolled past all cards, use the last one
+    if (!closest && cards.length > 0) {
+      closest = (cards[cards.length - 1] as HTMLElement).dataset.timestamp || null;
+    }
+    setIndicatorTime(closest);
+  }, []);
 
-    // Initialize intervals from start to end
-    let currentTime = startTime.getTime();
-    while (currentTime <= effectiveEndTime.getTime()) {
-      intervals.set(currentTime, {
-        violation: 0,
-        submission: 0,
-        lifecycle: 0,
-        admin: 0,
-      });
-      currentTime += intervalMs;
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.addEventListener("scroll", handleTimelineScroll, { passive: true });
+    // Set initial indicator
+    handleTimelineScroll();
+    return () => container.removeEventListener("scroll", handleTimelineScroll);
+  }, [handleTimelineScroll, filteredEvents]);
+
+  // --- Summary counts ---
+  const summaryCounts = useMemo(() => {
+    const counts = { violation: 0, submission: 0, lifecycle: 0, admin: 0 };
+    examEvents.forEach((e) => {
+      if (EVENT_CATEGORIES.violation.includes(e.eventType)) counts.violation++;
+      else if (EVENT_CATEGORIES.submission.includes(e.eventType)) counts.submission++;
+      else if (EVENT_CATEGORIES.lifecycle.includes(e.eventType)) counts.lifecycle++;
+      else counts.admin++;
+    });
+    return counts;
+  }, [examEvents]);
+
+  const chartWindow = useMemo(() => {
+    const eventTimes = examEvents
+      .map((event) => parseMs(event.timestamp))
+      .filter((ms): ms is number => ms !== null)
+      .sort((a, b) => a - b);
+
+    if (eventTimes.length === 0) return null;
+
+    const startMs = eventTimes[0];
+    const endMs = eventTimes[eventTimes.length - 1];
+
+    return { startMs, endMs };
+  }, [examEvents]);
+
+  // --- Chart data ---
+  const chartData = useMemo(() => {
+    if (!chartWindow) return [];
+    const { startMs, endMs } = chartWindow;
+
+    // Hour-based buckets anchored to natural hour boundaries.
+    const bucketStartMs = Math.floor(startMs / HOUR_MS) * HOUR_MS;
+    const bucketEndMs = Math.floor(endMs / HOUR_MS) * HOUR_MS;
+    const intervals = new Map<number, { violation: number; submission: number; lifecycle: number; admin: number }>();
+
+    let t = bucketStartMs;
+    while (t <= bucketEndMs) {
+      intervals.set(t, { violation: 0, submission: 0, lifecycle: 0, admin: 0 });
+      t += HOUR_MS;
     }
 
-    // Count events in each interval
     examEvents.forEach((event) => {
-      const eventTime = new Date(event.timestamp).getTime();
-      if (
-        eventTime < startTime.getTime() ||
-        eventTime > effectiveEndTime.getTime()
-      )
-        return;
-
-      // Find the interval this event belongs to
-      const intervalStart =
-        Math.floor((eventTime - startTime.getTime()) / intervalMs) *
-          intervalMs +
-        startTime.getTime();
-
-      if (!intervals.has(intervalStart)) {
-        intervals.set(intervalStart, {
-          violation: 0,
-          submission: 0,
-          lifecycle: 0,
-          admin: 0,
-        });
-      }
-
-      const counts = intervals.get(intervalStart)!;
-
-      if (eventCategories.violation.includes(event.eventType)) {
-        counts.violation++;
-      } else if (eventCategories.submission.includes(event.eventType)) {
-        counts.submission++;
-      } else if (eventCategories.lifecycle.includes(event.eventType)) {
-        counts.lifecycle++;
-      } else if (eventCategories.admin.includes(event.eventType)) {
-        counts.admin++;
-      }
+      const et = parseMs(event.timestamp);
+      if (et === null || et < startMs || et > endMs) return;
+      const slot =
+        Math.floor(et / HOUR_MS) * HOUR_MS;
+      if (!intervals.has(slot))
+        intervals.set(slot, { violation: 0, submission: 0, lifecycle: 0, admin: 0 });
+      const c = intervals.get(slot)!;
+      if (EVENT_CATEGORIES.violation.includes(event.eventType)) c.violation++;
+      else if (EVENT_CATEGORIES.submission.includes(event.eventType)) c.submission++;
+      else if (EVENT_CATEGORIES.lifecycle.includes(event.eventType)) c.lifecycle++;
+      else c.admin++;
     });
 
-    // Convert to chart data format
-    const data: { date: Date; value: number; group: string }[] = [];
-    const sortedIntervals = Array.from(intervals.entries()).sort(
-      (a, b) => a[0] - b[0]
-    );
-
-    sortedIntervals.forEach(([timestamp, counts]) => {
-      const date = new Date(timestamp);
-      data.push({ date, value: counts.violation, group: "違規事件" });
-      data.push({ date, value: counts.submission, group: "程式提交" });
-      data.push({ date, value: counts.lifecycle, group: "考試狀態" });
-      data.push({ date, value: counts.admin, group: "管理操作" });
-    });
-
+    const data: { group: string; key: string; value: number }[] = [];
+    Array.from(intervals.entries())
+      .sort((a, b) => a[0] - b[0])
+      .forEach(([ts, counts]) => {
+        const d = new Date(ts);
+        const month = (d.getMonth() + 1).toString().padStart(2, "0");
+        const day = d.getDate().toString().padStart(2, "0");
+        const hh = d.getHours().toString().padStart(2, "0");
+        const label = `${month}/${day} ${hh}:00`;
+        data.push({ group: "違規事件", key: label, value: counts.violation });
+        data.push({ group: "程式提交", key: label, value: counts.submission });
+        data.push({ group: "考試狀態", key: label, value: counts.lifecycle });
+        data.push({ group: "管理操作", key: label, value: counts.admin });
+      });
     return data;
-  }, [examEvents, contest, eventCategories]);
+  }, [examEvents, chartWindow]);
 
-  // Chart options
+  // --- Compute time indicator Y position on chart ---
+  const indicatorPosition = useMemo(() => {
+    if (!indicatorTime || !chartWindow) return null;
+    const { startMs, endMs } = chartWindow;
+    const range = endMs - startMs;
+    if (range <= 0) return null;
+
+    const eventMs = parseMs(indicatorTime);
+    if (eventMs === null) return null;
+    const ratio = Math.max(0, Math.min(1, (eventMs - startMs) / range));
+
+    const d = new Date(indicatorTime);
+    const hh = d.getHours().toString().padStart(2, "0");
+    const mm = d.getMinutes().toString().padStart(2, "0");
+    const ss = d.getSeconds().toString().padStart(2, "0");
+
+    return { ratio, label: `${hh}:${mm}:${ss}` };
+  }, [indicatorTime, chartWindow]);
+
+  const chartBarCount = useMemo(() => {
+    const keys = new Set(chartData.map((d) => d.key));
+    return keys.size;
+  }, [chartData]);
+
   const chartOptions = useMemo(
     () => ({
       title: "",
       axes: {
-        bottom: {
-          mapsTo: "date",
-          scaleType: ScaleTypes.TIME,
-          title: "時間",
-        },
-        left: {
-          mapsTo: "value",
-          title: "事件數量",
-          scaleType: ScaleTypes.LINEAR,
-        },
+        left: { mapsTo: "key", scaleType: ScaleTypes.LABELS },
+        bottom: { mapsTo: "value", title: "事件數量", scaleType: ScaleTypes.LINEAR, stacked: true },
       },
-      curve: "curveMonotoneX",
-      height: "300px",
-      theme: theme === "g100" ? "g100" : "white",
+      height: `${Math.max(280, chartBarCount * 18)}px`,
+      theme,
       color: {
         scale: {
-          違規事件: "#da1e28",
-          程式提交: "#0f62fe",
-          考試狀態: "#24a148",
-          管理操作: "#8a3ffc",
+          "違規事件": "#da1e28",
+          "程式提交": "#0f62fe",
+          "考試狀態": "#24a148",
+          "管理操作": "#8a3ffc",
         },
       },
-      legend: {
-        alignment: "center" as const,
-        position: "bottom" as const,
-      },
-      points: {
-        enabled: false,
-      },
+      legend: { alignment: "center" as const, position: "bottom" as const },
       toolbar: { enabled: false },
-      tooltip: {
-        showTotal: false,
-      },
+      tooltip: { showTotal: true },
+      bars: { maxWidth: 16 },
     }),
-    [theme]
+    [theme, chartBarCount],
   );
-
-  // Get all event types that match selected categories
-  const selectedTypes = useMemo(() => {
-    if (selectedEventTypes.length === 0) return null; // null means no filter
-    const types: string[] = [];
-    selectedEventTypes.forEach((categoryId) => {
-      const category = eventFilterOptions.find((opt) => opt.id === categoryId);
-      if (category) {
-        types.push(...category.types);
-      }
-    });
-    return types;
-  }, [selectedEventTypes, eventFilterOptions]);
-
-  // Filter events when search term or event type filter changes
-  useEffect(() => {
-    let filtered = sortedEvents;
-
-    // Apply event type filter
-    if (selectedTypes && selectedTypes.length > 0) {
-      filtered = filtered.filter((e) => selectedTypes.includes(e.eventType));
-    }
-
-    // Apply search term filter
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (e) =>
-          e.userName?.toLowerCase().includes(lowerSearch) ||
-          e.eventType?.toLowerCase().includes(lowerSearch) ||
-          e.reason?.toLowerCase().includes(lowerSearch)
-      );
-    }
-
-    const timerId = setTimeout(() => {
-      setFilteredEvents(filtered);
-      setPage(1); // Reset to first page on filter change
-    }, 0);
-
-    return () => clearTimeout(timerId);
-  }, [searchTerm, sortedEvents, selectedTypes]);
-
-  // Comprehensive event type mapping
-  const getEventTag = (type: string) => {
-    const eventMap: Record<string, { label: string; type: "red" | "green" | "gray" | "blue" | "cyan" | "magenta" | "teal" | "purple" | "cool-gray" | "outline" }> = {
-      // Registration/Join events
-      join: { label: "加入", type: "green" },
-      register: { label: "註冊", type: "green" },
-      unregister: { label: "取消註冊", type: "gray" },
-      enter_contest: { label: "進入競賽", type: "blue" },
-      leave: { label: "離開競賽", type: "gray" },
-
-      // Exam lifecycle events
-      start_exam: { label: "開始考試", type: "cyan" },
-      end_exam: { label: "結束考試", type: "magenta" },
-      auto_submit: { label: "自動提交", type: "magenta" },
-      resume_exam: { label: "繼續考試", type: "cyan" },
-      reopen_exam: { label: "重新開放考試", type: "teal" },
-      pause_exam: { label: "暫停考試", type: "gray" },
-
-      // Submission events
-      submit: { label: "提交", type: "blue" },
-      submit_code: { label: "提交程式碼", type: "purple" },
-
-      // Cheat detection events (from ExamEvent)
-      tab_switch: { label: "切換分頁", type: "red" },
-      tab_hidden: { label: "隱藏分頁", type: "red" },
-      window_blur: { label: "離開視窗", type: "red" },
-      exit_fullscreen: { label: "退出全螢幕", type: "red" },
-      forbidden_focus_event: { label: "禁止焦點事件", type: "red" },
-      cheat_warning: { label: "違規警告", type: "red" },
-
-      // Lock/Unlock events
-      lock: { label: "鎖定", type: "red" },
-      lock_user: { label: "鎖定用戶", type: "red" },
-      unlock: { label: "解鎖", type: "teal" },
-      unlock_user: { label: "解鎖用戶", type: "teal" },
-
-      // Q&A events
-      ask_question: { label: "提問", type: "blue" },
-      reply_question: { label: "回覆提問", type: "blue" },
-      announce: { label: "發布公告", type: "magenta" },
-
-      // Admin/Management events
-      update_contest: { label: "更新競賽設定", type: "cool-gray" },
-      update_problem: { label: "更新題目", type: "gray" },
-      update_participant: { label: "更新參與者", type: "gray" },
-      publish_problem_to_practice: { label: "發布到練習區", type: "cool-gray" },
-      other: { label: "其他", type: "outline" },
-    };
-
-    const config = eventMap[type] || { label: type, type: "outline" };
-    return (
-      <Tag type={config.type} size="sm">
-        {config.label}
-      </Tag>
-    );
-  };
-
-  const headers = [
-    { key: "timestamp", header: "時間" },
-    { key: "userName", header: "使用者" },
-    { key: "eventType", header: "事件類型" },
-    { key: "reason", header: "詳細內容" },
-  ];
-
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
 
   const loading = examEvents.length === 0 && isRefreshing;
 
+  // --- Render ---
   return (
-    <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: "100%" }}>
-      <div
-        style={{
-          padding: "0",
-          maxWidth: "100%",
-          margin: "0 auto",
-          width: "100%",
-        }}
-      >
-        {notification && (
-          <InlineNotification
-            kind={notification.kind}
-            title={notification.kind === "success" ? "成功" : "錯誤"}
-            subtitle={notification.message}
-            onClose={() => setNotification(null)}
-            style={{ marginBottom: "1rem", maxWidth: "100%" }}
-          />
-        )}
-
-        {loading ? (
-          <Loading withOverlay={false} />
-        ) : (
-          <>
-            {/* Timeline Chart */}
-            <ContainerCard
-              title="事件時序圖"
-              style={{ marginBottom: "1rem" }}
-              action={
-                <Toggle
-                  id="show-chart-toggle"
-                  size="sm"
-                  labelA="隱藏"
-                  labelB="顯示"
-                  toggled={showChart}
-                  onToggle={() => setShowChart(!showChart)}
-                />
-              }
-            >
-              {showChart && timelineChartData.length > 0 ? (
-                <div style={{ padding: "1rem 0" }}>
-                  <LineChart data={timelineChartData} options={chartOptions} />
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1rem",
-                      justifyContent: "center",
-                      marginTop: "0.5rem",
-                      fontSize: "0.75rem",
-                      color: "var(--cds-text-secondary)",
-                    }}
-                  >
-                    <span>📊 每 5 分鐘統計一次事件數量</span>
-                    {contest?.startTime && (
-                      <span>
-                        🕐 考試開始:{" "}
-                        {new Date(contest.startTime).toLocaleString()}
-                      </span>
-                    )}
-                    {contest?.endTime &&
-                      new Date(contest.endTime) < new Date() && (
-                        <span>
-                          🏁 考試結束:{" "}
-                          {new Date(contest.endTime).toLocaleString()}
-                        </span>
-                      )}
+    <SurfaceSection maxWidth="1400px" style={{ flex: 1, minHeight: "100%" }}>
+      {loading ? (
+        <LogsSkeleton />
+      ) : (
+        <div className={styles.twoColumn}>
+          {/* Left Column: Charts */}
+          <div className={styles.chartsCol}>
+            <ContainerCard title="事件摘要">
+              <div className={styles.summaryGrid}>
+                {([
+                  { key: "violation" as const, label: "違規事件", color: "#da1e28" },
+                  { key: "submission" as const, label: "程式提交", color: "#0f62fe" },
+                  { key: "lifecycle" as const, label: "考試狀態", color: "#24a148" },
+                  { key: "admin" as const, label: "管理操作", color: "#8a3ffc" },
+                ]).map(({ key, label, color }) => (
+                  <div key={key} className={styles.summaryItem} style={{ borderLeftColor: color }}>
+                    <span className={styles.summaryDot} style={{ background: color }} />
+                    <span className={styles.summaryLabel}>{label}</span>
+                    <span className={styles.summaryCount}>{summaryCounts[key]}</span>
                   </div>
-                </div>
-              ) : showChart ? (
-                <div
-                  style={{
-                    padding: "2rem",
-                    textAlign: "center",
-                    color: "var(--cds-text-secondary)",
-                  }}
-                >
-                  暫無事件資料可供視覺化
-                </div>
-              ) : null}
+                ))}
+              </div>
             </ContainerCard>
 
-            {/* Event Table */}
+            <ContainerCard title="事件時序圖">
+              {chartData.length > 0 ? (
+                <div className={styles.chartBody}>
+                  <div className={styles.chartWrapper}>
+                    <div className={styles.chartScroll} ref={chartScrollRef}>
+                      <StackedBarChart data={chartData} options={chartOptions} />
+                    </div>
+                    {indicatorPosition && (
+                      <div
+                        className={styles.timeIndicator}
+                        style={{ top: `${indicatorPosition.ratio * 100}%` }}
+                      >
+                        <div className={styles.timeIndicatorLine} />
+                        <span className={styles.timeIndicatorLabel}>
+                          {indicatorPosition.label}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.chartMeta}>
+                    <span>每 1 小時統計</span>
+                    {chartWindow ? (
+                      <span>開始：{new Date(chartWindow.startMs).toLocaleString()}</span>
+                    ) : null}
+                    {chartWindow ? (
+                      <span>結束：{new Date(chartWindow.endMs).toLocaleString()}</span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.chartEmpty}>
+                  暫無事件資料可供視覺化
+                </div>
+              )}
+            </ContainerCard>
+          </div>
+
+          {/* Right Column: Timeline */}
+          <div className={styles.timelineCol}>
             <ContainerCard
-              title="考試紀錄"
-              noPadding
+              title="事件紀錄"
               action={
                 <Button
-                  size="sm"
                   kind="ghost"
                   renderIcon={Renew}
                   onClick={refreshAdminData}
@@ -440,129 +468,92 @@ const ContestAdminLogsPage = () => {
                 />
               }
             >
-              <DataTable
-                rows={paginatedEvents.map((e, index) => ({
-                  ...e,
-                  id: e.id ? e.id.toString() : index.toString(),
-                  userName: e.userName || "Unknown",
-                  reason: e.reason || "-",
-                }))}
-                headers={headers}
-              >
-                {({
-                  rows,
-                  headers,
-                  getHeaderProps,
-                  getRowProps,
-                  getTableProps,
-                }: any) => (
-                  <TableContainer>
-                    <TableToolbar>
-                      <TableToolbarContent>
-                        <TableToolbarSearch
-                          onChange={(_, value) => setSearchTerm(value || "")}
-                          placeholder="搜尋事件..."
-                          persistent
-                        />
-                        <div style={{ minWidth: "200px" }}>
-                          <MultiSelect
-                            id="event-type-filter"
-                            titleText=""
-                            label="篩選事件類型"
-                            items={eventFilterOptions}
-                            itemToString={(item) => item?.label || ""}
-                            selectedItems={eventFilterOptions.filter((opt) =>
-                              selectedEventTypes.includes(opt.id)
-                            )}
-                            onChange={({ selectedItems }) => {
-                              setSelectedEventTypes(
-                                (selectedItems ?? []).map((item: any) => item.id)
-                              );
-                            }}
-                            size="md"
-                          />
-                        </div>
-                      </TableToolbarContent>
-                    </TableToolbar>
-                    <Table {...getTableProps()}>
-                      <TableHead>
-                        <TableRow>
-                          {headers.map((header: any) => {
-                            const { key, ...headerProps } = getHeaderProps({
-                              header,
-                            });
+              <div className={styles.toolbar}>
+                <div className={styles.searchWrapper}>
+                  <input
+                    className={styles.searchInput}
+                    type="text"
+                    placeholder="搜尋使用者、事件類型、原因…"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className={styles.filterWrapper}>
+                  <MultiSelect
+                    id="event-type-filter-timeline"
+                    titleText=""
+                    label="篩選事件類型"
+                    items={EVENT_FILTER_OPTIONS}
+                    itemToString={(item: { label: string } | null) => item?.label || ""}
+                    selectedItems={EVENT_FILTER_OPTIONS.filter((opt) =>
+                      selectedEventTypes.includes(opt.id),
+                    )}
+                    onChange={({ selectedItems }: { selectedItems: Array<{ id: string }> }) => {
+                      setSelectedEventTypes(
+                        (selectedItems ?? []).map((item) => item.id),
+                      );
+                    }}
+                    size="md"
+                  />
+                </div>
+              </div>
+
+              {filteredEvents.length === 0 ? (
+                <div className={styles.timelineEmpty}>
+                  {examEvents.length === 0 ? "暫無事件紀錄" : "無符合篩選條件的事件"}
+                </div>
+              ) : (
+                <>
+                  <div className={styles.timelineScroll} ref={scrollContainerRef}>
+                    <div className={styles.timelineInner}>
+                      {timeSlotGroups.map((group) => (
+                        <div key={group.key} className={styles.dateGroup}>
+                          <div className={styles.dateLabel}>{group.label}</div>
+                          {group.events.map((event) => {
+                            const config = getEventConfig(event.eventType);
                             return (
-                              <TableHeader key={key} {...headerProps}>
-                                {header.header}
-                              </TableHeader>
+                              <div
+                                key={event.id || event.timestamp + event.userId}
+                                className={`${styles.eventCard} ${SEVERITY_CLASS[config.severity]}`}
+                                data-timestamp={event.timestamp}
+                              >
+                                <div className={styles.cardHeader}>
+                                  <div className={styles.cardLeft}>
+                                    <Tag type={config.tagType} size="sm">
+                                      {config.label}
+                                    </Tag>
+                                    <span className={styles.cardUser}>
+                                      {event.userName || "Unknown"}
+                                    </span>
+                                  </div>
+                                  <span className={styles.cardTime}>
+                                    {new Date(event.timestamp).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                                {event.reason && (
+                                  <div className={styles.cardReason}>
+                                    {event.reason}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {rows.map((row: any) => {
-                          const event = filteredEvents.find(
-                            (e, i) =>
-                              (e.id ? e.id.toString() : i.toString()) === row.id
-                          );
-                          const { key: rowKey, ...rowProps } = getRowProps({
-                            row,
-                          });
-                          return (
-                            <TableRow key={rowKey} {...rowProps}>
-                              <TableCell>
-                                {new Date(
-                                  row.cells.find(
-                                    (c: any) => c.info.header === "timestamp"
-                                  )?.value
-                                ).toLocaleString()}
-                              </TableCell>
-                              <TableCell>
-                                {
-                                  row.cells.find(
-                                    (c: any) => c.info.header === "userName"
-                                  )?.value
-                                }
-                              </TableCell>
-                              <TableCell>
-                                {event
-                                  ? getEventTag(event.eventType)
-                                  : row.cells.find(
-                                      (c: any) => c.info.header === "eventType"
-                                    )?.value}
-                              </TableCell>
-                              <TableCell>
-                                {
-                                  row.cells.find(
-                                    (c: any) => c.info.header === "reason"
-                                  )?.value
-                                }
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </DataTable>
-              <Pagination
-                totalItems={filteredEvents.length}
-                backwardText="上一頁"
-                forwardText="下一頁"
-                itemsPerPageText="每頁顯示"
-                page={page}
-                pageSize={pageSize}
-                pageSizes={[20, 50, 100, 200]}
-                onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
-                  setPage(newPage);
-                  setPageSize(newPageSize);
-                }}
-              />
+                        </div>
+                      ))}
+                      <div ref={sentinelRef} className={styles.scrollSentinel} />
+                    </div>
+                  </div>
+                  <div className={styles.statusFooter}>
+                    {hasMore
+                      ? `已載入 ${visibleEvents.length} / ${filteredEvents.length} 筆`
+                      : `共 ${filteredEvents.length} 筆事件`}
+                  </div>
+                </>
+              )}
             </ContainerCard>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </SurfaceSection>
   );
 };

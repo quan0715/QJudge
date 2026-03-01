@@ -1,5 +1,6 @@
-import type { FC } from "react";
-import type { ExamItem } from "../../types/examDemo.types";
+import { type FC, memo, useEffect, useRef } from "react";
+import { Tooltip } from "@carbon/react";
+import type { ExamItem } from "../../types/exam.types";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./ExamNavigator.module.scss";
 
@@ -18,7 +19,7 @@ interface ExamNavigatorProps {
   onSelect: (index: number) => void;
 }
 
-export const ExamNavigator: FC<ExamNavigatorProps> = ({
+export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   items,
   activeIndex,
   answeredIds,
@@ -28,6 +29,16 @@ export const ExamNavigator: FC<ExamNavigatorProps> = ({
     const id = item.kind === "coding" ? item.data.id : item.data.id;
     return answeredIds.has(id);
   }).length;
+
+  const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+
+  // Auto-scroll the navigator list to keep the active item visible
+  useEffect(() => {
+    const el = itemRefs.current.get(activeIndex);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [activeIndex]);
 
   return (
     <nav className={styles.navigator}>
@@ -46,18 +57,29 @@ export const ExamNavigator: FC<ExamNavigatorProps> = ({
                   ? "程式題"
                   : QUESTION_TYPE_SHORT[item.data.questionType];
 
-              const title =
+              const fullTitle =
                 item.kind === "coding"
                   ? `${item.data.label}. ${item.data.title}`
+                  : item.data.prompt;
+
+              const title =
+                item.kind === "coding"
+                  ? fullTitle
                   : item.data.prompt.slice(0, 30) + (item.data.prompt.length > 30 ? "…" : "");
 
+              const tooltipLabel = `第 ${index + 1} 題 · ${typeLabel}${isAnswered ? " ✓" : ""}`;
+
               return (
-                <button
-                  key={id}
-                  className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
-                  onClick={() => onSelect(index)}
-                  aria-current={isActive ? "true" : undefined}
-                >
+                <Tooltip key={id} label={tooltipLabel} align="right" autoAlign>
+                  <button
+                    ref={(el) => {
+                      if (el) itemRefs.current.set(index, el);
+                      else itemRefs.current.delete(index);
+                    }}
+                    className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+                    onClick={() => onSelect(index)}
+                    aria-current={isActive ? "true" : undefined}
+                  >
                   <span
                     className={`${styles.itemNumber} ${
                       isAnswered ? styles.itemNumberAnswered : ""
@@ -69,7 +91,8 @@ export const ExamNavigator: FC<ExamNavigatorProps> = ({
                     <span className={styles.itemType}>{typeLabel}</span>
                     <span className={styles.itemTitle}>{title}</span>
                   </div>
-                </button>
+                  </button>
+                </Tooltip>
               );
             })}
           </div>
@@ -80,6 +103,8 @@ export const ExamNavigator: FC<ExamNavigatorProps> = ({
       </div>
     </nav>
   );
-};
+});
+
+ExamNavigator.displayName = "ExamNavigator";
 
 export default ExamNavigator;

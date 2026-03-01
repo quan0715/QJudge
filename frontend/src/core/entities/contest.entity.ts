@@ -116,6 +116,9 @@ export interface ContestDetail extends Contest {
   // Results
   resultsPublished: boolean;
 
+  // Exam freeze
+  isExamQuestionsFrozen?: boolean;
+
   // User specific extended state
   hasStarted?: boolean;
   startedAt?: string;
