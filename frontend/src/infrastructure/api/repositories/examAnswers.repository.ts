@@ -10,6 +10,14 @@ export interface ExamAnswerDto {
   updated_at: string;
 }
 
+export interface QuestionSnapshotDto {
+  prompt: string;
+  options: string[];
+  correct_answer: unknown;
+  question_type: string;
+  score: number;
+}
+
 export interface ExamAnswerDetailDto extends ExamAnswerDto {
   is_correct: boolean | null;
   score: string | null;
@@ -18,7 +26,12 @@ export interface ExamAnswerDetailDto extends ExamAnswerDto {
   graded_at: string | null;
   question_prompt?: string;
   question_type?: string;
-  max_score?: string | null;
+  question_options?: string[];
+  max_score?: string | number | null;
+  question_snapshot?: QuestionSnapshotDto | null;
+  participant_user_id?: number;
+  participant_username?: string;
+  participant_nickname?: string;
 }
 
 export interface ExamAnswer {
@@ -29,6 +42,14 @@ export interface ExamAnswer {
   updatedAt: string;
 }
 
+export interface QuestionSnapshot {
+  prompt: string;
+  options: string[];
+  correctAnswer: unknown;
+  questionType: string;
+  score: number;
+}
+
 export interface ExamAnswerDetail extends ExamAnswer {
   isCorrect: boolean | null;
   score: number | null;
@@ -37,7 +58,12 @@ export interface ExamAnswerDetail extends ExamAnswer {
   gradedAt: string | null;
   questionPrompt?: string;
   questionType?: string;
+  questionOptions?: string[];
   maxScore?: number | null;
+  questionSnapshot?: QuestionSnapshot | null;
+  participantUserId?: string;
+  participantUsername?: string;
+  participantNickname?: string;
 }
 
 // ── Mappers ──
@@ -59,7 +85,20 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
   gradedAt: dto.graded_at,
   questionPrompt: dto.question_prompt,
   questionType: dto.question_type,
+  questionOptions: dto.question_options,
   maxScore: dto.max_score != null ? Number(dto.max_score) : null,
+  questionSnapshot: dto.question_snapshot
+    ? {
+        prompt: dto.question_snapshot.prompt,
+        options: dto.question_snapshot.options ?? [],
+        correctAnswer: dto.question_snapshot.correct_answer,
+        questionType: dto.question_snapshot.question_type,
+        score: dto.question_snapshot.score,
+      }
+    : null,
+  participantUserId: dto.participant_user_id != null ? String(dto.participant_user_id) : undefined,
+  participantUsername: dto.participant_username,
+  participantNickname: dto.participant_nickname,
 });
 
 // ── Student API ──
@@ -104,12 +143,12 @@ export const getExamResults = async (
 
 // ── TA/Admin API ──
 
-/** Get all answers for all students (TA only). */
+/** Get all answers for all students (TA only). Filter by user_id. */
 export const getAllExamAnswers = async (
   contestId: string,
-  participantId?: string
+  userId?: string
 ): Promise<ExamAnswerDetail[]> => {
-  const params = participantId ? `?participant_id=${participantId}` : "";
+  const params = userId ? `?user_id=${userId}` : "";
   const data = await requestJson<ExamAnswerDetailDto[]>(
     httpClient.get(
       `/api/v1/contests/${contestId}/exam-answers/all-answers/${params}`

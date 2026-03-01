@@ -83,7 +83,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
-    
+    is_exam_questions_frozen = serializers.SerializerMethodField()
+
     rule = serializers.CharField(source='rules', read_only=True)
     
     class Meta:
@@ -127,6 +128,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'participant_count',
             'admins',
             'results_published',
+            'is_exam_questions_frozen',
         ]
 
     def get_my_nickname(self, obj):
@@ -229,18 +231,10 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         admins = obj.admins.all()
         return [{'id': u.id, 'username': u.username} for u in admins]
 
-    def get_has_finished_exam(self, obj):
-        """Check if current user has finished the exam."""
-        # If contest has ended, everyone is finished
-        if obj.end_time and timezone.now() > obj.end_time:
-            return True
-            
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        registration = obj.registrations.filter(user=request.user).first()
-        return registration.exam_status == ExamStatus.SUBMITTED if registration else False
-    
+    def get_is_exam_questions_frozen(self, obj):
+        """考試題目是否已凍結（有學生開始作答後為 True）"""
+        return obj.has_exam_started()
+
     def get_problems(self, obj):
         """
         Get contest problems with labels.
@@ -482,9 +476,28 @@ class ContestProblemCreateSerializer(serializers.Serializer):
 # Exam Question Serializers
 # ============================================================================
 
+class ExamQuestionStudentSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for students — hides correct_answer.
+    """
+
+    class Meta:
+        model = ExamQuestion
+        fields = [
+            'id',
+            'contest',
+            'question_type',
+            'prompt',
+            'options',
+            'score',
+            'order',
+        ]
+        read_only_fields = fields
+
+
 class ExamQuestionSerializer(serializers.ModelSerializer):
     """
-    Serializer for paper-style exam questions.
+    Serializer for paper-style exam questions (admin/teacher).
     """
 
     class Meta:
@@ -803,26 +816,62 @@ class ExamAnswerSerializer(serializers.ModelSerializer):
 
 
 class ExamAnswerDetailSerializer(serializers.ModelSerializer):
-    """Read serializer with grading info (for results / TA view)."""
+    """Read serializer with grading info (for results / TA view).
+    優先從 question_snapshot 讀取題目資料，fallback 到 question.*。
+    """
     question_id = serializers.IntegerField(source='question.id', read_only=True)
-    question_prompt = serializers.CharField(source='question.prompt', read_only=True)
-    question_type = serializers.CharField(source='question.question_type', read_only=True)
-    max_score = serializers.DecimalField(
-        source='question.points', max_digits=6, decimal_places=2, read_only=True
-    )
+    question_prompt = serializers.SerializerMethodField()
+    question_type = serializers.SerializerMethodField()
+    max_score = serializers.SerializerMethodField()
+    question_options = serializers.SerializerMethodField()
     graded_by_username = serializers.CharField(
         source='graded_by.username', read_only=True, default=None
     )
+    participant_user_id = serializers.SerializerMethodField()
+    participant_username = serializers.SerializerMethodField()
+    participant_nickname = serializers.SerializerMethodField()
 
     class Meta:
         model = ExamAnswer
         fields = [
-            'id', 'question_id', 'question_prompt', 'question_type', 'max_score',
+            'id', 'question_id', 'question_prompt', 'question_type',
+            'question_options', 'max_score',
             'answer', 'is_correct', 'score', 'feedback',
+            'question_snapshot',
             'graded_by_username', 'graded_at',
+            'participant_user_id', 'participant_username', 'participant_nickname',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+    def get_question_prompt(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('prompt', '')
+        return obj.question.prompt
+
+    def get_question_type(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('question_type', '')
+        return obj.question.question_type
+
+    def get_max_score(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('score', 0)
+        return obj.question.score
+
+    def get_question_options(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('options', [])
+        return obj.question.options
+
+    def get_participant_user_id(self, obj):
+        return obj.participant.user_id
+
+    def get_participant_username(self, obj):
+        return obj.participant.user.username
+
+    def get_participant_nickname(self, obj):
+        return obj.participant.nickname or obj.participant.user.username
 
 
 class ExamAnswerSubmitSerializer(serializers.Serializer):
