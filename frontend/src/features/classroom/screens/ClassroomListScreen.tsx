@@ -109,7 +109,7 @@ const ClassroomListScreen: React.FC = () => {
             title={t("classroom.title", "教室")}
             subtitle={t("classroom.subtitle", "管理你的教室與課程")}
             action={
-              <Stack direction="horizontal" gap={4}>
+              <Stack orientation="horizontal" gap={4}>
                 <Button
                   kind="tertiary"
                   size="sm"

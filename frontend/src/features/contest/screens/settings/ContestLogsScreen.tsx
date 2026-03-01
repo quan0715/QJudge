@@ -145,7 +145,9 @@ const LogsSkeleton = () => (
     </div>
     <div className={styles.timelineCol}>
       <ContainerCard title={<SkeletonText width="80px" />}>
-        <SkeletonText paragraph lineCount={3} style={{ marginBottom: "1rem" }} />
+        <div style={{ marginBottom: "1rem" }}>
+          <SkeletonText paragraph lineCount={3} />
+        </div>
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} style={{ marginBottom: "0.5rem" }}>
             <SkeletonText width="30%" />
@@ -488,10 +490,11 @@ const ContestAdminLogsPage = () => {
                     selectedItems={EVENT_FILTER_OPTIONS.filter((opt) =>
                       selectedEventTypes.includes(opt.id),
                     )}
-                    onChange={({ selectedItems }: { selectedItems: Array<{ id: string }> }) => {
-                      setSelectedEventTypes(
-                        (selectedItems ?? []).map((item) => item.id),
+                    onChange={(data) => {
+                      const items = (data.selectedItems ?? []).filter(
+                        (item): item is { id: string; label: string } => item != null,
                       );
+                      setSelectedEventTypes(items.map((item) => item.id));
                     }}
                     size="md"
                   />

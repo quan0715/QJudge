@@ -9,7 +9,6 @@ import {
   useContestAdmin,
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
-import KpiCards from "@/features/contest/components/admin/KpiCards";
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 

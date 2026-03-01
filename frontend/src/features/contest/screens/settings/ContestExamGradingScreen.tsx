@@ -45,8 +45,8 @@ const ContestExamGradingScreen: React.FC = () => {
     return null; // ByQuestion count is per-question, shown inside
   }, [viewMode, students, searchQuery]);
 
-  const handleViewChange = (e: { index: number }) => {
-    setViewMode(e.index as 0 | 1);
+  const handleViewChange = (e: { index?: number; name?: string | number; text?: string; key?: string | number }) => {
+    setViewMode((e.index ?? 0) as 0 | 1);
     setSearchQuery("");
     setFilter("all");
   };

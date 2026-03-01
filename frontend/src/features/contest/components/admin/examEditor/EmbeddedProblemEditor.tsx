@@ -9,7 +9,8 @@ import {
   patchProblem,
   deleteProblem,
 } from "@/infrastructure/api/repositories/problem.repository";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
+// useAuth reserved for future permission checks
+// import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   ProblemEditProvider,
   useProblemEdit,
@@ -64,7 +65,7 @@ const EditorContent: React.FC<{
   handleVisibilityChange,
   handleDelete,
   handleExportConfirm,
-  onProblemUpdated,
+  onProblemUpdated: _onProblemUpdated,
 }) => {
   const { autoSave } = useProblemEdit();
   const { exportFormat, setExportFormat, pdfScale, setPdfScale } =
@@ -162,8 +163,8 @@ const EmbeddedEditorInner: React.FC<{
   problemId: string;
   contestId: string;
   onRemoved?: () => void;
-}> = ({ problemId, contestId, onRemoved }) => {
-  const navigate = useNavigate();
+}> = ({ problemId, contestId: _contestId, onRemoved }) => {
+  const _navigate = useNavigate();
   const { showToast } = useToast();
   const { exportFormat, pdfScale } = useProblemEditUI();
 
@@ -290,7 +291,9 @@ const EmbeddedEditorInner: React.FC<{
         <div className={styles.skeletonBody}>
           <SkeletonText paragraph lineCount={3} width="80%" />
           <SkeletonPlaceholder style={{ width: "100%", height: "12rem", marginTop: "1rem" }} />
-          <SkeletonText paragraph lineCount={2} width="60%" style={{ marginTop: "1rem" }} />
+          <div style={{ marginTop: "1rem" }}>
+            <SkeletonText paragraph lineCount={2} width="60%" />
+          </div>
         </div>
       </div>
     );

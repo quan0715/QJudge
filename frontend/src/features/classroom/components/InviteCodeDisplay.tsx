@@ -50,7 +50,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
           已停用
         </Tag>
       )}
-      <Stack direction="horizontal" gap={2}>
+      <Stack orientation="horizontal" gap={3}>
         <Button
           kind="ghost"
           size="sm"

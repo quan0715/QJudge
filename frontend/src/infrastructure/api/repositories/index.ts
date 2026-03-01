@@ -11,8 +11,23 @@ export * from "./announcement.repository";
 export * from "./database.repository";
 export * from "./chatbot.repository";
 
-// Classroom Repository
-export * from "./classroom.repository";
+// Classroom Repository (exclude announcement names that conflict with global announcement.repository)
+export {
+  getClassrooms,
+  getClassroom,
+  createClassroom,
+  updateClassroom,
+  deleteClassroom,
+  joinClassroom,
+  addMembers,
+  removeMember,
+  regenerateCode,
+  bindContest,
+  getAnnouncements as getClassroomAnnouncements,
+  createAnnouncement as createClassroomAnnouncement,
+  updateAnnouncement as updateClassroomAnnouncement,
+  deleteAnnouncement as deleteClassroomAnnouncement,
+} from "./classroom.repository";
 
 // Contest Sub-Repositories
 export * from "./contestProblems.repository";

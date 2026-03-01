@@ -357,7 +357,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         <div className={styles.toolbarRight}>
           {!isNew && question && !frozen && onDelete && (
             <Button
-              kind="danger--ghost"
+              kind="ghost"
               size="sm"
               renderIcon={TrashCan}
               hasIconOnly
@@ -445,7 +445,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     {!frozen && (
                       <div className={styles.optionActions}>
                         <IconButton
-                          kind="danger--ghost"
+                          kind="ghost"
                           size="sm"
                           label="刪除選項"
                           onClick={() => removeOption(index)}
@@ -542,10 +542,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 selectedItems={answerOptions.filter((item) =>
                   form.multiAnswerIndexes.includes(item.id),
                 )}
-                onChange={({ selectedItems }: { selectedItems: Array<{ id: string }> }) => {
+                onChange={(data) => {
+                  const items = (data.selectedItems ?? []).filter(
+                    (item): item is { id: string; label: string } => item != null,
+                  );
                   setForm((p) => ({
                     ...p,
-                    multiAnswerIndexes: (selectedItems ?? []).map((item) => item.id),
+                    multiAnswerIndexes: items.map((item) => item.id),
                   }));
                 }}
                 disabled={frozen}

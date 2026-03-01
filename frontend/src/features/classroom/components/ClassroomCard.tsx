@@ -9,7 +9,9 @@ interface ClassroomCardProps {
   onClick: () => void;
 }
 
-const roleTagType: Record<string, string> = {
+type TagType = "red" | "magenta" | "purple" | "blue" | "cyan" | "teal" | "green" | "gray" | "cool-gray" | "warm-gray" | "high-contrast" | "outline";
+
+const roleTagType: Record<string, TagType> = {
   admin: "red",
   teacher: "purple",
   ta: "cyan",

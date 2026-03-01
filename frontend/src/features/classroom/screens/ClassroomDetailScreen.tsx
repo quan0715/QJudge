@@ -20,7 +20,7 @@ import {
   ArrowLeft,
   Add,
   TrashCan,
-  Edit as EditIcon,
+  // Edit as EditIcon,
   Trophy,
   Bullhorn,
   UserMultiple,
@@ -95,7 +95,7 @@ const ClassroomDetailScreen: React.FC = () => {
     fetchData();
   };
 
-  const handleDeleteAnnouncement = async (annId: string) => {
+  const _handleDeleteAnnouncement = async (annId: string) => {
     if (!classroomId) return;
     await deleteAnnouncement(classroomId, annId);
     fetchData();

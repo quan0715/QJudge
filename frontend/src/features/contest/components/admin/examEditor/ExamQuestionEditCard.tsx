@@ -656,7 +656,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {!frozen && (
                       <div className={styles.optionActions}>
                         <IconButton
-                          kind="danger--ghost"
+                          kind="ghost"
                           size="sm"
                           label="刪除選項"
                           onClick={() => removeOption(i)}
@@ -713,7 +713,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {!frozen && (
                       <div className={styles.optionActions}>
                         <IconButton
-                          kind="danger--ghost"
+                          kind="ghost"
                           size="sm"
                           label="刪除選項"
                           onClick={() => removeOption(i)}

@@ -30,7 +30,7 @@ const ExamEditScreenContent: React.FC = () => {
   const { showToast } = useToast();
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
 
-  const handleArchive = useCallback(async () => {
+  const _handleArchive = useCallback(async () => {
     if (!contestId) return;
     try {
       await archiveContest(contestId);
@@ -45,7 +45,7 @@ const ExamEditScreenContent: React.FC = () => {
     }
   }, [contestId, navigate, showToast]);
 
-  const handleDelete = useCallback(async () => {
+  const _handleDelete = useCallback(async () => {
     if (!contestId) return;
     try {
       await deleteContest(contestId);
