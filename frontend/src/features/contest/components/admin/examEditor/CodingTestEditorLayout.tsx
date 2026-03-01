@@ -3,7 +3,6 @@ import {
   Modal,
   TextInput,
   ComboBox,
-  Loading,
 } from "@carbon/react";
 import type {
   ContestDetail,
