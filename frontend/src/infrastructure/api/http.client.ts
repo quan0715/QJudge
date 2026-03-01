@@ -80,15 +80,27 @@ const readJson = async (response: Response): Promise<any> => {
   }
 };
 
-const getErrorMessage = (data: any, fallback: string) => {
+const stringify = (v: unknown): string =>
+  typeof v === "string" ? v : JSON.stringify(v);
+
+const getErrorMessage = (data: any, fallback: string): string => {
   if (!data) return fallback;
-  if (data.detail) return data.detail;
-  if (data.message) return data.message;
-  if (data.error) return data.error;
-  // Django field-level validation errors: { field: ["msg", ...] }
+  if (typeof data === "string") return data;
+  if (typeof data.detail === "string") return data.detail;
+  if (typeof data.message === "string") return data.message;
+  if (typeof data.error === "string") return data.error;
+  // Django field-level validation errors: { field: ["msg", ...], ... }
   if (typeof data === "object") {
+    // Handle non-string detail/message/error (e.g. DRF nested errors)
+    if (data.detail) return stringify(data.detail);
+    if (data.message) return stringify(data.message);
+    if (data.error) return stringify(data.error);
     const msgs = Object.entries(data)
-      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+      .map(([k, v]) => {
+        if (Array.isArray(v)) return `${k}: ${v.map((item) => (typeof item === "string" ? item : JSON.stringify(item))).join(", ")}`;
+        if (typeof v === "string") return `${k}: ${v}`;
+        return `${k}: ${JSON.stringify(v)}`;
+      })
       .join("; ");
     if (msgs) return msgs;
   }

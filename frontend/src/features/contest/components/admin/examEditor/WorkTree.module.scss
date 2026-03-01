@@ -1,0 +1,225 @@
+@use "@carbon/layout";
+
+.workTree {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: var(--cds-background);
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.treeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  flex-shrink: 0;
+  min-height: 3rem; // match Carbon sm button row height
+}
+
+.treeTitle {
+  font-size: var(--cds-heading-compact-01-font-size);
+  font-weight: 400;
+  color: var(--cds-text-primary);
+}
+
+.treeActions {
+  display: flex;
+  gap: layout.$spacing-02;
+}
+
+.treeBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.treeListContent {
+  padding: layout.$spacing-03;
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skeletonList {
+  padding: layout.$spacing-03;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.skeletonItem {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  min-height: 56px;
+  padding: 0 layout.$spacing-03;
+}
+
+.skeletonHandle {
+  width: 12px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.skeletonOrder {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.skeletonContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.skeletonTitle {
+  width: 85%;
+  height: 16px;
+}
+
+.skeletonMeta {
+  width: 35%;
+  height: 14px;
+}
+
+.treeItem {
+  display: flex;
+  align-items: stretch;
+  background: var(--cds-layer-01);
+  border: 1px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.treeItemActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--cds-icon-secondary);
+  transition: color 0.1s;
+
+  &:hover {
+    color: var(--cds-icon-primary);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.itemButton {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex: 1;
+  min-width: 0;
+  padding: layout.$spacing-03 layout.$spacing-03;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--cds-focus);
+  }
+}
+
+.itemOrder {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemTitle {
+  font-size: 0.8125rem;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+
+.itemScore {
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+  flex-shrink: 0;
+}
+
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  .treeItem:hover & {
+    opacity: 1;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-07 layout.$spacing-05;
+  text-align: center;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  min-height: 100%;
+}
+
+.scoreSummary {
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+}

@@ -1,0 +1,260 @@
+@use "@carbon/layout";
+
+// ─── Card wrapper ───
+.card {
+  max-width: 720px;
+  background: var(--cds-layer);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  border: 1px solid transparent;
+}
+
+.cardPreview {
+  &:hover {
+    border-color: var(--cds-border-strong-01);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.cardEditing {
+  border-color: var(--cds-focus);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--cds-focus);
+}
+
+// ─── Drag indicator ───
+.dragIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-02 0;
+  color: var(--cds-icon-secondary);
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: grab;
+
+  .cardPreview:hover & {
+    opacity: 0.6;
+  }
+}
+
+// ─── Preview mode ───
+.previewBody {
+  padding: layout.$spacing-05;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: layout.$spacing-05;
+}
+
+.label {
+  font-size: var(--cds-heading-compact-02-font-size, 0.875rem);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.typeTagContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-helper);
+}
+
+.prompt {
+  margin-bottom: layout.$spacing-06;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--cds-text-primary);
+
+  :global(.markdown-body) {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+
+    p, li, td, th {
+      font-size: inherit;
+      line-height: inherit;
+    }
+  }
+}
+
+.promptEmpty {
+  font-size: 0.875rem;
+  color: var(--cds-text-placeholder);
+  margin-bottom: layout.$spacing-06;
+  font-style: italic;
+}
+
+.answerArea {
+  padding-top: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.answerLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.32px;
+  color: var(--cds-text-helper);
+  text-transform: uppercase;
+  margin-bottom: layout.$spacing-04;
+}
+
+.previewAnswers {
+  pointer-events: none;
+  user-select: none;
+}
+
+.answerText {
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.answerEmpty {
+  color: var(--cds-text-placeholder);
+  font-style: italic;
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.shortInput {
+  max-width: 520px;
+}
+
+.textArea {
+  width: 100%;
+
+  textarea {
+    min-height: 80px;
+  }
+}
+
+// ─── Edit mode ───
+.editBody {
+  padding: layout.$spacing-05;
+}
+
+.editToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  gap: layout.$spacing-03;
+}
+
+.editToolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.editToolbarRight {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.typeSelector {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-icon-secondary);
+}
+
+.scoreInline {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-helper);
+
+  input {
+    width: 60px;
+    text-align: right;
+  }
+}
+
+.promptSection {
+  margin-bottom: layout.$spacing-06;
+
+  // Suppress MarkdownField hover background change
+  :global(.markdown-field__editor) {
+    &:hover {
+      :global(.monaco-editor),
+      :global(.monaco-editor .margin),
+      :global(.monaco-editor-background) {
+        background-color: var(--cds-field) !important;
+      }
+    }
+  }
+
+  :global(.markdown-editor__content),
+  :global(.markdown-editor__editor) {
+    &:hover {
+      background-color: var(--cds-field) !important;
+    }
+  }
+}
+
+.editOptionList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.editOptionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.optionLetter {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.optionInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.optionActions {
+  flex-shrink: 0;
+  display: flex;
+  gap: layout.$spacing-02;
+}
+
+.addOptionRow {
+  padding-top: layout.$spacing-03;
+}
+
+.essayArea {
+  width: 100%;
+
+  textarea {
+    min-height: 120px;
+  }
+}
