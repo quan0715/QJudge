@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, SkeletonText, SkeletonPlaceholder } from "@carbon/react";
@@ -163,8 +163,7 @@ const EmbeddedEditorInner: React.FC<{
   problemId: string;
   contestId: string;
   onRemoved?: () => void;
-}> = ({ problemId, contestId: _contestId, onRemoved }) => {
-  const _navigate = useNavigate();
+}> = ({ problemId, onRemoved }) => {
   const { showToast } = useToast();
   const { exportFormat, pdfScale } = useProblemEditUI();
 

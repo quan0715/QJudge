@@ -1,16 +1,16 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loading, Button } from "@carbon/react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
-import {
-  archiveContest,
-  deleteContest,
-} from "@/infrastructure/api/repositories";
+// import {
+//   archiveContest,
+//   deleteContest,
+// } from "@/infrastructure/api/repositories";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
-import { useToast } from "@/shared/contexts";
+// import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { ExamEditProvider, useExamEdit } from "./contexts/ExamEditContext";
 import {
@@ -27,38 +27,11 @@ const ExamEditScreenContent: React.FC = () => {
   const navigate = useNavigate();
   const { contest } = useContest();
   const { autoSave } = useExamEdit();
-  const { showToast } = useToast();
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
 
-  const _handleArchive = useCallback(async () => {
-    if (!contestId) return;
-    try {
-      await archiveContest(contestId);
-      showToast({ kind: "success", title: "競賽已封存" });
-      navigate(`/contests`);
-    } catch (err) {
-      showToast({
-        kind: "error",
-        title: "封存失敗",
-        subtitle: err instanceof Error ? err.message : "請稍後再試",
-      });
-    }
-  }, [contestId, navigate, showToast]);
-
-  const _handleDelete = useCallback(async () => {
-    if (!contestId) return;
-    try {
-      await deleteContest(contestId);
-      showToast({ kind: "success", title: "競賽已刪除", subtitle: "正在跳轉..." });
-      setTimeout(() => navigate("/contests"), 1000);
-    } catch (err) {
-      showToast({
-        kind: "error",
-        title: "刪除失敗",
-        subtitle: err instanceof Error ? err.message : "請稍後再試",
-      });
-    }
-  }, [contestId, navigate, showToast]);
+  // Archive/delete handlers reserved for future toolbar actions
+  // const handleArchive = useCallback(async () => { ... }, [contestId, navigate, showToast]);
+  // const handleDelete = useCallback(async () => { ... }, [contestId, navigate, showToast]);
 
   return (
     <div className="exam-edit-page">

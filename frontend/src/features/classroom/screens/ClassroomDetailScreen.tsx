@@ -95,11 +95,11 @@ const ClassroomDetailScreen: React.FC = () => {
     fetchData();
   };
 
-  const _handleDeleteAnnouncement = async (annId: string) => {
-    if (!classroomId) return;
-    await deleteAnnouncement(classroomId, annId);
-    fetchData();
-  };
+  // const handleDeleteAnnouncement = async (annId: string) => {
+  //   if (!classroomId) return;
+  //   await deleteAnnouncement(classroomId, annId);
+  //   fetchData();
+  // };
 
   const handleUnbindContest = async (contestId: string) => {
     if (!classroomId) return;
