@@ -21,7 +21,7 @@ export async function login(page: Page, role: UserRole = "student") {
   const gotoLogin = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await page.goto("/login", { waitUntil: "networkidle", timeout: 30000 });
+        await page.goto("/login", { waitUntil: "domcontentloaded", timeout: 30000 });
       } catch (error) {
         const message = String(error);
         // Retry on transient navigation interrupts (redirect or aborted)
@@ -38,6 +38,7 @@ export async function login(page: Page, role: UserRole = "student") {
       }
       return;
     }
+    throw new Error("Could not navigate to /login after 3 attempts");
   };
 
   const submitOnce = async () => {
@@ -231,6 +232,7 @@ export async function clearAuth(page: Page) {
   await page.evaluate(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.clear();
   });
   await page.context().clearCookies();
 }
