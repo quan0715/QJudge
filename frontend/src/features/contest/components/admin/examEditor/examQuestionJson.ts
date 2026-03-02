@@ -178,6 +178,8 @@ export function stringifyExamQuestionJsonV1(
 export function parseExamQuestionJsonV1(content: string): ExamQuestionJsonParseResult {
   const errors: ExamQuestionJsonValidationError[] = [];
   let parsed: unknown;
+  let metaExportedAt = "";
+  let metaContestName = "";
 
   try {
     parsed = JSON.parse(content);
@@ -212,9 +214,13 @@ export function parseExamQuestionJsonV1(content: string): ExamQuestionJsonParseR
     validateUnknownKeys(parsed.meta, META_KEYS, "meta", errors);
     if (typeof parsed.meta.exported_at !== "string" || parsed.meta.exported_at.trim() === "") {
       pushError(errors, "meta.exported_at", "exported_at must be a non-empty string");
+    } else {
+      metaExportedAt = parsed.meta.exported_at;
     }
     if (typeof parsed.meta.contest_name !== "string" || parsed.meta.contest_name.trim() === "") {
       pushError(errors, "meta.contest_name", "contest_name must be a non-empty string");
+    } else {
+      metaContestName = parsed.meta.contest_name;
     }
   }
 
@@ -389,8 +395,8 @@ export function parseExamQuestionJsonV1(content: string): ExamQuestionJsonParseR
     data: {
       version: EXAM_QUESTION_JSON_VERSION,
       meta: {
-        exported_at: (parsed as ExamQuestionJsonFileV1).meta.exported_at,
-        contest_name: (parsed as ExamQuestionJsonFileV1).meta.contest_name,
+        exported_at: metaExportedAt,
+        contest_name: metaContestName,
       },
       questions: normalizedAndReordered,
     },
