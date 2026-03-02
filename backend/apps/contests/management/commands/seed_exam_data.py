@@ -1,6 +1,6 @@
 """
 Management command to seed exam questions from an OS Exam 1 paper (2025/03/12).
-Creates a contest with exam_mode_enabled and populates 31 exam questions.
+Creates a contest with cheat_detection_enabled and populates 31 exam questions.
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
@@ -405,7 +405,8 @@ class Command(BaseCommand):
                 "owner": teacher,
                 "visibility": "private",
                 "status": "published",
-                "exam_mode_enabled": True,
+                "contest_type": "paper_exam",
+                "cheat_detection_enabled": True,
                 "max_cheat_warnings": 3,
                 "allow_multiple_joins": False,
                 "scoreboard_visible_during_contest": False,

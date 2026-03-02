@@ -1,7 +1,12 @@
 import yaml from 'js-yaml';
 import type { ProblemUpsertPayload } from '@/core/entities/problem.entity';
 
-export type ProblemYAML = ProblemUpsertPayload;
+export const PROBLEM_YAML_VERSION = 'qjudge.code.v1' as const;
+
+export type ProblemYAML = ProblemUpsertPayload & {
+  version?: string;
+  tags?: string[];
+};
 
 export interface ValidationError {
   field: string;
@@ -19,13 +24,19 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
 
   try {
     // Parse YAML
-    const data = yaml.load(yamlContent) as any;
+    let data = yaml.load(yamlContent) as any;
 
     if (!data || typeof data !== 'object') {
       return {
         success: false,
         errors: [{ field: 'root', message: 'Invalid YAML format' }]
       };
+    }
+
+    // Support for qjudge.code.v1 structured format
+    if (data.version === PROBLEM_YAML_VERSION && data.metadata) {
+      const { metadata, ...rest } = data;
+      data = { ...rest, ...metadata };
     }
 
     // Validate required fields
@@ -132,6 +143,15 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
       }
     }
 
+    // Validate tags (optional)
+    if (data.tags !== undefined) {
+      if (!Array.isArray(data.tags)) {
+        errors.push({ field: 'tags', message: 'tags must be an array of strings' });
+      } else if (!data.tags.every((t: any) => typeof t === 'string')) {
+        errors.push({ field: 'tags', message: 'All tags must be strings' });
+      }
+    }
+
     if (errors.length > 0) {
       return { success: false, errors };
     }
@@ -148,3 +168,4 @@ export function parseProblemYAML(yamlContent: string): ParseResult {
     };
   }
 }
+

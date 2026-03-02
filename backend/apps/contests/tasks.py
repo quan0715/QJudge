@@ -33,7 +33,7 @@ def check_heartbeat_timeout():
         exam_status=ExamStatus.IN_PROGRESS,
         last_heartbeat__lt=timeout_threshold,
         contest__status='published',
-        contest__exam_mode_enabled=True,
+        contest__cheat_detection_enabled=True,
         contest__end_time__gt=now  # Only active contests
     ).select_related('contest', 'user')
     
@@ -79,7 +79,7 @@ def check_contest_end():
     ended_contests = Contest.objects.filter(
         end_time__lte=now,
         status='published',
-        exam_mode_enabled=True,
+        cheat_detection_enabled=True,
         registrations__exam_status__in=[
             ExamStatus.IN_PROGRESS,
             ExamStatus.PAUSED,
@@ -194,7 +194,7 @@ def check_force_submit_locked():
         locked_at__isnull=False,
         locked_at__lte=threshold,
         contest__status='published',
-        contest__exam_mode_enabled=True,
+        contest__cheat_detection_enabled=True,
         contest__end_time__gt=now,
     ).select_related('contest', 'user')
 

@@ -61,7 +61,7 @@ class PDFRenderer(BaseRenderer):
             'contest_name_plain': contest_dto.name,
             'base_css': self.get_css_styles(),
             'exam_time_html': self._render_exam_time(),
-            'exam_notice_html': self._render_exam_notice() if contest_dto.exam_mode_enabled else '',
+            'exam_notice_html': self._render_exam_notice() if contest_dto.cheat_detection_enabled else '',
             'rules_html': self._render_rules(contest_dto.rules),
             'problem_table_html': self._render_problem_table(),
             'problems_html': self._render_problems(),

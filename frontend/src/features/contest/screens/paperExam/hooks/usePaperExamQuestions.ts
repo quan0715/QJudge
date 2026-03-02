@@ -3,11 +3,13 @@ import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestion
 import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import type { ExamItem } from "../../../types/exam.types";
+import { useToast } from "@/shared/contexts/ToastContext";
 
 export function usePaperExamQuestions(contestId: string | undefined) {
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const { showToast } = useToast();
 
   const items: ExamItem[] = useMemo(
     () => examQuestions.map((q) => ({ kind: "question" as const, data: q })),
@@ -31,9 +33,12 @@ export function usePaperExamQuestions(contestId: string | undefined) {
     setLoadingQuestions(true);
     getExamQuestions(contestId)
       .then(setExamQuestions)
-      .catch(() => setExamQuestions([]))
+      .catch(() => {
+        setExamQuestions([]);
+        showToast({ kind: "error", title: "無法載入考卷題目", subtitle: "請檢查網路連線或稍後再試" });
+      })
       .finally(() => setLoadingQuestions(false));
-  }, [contestId]);
+  }, [contestId, showToast]);
 
   // Load existing answers on mount
   useEffect(() => {
@@ -49,8 +54,16 @@ export function usePaperExamQuestions(contestId: string | undefined) {
         }
         setAnswers(map);
       })
-      .catch(() => {/* ignore - start fresh */});
-  }, [contestId]);
+      .catch((error: any) => {
+        if (error?.response?.status !== 404) {
+          showToast({
+            kind: "error",
+            title: "無法載入作答紀錄",
+            subtitle: "網路異常或伺服器錯誤，為避免覆蓋現有答案，建議您重新整理頁面。"
+          });
+        }
+      });
+  }, [contestId, showToast]);
 
   return { examQuestions, items, answers, setAnswers, answeredIds, loadingQuestions };
 }

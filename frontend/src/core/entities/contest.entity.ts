@@ -4,6 +4,7 @@ import type { Difficulty } from "./problem.entity";
 
 export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
+export type ContestType = "coding" | "paper_exam";
 // Violation events (from ExamEvent model)
 export type ExamViolationType =
   | "tab_hidden"
@@ -101,8 +102,11 @@ export type ExamStatusType =
 export interface ContestDetail extends Contest {
   rules?: string;
 
-  // Exam mode
-  examModeEnabled: boolean;
+  // Contest type
+  contestType: ContestType;
+
+  // Cheat detection
+  cheatDetectionEnabled: boolean;
   scoreboardVisibleDuringContest: boolean;
 
   // Anonymous mode
@@ -254,7 +258,7 @@ export interface ContestUpdateRequest {
   status?: ContestStatus;
   visibility?: ContestVisibility;
   password?: string;
-  examModeEnabled?: boolean;
+  cheatDetectionEnabled?: boolean;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;

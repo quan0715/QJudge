@@ -43,6 +43,8 @@ interface ContestProviderProps {
   contestId?: string;
   /** Optional: provide initial contest data to avoid duplicate fetch */
   initialContest?: ContestDetail | null;
+  /** Optional: provide initial scoreboard data to avoid duplicate fetch */
+  initialScoreboardData?: ScoreboardData | null;
   /** Optional: external refresh function from parent */
   onRefresh?: () => Promise<void>;
 }
@@ -51,6 +53,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   children,
   contestId: propContestId,
   initialContest,
+  initialScoreboardData,
   onRefresh,
 }) => {
   const params = useParams<{ contestId: string }>();
@@ -65,9 +68,9 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
 
   // Standings state
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(
-    null
+    initialScoreboardData || null
   );
-  const [standingsLoading, setStandingsLoading] = useState(true);
+  const [standingsLoading, setStandingsLoading] = useState(!initialScoreboardData);
 
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -144,6 +147,14 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [initialContest]);
 
+  // Sync with initialScoreboardData from parent
+  useEffect(() => {
+    if (initialScoreboardData !== undefined) {
+      setScoreboardData(initialScoreboardData);
+      setStandingsLoading(false);
+    }
+  }, [initialScoreboardData]);
+
   // Initial fetch if no initialContest provided
   useEffect(() => {
     if (initialContest === undefined && contestId) {
@@ -156,12 +167,12 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [contestId, initialContest, fetchContest]);
 
-  // Fetch standings when contest is loaded
+  // Fetch standings when contest is loaded, ONLY if initialScoreboardData was NOT provided
   useEffect(() => {
-    if (contest?.id) {
+    if (contest?.id && initialScoreboardData === undefined) {
       void fetchStandings();
     }
-  }, [contest?.id, fetchStandings]);
+  }, [contest?.id, initialScoreboardData, fetchStandings]);
 
   const value = useMemo(
     () => ({

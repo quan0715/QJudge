@@ -55,7 +55,7 @@ class ContestDTO:
     rules: str = ''
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    exam_mode_enabled: bool = False
+    cheat_detection_enabled: bool = False
     status: str = 'published'
     scoreboard_visible_during_contest: bool = True
 

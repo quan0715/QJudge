@@ -85,7 +85,7 @@ const ExamEditorPanel: React.FC<ExamEditorPanelProps> = ({
       status: contest.status ?? "draft",
       visibility: contest.visibility ?? "public",
       password: contest.password ?? "",
-      examModeEnabled: contest.examModeEnabled ?? false,
+      cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       maxCheatWarnings: contest.maxCheatWarnings ?? 3,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
       allowAutoUnlock: contest.allowAutoUnlock ?? false,

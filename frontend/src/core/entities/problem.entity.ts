@@ -129,4 +129,5 @@ export interface ProblemUpsertPayload {
   forbidden_keywords?: string[];
   required_keywords?: string[];
   existing_tag_ids?: number[];
+  new_tag_names?: string[];
 }

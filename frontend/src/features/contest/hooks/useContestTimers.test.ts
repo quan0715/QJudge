@@ -8,7 +8,7 @@ const baseContest = {
   startTime: "2024-01-01T00:00:00Z",
   endTime: "2024-01-01T01:00:00Z",
   status: "published",
-  examModeEnabled: false,
+  cheatDetectionEnabled: false,
   examStatus: "not_started",
 } satisfies {
   id: string;
@@ -16,7 +16,7 @@ const baseContest = {
   startTime: string;
   endTime: string;
   status: string;
-  examModeEnabled: boolean;
+  cheatDetectionEnabled: boolean;
   examStatus: string;
 };
 
@@ -69,7 +69,7 @@ describe("useContestTimers", () => {
   it("counts down unlock timer and refreshes once when unlocked", async () => {
     const contest = {
       ...baseContest,
-      examModeEnabled: true,
+      cheatDetectionEnabled: true,
       examStatus: "locked",
       autoUnlockAt: "2024-01-01T00:00:03Z",
     };

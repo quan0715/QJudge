@@ -46,7 +46,7 @@ describe("enterExam.usecase", () => {
   it("exam mode always routes to precheck before startExam", async () => {
     const result = await enterExamUseCase({
       contestId: "contest-1",
-      examModeEnabled: true,
+      cheatDetectionEnabled: true,
     });
 
     expect(startExam).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe("enterExam.usecase", () => {
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
-      examModeEnabled: false,
+      cheatDetectionEnabled: false,
     });
 
     expect(startExam).toHaveBeenCalledWith("contest-1");
@@ -78,7 +78,7 @@ describe("enterExam.usecase", () => {
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
-      examModeEnabled: false,
+      cheatDetectionEnabled: false,
     });
 
     expect(result).toEqual({
@@ -95,7 +95,7 @@ describe("enterExam.usecase", () => {
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
-      examModeEnabled: false,
+      cheatDetectionEnabled: false,
     });
 
     expect(result).toEqual({

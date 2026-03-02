@@ -88,7 +88,7 @@ const ContestAdminSettingsPage = () => {
       endTime: data.endTime || "",
       visibility: data.visibility || "public",
       password: data.password || "",
-      examModeEnabled: data.examModeEnabled || false,
+      cheatDetectionEnabled: data.cheatDetectionEnabled || false,
       scoreboardVisibleDuringContest:
         data.scoreboardVisibleDuringContest || false,
       allowMultipleJoins: data.allowMultipleJoins || false,
@@ -601,14 +601,14 @@ const ContestAdminSettingsPage = () => {
                       labelText={t("settings.enableExamMode")}
                       labelA={tc("toggle.off")}
                       labelB={tc("toggle.on")}
-                      toggled={formData.examModeEnabled ?? false}
+                      toggled={formData.cheatDetectionEnabled ?? false}
                       onToggle={(checked) =>
-                        setFormData({ ...formData, examModeEnabled: checked })
+                        setFormData({ ...formData, cheatDetectionEnabled: checked })
                       }
                     />
                   </div>
 
-                  {(formData.examModeEnabled ?? false) && (
+                  {(formData.cheatDetectionEnabled ?? false) && (
                     <div
                       style={{
                         display: "flex",

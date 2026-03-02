@@ -42,7 +42,7 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   visibility: "visibility",
   password: "password",
   // Exam settings
-  examModeEnabled: "examModeEnabled",
+  cheatDetectionEnabled: "cheatDetectionEnabled",
   maxCheatWarnings: "maxCheatWarnings",
   allowMultipleJoins: "allowMultipleJoins",
   allowAutoUnlock: "allowAutoUnlock",

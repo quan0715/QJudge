@@ -1,56 +1,58 @@
-# 建立考試與題目
+# Creating Exams and Questions
 
-> 文件狀態：2026-03-02
+> Document updated: 2026-03-03
 
-QJudge 提供強大的「考試模式」(Exam Mode)，結合自動評分、防作弊監控以及多樣的題型配置。
-本篇指南將帶領教師了解如何一步步建立一場測驗競賽、啟用考試設定，並建立測驗題目 (Exam Questions)。
+QJudge supports two contest types: **Coding Test** (programming problems) and **Paper Exam** (written questions), with cheat detection and diverse question types.
+This guide walks teachers through creating an exam, enabling cheat detection, and adding exam questions.
 
-## 1. 建立一場新競賽
+## 1. Create a New Contest
 
-欲建立包含一般程式題或是純筆試題型的考試，您都必須先建立一場「競賽」：
+When creating a contest, you'll be asked to choose a contest type:
 
-1. 請前往系統上方的選單或點擊儀表板上的 **我的競賽管理**。
-2. 點擊頁面右上角的 **新增競賽** 按鈕。
-   ![新增競賽範例圖](/docs/images/create_exam_tutorial.png)
-3. 填寫競賽名稱與基本資訊。
-4. 設定考試的 **開始時間** 與 **結束時間**。
+1. Go to the top menu or click **My Contests** on the dashboard.
+2. Click the **Create Contest** button in the top-right corner.
+   ![Create Contest Example](/docs/images/create_exam_tutorial.png)
+3. Choose the contest type:
+   - **Coding Test**: Programming problems with submission and auto-grading.
+   - **Paper Exam**: Written questions supporting true/false, multiple choice, short answer, and essay.
+4. Fill in the contest name and basic information.
+5. Set the **start time** and **end time**.
 
-## 2. 啟用考試模式 (Exam Mode)
+## 2. Enable Cheat Detection
 
-進入競賽編輯頁面的 **設定 (Settings)** 區塊後，您可以啟用專用於測驗的防作弊設定。
+In the contest edit page's **Settings** section, you can enable cheat detection.
 
-1. 在設定列表中找到 **考試模式設定 (Exam Mode Settings)**。
-2. 勾選 **啟用考試模式** 以強制學生在進入時進行全螢幕鎖定，並開啟切換分頁等違規監測。
-3. 您可以彈性設定：
-   - **最大違規警告次數**：若設定為 0，學生違規將會立刻被鎖定作答權限；若設定大於 0（例如 3），學生在達到限制次數前只會收到警告。
-   - **允許自動解鎖**：若開啟，可設定學生被鎖定多少分鐘後，系統自動幫其解鎖以繼續測驗。
+1. Find **Cheat Detection Settings** in the settings list.
+2. Toggle **Enable Cheat Detection** to force fullscreen lock and enable tab-switching violation monitoring.
+   ![Enable Cheat Detection](/docs/images/enable_exam_mode.png)
+3. You can configure:
+   - **Maximum violation warnings**: If set to 0, students are immediately locked on violation; if greater than 0 (e.g. 3), students receive warnings before being locked.
+   - **Allow auto-unlock**: If enabled, set how many minutes after being locked the system will automatically unlock the student.
 
-> **提示：** 強烈建議將實際考試隱藏或設立 **加入密碼** 以限制非預期同學加入；同時可以關閉「比賽期間顯示排行榜」，避免學生於考試進行中看見其他人的進度。
+> **Tip:** It is strongly recommended to set a **join password** for actual exams and disable "show scoreboard during contest" to prevent students from seeing others' progress.
 
-## 3. 建立並編輯考試題目
+## 3. Create and Edit Exam Questions
 
-除了傳統的程式題目外，開啟考試模式的競賽中可以設定選擇題、是非題等測驗題。這部分可以在教學介面的 **Exam 題目 (Exam Questions)** 分頁進行編輯。
+Paper Exam contests allow you to set multiple choice, true/false, and other question types. This is done in the **Exam Questions** tab of the admin interface.
 
-1. 點擊 **新增題目** 開啟自訂題目視窗。
-2. **題型選擇**：
-   系統支援以下五種常見題型：
-   - `單選題 (Single Choice)`：提供多個選項與單一正解。
-   - `多選題 (Multiple Choice)`：提供多個選項與多個正解。
-   - `是非題 (True/False)`：固定 True 與 False 選項的題型。
-   - `簡答題 (Short Answer)`：要求學生輸入簡短的關鍵字、數字或是英文單字。
-   - `問答題 (Essay)`：學生可用較長的敘述回答，此題型通常不由系統直接自動評分，而提供參考答案作為閱卷輔助。
-3. **設定配分**：您可以為不同難度的題目配置不同分數，系統會自動加總「總配分」。
-4. **題目內容**：
-   - 題目說明輸入框完全支援 Markdown 及 LaTeX 語法（例如數學公式 `$x^2$` 等）。
-   - 可透過題目編輯框上方的 **預覽 (View)** 鍵切換，確認 LaTeX 的渲染結果是否如預期。
-5. **增刪選項及標準答案**：
-   - 對於選擇題，點擊 **新增選項** 來輸入選項文字，可以隨意刪除特定選項。
-   - 設定妥當後，在下拉式區塊將標準答案指派給對應選項。
-6. 完成後點擊 **儲存**。
+1. Click **Add Question** to open the question editor.
+   ![Add Question](/docs/images/add_exam_question.png)
+2. **Question types**:
+   - `Single Choice`: Multiple options with one correct answer.
+   - `Multiple Choice`: Multiple options with multiple correct answers.
+   - `True/False`: Fixed True and False options.
+   - `Short Answer`: Students input a brief keyword, number, or word.
+   - `Essay`: Students write a longer response; usually graded manually by TAs.
+3. **Set score**: Assign different scores to questions of varying difficulty.
+4. **Question content**: Supports Markdown and LaTeX (e.g. `$x^2$`). Use the **Preview** button to check rendering.
+5. **Options and correct answer**:
+   - For choice questions, click **Add Option** to add option text.
+   - Assign the correct answer from the dropdown.
+6. Click **Save** when done.
 
-## 4. 變更順序與刪除問題
+## 4. Reorder and Delete Questions
 
-- **拖曳排序**：在題目清單介面中，可以透過題目卡片左側的拖曳控制桿 (Drag Handle)，使用滑鼠拖拉以調整題目在試卷中的先後順序。
-- **編輯與刪除**：點擊該題卡片即可直接開啟編輯視窗。在編輯視窗的左下角，您也可以找到**刪除此題目**的危險操作按鈕以捨棄該題。
+- **Drag to reorder**: Use the drag handle on the left side of question cards.
+- **Edit and delete**: Click a question card to open the editor. The delete button is in the bottom-left corner.
 
-> **注意：** 一旦有學生已經開始作答（題目被凍結），「拖曳排序、編輯及刪除功能」將會被系統鎖定以確保試卷的一致性與公平。但您仍可補充新增題目。
+> **Note:** Once a student has started answering (questions are frozen), reordering, editing, and deleting will be locked to ensure fairness. You can still add new questions.

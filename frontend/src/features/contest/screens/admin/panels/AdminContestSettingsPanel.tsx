@@ -268,7 +268,7 @@ const AdminContestSettingsPanel: React.FC = () => {
       status: contest.status || "draft",
       visibility: contest.visibility || "public",
       password: contest.password || "",
-      examModeEnabled: contest.examModeEnabled ?? false,
+      cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       anonymousModeEnabled: contest.anonymousModeEnabled ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
@@ -663,8 +663,8 @@ const AdminContestSettingsPanel: React.FC = () => {
         <ActionRow
           label={t("settings.enableExamMode")}
           description="啟用後將開啟全螢幕監控、作弊偵測與答案鎖定機制"
-          saveState={getState("examModeEnabled")}
-          onRetry={() => autoSave.retrySave("examModeEnabled")}
+          saveState={getState("cheatDetectionEnabled")}
+          onRetry={() => autoSave.retrySave("cheatDetectionEnabled")}
         >
           <Toggle
             id="settings-exam-mode"
@@ -672,17 +672,17 @@ const AdminContestSettingsPanel: React.FC = () => {
             hideLabel
             labelA={tc("toggle.off")}
             labelB={tc("toggle.on")}
-            toggled={(form.examModeEnabled as boolean) ?? false}
+            toggled={(form.cheatDetectionEnabled as boolean) ?? false}
             onToggle={(checked) => {
               const msg = checked
                 ? "開啟作弊檢查後將啟用作弊偵測和答案鎖定機制，確定開啟？"
                 : "關閉作弊檢查將停用所有監控功能，確定關閉？";
-              handleConfirmedChange("examModeEnabled", checked, msg);
+              handleConfirmedChange("cheatDetectionEnabled", checked, msg);
             }}
           />
         </ActionRow>
 
-        {(form.examModeEnabled as boolean) && (
+        {(form.cheatDetectionEnabled as boolean) && (
           <>
             <ActionRow
               label={t("settings.allowMultipleJoins")}

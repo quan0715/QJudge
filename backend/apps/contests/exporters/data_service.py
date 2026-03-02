@@ -46,7 +46,7 @@ class ContestDataService:
             rules=self.contest.rules or '',
             start_time=self.contest.start_time,
             end_time=self.contest.end_time,
-            exam_mode_enabled=getattr(self.contest, 'exam_mode_enabled', False),
+            cheat_detection_enabled=getattr(self.contest, 'cheat_detection_enabled', False),
             status=self.contest.status,
             scoreboard_visible_during_contest=getattr(
                 self.contest, 'scoreboard_visible_during_contest', True

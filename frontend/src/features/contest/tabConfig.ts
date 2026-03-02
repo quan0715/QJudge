@@ -22,7 +22,7 @@ export const getAvailableContestTabKeys = (
   }
 
   const tabs: ContestTabKey[] = ["overview", "problems"];
-  const isPaperExam = (contest.examQuestionsCount ?? 0) > 0;
+  const isPaperExam = contest.contestType === "paper_exam";
 
   if (!isPaperExam) {
     tabs.push("submissions");

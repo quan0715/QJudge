@@ -40,7 +40,7 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       <Tag type={contest.visibility === "public" ? "green" : "purple"}>
         {contest.visibility === "public" ? "公開" : "私有"}
       </Tag>
-      {contest.examModeEnabled && <Tag type="red">作弊檢查</Tag>}
+      {contest.cheatDetectionEnabled && <Tag type="red">作弊檢查</Tag>}
       {contest.hasJoined && (
         <Tag type="teal" renderIcon={Checkmark}>
           已報名
@@ -142,7 +142,7 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
             {/* Rules & Notifications */}
             <div className="cds--col-lg-16 cds--col-md-8">
               {/* Exam Mode Warning */}
-              {contest.examModeEnabled && (
+              {contest.cheatDetectionEnabled && (
                 <InlineNotification
                   kind="warning"
                   title="作弊檢查已啟用"

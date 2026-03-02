@@ -12,7 +12,7 @@ export const examFormSchema = z
     visibility: z.enum(["public", "private"]),
     password: z.string(),
     // Exam settings
-    examModeEnabled: z.boolean(),
+    cheatDetectionEnabled: z.boolean(),
     maxCheatWarnings: z.number().min(0).max(10),
     allowMultipleJoins: z.boolean(),
     allowAutoUnlock: z.boolean(),

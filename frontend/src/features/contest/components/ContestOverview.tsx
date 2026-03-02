@@ -49,7 +49,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
       {/* Exam Mode Warning */}
-      {contest.examModeEnabled && (
+      {contest.cheatDetectionEnabled && (
         <InlineNotification
           kind="warning"
           title={t("overview.examModeWarning")}
@@ -61,7 +61,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
       )}
 
       {/* Exam Status / Results */}
-      {contest.examModeEnabled && contest.examStatus === "submitted" && !contest.resultsPublished && (
+      {contest.contestType === "paper_exam" && contest.examStatus === "submitted" && !contest.resultsPublished && (
         <ContainerCard
           title="考試狀態"
           style={{ marginBottom: "1.5rem" }}
@@ -75,7 +75,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
         </ContainerCard>
       )}
 
-      {contest.examModeEnabled && contest.examStatus === "submitted" && contest.resultsPublished && (
+      {contest.contestType === "paper_exam" && contest.examStatus === "submitted" && contest.resultsPublished && (
         <ContainerCard
           title="考試成績"
           style={{ marginBottom: "1.5rem" }}

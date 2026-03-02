@@ -131,7 +131,7 @@ const ContestProblemPage = () => {
             onSelect={problemSelection.selectProblem}
           />
         }
-        disableCopy={contest?.examModeEnabled}
+        disableCopy={contest?.cheatDetectionEnabled}
         submissionDisabled={isSubmissionDisabled}
         renderSubmissions={() => (
           <ContestProblemSubmissions

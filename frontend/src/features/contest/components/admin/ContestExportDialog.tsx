@@ -82,7 +82,7 @@ export default function ContestExportDialog({
   contestId,
 }: ContestExportDialogProps) {
   const { t } = useTranslation("contest");
-  const isExamMode = !!contest.examModeEnabled && contest.problems.length === 0;
+  const isExamMode = contest.contestType === "paper_exam";
 
   // --- Shared state ---
   const defaultTarget: ExportTarget = isExamMode ? "exam-question" : "coding-pdf";

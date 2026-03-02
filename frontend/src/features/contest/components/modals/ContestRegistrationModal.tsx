@@ -99,7 +99,7 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
         )}
 
         {/* Exam mode warning */}
-        {contest.examModeEnabled && (
+        {contest.cheatDetectionEnabled && (
           <InlineNotification
             kind="warning"
             title="注意"

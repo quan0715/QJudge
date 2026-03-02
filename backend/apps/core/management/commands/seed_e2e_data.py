@@ -321,7 +321,7 @@ int main() {
                 'owner': teacher,
                 'visibility': 'public',
                 'status': 'published',
-                'exam_mode_enabled': False,
+                'cheat_detection_enabled': False,
                 'scoreboard_visible_during_contest': True,
                 'allow_view_results': True,
             }
@@ -354,7 +354,7 @@ int main() {
                 'owner': teacher,
                 'visibility': 'public',
                 'status': 'published',
-                'exam_mode_enabled': False,
+                'cheat_detection_enabled': False,
             }
         )
 
@@ -383,7 +383,8 @@ int main() {
                 'owner': teacher,
                 'visibility': 'public',
                 'status': 'published',
-                'exam_mode_enabled': True,
+                'contest_type': 'paper_exam',
+                'cheat_detection_enabled': True,
                 'max_cheat_warnings': 2,
                 'allow_auto_unlock': False,
             }

@@ -50,7 +50,8 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     ...contest,
     rules: dto.rules || dto.rule, // Handle alias
 
-    examModeEnabled: !!dto.exam_mode_enabled,
+    contestType: dto.contest_type ?? "coding",
+    cheatDetectionEnabled: !!dto.cheat_detection_enabled,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
     anonymousModeEnabled: !!dto.anonymous_mode_enabled,
 
@@ -242,7 +243,7 @@ export function mapContestUpdateRequestToDto(request: any): any {
     status: request.status,
     visibility: request.visibility,
     password: request.password,
-    exam_mode_enabled: request.examModeEnabled,
+    cheat_detection_enabled: request.cheatDetectionEnabled,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     anonymous_mode_enabled: request.anonymousModeEnabled,
     allow_multiple_joins: request.allowMultipleJoins,

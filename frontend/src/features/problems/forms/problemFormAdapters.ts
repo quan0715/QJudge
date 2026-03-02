@@ -29,6 +29,7 @@ export function problemDetailToFormSchema(
     memoryLimit: problem.memoryLimit || 128,
     visibility: problem.visibility || 'private',
     existingTagIds: problem.tags?.map((t) => parseInt(t.id)) || [],
+    newTagNames: [],
     translationZh: {
       title: zhTrans?.title || "",
       description: zhTrans?.description || "",
@@ -65,7 +66,8 @@ export function yamlToFormSchema(yaml: ProblemYAML): ProblemFormSchema {
     timeLimit: yaml.time_limit,
     memoryLimit: yaml.memory_limit,
     visibility: yaml.visibility || 'private',
-    existingTagIds: [], // Tags are not in YAML format
+    existingTagIds: [],
+    newTagNames: yaml.tags || [],
     translationZh: {
       title: zhTrans?.title || "",
       description: zhTrans?.description || "",
@@ -156,6 +158,7 @@ export function formSchemaToApiPayload(
         order: lc.order ?? index,
       })),
     existing_tag_ids: data.existingTagIds,
+    new_tag_names: data.newTagNames,
     forbidden_keywords: data.forbiddenKeywords || [],
     required_keywords: data.requiredKeywords || [],
   };
@@ -196,6 +199,7 @@ export function yamlToApiPayload(yaml: ProblemYAML): ProblemUpsertPayload {
         is_enabled: lc.is_enabled ?? true,
         order: lc.order ?? index,
       })) || [],
+    new_tag_names: yaml.tags || [],
     forbidden_keywords: yaml.forbidden_keywords || [],
     required_keywords: yaml.required_keywords || [],
   };

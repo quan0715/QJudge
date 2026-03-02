@@ -33,7 +33,8 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail => 
   visibility: "private",
   hasJoined: false,
   isRegistered: false,
-  examModeEnabled: false,
+  contestType: "coding",
+  cheatDetectionEnabled: false,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
   maxCheatWarnings: 3,
@@ -126,7 +127,7 @@ describe("ContestExportDialog", () => {
       <ContestExportDialog
         open
         onClose={vi.fn()}
-        contest={buildContest({ examModeEnabled: true, problems: [] })}
+        contest={buildContest({ contestType: "paper_exam", cheatDetectionEnabled: true, problems: [] })}
         contestId="contest-1"
       />
     );

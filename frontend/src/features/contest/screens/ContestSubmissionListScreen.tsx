@@ -18,13 +18,13 @@ import {
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
-import type { User } from "@/core/entities/user.entity";
 
 interface ContestSubmissionListPageProps {
   maxWidth?: string;
@@ -62,16 +62,7 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [problemFilter, setProblemFilter] = useState<string>("all");
   const [onlyMine, setOnlyMine] = useState(false);
-  const [currentUser] = useState<User | null>(() => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr);
-    } catch (e) {
-      console.error("Failed to parse user", e);
-      return null;
-    }
-  });
+  const { user: currentUser } = useAuth();
   const [animationKey, setAnimationKey] = useState(0);
 
   // Get contest problems from context

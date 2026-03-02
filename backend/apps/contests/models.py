@@ -72,11 +72,24 @@ class Contest(models.Model):
     allow_auto_unlock = models.BooleanField(default=False, verbose_name='允許自動解鎖')
     auto_unlock_minutes = models.IntegerField(default=0, null=True, blank=True, verbose_name='自動解鎖時間 (分鐘)')
     
-    # Exam mode settings
-    exam_mode_enabled = models.BooleanField(
+    # Contest type
+    CONTEST_TYPE_CHOICES = [
+        ('coding', 'Coding Test'),
+        ('paper_exam', 'Paper Exam'),
+    ]
+    contest_type = models.CharField(
+        max_length=15,
+        choices=CONTEST_TYPE_CHOICES,
+        default='coding',
+        verbose_name='比賽類型',
+        help_text='coding: 程式題; paper_exam: 紙筆題考試'
+    )
+
+    # Cheat detection settings
+    cheat_detection_enabled = models.BooleanField(
         default=False,
-        verbose_name='啟用考試模式',
-        help_text='啟用全螢幕與防失焦的嚴格考試模式'
+        verbose_name='啟用防作弊模式',
+        help_text='啟用全螢幕與防失焦的嚴格防作弊模式'
     )
     
     # Scoreboard settings

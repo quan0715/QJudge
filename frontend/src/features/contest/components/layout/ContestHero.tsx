@@ -169,7 +169,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <Tag type={contest.visibility === "public" ? "green" : "purple"}>
         {contest.visibility === "public" ? t("public") : t("private")}
       </Tag>
-      {contest.examModeEnabled && <Tag type="red">{t("examMode")}</Tag>}
+      {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode")}</Tag>}
     </>
   );
 
@@ -220,7 +220,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   // ----------------------------------
 
   const handleStartClick = () => {
-    if (contest.examModeEnabled) {
+    if (contest.cheatDetectionEnabled) {
       setShowStartConfirm(true);
     } else {
       onStartExam?.();

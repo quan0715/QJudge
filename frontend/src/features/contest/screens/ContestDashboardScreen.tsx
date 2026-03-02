@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
-import type { User } from "@/core/entities/user.entity";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
@@ -27,19 +27,10 @@ const ContestDashboard = () => {
 
   // Use contest and standings from context
   const { contest, loading, scoreboardData } = useContest();
+  const { user: currentUser } = useAuth();
 
   // Personal stats state
   const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [currentUser] = useState<User | null>(() => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr);
-    } catch (e) {
-      console.error("Failed to parse user", e);
-      return null;
-    }
-  });
   const [lockModalOpen, setLockModalOpen] = useState(false);
 
   // Find my rank from context standings
@@ -140,7 +131,7 @@ const ContestDashboard = () => {
             contest={contest}
             problems={contest.problems || []}
             myRank={myRank}
-            currentUser={currentUser}
+            currentUser={currentUser as any}
             maxWidth="1056px"
           />
         );

@@ -13,7 +13,7 @@ const ExamSettingsSection: React.FC<ExamSettingsSectionProps> = ({ registerRef }
   const { setValue, watch } = useFormContext<ExamFormSchema>();
   const { handleFieldChange, getFieldSaveState } = useExamEdit();
 
-  const examModeEnabled = watch("examModeEnabled");
+  const cheatDetectionEnabled = watch("cheatDetectionEnabled");
   const allowAutoUnlock = watch("allowAutoUnlock");
 
   const handleToggle = (field: keyof ExamFormSchema, checked: boolean) => {
@@ -40,17 +40,17 @@ const ExamSettingsSection: React.FC<ExamSettingsSectionProps> = ({ registerRef }
               labelText="作弊檢查"
               labelA="關閉"
               labelB="開啟"
-              toggled={examModeEnabled}
-              onToggle={(checked) => handleToggle("examModeEnabled", checked)}
+              toggled={cheatDetectionEnabled}
+              onToggle={(checked) => handleToggle("cheatDetectionEnabled", checked)}
             />
-            <FieldSaveIndicator status={getFieldSaveState("examModeEnabled")?.status || "idle"} />
+            <FieldSaveIndicator status={getFieldSaveState("cheatDetectionEnabled")?.status || "idle"} />
           </div>
           <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.5rem" }}>
             開啟後將啟用作弊檢查功能，包含作弊偵測和答案鎖定機制。
           </p>
         </div>
 
-        {examModeEnabled && (
+        {cheatDetectionEnabled && (
           <>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

@@ -190,7 +190,8 @@ export interface ContestCreatePayload {
   end_time: string;
   visibility?: "public" | "private" | "password";
   password?: string;
-  exam_mode_enabled?: boolean;
+  contest_type?: "coding" | "paper_exam";
+  cheat_detection_enabled?: boolean;
   scoreboard_visible_during_contest?: boolean;
   anonymous_mode_enabled?: boolean;
 }
@@ -204,7 +205,7 @@ export interface ContestUpdatePayload {
   status?: ContestStatus;
   visibility?: ContestVisibility;
   password?: string;
-  examModeEnabled?: boolean;
+  cheatDetectionEnabled?: boolean;
   scoreboardVisibleDuringContest?: boolean;
   anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;

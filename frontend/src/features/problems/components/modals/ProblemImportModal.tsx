@@ -304,6 +304,19 @@ const ProblemImportModal: React.FC<ProblemImportModalProps> = ({
             <br />
             <strong>{t("import.translations")}:</strong>{" "}
             {parsedData.translations.length} {t("import.languages")}
+            {parsedData.tags && parsedData.tags.length > 0 && (
+              <>
+                <br />
+                <strong>標籤:</strong>{" "}
+                <div style={{ display: "inline-flex", gap: "0.25rem", flexWrap: "wrap", verticalAlign: "top" }}>
+                  {parsedData.tags.map((tag, index) => (
+                    <Tag key={index} type="gray" size="sm">
+                      {tag}
+                    </Tag>
+                  ))}
+                </div>
+              </>
+            )}
             {parsedData.language_configs &&
               parsedData.language_configs.length > 0 && (
                 <>

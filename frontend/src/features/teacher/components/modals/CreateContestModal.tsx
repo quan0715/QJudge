@@ -128,7 +128,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         end_time: endDateTime,
         visibility: isPrivate ? "private" : "public",
         password: isPrivate ? password : undefined,
-        exam_mode_enabled: creationType === "exam",
+        contest_type: creationType === "exam" ? "paper_exam" : "coding",
+        cheat_detection_enabled: creationType === "exam",
       });
       onCreated(createdContest.id);
       handleClose();

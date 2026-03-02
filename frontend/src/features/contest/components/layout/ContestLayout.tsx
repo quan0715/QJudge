@@ -49,14 +49,15 @@ const ContestLayout = () => {
     isUpcoming,
     isAdmin,
     shouldWarnOnExit,
-    userScore,
+    userScore: _userScore,
     totalMaxScore,
+    scoreboardData,
     refreshContest,
     navigate,
-  } = useContestLayoutState();
+    } = useContestLayoutState();
 
-  const { t } = useTranslation("contest");
-  const { t: tc } = useTranslation("common");
+    const { t } = useTranslation("contest");
+    const { t: tc } = useTranslation("common");
 
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
@@ -121,7 +122,7 @@ const ContestLayout = () => {
   }
 
   const renderExamStatus = () => {
-    if (!contest?.examModeEnabled) return null;
+    if (!contest?.cheatDetectionEnabled) return null;
 
     if (contest.examStatus === "locked") {
       const title = `${contest.lockReason || t("exam.lockedReason")}${
@@ -182,7 +183,7 @@ const ContestLayout = () => {
       return (
         <ExamModeWrapper
           contestId={contestId || ""}
-          examModeEnabled={!!contest?.examModeEnabled}
+          cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
           isActive={!!isExamActive}
           isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
@@ -190,7 +191,7 @@ const ContestLayout = () => {
           currentUserRole={contest?.currentUserRole}
           onRefresh={refreshContest}
         >
-          <ContestProvider initialContest={contest} onRefresh={refreshContest}>
+          <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
             <Outlet context={{ refreshContest }} />
           </ContestProvider>
         </ExamModeWrapper>
@@ -216,7 +217,7 @@ const ContestLayout = () => {
       >
         <ExamModeWrapper
           contestId={contestId || ""}
-          examModeEnabled={!!contest?.examModeEnabled}
+          cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
           isActive={!!isExamActive}
           isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
@@ -224,7 +225,7 @@ const ContestLayout = () => {
           currentUserRole={contest?.currentUserRole}
           onRefresh={refreshContest}
         >
-          <ContestProvider initialContest={contest} onRefresh={refreshContest}>
+          <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
             <Outlet context={{ refreshContest }} />
           </ContestProvider>
         </ExamModeWrapper>
@@ -234,7 +235,7 @@ const ContestLayout = () => {
 
   const showContestTimer =
     contest &&
-    (!contest.examModeEnabled ||
+    (!contest.cheatDetectionEnabled ||
       contest.examStatus === "not_started" ||
       contest.examStatus === "submitted");
 
@@ -271,9 +272,9 @@ const ContestLayout = () => {
             <div className={styles.headerScoreDisplay}>
               <span className={styles.scoreLabel}>分數：</span>
               <span
-                className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
+                className={`${styles.scoreValue} ${0 > 0 ? styles.hasScore : ""}`}
               >
-                {userScore}
+                {0}
               </span>
               <span className={styles.scoreDivider}>/</span>
               <span className={styles.totalScore}>{totalMaxScore}</span>

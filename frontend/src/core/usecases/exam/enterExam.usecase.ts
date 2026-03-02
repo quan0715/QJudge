@@ -15,7 +15,7 @@ import { startExam } from "@/infrastructure/api/repositories";
 
 export interface EnterExamInput {
   contestId: string;
-  examModeEnabled: boolean;
+  cheatDetectionEnabled: boolean;
 }
 
 export interface EnterExamOutput {
@@ -56,10 +56,10 @@ export const requestFullscreen = async (): Promise<boolean> => {
 export async function enterExamUseCase(
   input: EnterExamInput
 ): Promise<EnterExamOutput> {
-  const { contestId, examModeEnabled } = input;
+  const { contestId, cheatDetectionEnabled } = input;
 
   // Exam mode must always go through precheck before anti-cheat activation.
-  if (examModeEnabled) {
+  if (cheatDetectionEnabled) {
     return {
       success: true,
       status: "started",

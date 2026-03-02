@@ -11,7 +11,7 @@ export interface ExamFormSchema {
   visibility: ContestVisibility;
   password: string;
   // Exam settings
-  examModeEnabled: boolean;
+  cheatDetectionEnabled: boolean;
   maxCheatWarnings: number;
   allowMultipleJoins: boolean;
   allowAutoUnlock: boolean;
@@ -27,7 +27,7 @@ export const DEFAULT_EXAM_FORM_VALUES: ExamFormSchema = {
   status: "draft",
   visibility: "public",
   password: "",
-  examModeEnabled: false,
+  cheatDetectionEnabled: false,
   maxCheatWarnings: 3,
   allowMultipleJoins: false,
   allowAutoUnlock: false,

@@ -22,6 +22,7 @@ export interface ProblemFormSchema {
   memoryLimit: number;
   visibility: ProblemVisibility;
   existingTagIds: number[];
+  newTagNames?: string[];
   // Content - Translations
   translationZh: TranslationFields;
   translationEn: TranslationFields;
@@ -44,6 +45,7 @@ export const DEFAULT_PROBLEM_FORM_VALUES: ProblemFormSchema = {
   memoryLimit: 128,
   visibility: "private",
   existingTagIds: [],
+  newTagNames: [],
   translationZh: {
     title: "",
     description: "",
