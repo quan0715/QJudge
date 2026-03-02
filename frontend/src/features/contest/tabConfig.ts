@@ -14,28 +14,24 @@ export const getAvailableContestTabKeys = (
     return ["overview"];
   }
 
-  const permissions = contest.permissions;
+  const { permissions } = contest;
   const hasJoined = contest.hasJoined || contest.isRegistered;
 
   if (!hasJoined && !permissions?.canEditContest) {
     return ["overview"];
   }
 
-  if (contest.examModeEnabled) {
-    const tabs: ContestTabKey[] = ["overview"];
+  const tabs: ContestTabKey[] = ["overview", "problems"];
+  const isPaperExam = (contest.examQuestionsCount ?? 0) > 0;
 
-    tabs.push("clarifications");
-
-    return tabs;
-  }
-
-  const tabs: ContestTabKey[] = ["overview", "problems", "submissions"];
-
-  if (
-    permissions?.canViewFullScoreboard ||
-    contest.scoreboardVisibleDuringContest
-  ) {
-    tabs.push("standings");
+  if (!isPaperExam) {
+    tabs.push("submissions");
+    if (
+      permissions?.canViewFullScoreboard ||
+      contest.scoreboardVisibleDuringContest
+    ) {
+      tabs.push("standings");
+    }
   }
 
   tabs.push("clarifications");

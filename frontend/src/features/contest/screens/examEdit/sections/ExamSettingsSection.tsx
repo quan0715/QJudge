@@ -37,7 +37,7 @@ const ExamSettingsSection: React.FC<ExamSettingsSectionProps> = ({ registerRef }
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Toggle
               id="exam-mode-toggle"
-              labelText="考試模式"
+              labelText="作弊檢查"
               labelA="關閉"
               labelB="開啟"
               toggled={examModeEnabled}
@@ -46,7 +46,7 @@ const ExamSettingsSection: React.FC<ExamSettingsSectionProps> = ({ registerRef }
             <FieldSaveIndicator status={getFieldSaveState("examModeEnabled")?.status || "idle"} />
           </div>
           <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.5rem" }}>
-            開啟後將啟用考試模式功能，包含防弊偵測和答案鎖定機制。
+            開啟後將啟用作弊檢查功能，包含作弊偵測和答案鎖定機制。
           </p>
         </div>
 

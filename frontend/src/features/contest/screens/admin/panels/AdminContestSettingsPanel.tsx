@@ -658,11 +658,11 @@ const AdminContestSettingsPanel: React.FC = () => {
         </ActionRow>
       </Section>
 
-      {/* ── 考試模式 ── */}
-      <Section title="考試模式">
+      {/* ── 作弊檢查 ── */}
+      <Section title="作弊檢查">
         <ActionRow
           label={t("settings.enableExamMode")}
-          description="啟用後將開啟全螢幕監控、防弊偵測與答案鎖定機制"
+          description="啟用後將開啟全螢幕監控、作弊偵測與答案鎖定機制"
           saveState={getState("examModeEnabled")}
           onRetry={() => autoSave.retrySave("examModeEnabled")}
         >
@@ -675,8 +675,8 @@ const AdminContestSettingsPanel: React.FC = () => {
             toggled={(form.examModeEnabled as boolean) ?? false}
             onToggle={(checked) => {
               const msg = checked
-                ? "開啟考試模式後將啟用防弊偵測和答案鎖定機制，確定開啟？"
-                : "關閉考試模式將停用所有考試功能，確定關閉？";
+                ? "開啟作弊檢查後將啟用作弊偵測和答案鎖定機制，確定開啟？"
+                : "關閉作弊檢查將停用所有監控功能，確定關閉？";
               handleConfirmedChange("examModeEnabled", checked, msg);
             }}
           />

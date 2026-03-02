@@ -103,7 +103,7 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
           <InlineNotification
             kind="warning"
             title="注意"
-            subtitle="此競賽為考試模式，開始後將啟用防作弊監控。"
+            subtitle="此競賽已啟用作弊檢查，開始後將啟用防作弊監控。"
             lowContrast
             hideCloseButton
             style={{ marginTop: "0.5rem" }}

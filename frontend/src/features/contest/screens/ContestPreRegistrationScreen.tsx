@@ -40,7 +40,7 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       <Tag type={contest.visibility === "public" ? "green" : "purple"}>
         {contest.visibility === "public" ? "公開" : "私有"}
       </Tag>
-      {contest.examModeEnabled && <Tag type="red">考試模式</Tag>}
+      {contest.examModeEnabled && <Tag type="red">作弊檢查</Tag>}
       {contest.hasJoined && (
         <Tag type="teal" renderIcon={Checkmark}>
           已報名
@@ -145,8 +145,8 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
               {contest.examModeEnabled && (
                 <InlineNotification
                   kind="warning"
-                  title="考試模式已啟用"
-                  subtitle="此競賽啟用考試模式。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
+                  title="作弊檢查已啟用"
+                  subtitle="此競賽已啟用作弊檢查。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
                   lowContrast
                   hideCloseButton
                   style={{ marginBottom: "1.5rem", maxWidth: "100%" }}

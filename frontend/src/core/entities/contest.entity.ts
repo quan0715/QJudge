@@ -120,6 +120,7 @@ export interface ContestDetail extends Contest {
 
   // Exam freeze
   isExamQuestionsFrozen?: boolean;
+  examQuestionsCount: number;
 
   // User specific extended state
   hasStarted?: boolean;

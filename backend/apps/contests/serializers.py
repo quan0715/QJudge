@@ -84,6 +84,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
     is_exam_questions_frozen = serializers.SerializerMethodField()
+    exam_questions_count = serializers.SerializerMethodField()
 
     rule = serializers.CharField(source='rules', read_only=True)
     
@@ -129,6 +130,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'admins',
             'results_published',
             'is_exam_questions_frozen',
+            'exam_questions_count',
         ]
 
     def get_my_nickname(self, obj):
@@ -234,6 +236,10 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     def get_is_exam_questions_frozen(self, obj):
         """考試題目是否已凍結（有學生開始作答後為 True）"""
         return obj.has_exam_started()
+
+    def get_exam_questions_count(self, obj):
+        """紙筆題數量"""
+        return obj.exam_questions.count()
 
     def get_problems(self, obj):
         """

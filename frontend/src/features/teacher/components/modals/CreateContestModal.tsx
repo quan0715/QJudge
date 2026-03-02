@@ -155,7 +155,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       onRequestClose={handleClose}
       modalHeading={
         creationType === "exam"
-          ? "新增 Exam"
+          ? "新增紙筆題考試"
           : tc("page.createContest")
       }
       primaryButtonText={tc("button.create")}
@@ -199,13 +199,13 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             aria-pressed={creationType === "exam"}
           >
             <Education size={24} />
-            <span className={styles.typeTitle}>Exam</span>
+            <span className={styles.typeTitle}>紙筆題考試</span>
             <span className={styles.typeSubtitle}>考卷題型，是非/選擇/問答</span>
           </button>
         </div>
 
         <div className={styles.modeDescription}>
-          <strong>{creationType === "exam" ? "Exam 模式" : "Coding Test 模式"}</strong>
+          <strong>{creationType === "exam" ? "紙筆題考試模式" : "Coding Test 模式"}</strong>
           <p>
             {creationType === "exam"
               ? "學生以卷面作答，問答題可由助教批改。"
@@ -216,7 +216,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         <TextInput
           id="contest-name"
           labelText={
-            creationType === "exam" ? "Exam 名稱" : tc("form.name")
+            creationType === "exam" ? "紙筆題考試名稱" : tc("form.name")
           }
           placeholder={t("placeholder.contestName", "輸入競賽名稱")}
           value={name}
