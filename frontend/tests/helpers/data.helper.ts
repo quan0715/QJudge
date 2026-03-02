@@ -79,6 +79,12 @@ export const TEST_CONTESTS = {
     anonymousModeEnabled: false,
     examModeEnabled: false,
   },
+  examMode: {
+    name: "E2E Exam Mode Contest",
+    description: "考試模式 E2E 測試用",
+    examModeEnabled: true,
+    maxCheatWarnings: 2,
+  },
 } as const;
 
 /**
@@ -141,5 +147,10 @@ export const API_ENDPOINTS = {
     detail: (id: string | number) => `/api/v1/contests/${id}/`,
     join: (id: string | number) => `/api/v1/contests/${id}/join/`,
     register: (id: string | number) => `/api/v1/contests/${id}/register/`,
+    examStart: (id: string | number) => `/api/v1/contests/${id}/exam/start/`,
+    examEnd: (id: string | number) => `/api/v1/contests/${id}/exam/end/`,
+    examEvents: (id: string | number) => `/api/v1/contests/${id}/exam/events/`,
+    examHeartbeat: (id: string | number) =>
+      `/api/v1/contests/${id}/exam/heartbeat/`,
   },
 } as const;

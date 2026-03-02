@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
-from apps.contests.models import Contest, ContestProblem, ContestParticipant
+from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamQuestion
 
 User = get_user_model()
 
@@ -353,7 +353,7 @@ int main() {
                 'exam_mode_enabled': False,
             }
         )
-        
+
         if created:
             problems = Problem.objects.filter(title='Factorial')
             for idx, problem in enumerate(problems):
@@ -365,3 +365,55 @@ int main() {
             self.stdout.write('  ✓ 建立競賽: Upcoming Contest')
         else:
             self.stdout.write('  - 競賽已存在: Upcoming Contest')
+
+        # Contest 3: Exam Mode Contest (for anti-cheat E2E tests)
+        contest3, created = Contest.objects.get_or_create(
+            name="E2E Exam Mode Contest",
+            defaults={
+                'description': '考試模式 E2E 測試用',
+                'start_time': now - timedelta(hours=1),
+                'end_time': now + timedelta(hours=2),
+                'owner': teacher,
+                'visibility': 'public',
+                'status': 'published',
+                'exam_mode_enabled': True,
+                'max_cheat_warnings': 2,
+                'allow_auto_unlock': False,
+            }
+        )
+
+        if created:
+            problems = Problem.objects.filter(title='A+B Problem')
+            for idx, problem in enumerate(problems):
+                ContestProblem.objects.create(
+                    contest=contest3,
+                    problem=problem,
+                    order=idx
+                )
+            self.stdout.write('  ✓ 建立競賽: E2E Exam Mode Contest')
+        else:
+            self.stdout.write('  - 競賽已存在: E2E Exam Mode Contest')
+
+        # Ensure exam questions exist (idempotent, runs even if contest already existed)
+        ExamQuestion.objects.get_or_create(
+            contest=contest3,
+            order=0,
+            defaults={
+                'question_type': 'single_choice',
+                'prompt': '1 + 1 = ?',
+                'options': ['1', '2', '3', '4'],
+                'correct_answer': '2',
+                'score': 10,
+            }
+        )
+        ExamQuestion.objects.get_or_create(
+            contest=contest3,
+            order=1,
+            defaults={
+                'question_type': 'true_false',
+                'prompt': 'Python 是一種程式語言。',
+                'options': ['True', 'False'],
+                'correct_answer': 'True',
+                'score': 10,
+            }
+        )

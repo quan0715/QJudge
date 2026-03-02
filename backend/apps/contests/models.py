@@ -491,6 +491,8 @@ class ExamEvent(models.Model):
         ('window_blur', 'Window Blur'),
         ('exit_fullscreen', 'Exit Fullscreen'),
         ('forbidden_focus_event', 'Forbidden Focus Event'),
+        ('warning_timeout', 'Warning Timeout'),
+        ('force_submit_locked', 'Force Submit Locked'),
     ]
     event_type = models.CharField(
         max_length=50,

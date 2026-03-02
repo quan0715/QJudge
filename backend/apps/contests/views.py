@@ -1439,10 +1439,12 @@ class ExamViewSet(viewsets.GenericViewSet):
         serializer = ExamEventCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        event_type = serializer.validated_data['event_type']
+
         ExamEvent.objects.create(
             contest=contest,
             user=request.user,
-            event_type=serializer.validated_data['event_type'],
+            event_type=event_type,
             metadata=serializer.validated_data.get('metadata')
         )
 
@@ -1452,7 +1454,11 @@ class ExamViewSet(viewsets.GenericViewSet):
             participant.violation_count += 1
 
             update_fields = ['violation_count']
-            should_lock = participant.violation_count >= contest.max_cheat_warnings
+
+            # warning_timeout always forces lock regardless of violation_count
+            force_lock = event_type == 'warning_timeout'
+            should_lock = force_lock or participant.violation_count >= contest.max_cheat_warnings
+
             if should_lock and participant.exam_status != ExamStatus.LOCKED:
                 participant.exam_status = ExamStatus.LOCKED
                 participant.locked_at = timezone.now()
@@ -1460,8 +1466,10 @@ class ExamViewSet(viewsets.GenericViewSet):
                 custom_reason = serializer.validated_data.get('lock_reason')
                 if custom_reason:
                     participant.lock_reason = custom_reason
+                elif force_lock:
+                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 15 seconds"
                 else:
-                    participant.lock_reason = f"System lock: {serializer.validated_data['event_type']}"
+                    participant.lock_reason = f"System lock: {event_type}"
                 update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
 
                 # Log activity
@@ -1469,7 +1477,7 @@ class ExamViewSet(viewsets.GenericViewSet):
                     contest,
                     request.user,
                     'lock_user',
-                    f"Auto-locked due to {serializer.validated_data['event_type']}"
+                    f"Auto-locked due to {event_type}"
                 )
 
             participant.save(update_fields=update_fields)

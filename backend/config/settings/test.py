@@ -97,6 +97,13 @@ DOCKER_SECCOMP_PROFILE = os.getenv('DOCKER_SECCOMP_PROFILE', None)
 # 允許任何 host（測試用）
 ALLOWED_HOSTS = ['*']
 
+# CSRF trusted origins for E2E test frontend (port 5174)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+
 # 靜態檔案
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 

@@ -10,6 +10,7 @@ from .models import Contest, ContestParticipant, ExamStatus, ExamEvent, ContestA
 
 # Heartbeat timeout in seconds (log warning if no heartbeat for this long)
 HEARTBEAT_TIMEOUT_SECONDS = 90  # 1.5 minutes
+FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
 
 
 @shared_task
@@ -172,5 +173,90 @@ def auto_unlock_participant(participant_id):
             
         return f"Participant {participant_id} not locked"
         
+    except ContestParticipant.DoesNotExist:
+        return f"Participant {participant_id} not found"
+
+
+@shared_task
+def check_force_submit_locked():
+    """
+    Periodic task: Force-submit participants locked for more than 3 minutes.
+
+    Runs every 30 seconds via Celery Beat. If auto-unlock triggers first
+    (auto_unlock_minutes < 3), the participant will already be unlocked and
+    this task correctly skips them.
+    """
+    now = timezone.now()
+    threshold = now - timedelta(seconds=FORCE_SUBMIT_LOCKED_SECONDS)
+
+    locked_participants = ContestParticipant.objects.filter(
+        exam_status=ExamStatus.LOCKED,
+        locked_at__isnull=False,
+        locked_at__lte=threshold,
+        contest__status='published',
+        contest__exam_mode_enabled=True,
+        contest__end_time__gt=now,
+    ).select_related('contest', 'user')
+
+    count = 0
+    for participant in locked_participants:
+        # Skip if auto-unlock would have triggered before 3 minutes
+        if participant.contest.allow_auto_unlock:
+            unlock_minutes = participant.contest.auto_unlock_minutes or 0
+            if unlock_minutes > 0 and unlock_minutes * 60 < FORCE_SUBMIT_LOCKED_SECONDS:
+                continue
+
+        force_submit_locked_participant.delay(participant.id)
+        count += 1
+
+    return f"Queued {count} force-submit tasks for locked participants"
+
+
+@shared_task
+def force_submit_locked_participant(participant_id):
+    """
+    Force-submit a participant who has been locked for more than 3 minutes.
+
+    Transitions LOCKED → SUBMITTED and records audit trail.
+    """
+    try:
+        participant = ContestParticipant.objects.select_related(
+            'contest', 'user'
+        ).get(id=participant_id)
+
+        # Guard: only submit if still locked
+        if participant.exam_status != ExamStatus.LOCKED:
+            return f"Participant {participant_id} no longer locked, skipping"
+
+        # Guard: don't submit if contest ended (check_contest_end handles that)
+        if participant.contest.end_time and participant.contest.end_time <= timezone.now():
+            return f"Contest ended, skipping force-submit for {participant_id}"
+
+        participant.exam_status = ExamStatus.SUBMITTED
+        participant.left_at = timezone.now()
+        participant.save(update_fields=['exam_status', 'left_at'])
+
+        # Record ExamEvent
+        ExamEvent.objects.create(
+            contest=participant.contest,
+            user=participant.user,
+            event_type='force_submit_locked',
+            metadata={
+                'source': 'celery_force_submit',
+                'locked_at': participant.locked_at.isoformat() if participant.locked_at else None,
+                'lock_reason': participant.lock_reason,
+            }
+        )
+
+        # Record ContestActivity
+        ContestActivity.objects.create(
+            contest=participant.contest,
+            user=participant.user,
+            action_type='auto_submit',
+            details=f"Force-submitted after being locked for {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes",
+        )
+
+        return f"Force-submitted participant {participant_id}"
+
     except ContestParticipant.DoesNotExist:
         return f"Participant {participant_id} not found"

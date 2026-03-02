@@ -265,7 +265,11 @@
     "leavingFullscreen": "フルスクリーンモードを解除しようとしています",
     "leaveFullscreenWillSubmit": "試験モードでフルスクリーンを解除すると提出として扱われます。",
     "autoSubmitNoMoreAnswer": "確認後、システムが自動的に提出し、解答できなくなります。",
-    "cannotUndo": "この操作は取り消せません！"
+    "cannotUndo": "この操作は取り消せません！",
+    "autoLockIn": "{{seconds}} 秒後に自動ロックされます",
+    "warningTimeoutLock": "警告が時間内に確認されず、自動ロックされました",
+    "forceSubmitCountdown": "ロックから3分経過後に自動提出されます",
+    "forceSubmittedReason": "ロックが3分以上続いたため、システムが自動的に提出しました"
   },
   "settings": {
     "title": "コンテスト設定",

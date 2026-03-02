@@ -270,7 +270,11 @@
     "leavingFullscreen": "You are leaving fullscreen mode",
     "leaveFullscreenWillSubmit": "Leaving fullscreen in exam mode will be treated as submission.",
     "autoSubmitNoMoreAnswer": "After confirming, the system will auto-submit for you and you cannot answer anymore.",
-    "cannotUndo": "This action cannot be undone!"
+    "cannotUndo": "This action cannot be undone!",
+    "autoLockIn": "Auto-locking in {{seconds}} seconds",
+    "warningTimeoutLock": "Warning not acknowledged in time, auto-locked",
+    "forceSubmitCountdown": "Auto-submit after 3 minutes of being locked",
+    "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted"
   },
   "settings": {
     "title": "Contest Settings",

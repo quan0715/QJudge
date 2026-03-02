@@ -265,7 +265,11 @@
     "leavingFullscreen": "전체 화면 모드를 종료하려고 합니다",
     "leaveFullscreenWillSubmit": "시험 모드에서 전체 화면을 종료하면 제출로 처리됩니다.",
     "autoSubmitNoMoreAnswer": "확인 후 시스템이 자동으로 제출하며, 더 이상 답안을 수정할 수 없습니다.",
-    "cannotUndo": "이 작업은 취소할 수 없습니다!"
+    "cannotUndo": "이 작업은 취소할 수 없습니다!",
+    "autoLockIn": "{{seconds}}초 후 자동 잠금됩니다",
+    "warningTimeoutLock": "시간 내에 경고를 확인하지 않아 자동 잠금되었습니다",
+    "forceSubmitCountdown": "잠금 3분 후 자동 제출됩니다",
+    "forceSubmittedReason": "3분 이상 잠금 상태로 인해 시스템이 자동 제출했습니다"
   },
   "settings": {
     "title": "대회 설정",

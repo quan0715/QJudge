@@ -291,7 +291,11 @@
     "leavingFullscreen": "您正在離開全螢幕模式",
     "leaveFullscreenWillSubmit": "在考試模式下離開全螢幕將視為交卷。",
     "autoSubmitNoMoreAnswer": "確認後系統將自動為您交卷，您將無法再作答。",
-    "cannotUndo": "此操作無法復原！"
+    "cannotUndo": "此操作無法復原！",
+    "autoLockIn": "將在 {{seconds}} 秒後自動鎖定",
+    "warningTimeoutLock": "未在時限內確認警告，已自動鎖定",
+    "forceSubmitCountdown": "鎖定超過 3 分鐘後將自動交卷",
+    "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷"
   },
   "settings": {
     "title": "競賽設定",

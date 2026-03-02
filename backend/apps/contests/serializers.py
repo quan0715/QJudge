@@ -683,9 +683,11 @@ class ExamEventSerializer(serializers.ModelSerializer):
 
 class ExamEventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating exam events."""
+    lock_reason = serializers.CharField(required=False, write_only=True, allow_blank=True)
+
     class Meta:
         model = ExamEvent
-        fields = ['event_type', 'metadata']
+        fields = ['event_type', 'metadata', 'lock_reason']
 
 
 class ContestActivitySerializer(serializers.ModelSerializer):

@@ -291,6 +291,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contests.tasks.check_heartbeat_timeout",
         "schedule": 30.0,  # Every 30 seconds
     },
+    "check-force-submit-locked-every-30-seconds": {
+        "task": "apps.contests.tasks.check_force_submit_locked",
+        "schedule": 30.0,  # Every 30 seconds
+    },
 }
 
 # NYCU OAuth settings

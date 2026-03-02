@@ -16,7 +16,8 @@ export type ViolationEventType =
   | "tab_hidden"
   | "window_blur"
   | "exit_fullscreen"
-  | "forbidden_focus";
+  | "forbidden_focus"
+  | "warning_timeout";
 
 export interface RecordViolationInput {
   contestId: string;

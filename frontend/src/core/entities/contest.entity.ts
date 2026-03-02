@@ -5,11 +5,13 @@ import type { Difficulty } from "./problem.entity";
 export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
 // Violation events (from ExamEvent model)
-export type ExamViolationType = 
-  | "tab_hidden" 
-  | "window_blur" 
+export type ExamViolationType =
+  | "tab_hidden"
+  | "window_blur"
   | "exit_fullscreen"
-  | "forbidden_focus_event";
+  | "forbidden_focus_event"
+  | "warning_timeout"
+  | "force_submit_locked";
 
 // Activity events (from ContestActivity model)
 export type ContestActivityType =

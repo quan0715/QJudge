@@ -7,16 +7,17 @@ import type { ExamModeState } from "@/core/entities/contest.entity";
 interface ExamModalsProps {
   showWarning: boolean;
   pendingApiResponse: boolean;
-  lastApiResponse: { locked?: boolean } | null;
+  lastApiResponse: { locked?: boolean; isLocked?: boolean } | null;
   warningEventType: string | null;
   examState: ExamModeState;
   onWarningClose: () => void;
   showUnlockNotification: boolean;
   onUnlockContinue: () => void;
-  showFullscreenExitConfirm: boolean;
-  isSubmittingFromFullscreenExit: boolean;
-  onFullscreenExitConfirm: () => void;
-  onFullscreenExitCancel: () => void;
+  showFullscreenExitConfirm?: boolean;
+  isSubmittingFromFullscreenExit?: boolean;
+  onFullscreenExitConfirm?: () => void;
+  onFullscreenExitCancel?: () => void;
+  warningCountdown?: number | null;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
@@ -28,13 +29,15 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   onWarningClose,
   showUnlockNotification,
   onUnlockContinue,
-  showFullscreenExitConfirm,
-  isSubmittingFromFullscreenExit,
+  showFullscreenExitConfirm = false,
+  isSubmittingFromFullscreenExit = false,
   onFullscreenExitConfirm,
   onFullscreenExitCancel,
+  warningCountdown,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const isLocked = !!(lastApiResponse?.locked || lastApiResponse?.isLocked);
 
   return (
     <>
@@ -45,7 +48,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         primaryButtonText={
           pendingApiResponse
             ? t("exam.processing")
-            : lastApiResponse?.locked
+            : isLocked
             ? tc("button.confirm")
             : t("exam.iUnderstand")
         }
@@ -124,6 +127,20 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             {t("exam.stayInExamPage")}
           </p>
 
+          {/* Auto-lock countdown */}
+          {warningCountdown != null && warningCountdown > 0 && !pendingApiResponse && !isLocked && (
+            <p
+              style={{
+                marginBottom: "1rem",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                color: "var(--cds-support-error)",
+              }}
+            >
+              {t("exam.autoLockIn", { seconds: warningCountdown })}
+            </p>
+          )}
+
           {/* Violation count box */}
           {!pendingApiResponse &&
             examState.violationCount !== undefined &&
@@ -170,12 +187,12 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
                   <span
                     style={{
                       fontWeight: 600,
-                      color: lastApiResponse?.locked
+                      color: isLocked
                         ? "var(--cds-support-error)"
                         : "var(--cds-support-success)",
                     }}
                   >
-                    {lastApiResponse?.locked
+                    {isLocked
                       ? t("exam.alreadyLocked")
                       : Math.max(
                           0,
@@ -187,7 +204,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             )}
 
           {/* Warning message */}
-          {lastApiResponse?.locked ? (
+          {isLocked ? (
             <p
               style={{
                 marginTop: "0.5rem",
