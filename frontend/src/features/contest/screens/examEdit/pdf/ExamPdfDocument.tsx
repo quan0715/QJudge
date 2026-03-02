@@ -202,6 +202,37 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
 
   let questionCounter = 0;
 
+  /** Render the answer block for a question (answer mode only). */
+  const renderAnswer = (q: ExamQuestion) => {
+    const isLongForm = q.questionType === "essay" || q.questionType === "short_answer";
+    const raw = formatAnswer(q);
+
+    if (!isLongForm) {
+      return <Text style={styles.answerLine}>Ans: {raw}</Text>;
+    }
+
+    // Long-form answers may contain Markdown code blocks
+    const segments = parsePromptSegments(raw);
+    const hasCode = segments.some((s) => s.type === "code");
+
+    if (!hasCode) {
+      return <Text style={styles.answerLine}>Ans: {raw}</Text>;
+    }
+
+    return (
+      <View style={{ marginTop: 4, paddingLeft: 16 }}>
+        <Text style={styles.answerLine}>Ans:</Text>
+        {segments.map((seg, i) =>
+          seg.type === "code" ? (
+            <Text key={i} style={styles.codeBlock}>{seg.content}</Text>
+          ) : (
+            <Text key={i} style={{ ...styles.answerLine, marginTop: 0 }}>{seg.content}</Text>
+          ),
+        )}
+      </View>
+    );
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -282,11 +313,7 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
                     ))}
 
                   {/* Answer */}
-                  {mode === "answer" && (
-                    <Text style={styles.answerLine}>
-                      Ans: {formatAnswer(q)}
-                    </Text>
-                  )}
+                  {mode === "answer" && renderAnswer(q)}
                 </View>
               );
             })}

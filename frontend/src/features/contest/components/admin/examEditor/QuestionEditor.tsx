@@ -572,14 +572,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
             {form.questionType === "essay" && (
               <div className={styles.essayArea}>
-                <TextArea
+                <MarkdownField
                   id="qe-essay-answer"
-                  labelText=""
-                  hideLabel
-                  rows={4}
+                  labelText="參考答案"
                   value={form.essayReferenceAnswer}
-                  onChange={(e) => setForm((p) => ({ ...p, essayReferenceAnswer: e.target.value }))}
-                  placeholder="參考答案（可選，支援 Markdown）"
+                  onChange={(val) => setForm((p) => ({ ...p, essayReferenceAnswer: val }))}
+                  placeholder="參考答案（可選，支援 Markdown / LaTeX）"
+                  minHeight="150px"
                   disabled={frozen}
                 />
               </div>
