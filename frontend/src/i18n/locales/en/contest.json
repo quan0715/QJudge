@@ -155,6 +155,38 @@
     "layoutHint": "Compact mode uses two-column layout for input/output descriptions and reduces spacing to minimize page count.",
     "generating": "Generating file..."
   },
+  "examJson": {
+    "importAction": "Import JSON",
+    "exportOption": "Exam JSON",
+    "import": {
+      "title": "Import Exam Questions JSON",
+      "description": "Select import type, then upload a JSON file. The system validates and previews before replacing existing questions.",
+      "targetLegend": "Select import type",
+      "targetExamJson": "Exam Questions JSON (replace current questions)",
+      "uploadTitle": "Upload JSON file",
+      "uploadHint": "Only .json is accepted. Strict schema validation is required.",
+      "chooseFile": "Choose file",
+      "selectedFile": "Selected file",
+      "parsingTitle": "Parsing",
+      "parsingSubtitle": "Validating JSON schema and question fields",
+      "validationFailed": "Validation failed",
+      "validationCount": "{{count}} errors found",
+      "previewTitle": "Import Preview",
+      "previewQuestionCount": "{{count}} questions",
+      "previewTotalScore": "Total score {{score}}",
+      "previewScore": "Score: {{score}}",
+      "previewMore": "{{count}} more questions not shown",
+      "confirmReplace": "Confirm Replace",
+      "cancel": "Cancel",
+      "importing": "Importing...",
+      "importFailedTitle": "Import failed",
+      "errors": {
+        "invalidJson": "Invalid JSON format",
+        "fileReadFailed": "Failed to read file",
+        "importFailed": "Import workflow failed"
+      }
+    }
+  },
   "exitModal": {
     "confirmSubmitAndExit": "Confirm Submit & Exit",
     "confirmExit": "Confirm Exit Contest",

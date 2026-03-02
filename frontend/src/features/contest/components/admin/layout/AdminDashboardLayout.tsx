@@ -7,6 +7,7 @@ import {
   SideNavItems,
   SideNavLink,
 } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import {
   Dashboard,
   Activity,
@@ -17,6 +18,7 @@ import {
   TaskComplete,
   View,
   DocumentDownload,
+  Upload,
 } from "@carbon/icons-react";
 import styles from "./AdminDashboardLayout.module.scss";
 
@@ -30,6 +32,8 @@ interface AdminDashboardLayoutProps {
   onBack: () => void;
   onPreview?: () => void;
   onExport?: () => void;
+  showExamJsonActions?: boolean;
+  onImportExamJson?: () => void;
   children: React.ReactNode;
 }
 
@@ -50,8 +54,11 @@ export default function AdminDashboardLayout({
   onBack,
   onPreview,
   onExport,
+  showExamJsonActions,
+  onImportExamJson,
   children,
 }: AdminDashboardLayoutProps) {
+  const { t } = useTranslation("contest");
   const fullBleed = activePanel === "exam" || activePanel === "grading";
 
   return (
@@ -61,9 +68,18 @@ export default function AdminDashboardLayout({
           {contestName}
         </HeaderName>
         <HeaderGlobalBar>
+          {showExamJsonActions && onImportExamJson && (
+            <HeaderGlobalAction
+              aria-label={t("examJson.importAction")}
+              tooltipAlignment="end"
+              onClick={onImportExamJson}
+            >
+              <Upload size={20} />
+            </HeaderGlobalAction>
+          )}
           {onExport && (
             <HeaderGlobalAction
-              aria-label="匯出 PDF"
+              aria-label="匯出檔案"
               tooltipAlignment="end"
               onClick={onExport}
             >

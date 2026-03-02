@@ -14,7 +14,7 @@
     },
     {
       "id": "teacher-guide",
-      "items": ["teacher-overview", "problem-import"]
+      "items": ["teacher-overview", "create-exam", "problem-import"]
     },
     {
       "id": "admin-guide",

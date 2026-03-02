@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useImperativeHandle,
+} from "react";
 import { Button, Modal } from "@carbon/react";
 import {
   Add,
@@ -22,6 +28,8 @@ import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import WorkTree from "./WorkTree";
 import ExamQuestionEditCard from "./ExamQuestionEditCard";
+import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
+import { type ExamQuestionJsonNormalizedQuestion } from "./examQuestionJson";
 import styles from "./ExamEditorLayout.module.scss";
 
 // --- Question type picker config ---
@@ -52,10 +60,14 @@ interface ExamEditorLayoutProps {
   contest: ContestDetail;
 }
 
-const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
+export interface ExamEditorLayoutHandle {
+  openJsonImportModal: () => void;
+}
+
+const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayoutProps>(({
   contestId,
   contest,
-}) => {
+}, ref) => {
   const { showToast } = useToast();
   const { confirm, modalProps } = useConfirmModal();
 
@@ -72,8 +84,87 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   // Type picker dialog state
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
+  const [jsonImportOpen, setJsonImportOpen] = useState(false);
 
   const frozen = !!contest.isExamQuestionsFrozen;
+
+  const toUpsertPayload = useCallback(
+    (
+      question: ExamQuestionJsonNormalizedQuestion,
+      order: number,
+    ): ExamQuestionUpsertPayload => {
+      const payload: ExamQuestionUpsertPayload = {
+        question_type: question.question_type,
+        prompt: question.prompt,
+        score: question.score,
+        order,
+      };
+
+      if (
+        question.question_type === "single_choice" ||
+        question.question_type === "multiple_choice"
+      ) {
+        payload.options = question.options ?? [];
+      }
+
+      if (question.question_type === "true_false") {
+        payload.options = ["True", "False"];
+      }
+
+      if (question.correct_answer !== undefined) {
+        payload.correct_answer = question.correct_answer;
+      }
+
+      return payload;
+    },
+    [],
+  );
+
+  const deleteQuestionsByList = useCallback(
+    async (items: ExamQuestion[]) => {
+      for (const question of items) {
+        await deleteExamQuestion(contestId, question.id);
+      }
+    },
+    [contestId],
+  );
+
+  const restoreSnapshot = useCallback(
+    async (snapshot: ExamQuestion[]) => {
+      const sorted = [...snapshot].sort((a, b) => a.order - b.order);
+      for (let index = 0; index < sorted.length; index += 1) {
+        const question = sorted[index];
+        const payload: ExamQuestionUpsertPayload = {
+          question_type: question.questionType,
+          prompt: question.prompt,
+          score: question.score,
+          order: index,
+        };
+
+        if (question.questionType === "single_choice" || question.questionType === "multiple_choice") {
+          payload.options = question.options;
+        }
+        if (question.questionType === "true_false") {
+          payload.options = ["True", "False"];
+        }
+        if (question.correctAnswer !== undefined && question.correctAnswer !== null) {
+          payload.correct_answer = question.correctAnswer;
+        }
+
+        await createExamQuestion(contestId, payload);
+      }
+
+      const restored = await getExamQuestions(contestId);
+      const orders = restored
+        .sort((a, b) => a.order - b.order)
+        .map((question, order) => ({ id: question.id, order }));
+
+      if (orders.length > 0) {
+        await reorderExamQuestions(contestId, orders);
+      }
+    },
+    [contestId],
+  );
 
   // --- Load questions ---
   const loadQuestions = useCallback(async () => {
@@ -94,6 +185,84 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   useEffect(() => {
     loadQuestions();
   }, [loadQuestions]);
+
+  const handleJsonImport = useCallback(
+    async (normalizedQuestions: ExamQuestionJsonNormalizedQuestion[]) => {
+      if (frozen) {
+        throw new Error("目前題目已凍結，無法匯入。");
+      }
+
+      const backup = (await getExamQuestions(contestId)).sort((a, b) => a.order - b.order);
+
+      try {
+        await deleteQuestionsByList(backup);
+
+        for (let index = 0; index < normalizedQuestions.length; index += 1) {
+          await createExamQuestion(
+            contestId,
+            toUpsertPayload(normalizedQuestions[index], index),
+          );
+        }
+
+        const latest = await getExamQuestions(contestId);
+        const latestOrders = latest
+          .sort((a, b) => a.order - b.order)
+          .map((question, order) => ({ id: question.id, order }));
+
+        if (latestOrders.length > 0) {
+          await reorderExamQuestions(contestId, latestOrders);
+        }
+
+        await loadQuestions();
+        setSelectedId(null);
+        showToast({
+          kind: "success",
+          title: "匯入成功",
+          subtitle: `已覆蓋 ${normalizedQuestions.length} 題`,
+        });
+      } catch (importError) {
+        try {
+          const current = await getExamQuestions(contestId);
+          await deleteQuestionsByList(current);
+          await restoreSnapshot(backup);
+          await loadQuestions();
+          showToast({
+            kind: "warning",
+            title: "匯入失敗，已自動回滾",
+          });
+        } catch (rollbackError) {
+          console.error("Rollback failed", rollbackError);
+          showToast({
+            kind: "error",
+            title: "匯入失敗且回滾失敗",
+            subtitle: "請重新整理頁面後檢查題目內容",
+          });
+        }
+
+        if (importError instanceof Error) {
+          throw importError;
+        }
+        throw new Error("匯入失敗");
+      }
+    },
+    [
+      contestId,
+      deleteQuestionsByList,
+      frozen,
+      loadQuestions,
+      restoreSnapshot,
+      showToast,
+      toUpsertPayload,
+    ],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openJsonImportModal: () => setJsonImportOpen(true),
+    }),
+    [],
+  );
 
   // Pre-select first question once loaded
   useEffect(() => {
@@ -379,10 +548,16 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
         </div>
       </Modal>
 
+      <ExamQuestionJsonImportModal
+        open={jsonImportOpen}
+        onClose={() => setJsonImportOpen(false)}
+        onConfirmImport={handleJsonImport}
+      />
+
       <ConfirmModal {...modalProps} />
     </>
   );
-};
+});
 
 // --- Draggable card wrapper for right pane ---
 
@@ -449,5 +624,7 @@ const InsertDivider: React.FC<{ frozen?: boolean; onClick: () => void }> = ({
     </div>
   );
 };
+
+ExamEditorLayout.displayName = "ExamEditorLayout";
 
 export default ExamEditorLayout;

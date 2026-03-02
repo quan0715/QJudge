@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { getExamQuestions, downloadContestFile } from "@/infrastructure/api/repositories";
 import { useExamPdfExport } from "@/features/contest/screens/examEdit/pdf/useExamPdfExport";
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
+import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -23,6 +24,7 @@ import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity
 type ExportTarget =
   | "exam-question"   // Exam 題目卷
   | "exam-answer"     // Exam 答案卷
+  | "exam-json"       // Exam JSON
   | "coding-pdf"      // Coding test PDF
   | "coding-markdown"; // Coding test Markdown
 
@@ -36,6 +38,13 @@ interface ContestExportDialogProps {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+const isExportTarget = (value: unknown): value is ExportTarget =>
+  value === "exam-question" ||
+  value === "exam-answer" ||
+  value === "exam-json" ||
+  value === "coding-pdf" ||
+  value === "coding-markdown";
 
 const sanitizeFilename = (name: string): string => {
   // eslint-disable-next-line no-control-regex
@@ -93,6 +102,21 @@ export default function ContestExportDialog({
   const [scale, setScale] = useState(1.0);
   const [layout, setLayout] = useState<"normal" | "compact">("normal");
 
+  const handleTargetChange = useCallback(
+    (selection: unknown, event?: { target?: { value?: unknown } }) => {
+      if (isExportTarget(selection)) {
+        setTarget(selection);
+        return;
+      }
+
+      const eventValue = event?.target?.value;
+      if (isExportTarget(eventValue)) {
+        setTarget(eventValue);
+      }
+    },
+    []
+  );
+
   // Reset state when dialog opens
   useEffect(() => {
     if (!open) return;
@@ -124,6 +148,18 @@ export default function ContestExportDialog({
     try {
       if (target === "exam-question" || target === "exam-answer") {
         await exportExamPdf(target === "exam-answer" ? "answer" : "question");
+      } else if (target === "exam-json") {
+        const safeName = sanitizeFilename(contest.name);
+        const content = stringifyExamQuestionJsonV1(examQuestions, contest.name);
+        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${safeName}_exam_questions.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
       } else {
         const format = target === "coding-pdf" ? "pdf" as const : "markdown" as const;
         const blob = await downloadContestFile(contestId, format, language, scale, layout);
@@ -142,9 +178,19 @@ export default function ContestExportDialog({
     } finally {
       setBusy(false);
     }
-  }, [target, exportExamPdf, contestId, language, scale, layout, contest.name, onClose]);
+  }, [
+    target,
+    exportExamPdf,
+    examQuestions,
+    contestId,
+    language,
+    scale,
+    layout,
+    contest.name,
+    onClose,
+  ]);
 
-  const isExamTarget = target === "exam-question" || target === "exam-answer";
+  const isExamTarget = target === "exam-question" || target === "exam-answer" || target === "exam-json";
   const isCodingPdf = target === "coding-pdf";
   const noExamQuestions = isExamMode && !loadingQuestions && examQuestions.length === 0;
   const exporting = busy || examGenerating;
@@ -172,36 +218,44 @@ export default function ContestExportDialog({
               legendText="選擇匯出內容"
               name="export-target"
               valueSelected={target}
-              onChange={(value) => setTarget(value as ExportTarget)}
+              onChange={(selection, _name, event) => handleTargetChange(selection, event)}
               orientation="vertical"
             >
-              {isExamMode ? (
-                <>
-                  <RadioButton
-                    id="export-exam-question"
-                    labelText="題目卷 — 僅包含題目與選項"
-                    value="exam-question"
-                  />
-                  <RadioButton
-                    id="export-exam-answer"
-                    labelText="答案卷 — 包含題目、選項與正確答案"
-                    value="exam-answer"
-                  />
-                </>
-              ) : (
-                <>
-                  <RadioButton
-                    id="export-coding-pdf"
-                    labelText="PDF — 題目匯出為 PDF 檔案"
-                    value="coding-pdf"
-                  />
-                  <RadioButton
-                    id="export-coding-markdown"
-                    labelText="Markdown — 題目匯出為 Markdown 檔案"
-                    value="coding-markdown"
-                  />
-                </>
-              )}
+              {isExamMode
+                ? [
+                    <RadioButton
+                      key="export-exam-question"
+                      id="export-exam-question"
+                      labelText="題目卷 — 僅包含題目與選項"
+                      value="exam-question"
+                    />,
+                    <RadioButton
+                      key="export-exam-answer"
+                      id="export-exam-answer"
+                      labelText="答案卷 — 包含題目、選項與正確答案"
+                      value="exam-answer"
+                    />,
+                    <RadioButton
+                      key="export-exam-json"
+                      id="export-exam-json"
+                      labelText={`${t("examJson.exportOption")} — 匯出可重新匯入的題目檔`}
+                      value="exam-json"
+                    />,
+                  ]
+                : [
+                    <RadioButton
+                      key="export-coding-pdf"
+                      id="export-coding-pdf"
+                      labelText="PDF — 題目匯出為 PDF 檔案"
+                      value="coding-pdf"
+                    />,
+                    <RadioButton
+                      key="export-coding-markdown"
+                      id="export-coding-markdown"
+                      labelText="Markdown — 題目匯出為 Markdown 檔案"
+                      value="coding-markdown"
+                    />,
+                  ]}
             </RadioButtonGroup>
 
             {/* Coding test PDF/Markdown options */}

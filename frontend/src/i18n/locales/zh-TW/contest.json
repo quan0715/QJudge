@@ -176,6 +176,38 @@
     "layoutHint": "緊縮模式將輸入/輸出說明改為雙欄佈局，並減少間距，有效減少頁數。",
     "generating": "檔案生成中..."
   },
+  "examJson": {
+    "importAction": "匯入 JSON",
+    "exportOption": "Exam JSON",
+    "import": {
+      "title": "匯入 Exam 題目 JSON",
+      "description": "請先選擇匯入類型，再上傳 JSON 檔。系統會先驗證與預覽，確認後才覆蓋現有題目。",
+      "targetLegend": "選擇匯入類型",
+      "targetExamJson": "Exam 題目 JSON（覆蓋現有題目）",
+      "uploadTitle": "上傳 JSON 檔案",
+      "uploadHint": "僅接受 .json。會先做嚴格格式檢查。",
+      "chooseFile": "選擇檔案",
+      "selectedFile": "已選檔案",
+      "parsingTitle": "解析中",
+      "parsingSubtitle": "正在驗證 JSON 格式與題型欄位",
+      "validationFailed": "格式檢查未通過",
+      "validationCount": "共發現 {{count}} 個錯誤",
+      "previewTitle": "匯入預覽",
+      "previewQuestionCount": "題目數 {{count}}",
+      "previewTotalScore": "總分 {{score}}",
+      "previewScore": "配分：{{score}}",
+      "previewMore": "還有 {{count}} 題未顯示",
+      "confirmReplace": "確認覆蓋",
+      "cancel": "取消",
+      "importing": "匯入中...",
+      "importFailedTitle": "匯入失敗",
+      "errors": {
+        "invalidJson": "JSON 格式錯誤",
+        "fileReadFailed": "檔案讀取失敗",
+        "importFailed": "匯入流程失敗"
+      }
+    }
+  },
   "exitModal": {
     "confirmSubmitAndExit": "確認交卷並離開",
     "confirmExit": "確認離開競賽",

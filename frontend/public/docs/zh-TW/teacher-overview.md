@@ -12,8 +12,12 @@
 ## 競賽與題目工作流
 
 1. 建立競賽（公開/私人）
+   - 請前往「我的競賽管理」頁面，並點擊右上角的「新增競賽」按鈕來建立一場新的測驗：
+   ![新增競賽範例圖](/docs/images/create_exam_tutorial.png)
 2. 設定時間、計分規則、參與限制
 3. 匯入或建立題目（可搭配 YAML 匯入）
+   - Exam 題目可使用 JSON 匯入/匯出（Admin navbar）。
+   - 操作教學： [Exam 題目 JSON 匯入/匯出](/docs/zh-TW/exam-json-import-export)
 4. 發布競賽並監控提交
 
 ## Exam V2（目前進度）

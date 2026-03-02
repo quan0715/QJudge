@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 
@@ -10,7 +10,9 @@ import {
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
-import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
+import ExamEditorLayout, {
+  type ExamEditorLayoutHandle,
+} from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 
 import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
@@ -49,11 +51,13 @@ const AdminDashboardInner = () => {
   const activePanel = getActivePanel(searchParams.get("panel"));
   const { contest, loading } = useContest();
   const { participants } = useContestAdmin();
+  const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
 
   const kpi = useMemo(() => computeMockKpi(participants), [participants]);
   const [exportOpen, setExportOpen] = useState(false);
 
   const isExamMode = !!contest?.examModeEnabled && (contest?.problems.length ?? 0) === 0;
+  const showExamJsonActions = activePanel === "exam" && isExamMode;
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
@@ -105,7 +109,11 @@ const AdminDashboardInner = () => {
         const hasCodingProblems = contest.problems.length > 0;
         const useExamEditor = contest.examModeEnabled && !hasCodingProblems;
         return useExamEditor ? (
-          <ExamEditorLayout contestId={contestId || ""} contest={contest} />
+          <ExamEditorLayout
+            ref={examEditorRef}
+            contestId={contestId || ""}
+            contest={contest}
+          />
         ) : (
           <CodingTestEditorLayout contestId={contestId || ""} contest={contest} />
         );
@@ -128,6 +136,8 @@ const AdminDashboardInner = () => {
       examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}
+      showExamJsonActions={showExamJsonActions}
+      onImportExamJson={() => examEditorRef.current?.openJsonImportModal()}
       onPreview={handlePreview}
       onExport={() => setExportOpen(true)}
     >

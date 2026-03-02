@@ -1,0 +1,162 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner "QJudge Platform" [ref=e4]:
+    - link "Skip to main content" [ref=e5] [cursor=pointer]:
+      - /url: "#main-content"
+    - link "NYCU QJudge" [ref=e6] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e7]: NYCU
+      - text: QJudge
+    - navigation "Main Navigation" [ref=e8]:
+      - list [ref=e9]:
+        - listitem [ref=e10]:
+          - generic [ref=e12]: 儀表板
+        - listitem [ref=e13]:
+          - generic [ref=e15]: 題目
+        - listitem [ref=e16]:
+          - generic [ref=e18]: 競賽
+        - listitem [ref=e19]:
+          - generic [ref=e21]: 提交紀錄
+        - listitem [ref=e22]:
+          - generic [ref=e24]: 教室
+        - listitem [ref=e25]:
+          - generic [ref=e27]: 教師後台
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - button "使用者選單" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - tooltip
+      - generic "使用者選單":
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - generic [ref=e40]: teacher
+            - generic [ref=e41]: 教師
+          - generic [ref=e42]:
+            - generic [ref=e43]:
+              - generic [ref=e44]: 主題
+              - combobox "主題" [ref=e46] [cursor=pointer]:
+                - generic [ref=e47]: 跟隨系統
+                - img "Open menu" [ref=e49]
+            - generic [ref=e51]:
+              - generic [ref=e52]: 語言
+              - combobox "語言" [ref=e54] [cursor=pointer]:
+                - generic [ref=e55]: 繁體中文
+                - img "Open menu" [ref=e57]
+          - button "設定" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - text: 設定
+          - button "Storybook" [ref=e63] [cursor=pointer]:
+            - img [ref=e64]
+            - text: Storybook
+          - button "變更密碼" [ref=e67] [cursor=pointer]:
+            - img [ref=e68]
+            - text: 變更密碼
+          - button "登出" [ref=e71] [cursor=pointer]:
+            - img [ref=e72]
+            - text: 登出
+    - navigation "側邊導航":
+      - list:
+        - listitem:
+          - link "儀表板" [ref=e75] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e77]
+            - generic: 儀表板
+        - listitem:
+          - link "題目" [ref=e79] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e81]
+            - generic: 題目
+        - listitem:
+          - link "競賽" [ref=e84] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e86]
+            - generic: 競賽
+        - listitem:
+          - link "提交紀錄" [ref=e88] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e90]
+            - generic: 提交紀錄
+        - listitem:
+          - link "教室" [ref=e92] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e94]
+            - generic: 教室
+        - listitem:
+          - link "文件" [ref=e96] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e98]
+            - generic: 文件
+        - listitem:
+          - separator
+        - listitem:
+          - button "教師後台" [ref=e101] [cursor=pointer]:
+            - img [ref=e103]
+            - generic: 教師後台
+            - img [ref=e107]
+  - main [ref=e109]:
+    - generic [ref=e111]:
+      - generic [ref=e115]:
+        - heading "歡迎回來，teacher" [level=1] [ref=e117]
+        - paragraph [ref=e118]: NYCU Online Judge
+      - generic [ref=e120]:
+        - generic [ref=e121]:
+          - img [ref=e122]
+          - generic [ref=e125]:
+            - heading "解題統計" [level=4] [ref=e126]
+            - paragraph [ref=e127]: 題
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - generic [ref=e130]: "0"
+            - generic [ref=e131]: / 3 solved
+          - generic [ref=e132]:
+            - generic [ref=e134]:
+              - generic [ref=e135]: Easy
+              - generic [ref=e136]: 0 / 2
+            - generic [ref=e139]:
+              - generic [ref=e140]: Medium
+              - generic [ref=e141]: 0 / 1
+            - generic [ref=e144]:
+              - generic [ref=e145]: Hard
+              - generic [ref=e146]: 0 / 0
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - img [ref=e151]
+          - generic [ref=e153]:
+            - heading "近期比賽" [level=4] [ref=e154]
+            - paragraph [ref=e155]: 進行中
+        - generic [ref=e156]:
+          - generic [ref=e158] [cursor=pointer]:
+            - generic [ref=e159]:
+              - heading "E2E Exam Mode Contest" [level=3] [ref=e160]
+              - generic "進行中" [ref=e162]
+            - generic [ref=e163]:
+              - generic [ref=e164]:
+                - img [ref=e165]
+                - text: 3/2/2026 - 3/2/2026
+              - generic [ref=e167]:
+                - img [ref=e168]
+                - text: "Duration: 3h"
+            - generic "立即報名" [ref=e174]
+          - generic [ref=e176] [cursor=pointer]:
+            - generic [ref=e177]:
+              - heading "E2E Test Contest" [level=3] [ref=e178]
+              - generic "進行中" [ref=e180]
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - img [ref=e183]
+                - text: 3/2/2026 - 3/2/2026
+              - generic [ref=e185]:
+                - img [ref=e186]
+                - text: "Duration: 3h"
+            - generic "立即報名" [ref=e192]
+      - generic [ref=e194]:
+        - generic [ref=e195]:
+          - img [ref=e196]
+          - generic [ref=e201]:
+            - heading "公告" [level=4] [ref=e202]
+            - paragraph [ref=e203]: 最新公告
+        - paragraph [ref=e204]: 目前沒有公告
+```
