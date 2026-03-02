@@ -21,30 +21,35 @@ export async function login(page: Page, role: UserRole = "student") {
   const gotoLogin = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await page.goto("/login", { waitUntil: "domcontentloaded", timeout: 30000 });
+        await page.goto("/login", {
+          waitUntil: "domcontentloaded",
+          timeout: 45000,
+        });
       } catch (error) {
         const message = String(error);
         // Retry on transient navigation interrupts (redirect or aborted)
-        if (attempt < 2 && (message.includes("ERR_ABORTED") || message.includes("interrupted"))) {
-          await clearAuth(page);
+        if (
+          attempt < 2 &&
+          (message.includes("ERR_ABORTED") || message.includes("interrupted"))
+        ) {
           continue;
         }
         throw error;
       }
-      // Verify we actually landed on /login (auth guard may redirect)
-      if (!page.url().includes("/login")) {
-        await clearAuth(page);
-        continue;
+
+      const path = new URL(page.url()).pathname;
+      if (path === "/login") {
+        return;
       }
-      return;
     }
+
     throw new Error("Could not navigate to /login after 3 attempts");
   };
 
   const submitOnce = async () => {
     await gotoLogin();
     // Wait for React to render the login form (CI Vite cold-start can be very slow)
-    await page.waitForSelector("#email", { state: "visible", timeout: 30000 });
+    await page.waitForSelector("#email", { state: "visible", timeout: 45000 });
     await page.fill("#email", user.email);
     await page.fill("#password", user.password);
     await page.click('button[type="submit"]');
@@ -229,12 +234,30 @@ export async function setAuthToken(page: Page, token: string) {
  * @param page - Playwright page object
  */
 export async function clearAuth(page: Page) {
-  await page.evaluate(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.clear();
-  });
   await page.context().clearCookies();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.evaluate(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.clear();
+      });
+      return;
+    } catch (error) {
+      const message = String(error);
+      const retryable =
+        message.includes("Execution context was destroyed") ||
+        message.includes("Cannot find context with specified id") ||
+        message.includes("Target page, context or browser has been closed");
+      if (!retryable || attempt === 2) {
+        if (retryable) return;
+        throw error;
+      }
+      await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(
+        () => {}
+      );
+    }
+  }
 }
 
 /**
