@@ -338,7 +338,11 @@ int main() {
                 )
             self.stdout.write('  ✓ 建立競賽: E2E Test Contest')
         else:
-            self.stdout.write('  - 競賽已存在: E2E Test Contest')
+            # Always refresh times so contests don't expire between seed runs
+            contest1.start_time = now - timedelta(hours=1)
+            contest1.end_time = now + timedelta(hours=2)
+            contest1.save(update_fields=['start_time', 'end_time'])
+            self.stdout.write('  ✓ 更新競賽時間: E2E Test Contest')
 
         # Contest 2: Upcoming Contest
         contest2, created = Contest.objects.get_or_create(
@@ -364,7 +368,10 @@ int main() {
                 )
             self.stdout.write('  ✓ 建立競賽: Upcoming Contest')
         else:
-            self.stdout.write('  - 競賽已存在: Upcoming Contest')
+            contest2.start_time = now + timedelta(days=1)
+            contest2.end_time = now + timedelta(days=1, hours=2)
+            contest2.save(update_fields=['start_time', 'end_time'])
+            self.stdout.write('  ✓ 更新競賽時間: Upcoming Contest')
 
         # Contest 3: Exam Mode Contest (for anti-cheat E2E tests)
         contest3, created = Contest.objects.get_or_create(
@@ -392,7 +399,10 @@ int main() {
                 )
             self.stdout.write('  ✓ 建立競賽: E2E Exam Mode Contest')
         else:
-            self.stdout.write('  - 競賽已存在: E2E Exam Mode Contest')
+            contest3.start_time = now - timedelta(hours=1)
+            contest3.end_time = now + timedelta(hours=2)
+            contest3.save(update_fields=['start_time', 'end_time'])
+            self.stdout.write('  ✓ 更新競賽時間: E2E Exam Mode Contest')
 
         # Ensure exam questions exist (idempotent, runs even if contest already existed)
         ExamQuestion.objects.get_or_create(

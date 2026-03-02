@@ -33,6 +33,8 @@ export async function login(page: Page, role: UserRole = "student") {
 
   const submitOnce = async () => {
     await gotoLogin();
+    // Wait for React to render the login form (CI can be slow)
+    await page.waitForSelector("#email", { state: "visible", timeout: 15000 });
     await page.fill("#email", user.email);
     await page.fill("#password", user.password);
     await page.click('button[type="submit"]');
