@@ -107,10 +107,7 @@ test.describe("Authentication E2E Tests", () => {
 
   test.describe("Login", () => {
     test("should login as student successfully", async ({ page }) => {
-      test.skip(
-        process.env.CI === "true",
-        "Temporarily skipped in CI to unblock CD due flaky login navigation timing."
-      );
+      // Unskipped test
 
       await login(page, "student");
 

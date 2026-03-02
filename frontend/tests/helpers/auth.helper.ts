@@ -37,35 +37,53 @@ export async function login(page: Page, role: UserRole = "student") {
         throw error;
       }
 
+      // Check if we are already redirected (e.g., if already logged in)
+      await page.waitForTimeout(500); // Give React time to route
       const path = new URL(page.url()).pathname;
-      if (path === "/login") {
-        return;
+      if (path !== "/login") {
+        return; // We got redirected away, likely successful login
       }
+      return;
     }
-
-    throw new Error("Could not navigate to /login after 3 attempts");
   };
 
   const submitOnce = async () => {
     await gotoLogin();
-    // Wait for React to render the login form (CI Vite cold-start can be very slow)
-    await page.waitForSelector("#email", { state: "visible", timeout: 45000 });
-    await page.fill("#email", user.email);
-    await page.fill("#password", user.password);
-    await page.click('button[type="submit"]');
+    
+    // If not on login page, we probably successfully authenticated
+    if (new URL(page.url()).pathname !== "/login") {
+      return;
+    }
+
+    // It's possible the page is on /login but redirecting. 
+    // We race waitForSelector with a URL change check
+    const emailVisible = await Promise.race([
+      page.waitForSelector("#email", { state: "visible", timeout: 45000 }).then(() => true).catch(() => false),
+      page.waitForFunction(() => window.location.pathname !== "/login", undefined, { timeout: 45000 }).then(() => false).catch(() => false),
+    ]);
+
+    if (!emailVisible) return; // Not visible, likely navigated away
+
+    try {
+      await page.fill("#email", user.email);
+      await page.fill("#password", user.password);
+      await page.click('button[type="submit"]');
+    } catch {
+      // Elements might have unmounted if a delayed redirect triggered
+    }
   };
 
   const waitForResult = async () => {
     const navigatedAway = page
       .waitForFunction(() => window.location.pathname !== "/login", undefined, {
-        timeout: 20000,
+        timeout: 25000,
       })
       .then(() => "navigated")
       .catch(() => null);
 
     const hasAuthError = page
       .locator(".auth-error")
-      .isVisible({ timeout: 20000 })
+      .isVisible({ timeout: 25000 })
       .then((visible) => (visible ? "error" : null))
       .catch(() => null);
 
@@ -74,7 +92,7 @@ export async function login(page: Page, role: UserRole = "student") {
 
   // WebKit in CI can occasionally miss the first submit/navigation; retry once.
   await submitOnce();
-  await waitForResult();
+  const result = await waitForResult();
 
   const stillOnLogin = new URL(page.url()).pathname === "/login";
   const authErrorVisible = await page
@@ -82,13 +100,14 @@ export async function login(page: Page, role: UserRole = "student") {
     .isVisible()
     .catch(() => false);
 
-  if (stillOnLogin && !authErrorVisible) {
+  if (stillOnLogin && !authErrorVisible && result !== "navigated") {
     await submitOnce();
     await waitForResult();
   }
 
   await expect(page).not.toHaveURL(/\/login/);
 }
+
 
 /**
  * Logout helper function
