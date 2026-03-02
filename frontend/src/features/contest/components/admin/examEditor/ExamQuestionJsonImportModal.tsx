@@ -89,7 +89,7 @@ const ExamQuestionJsonImportModal = ({
     onClose();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement> | { target: { files: FileList | File[] } }) => {
     const rawFile = event.target.files?.[0] as unknown;
     const file =
       rawFile instanceof File
