@@ -20,9 +20,8 @@ test.describe("Authentication E2E Tests", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to page first to be able to access localStorage
-    await page.goto("/login");
-    // Clear authentication before each test
+    // Navigate to any page to access localStorage, then clear all auth state
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
   });
 

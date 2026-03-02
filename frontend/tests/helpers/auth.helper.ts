@@ -19,15 +19,24 @@ export async function login(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
   const gotoLogin = async () => {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         await page.goto("/login", { waitUntil: "domcontentloaded" });
-        return;
       } catch (error) {
         const message = String(error);
-        const isLast = attempt === 1;
-        if (!message.includes("ERR_ABORTED") || isLast) throw error;
+        // Retry on transient navigation interrupts (redirect or aborted)
+        if (attempt < 2 && (message.includes("ERR_ABORTED") || message.includes("interrupted"))) {
+          await clearAuth(page);
+          continue;
+        }
+        throw error;
       }
+      // Verify we actually landed on /login (auth guard may redirect)
+      if (!page.url().includes("/login")) {
+        await clearAuth(page);
+        continue;
+      }
+      return;
     }
   };
 
@@ -223,6 +232,7 @@ export async function clearAuth(page: Page) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   });
+  await page.context().clearCookies();
 }
 
 /**
