@@ -21,7 +21,7 @@ export async function login(page: Page, role: UserRole = "student") {
   const gotoLogin = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await page.goto("/login", { waitUntil: "domcontentloaded" });
+        await page.goto("/login", { waitUntil: "networkidle", timeout: 30000 });
       } catch (error) {
         const message = String(error);
         // Retry on transient navigation interrupts (redirect or aborted)
@@ -42,8 +42,8 @@ export async function login(page: Page, role: UserRole = "student") {
 
   const submitOnce = async () => {
     await gotoLogin();
-    // Wait for React to render the login form (CI can be slow)
-    await page.waitForSelector("#email", { state: "visible", timeout: 15000 });
+    // Wait for React to render the login form (CI Vite cold-start can be very slow)
+    await page.waitForSelector("#email", { state: "visible", timeout: 30000 });
     await page.fill("#email", user.email);
     await page.fill("#password", user.password);
     await page.click('button[type="submit"]');

@@ -147,6 +147,38 @@ async function isBackendRunning(
   }
 }
 
+/**
+ * Warm up the Vite dev server by fetching key pages.
+ * Vite compiles modules on-demand; the first request triggers bundling of
+ * the entire dependency tree. On CI VMs this can take 15-30s, causing the
+ * first real test to timeout waiting for React to render.
+ */
+async function warmupFrontend() {
+  const urls = getFrontendHealthUrls();
+  const warmupPaths = ["/login", "/problems"];
+
+  console.log("🔥 Warming up frontend (Vite on-demand compile)...");
+
+  for (const base of urls) {
+    const origin = base.replace(/\/$/, "");
+    for (const p of warmupPaths) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60000);
+        await fetch(`${origin}${p}`, { signal: controller.signal });
+        clearTimeout(timer);
+      } catch {
+        // ignore — just triggering Vite compilation
+      }
+    }
+    // If the first base URL responded, no need to try alternatives
+    const status = await getUrlStatus(base);
+    if (status === 200) break;
+  }
+
+  console.log("✅ Frontend warmed up!");
+}
+
 async function globalSetup() {
   console.log("\n🚀 Starting E2E test environment...\n");
 
@@ -203,6 +235,9 @@ async function globalSetup() {
         }
       }
 
+      // Warm up Vite dev server: first page load triggers on-demand bundling
+      await warmupFrontend();
+
       console.log("\n✨ E2E environment is ready!\n");
       return;
     }
@@ -236,6 +271,8 @@ EOF`,
           "⚠️  Could not verify test data, but environment is running."
         );
       }
+
+      await warmupFrontend();
 
       console.log("\n✨ E2E environment is ready!\n");
       return;
@@ -328,6 +365,8 @@ if users < 3 or problems < 2:
 EOF`,
       { stdio: "inherit", cwd: rootDir }
     );
+
+    await warmupFrontend();
 
     console.log("\n✨ E2E environment is ready!\n");
   } catch (error) {
