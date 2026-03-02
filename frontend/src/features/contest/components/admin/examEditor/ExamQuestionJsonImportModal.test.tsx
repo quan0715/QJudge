@@ -6,45 +6,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-class MockFileReader {
-  result: string | ArrayBuffer | null = null;
-  onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
-  onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
-
-  readAsText(fileLike: unknown): void {
-    const source =
-      fileLike && typeof fileLike === "object" && "file" in (fileLike as Record<string, unknown>)
-        ? (fileLike as { file?: unknown }).file
-        : fileLike;
-
-    const file =
-      source instanceof File
-        ? source
-        : source && typeof source === "object" && "blobFile" in (source as Record<string, unknown>)
-          ? (source as { blobFile?: File }).blobFile
-          : null;
-
-    if (!file) {
-      this.onerror?.({ target: this } as unknown as ProgressEvent<FileReader>);
-      return;
-    }
-
-    file
-      .text()
-      .then((text) => {
-        this.result = text;
-        this.onload?.({ target: this } as unknown as ProgressEvent<FileReader>);
-      })
-      .catch(() => {
-        this.onerror?.({ target: this } as unknown as ProgressEvent<FileReader>);
-      });
-  }
-}
-
 describe("ExamQuestionJsonImportModal", () => {
-  beforeEach(() => {
-    vi.stubGlobal("FileReader", MockFileReader);
-  });
 
   it("renders with primary action disabled before file is parsed", () => {
     render(
@@ -141,11 +103,7 @@ describe("ExamQuestionJsonImportModal", () => {
       },
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/預覽|preview|examJson\.import\.previewTitle/i),
-      ).toBeInTheDocument();
-    });
+    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
 
     const submitButton = screen.getByRole("button", {
       name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
