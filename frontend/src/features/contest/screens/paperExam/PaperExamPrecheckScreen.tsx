@@ -19,6 +19,11 @@ import {
 import { requestFullscreen } from "@/features/contest/hooks/useContestExamActions";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
 import { usePaperExamFlow } from "./usePaperExamFlow";
+import {
+  hasPaperExamPrecheckPassed,
+  markPaperExamPrecheckPassed,
+  syncPaperExamPrecheckGateByStatus,
+} from "./hooks/precheckGate";
 import styles from "./PaperExamPrecheck.module.scss";
 
 type CheckStatus = "pending" | "running" | "pass" | "fail";
@@ -65,10 +70,17 @@ const PaperExamPrecheckScreen: React.FC = () => {
     );
   };
 
-  // If exam is already in progress, skip precheck and go directly to answering
+  // Keep precheck-gate in sync with server status.
   useEffect(() => {
     if (!contest || !contestId) return;
-    if (contest.examStatus === "in_progress" || contest.examStatus === "paused") {
+    syncPaperExamPrecheckGateByStatus(contestId, contest.examStatus);
+
+    // Only skip precheck when this tab/session already passed precheck and exam is active.
+    // Paused (freshly unlocked) must re-run precheck before resuming.
+    if (
+      contest.examStatus === "in_progress" &&
+      hasPaperExamPrecheckPassed(contestId)
+    ) {
       navigate(`/contests/${contestId}/paper-exam/answering`, { replace: true });
     }
   }, [contest, contestId, navigate]);
@@ -214,6 +226,7 @@ const PaperExamPrecheckScreen: React.FC = () => {
       const started = await startSession();
       if (!started || !contestId) { setCountdown(null); return; }
       if (!document.fullscreenElement) await requestFullscreen();
+      markPaperExamPrecheckPassed(contestId);
       navigate(`/contests/${contestId}/paper-exam/answering`);
     })();
   }, [countdown, contestId, navigate, startSession]);

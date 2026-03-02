@@ -27,6 +27,8 @@ import {
   usePaperExamQuestions,
   usePaperExamAutoSave,
   usePaperExamAntiCheat,
+  hasPaperExamPrecheckPassed,
+  syncPaperExamPrecheckGateByStatus,
 } from "./hooks";
 import { ExamModals } from "../../components/exam/ExamModals";
 import { ExamOverlays } from "../../components/exam/ExamOverlays";
@@ -90,9 +92,16 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   // Guard route: exam-mode users must pass through precheck before answering.
   useEffect(() => {
-    if (!contestId || !contest?.examModeEnabled) return;
+    if (!contestId || contest?.contestType !== "paper_exam") return;
+    syncPaperExamPrecheckGateByStatus(contestId, contest.examStatus);
 
-    if (contest.examStatus === "not_started") {
+    const precheckPassed = hasPaperExamPrecheckPassed(contestId);
+
+    if (
+      contest.examStatus === "not_started" ||
+      contest.examStatus === "paused" ||
+      (contest.examStatus === "in_progress" && !precheckPassed)
+    ) {
       navigate(`/contests/${contestId}/paper-exam/precheck`, { replace: true });
       return;
     }
@@ -100,7 +109,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     if (contest.examStatus === "submitted") {
       navigate(`/contests/${contestId}/paper-exam/submit-review`, { replace: true });
     }
-  }, [contest?.examModeEnabled, contest?.examStatus, contestId, navigate]);
+  }, [contest?.contestType, contest?.examStatus, contestId, navigate]);
 
   // Slide animation
   const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
@@ -255,7 +264,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             onClick={() => contestId && navigate(`/contests/${contestId}`)}
           />
           <span className={styles.title}>{contest?.name ?? "考試"}</span>
-          {contest?.examModeEnabled && (
+          {contest?.cheatDetectionEnabled && (
             <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
               <Tag size="sm" type="red" renderIcon={Recording}>
                 監測中

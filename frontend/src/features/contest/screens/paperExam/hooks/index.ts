@@ -4,3 +4,9 @@ export { usePaperExamQuestions } from "./usePaperExamQuestions";
 export { usePaperExamAutoSave, type SaveStatus } from "./usePaperExamAutoSave";
 export { usePaperExamAntiCheat } from "./usePaperExamAntiCheat";
 export type { AntiCheatState, AntiCheatActions } from "./usePaperExamAntiCheat";
+export {
+  hasPaperExamPrecheckPassed,
+  markPaperExamPrecheckPassed,
+  clearPaperExamPrecheckPassed,
+  syncPaperExamPrecheckGateByStatus,
+} from "./precheckGate";

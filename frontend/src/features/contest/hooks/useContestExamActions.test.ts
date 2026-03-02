@@ -29,7 +29,7 @@ const messages = {
     startTime: "2024-01-01T00:00:00Z",
     endTime: "2024-01-01T01:00:00Z",
     status: "published",
-    examModeEnabled: true,
+    cheatDetectionEnabled: true,
     examStatus: "not_started",
   } satisfies {
     id: string;
@@ -37,7 +37,7 @@ const messages = {
     startTime: string;
     endTime: string;
     status: string;
-    examModeEnabled: boolean;
+    cheatDetectionEnabled: boolean;
     examStatus: string;
   };
 
@@ -48,6 +48,7 @@ describe("useContestExamActions", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    window.sessionStorage.clear();
     Object.defineProperty(document.documentElement, "requestFullscreen", {
       value: vi.fn().mockResolvedValue(undefined),
       configurable: true,
@@ -66,6 +67,10 @@ describe("useContestExamActions", () => {
 
   it("exam mode start routes to precheck and refreshes contest", async () => {
     vi.mocked(startExam).mockResolvedValue({ status: "started" } as { status: string });
+    window.sessionStorage.setItem(
+      `qjudge.paper_exam.precheck_gate.v1:${baseContest.id}`,
+      "1"
+    );
 
     const { result } = renderHook(() =>
       useContestExamActions({
@@ -93,6 +98,9 @@ describe("useContestExamActions", () => {
     );
     expect(onError).not.toHaveBeenCalled();
     expect(document.documentElement.requestFullscreen).not.toHaveBeenCalled();
+    expect(
+      window.sessionStorage.getItem(`qjudge.paper_exam.precheck_gate.v1:${baseContest.id}`)
+    ).toBeNull();
   });
 
   it("leaves contest only when confirmation resolves true", async () => {

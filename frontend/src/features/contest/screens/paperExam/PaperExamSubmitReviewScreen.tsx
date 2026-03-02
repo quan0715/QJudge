@@ -18,6 +18,10 @@ import { usePaperExamFlow } from "./usePaperExamFlow";
 import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
+import {
+  hasPaperExamPrecheckPassed,
+  syncPaperExamPrecheckGateByStatus,
+} from "./hooks/precheckGate";
 
 const PaperExamSubmitReviewScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -57,6 +61,21 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
       document.exitFullscreen().catch(() => {});
     }
   }, [contest?.examStatus]);
+
+  useEffect(() => {
+    if (!contestId) return;
+    syncPaperExamPrecheckGateByStatus(contestId, contest?.examStatus);
+  }, [contest?.examStatus, contestId]);
+
+  const backToExamRoute =
+    contestId &&
+    (contest?.examStatus === "paused" ||
+      (contest?.examStatus === "in_progress" &&
+        !hasPaperExamPrecheckPassed(contestId)))
+      ? `/contests/${contestId}/paper-exam/precheck`
+      : contestId
+        ? `/contests/${contestId}/paper-exam/answering`
+        : "";
 
   const canSubmit =
     contest?.examStatus === "in_progress" ||
@@ -156,9 +175,7 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
             kind="secondary"
             renderIcon={ArrowLeft}
             disabled={!contestId}
-            onClick={() =>
-              contestId && navigate(`/contests/${contestId}/paper-exam/answering`)
-            }
+            onClick={() => contestId && navigate(backToExamRoute)}
           >
             回作答頁
           </Button>

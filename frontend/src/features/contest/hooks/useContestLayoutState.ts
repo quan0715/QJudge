@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
 import { isContestEnded, getContestState } from "@/core/entities/contest.entity";
+import { syncPaperExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/precheckGate";
 
 export function useContestLayoutState() {
   const { contestId } = useParams<{ contestId: string }>();
@@ -17,14 +18,14 @@ export function useContestLayoutState() {
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
   const isSolvePage = location.pathname.includes("/solve/");
-  const isExamActive = !!(contest?.examModeEnabled && contest?.examStatus === "in_progress");
+  const isExamActive = !!(contest?.cheatDetectionEnabled && contest?.examStatus === "in_progress");
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
   const isUpcoming = contestState === "upcoming";
   const isAdmin = !!contest?.permissions?.canEditContest;
 
   const shouldWarnOnExit = !!(
-    contest?.examModeEnabled &&
+    contest?.cheatDetectionEnabled &&
     contest?.status === "published" &&
     !hasEnded &&
     (contest?.examStatus === "in_progress" ||
@@ -96,6 +97,12 @@ export function useContestLayoutState() {
     }
   }, [isSolvePage, contest?.id, fetchStandings]);
 
+  // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
+  useEffect(() => {
+    if (!contestId) return;
+    syncPaperExamPrecheckGateByStatus(contestId, contest?.examStatus);
+  }, [contest?.examStatus, contestId]);
+
   // Beforeunload warning for exam mode
   useEffect(() => {
     if (!shouldWarnOnExit) return;
@@ -164,6 +171,7 @@ export function useContestLayoutState() {
     shouldWarnOnExit,
     userScore,
     totalMaxScore,
+    scoreboardData,
     refreshContest,
     navigate,
   };

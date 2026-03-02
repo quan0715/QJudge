@@ -14,17 +14,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useTranslation } from "react-i18next";
-import { useInterval } from "@/shared/hooks/useInterval";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 
 // Anti-cheat timing constants (module-level to avoid recreation on each render)
 const BLUR_DEBOUNCE_MS = 200; // Time to wait after user interaction before detecting blur (reduced for faster detection)
 const FOCUS_CHECK_DELAY_MS = 50; // Delay for document.hasFocus() check to allow event loop to settle
-const GRACE_PERIOD_SECONDS = 3; // Grace period countdown in seconds
 
 interface ExamModeWrapperProps {
   contestId: string;
-  examModeEnabled: boolean;
+  cheatDetectionEnabled: boolean;
   isActive: boolean;
   isLocked?: boolean;
   lockReason?: string;
@@ -38,7 +36,7 @@ interface ExamModeWrapperProps {
 
 const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   contestId,
-  examModeEnabled,
+  cheatDetectionEnabled,
   isActive,
   isLocked,
   lockReason,
@@ -59,11 +57,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [showWarning, setShowWarning] = useState(false);
   const [warningEventType, setWarningEventType] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isGracePeriod = useRef(false);
   const isSubmitting = useRef(false);
-  // Initialize with current examStatus to prevent grace period re-trigger on navigation
-  // This ensures that navigating from /solve back to /contest/id doesn't re-trigger the countdown
-  const prevIsActiveRef = useRef(examStatus === "in_progress");
   const blurCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );
@@ -87,9 +81,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [showUnlockNotification, setShowUnlockNotification] = useState(false);
   const prevExamStatusRef = useRef(examStatus);
 
-  // Grace period countdown (in seconds)
-  const [gracePeriodCountdown, setGracePeriodCountdown] = useState(0);
-
   // Fullscreen exit confirmation modal state (for locked/paused/in_progress)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] =
     useState(false);
@@ -104,7 +95,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {
     // Only check once after initial render and exam status is known
-    if (initialFullscreenCheckDone.current || !examModeEnabled || isBypassed)
+    if (initialFullscreenCheckDone.current || !cheatDetectionEnabled || isBypassed)
       return;
 
     const shouldBeInFullscreen =
@@ -124,7 +115,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } else {
       initialFullscreenCheckDone.current = true;
     }
-  }, [examStatus, examModeEnabled, isBypassed, isSubmittingFromFullscreenExit]);
+  }, [examStatus, cheatDetectionEnabled, isBypassed, isSubmittingFromFullscreenExit]);
 
   useEffect(() => {
     // Use examStatus as primary source if available
@@ -161,7 +152,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     // Fullscreen is only allowed to exit after submission
     // Also ensure fullscreen is entered when transitioning TO locked or paused states
     if (
-      examModeEnabled &&
+      cheatDetectionEnabled &&
       !isBypassed &&
       (examStatus === "locked" || examStatus === "paused") &&
       !document.fullscreenElement
@@ -181,50 +172,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     prevExamStatusRef.current = examStatus;
 
-    // Start grace period ONLY when exam monitoring is truly active (in_progress)
-    // This ensures the countdown only appears when anti-cheat is enabled
-    // Must also check examModeEnabled to avoid false triggers
-    const shouldStartGracePeriod =
-      examModeEnabled &&
-      effectiveIsActive &&
-      !prevIsActiveRef.current &&
-      !isBypassed;
-
-    if (shouldStartGracePeriod) {
-      // Reset processing state for fresh start (important after unlock!)
+    // Reset processing state when monitoring becomes active (post-precheck resume/start).
+    if (cheatDetectionEnabled && effectiveIsActive && !isBypassed) {
       setIsProcessingEvent(false);
       isProcessingEventRef.current = false;
-
-      isGracePeriod.current = true;
-      setGracePeriodCountdown(GRACE_PERIOD_SECONDS);
-
-      // Auto enter fullscreen (mandatory when monitoring is active)
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch((e) => {
-          console.warn("Failed to enter fullscreen automatically:", e);
-        });
-      }
     }
-    prevIsActiveRef.current = effectiveIsActive;
   }, [
     isActive,
     isLocked,
     lockReason,
     examStatus,
-    examModeEnabled,
+    cheatDetectionEnabled,
     isBypassed,
     currentUserRole,
   ]);
-
-  useInterval(() => {
-    setGracePeriodCountdown((prev) => {
-      if (prev <= 1) {
-        isGracePeriod.current = false;
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, gracePeriodCountdown > 0 ? 1000 : null);
 
   // Track last interaction time to debounce blur events during submit
   const lastInteractionTime = useRef<number>(0);
@@ -267,7 +228,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     const isCurrentlyActive = examStatus === "in_progress";
     const isCurrentlyLocked = examStatus === "locked";
 
-    if (!examModeEnabled || !isCurrentlyActive || isBypassed) return;
+    if (!cheatDetectionEnabled || !isCurrentlyActive || isBypassed) return;
 
     // Blocking modal flow: detect -> pause -> show modal -> API -> wait -> close
     const handleCheatEvent = async (eventType: string, reason: string) => {
@@ -276,7 +237,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       if (
         isProcessingEventRef.current ||
         isCurrentlyLocked ||
-        isGracePeriod.current ||
         isSubmitting.current
       )
         return;
@@ -387,12 +347,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       clearTimeout(blurCheckTimeoutRef.current);
       blurCheckTimeoutRef.current = undefined;
     };
-  }, [examModeEnabled, examStatus, contestId, location.pathname, isBypassed]);
+  }, [cheatDetectionEnabled, examStatus, contestId, location.pathname, isBypassed]);
 
   // Monitor fullscreen exit for locked/paused states - show submit confirmation
   useEffect(() => {
     const shouldMonitorFullscreen =
-      examModeEnabled &&
+      cheatDetectionEnabled &&
       !isBypassed &&
       (examStatus === "locked" || examStatus === "paused");
 
@@ -416,21 +376,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         handleFullscreenExitForLockedPaused
       );
     };
-  }, [examModeEnabled, examStatus, isBypassed, isSubmittingFromFullscreenExit]);
+  }, [cheatDetectionEnabled, examStatus, isBypassed, isSubmittingFromFullscreenExit]);
 
   const isAllowedPath = () => {
-    // Allow dashboard, standings, and submissions
     const path = location.pathname;
-    // Check if path ends with contestId (dashboard) or specific allowed sub-paths
-    // We need to be careful with trailing slashes
     const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
     const contestBase = `/contests/${contestId}`;
-
     return (
       normalizedPath === contestBase ||
-      normalizedPath === `${contestBase}/standings` ||
-      normalizedPath === `${contestBase}/submissions` ||
-      normalizedPath === `${contestBase}/clarifications`
+      normalizedPath.startsWith(`${contestBase}/`)
     );
   };
 
@@ -544,8 +498,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     >
       {children}
       <ExamOverlays
-        showGracePeriod={examModeEnabled && !isBypassed && gracePeriodCountdown > 0}
-        gracePeriodCountdown={gracePeriodCountdown}
+        showGracePeriod={false}
+        gracePeriodCountdown={0}
         showLockScreen={shouldShowLockScreen}
         lockReason={examState.lockReason}
         timeLeft={unlockTimeLeft}
@@ -574,7 +528,7 @@ export default ExamModeWrapper;
 // Export helper functions for parent components
 export const createExamHandlers = (
   contestId: string,
-  examModeEnabled: boolean,
+  cheatDetectionEnabled: boolean,
   onSuccess?: () => void,
   userId?: string, // Add userId parameter here
   unlockParticipant?: (contestId: string, userId: string) => Promise<void> // Add unlockParticipant parameter here
@@ -593,7 +547,7 @@ export const createExamHandlers = (
         // await api.startExam(contestId);
       }
 
-      if (examModeEnabled) {
+      if (cheatDetectionEnabled) {
         try {
           await requestFullscreen();
         } catch (error) {

@@ -12,6 +12,7 @@ import {
   leaveContestUseCase,
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
+import { clearPaperExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/precheckGate";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -85,9 +86,14 @@ export const useContestExamActions = ({
   const handleStartExam = useCallback(async () => {
     if (!contest || !contestId) return;
 
+    if (contest.cheatDetectionEnabled) {
+      // Force every new start/resume attempt from dashboard to pass precheck again.
+      clearPaperExamPrecheckPassed(contest.id);
+    }
+
     const result = await enterExamUseCase({
       contestId: contest.id,
-      examModeEnabled: contest.examModeEnabled,
+      cheatDetectionEnabled: contest.cheatDetectionEnabled,
     });
 
     if (result.success && result.navigateTo) {
@@ -102,6 +108,7 @@ export const useContestExamActions = ({
     if (!contest) return;
     try {
       await endExam(contest.id);
+      clearPaperExamPrecheckPassed(contest.id);
       await refreshContest();
     } catch {
       onError(messages.endError);
@@ -113,7 +120,7 @@ export const useContestExamActions = ({
 
     try {
       const shouldEndExam =
-        contest.examModeEnabled &&
+        contest.cheatDetectionEnabled &&
         contest.status === "published" &&
         !hasEnded &&
         (contest.examStatus === "in_progress" ||
@@ -125,6 +132,9 @@ export const useContestExamActions = ({
         shouldEndExam,
       });
 
+      if (contest.cheatDetectionEnabled) {
+        clearPaperExamPrecheckPassed(contest.id);
+      }
       navigate(result.navigateTo);
     } catch {
       onError(messages.exitError);
