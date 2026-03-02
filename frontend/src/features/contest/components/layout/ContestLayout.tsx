@@ -49,7 +49,7 @@ const ContestLayout = () => {
     isUpcoming,
     isAdmin,
     shouldWarnOnExit,
-    userScore: _userScore,
+    userScore,
     totalMaxScore,
     scoreboardData,
     refreshContest,
@@ -272,9 +272,9 @@ const ContestLayout = () => {
             <div className={styles.headerScoreDisplay}>
               <span className={styles.scoreLabel}>分數：</span>
               <span
-                className={`${styles.scoreValue} ${0 > 0 ? styles.hasScore : ""}`}
+                className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
               >
-                {0}
+                {userScore}
               </span>
               <span className={styles.scoreDivider}>/</span>
               <span className={styles.totalScore}>{totalMaxScore}</span>
