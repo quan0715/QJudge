@@ -30,6 +30,51 @@ const TYPE_LABEL: Record<string, string> = {
   essay: "Essay",
 };
 
+type FileLike = File | { file?: File };
+
+type FileChangeEventLike = {
+  target?: {
+    files?: FileList | FileLike[];
+  };
+};
+
+type FileChangeDataLike = {
+  addedFiles?: Array<{ file?: File }>;
+  currentFiles?: Array<{ file?: File }>;
+};
+
+const extractFileFromEvent = (event: unknown, data?: unknown): File | null => {
+  const changeData = data as FileChangeDataLike | undefined;
+  const fromAdded = changeData?.addedFiles?.[0]?.file;
+  if (fromAdded instanceof File) {
+    return fromAdded;
+  }
+
+  const fromCurrent = changeData?.currentFiles?.[0]?.file;
+  if (fromCurrent instanceof File) {
+    return fromCurrent;
+  }
+
+  const targetFiles = (event as FileChangeEventLike)?.target?.files;
+  if (!targetFiles) {
+    return null;
+  }
+
+  const firstRaw = Array.isArray(targetFiles) ? targetFiles[0] : targetFiles[0];
+  if (firstRaw instanceof File) {
+    return firstRaw;
+  }
+  if (
+    firstRaw &&
+    typeof firstRaw === "object" &&
+    "file" in firstRaw &&
+    (firstRaw as { file?: unknown }).file instanceof File
+  ) {
+    return (firstRaw as { file: File }).file;
+  }
+  return null;
+};
+
 const ExamQuestionJsonImportModal = ({
   open,
   onClose,
@@ -89,17 +134,8 @@ const ExamQuestionJsonImportModal = ({
     onClose();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement> | { target: { files: FileList | File[] } }) => {
-    const rawFile = event.target.files?.[0] as unknown;
-    const file =
-      rawFile instanceof File
-        ? rawFile
-        : rawFile &&
-            typeof rawFile === "object" &&
-            "file" in rawFile &&
-            (rawFile as { file?: unknown }).file instanceof File
-          ? (rawFile as { file: File }).file
-          : null;
+  const handleFileChange = (event: unknown, data?: unknown) => {
+    const file = extractFileFromEvent(event, data);
     if (!file) {
       setErrors([{ field: "file", message: t("examJson.import.errors.fileReadFailed") }]);
       return;
@@ -183,7 +219,7 @@ const ExamQuestionJsonImportModal = ({
         buttonLabel={t("examJson.import.chooseFile")}
         filenameStatus="edit"
         accept={[".json", "application/json"]}
-        onChange={handleFileChange}
+        onChange={(event, data) => handleFileChange(event, data)}
         disabled={importing}
       />
 
