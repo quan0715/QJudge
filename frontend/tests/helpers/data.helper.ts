@@ -70,19 +70,20 @@ export const TEST_CONTESTS = {
     // Contest settings (camelCase for frontend entity)
     scoreboardVisibleDuringContest: true,
     anonymousModeEnabled: false,
-    examModeEnabled: false,
+    cheatDetectionEnabled: false,
   },
   upcoming: {
     name: "Upcoming Contest",
     description: "即將開始的競賽",
     scoreboardVisibleDuringContest: false,
     anonymousModeEnabled: false,
-    examModeEnabled: false,
+    cheatDetectionEnabled: false,
   },
   examMode: {
     name: "E2E Exam Mode Contest",
     description: "考試模式 E2E 測試用",
-    examModeEnabled: true,
+    cheatDetectionEnabled: true,
+    contestType: "paper_exam" as const,
     maxCheatWarnings: 2,
   },
 } as const;

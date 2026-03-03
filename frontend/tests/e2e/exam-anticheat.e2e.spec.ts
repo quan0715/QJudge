@@ -135,6 +135,11 @@ async function postViolationEvent(
 
 /** Navigate to paper exam answering page via precheck auto-redirect. */
 async function gotoExamAnswering(page: Page, contestId: string) {
+  // Set precheck gate in sessionStorage so the answering page won't redirect back
+  await page.evaluate((cid) => {
+    window.sessionStorage.setItem(`qjudge.paper_exam.precheck_gate.v1:${cid}`, "1");
+  }, contestId);
+
   // Navigate to precheck first — it auto-redirects to answering when IN_PROGRESS
   await page.goto(`/contests/${contestId}/paper-exam/precheck`);
   await page.waitForLoadState("networkidle");
