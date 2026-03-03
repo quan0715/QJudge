@@ -57,7 +57,7 @@ def main():
         print("Going into E2E Exam Mode Contest...")
         page.get_by_text("E2E Exam Mode Contest").click()
         page.wait_for_load_state("networkidle")
-        page.wait_for_selector("text=考試模式設定", timeout=10000)
+        page.wait_for_selector("text=考試模式", timeout=10000)
         time.sleep(1)
         
         # We want to highlight the checkbox or the whole section "考試模式設定"
@@ -69,25 +69,27 @@ def main():
         
         # 3. Navigate to Exam Questions
         print("Going to Exam Questions tab...")
-        page.get_by_text("Exam 題目").click()
+        page.locator(".cds--side-nav__link").nth(3).click()
         page.wait_for_load_state("networkidle")
-        page.wait_for_selector("text=新增題目", timeout=10000)
-        time.sleep(1)
         
         button3 = page.get_by_role("button", name="新增題目").first
+        button3.wait_for(state="visible", timeout=10000)
+        time.sleep(1)
+        
         box3 = button3.bounding_box()
         page.screenshot(path="raw_3.png")
         process_image("raw_3.png", box3, "Click to add question", "add_exam_question.png")
         
         # 4. Open Modal and capture Modal
         button3.click()
-        page.wait_for_selector("text=題型", timeout=10000)
+        
+        el4 = page.get_by_label("選擇題目類型")
+        el4.wait_for(state="visible", timeout=10000)
         time.sleep(1) # wait for modal animation
         
-        el4 = page.get_by_text("題型").first
         box4 = el4.bounding_box()
         page.screenshot(path="raw_4.png")
-        process_image("raw_4.png", box4, "Select question type here", "exam_question_modal.png", pad=10)
+        process_image("raw_4.png", box4, "Type your question here", "exam_question_modal.png", pad=10)
         
         browser.close()
 

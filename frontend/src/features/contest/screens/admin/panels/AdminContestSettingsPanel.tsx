@@ -22,6 +22,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  Tag,
 } from "@carbon/react";
 import { Add, TrashCan, Renew } from "@carbon/icons-react";
 
@@ -29,7 +30,7 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import {
   useExamAutoSave,
   type FieldSaveState,
-} from "@/features/contest/screens/examEdit/hooks/useExamAutoSave";
+} from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
 import { FieldSaveIndicator } from "@/shared/ui/autoSave/FieldSaveIndicator";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
@@ -207,6 +208,12 @@ const AdminContestSettingsPanel: React.FC = () => {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const { showToast } = useToast();
+  const adminRows = [
+    ...(contest?.ownerUsername
+      ? [{ id: "__owner__", username: contest.ownerUsername, role: "owner" as const }]
+      : []),
+    ...admins.map((a) => ({ id: a.id, username: a.username, role: "co-admin" as const })),
+  ] as any;
 
   const loadAdmins = useCallback(async () => {
     if (!contestId) return;
@@ -561,7 +568,7 @@ const AdminContestSettingsPanel: React.FC = () => {
             labelText=""
             hideLabel
             value={(form.status as string) || "draft"}
-            disabled={form.status === "archived"}
+            disabled={form.status === "archived" || !contest?.permissions?.canToggleStatus}
             style={{ minWidth: 160 }}
             onChange={(e) => {
               const next = e.target.value as ContestStatus;
@@ -761,20 +768,10 @@ const AdminContestSettingsPanel: React.FC = () => {
 
       {/* ── 管理員 ── */}
       <Section title="管理員">
-        <div className={s.actionRow}>
-          <div className={s.actionRowContent}>
-            <div style={TITLE_STYLE}>擁有者 (Owner)</div>
-            <div style={DESC_STYLE}>建立此競賽的帳號，無法變更</div>
-          </div>
-          <div style={{ ...TITLE_STYLE, flexShrink: 0 }}>
-            {contest?.permissions?.canEditContest ? "您" : "N/A"}
-          </div>
-        </div>
-
         <div className={s.actionRow} style={{ justifyContent: "space-between" }}>
           <div className={s.actionRowContent}>
-            <div style={TITLE_STYLE}>共同管理員</div>
-            <div style={DESC_STYLE}>可協助管理競賽設定、題目和學生</div>
+            <div style={TITLE_STYLE}>管理員列表</div>
+            <div style={DESC_STYLE}>Owner 擁有完整權限；共同管理員可管理題目與學生，但無法變更競賽狀態或刪除競賽</div>
           </div>
           <div style={{ display: "flex", gap: 0, flexShrink: 0 }}>
             <Button
@@ -795,63 +792,64 @@ const AdminContestSettingsPanel: React.FC = () => {
           </div>
         </div>
 
-        {admins.length === 0 ? (
-          <div style={{
-            padding: "1rem 0",
-            textAlign: "center",
-            color: "var(--cds-text-secondary)",
-            fontSize: "var(--cds-body-short-01-font-size, 0.875rem)",
-          }}>
-            尚無其他管理員
-          </div>
-        ) : (
-          <DataTable
-            rows={admins.map((a) => ({ id: a.id, username: a.username }))}
-            headers={[
-              { key: "username", header: "用戶名" },
-              { key: "actions", header: "操作" },
-            ]}
-          >
-            {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
-              <TableContainer>
-                <Table {...getTableProps()} size="sm">
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header) => {
-                        const { key, ...headerProps } = getHeaderProps({ header });
-                        return (
-                          <TableHeader key={key} {...headerProps}>
-                            {header.header}
-                          </TableHeader>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row, index) => {
-                      const { key: rowKey, ...rowProps } = getRowProps({ row });
+        <DataTable
+          rows={adminRows}
+          headers={[
+            { key: "username", header: "用戶名" },
+            { key: "role", header: "身份" },
+            { key: "actions", header: "操作" },
+          ]}
+        >
+          {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+            <TableContainer>
+              <Table {...getTableProps()} size="sm">
+                <TableHead>
+                  <TableRow>
+                    {headers.map((header) => {
+                      const { key, ...headerProps } = getHeaderProps({ header });
                       return (
-                        <TableRow key={rowKey} {...rowProps}>
-                          <TableCell>{row.cells[0].value}</TableCell>
-                          <TableCell>
+                        <TableHeader key={key} {...headerProps}>
+                          {header.header}
+                        </TableHeader>
+                      );
+                    })}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rows.map((row) => {
+                    const isOwner = row.id === "__owner__";
+                    const admin = !isOwner ? admins.find((a) => a.id === row.id) : null;
+                    const { key: rowKey, ...rowProps } = getRowProps({ row });
+                    return (
+                      <TableRow key={rowKey} {...rowProps}>
+                        <TableCell>{row.cells[0].value}</TableCell>
+                        <TableCell>
+                          {isOwner ? (
+                            <Tag type="blue" size="sm">Owner</Tag>
+                          ) : (
+                            <Tag type="teal" size="sm">Co-admin</Tag>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {!isOwner && admin && (
                             <Button
                               kind="danger--ghost"
                               size="sm"
                               renderIcon={TrashCan}
                               hasIconOnly
                               iconDescription="移除"
-                              onClick={() => handleRemoveAdmin(admins[index])}
+                              onClick={() => handleRemoveAdmin(admin)}
                             />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        )}
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DataTable>
       </Section>
 
       {/* ── 匯出 & Danger Zone ── */}
@@ -868,7 +866,7 @@ const AdminContestSettingsPanel: React.FC = () => {
           title={t("settings.archiveContest")}
           description={t("settings.archiveDesc")}
           buttonLabel={contest.status === "archived" ? t("settings.alreadyArchived") : tc("button.archive")}
-          disabled={contest.status === "archived"}
+          disabled={contest.status === "archived" || !contest.permissions?.canToggleStatus}
           onClick={handleArchive}
         />
 
@@ -890,6 +888,7 @@ const AdminContestSettingsPanel: React.FC = () => {
           description={t("settings.deleteDesc")}
           buttonLabel={tc("button.delete")}
           buttonKind="danger"
+          disabled={!contest.permissions?.canDeleteContest}
           onClick={handleDelete}
         />
       </Section>

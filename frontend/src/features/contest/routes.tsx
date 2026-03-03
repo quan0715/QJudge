@@ -4,7 +4,6 @@ import ContestLayout from "./components/layout/ContestLayout";
 import PaperExamLayout from "./components/layout/PaperExamLayout";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
-import ExamEditScreen from "./screens/examEdit/ExamEditScreen";
 import AdminDashboardScreen from "./screens/admin/AdminDashboardScreen";
 import StudentExamDemoScreen from "./screens/examDemo/StudentExamDemoScreen";
 import {
@@ -33,8 +32,6 @@ export const contestDetailRoutes = (
     <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
     {/* Problem Solving Page */}
     <Route path="solve/:problemId" element={<ContestProblemScreen />} />
-    {/* Exam Edit Page (admin/teacher only) */}
-    <Route path="exam/edit" element={<ExamEditScreen />} />
   </Route>
 );
 

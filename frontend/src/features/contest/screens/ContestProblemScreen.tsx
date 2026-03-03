@@ -51,21 +51,12 @@ const ContestProblemPage = () => {
 
   // Check view permissions
   const canView =
-    contest?.currentUserRole === "admin" ||
-    contest?.currentUserRole === "teacher" ||
-    contest?.permissions?.canEditContest ||
     ((contest?.status === "published" || contest?.status === "archived") &&
       contest?.hasStarted &&
       contest?.examStatus !== "locked");
 
-  // Admin/Owner/Teacher can always submit regardless of contest status
-  const isPrivileged =
-    contest?.currentUserRole === "admin" ||
-    contest?.currentUserRole === "teacher" ||
-    contest?.permissions?.canEditContest;
-
   const isSubmissionDisabled =
-    !isPrivileged && (contest?.status !== "published" || hasEnded);
+    contest?.status !== "published" || hasEnded;
 
   // Loading state
   if (contestLoading) {

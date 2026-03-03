@@ -69,13 +69,21 @@ class ErrorCodes:
 # Base permissions for each role (not considering context)
 BASE_ROLE_PERMISSIONS = {
     'admin': {
-        'manage_contest', 'manage_participants', 'manage_problems',
+        'manage_contest_settings', 'manage_contest_lifecycle',
+        'manage_participants', 'manage_problems',
+        'view_scoreboard_full', 'view_report', 'export_report',
+        'submit', 'view_draft', 'view_archived', 'view_participants',
+        'manage_clarifications', 'view_all_submissions',
+    },
+    'owner': {
+        'manage_contest_settings', 'manage_contest_lifecycle',
+        'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
         'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'teacher': {
-        'manage_contest', 'manage_participants', 'manage_problems',
+        'manage_contest_settings', 'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
         'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
@@ -136,9 +144,9 @@ class ContestAccessPolicy(permissions.BasePermission):
         # Scoreboard
         'standings': 'view_scoreboard',
 
-        # Contest Management
-        'toggle_status': 'manage_contest',
-        'archive': 'manage_contest',
+        # Contest Lifecycle (owner-only)
+        'toggle_status': 'manage_contest_lifecycle',
+        'archive': 'manage_contest_lifecycle',
 
         # Problem Management
         'add_problem': 'manage_problems',
@@ -154,10 +162,10 @@ class ContestAccessPolicy(permissions.BasePermission):
         'remove_participant': 'manage_participants',
         'reopen_exam': 'manage_participants',
 
-        # Admin Management
-        'admins': 'manage_contest',
-        'add_admin': 'manage_contest',
-        'remove_admin': 'manage_contest',
+        # Admin Management (owner-only)
+        'admins': 'manage_contest_lifecycle',
+        'add_admin': 'manage_contest_lifecycle',
+        'remove_admin': 'manage_contest_lifecycle',
 
         # Clarifications
         'reply': 'manage_clarifications',

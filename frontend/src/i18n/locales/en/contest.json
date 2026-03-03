@@ -109,6 +109,31 @@
     "viewAll": "View All",
     "noSubmissions": "No submissions yet"
   },
+  "paperExamProblems": {
+    "title": "Questions & Results",
+    "openingTitle": "Questions are available",
+    "openingDescription": "Click a row to open the answering screen at that question.",
+    "notRegisteredTitle": "Not registered",
+    "notRegisteredDescription": "Please register first to view questions and results.",
+    "gradingTitle": "Grading in progress",
+    "gradingDescription": "You have submitted your answers. Results will appear here after the teacher publishes grading.",
+    "loadFailedTitle": "Failed to load",
+    "loadFailed": "Unable to load paper exam questions or results. Please try again later.",
+    "loadingTitle": "Loading",
+    "loadingDescription": "Fetching questions and grading data...",
+    "emptyTitle": "No questions",
+    "emptyDescription": "No exam questions are available yet.",
+    "notGraded": "Not graded",
+    "noFeedback": "No feedback",
+    "totalScore": "Total {{score}} / {{total}}",
+    "headers": {
+      "prompt": "Question",
+      "type": "Type",
+      "maxScore": "Max",
+      "score": "Score",
+      "feedback": "Feedback"
+    }
+  },
   "problemManage": {
     "title": "Problem Management",
     "addProblem": "Add Contest Problem",
@@ -283,6 +308,11 @@
     "recordingViolation": "Recording violation...",
     "abnormalBehavior": "Abnormal behavior detected",
     "tabHidden": "You switched tabs",
+    "forbiddenCopy": "Copying and cutting is forbidden",
+    "forbiddenPaste": "Pasting is forbidden",
+    "forbiddenContextMenu": "Context menu is disabled",
+    "forbiddenAction": "Forbidden action detected",
+    "multipleDisplaysDetected": "Multiple displays detected. Please keep only one physical screen.",
     "windowBlur": "You left the window",
     "exitedFullscreen": "You exited fullscreen",
     "stayInExamPage": "Please stay on the exam page and maintain fullscreen mode.",

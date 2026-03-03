@@ -7,7 +7,7 @@
  * Depends on seed data: "E2E Exam Mode Contest" (max_cheat_warnings=2).
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import {
   TEST_CONTESTS,
@@ -173,7 +173,137 @@ async function triggerVisibilityHidden(page: Page) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// Stubs for headless environment
+// ---------------------------------------------------------------------------
+
+/**
+ * Install browser-API stubs so that precheck environment checks pass in
+ * Playwright's headless Chromium (no real fullscreen / focus support).
+ *
+ * Must be called BEFORE any navigation so that addInitScript takes effect.
+ */
+async function installHeadlessStubs(page: Page) {
+  await page.addInitScript(() => {
+    // Stub requestFullscreen → always resolve
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+
+    // Stub fullscreenElement → looks like we're in fullscreen
+    Object.defineProperty(document, "fullscreenElement", {
+      get: () => document.documentElement,
+      configurable: true,
+    });
+
+    // Stub hasFocus → always true
+    document.hasFocus = () => true;
+  });
+}
+
+/**
+ * Create a fresh browser context with headless stubs pre-installed.
+ * Every page opened from this context will have the stubs.
+ */
+async function createStubbedContext(browser: import("@playwright/test").Browser): Promise<BrowserContext> {
+  const ctx = await browser.newContext({ baseURL: "http://localhost:5174" });
+  // addInitScript on context applies to all pages in that context
+  await ctx.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+    Object.defineProperty(document, "fullscreenElement", {
+      get: () => document.documentElement,
+      configurable: true,
+    });
+    document.hasFocus = () => true;
+  });
+  return ctx;
+}
+
+// ---------------------------------------------------------------------------
+// Tests — Paper Exam Precheck
+// ---------------------------------------------------------------------------
+
+test.describe("Paper Exam Precheck E2E", () => {
+  let teacherPage: Page;
+
+  test.beforeAll(async ({ browser }) => {
+    const ctx = await createStubbedContext(browser);
+    teacherPage = await ctx.newPage();
+    await teacherPage.goto("/");
+    await loginViaAPI(teacherPage, "teacher");
+  });
+
+  test.afterAll(async () => {
+    await teacherPage.context().close();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await installHeadlessStubs(page);
+    await page.goto("/");
+    await clearAuth(page);
+  });
+
+  test("precheck passes all steps and navigates to answering", async ({ page }) => {
+    // 45s timeout — precheck has artificial delays (600+1200+1500+800+1500+800 ms ≈ 6.4s) + countdown 3s
+    test.setTimeout(60_000);
+
+    // --- Setup: student registered + in_progress ---
+    const contestId = await ensureStudentReady(page, "student", teacherPage);
+
+    // Navigate to precheck page
+    await page.goto(`/contests/${contestId}/paper-exam/precheck`);
+    await page.waitForLoadState("networkidle");
+
+    // --- Step 1: Identity checks (auto-pass) ---
+    // Wait for the identity checks to show "pass"
+    await expect(
+      page.locator("[data-status='pass']").filter({ hasText: /身份驗證/ })
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator("[data-status='pass']").filter({ hasText: /交卷記錄/ })
+    ).toBeVisible({ timeout: 5000 });
+
+    // Click "下一步：環境檢查"
+    const nextStepBtn = page.getByRole("button", { name: /下一步：環境檢查|Next.*Environment/i });
+    await expect(nextStepBtn).toBeEnabled({ timeout: 5000 });
+    await nextStepBtn.click();
+
+    // --- Step 2: Environment checks ---
+    // Click "開始環境測試"
+    const startEnvBtn = page.getByRole("button", { name: /開始環境測試|Start Environment/i });
+    await expect(startEnvBtn).toBeVisible({ timeout: 5000 });
+    await startEnvBtn.click();
+
+    // Wait for all 3 env checks to pass (total ~6.4s of delays)
+    await expect(
+      page.locator("[data-status='pass']").filter({ hasText: /單螢幕/ })
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator("[data-status='pass']").filter({ hasText: /全螢幕/ })
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator("[data-status='pass']").filter({ hasText: /焦點/ })
+    ).toBeVisible({ timeout: 15000 });
+
+    // Click "下一步：確認開始"
+    const confirmStepBtn = page.getByRole("button", { name: /下一步：確認開始|Next.*Confirm/i });
+    await expect(confirmStepBtn).toBeEnabled({ timeout: 5000 });
+    await confirmStepBtn.click();
+
+    // --- Step 3: Confirm and start ---
+    // Verify exam rules are visible
+    await expect(page.getByText(/考試說明/)).toBeVisible({ timeout: 5000 });
+
+    // Click "確認開始考試"
+    const startExamBtn = page.getByRole("button", { name: /確認開始考試/i });
+    await expect(startExamBtn).toBeVisible({ timeout: 5000 });
+    await startExamBtn.click();
+
+    // Should see countdown then navigate to answering page
+    await page.waitForURL(/\/paper-exam\/answering/, { timeout: 20000 });
+    expect(page.url()).toContain("/paper-exam/answering");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests — Anti-Cheat (skipped pending flow stabilisation)
 // ---------------------------------------------------------------------------
 
 // TODO: Re-enable after stabilising precheck gate + fullscreen init flow

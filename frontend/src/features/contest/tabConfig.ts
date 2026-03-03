@@ -16,13 +16,25 @@ export const getAvailableContestTabKeys = (
 
   const { permissions } = contest;
   const hasJoined = contest.hasJoined || contest.isRegistered;
+  const hasStartedExam =
+    contest.hasStarted ||
+    contest.examStatus === "in_progress" ||
+    contest.examStatus === "paused" ||
+    contest.examStatus === "locked" ||
+    contest.examStatus === "submitted";
 
-  if (!hasJoined && !permissions?.canEditContest) {
+  if (!hasJoined) {
     return ["overview"];
   }
 
-  const tabs: ContestTabKey[] = ["overview", "problems"];
+  const tabs: ContestTabKey[] = ["overview"];
   const isPaperExam = contest.contestType === "paper_exam";
+  const canAccessExamContent = hasStartedExam;
+
+  // Hide "problems" and "clarifications" before the student starts exam.
+  if (canAccessExamContent) {
+    tabs.push("problems");
+  }
 
   if (!isPaperExam) {
     tabs.push("submissions");
@@ -34,7 +46,9 @@ export const getAvailableContestTabKeys = (
     }
   }
 
-  tabs.push("clarifications");
+  if (canAccessExamContent) {
+    tabs.push("clarifications");
+  }
 
   return tabs;
 };

@@ -14,8 +14,8 @@
 ### 1. 프로젝트 복제
 
 ```bash
-git clone https://github.com/your-org/qjudge.git
-cd qjudge
+git clone https://github.com/quan0715/QJudge.git
+cd QJudge
 ```
 
 ### 2. 프론트엔드 설정
@@ -52,7 +52,7 @@ docker compose up -d judge
 ## 프로젝트 구조
 
 ```
-qjudge/
+QJudge/
 ├── frontend/          # React 프론트엔드
 │   ├── src/
 │   │   ├── domains/   # 기능 모듈
@@ -125,4 +125,3 @@ Docker 서비스가 실행 중인지 확인:
 docker ps
 docker compose logs
 ```
-

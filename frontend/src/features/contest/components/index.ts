@@ -7,6 +7,7 @@ export { default as ContestExitModal } from "./layout/ContestExitModal";
 // Modal Components
 export { AddAdminModal } from "./modals/AddAdminModal";
 export { AddParticipantModal } from "./modals/AddParticipantModal";
+export { AddUserModal } from "./modals/AddUserModal";
 export { ContestDownloadModal } from "./modals/ContestDownloadModal";
 export { ExamModeMonitorModal } from "./modals/ExamModeMonitorModal";
 
@@ -14,7 +15,9 @@ export { ExamModeMonitorModal } from "./modals/ExamModeMonitorModal";
 export { default as ExamModeWrapper } from "./ExamModeWrapper";
 export { ExamModals } from "./exam/ExamModals";
 export { ExamOverlays } from "./exam/ExamOverlays";
+export { PaperExamCore } from "./exam/PaperExamCore";
 export { default as ExamEventStats } from "./ExamEventStats";
+export { default as PaperExamResultsList } from "./exam/PaperExamResultsList";
 
 // Content Components
 export { default as ContestClarifications } from "./ContestClarifications";

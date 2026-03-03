@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Button, InlineNotification, Tag } from "@carbon/react";
+import { Button, InlineNotification } from "@carbon/react";
 import { DocumentPdf } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
-import { ExamResultsSummary } from "./exam/ExamResultsSummary";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 
@@ -58,30 +57,6 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
           hideCloseButton
           style={{ marginBottom: "1.5rem", maxWidth: "100%" }}
         />
-      )}
-
-      {/* Exam Status / Results */}
-      {contest.contestType === "paper_exam" && contest.examStatus === "submitted" && !contest.resultsPublished && (
-        <ContainerCard
-          title="考試狀態"
-          style={{ marginBottom: "1.5rem" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Tag type="teal">已交卷</Tag>
-            <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-              你的考卷正在批改中，成績發布後將顯示於此。
-            </span>
-          </div>
-        </ContainerCard>
-      )}
-
-      {contest.contestType === "paper_exam" && contest.examStatus === "submitted" && contest.resultsPublished && (
-        <ContainerCard
-          title="考試成績"
-          style={{ marginBottom: "1.5rem" }}
-        >
-          <ExamResultsSummary contestId={contest.id.toString()} />
-        </ContainerCard>
       )}
 
       {contest.rules && (

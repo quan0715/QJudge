@@ -130,6 +130,31 @@
     "viewAll": "查看全部",
     "noSubmissions": "尚無提交記錄"
   },
+  "paperExamProblems": {
+    "title": "題目與成績",
+    "openingTitle": "可檢視題目",
+    "openingDescription": "點擊題目列可進入作答畫面並定位到該題。",
+    "notRegisteredTitle": "尚未報名",
+    "notRegisteredDescription": "請先完成報名後再查看題目與成績。",
+    "gradingTitle": "批改中",
+    "gradingDescription": "你已交卷，教師正在批改，成績發布後將顯示於此。",
+    "loadFailedTitle": "題目載入失敗",
+    "loadFailed": "無法載入紙筆題目或成績資料，請稍後再試。",
+    "loadingTitle": "載入中",
+    "loadingDescription": "正在取得題目清單與成績資料...",
+    "emptyTitle": "尚無題目",
+    "emptyDescription": "此考試尚未建立題目。",
+    "notGraded": "未批改",
+    "noFeedback": "尚無評語",
+    "totalScore": "總分 {{score}} / {{total}}",
+    "headers": {
+      "prompt": "題目",
+      "type": "題型",
+      "maxScore": "滿分",
+      "score": "得分",
+      "feedback": "評語"
+    }
+  },
   "problemManage": {
     "title": "題目管理",
     "addProblem": "新增競賽題目",
@@ -304,6 +329,11 @@
     "recordingViolation": "正在記錄違規行為...",
     "abnormalBehavior": "檢測到異常操作",
     "tabHidden": "您切換了分頁",
+    "forbiddenCopy": "禁止複製或剪下內容",
+    "forbiddenPaste": "禁止貼上內容",
+    "forbiddenContextMenu": "禁止使用右鍵選單",
+    "forbiddenAction": "偵測到禁止操作",
+    "multipleDisplaysDetected": "偵測到多螢幕，請僅保留單一實體螢幕",
     "windowBlur": "您離開了視窗",
     "exitedFullscreen": "您退出了全螢幕",
     "stayInExamPage": "請保持在考試頁面並維持全螢幕模式。",

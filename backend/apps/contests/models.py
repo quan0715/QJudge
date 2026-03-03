@@ -504,6 +504,8 @@ class ExamEvent(models.Model):
         ('window_blur', 'Window Blur'),
         ('exit_fullscreen', 'Exit Fullscreen'),
         ('forbidden_focus_event', 'Forbidden Focus Event'),
+        ('forbidden_action', 'Forbidden Action'),
+        ('multiple_displays', 'Multiple Displays'),
         ('warning_timeout', 'Warning Timeout'),
         ('force_submit_locked', 'Force Submit Locked'),
     ]

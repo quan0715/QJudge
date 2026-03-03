@@ -11,6 +11,7 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 // Student Components
 import { ContestOverview } from "@/features/contest/components/ContestOverview";
 import { ContestProblemList } from "@/features/contest/components/ContestProblemList";
+import PaperExamResultsList from "@/features/contest/components/exam/PaperExamResultsList";
 import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmissionListScreen";
 import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
 import ContestQAScreen from "@/features/contest/screens/ContestQAScreen";
@@ -126,12 +127,19 @@ const ContestDashboard = () => {
           />
         );
       case "problems":
+        if (contest.contestType === "paper_exam") {
+          return (
+            <PaperExamResultsList
+              contest={contest}
+              maxWidth="1056px"
+            />
+          );
+        }
         return (
           <ContestProblemList
             contest={contest}
             problems={contest.problems || []}
             myRank={myRank}
-            currentUser={currentUser as any}
             maxWidth="1056px"
           />
         );

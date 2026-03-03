@@ -274,10 +274,17 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         if user == contest.owner:
             return Response({'error': 'Owner is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        # Only teachers or system admins can be added as co-admin
+        if not (user.is_staff or user.is_superuser or getattr(user, 'role', '') in ('teacher', 'admin')):
+            return Response(
+                {'error': 'Only teachers or admins can be added as co-admin'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         if contest.admins.filter(pk=user.pk).exists():
             return Response({'error': 'User is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         contest.admins.add(user)
         
         # Log activity
@@ -617,7 +624,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         role = get_user_role_in_contest(user, contest)
         
         # Admin/Teacher can always enter
-        if role in ['admin', 'teacher']:
+        if role in ['admin', 'owner', 'teacher']:
             return Response({'message': 'Entered successfully (Privileged)'})
 
         if contest.status == 'draft':
@@ -1129,7 +1136,7 @@ class ClarificationViewSet(viewsets.ModelViewSet):
         # Admin/Teacher see all
         contest = Contest.objects.get(id=contest_id)
         role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'teacher']:
+        if role in ['admin', 'owner', 'teacher']:
             return queryset
             
         # Students see their own + public ones
@@ -1183,7 +1190,7 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
     # Admin/Teacher bypass for Layer 1 and 2
     if allow_admin_bypass:
         role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'teacher']:
+        if role in ['admin', 'owner', 'teacher']:
             try:
                 participant = ContestParticipant.objects.get(contest=contest, user=user)
                 return participant, None
@@ -1363,7 +1370,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         # Admin/Teacher bypass
         role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'teacher']:
+        if role in ['admin', 'owner', 'teacher']:
             return Response({'status': 'ok', 'bypass': True})
         
         try:
@@ -1430,7 +1437,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         # Admin/Teacher bypass - don't log violations
         role = get_user_role_in_contest(request.user, contest)
-        if role in ['admin', 'teacher']:
+        if role in ['admin', 'owner', 'teacher']:
             return Response({'status': 'logged', 'locked': False, 'bypass': True})
         
         if participant is None:
@@ -1592,16 +1599,10 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest = contest_problem.contest
         user = request.user
         role = get_user_role_in_contest(user, contest)
-        
-        # Check if user is privileged (owner/admin/contest-admin)
-        is_privileged = user.is_authenticated and (
-            contest.owner == user or
-            user.is_staff or
-            getattr(user, 'role', '') == 'admin' or
-            contest.admins.filter(pk=user.pk).exists()
-        )
-        
-        # Privileged users can always view problem details
+
+        # Privileged users (owner/admin/co-admin) can always view problem details
+        is_privileged = role in ('admin', 'owner', 'teacher')
+
         if not is_privileged:
             # Check if registered
             try:
@@ -1663,14 +1664,15 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         
         contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
-        
-        # Check permissions (admin or teacher)
-        if not (user.is_staff or user.role in ['admin', 'teacher']):
+
+        # Check permissions using contest role
+        role = get_user_role_in_contest(user, contest)
+        if role not in ('admin', 'owner', 'teacher'):
              return Response(
-                {'detail': 'Permission denied.'}, 
+                {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-            
+
         # Use ProblemAdminSerializer to create the problem
         from apps.problems.serializers import ProblemAdminSerializer
         
@@ -1731,14 +1733,15 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         
         contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
-        
-        # Check permissions (admin or teacher)
-        if not (user.is_staff or user.role in ['admin', 'teacher']):
+
+        # Check permissions using contest role
+        role = get_user_role_in_contest(user, contest)
+        if role not in ('admin', 'owner', 'teacher'):
              return Response(
-                {'detail': 'Permission denied.'}, 
+                {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-            
+
         try:
             # Find the ContestProblem entry
             # We use problem_id because the URL structure is usually .../problems/<problem_id>/
@@ -1796,7 +1799,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
     def _is_admin(self, contest):
         role = get_user_role_in_contest(self.request.user, contest)
-        return role in ['admin', 'teacher']
+        return role in ['admin', 'owner', 'teacher']
 
     def _ensure_admin_permission(self, contest):
         if not self._is_admin(contest):
@@ -1940,7 +1943,7 @@ class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):
         contest = get_object_or_404(Contest, pk=contest_pk)
         
         role = get_user_role_in_contest(user, contest)
-        if role not in ['admin', 'teacher']:
+        if role not in ['admin', 'owner', 'teacher']:
             return ContestActivity.objects.none()
             
         return ContestActivity.objects.filter(contest=contest).order_by('-created_at')

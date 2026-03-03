@@ -12,7 +12,7 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { getExamQuestions, downloadContestFile } from "@/infrastructure/api/repositories";
-import { useExamPdfExport } from "@/features/contest/screens/examEdit/pdf/useExamPdfExport";
+import { useExamPdfExport } from "@/features/contest/components/admin/examEditor/pdf/useExamPdfExport";
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
 import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
 

@@ -11,6 +11,8 @@ export type ExamViolationType =
   | "window_blur"
   | "exit_fullscreen"
   | "forbidden_focus_event"
+  | "forbidden_action"
+  | "multiple_displays"
   | "warning_timeout"
   | "force_submit_locked";
 
@@ -39,6 +41,7 @@ export interface ContestPermissions {
   canSwitchView: boolean;
   canEditContest: boolean;
   canToggleStatus: boolean;
+  canDeleteContest: boolean;
   canPublishProblems: boolean;
   canViewAllSubmissions: boolean;
   canViewFullScoreboard: boolean;
@@ -101,6 +104,7 @@ export type ExamStatusType =
 
 export interface ContestDetail extends Contest {
   rules?: string;
+  ownerUsername?: string;
 
   // Contest type
   contestType: ContestType;

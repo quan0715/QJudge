@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.permissions import get_user_role_in_contest
 from apps.users.models import User
 
 
@@ -20,13 +21,8 @@ class SubmissionAccessPolicy:
 
     @staticmethod
     def is_privileged(user: User, contest: Contest) -> bool:
-        if user.is_staff:
-            return True
-        if getattr(user, "role", "") in ["admin", "teacher"]:
-            return True
-        if contest.owner_id == user.id:
-            return True
-        return contest.admins.filter(pk=user.pk).exists()
+        role = get_user_role_in_contest(user, contest)
+        return role in ('admin', 'owner', 'teacher')
 
     @classmethod
     def enforce_contest_submission(cls, user: User, contest: Contest) -> bool:

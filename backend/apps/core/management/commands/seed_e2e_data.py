@@ -71,19 +71,23 @@ class Command(BaseCommand):
         
         for user_data in users_data:
             username = user_data['username']
-            if User.objects.filter(username=username).exists():
-                user = User.objects.get(username=username)
-                user.set_password(user_data['password'])
-                user.role = user_data['role']
-                user.is_superuser = user_data['is_superuser']
-                user.is_staff = user_data['is_staff']
-                user.email = user_data['email']
-                user.save()
+            email = user_data['email']
+            # Look up by username OR email to handle both collision cases
+            existing = User.objects.filter(username=username).first() or User.objects.filter(email=email).first()
+            if existing:
+                existing.username = username
+                existing.email = email
+                existing.set_password(user_data['password'])
+                existing.role = user_data['role']
+                existing.is_superuser = user_data['is_superuser']
+                existing.is_staff = user_data['is_staff']
+                existing.save()
+                user = existing
                 self.stdout.write(f'  ✓ 更新用戶: {username}')
             else:
                 user = User.objects.create_user(
                     username=username,
-                    email=user_data['email'],
+                    email=email,
                     password=user_data['password']
                 )
                 user.role = user_data['role']

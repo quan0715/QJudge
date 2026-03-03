@@ -16,7 +16,7 @@ vi.mock("@/infrastructure/api/repositories", () => ({
   downloadContestFile: (...args: unknown[]) => downloadContestFileMock(...args),
 }));
 
-vi.mock("@/features/contest/screens/examEdit/pdf/useExamPdfExport", () => ({
+vi.mock("@/features/contest/components/admin/examEditor/pdf/useExamPdfExport", () => ({
   useExamPdfExport: () => ({
     exportPdf: exportPdfMock,
     generating: false,

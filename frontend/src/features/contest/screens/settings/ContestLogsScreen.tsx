@@ -48,6 +48,8 @@ const EVENT_MAP: Record<string, { label: string; severity: Severity }> = {
   window_blur: { label: "離開視窗", severity: "violation" },
   exit_fullscreen: { label: "退出全螢幕", severity: "violation" },
   forbidden_focus_event: { label: "禁止焦點事件", severity: "violation" },
+  forbidden_action: { label: "禁止操作", severity: "violation" },
+  multiple_displays: { label: "多螢幕偵測", severity: "violation" },
   cheat_warning: { label: "違規警告", severity: "violation" },
   lock: { label: "鎖定", severity: "violation" },
   lock_user: { label: "鎖定用戶", severity: "violation" },
@@ -77,7 +79,7 @@ const SEVERITY_CLASS: Record<Severity, string> = {
 
 // --- Category filter ---
 const EVENT_FILTER_OPTIONS = [
-  { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "lock_user", "cheat_warning", "lock", "tab_switch"] },
+  { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "forbidden_action", "multiple_displays", "lock_user", "cheat_warning", "lock", "tab_switch"] },
   { id: "submission", label: "程式提交", types: ["submit", "submit_code"] },
   { id: "lifecycle", label: "考試狀態", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave", "join", "ask_question"] },
   { id: "admin", label: "管理操作", types: ["unregister", "unlock_user", "unlock", "update_participant", "update_contest", "update_problem", "announce", "reply_question", "publish_problem_to_practice", "other"] },

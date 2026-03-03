@@ -254,13 +254,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
 
-        # Check if user is owner or admin
-        is_privileged = user and user.is_authenticated and (
-            obj.owner == user or
-            user.is_staff or
-            getattr(user, 'role', '') == 'admin' or
-            obj.admins.filter(pk=user.pk).exists()
-        )
+        # Check if user is owner, admin, or co-admin using contest role
+        role = get_user_role_in_contest(user, obj) if user and user.is_authenticated else 'student'
+        is_privileged = role in ('admin', 'owner', 'teacher')
 
         # Privileged users can always see problems
         if is_privileged:
@@ -623,9 +619,9 @@ class ClarificationSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             from .permissions import get_user_role_in_contest
             role = get_user_role_in_contest(request.user, contest)
-            if role in ['admin', 'teacher']:
+            if role in ['admin', 'owner', 'teacher']:
                 return obj.author.username
-        
+
         # 查找該用戶的暱稱
         participant = ContestParticipant.objects.filter(
             contest=contest, user=obj.author
@@ -780,9 +776,9 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             from .permissions import get_user_role_in_contest
             role = get_user_role_in_contest(request.user, contest)
-            if role in ['admin', 'teacher']:
+            if role in ['admin', 'owner', 'teacher']:
                 return obj.user.username
-        
+
         # 其他用戶看暱稱 (nickname 預設為 username)
         return obj.nickname or obj.user.username
 

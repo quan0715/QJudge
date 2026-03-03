@@ -9,7 +9,6 @@ import {
 } from "@react-pdf/renderer";
 import type { ContestDetail, ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 
-// ── Fonts ──────────────────────────────────────────────────────────
 Font.register({
   family: "NotoSansTC",
   fonts: [
@@ -29,7 +28,6 @@ Font.register({
   src: "https://fonts.gstatic.com/s/sourcecodepro/v31/HI_diYsKILxRpg3hIP6sJ7fM7PqPMcMnZFqUwX28DMyQhM4.ttf",
 });
 
-// ── Styles ─────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   page: {
     fontFamily: "NotoSansTC",
@@ -37,7 +35,6 @@ const styles = StyleSheet.create({
     padding: 40,
     lineHeight: 1.5,
   },
-  // Header — left-aligned, like body text
   header: {
     marginBottom: 24,
   },
@@ -56,14 +53,12 @@ const styles = StyleSheet.create({
     color: "#444",
     marginTop: 6,
   },
-  // Section
   sectionHeader: {
     fontSize: 12,
     fontWeight: 700,
     marginTop: 20,
     marginBottom: 10,
   },
-  // Question
   questionBlock: {
     marginBottom: 16,
   },
@@ -73,7 +68,6 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: 700,
   },
-  // Code block
   codeBlock: {
     fontFamily: "SourceCodePro",
     fontSize: 9,
@@ -83,7 +77,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 1.4,
   },
-  // Options
   optionRow: {
     flexDirection: "row",
     marginBottom: 2,
@@ -97,7 +90,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     flex: 1,
   },
-  // Answer
   answerLine: {
     fontSize: 10,
     fontWeight: 700,
@@ -107,7 +99,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ── Constants ──────────────────────────────────────────────────────
 const QUESTION_TYPE_LABELS: Record<ExamQuestionType, string> = {
   true_false: "是非題",
   single_choice: "單選題",
@@ -118,7 +109,6 @@ const QUESTION_TYPE_LABELS: Record<ExamQuestionType, string> = {
 
 const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
-// ── Helpers ────────────────────────────────────────────────────────
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -160,10 +150,6 @@ function formatAnswer(question: ExamQuestion): string {
   return String(correctAnswer);
 }
 
-/**
- * Split prompt into text segments and code blocks.
- * Code blocks are delimited by triple-backtick fences (```).
- */
 function parsePromptSegments(prompt: string): Array<{ type: "text" | "code"; content: string }> {
   const segments: Array<{ type: "text" | "code"; content: string }> = [];
   const parts = prompt.split(/```(?:\w*\n?)?/);
@@ -175,7 +161,6 @@ function parsePromptSegments(prompt: string): Array<{ type: "text" | "code"; con
   return segments;
 }
 
-// ── Component ──────────────────────────────────────────────────────
 interface ExamPdfDocumentProps {
   contest: ContestDetail;
   questions: ExamQuestion[];
@@ -190,7 +175,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
   const sortedQuestions = [...questions].sort((a, b) => a.order - b.order);
   const totalScore = sortedQuestions.reduce((sum, q) => sum + q.score, 0);
 
-  // Group by question type
   const grouped = sortedQuestions.reduce<Record<ExamQuestionType, ExamQuestion[]>>(
     (acc, q) => {
       if (!acc[q.questionType]) acc[q.questionType] = [];
@@ -202,7 +186,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
 
   let questionCounter = 0;
 
-  /** Render the answer block for a question (answer mode only). */
   const renderAnswer = (q: ExamQuestion) => {
     const isLongForm = q.questionType === "essay" || q.questionType === "short_answer";
     const raw = formatAnswer(q);
@@ -211,7 +194,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
       return <Text style={styles.answerLine}>Ans: {raw}</Text>;
     }
 
-    // Long-form answers may contain Markdown code blocks
     const segments = parsePromptSegments(raw);
     const hasCode = segments.some((s) => s.type === "code");
 
@@ -236,7 +218,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ── Header ── */}
         <View style={styles.header}>
           <Text style={styles.title}>{contest.name}</Text>
           <Text style={styles.headerInfo}>
@@ -254,7 +235,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
           </Text>
         </View>
 
-        {/* ── Questions ── */}
         {(Object.keys(grouped) as ExamQuestionType[]).map((type) => (
           <View key={type}>
             <Text style={styles.sectionHeader}>
@@ -271,7 +251,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
 
               return (
                 <View key={q.id} style={styles.questionBlock} wrap={false}>
-                  {/* Question text — inline when no code blocks */}
                   {!hasCode ? (
                     <Text style={styles.questionLine}>
                       <Text style={styles.bold}>{questionCounter}.</Text>
@@ -301,7 +280,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
                     </View>
                   )}
 
-                  {/* Options */}
                   {isChoice &&
                     q.options.map((opt, idx) => (
                       <View key={idx} style={styles.optionRow}>
@@ -312,7 +290,6 @@ const ExamPdfDocument: React.FC<ExamPdfDocumentProps> = ({
                       </View>
                     ))}
 
-                  {/* Answer */}
                   {mode === "answer" && renderAnswer(q)}
                 </View>
               );

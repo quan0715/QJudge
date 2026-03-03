@@ -49,6 +49,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
   return {
     ...contest,
     rules: dto.rules || dto.rule, // Handle alias
+    ownerUsername: dto.owner_username || "",
 
     contestType: dto.contest_type ?? "coding",
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
@@ -76,6 +77,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
       canSwitchView: !!dto.permissions?.can_switch_view,
       canEditContest: !!dto.permissions?.can_edit_contest,
       canToggleStatus: !!dto.permissions?.can_toggle_status,
+      canDeleteContest: !!dto.permissions?.can_delete_contest,
       canPublishProblems: !!dto.permissions?.can_publish_problems,
       canViewAllSubmissions: !!dto.permissions?.can_view_all_submissions,
       canViewFullScoreboard: !!dto.permissions?.can_view_full_scoreboard,

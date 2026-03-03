@@ -56,6 +56,8 @@ const ExamEventStatsComponent: React.FC = () => {
           userStats.totalViolations++;
           break;
         case "forbidden_focus_event":
+        case "forbidden_action":
+        case "multiple_displays":
           userStats.forbiddenFocusEventCount++;
           userStats.totalViolations++;
           break;

@@ -114,6 +114,10 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             {warningEventType === "window_blur" && t("exam.windowBlur")}
             {warningEventType === "exit_fullscreen" &&
               t("exam.exitedFullscreen")}
+            {warningEventType === "forbidden_action" &&
+              t("exam.forbiddenAction")}
+            {warningEventType === "multiple_displays" &&
+              t("exam.multipleDisplaysDetected")}
           </p>
 
           {/* Instruction */}

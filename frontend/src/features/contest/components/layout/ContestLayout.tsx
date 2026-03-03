@@ -188,7 +188,6 @@ const ContestLayout = () => {
           isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
           examStatus={contest?.examStatus}
-          currentUserRole={contest?.currentUserRole}
           onRefresh={refreshContest}
         >
           <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
@@ -222,7 +221,6 @@ const ContestLayout = () => {
           isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
           examStatus={contest?.examStatus}
-          currentUserRole={contest?.currentUserRole}
           onRefresh={refreshContest}
         >
           <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>

@@ -32,7 +32,6 @@ export interface UseExamAutoSaveReturn {
 }
 
 const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
-  // Basic info
   name: "name",
   description: "description",
   rules: "rules",
@@ -41,8 +40,9 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   status: "status",
   visibility: "visibility",
   password: "password",
-  // Exam settings
   cheatDetectionEnabled: "cheatDetectionEnabled",
+  scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
+  anonymousModeEnabled: "anonymousModeEnabled",
   maxCheatWarnings: "maxCheatWarnings",
   allowMultipleJoins: "allowMultipleJoins",
   allowAutoUnlock: "allowAutoUnlock",
@@ -74,18 +74,15 @@ export function useExamAutoSave({
     },
   });
 
-  const updateFieldState = useCallback(
-    (fieldPath: string, state: Partial<FieldSaveState>) => {
-      setFieldStates((prev) => ({
-        ...prev,
-        [fieldPath]: {
-          ...prev[fieldPath],
-          ...state,
-        },
-      }));
-    },
-    []
-  );
+  const updateFieldState = useCallback((fieldPath: string, state: Partial<FieldSaveState>) => {
+    setFieldStates((prev) => ({
+      ...prev,
+      [fieldPath]: {
+        ...prev[fieldPath],
+        ...state,
+      },
+    }));
+  }, []);
 
   const saveField = useCallback(
     async (fieldPath: string, value: unknown) => {

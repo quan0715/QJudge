@@ -109,6 +109,31 @@
     "viewAll": "すべて表示",
     "noSubmissions": "提出履歴がありません"
   },
+  "paperExamProblems": {
+    "title": "問題と成績",
+    "openingTitle": "問題を閲覧可能",
+    "openingDescription": "行をクリックすると、該当問題位置の解答画面へ移動します。",
+    "notRegisteredTitle": "未登録",
+    "notRegisteredDescription": "問題と成績を表示するには、先に参加登録してください。",
+    "gradingTitle": "採点中",
+    "gradingDescription": "解答を提出しました。教員が成績を公開すると、ここに表示されます。",
+    "loadFailedTitle": "読み込み失敗",
+    "loadFailed": "紙筆試験の問題または成績データを読み込めません。後でもう一度お試しください。",
+    "loadingTitle": "読み込み中",
+    "loadingDescription": "問題一覧と採点データを取得しています...",
+    "emptyTitle": "問題がありません",
+    "emptyDescription": "この試験にはまだ問題が作成されていません。",
+    "notGraded": "未採点",
+    "noFeedback": "フィードバックなし",
+    "totalScore": "合計 {{score}} / {{total}}",
+    "headers": {
+      "prompt": "問題",
+      "type": "種別",
+      "maxScore": "満点",
+      "score": "得点",
+      "feedback": "講評"
+    }
+  },
   "problemManage": {
     "title": "問題管理",
     "addProblem": "コンテスト問題を追加",
@@ -246,6 +271,11 @@
     "recordingViolation": "違反を記録中...",
     "abnormalBehavior": "異常な操作が検出されました",
     "tabHidden": "タブを切り替えました",
+    "forbiddenCopy": "コピーと切り取りは禁止されています",
+    "forbiddenPaste": "貼り付けは禁止されています",
+    "forbiddenContextMenu": "右クリックメニューは無効です",
+    "forbiddenAction": "禁止操作が検出されました",
+    "multipleDisplaysDetected": "複数ディスプレイが検出されました。物理的に1画面のみ接続してください。",
     "windowBlur": "ウィンドウを離れました",
     "exitedFullscreen": "フルスクリーンを解除しました",
     "stayInExamPage": "試験ページに留まり、フルスクリーンモードを維持してください。",

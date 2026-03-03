@@ -56,7 +56,8 @@ class TestBaseRolePermissions:
         """Admin should have maximum permissions."""
         admin_perms = BASE_ROLE_PERMISSIONS['admin']
 
-        assert 'manage_contest' in admin_perms
+        assert 'manage_contest_settings' in admin_perms
+        assert 'manage_contest_lifecycle' in admin_perms
         assert 'manage_participants' in admin_perms
         assert 'manage_problems' in admin_perms
         assert 'view_scoreboard_full' in admin_perms
@@ -65,11 +66,22 @@ class TestBaseRolePermissions:
         assert 'view_draft' in admin_perms
         assert 'view_archived' in admin_perms
 
+    def test_owner_permissions(self):
+        """Owner should have full permissions including lifecycle."""
+        owner_perms = BASE_ROLE_PERMISSIONS['owner']
+
+        assert 'manage_contest_settings' in owner_perms
+        assert 'manage_contest_lifecycle' in owner_perms
+        assert 'manage_participants' in owner_perms
+        assert 'view_draft' in owner_perms
+        assert 'view_archived' in owner_perms
+
     def test_teacher_permissions(self):
-        """Teacher should have most admin permissions including archived access."""
+        """Teacher (co-admin) should have settings but not lifecycle permissions."""
         teacher_perms = BASE_ROLE_PERMISSIONS['teacher']
 
-        assert 'manage_contest' in teacher_perms
+        assert 'manage_contest_settings' in teacher_perms
+        assert 'manage_contest_lifecycle' not in teacher_perms
         assert 'view_draft' in teacher_perms
         assert 'view_archived' in teacher_perms
 
@@ -77,7 +89,8 @@ class TestBaseRolePermissions:
         """Student should have limited permissions."""
         student_perms = BASE_ROLE_PERMISSIONS['student']
 
-        assert 'manage_contest' not in student_perms
+        assert 'manage_contest_settings' not in student_perms
+        assert 'manage_contest_lifecycle' not in student_perms
         assert 'view_scoreboard_limited' in student_perms
         assert 'view_own_report' in student_perms
 
@@ -167,10 +180,10 @@ class TestContestAccessPolicy:
         role = get_user_role_in_contest(admin_user, contest)
         assert role == 'admin'
 
-    def test_teacher_role_detection(self, teacher_user, contest):
-        """Contest owner should be detected as teacher role."""
+    def test_owner_role_detection(self, teacher_user, contest):
+        """Contest owner should be detected as owner role."""
         role = get_user_role_in_contest(teacher_user, contest)
-        assert role == 'teacher'
+        assert role == 'owner'
 
     def test_student_role_detection(self, student_user, contest):
         """Regular user should be detected as student role."""
@@ -466,8 +479,9 @@ class TestUtilityFunctions:
         user = setup['user']
         contest = setup['contest']
 
-        # Owner should have manage_contest
-        assert check_contest_permission(user, contest, 'manage_contest') is True
+        # Owner should have manage_contest_settings and manage_contest_lifecycle
+        assert check_contest_permission(user, contest, 'manage_contest_settings') is True
+        assert check_contest_permission(user, contest, 'manage_contest_lifecycle') is True
         assert check_contest_permission(user, contest, 'view_archived') is True
 
     def test_get_all_permissions(self, setup):
@@ -477,15 +491,16 @@ class TestUtilityFunctions:
 
         perms = get_all_permissions(user, contest)
         assert isinstance(perms, set)
-        assert 'manage_contest' in perms
+        assert 'manage_contest_settings' in perms
+        assert 'manage_contest_lifecycle' in perms
 
     def test_check_permission_anonymous(self, setup):
         """Test permission check for anonymous user."""
         contest = setup['contest']
         anon = Mock(is_authenticated=False)
 
-        assert check_contest_permission(anon, contest, 'manage_contest') is False
-        assert check_contest_permission(None, contest, 'manage_contest') is False
+        assert check_contest_permission(anon, contest, 'manage_contest_settings') is False
+        assert check_contest_permission(None, contest, 'manage_contest_settings') is False
 
 
 # ============================================================================

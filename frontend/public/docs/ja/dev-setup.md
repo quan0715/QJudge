@@ -14,8 +14,8 @@
 ### 1. プロジェクトのクローン
 
 ```bash
-git clone https://github.com/your-org/qjudge.git
-cd qjudge
+git clone https://github.com/quan0715/QJudge.git
+cd QJudge
 ```
 
 ### 2. フロントエンドセットアップ
@@ -52,7 +52,7 @@ docker compose up -d judge
 ## プロジェクト構造
 
 ```
-qjudge/
+QJudge/
 ├── frontend/          # React フロントエンド
 │   ├── src/
 │   │   ├── domains/   # 機能モジュール
@@ -125,4 +125,3 @@ Docker サービスが実行中かどうかを確認：
 docker ps
 docker compose logs
 ```
-

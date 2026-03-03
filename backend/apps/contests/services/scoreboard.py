@@ -34,7 +34,7 @@ class ScoreboardService:
     @staticmethod
     def calculate(contest: Contest, user_scope: ScoreboardScope) -> ScoreboardResult:
         role = ScoreboardService._resolve_role(user_scope.viewer, contest)
-        is_privileged = role in ("admin", "teacher")
+        is_privileged = role in ("admin", "owner", "teacher")
         show_problem_details = user_scope.mode == "export" or is_privileged
         use_export_display = user_scope.mode == "export"
         status_default: Optional[str] = "-" if user_scope.mode == "export" else None

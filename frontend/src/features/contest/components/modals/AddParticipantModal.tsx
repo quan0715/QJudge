@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, TextInput } from '@carbon/react';
+import React from "react";
+import { AddUserModal } from "./AddUserModal";
 
 interface AddParticipantModalProps {
   isOpen: boolean;
@@ -7,49 +7,17 @@ interface AddParticipantModalProps {
   onSubmit: (username: string) => Promise<void>;
 }
 
-export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit 
+export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
 }) => {
-  const [username, setUsername] = useState('');
-  const [adding, setAdding] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!username.trim()) return;
-    
-    setAdding(true);
-    try {
-      await onSubmit(username);
-      setUsername('');
-      onClose(); // Close on success
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  const handleClose = () => {
-    setUsername('');
-    onClose();
-  };
-
   return (
-    <Modal
-      open={isOpen}
-      modalHeading="新增參賽者"
-      primaryButtonText={adding ? "新增中..." : "新增"}
-      secondaryButtonText="取消"
-      onRequestSubmit={handleSubmit}
-      onRequestClose={handleClose}
-      primaryButtonDisabled={adding || !username}
-    >
-      <TextInput
-        id="username"
-        labelText="使用者名稱 (Username)"
-        placeholder="輸入要加入的使用者名稱"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-    </Modal>
+    <AddUserModal
+      role="participant"
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
   );
 };

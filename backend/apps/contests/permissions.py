@@ -8,23 +8,27 @@ from django.utils import timezone
 def get_user_role_in_contest(user, contest):
     """
     Determine user's role in a contest.
-    
-    Returns: 'student' | 'teacher' | 'admin'
+
+    Returns: 'student' | 'owner' | 'teacher' | 'admin'
+    - 'admin': system staff/superuser
+    - 'owner': contest creator
+    - 'teacher': co-admin (added via admins M2M)
+    - 'student': everyone else
     """
     if not user or not user.is_authenticated:
         return 'student'
-    
+
     if user.is_staff or user.is_superuser:
         return 'admin'
-    
+
     # Check if user is the contest owner
     if contest.owner_id == user.id:
-        return 'teacher'
-    
-    # Check if user is in the admins M2M relationship
+        return 'owner'
+
+    # Check if user is in the admins M2M relationship (co-admin)
     if contest.admins.filter(pk=user.pk).exists():
         return 'teacher'
-    
+
     return 'student'
 
 
@@ -42,17 +46,31 @@ def get_contest_permissions(user, contest):
             'can_switch_view': True,
             'can_edit_contest': True,
             'can_toggle_status': True,
+            'can_delete_contest': True,
             'can_publish_problems': True,
             'can_view_all_submissions': True,
             'can_view_full_scoreboard': True,
         }
-    
-    # Teacher (contest owner) has all permissions except some admin-only features
-    if role == 'teacher':
+
+    # Owner has full permissions
+    if role == 'owner':
         return {
             'can_switch_view': True,
             'can_edit_contest': True,
             'can_toggle_status': True,
+            'can_delete_contest': True,
+            'can_publish_problems': True,
+            'can_view_all_submissions': True,
+            'can_view_full_scoreboard': True,
+        }
+
+    # Co-admin (teacher) can manage content but not lifecycle
+    if role == 'teacher':
+        return {
+            'can_switch_view': True,
+            'can_edit_contest': True,
+            'can_toggle_status': False,
+            'can_delete_contest': False,
             'can_publish_problems': True,
             'can_view_all_submissions': True,
             'can_view_full_scoreboard': True,
@@ -70,6 +88,7 @@ def get_contest_permissions(user, contest):
         'can_switch_view': False,
         'can_edit_contest': False,
         'can_toggle_status': False,
+        'can_delete_contest': False,
         'can_publish_problems': False,
         'can_view_all_submissions': False,
         'can_view_full_scoreboard': can_view_scoreboard,

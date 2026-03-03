@@ -109,6 +109,31 @@
     "viewAll": "전체 보기",
     "noSubmissions": "제출 기록이 없습니다"
   },
+  "paperExamProblems": {
+    "title": "문제 및 성적",
+    "openingTitle": "문제 열람 가능",
+    "openingDescription": "행을 클릭하면 해당 문제 위치로 답안 화면에 진입합니다.",
+    "notRegisteredTitle": "미등록 상태",
+    "notRegisteredDescription": "문제와 성적을 보려면 먼저 대회에 등록하세요.",
+    "gradingTitle": "채점 중",
+    "gradingDescription": "답안을 제출했습니다. 교사가 성적을 게시하면 이곳에 표시됩니다.",
+    "loadFailedTitle": "로드 실패",
+    "loadFailed": "지필 시험 문제 또는 성적 데이터를 불러올 수 없습니다. 잠시 후 다시 시도하세요.",
+    "loadingTitle": "로드 중",
+    "loadingDescription": "문제 목록과 채점 데이터를 불러오는 중입니다...",
+    "emptyTitle": "문제 없음",
+    "emptyDescription": "아직 생성된 시험 문제가 없습니다.",
+    "notGraded": "미채점",
+    "noFeedback": "피드백 없음",
+    "totalScore": "총점 {{score}} / {{total}}",
+    "headers": {
+      "prompt": "문제",
+      "type": "유형",
+      "maxScore": "만점",
+      "score": "점수",
+      "feedback": "피드백"
+    }
+  },
   "problemManage": {
     "title": "문제 관리",
     "addProblem": "대회 문제 추가",
@@ -246,6 +271,11 @@
     "recordingViolation": "위반 기록 중...",
     "abnormalBehavior": "비정상적인 행동이 감지되었습니다",
     "tabHidden": "탭을 전환했습니다",
+    "forbiddenCopy": "복사 및 잘라내기는 금지되어 있습니다",
+    "forbiddenPaste": "붙여넣기는 금지되어 있습니다",
+    "forbiddenContextMenu": "우클릭 메뉴가 비활성화되었습니다",
+    "forbiddenAction": "금지된 동작이 감지되었습니다",
+    "multipleDisplaysDetected": "다중 모니터가 감지되었습니다. 물리적으로 하나의 화면만 사용해 주세요.",
     "windowBlur": "창을 떠났습니다",
     "exitedFullscreen": "전체 화면을 종료했습니다",
     "stayInExamPage": "시험 페이지에 머무르고 전체 화면 모드를 유지하세요.",
