@@ -68,7 +68,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     if (
       contest.examStatus === "not_started" ||
       contest.examStatus === "paused" ||
-      (contest.examStatus === "in_progress" && !precheckPassed)
+      (contest.examStatus === "in_progress" && contest.cheatDetectionEnabled && !precheckPassed)
     ) {
       navigate(`/contests/${contestId}/paper-exam/precheck`, { replace: true });
       return;
