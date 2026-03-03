@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { StickyTabs } from "@/shared/ui/navigation/StickyTabs";
 import {
-  getAvailableContestTabKeys,
   type ContestTabKey,
 } from "@/features/contest/tabConfig";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 interface ContestTabsProps {
   contest?: ContestDetail | null;
@@ -16,6 +16,7 @@ interface ContestTabsProps {
 const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
   const { t } = useTranslation("contest");
   const [searchParams, setSearchParams] = useSearchParams();
+  const contestModule = getContestTypeModule(contest?.contestType);
 
   const tabLabelMap: Record<ContestTabKey, string> = {
     overview: t("tabs.overview"),
@@ -25,7 +26,7 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
     clarifications: t("tabs.clarifications"),
   };
 
-  const currentTabs = getAvailableContestTabKeys(contest).map((key) => ({
+  const currentTabs = contestModule.student.getAvailableTabs(contest).map((key) => ({
     key,
     label: tabLabelMap[key],
   }));

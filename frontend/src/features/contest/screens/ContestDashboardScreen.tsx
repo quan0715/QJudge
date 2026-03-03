@@ -17,9 +17,9 @@ import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsS
 import ContestQAScreen from "@/features/contest/screens/ContestQAScreen";
 
 import {
-  getAvailableContestTabKeys,
   type ContestTabKey,
 } from "@/features/contest/tabConfig";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
@@ -59,10 +59,14 @@ const ContestDashboard = () => {
 
   const selectedTabParam = searchParams.get("tab") || "overview";
   const selectedSubmissionId = searchParams.get("submissionId");
+  const contestModule = useMemo(
+    () => getContestTypeModule(contest?.contestType),
+    [contest?.contestType],
+  );
 
   const availableTabKeys = useMemo(
-    () => getAvailableContestTabKeys(contest),
-    [contest]
+    () => contestModule.student.getAvailableTabs(contest),
+    [contest, contestModule]
   );
 
   const selectedTab = availableTabKeys.includes(selectedTabParam as ContestTabKey)
@@ -127,7 +131,7 @@ const ContestDashboard = () => {
           />
         );
       case "problems":
-        if (contest.contestType === "paper_exam") {
+        if (contestModule.student.problemsViewKind === "paper_exam") {
           return (
             <PaperExamResultsList
               contest={contest}
