@@ -1,5 +1,5 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import { buildQuery } from "@/infrastructure/api/utils/buildQuery";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type {
   Problem,
   ProblemDetail,

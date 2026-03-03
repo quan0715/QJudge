@@ -1,5 +1,5 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
-import { buildQuery } from "@/infrastructure/api/utils/buildQuery";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
 import type {
   ISubmissionRepository,

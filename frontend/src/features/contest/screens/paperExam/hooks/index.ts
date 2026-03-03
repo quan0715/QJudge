@@ -7,4 +7,4 @@ export {
   markExamPrecheckPassed,
   clearExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
-} from "./precheckGate";
+} from "./useExamPrecheckGate";

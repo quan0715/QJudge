@@ -4,9 +4,9 @@ import {
   markExamPrecheckPassed,
   clearExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
-} from "./precheckGate";
+} from "./useExamPrecheckGate";
 
-describe("precheckGate", () => {
+describe("useExamPrecheckGate", () => {
   const contestId = "contest-123";
 
   beforeEach(() => {

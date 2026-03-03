@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
-import GradingSplitPanel from "./GradingSplitPanel";
+import GradingSplitPanel from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
 import styles from "./ContestExamGrading.module.scss";
 

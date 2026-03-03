@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
-import QuestionSidebar from "./QuestionSidebar";
-import GradingSplitPanel from "./GradingSplitPanel";
+import QuestionSidebar from "./QuestionSidebarScreen";
+import GradingSplitPanel from "./GradingSplitPanelScreen";
 import type {
   GradingAnswerRow,
   QuestionProgress,
