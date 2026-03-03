@@ -194,6 +194,7 @@ export function useGradingData() {
     const subjective = answers.filter((a) => isSubjectiveType(a.questionType));
     return {
       totalStudents: studentIds.size,
+      totalParticipants: participants.length,
       totalQuestions: questionInfoMap.size,
       totalAnswers: answers.length,
       gradedAnswers,
@@ -201,14 +202,24 @@ export function useGradingData() {
       subjectiveTotal: subjective.length,
       subjectiveGraded: subjective.filter((a) => a.score !== null).length,
     };
-  }, [answers, questionInfoMap]);
+  }, [answers, questionInfoMap, participants]);
 
-  // ── Unique student list ──
+  // ── Unique student list (from all participants, not just answers) ──
   const students = useMemo(() => {
+    // Start from all participants
     const map = new Map<
       string,
       { studentId: string; username: string; nickname: string }
     >();
+    for (const p of participants) {
+      const id = String(p.userId);
+      map.set(id, {
+        studentId: id,
+        username: p.username,
+        nickname: p.nickname ?? p.displayName ?? p.username,
+      });
+    }
+    // Also include any students from answers that might not be in participants
     for (const a of answers) {
       if (!map.has(a.studentId)) {
         map.set(a.studentId, {
@@ -219,7 +230,7 @@ export function useGradingData() {
       }
     }
     return Array.from(map.values());
-  }, [answers]);
+  }, [participants, answers]);
 
   // ── Actions ──
   const gradeAnswer = useCallback(

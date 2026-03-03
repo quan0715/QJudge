@@ -1,5 +1,5 @@
 import type { ContestDetail, ExamStatusType } from "@/core/entities/contest.entity";
-import { isPaperExamContest } from "@/features/contest/domain/contestRuntimePolicy";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 type ContestRouteTarget =
   | Pick<ContestDetail, "contestType" | "problems" | "examStatus" | "cheatDetectionEnabled">
@@ -42,16 +42,11 @@ export const getFirstContestProblemId = (contest: ContestRouteTarget): string | 
 export const getPostPrecheckPath = (
   contestId: string,
   contest: ContestRouteTarget,
-): string => {
-  if (isPaperExamContest(contest)) {
-    return getContestPaperAnsweringPath(contestId);
-  }
-
-  const firstProblemId = getFirstContestProblemId(contest);
-  return firstProblemId
-    ? getContestSolvePath(contestId, firstProblemId)
-    : getContestDashboardPath(contestId);
-};
+): string =>
+  getContestTypeModule(contest?.contestType).student.getAnsweringEntryPath(
+    contestId,
+    contest as ContestDetail | null | undefined,
+  );
 
 export const getContestAnsweringEntryPath = (
   contestId: string,

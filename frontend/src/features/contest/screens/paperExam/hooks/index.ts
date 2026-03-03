@@ -1,7 +1,7 @@
 export { useCountdownTo } from "./useCountdownTo";
 export { useScrollDirection } from "./useScrollDirection";
 export { usePaperExamQuestions } from "./usePaperExamQuestions";
-export { usePaperExamAutoSave, type SaveStatus } from "./usePaperExamAutoSave";
+export { usePaperExamSaveOnLeave, type SaveStatus } from "./usePaperExamSaveOnLeave";
 export {
   hasExamPrecheckPassed,
   markExamPrecheckPassed,

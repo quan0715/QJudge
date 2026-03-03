@@ -3,9 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { StickyTabs } from "@/shared/ui/navigation/StickyTabs";
-import {
-  type ContestTabKey,
-} from "@/features/contest/tabConfig";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 interface ContestTabsProps {
@@ -17,18 +14,9 @@ const ContestTabs: React.FC<ContestTabsProps> = ({ contest, maxWidth }) => {
   const { t } = useTranslation("contest");
   const [searchParams, setSearchParams] = useSearchParams();
   const contestModule = getContestTypeModule(contest?.contestType);
-
-  const tabLabelMap: Record<ContestTabKey, string> = {
-    overview: t("tabs.overview"),
-    problems: t("tabs.problems"),
-    submissions: t("tabs.submissions"),
-    standings: t("tabs.ranking"),
-    clarifications: t("tabs.clarifications"),
-  };
-
-  const currentTabs = contestModule.student.getAvailableTabs(contest).map((key) => ({
-    key,
-    label: tabLabelMap[key],
+  const currentTabs = contestModule.student.getTabs(contest).map((tab) => ({
+    key: tab.key,
+    label: t(tab.labelKey),
   }));
 
   // Determine active tab index

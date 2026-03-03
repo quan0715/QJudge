@@ -36,6 +36,7 @@ interface ExamQuestionCardProps {
     value: unknown,
     questionType?: ExamQuestionType,
   ) => void;
+  onBlur?: (questionId: string) => void;
   readOnly?: boolean;
 }
 
@@ -44,62 +45,71 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   index,
   answer,
   onAnswerChange,
+  onBlur,
   readOnly = false,
 }) => {
   const handleChange = (value: unknown) => {
     onAnswerChange?.(question.id, value, question.questionType);
   };
 
+  const handleBlur = () => {
+    onBlur?.(question.id);
+  };
+
   const renderAnswerInput = () => {
     switch (question.questionType) {
       case "true_false":
         return (
-          <RadioButtonGroup
-            name={`q-${question.id}`}
-            legendText=""
-            orientation="vertical"
-            valueSelected={
-              answer === undefined || answer === null ? undefined : String(answer)
-            }
-            onChange={(val: string | number | undefined) =>
-              handleChange(Number(val))
-            }
-            disabled={readOnly}
-          >
-            <RadioButton labelText="是 (True)" value="0" id={`${question.id}-true`} />
-            <RadioButton labelText="否 (False)" value="1" id={`${question.id}-false`} />
-          </RadioButtonGroup>
+          <div onBlur={handleBlur}>
+            <RadioButtonGroup
+              name={`q-${question.id}`}
+              legendText=""
+              orientation="vertical"
+              valueSelected={
+                answer === undefined || answer === null ? undefined : String(answer)
+              }
+              onChange={(val: string | number | undefined) =>
+                handleChange(Number(val))
+              }
+              disabled={readOnly}
+            >
+              <RadioButton labelText="是 (True)" value="0" id={`${question.id}-true`} />
+              <RadioButton labelText="否 (False)" value="1" id={`${question.id}-false`} />
+            </RadioButtonGroup>
+          </div>
         );
 
       case "single_choice":
         return (
-          <RadioButtonGroup
-            name={`q-${question.id}`}
-            legendText=""
-            orientation="vertical"
-            valueSelected={
-              answer === undefined || answer === null ? undefined : String(answer)
-            }
-            onChange={(val: string | number | undefined) =>
-              handleChange(Number(val))
-            }
-            disabled={readOnly}
-          >
-            {question.options.map((opt, i) => (
-              <RadioButton
-                key={i}
-                labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
-                value={String(i)}
-                id={`${question.id}-opt-${i}`}
-              />
-            ))}
-          </RadioButtonGroup>
+          <div onBlur={handleBlur}>
+            <RadioButtonGroup
+              name={`q-${question.id}`}
+              legendText=""
+              orientation="vertical"
+              valueSelected={
+                answer === undefined || answer === null ? undefined : String(answer)
+              }
+              onChange={(val: string | number | undefined) =>
+                handleChange(Number(val))
+              }
+              disabled={readOnly}
+            >
+              {question.options.map((opt, i) => (
+                <RadioButton
+                  key={i}
+                  labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
+                  value={String(i)}
+                  id={`${question.id}-opt-${i}`}
+                />
+              ))}
+            </RadioButtonGroup>
+          </div>
         );
 
       case "multiple_choice": {
         const selected = (answer as number[]) || [];
         return (
-          <div className={styles.optionList}>
+          <div className={styles.optionList} onBlur={handleBlur}>
             {question.options.map((opt, i) => (
               <Checkbox
                 key={i}
@@ -130,6 +140,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleChange(e.target.value)
               }
+              onBlur={handleBlur}
               disabled={readOnly}
             />
           </div>
@@ -146,6 +157,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 handleChange(e.target.value)
               }
+              onBlur={handleBlur}
               disabled={readOnly}
             />
           </div>

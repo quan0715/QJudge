@@ -50,6 +50,7 @@ interface PaperExamCoreProps {
   renderItem: (item: ExamItem, index: number, mode: ExamViewMode) => React.ReactNode;
   styles: Record<string, string>;
   syncIndex?: number | null;
+  onActiveIndexChange?: (prevIndex: number, nextIndex: number) => void;
 }
 
 export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
@@ -60,6 +61,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   renderItem,
   styles,
   syncIndex,
+  onActiveIndexChange,
 }) => {
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -78,10 +80,11 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
       if (next !== prev) {
         setSlideDir(next > prev ? "right" : "left");
         setAnimating(true);
+        onActiveIndexChange?.(prev, next);
       }
       return next;
     });
-  }, []);
+  }, [onActiveIndexChange]);
 
   useEffect(() => {
     if (items.length === 0) return;

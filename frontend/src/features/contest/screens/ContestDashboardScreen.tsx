@@ -65,7 +65,7 @@ const ContestDashboard = () => {
   );
 
   const availableTabKeys = useMemo(
-    () => contestModule.student.getAvailableTabs(contest),
+    () => contestModule.student.getTabs(contest).map((tab) => tab.key),
     [contest, contestModule]
   );
 

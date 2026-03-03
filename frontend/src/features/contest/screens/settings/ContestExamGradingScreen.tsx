@@ -167,6 +167,7 @@ const ContestExamGradingScreen: React.FC = () => {
           <GradingByQuestionTab
             questionProgress={questionProgress}
             answersByQuestion={answersByQuestion}
+            students={students}
             onGrade={gradeAnswer}
             searchQuery={searchQuery}
             filter={filter}

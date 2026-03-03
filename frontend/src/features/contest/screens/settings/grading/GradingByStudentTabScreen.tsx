@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Pagination, Tag } from "@carbon/react";
 import GradingSplitPanel from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
@@ -81,6 +81,14 @@ export default function GradingByStudentTab({
   const currentAnswer = currentStudentAnswers[selectedAnswerIdx] ?? null;
   const hasNext = selectedAnswerIdx < currentStudentAnswers.length - 1;
 
+  // Find next student in filtered list
+  const currentStudentFilteredIdx = useMemo(() => {
+    if (!selectedStudentId) return -1;
+    return filtered.findIndex((s) => s.studentId === selectedStudentId);
+  }, [filtered, selectedStudentId]);
+
+  const hasNextStudent = currentStudentFilteredIdx >= 0 && currentStudentFilteredIdx < filtered.length - 1;
+
   const handleStudentSelect = (studentId: string) => {
     setSelectedStudentId(studentId);
     setSelectedAnswerIdx(0);
@@ -90,8 +98,15 @@ export default function GradingByStudentTab({
     if (hasNext) setSelectedAnswerIdx((i) => i + 1);
   };
 
+  const handleNextStudent = useCallback(() => {
+    if (!hasNextStudent) return;
+    const nextStudent = filtered[currentStudentFilteredIdx + 1];
+    setSelectedStudentId(nextStudent.studentId);
+    setSelectedAnswerIdx(0);
+  }, [filtered, currentStudentFilteredIdx, hasNextStudent]);
+
   return (
-    <div className={styles.twoCol}>
+    <div className={styles.threeColStudent}>
       {/* Left: Student card list */}
       <div className={styles.twoColLeft}>
         <div className={styles.cardList}>
@@ -100,7 +115,7 @@ export default function GradingByStudentTab({
               <span className={styles.emptyStateDesc}>
                 {searchQuery.trim()
                   ? "沒有符合搜尋條件的學生"
-                  : "尚無學生作答資料"}
+                  : "尚無學生資料"}
               </span>
             </div>
           ) : (
@@ -123,7 +138,9 @@ export default function GradingByStudentTab({
                   </div>
                   <div className={styles.cardSecondary}>
                     <span>{s.username}</span>
-                    {s.gradedCount === s.totalCount ? (
+                    {s.totalCount === 0 ? (
+                      <Tag type="red" size="sm">缺交</Tag>
+                    ) : s.gradedCount === s.totalCount ? (
                       <Tag type="green" size="sm">完成</Tag>
                     ) : (
                       <span>{s.gradedCount}/{s.totalCount} 完成</span>
@@ -156,39 +173,50 @@ export default function GradingByStudentTab({
         />
       </div>
 
+      {/* Middle: Question sidebar */}
+      <div className={styles.questionSidebar}>
+        {selectedStudentId && currentStudentAnswers.length > 0 ? (
+          <>
+            <div className={styles.sidebarHeader}>題目</div>
+            {currentStudentAnswers.map((a, i) => {
+              const isActive = i === selectedAnswerIdx;
+              return (
+                <div
+                  key={a.id}
+                  className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ""}`}
+                  onClick={() => setSelectedAnswerIdx(i)}
+                >
+                  <span className={styles.sidebarLabel}>Q{a.questionIndex}</span>
+                  {a.score !== null ? (
+                    <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+                  ) : (
+                    <Tag type="warm-gray" size="sm">未批</Tag>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <div className={styles.sidebarHeader}>題目</div>
+        )}
+      </div>
+
       {/* Right: Grading panel */}
       <div className={styles.panel}>
         {selectedStudentId && currentStudentAnswers.length > 0 ? (
-          <>
-            <div className={styles.answerNav}>
-              {currentStudentAnswers.map((a, i) => (
-                <Tag
-                  key={a.id}
-                  type={
-                    i === selectedAnswerIdx
-                      ? "high-contrast"
-                      : a.score !== null
-                        ? "green"
-                        : "warm-gray"
-                  }
-                  size="sm"
-                  onClick={() => setSelectedAnswerIdx(i)}
-                  style={{ cursor: "pointer" }}
-                >
-                  Q{a.questionIndex}
-                </Tag>
-              ))}
-            </div>
-            <GradingSplitPanel
-              answer={currentAnswer}
-              onGrade={onGrade}
-              onNext={handleNext}
-              hasNext={hasNext}
-            />
-          </>
+          <GradingSplitPanel
+            answer={currentAnswer}
+            onGrade={onGrade}
+            onNext={handleNext}
+            hasNext={hasNext}
+            onNextStudent={handleNextStudent}
+            hasNextStudent={hasNextStudent}
+          />
         ) : (
           <div className={styles.panelEmpty}>
-            選擇一位學生來查看其所有作答
+            {selectedStudentId
+              ? "此學生尚未提交任何作答"
+              : "選擇一位學生來查看其所有作答"}
           </div>
         )}
       </div>

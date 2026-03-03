@@ -40,6 +40,8 @@ export interface GradingAnswerRow {
   isAutoGraded: boolean;
   /** Correct answer for objective questions; null for subjective. */
   correctAnswer: unknown;
+  /** True if this is a placeholder row for a student who didn't submit. */
+  isAbsent?: boolean;
 }
 
 /** Per-question progress stats. */
@@ -59,6 +61,7 @@ export interface QuestionProgress {
 /** Global stats for the overview. */
 export interface GlobalStats {
   totalStudents: number;
+  totalParticipants: number;
   totalQuestions: number;
   totalAnswers: number;
   gradedAnswers: number;

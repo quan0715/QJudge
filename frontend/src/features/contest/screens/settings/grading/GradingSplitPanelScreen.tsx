@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, NumberInput, TextArea, Tag } from "@carbon/react";
-import { ArrowRight, Checkmark } from "@carbon/icons-react";
+import { ArrowRight, UserFollow, Checkmark } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import type { GradingAnswerRow } from "./gradingTypes";
 import { questionTypeLabel, isSubjectiveType } from "./gradingTypes";
@@ -46,6 +46,8 @@ interface GradingSplitPanelProps {
   onGrade: (answerId: string, score: number, feedback: string) => void;
   onNext?: () => void;
   hasNext?: boolean;
+  onNextStudent?: () => void;
+  hasNextStudent?: boolean;
 }
 
 export default function GradingSplitPanel({
@@ -53,6 +55,8 @@ export default function GradingSplitPanel({
   onGrade,
   onNext,
   hasNext = false,
+  onNextStudent,
+  hasNextStudent = false,
 }: GradingSplitPanelProps) {
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
@@ -81,6 +85,8 @@ export default function GradingSplitPanel({
     setSaved(true);
     if (hasNext && onNext) {
       setTimeout(() => onNext(), 300);
+    } else if (!hasNext && hasNextStudent && onNextStudent) {
+      setTimeout(() => onNextStudent(), 300);
     }
   };
 
@@ -228,6 +234,16 @@ export default function GradingSplitPanel({
               onClick={onNext}
             >
               下一題
+            </Button>
+          )}
+          {!hasNext && hasNextStudent && (
+            <Button
+              kind="secondary"
+              size="sm"
+              renderIcon={UserFollow}
+              onClick={onNextStudent}
+            >
+              下一位學生
             </Button>
           )}
           <Button

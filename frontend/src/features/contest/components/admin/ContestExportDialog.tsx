@@ -16,18 +16,13 @@ import { useExamPdfExport } from "@/features/contest/components/admin/examEditor
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
 import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
+import type { ContestExportTarget } from "@/features/contest/modules/types";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Flat value used by the radio group */
-type ExportTarget =
-  | "exam-question"   // Exam 題目卷
-  | "exam-answer"     // Exam 答案卷
-  | "exam-json"       // Exam JSON
-  | "coding-pdf"      // Coding test PDF
-  | "coding-markdown"; // Coding test Markdown
+type ExportTarget = ContestExportTarget;
 
 interface ContestExportDialogProps {
   open: boolean;
@@ -40,12 +35,17 @@ interface ContestExportDialogProps {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+const ALL_EXPORT_TARGETS: readonly ExportTarget[] = [
+  "exam-question",
+  "exam-answer",
+  "exam-json",
+  "coding-pdf",
+  "coding-markdown",
+];
+
 const isExportTarget = (value: unknown): value is ExportTarget =>
-  value === "exam-question" ||
-  value === "exam-answer" ||
-  value === "exam-json" ||
-  value === "coding-pdf" ||
-  value === "coding-markdown";
+  typeof value === "string" &&
+  ALL_EXPORT_TARGETS.includes(value as ExportTarget);
 
 const sanitizeFilename = (name: string): string => {
   // eslint-disable-next-line no-control-regex
@@ -84,10 +84,13 @@ export default function ContestExportDialog({
 }: ContestExportDialogProps) {
   const { t } = useTranslation("contest");
   const contestModule = getContestTypeModule(contest.contestType);
-  const isExamMode = contestModule.admin.exportProfile === "paper_exam";
+  const availableTargets = contestModule.admin.getExportTargets(contest);
+  const hasExamTargets = availableTargets.some((target) =>
+    target.startsWith("exam-"),
+  );
 
   // --- Shared state ---
-  const defaultTarget: ExportTarget = isExamMode ? "exam-question" : "coding-pdf";
+  const defaultTarget: ExportTarget = availableTargets[0] ?? "coding-pdf";
   const [target, setTarget] = useState<ExportTarget>(defaultTarget);
   const [busy, setBusy] = useState(false);
 
@@ -106,29 +109,35 @@ export default function ContestExportDialog({
 
   const handleTargetChange = useCallback(
     (selection: unknown, event?: { target?: { value?: unknown } }) => {
-      if (isExportTarget(selection)) {
+      if (
+        isExportTarget(selection) &&
+        availableTargets.includes(selection)
+      ) {
         setTarget(selection);
         return;
       }
 
       const eventValue = event?.target?.value;
-      if (isExportTarget(eventValue)) {
+      if (
+        isExportTarget(eventValue) &&
+        availableTargets.includes(eventValue)
+      ) {
         setTarget(eventValue);
       }
     },
-    []
+    [availableTargets]
   );
 
   // Reset state when dialog opens
   useEffect(() => {
     if (!open) return;
-    setTarget(isExamMode ? "exam-question" : "coding-pdf");
+    setTarget(defaultTarget);
     setBusy(false);
-  }, [open, isExamMode]);
+  }, [open, defaultTarget]);
 
   // Load exam questions when dialog opens (exam mode only)
   useEffect(() => {
-    if (!open || !isExamMode) return;
+    if (!open || !hasExamTargets) return;
     let cancelled = false;
     (async () => {
       setLoadingQuestions(true);
@@ -142,10 +151,11 @@ export default function ContestExportDialog({
       }
     })();
     return () => { cancelled = true; };
-  }, [open, isExamMode, contestId]);
+  }, [open, hasExamTargets, contestId]);
 
   // --- Export handler ---
   const handleExport = useCallback(async () => {
+    if (!availableTargets.includes(target)) return;
     setBusy(true);
     try {
       if (target === "exam-question" || target === "exam-answer") {
@@ -190,11 +200,13 @@ export default function ContestExportDialog({
     layout,
     contest.name,
     onClose,
+    availableTargets,
   ]);
 
-  const isExamTarget = target === "exam-question" || target === "exam-answer" || target === "exam-json";
+  const isExamTarget = target.startsWith("exam-");
   const isCodingPdf = target === "coding-pdf";
-  const noExamQuestions = isExamMode && !loadingQuestions && examQuestions.length === 0;
+  const noExamQuestions =
+    isExamTarget && hasExamTargets && !loadingQuestions && examQuestions.length === 0;
   const exporting = busy || examGenerating;
 
   return (
@@ -202,102 +214,112 @@ export default function ContestExportDialog({
       <ModalHeader title="匯出檔案" />
       <ModalBody>
         {/* Loading state for exam questions */}
-        {isExamMode && loadingQuestions && (
+        {hasExamTargets && loadingQuestions && (
           <InlineLoading description="載入題目中..." />
         )}
 
-        {/* No exam questions */}
-        {isExamMode && noExamQuestions && (
-          <p style={{ color: "var(--cds-text-secondary)" }}>
+        {/* Target selection */}
+        <RadioButtonGroup
+          legendText="選擇匯出內容"
+          name="export-target"
+          valueSelected={target}
+          onChange={(selection, _name, event) => handleTargetChange(selection, event)}
+          orientation="vertical"
+        >
+          {availableTargets.map((value) => {
+            if (value === "exam-question") {
+              return (
+                <RadioButton
+                  key="export-exam-question"
+                  id="export-exam-question"
+                  labelText="題目卷 — 僅包含題目與選項"
+                  value="exam-question"
+                />
+              );
+            }
+            if (value === "exam-answer") {
+              return (
+                <RadioButton
+                  key="export-exam-answer"
+                  id="export-exam-answer"
+                  labelText="答案卷 — 包含題目、選項與正確答案"
+                  value="exam-answer"
+                />
+              );
+            }
+            if (value === "exam-json") {
+              return (
+                <RadioButton
+                  key="export-exam-json"
+                  id="export-exam-json"
+                  labelText={`${t("examJson.exportOption")} — 匯出可重新匯入的題目檔`}
+                  value="exam-json"
+                />
+              );
+            }
+            if (value === "coding-markdown") {
+              return (
+                <RadioButton
+                  key="export-coding-markdown"
+                  id="export-coding-markdown"
+                  labelText="Markdown — 題目匯出為 Markdown 檔案"
+                  value="coding-markdown"
+                />
+              );
+            }
+            return (
+              <RadioButton
+                key="export-coding-pdf"
+                id="export-coding-pdf"
+                labelText="PDF — 題目匯出為 PDF 檔案"
+                value="coding-pdf"
+              />
+            );
+          })}
+        </RadioButtonGroup>
+
+        {isExamTarget && noExamQuestions && (
+          <p style={{ color: "var(--cds-text-secondary)", marginTop: "1rem" }}>
             目前沒有題目，請先新增題目後再匯出。
           </p>
         )}
 
-        {/* Target selection */}
-        {!(isExamMode && (loadingQuestions || noExamQuestions)) && (
-          <>
-            <RadioButtonGroup
-              legendText="選擇匯出內容"
-              name="export-target"
-              valueSelected={target}
-              onChange={(selection, _name, event) => handleTargetChange(selection, event)}
-              orientation="vertical"
-            >
-              {isExamMode
-                ? [
-                    <RadioButton
-                      key="export-exam-question"
-                      id="export-exam-question"
-                      labelText="題目卷 — 僅包含題目與選項"
-                      value="exam-question"
-                    />,
-                    <RadioButton
-                      key="export-exam-answer"
-                      id="export-exam-answer"
-                      labelText="答案卷 — 包含題目、選項與正確答案"
-                      value="exam-answer"
-                    />,
-                    <RadioButton
-                      key="export-exam-json"
-                      id="export-exam-json"
-                      labelText={`${t("examJson.exportOption")} — 匯出可重新匯入的題目檔`}
-                      value="exam-json"
-                    />,
-                  ]
-                : [
-                    <RadioButton
-                      key="export-coding-pdf"
-                      id="export-coding-pdf"
-                      labelText="PDF — 題目匯出為 PDF 檔案"
-                      value="coding-pdf"
-                    />,
-                    <RadioButton
-                      key="export-coding-markdown"
-                      id="export-coding-markdown"
-                      labelText="Markdown — 題目匯出為 Markdown 檔案"
-                      value="coding-markdown"
-                    />,
-                  ]}
-            </RadioButtonGroup>
+        {/* Coding test PDF/Markdown options */}
+        {!isExamTarget && (
+          <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <Dropdown
+              id="export-language"
+              titleText={t("download.language")}
+              label={t("download.selectLanguage")}
+              items={LANGUAGE_OPTIONS}
+              itemToString={(item) => item?.label ?? ""}
+              selectedItem={LANGUAGE_OPTIONS.find((l) => l.id === language)}
+              onChange={({ selectedItem }) => { if (selectedItem) setLanguage(selectedItem.id); }}
+            />
 
-            {/* Coding test PDF/Markdown options */}
-            {!isExamTarget && (
-              <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {isCodingPdf && (
+              <>
                 <Dropdown
-                  id="export-language"
-                  titleText={t("download.language")}
-                  label={t("download.selectLanguage")}
-                  items={LANGUAGE_OPTIONS}
+                  id="export-scale"
+                  titleText={t("download.scale")}
+                  label={t("download.selectScale")}
+                  items={SCALE_OPTIONS}
                   itemToString={(item) => item?.label ?? ""}
-                  selectedItem={LANGUAGE_OPTIONS.find((l) => l.id === language)}
-                  onChange={({ selectedItem }) => { if (selectedItem) setLanguage(selectedItem.id); }}
+                  selectedItem={SCALE_OPTIONS.find((s) => s.id === scale)}
+                  onChange={({ selectedItem }) => { if (selectedItem) setScale(selectedItem.id); }}
                 />
-
-                {isCodingPdf && (
-                  <>
-                    <Dropdown
-                      id="export-scale"
-                      titleText={t("download.scale")}
-                      label={t("download.selectScale")}
-                      items={SCALE_OPTIONS}
-                      itemToString={(item) => item?.label ?? ""}
-                      selectedItem={SCALE_OPTIONS.find((s) => s.id === scale)}
-                      onChange={({ selectedItem }) => { if (selectedItem) setScale(selectedItem.id); }}
-                    />
-                    <Dropdown
-                      id="export-layout"
-                      titleText={t("download.layout")}
-                      label={t("download.selectLayout")}
-                      items={LAYOUT_OPTIONS}
-                      itemToString={(item) => item?.label ?? ""}
-                      selectedItem={LAYOUT_OPTIONS.find((l) => l.id === layout)}
-                      onChange={({ selectedItem }) => { if (selectedItem) setLayout(selectedItem.id); }}
-                    />
-                  </>
-                )}
-              </div>
+                <Dropdown
+                  id="export-layout"
+                  titleText={t("download.layout")}
+                  label={t("download.selectLayout")}
+                  items={LAYOUT_OPTIONS}
+                  itemToString={(item) => item?.label ?? ""}
+                  selectedItem={LAYOUT_OPTIONS.find((l) => l.id === layout)}
+                  onChange={({ selectedItem }) => { if (selectedItem) setLayout(selectedItem.id); }}
+                />
+              </>
             )}
-          </>
+          </div>
         )}
       </ModalBody>
       <ModalFooter>
@@ -306,7 +328,7 @@ export default function ContestExportDialog({
         </Button>
         <Button
           kind="primary"
-          disabled={exporting || (isExamMode && (loadingQuestions || noExamQuestions))}
+          disabled={exporting || (isExamTarget && (loadingQuestions || noExamQuestions))}
           onClick={handleExport}
         >
           {exporting ? "匯出中..." : "匯出"}

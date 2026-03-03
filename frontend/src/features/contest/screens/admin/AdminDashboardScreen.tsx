@@ -54,8 +54,8 @@ const AdminDashboardInner = () => {
   const kpi = useMemo(() => computeMockKpi(participants), [participants]);
   const [exportOpen, setExportOpen] = useState(false);
 
-  const isExamMode = contestModule.admin.examEditorKind === "paper_exam";
-  const showExamJsonActions = contestModule.admin.shouldShowExamJsonActions(activePanel);
+  const isExamMode = contestModule.admin.editorKind === "paper_exam";
+  const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
@@ -104,7 +104,7 @@ const AdminDashboardInner = () => {
         return <ContestParticipantsScreen />;
       case "exam": {
         if (!contest) return null;
-        const useExamEditor = contestModule.admin.examEditorKind === "paper_exam";
+        const useExamEditor = contestModule.admin.editorKind === "paper_exam";
         return useExamEditor ? (
           <ExamEditorLayout
             ref={examEditorRef}

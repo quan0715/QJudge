@@ -20,7 +20,7 @@ import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import {
   useCountdownTo,
   usePaperExamQuestions,
-  usePaperExamAutoSave,
+  usePaperExamSaveOnLeave,
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
 } from "./hooks";
@@ -52,7 +52,36 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const isInProgress = contest?.examStatus === "in_progress";
   const countdown = useCountdownTo(contest?.endTime);
 
-  const { handleAnswerChange, saveStatus } = usePaperExamAutoSave({ contestId, setAnswers });
+  const { markDirty, saveIfDirty, flushAll, saveStatus } = usePaperExamSaveOnLeave({
+    contestId,
+    answers,
+    items,
+  });
+
+  const handleAnswerChange = useCallback(
+    (questionId: string, value: unknown) => {
+      setAnswers((prev) => ({ ...prev, [questionId]: value }));
+      markDirty(questionId);
+    },
+    [setAnswers, markDirty],
+  );
+
+  const handleBlur = useCallback(
+    (questionId: string) => {
+      void saveIfDirty(questionId);
+    },
+    [saveIfDirty],
+  );
+
+  const handleActiveIndexChange = useCallback(
+    (prevIndex: number) => {
+      const prevItem = items[prevIndex];
+      if (prevItem?.kind === "question") {
+        void saveIfDirty(prevItem.data.id);
+      }
+    },
+    [items, saveIfDirty],
+  );
 
   useInterval(() => {
     heartbeat().catch(() => {});
@@ -63,12 +92,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
-      submitExam().finally(() => {
-        setAutoSubmitted(true);
-        if (isFullscreen()) exitFullscreen().catch(() => {});
-      });
+      flushAll()
+        .then(() => submitExam())
+        .finally(() => {
+          setAutoSubmitted(true);
+          if (isFullscreen()) exitFullscreen().catch(() => {});
+        });
     }
-  }, [countdown.remaining, isInProgress, contestId, submitExam]);
+  }, [countdown.remaining, isInProgress, contestId, submitExam, flushAll]);
 
   useEffect(() => {
     if (!contestId || contest?.contestType !== "paper_exam") return;
@@ -110,10 +141,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
           index={index}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
+          onBlur={handleBlur}
         />
       );
     },
-    [answers, handleAnswerChange]
+    [answers, handleAnswerChange, handleBlur]
   );
 
   if (autoSubmitted) {
@@ -156,6 +188,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
       styles={styles}
       syncIndex={syncIndex}
       renderItem={renderItem}
+      onActiveIndexChange={handleActiveIndexChange}
       toolbarLeft={(
         <>
           <Button
@@ -194,9 +227,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
             kind="primary"
             size="sm"
             renderIcon={SendFilled}
-            onClick={() =>
-              contestId && navigate(getContestPaperSubmitReviewPath(contestId))
-            }
+            onClick={async () => {
+              await flushAll();
+              if (contestId) navigate(getContestPaperSubmitReviewPath(contestId));
+            }}
           >
             交卷
           </Button>

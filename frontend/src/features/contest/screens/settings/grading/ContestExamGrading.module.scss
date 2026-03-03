@@ -284,15 +284,19 @@
 }
 
 /* ══════════════════════════════════════════════════
-   Two-column split (ByStudent)
+   Three-column split (ByStudent)
    ══════════════════════════════════════════════════ */
 
-.twoCol {
+.threeColStudent {
   display: grid;
-  grid-template-columns: 1fr 480px;
+  grid-template-columns: 1fr 180px 480px;
   gap: 0;
   height: 100%;
   overflow: hidden;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr 160px 400px;
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -307,6 +311,14 @@
   overflow: hidden;
   border-right: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer);
+}
+
+.questionSidebar {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-02, var(--cds-layer));
 }
 
 /* ══════════════════════════════════════════════════

@@ -12,6 +12,7 @@ import styles from "./ContestExamGrading.module.scss";
 interface GradingByQuestionTabProps {
   questionProgress: QuestionProgress[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
+  students: { studentId: string; username: string; nickname: string }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
   filter: GradingFilter;
@@ -20,6 +21,7 @@ interface GradingByQuestionTabProps {
 export default function GradingByQuestionTab({
   questionProgress,
   answersByQuestion,
+  students,
   onGrade,
   searchQuery,
   filter,
@@ -31,12 +33,42 @@ export default function GradingByQuestionTab({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  // Current question's answers (filtered + searched)
+  // Current question's answers (filtered + searched), including absent placeholders
   const currentAnswers = useMemo(() => {
-    let rows = answersByQuestion.get(selectedQuestionId) ?? [];
+    const existingRows = answersByQuestion.get(selectedQuestionId) ?? [];
+    const qInfo = questionProgress.find((q) => q.questionId === selectedQuestionId);
+
+    // Build set of students who have answered this question
+    const answeredStudentIds = new Set(existingRows.map((r) => r.studentId));
+
+    // Create absent placeholder rows for students with no answer
+    const absentRows: GradingAnswerRow[] = students
+      .filter((s) => !answeredStudentIds.has(s.studentId))
+      .map((s) => ({
+        id: `absent-${s.studentId}-${selectedQuestionId}`,
+        studentId: s.studentId,
+        studentUsername: s.username,
+        studentNickname: s.nickname,
+        questionId: selectedQuestionId,
+        questionIndex: qInfo?.questionIndex ?? 0,
+        questionPrompt: qInfo?.prompt ?? "",
+        questionType: qInfo?.questionType ?? "short_answer",
+        questionOptions: [],
+        maxScore: qInfo?.maxScore ?? 0,
+        answerContent: {},
+        score: null,
+        feedback: "",
+        gradedBy: null,
+        gradedAt: null,
+        isAutoGraded: false,
+        correctAnswer: null,
+        isAbsent: true,
+      }));
+
+    let rows = [...existingRows, ...absentRows];
 
     if (filter === "graded") rows = rows.filter((r) => r.score !== null);
-    if (filter === "ungraded") rows = rows.filter((r) => r.score === null);
+    if (filter === "ungraded") rows = rows.filter((r) => r.score === null && !r.isAbsent);
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -48,7 +80,7 @@ export default function GradingByQuestionTab({
     }
 
     return rows;
-  }, [answersByQuestion, selectedQuestionId, filter, searchQuery]);
+  }, [answersByQuestion, selectedQuestionId, filter, searchQuery, students, questionProgress]);
 
   // Reset page on filter/search change
   useEffect(() => {
@@ -119,15 +151,19 @@ export default function GradingByQuestionTab({
           ) : (
             paginatedAnswers.map((a) => {
               const isSelected = a.id === selectedAnswerId;
+              const isAbsent = a.isAbsent === true;
               return (
                 <div
                   key={a.id}
                   className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
-                  onClick={() => setSelectedAnswerId(a.id)}
+                  onClick={isAbsent ? undefined : () => setSelectedAnswerId(a.id)}
+                  style={isAbsent ? { cursor: "default", opacity: 0.7 } : undefined}
                 >
                   <div className={styles.cardPrimary}>
                     <span>{a.studentNickname}</span>
-                    {a.score !== null ? (
+                    {isAbsent ? (
+                      <Tag type="red" size="sm">缺交</Tag>
+                    ) : a.score !== null ? (
                       <span style={{ fontWeight: 600, color: "var(--cds-support-success)" }}>
                         {a.score}/{a.maxScore}
                       </span>
@@ -138,7 +174,7 @@ export default function GradingByQuestionTab({
                   <div className={styles.cardSecondary}>
                     <span>{a.studentUsername}</span>
                     <span>
-                      {a.gradedBy === "system" ? (
+                      {isAbsent ? "" : a.gradedBy === "system" ? (
                         <Tag type="cyan" size="sm">自動</Tag>
                       ) : a.gradedBy ?? ""}
                     </span>
