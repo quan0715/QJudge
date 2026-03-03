@@ -248,7 +248,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     const contestId = await ensureStudentReady(page, "student", teacherPage);
 
     // Navigate to precheck page
-    await page.goto(`/contests/${contestId}/paper-exam/precheck`);
+    await page.goto(`/contests/${contestId}/exam-precheck`);
     await page.waitForLoadState("networkidle");
 
     // --- Step 1: Identity checks (auto-pass) ---
