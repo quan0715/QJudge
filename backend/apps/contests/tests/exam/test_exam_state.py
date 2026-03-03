@@ -22,7 +22,7 @@ class ExamStateTests(APITestCase):
             owner=self.admin,
             visibility='public',
             status='published',
-            exam_mode_enabled=True,
+            cheat_detection_enabled=True,
             allow_auto_unlock=True,
             auto_unlock_minutes=10
         )

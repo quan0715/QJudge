@@ -32,7 +32,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),  # Ended 5 mins ago
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -54,7 +54,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Active Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),  # Still running
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -75,7 +75,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -98,7 +98,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -118,7 +118,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -139,7 +139,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Normal Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=False  # Not exam mode
+            status='published', cheat_detection_enabled=False  # Not exam mode
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=self.student,
@@ -159,7 +159,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Inactive Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         ContestParticipant.objects.create(
             contest=inactive_contest, user=self.student,
@@ -179,7 +179,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Active Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         ContestParticipant.objects.create(
             contest=active_contest, user=self.student,
@@ -190,7 +190,7 @@ class AutoSubmitTaskTests(TestCase):
             name='Ended Inactive Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),
-            status='published', exam_mode_enabled=True
+            status='published', cheat_detection_enabled=True
         )
         ContestParticipant.objects.create(
             contest=inactive_contest, user=User.objects.create_user(
@@ -225,7 +225,7 @@ class HeartbeatTimeoutTaskTests(TestCase):
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
             status='published',
-            exam_mode_enabled=True,
+            cheat_detection_enabled=True,
         )
         stale_at = timezone.now() - timedelta(minutes=3)
         participant = ContestParticipant.objects.create(
@@ -269,7 +269,7 @@ class AutoUnlockTaskTests(TestCase):
             name='Active Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),  # Still active
-            status='published', exam_mode_enabled=True,
+            status='published', cheat_detection_enabled=True,
             allow_auto_unlock=True, auto_unlock_minutes=10
         )
         participant = ContestParticipant.objects.create(
@@ -295,7 +295,7 @@ class AutoUnlockTaskTests(TestCase):
             name='Active Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
-            status='published', exam_mode_enabled=True,
+            status='published', cheat_detection_enabled=True,
             allow_auto_unlock=True, auto_unlock_minutes=10
         )
         participant = ContestParticipant.objects.create(
@@ -318,7 +318,7 @@ class AutoUnlockTaskTests(TestCase):
             name='Ended Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(minutes=5),  # Ended
-            status='published', exam_mode_enabled=True,
+            status='published', cheat_detection_enabled=True,
             allow_auto_unlock=True, auto_unlock_minutes=10
         )
         participant = ContestParticipant.objects.create(
@@ -340,7 +340,7 @@ class AutoUnlockTaskTests(TestCase):
             name='Active Contest', owner=self.admin,
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
-            status='published', exam_mode_enabled=True,
+            status='published', cheat_detection_enabled=True,
             allow_auto_unlock=False  # Disabled
         )
         participant = ContestParticipant.objects.create(

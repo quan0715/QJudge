@@ -5242,7 +5242,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式
@@ -5318,7 +5318,7 @@ components:
           nullable: true
           title: 密碼
           maxLength: 255
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式
@@ -5402,7 +5402,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式
@@ -5545,7 +5545,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式
@@ -6506,7 +6506,7 @@ components:
           nullable: true
           title: 密碼
           maxLength: 255
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式
@@ -6584,7 +6584,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
-        exam_mode_enabled:
+        cheat_detection_enabled:
           type: boolean
           title: 啟用考試模式
           description: 啟用全螢幕與防失焦的嚴格考試模式

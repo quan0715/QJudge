@@ -53,7 +53,7 @@ class ExamAntiCheatTests(APITestCase):
             owner=self.teacher,
             visibility="public",
             status="published",
-            exam_mode_enabled=True,
+            cheat_detection_enabled=True,
             max_cheat_warnings=3,
             allow_auto_unlock=False,
         )

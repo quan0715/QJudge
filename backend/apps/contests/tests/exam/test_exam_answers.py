@@ -30,7 +30,7 @@ class ExamAnswerTestBase(APITestCase):
             owner=self.teacher,
             visibility='public',
             status='published',
-            exam_mode_enabled=True,
+            cheat_detection_enabled=True,
         )
         self.participant = ContestParticipant.objects.create(
             contest=self.contest,

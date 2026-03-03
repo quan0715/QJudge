@@ -161,7 +161,7 @@ class TestPDFRendererSnapshots:
             description='Testing PDF rendering',
             owner=user,
             status='published',
-            exam_mode_enabled=True,
+            cheat_detection_enabled=True,
         )
 
         problem = Problem.objects.create(
