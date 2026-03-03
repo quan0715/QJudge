@@ -1,15 +1,12 @@
 import React, {
   createContext,
   useContext,
-  useState,
-  useEffect,
-  useCallback,
   useMemo,
 } from "react";
 import type { ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { getContest } from "@/infrastructure/api/repositories";
-import type { ContestDetail } from "@/core/entities/contest.entity";
+import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
+import { ContestProvider, useContest } from "@/features/contest/contexts/ContestContext";
 
 interface PaperExamContextType {
   contest: ContestDetail | null;
@@ -22,44 +19,14 @@ const PaperExamContext = createContext<PaperExamContextType | undefined>(undefin
 
 interface PaperExamProviderProps {
   children: ReactNode;
+  contestId?: string;
+  initialContest?: ContestDetail | null;
+  initialScoreboardData?: ScoreboardData | null;
+  onRefresh?: () => Promise<void>;
 }
 
-export const PaperExamProvider: React.FC<PaperExamProviderProps> = ({ children }) => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const [contest, setContest] = useState<ContestDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchContest = useCallback(async () => {
-    if (!contestId) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setError(null);
-      const data = await getContest(contestId);
-      setContest(data || null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load contest";
-      setError(message);
-      setContest(null);
-    }
-  }, [contestId]);
-
-  const refreshContest = useCallback(async () => {
-    await fetchContest();
-  }, [fetchContest]);
-
-  useEffect(() => {
-    if (contestId) {
-      const init = async () => {
-        setLoading(true);
-        await fetchContest();
-        setLoading(false);
-      };
-      init();
-    }
-  }, [contestId, fetchContest]);
+const PaperExamContextBridge: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { contest, loading, error, refreshContest } = useContest();
 
   const value = useMemo(
     () => ({ contest, loading, error, refreshContest }),
@@ -68,6 +35,28 @@ export const PaperExamProvider: React.FC<PaperExamProviderProps> = ({ children }
 
   return (
     <PaperExamContext.Provider value={value}>{children}</PaperExamContext.Provider>
+  );
+};
+
+export const PaperExamProvider: React.FC<PaperExamProviderProps> = ({
+  children,
+  contestId: propContestId,
+  initialContest,
+  initialScoreboardData,
+  onRefresh,
+}) => {
+  const params = useParams<{ contestId: string }>();
+  const contestId = propContestId || params.contestId;
+
+  return (
+    <ContestProvider
+      contestId={contestId}
+      initialContest={initialContest}
+      initialScoreboardData={initialScoreboardData}
+      onRefresh={onRefresh}
+    >
+      <PaperExamContextBridge>{children}</PaperExamContextBridge>
+    </ContestProvider>
   );
 };
 
