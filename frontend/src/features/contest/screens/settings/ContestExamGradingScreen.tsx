@@ -5,6 +5,7 @@ import {
   Loading,
   Search,
   Dropdown,
+  Button,
 } from "@carbon/react";
 import {
   GradingByQuestionTab,
@@ -13,12 +14,16 @@ import {
   gradingFilterOptions,
 } from "./grading";
 import type { GradingFilter } from "./grading";
+import { isSubjectiveType } from "./grading/gradingTypes";
+import { useToast } from "@/shared/contexts/ToastContext";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 const ContestExamGradingScreen: React.FC = () => {
   const [viewMode, setViewMode] = useState<0 | 1>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<GradingFilter>("all");
+  const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
+  const { showToast } = useToast();
 
   const {
     answers,
@@ -27,8 +32,15 @@ const ContestExamGradingScreen: React.FC = () => {
     questionProgress,
     students,
     gradeAnswer,
+    regradeObjectiveAnswers,
+    regradingObjective,
     loading,
   } = useGradingData();
+
+  const objectiveAnswerCount = useMemo(
+    () => answers.filter((row) => !isSubjectiveType(row.questionType)).length,
+    [answers],
+  );
 
   // Compute visible count for display
   const visibleCount = useMemo(() => {
@@ -49,6 +61,24 @@ const ContestExamGradingScreen: React.FC = () => {
     setViewMode((e.index ?? 0) as 0 | 1);
     setSearchQuery("");
     setFilter("all");
+  };
+
+  const handleRegradeObjective = async () => {
+    const result = await regradeObjectiveAnswers();
+    setObjectiveRegradedOnce(true);
+    if (result.failed > 0) {
+      showToast({
+        kind: "warning",
+        title: "客觀題重新批改完成（部分失敗）",
+        subtitle: `更新 ${result.updated} 筆，失敗 ${result.failed} 筆，略過 ${result.skipped} 筆`,
+      });
+      return;
+    }
+    showToast({
+      kind: "success",
+      title: "客觀題重新批改完成",
+      subtitle: `更新 ${result.updated} 筆，略過 ${result.skipped} 筆`,
+    });
   };
 
   if (loading) {
@@ -110,6 +140,18 @@ const ContestExamGradingScreen: React.FC = () => {
             size="sm"
             className={styles.toolbarFilter}
           />
+        )}
+
+        {objectiveAnswerCount > 0 && (
+          <Button
+            kind="ghost"
+            size="sm"
+            disabled={regradingObjective || objectiveRegradedOnce}
+            onClick={handleRegradeObjective}
+            className={styles.toolbarAction}
+          >
+            {objectiveRegradedOnce ? "客觀題已重新批改" : "客觀題重新批改（一次）"}
+          </Button>
         )}
 
         {visibleCount !== null && (

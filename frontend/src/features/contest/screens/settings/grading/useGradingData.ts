@@ -12,6 +12,7 @@ import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestion
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { useContestAdmin } from "@/features/contest/contexts";
 import { isSubjectiveType } from "./gradingTypes";
+import { calculateObjectiveExpectedScore } from "./objectiveRegrade";
 import type {
   GradingAnswerRow,
   QuestionProgress,
@@ -25,6 +26,7 @@ export function useGradingData() {
 
   const [answers, setAnswers] = useState<GradingAnswerRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [regradingObjective, setRegradingObjective] = useState(false);
 
   // Build participant map
   const participantMap = useMemo(() => {
@@ -256,6 +258,58 @@ export function useGradingData() {
     void fetchData();
   }, [fetchData]);
 
+  const regradeObjectiveAnswers = useCallback(async () => {
+    if (!contestId) {
+      return { total: 0, updated: 0, failed: 0, skipped: 0 };
+    }
+
+    const objectiveRows = answers.filter((row) => !isSubjectiveType(row.questionType));
+    if (objectiveRows.length === 0) {
+      return { total: 0, updated: 0, failed: 0, skipped: 0 };
+    }
+
+    setRegradingObjective(true);
+    let updated = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    try {
+      for (const row of objectiveRows) {
+        const expected = calculateObjectiveExpectedScore(row);
+        if (expected === null) {
+          skipped += 1;
+          continue;
+        }
+
+        if (row.score !== null && Number(row.score) === expected) {
+          skipped += 1;
+          continue;
+        }
+
+        try {
+          await gradeExamAnswer(contestId, row.id, {
+            score: expected,
+            feedback: row.feedback || "Objective regrade",
+          });
+          updated += 1;
+        } catch (error) {
+          console.error("Failed to regrade objective answer:", error);
+          failed += 1;
+        }
+      }
+    } finally {
+      await fetchData();
+      setRegradingObjective(false);
+    }
+
+    return {
+      total: objectiveRows.length,
+      updated,
+      failed,
+      skipped,
+    };
+  }, [answers, contestId, fetchData]);
+
   return {
     answers,
     answersByQuestion,
@@ -264,6 +318,8 @@ export function useGradingData() {
     globalStats,
     students,
     gradeAnswer,
+    regradeObjectiveAnswers,
+    regradingObjective,
     refreshData,
     loading,
   };

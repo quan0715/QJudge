@@ -36,7 +36,7 @@ const SAVE_STATUS_LABEL: Record<string, string> = {
 const PaperExamAnsweringScreen: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, heartbeat, submitExam } = usePaperExamFlow();
+  const { contestId, contest, heartbeat, submitExam, refreshContest } = usePaperExamFlow();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -48,6 +48,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   useInterval(() => {
     heartbeat().catch(() => {});
+    refreshContest().catch(() => {});
   }, isInProgress ? 30000 : null);
 
   useEffect(() => {
