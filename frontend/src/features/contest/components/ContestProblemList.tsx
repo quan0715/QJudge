@@ -12,6 +12,7 @@ import {
   ProblemTable,
   type ProblemRowData,
 } from "@/features/problems/components/list";
+import { hasStartedExam } from "@/features/contest/domain/contestRuntimePolicy";
 
 interface ContestProblemListProps {
   contest: ContestDetail;
@@ -30,12 +31,7 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   const navigate = useNavigate();
   const { contestId } = useParams<{ contestId: string }>();
 
-  const hasStartedExam =
-    contest.hasStarted ||
-    contest.examStatus === "in_progress" ||
-    contest.examStatus === "paused" ||
-    contest.examStatus === "locked" ||
-    contest.examStatus === "submitted";
+  const startedExam = hasStartedExam(contest);
 
   const tableProblems: ProblemRowData[] = problems.map((problem) => ({
     ...problem,
@@ -52,7 +48,7 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   }));
 
   const handleRowClick = (problem: ProblemRowData) => {
-    if (!hasStartedExam || !contestId) return;
+    if (!startedExam || !contestId) return;
     const targetId = problem.problemId || problem.id;
     navigate(`/contests/${contestId}/solve/${targetId}`);
   };

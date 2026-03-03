@@ -1,4 +1,10 @@
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import {
+  canAccessExamContent,
+  canShowStandingsTab,
+  canShowSubmissionsTab,
+  isContestParticipant,
+} from "@/features/contest/domain/contestRuntimePolicy";
 
 export type ContestTabKey =
   | "overview"
@@ -14,39 +20,25 @@ export const getAvailableContestTabKeys = (
     return ["overview"];
   }
 
-  const { permissions } = contest;
-  const hasJoined = contest.hasJoined || contest.isRegistered;
-  const hasStartedExam =
-    contest.hasStarted ||
-    contest.examStatus === "in_progress" ||
-    contest.examStatus === "paused" ||
-    contest.examStatus === "locked" ||
-    contest.examStatus === "submitted";
-
-  if (!hasJoined) {
+  if (!isContestParticipant(contest)) {
     return ["overview"];
   }
 
   const tabs: ContestTabKey[] = ["overview"];
-  const isPaperExam = contest.contestType === "paper_exam";
-  const canAccessExamContent = hasStartedExam;
 
   // Hide "problems" and "clarifications" before the student starts exam.
-  if (canAccessExamContent) {
+  if (canAccessExamContent(contest)) {
     tabs.push("problems");
   }
 
-  if (!isPaperExam) {
+  if (canShowSubmissionsTab(contest)) {
     tabs.push("submissions");
-    if (
-      permissions?.canViewFullScoreboard ||
-      contest.scoreboardVisibleDuringContest
-    ) {
+    if (canShowStandingsTab(contest)) {
       tabs.push("standings");
     }
   }
 
-  if (canAccessExamContent) {
+  if (canAccessExamContent(contest)) {
     tabs.push("clarifications");
   }
 

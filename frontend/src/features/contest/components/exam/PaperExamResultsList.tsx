@@ -23,6 +23,10 @@ import {
   type ExamAnswerDetail,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
+import {
+  canOpenPaperAnsweringFromDashboard,
+  isContestParticipant,
+} from "@/features/contest/domain/contestRuntimePolicy";
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
   true_false: "是非題",
@@ -49,13 +53,8 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [results, setResults] = useState<ExamAnswerDetail[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const canQueryExamData = contest.hasJoined || contest.isRegistered;
-
-  const canOpenAnswering =
-    canQueryExamData &&
-    (contest.examStatus === "in_progress" ||
-      contest.examStatus === "paused" ||
-      contest.examStatus === "locked");
+  const canQueryExamData = isContestParticipant(contest);
+  const canOpenAnswering = canOpenPaperAnsweringFromDashboard(contest);
   const resultsPublished = contest.resultsPublished === true;
 
   useEffect(() => {
