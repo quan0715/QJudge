@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-push 檢查腳本
-# 在 push 前確保前端 lint、build 和 Docker 環境正常
+# 在 push 前確保前端 lint、build、E2E 與 Docker 配置正常
 
 set -e
 
@@ -83,7 +83,22 @@ else
     exit 1
 fi
 
-# ==================== 5. Docker 環境啟動測試（可選）====================
+# ==================== 5. 前端 E2E 檢查 ====================
+if [ "$SKIP_E2E" = "true" ]; then
+    print_warning "已跳過 E2E 檢查（SKIP_E2E=true）"
+else
+    print_step "執行前端 E2E 測試..."
+    cd frontend
+    if E2E_CLEANUP=true npm run test:e2e; then
+        print_success "前端 E2E 測試通過"
+    else
+        print_error "前端 E2E 測試失敗"
+        exit 1
+    fi
+    cd "$PROJECT_ROOT"
+fi
+
+# ==================== 6. Docker 環境啟動測試（可選）====================
 # if [ "$SKIP_DOCKER_START" != "true" ]; then
 #     print_step "測試 Docker 環境啟動..."
     

@@ -24,6 +24,8 @@
 ## 提交前最低檢查
 
 - frontend: `npm run lint`
+- frontend: `npm run build`
+- frontend: `npm run test:e2e`（改由本地 pre-push 執行，不在 GitHub CI 跑）
 - backend: 以 `config.settings.test` 跑至少一條 smoke test
 - docker dev 服務可正常啟動
 
