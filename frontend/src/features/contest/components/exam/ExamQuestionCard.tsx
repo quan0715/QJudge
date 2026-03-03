@@ -31,7 +31,11 @@ interface ExamQuestionCardProps {
   question: ExamQuestion;
   index: number;
   answer?: unknown;
-  onAnswerChange?: (questionId: string, value: unknown) => void;
+  onAnswerChange?: (
+    questionId: string,
+    value: unknown,
+    questionType?: ExamQuestionType,
+  ) => void;
   readOnly?: boolean;
 }
 
@@ -43,7 +47,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   readOnly = false,
 }) => {
   const handleChange = (value: unknown) => {
-    onAnswerChange?.(question.id, value);
+    onAnswerChange?.(question.id, value, question.questionType);
   };
 
   const renderAnswerInput = () => {
@@ -54,12 +58,16 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
             name={`q-${question.id}`}
             legendText=""
             orientation="vertical"
-            valueSelected={answer as string | undefined}
-            onChange={(val: string | number | undefined) => handleChange(String(val ?? ""))}
+            valueSelected={
+              answer === undefined || answer === null ? undefined : String(answer)
+            }
+            onChange={(val: string | number | undefined) =>
+              handleChange(Number(val))
+            }
             disabled={readOnly}
           >
-            <RadioButton labelText="是 (True)" value="true" id={`${question.id}-true`} />
-            <RadioButton labelText="否 (False)" value="false" id={`${question.id}-false`} />
+            <RadioButton labelText="是 (True)" value="0" id={`${question.id}-true`} />
+            <RadioButton labelText="否 (False)" value="1" id={`${question.id}-false`} />
           </RadioButtonGroup>
         );
 
@@ -69,8 +77,12 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
             name={`q-${question.id}`}
             legendText=""
             orientation="vertical"
-            valueSelected={answer as string | undefined}
-            onChange={(val: string | number | undefined) => handleChange(String(val ?? ""))}
+            valueSelected={
+              answer === undefined || answer === null ? undefined : String(answer)
+            }
+            onChange={(val: string | number | undefined) =>
+              handleChange(Number(val))
+            }
             disabled={readOnly}
           >
             {question.options.map((opt, i) => (

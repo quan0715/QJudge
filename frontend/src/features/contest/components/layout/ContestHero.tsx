@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button, Modal, TextInput } from "@carbon/react";
-import { PlayFilled, Login, Flag, WarningAltFilled } from "@carbon/icons-react";
+import {
+  PlayFilled,
+  Login,
+  Flag,
+  WarningAltFilled,
+  Launch,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -63,6 +69,7 @@ interface ContestHeroProps {
   onLeave?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
+  onGoToAnswering?: () => void;
   onTabChange?: (tab: string) => void;
   onRefreshContest?: () => Promise<void>;
   maxWidth?: string;
@@ -74,6 +81,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onJoin,
   onStartExam,
   onEndExam,
+  onGoToAnswering,
   onRefreshContest,
   maxWidth,
 }) => {
@@ -318,6 +326,11 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         // Step 2: In progress - show end exam button
         return (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            {onGoToAnswering && (
+              <Button kind="tertiary" renderIcon={Launch} onClick={onGoToAnswering}>
+                {t("hero.goToAnswering")}
+              </Button>
+            )}
             {onEndExam && (
               <Button
                 kind="danger--tertiary"

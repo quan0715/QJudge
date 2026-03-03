@@ -78,7 +78,8 @@
     "anonymousModeHint": "Anonymous mode is enabled. You can set a nickname. The scoreboard and submission list will display your nickname instead of your real account.",
     "nicknameOptional": "Nickname (Optional)",
     "leaveBlankForDefault": "Leave blank to use default account name",
-    "canChangeNicknameLater": "You can change your nickname after registration."
+    "canChangeNicknameLater": "You can change your nickname after registration.",
+    "goToAnswering": "Go to Answering"
   },
   "avatar": {
     "participant": "Participant",

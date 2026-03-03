@@ -22,7 +22,10 @@ export function useContestLayoutState() {
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
   const isUpcoming = contestState === "upcoming";
-  const isAdmin = !!contest?.permissions?.canEditContest;
+  const hasManagementRole =
+    contest?.currentUserRole !== undefined &&
+    contest.currentUserRole !== "student";
+  const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
   const shouldWarnOnExit = !!(
     contest?.cheatDetectionEnabled &&

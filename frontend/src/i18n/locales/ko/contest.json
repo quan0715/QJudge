@@ -78,7 +78,8 @@
     "anonymousModeHint": "익명 모드가 활성화되어 있습니다. 닉네임을 설정할 수 있습니다. 스코어보드와 제출 목록에는 실제 계정 이름 대신 닉네임이 표시됩니다.",
     "nicknameOptional": "닉네임 (선택)",
     "leaveBlankForDefault": "비워두면 기본 계정 이름 사용",
-    "canChangeNicknameLater": "등록 후 닉네임을 변경할 수 있습니다."
+    "canChangeNicknameLater": "등록 후 닉네임을 변경할 수 있습니다.",
+    "goToAnswering": "응시 화면으로"
   },
   "avatar": {
     "participant": "참가자",

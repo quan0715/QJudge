@@ -76,6 +76,22 @@ const ContestLayout = () => {
     setErrorModalOpen(true);
   };
 
+  const handleGoToAnswering = () => {
+    if (!contestId || !contest) return;
+
+    if (contest.contestType === "paper_exam") {
+      navigate(`/contests/${contestId}/paper-exam/answering`);
+      return;
+    }
+
+    const firstProblem = [...(contest.problems ?? [])].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0),
+    )[0];
+    const targetProblemId = firstProblem?.problemId || firstProblem?.id;
+    if (!targetProblemId) return;
+    navigate(`/contests/${contestId}/solve/${targetProblemId}`);
+  };
+
   const {
     handleJoin,
     handleLeave,
@@ -206,6 +222,7 @@ const ContestLayout = () => {
             onLeave={handleLeave}
             onStartExam={handleStartExam}
             onEndExam={handleEndExam}
+            onGoToAnswering={handleGoToAnswering}
             onRefreshContest={refreshContest}
             maxWidth="1056px"
           />

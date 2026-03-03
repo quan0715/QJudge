@@ -99,7 +99,8 @@
     "anonymousModeHint": "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
     "nicknameOptional": "暱稱 (選填)",
     "leaveBlankForDefault": "留空則使用預設帳號名稱",
-    "canChangeNicknameLater": "您可以在報名後隨時修改暱稱。"
+    "canChangeNicknameLater": "您可以在報名後隨時修改暱稱。",
+    "goToAnswering": "前往作答"
   },
   "avatar": {
     "participant": "參賽者",

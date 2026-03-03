@@ -78,7 +78,8 @@
     "anonymousModeHint": "匿名モードが有効です。ニックネームを設定できます。スコアボードと提出リストには実際のアカウント名の代わりにニックネームが表示されます。",
     "nicknameOptional": "ニックネーム（任意）",
     "leaveBlankForDefault": "空欄のままにするとデフォルトのアカウント名を使用",
-    "canChangeNicknameLater": "登録後にニックネームを変更できます。"
+    "canChangeNicknameLater": "登録後にニックネームを変更できます。",
+    "goToAnswering": "解答画面へ"
   },
   "avatar": {
     "participant": "参加者",
