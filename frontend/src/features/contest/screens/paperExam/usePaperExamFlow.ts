@@ -7,6 +7,7 @@ import {
   endExam,
   sendExamHeartbeat,
 } from "@/infrastructure/api/repositories";
+import { isFullscreen } from "@/core/usecases/exam";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -82,7 +83,7 @@ export const usePaperExamFlow = () => {
     const id = guardContestId();
     return sendExamHeartbeat(id, {
       is_focused: document.hasFocus(),
-      is_fullscreen: !!document.fullscreenElement,
+      is_fullscreen: isFullscreen(),
     });
   };
 

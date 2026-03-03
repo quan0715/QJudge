@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ExamModeState, ExamStatusType } from "@/core/entities/contest.entity";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { isFullscreen } from "@/core/usecases/exam";
 
 export interface UseExamStateProps {
   contestId: string;
@@ -8,7 +9,7 @@ export interface UseExamStateProps {
   lockReason?: string;
   isBypassed: boolean;
   onRefresh?: () => Promise<void>;
-  requestFullscreen: () => Promise<void>;
+  requestFullscreen: () => Promise<unknown>;
 }
 
 export function useExamState({
@@ -113,7 +114,7 @@ export function useExamState({
     setShowWarning(false);
 
     if (lastApiResponse?.locked) {
-      if (!document.fullscreenElement) {
+      if (!isFullscreen()) {
         try {
           await requestFullscreen();
         } catch (error) {
@@ -123,7 +124,7 @@ export function useExamState({
       if (onRefresh) onRefresh();
     } else {
       isProcessingEventRef.current = false;
-      if (!document.fullscreenElement) {
+      if (!isFullscreen()) {
         try {
           await requestFullscreen();
         } catch (error) {
@@ -138,7 +139,7 @@ export function useExamState({
 
   const handleUnlockContinue = useCallback(async () => {
     setShowUnlockNotification(false);
-    if (!document.fullscreenElement) {
+    if (!isFullscreen()) {
       try {
         await requestFullscreen();
       } catch (error) {

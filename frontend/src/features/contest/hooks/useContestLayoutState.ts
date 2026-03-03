@@ -3,7 +3,12 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
 import { isContestEnded, getContestState } from "@/core/entities/contest.entity";
-import { syncExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/precheckGate";
+import { syncExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
+import {
+  isExamMonitoringActive,
+  shouldWarnOnExit as shouldWarnOnExitByPolicy,
+} from "@/features/contest/domain/contestRuntimePolicy";
+import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
 
 export function useContestLayoutState() {
   const { contestId } = useParams<{ contestId: string }>();
@@ -18,7 +23,7 @@ export function useContestLayoutState() {
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
   const isSolvePage = location.pathname.includes("/solve/");
-  const isExamActive = !!(contest?.cheatDetectionEnabled && contest?.examStatus === "in_progress");
+  const isExamActive = isExamMonitoringActive(contest);
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
   const isUpcoming = contestState === "upcoming";
@@ -27,14 +32,7 @@ export function useContestLayoutState() {
     contest.currentUserRole !== "student";
   const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
-  const shouldWarnOnExit = !!(
-    contest?.cheatDetectionEnabled &&
-    contest?.status === "published" &&
-    !hasEnded &&
-    (contest?.examStatus === "in_progress" ||
-      contest?.examStatus === "paused" ||
-      contest?.examStatus === "locked")
-  );
+  const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
@@ -142,12 +140,7 @@ export function useContestLayoutState() {
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const isFullscreenNow = !!(
-        document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
-        (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
-      );
-      setIsFullscreen(isFullscreenNow);
+      setIsFullscreen(isFullscreenMode());
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);

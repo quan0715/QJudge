@@ -6,13 +6,15 @@ import {
   leaveExamUseCase,
   requestFullscreen,
   exitFullscreen,
+  isFullscreen,
 } from "@/core/usecases/exam";
 import {
   joinContestUseCase,
   leaveContestUseCase,
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
-import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/precheckGate";
+import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
+import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -120,12 +122,7 @@ export const useContestExamActions = ({
 
     try {
       const shouldEndExam =
-        contest.cheatDetectionEnabled &&
-        contest.status === "published" &&
-        !hasEnded &&
-        (contest.examStatus === "in_progress" ||
-          contest.examStatus === "paused" ||
-          contest.examStatus === "locked");
+        shouldForceEndExamOnExit(contest, hasEnded);
 
       const result = await leaveExamUseCase({
         contestId: contest.id,
@@ -143,7 +140,7 @@ export const useContestExamActions = ({
 
   const toggleFullscreen = useCallback(async () => {
     try {
-      if (!document.fullscreenElement) {
+      if (!isFullscreen()) {
         await requestFullscreen();
       } else {
         await exitFullscreen();

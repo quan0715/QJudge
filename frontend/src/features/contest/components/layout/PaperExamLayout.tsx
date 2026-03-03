@@ -11,8 +11,6 @@ const PaperExamLayoutContent: React.FC = () => {
     <ExamModeWrapper
       contestId={contestId || ""}
       cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-      isActive={contest?.examStatus === "in_progress"}
-      isLocked={contest?.examStatus === "locked"}
       lockReason={contest?.lockReason}
       examStatus={contest?.examStatus}
       onRefresh={refreshContest}

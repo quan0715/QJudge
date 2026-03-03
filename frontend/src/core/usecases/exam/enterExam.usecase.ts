@@ -8,6 +8,7 @@
  */
 
 import { startExam } from "@/infrastructure/api/repositories";
+export { requestFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 
 // ============================================================================
 // Types
@@ -24,34 +25,6 @@ export interface EnterExamOutput {
   navigateTo?: string;
   error?: string;
 }
-
-// ============================================================================
-// Fullscreen Utilities
-// ============================================================================
-
-export const requestFullscreen = async (): Promise<boolean> => {
-  try {
-    const elem = document.documentElement as HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void>;
-      msRequestFullscreen?: () => Promise<void>;
-    };
-
-    if (elem.requestFullscreen) {
-      await elem.requestFullscreen();
-    } else if (elem.webkitRequestFullscreen) {
-      await elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-      await elem.msRequestFullscreen();
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// ============================================================================
-// Use Case Implementation
-// ============================================================================
 
 export async function enterExamUseCase(
   input: EnterExamInput

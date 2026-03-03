@@ -16,14 +16,17 @@ import {
   Cursor_1 as CursorIcon,
   ArrowRight,
 } from "@carbon/icons-react";
-import { requestFullscreen } from "@/features/contest/hooks/useContestExamActions";
+import { requestFullscreen, isFullscreen } from "@/core/usecases/exam";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import {
   hasExamPrecheckPassed,
   markExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
-} from "./hooks/precheckGate";
+} from "./hooks/useExamPrecheckGate";
+import {
+  getPostPrecheckPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import styles from "./ExamPrecheck.module.scss";
 
 type CheckStatus = "pending" | "running" | "pass" | "fail";
@@ -46,17 +49,7 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const getPostPrecheckRoute = useCallback(() => {
     if (!contestId) return "";
-    if (contest?.contestType === "paper_exam") {
-      return `/contests/${contestId}/paper-exam/answering`;
-    }
-    // Coding contest: go to problem list
-    const firstProblem = [...(contest?.problems ?? [])].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0),
-    )[0];
-    const pid = firstProblem?.problemId || firstProblem?.id;
-    return pid
-      ? `/contests/${contestId}/solve/${pid}`
-      : `/contests/${contestId}`;
+    return getPostPrecheckPath(contestId, contest);
   }, [contest, contestId]);
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -240,7 +233,7 @@ const ExamPrecheckScreen: React.FC = () => {
     (async () => {
       const started = await startSession();
       if (!started || !contestId) { setCountdown(null); return; }
-      if (!document.fullscreenElement) await requestFullscreen();
+      if (!isFullscreen()) await requestFullscreen();
       markExamPrecheckPassed(contestId);
       navigate(getPostPrecheckRoute());
     })();

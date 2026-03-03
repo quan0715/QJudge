@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { isFullscreen } from "@/core/usecases/exam";
 
 const BLUR_DEBOUNCE_MS = 200;
 const FOCUS_CHECK_DELAY_MS = 50;
@@ -141,7 +142,7 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
     };
 
     const handleFullscreenChange = async () => {
-      if (!document.fullscreenElement) {
+      if (!isFullscreen()) {
         await onViolation("exit_fullscreen", t("exam.exitedFullscreen"));
       }
     };

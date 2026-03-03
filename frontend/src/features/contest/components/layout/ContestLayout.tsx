@@ -33,6 +33,7 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
+import { getContestAnsweringEntryPath } from "@/features/contest/domain/contestRoutePolicy";
 import styles from "./ContestLayout.module.scss";
 
 const ContestLayout = () => {
@@ -44,7 +45,6 @@ const ContestLayout = () => {
     isFullscreen,
     isRefreshing,
     isSolvePage,
-    isExamActive,
     hasEnded,
     isUpcoming,
     isAdmin,
@@ -78,18 +78,7 @@ const ContestLayout = () => {
 
   const handleGoToAnswering = () => {
     if (!contestId || !contest) return;
-
-    if (contest.contestType === "paper_exam") {
-      navigate(`/contests/${contestId}/paper-exam/answering`);
-      return;
-    }
-
-    const firstProblem = [...(contest.problems ?? [])].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0),
-    )[0];
-    const targetProblemId = firstProblem?.problemId || firstProblem?.id;
-    if (!targetProblemId) return;
-    navigate(`/contests/${contestId}/solve/${targetProblemId}`);
+    navigate(getContestAnsweringEntryPath(contestId, contest));
   };
 
   const {
@@ -200,8 +189,6 @@ const ContestLayout = () => {
         <ExamModeWrapper
           contestId={contestId || ""}
           cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-          isActive={!!isExamActive}
-          isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
           examStatus={contest?.examStatus}
           onRefresh={refreshContest}
@@ -234,8 +221,6 @@ const ContestLayout = () => {
         <ExamModeWrapper
           contestId={contestId || ""}
           cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-          isActive={!!isExamActive}
-          isLocked={contest?.examStatus === "locked"}
           lockReason={contest?.lockReason}
           examStatus={contest?.examStatus}
           onRefresh={refreshContest}

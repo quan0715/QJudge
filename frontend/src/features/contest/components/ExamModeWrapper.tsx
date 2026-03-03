@@ -2,23 +2,24 @@ import { useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { endExam as serviceEndExam } from "@/infrastructure/api/repositories";
-import { exitFullscreen, requestFullscreen } from "@/features/contest/hooks/useContestExamActions";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
+import { isPathWithinContest } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  exitFullscreen,
+  isFullscreen,
+  requestFullscreen,
+} from "@/core/usecases/exam";
 
 interface ExamModeWrapperProps {
   contestId: string;
   cheatDetectionEnabled: boolean;
-  isActive: boolean;
-  isLocked?: boolean;
   lockReason?: string;
   examStatus?: ExamStatusType;
-  onExamStart?: () => void;
-  onExamEnd?: () => void;
   onRefresh?: () => Promise<void>;
   children: ReactNode;
 }
@@ -26,11 +27,11 @@ interface ExamModeWrapperProps {
 const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   contestId,
   cheatDetectionEnabled,
-  lockReason,
-  examStatus,
-  onRefresh,
-  children,
-}) => {
+    lockReason,
+    examStatus,
+    onRefresh,
+    children,
+  }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,13 +53,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     lockReason,
     isBypassed: false,
     onRefresh,
-    requestFullscreen: async () => {
-      try {
-        await document.documentElement.requestFullscreen();
-      } catch (error) {
-        console.error("Failed to re-enter fullscreen:", error);
-      }
-    },
+    requestFullscreen,
   });
 
   // 2. Monitoring Hook
@@ -80,9 +75,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     const shouldBeInFullscreen =
       examStatus === "in_progress" || examStatus === "locked" || examStatus === "paused";
 
-    if (shouldBeInFullscreen && !document.fullscreenElement) {
+    if (shouldBeInFullscreen && !isFullscreen()) {
       const timer = setTimeout(() => {
-        if (!document.fullscreenElement && !isSubmittingFromFullscreenExit) {
+        if (!isFullscreen() && !isSubmittingFromFullscreenExit) {
           setShowFullscreenExitConfirm(true);
         }
         initialFullscreenCheckDone.current = true;
@@ -96,8 +91,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // Fullscreen transition flows for submit / locked states
   useEffect(() => {
     if (examStatus === "submitted") {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch((e) => {
+      if (isFullscreen()) {
+        exitFullscreen().catch((e) => {
           console.warn("Failed to exit fullscreen on submit:", e);
         });
       }
@@ -106,11 +101,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (
       cheatDetectionEnabled &&
       (examStatus === "locked" || examStatus === "paused") &&
-      !document.fullscreenElement
+      !isFullscreen()
     ) {
       setTimeout(() => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch((e) => {
+        if (!isFullscreen()) {
+          requestFullscreen().catch((e) => {
             console.warn("[Exam] Failed to enter fullscreen for locked/paused state:", e);
           });
         }
@@ -126,7 +121,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (!shouldMonitorFullscreen) return;
 
     const handleFullscreenExitForLockedPaused = () => {
-      if (!document.fullscreenElement && !isSubmittingFromFullscreenExit) {
+      if (!isFullscreen() && !isSubmittingFromFullscreenExit) {
         setShowFullscreenExitConfirm(true);
       }
     };
@@ -148,7 +143,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       console.error("Failed to submit exam:", error);
       setShowFullscreenExitConfirm(false);
       try {
-        await document.documentElement.requestFullscreen();
+        await requestFullscreen();
       } catch (e) {
         console.error("Failed to re-enter fullscreen:", e);
       }
@@ -160,17 +155,14 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleFullscreenExitCancel = async () => {
     setShowFullscreenExitConfirm(false);
     try {
-      await document.documentElement.requestFullscreen();
+      await requestFullscreen();
     } catch (error) {
       console.error("Failed to re-enter fullscreen:", error);
     }
   };
 
   const isAllowedPath = () => {
-    const path = location.pathname;
-    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
-    const contestBase = `/contests/${contestId}`;
-    return normalizedPath === contestBase || normalizedPath.startsWith(`${contestBase}/`);
+    return isPathWithinContest({ contestId, pathname: location.pathname });
   };
 
   const shouldShowLockScreen = examState.isLocked && !isAllowedPath();
@@ -218,57 +210,3 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 };
 
 export default ExamModeWrapper;
-
-export const createExamHandlers = (
-  contestId: string,
-  cheatDetectionEnabled: boolean,
-  onSuccess?: () => void,
-  userId?: string,
-  unlockParticipant?: (contestId: string, userId: string) => Promise<void>
-) => {
-  const startExam = async () => {
-    try {
-      if (unlockParticipant && userId) {
-        await unlockParticipant(contestId, userId);
-      } else {
-        console.warn("unlockParticipant or userId not provided to createExamHandlers. Skipping unlock.");
-      }
-
-      if (cheatDetectionEnabled) {
-        try {
-          await requestFullscreen();
-        } catch (error) {
-          console.error("Failed to enter fullscreen:", error);
-        }
-      }
-
-      onSuccess?.();
-      return true;
-    } catch (error) {
-      console.error("Failed to start exam:", error);
-      return false;
-    }
-  };
-
-  const endExam = async () => {
-    try {
-      await serviceEndExam(contestId);
-
-      if (document.fullscreenElement) {
-        try {
-          await exitFullscreen();
-        } catch (error) {
-          console.error("Failed to exit fullscreen:", error);
-        }
-      }
-
-      onSuccess?.();
-      return true;
-    } catch (error) {
-      console.error("Failed to end exam:", error);
-      return false;
-    }
-  };
-
-  return { startExam, endExam };
-};

@@ -21,7 +21,12 @@ import type { ExamQuestion } from "@/core/entities/contest.entity";
 import {
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
-} from "./hooks/precheckGate";
+} from "./hooks/useExamPrecheckGate";
+import {
+  getContestDashboardPath,
+  getPaperSubmitReviewBackPath,
+} from "@/features/contest/domain/contestRoutePolicy";
+import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 
 const PaperExamSubmitReviewScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -57,8 +62,8 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
 
   // Exit fullscreen after submission
   useEffect(() => {
-    if (contest?.examStatus === "submitted" && document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+    if (contest?.examStatus === "submitted" && isFullscreen()) {
+      exitFullscreen().catch(() => {});
     }
   }, [contest?.examStatus]);
 
@@ -68,14 +73,13 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
   }, [contest?.examStatus, contestId]);
 
   const backToExamRoute =
-    contestId &&
-    (contest?.examStatus === "paused" ||
-      (contest?.examStatus === "in_progress" &&
-        !hasExamPrecheckPassed(contestId)))
-      ? `/contests/${contestId}/exam-precheck`
-      : contestId
-        ? `/contests/${contestId}/paper-exam/answering`
-        : "";
+    contestId
+      ? getPaperSubmitReviewBackPath({
+          contestId,
+          examStatus: contest?.examStatus,
+          precheckPassed: hasExamPrecheckPassed(contestId),
+        })
+      : "";
 
   const canSubmit =
     contest?.examStatus === "in_progress" ||
@@ -91,7 +95,7 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
     const success = await submitExam();
     if (!success || !contestId) return;
     // Phase 2: 交卷後導回主頁
-    navigate(`/contests/${contestId}`);
+    navigate(getContestDashboardPath(contestId));
   };
 
   return (

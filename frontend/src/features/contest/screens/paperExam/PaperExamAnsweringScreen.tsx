@@ -26,6 +26,13 @@ import {
 } from "./hooks";
 import type { ExamItem } from "../../types/exam.types";
 import styles from "./PaperExamAnswering.module.scss";
+import {
+  getContestDashboardPath,
+  getContestPaperSubmitReviewPath,
+  shouldRouteToPrecheck,
+  getContestPrecheckPath,
+} from "@/features/contest/domain/contestRoutePolicy";
+import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 
 const SAVE_STATUS_LABEL: Record<string, string> = {
   idle: "",
@@ -58,7 +65,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
       submitExam().finally(() => {
         setAutoSubmitted(true);
-        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        if (isFullscreen()) exitFullscreen().catch(() => {});
       });
     }
   }, [countdown.remaining, isInProgress, contestId, submitExam]);
@@ -69,20 +76,19 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
     const precheckPassed = hasExamPrecheckPassed(contestId);
 
-    if (contest.cheatDetectionEnabled) {
-      if (
-        contest.examStatus === "not_started" ||
-        contest.examStatus === "paused" ||
-        (contest.examStatus === "in_progress" && !precheckPassed)
-      ) {
-        navigate(`/contests/${contestId}/exam-precheck`, { replace: true });
-        return;
-      }
+    if (
+      shouldRouteToPrecheck({
+        contest,
+        precheckPassed,
+      })
+    ) {
+      navigate(getContestPrecheckPath(contestId), { replace: true });
+      return;
     }
 
     if (contest.examStatus === "submitted") {
       setAutoSubmitted(true);
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      if (isFullscreen()) exitFullscreen().catch(() => {});
     }
   }, [contest?.contestType, contest?.examStatus, contestId, navigate]);
 
@@ -117,7 +123,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>考試已結束，系統已自動交卷</span>
         <Button
           kind="primary"
-          onClick={() => contestId && navigate(`/contests/${contestId}`)}
+          onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
           style={{ marginTop: "1rem" }}
         >
           回到競賽主頁
@@ -158,7 +164,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             hasIconOnly
             renderIcon={ChevronLeft}
             iconDescription="返回競賽主頁"
-            onClick={() => contestId && navigate(`/contests/${contestId}`)}
+            onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
           />
           <span className={styles.title}>{contest?.name ?? "考試"}</span>
           {contest?.cheatDetectionEnabled && (
@@ -188,7 +194,9 @@ const PaperExamAnsweringScreen: React.FC = () => {
             kind="primary"
             size="sm"
             renderIcon={SendFilled}
-            onClick={() => contestId && navigate(`/contests/${contestId}/paper-exam/submit-review`)}
+            onClick={() =>
+              contestId && navigate(getContestPaperSubmitReviewPath(contestId))
+            }
           >
             交卷
           </Button>

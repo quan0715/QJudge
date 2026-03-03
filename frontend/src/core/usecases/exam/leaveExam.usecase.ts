@@ -8,6 +8,8 @@
  */
 
 import { endExam } from "@/infrastructure/api/repositories";
+import { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
+export { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 
 // ============================================================================
 // Types
@@ -23,36 +25,6 @@ export interface LeaveExamOutput {
   navigateTo: string;
   error?: string;
 }
-
-// ============================================================================
-// Fullscreen Utilities
-// ============================================================================
-
-export const exitFullscreen = async (): Promise<boolean> => {
-  try {
-    const doc = document as Document & {
-      webkitExitFullscreen?: () => Promise<void>;
-      msExitFullscreen?: () => Promise<void>;
-    };
-
-    if (document.fullscreenElement) {
-      if (doc.exitFullscreen) {
-        await doc.exitFullscreen();
-      } else if (doc.webkitExitFullscreen) {
-        await doc.webkitExitFullscreen();
-      } else if (doc.msExitFullscreen) {
-        await doc.msExitFullscreen();
-      }
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// ============================================================================
-// Use Case Implementation
-// ============================================================================
 
 export async function leaveExamUseCase(
   input: LeaveExamInput
