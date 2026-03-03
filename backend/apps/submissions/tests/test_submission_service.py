@@ -244,7 +244,7 @@ def test_rejected_contest_submission_raises_access_error(judge_mock: Mock) -> No
 @pytest.mark.django_db
 def test_not_started_exam_submission_raises_access_error(judge_mock: Mock) -> None:
     user = UserFactory()
-    contest = ContestFactory(status="published", exam_mode_enabled=True)
+    contest = ContestFactory(status="published", cheat_detection_enabled=True)
     problem = ProblemFactory(created_by=contest.owner)
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
 
@@ -266,7 +266,7 @@ def test_not_started_exam_submission_raises_access_error(judge_mock: Mock) -> No
 @pytest.mark.django_db
 def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
     user = UserFactory()
-    contest = ContestFactory(status="published", exam_mode_enabled=False)
+    contest = ContestFactory(status="published", cheat_detection_enabled=False)
     problem = ProblemFactory(created_by=contest.owner)
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
 

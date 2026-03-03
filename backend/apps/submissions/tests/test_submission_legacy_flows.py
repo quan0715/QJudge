@@ -310,7 +310,7 @@ def test_contest_submission_blocked_by_exam_state(
     expected_snippet: str,
 ) -> None:
     user = UserFactory()
-    contest = ContestFactory(status="published", exam_mode_enabled=True)
+    contest = ContestFactory(status="published", cheat_detection_enabled=True)
     problem = ProblemFactory(created_by=contest.owner)
     ContestParticipantFactory(contest=contest, user=user, exam_status=exam_status)
 
@@ -337,7 +337,7 @@ def test_contest_submission_allows_not_started_when_exam_mode_disabled(
     judge_mocks: Dict[str, Mock],
 ) -> None:
     user = UserFactory()
-    contest = ContestFactory(status="published", exam_mode_enabled=False)
+    contest = ContestFactory(status="published", cheat_detection_enabled=False)
     problem = ProblemFactory(created_by=contest.owner)
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
 
