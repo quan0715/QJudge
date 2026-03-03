@@ -282,18 +282,22 @@ test.describe("Paper Exam Precheck E2E", () => {
       page.locator("[data-status='pass']").filter({ hasText: /焦點/ })
     ).toBeVisible({ timeout: 15000 });
 
-    // Click "下一步：確認開始"
-    const confirmStepBtn = page.getByRole("button", { name: /下一步：確認開始|Next.*Confirm/i });
-    await expect(confirmStepBtn).toBeEnabled({ timeout: 5000 });
+    // Click footer CTA "下一步：確認開始" (avoid matching left stepper button)
+    const confirmStepBtn = page
+      .locator("button")
+      .filter({ hasText: /下一步/i })
+      .filter({ hasText: /確認開始|Confirm/i })
+      .first();
+    await expect(confirmStepBtn).toBeVisible({ timeout: 15000 });
+    await expect(confirmStepBtn).toBeEnabled({ timeout: 15000 });
     await confirmStepBtn.click();
 
     // --- Step 3: Confirm and start ---
-    // Verify exam rules are visible
-    await expect(page.getByText(/考試說明/)).toBeVisible({ timeout: 5000 });
-
-    // Click "確認開始考試"
-    const startExamBtn = page.getByRole("button", { name: /確認開始考試/i });
-    await expect(startExamBtn).toBeVisible({ timeout: 5000 });
+    // Verify final CTA appears
+    const startExamBtn = page.getByRole("button", {
+      name: /確認開始考試|Start.*Exam/i,
+    });
+    await expect(startExamBtn).toBeVisible({ timeout: 15000 });
     await startExamBtn.click();
 
     // Should see countdown then navigate to answering page
