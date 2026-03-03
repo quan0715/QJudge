@@ -15,6 +15,7 @@ import { getExamQuestions, downloadContestFile } from "@/infrastructure/api/repo
 import { useExamPdfExport } from "@/features/contest/components/admin/examEditor/pdf/useExamPdfExport";
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
 import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -82,7 +83,8 @@ export default function ContestExportDialog({
   contestId,
 }: ContestExportDialogProps) {
   const { t } = useTranslation("contest");
-  const isExamMode = contest.contestType === "paper_exam";
+  const contestModule = getContestTypeModule(contest.contestType);
+  const isExamMode = contestModule.admin.exportProfile === "paper_exam";
 
   // --- Shared state ---
   const defaultTarget: ExportTarget = isExamMode ? "exam-question" : "coding-pdf";

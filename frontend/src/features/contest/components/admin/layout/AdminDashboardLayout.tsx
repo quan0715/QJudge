@@ -20,15 +20,14 @@ import {
   DocumentDownload,
   Upload,
 } from "@carbon/icons-react";
+import type { AdminPanelId } from "@/features/contest/modules/types";
 import styles from "./AdminDashboardLayout.module.scss";
-
-type PanelId = "overview" | "logs" | "participants" | "exam" | "grading" | "settings";
 
 interface AdminDashboardLayoutProps {
   contestName: string;
-  activePanel: PanelId;
+  activePanel: AdminPanelId;
   examMode?: boolean;
-  onPanelChange: (panel: PanelId) => void;
+  onPanelChange: (panel: AdminPanelId) => void;
   onBack: () => void;
   onPreview?: () => void;
   onExport?: () => void;
@@ -37,7 +36,7 @@ interface AdminDashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS: { id: PanelId; label: string; examLabel?: string; icon: typeof Dashboard }[] = [
+const NAV_ITEMS: { id: AdminPanelId; label: string; examLabel?: string; icon: typeof Dashboard }[] = [
   { id: "overview", label: "Overview", icon: Dashboard },
   { id: "logs", label: "Event Logs", icon: Activity },
   { id: "participants", label: "Participants", icon: UserMultiple },

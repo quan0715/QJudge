@@ -18,20 +18,14 @@ import CodingTestEditorLayout from "@/features/contest/components/admin/examEdit
 import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import ContestExamGradingScreen from "@/features/contest/screens/settings/ContestExamGradingScreen";
-import AdminContestSettingsPanel from "./panels/AdminContestSettingsPanel";
-import AdminOverviewPanel from "./panels/AdminOverviewPanel";
+import AdminContestSettingsPanel from "./panels/AdminContestSettingsScreen";
+import AdminOverviewPanel from "./panels/AdminOverviewScreen";
 
 import { computeMockKpi } from "./mockData";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
+import type { AdminPanelId } from "@/features/contest/modules/types";
 
-type PanelId =
-  | "overview"
-  | "logs"
-  | "participants"
-  | "exam"
-  | "grading"
-  | "settings";
-
-const PANEL_KEYS: readonly PanelId[] = [
+const PANEL_KEYS: readonly AdminPanelId[] = [
   "overview",
   "logs",
   "participants",
@@ -40,8 +34,8 @@ const PANEL_KEYS: readonly PanelId[] = [
   "settings",
 ];
 
-const getActivePanel = (value: string | null): PanelId =>
-  PANEL_KEYS.includes(value as PanelId) ? (value as PanelId) : "overview";
+const getActivePanel = (value: string | null): AdminPanelId =>
+  PANEL_KEYS.includes(value as AdminPanelId) ? (value as AdminPanelId) : "overview";
 
 const AdminDashboardInner = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -52,12 +46,16 @@ const AdminDashboardInner = () => {
   const { contest, loading } = useContest();
   const { participants } = useContestAdmin();
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
+  const contestModule = useMemo(
+    () => getContestTypeModule(contest?.contestType),
+    [contest?.contestType],
+  );
 
   const kpi = useMemo(() => computeMockKpi(participants), [participants]);
   const [exportOpen, setExportOpen] = useState(false);
 
-  const isExamMode = contest?.contestType === "paper_exam";
-  const showExamJsonActions = activePanel === "exam" && isExamMode;
+  const isExamMode = contestModule.admin.examEditorKind === "paper_exam";
+  const showExamJsonActions = contestModule.admin.shouldShowExamJsonActions(activePanel);
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
@@ -67,7 +65,7 @@ const AdminDashboardInner = () => {
     window.open(`/contests/${contestId}/exam-preview`, "_blank");
   };
 
-  const handlePanelChange = (panel: PanelId) => {
+  const handlePanelChange = (panel: AdminPanelId) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (panel === "overview") {
@@ -106,7 +104,7 @@ const AdminDashboardInner = () => {
         return <ContestParticipantsScreen />;
       case "exam": {
         if (!contest) return null;
-        const useExamEditor = contest.contestType === "paper_exam";
+        const useExamEditor = contestModule.admin.examEditorKind === "paper_exam";
         return useExamEditor ? (
           <ExamEditorLayout
             ref={examEditorRef}
