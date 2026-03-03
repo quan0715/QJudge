@@ -2,12 +2,13 @@ import { Route, Navigate } from "react-router-dom";
 import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
 import PaperExamLayout from "./components/layout/PaperExamLayout";
+import { PaperExamProvider } from "./contexts/PaperExamContext";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestProblemScreen from "./screens/ContestProblemScreen";
 import AdminDashboardScreen from "./screens/admin/AdminDashboardScreen";
 import StudentExamDemoScreen from "./screens/examDemo/StudentExamDemoScreen";
 import {
-  PaperExamPrecheckScreen,
+  ExamPrecheckScreen,
   PaperExamAnsweringScreen,
   PaperExamSubmitReviewScreen,
 } from "./screens/paperExam";
@@ -56,13 +57,27 @@ export const examPreviewRoute = (
 );
 
 /**
+ * Exam Precheck — 獨立全頁面，不限 contestType
+ * coding / paper_exam 開啟防作弊時都經過此頁面
+ */
+export const examPrecheckRoute = (
+  <Route
+    path="/contests/:contestId/exam-precheck"
+    element={
+      <PaperExamProvider>
+        <ExamPrecheckScreen />
+      </PaperExamProvider>
+    }
+  />
+);
+
+/**
  * Paper Exam Flow — 獨立全頁面，不嵌套在 ContestLayout 內
  * 使用 PaperExamLayout 提供 ContestContext
  */
 export const paperExamRoutes = (
   <Route path="/contests/:contestId/paper-exam" element={<PaperExamLayout />}>
-    <Route index element={<Navigate to="precheck" replace />} />
-    <Route path="precheck" element={<PaperExamPrecheckScreen />} />
+    <Route index element={<Navigate to="answering" replace />} />
     <Route path="answering" element={<PaperExamAnsweringScreen />} />
     <Route path="submit-review" element={<PaperExamSubmitReviewScreen />} />
   </Route>

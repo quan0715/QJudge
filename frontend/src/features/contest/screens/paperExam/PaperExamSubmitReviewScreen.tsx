@@ -19,8 +19,8 @@ import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import {
-  hasPaperExamPrecheckPassed,
-  syncPaperExamPrecheckGateByStatus,
+  hasExamPrecheckPassed,
+  syncExamPrecheckGateByStatus,
 } from "./hooks/precheckGate";
 
 const PaperExamSubmitReviewScreen: React.FC = () => {
@@ -64,15 +64,15 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
 
   useEffect(() => {
     if (!contestId) return;
-    syncPaperExamPrecheckGateByStatus(contestId, contest?.examStatus);
+    syncExamPrecheckGateByStatus(contestId, contest?.examStatus);
   }, [contest?.examStatus, contestId]);
 
   const backToExamRoute =
     contestId &&
     (contest?.examStatus === "paused" ||
       (contest?.examStatus === "in_progress" &&
-        !hasPaperExamPrecheckPassed(contestId)))
-      ? `/contests/${contestId}/paper-exam/precheck`
+        !hasExamPrecheckPassed(contestId)))
+      ? `/contests/${contestId}/exam-precheck`
       : contestId
         ? `/contests/${contestId}/paper-exam/answering`
         : "";

@@ -1,11 +1,11 @@
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 
-const PRECHECK_GATE_KEY_PREFIX = "qjudge.paper_exam.precheck_gate.v1";
+const PRECHECK_GATE_KEY_PREFIX = "qjudge.exam.precheck_gate.v1";
 
 const getPrecheckGateKey = (contestId: string) =>
   `${PRECHECK_GATE_KEY_PREFIX}:${contestId}`;
 
-export const hasPaperExamPrecheckPassed = (contestId: string): boolean => {
+export const hasExamPrecheckPassed = (contestId: string): boolean => {
   if (!contestId) return false;
   try {
     return !!window.sessionStorage.getItem(getPrecheckGateKey(contestId));
@@ -14,7 +14,7 @@ export const hasPaperExamPrecheckPassed = (contestId: string): boolean => {
   }
 };
 
-export const markPaperExamPrecheckPassed = (contestId: string): void => {
+export const markExamPrecheckPassed = (contestId: string): void => {
   if (!contestId) return;
   try {
     window.sessionStorage.setItem(getPrecheckGateKey(contestId), "1");
@@ -23,7 +23,7 @@ export const markPaperExamPrecheckPassed = (contestId: string): void => {
   }
 };
 
-export const clearPaperExamPrecheckPassed = (contestId: string): void => {
+export const clearExamPrecheckPassed = (contestId: string): void => {
   if (!contestId) return;
   try {
     window.sessionStorage.removeItem(getPrecheckGateKey(contestId));
@@ -32,7 +32,7 @@ export const clearPaperExamPrecheckPassed = (contestId: string): void => {
   }
 };
 
-export const syncPaperExamPrecheckGateByStatus = (
+export const syncExamPrecheckGateByStatus = (
   contestId: string,
   examStatus?: ExamStatusType | null,
 ): void => {
@@ -43,7 +43,6 @@ export const syncPaperExamPrecheckGateByStatus = (
     examStatus === "locked" ||
     examStatus === "submitted"
   ) {
-    clearPaperExamPrecheckPassed(contestId);
+    clearExamPrecheckPassed(contestId);
   }
 };
-

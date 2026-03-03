@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
 import { isContestEnded, getContestState } from "@/core/entities/contest.entity";
-import { syncPaperExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/precheckGate";
+import { syncExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/precheckGate";
 
 export function useContestLayoutState() {
   const { contestId } = useParams<{ contestId: string }>();
@@ -103,7 +103,7 @@ export function useContestLayoutState() {
   // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
   useEffect(() => {
     if (!contestId) return;
-    syncPaperExamPrecheckGateByStatus(contestId, contest?.examStatus);
+    syncExamPrecheckGateByStatus(contestId, contest?.examStatus);
   }, [contest?.examStatus, contestId]);
 
   // Beforeunload warning for exam mode

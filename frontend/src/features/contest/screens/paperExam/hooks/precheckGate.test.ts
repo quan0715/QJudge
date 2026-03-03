@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  hasPaperExamPrecheckPassed,
-  markPaperExamPrecheckPassed,
-  clearPaperExamPrecheckPassed,
-  syncPaperExamPrecheckGateByStatus,
+  hasExamPrecheckPassed,
+  markExamPrecheckPassed,
+  clearExamPrecheckPassed,
+  syncExamPrecheckGateByStatus,
 } from "./precheckGate";
 
 describe("precheckGate", () => {
@@ -14,31 +14,30 @@ describe("precheckGate", () => {
   });
 
   it("marks and reads precheck state", () => {
-    expect(hasPaperExamPrecheckPassed(contestId)).toBe(false);
-    markPaperExamPrecheckPassed(contestId);
-    expect(hasPaperExamPrecheckPassed(contestId)).toBe(true);
+    expect(hasExamPrecheckPassed(contestId)).toBe(false);
+    markExamPrecheckPassed(contestId);
+    expect(hasExamPrecheckPassed(contestId)).toBe(true);
   });
 
   it("clears precheck state explicitly", () => {
-    markPaperExamPrecheckPassed(contestId);
-    clearPaperExamPrecheckPassed(contestId);
-    expect(hasPaperExamPrecheckPassed(contestId)).toBe(false);
+    markExamPrecheckPassed(contestId);
+    clearExamPrecheckPassed(contestId);
+    expect(hasExamPrecheckPassed(contestId)).toBe(false);
   });
 
   it("keeps gate when exam is in progress", () => {
-    markPaperExamPrecheckPassed(contestId);
-    syncPaperExamPrecheckGateByStatus(contestId, "in_progress");
-    expect(hasPaperExamPrecheckPassed(contestId)).toBe(true);
+    markExamPrecheckPassed(contestId);
+    syncExamPrecheckGateByStatus(contestId, "in_progress");
+    expect(hasExamPrecheckPassed(contestId)).toBe(true);
   });
 
   it("clears gate when status requires re-precheck", () => {
     const statuses = ["not_started", "paused", "locked", "submitted"] as const;
 
     statuses.forEach((status) => {
-      markPaperExamPrecheckPassed(contestId);
-      syncPaperExamPrecheckGateByStatus(contestId, status);
-      expect(hasPaperExamPrecheckPassed(contestId)).toBe(false);
+      markExamPrecheckPassed(contestId);
+      syncExamPrecheckGateByStatus(contestId, status);
+      expect(hasExamPrecheckPassed(contestId)).toBe(false);
     });
   });
 });
-

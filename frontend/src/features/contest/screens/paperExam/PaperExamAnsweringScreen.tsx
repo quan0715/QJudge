@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Time,
   SendFilled,
   Recording,
+  CheckmarkFilled,
 } from "@carbon/icons-react";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -20,8 +21,8 @@ import {
   useCountdownTo,
   usePaperExamQuestions,
   usePaperExamAutoSave,
-  hasPaperExamPrecheckPassed,
-  syncPaperExamPrecheckGateByStatus,
+  hasExamPrecheckPassed,
+  syncExamPrecheckGateByStatus,
 } from "./hooks";
 import type { ExamItem } from "../../types/exam.types";
 import styles from "./PaperExamAnswering.module.scss";
@@ -51,31 +52,37 @@ const PaperExamAnsweringScreen: React.FC = () => {
     refreshContest().catch(() => {});
   }, isInProgress ? 30000 : null);
 
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
+
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
       submitExam().finally(() => {
-        navigate(`/contests/${contestId}/paper-exam/submit-review`);
+        setAutoSubmitted(true);
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       });
     }
-  }, [countdown.remaining, isInProgress, contestId, navigate, submitExam]);
+  }, [countdown.remaining, isInProgress, contestId, submitExam]);
 
   useEffect(() => {
     if (!contestId || contest?.contestType !== "paper_exam") return;
-    syncPaperExamPrecheckGateByStatus(contestId, contest.examStatus);
+    syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
-    const precheckPassed = hasPaperExamPrecheckPassed(contestId);
+    const precheckPassed = hasExamPrecheckPassed(contestId);
 
-    if (
-      contest.examStatus === "not_started" ||
-      contest.examStatus === "paused" ||
-      (contest.examStatus === "in_progress" && contest.cheatDetectionEnabled && !precheckPassed)
-    ) {
-      navigate(`/contests/${contestId}/paper-exam/precheck`, { replace: true });
-      return;
+    if (contest.cheatDetectionEnabled) {
+      if (
+        contest.examStatus === "not_started" ||
+        contest.examStatus === "paused" ||
+        (contest.examStatus === "in_progress" && !precheckPassed)
+      ) {
+        navigate(`/contests/${contestId}/exam-precheck`, { replace: true });
+        return;
+      }
     }
 
     if (contest.examStatus === "submitted") {
-      navigate(`/contests/${contestId}/paper-exam/submit-review`, { replace: true });
+      setAutoSubmitted(true);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     }
   }, [contest?.contestType, contest?.examStatus, contestId, navigate]);
 
@@ -102,6 +109,22 @@ const PaperExamAnsweringScreen: React.FC = () => {
     },
     [answers, handleAnswerChange]
   );
+
+  if (autoSubmitted) {
+    return (
+      <div className={styles.centered}>
+        <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
+        <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>考試已結束，系統已自動交卷</span>
+        <Button
+          kind="primary"
+          onClick={() => contestId && navigate(`/contests/${contestId}`)}
+          style={{ marginTop: "1rem" }}
+        >
+          回到競賽主頁
+        </Button>
+      </div>
+    );
+  }
 
   if (loadingQuestions) {
     return (

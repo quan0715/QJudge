@@ -9,7 +9,7 @@ export { default as ContestSubmissionListScreen } from "./ContestSubmissionListS
 
 // Paper Exam Screens
 export {
-  PaperExamPrecheckScreen,
+  ExamPrecheckScreen,
   PaperExamAnsweringScreen,
   PaperExamSubmitReviewScreen,
 } from "./paperExam";

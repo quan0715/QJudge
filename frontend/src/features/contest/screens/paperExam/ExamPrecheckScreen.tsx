@@ -20,11 +20,11 @@ import { requestFullscreen } from "@/features/contest/hooks/useContestExamAction
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import {
-  hasPaperExamPrecheckPassed,
-  markPaperExamPrecheckPassed,
-  syncPaperExamPrecheckGateByStatus,
+  hasExamPrecheckPassed,
+  markExamPrecheckPassed,
+  syncExamPrecheckGateByStatus,
 } from "./hooks/precheckGate";
-import styles from "./PaperExamPrecheck.module.scss";
+import styles from "./ExamPrecheck.module.scss";
 
 type CheckStatus = "pending" | "running" | "pass" | "fail";
 
@@ -39,10 +39,25 @@ type ScreenDetailsLike = { screens?: unknown[] };
 
 const COUNTDOWN_SECONDS = 3;
 
-const PaperExamPrecheckScreen: React.FC = () => {
+const ExamPrecheckScreen: React.FC = () => {
   const navigate = useNavigate();
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
+
+  const getPostPrecheckRoute = useCallback(() => {
+    if (!contestId) return "";
+    if (contest?.contestType === "paper_exam") {
+      return `/contests/${contestId}/paper-exam/answering`;
+    }
+    // Coding contest: go to problem list
+    const firstProblem = [...(contest?.problems ?? [])].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0),
+    )[0];
+    const pid = firstProblem?.problemId || firstProblem?.id;
+    return pid
+      ? `/contests/${contestId}/solve/${pid}`
+      : `/contests/${contestId}`;
+  }, [contest, contestId]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>([
@@ -73,15 +88,15 @@ const PaperExamPrecheckScreen: React.FC = () => {
   // Keep precheck-gate in sync with server status.
   useEffect(() => {
     if (!contest || !contestId) return;
-    syncPaperExamPrecheckGateByStatus(contestId, contest.examStatus);
+    syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
     // Only skip precheck when this tab/session already passed precheck and exam is active.
     // Paused (freshly unlocked) must re-run precheck before resuming.
     if (
       contest.examStatus === "in_progress" &&
-      hasPaperExamPrecheckPassed(contestId)
+      hasExamPrecheckPassed(contestId)
     ) {
-      navigate(`/contests/${contestId}/paper-exam/answering`, { replace: true });
+      navigate(getPostPrecheckRoute(), { replace: true });
     }
   }, [contest, contestId, navigate]);
 
@@ -99,7 +114,6 @@ const PaperExamPrecheckScreen: React.FC = () => {
   }, [currentStep, contest]);
 
   const step1AllPass = checks.every((c) => c.status === "pass");
-  const cheatEnabled = !!contest?.cheatDetectionEnabled;
 
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -226,9 +240,9 @@ const PaperExamPrecheckScreen: React.FC = () => {
     (async () => {
       const started = await startSession();
       if (!started || !contestId) { setCountdown(null); return; }
-      if (cheatEnabled && !document.fullscreenElement) await requestFullscreen();
-      markPaperExamPrecheckPassed(contestId);
-      navigate(`/contests/${contestId}/paper-exam/answering`);
+      if (!document.fullscreenElement) await requestFullscreen();
+      markExamPrecheckPassed(contestId);
+      navigate(getPostPrecheckRoute());
     })();
   }, [countdown, contestId, navigate, startSession]);
 
@@ -274,9 +288,9 @@ const PaperExamPrecheckScreen: React.FC = () => {
           正式作答前，請完成以下三項驗證。
         </p>
 
-        <ProgressIndicator currentIndex={cheatEnabled ? currentStep : (currentStep === 0 ? 0 : 1)} spaceEqually style={{ marginBottom: "2rem" }}>
+        <ProgressIndicator currentIndex={currentStep} spaceEqually style={{ marginBottom: "2rem" }}>
           <ProgressStep label="身份驗證" />
-          {cheatEnabled && <ProgressStep label="環境檢查" />}
+          <ProgressStep label="環境檢查" />
           <ProgressStep label="確認開始" />
         </ProgressIndicator>
 
@@ -306,9 +320,9 @@ const PaperExamPrecheckScreen: React.FC = () => {
                   kind="primary"
                   renderIcon={ArrowRight}
                   disabled={!step1AllPass}
-                  onClick={() => setCurrentStep(cheatEnabled ? 1 : 2)}
+                  onClick={() => setCurrentStep(1)}
                 >
-                  {cheatEnabled ? "下一步：環境檢查" : "下一步：確認開始"}
+                  下一步：環境檢查
                 </Button>
               </div>
             </Stack>
@@ -356,8 +370,8 @@ const PaperExamPrecheckScreen: React.FC = () => {
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>考試說明</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
-                  {cheatEnabled && <li>考試期間請勿切換視窗或分頁，系統將記錄離開行為。</li>}
-                  {cheatEnabled && <li>請保持全螢幕模式，退出全螢幕將觸發警告。</li>}
+                  <li>考試期間請勿切換視窗或分頁，系統將記錄離開行為。</li>
+                  <li>請保持全螢幕模式，退出全螢幕將觸發警告。</li>
                   <li>作答內容每 2 秒自動儲存，無需手動存檔。</li>
                   <li>考試時間結束後系統將自動交卷。</li>
                   {contest?.endTime && (
@@ -368,7 +382,7 @@ const PaperExamPrecheckScreen: React.FC = () => {
                 </ul>
               </Tile>
               <div className={styles.navRow}>
-                <Button kind="secondary" onClick={() => setCurrentStep(cheatEnabled ? 1 : 0)}>
+                <Button kind="secondary" onClick={() => setCurrentStep(1)}>
                   上一步
                 </Button>
                 <Button
@@ -387,4 +401,4 @@ const PaperExamPrecheckScreen: React.FC = () => {
   );
 };
 
-export default PaperExamPrecheckScreen;
+export default ExamPrecheckScreen;

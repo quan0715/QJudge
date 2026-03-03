@@ -63,7 +63,7 @@ export async function enterExamUseCase(
     return {
       success: true,
       status: "started",
-      navigateTo: `/contests/${contestId}/paper-exam/precheck`,
+      navigateTo: `/contests/${contestId}/exam-precheck`,
     };
   }
 

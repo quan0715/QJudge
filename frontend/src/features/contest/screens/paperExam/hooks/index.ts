@@ -3,8 +3,8 @@ export { useScrollDirection } from "./useScrollDirection";
 export { usePaperExamQuestions } from "./usePaperExamQuestions";
 export { usePaperExamAutoSave, type SaveStatus } from "./usePaperExamAutoSave";
 export {
-  hasPaperExamPrecheckPassed,
-  markPaperExamPrecheckPassed,
-  clearPaperExamPrecheckPassed,
-  syncPaperExamPrecheckGateByStatus,
+  hasExamPrecheckPassed,
+  markExamPrecheckPassed,
+  clearExamPrecheckPassed,
+  syncExamPrecheckGateByStatus,
 } from "./precheckGate";

@@ -68,7 +68,7 @@ describe("useContestExamActions", () => {
   it("exam mode start routes to precheck and refreshes contest", async () => {
     vi.mocked(startExam).mockResolvedValue({ status: "started" } as { status: string });
     window.sessionStorage.setItem(
-      `qjudge.paper_exam.precheck_gate.v1:${baseContest.id}`,
+      `qjudge.exam.precheck_gate.v1:${baseContest.id}`,
       "1"
     );
 
@@ -94,12 +94,12 @@ describe("useContestExamActions", () => {
       expect(refreshContest).toHaveBeenCalledTimes(1);
     });
     expect(navigate).toHaveBeenCalledWith(
-      `/contests/${baseContest.id}/paper-exam/precheck`
+      `/contests/${baseContest.id}/exam-precheck`
     );
     expect(onError).not.toHaveBeenCalled();
     expect(document.documentElement.requestFullscreen).not.toHaveBeenCalled();
     expect(
-      window.sessionStorage.getItem(`qjudge.paper_exam.precheck_gate.v1:${baseContest.id}`)
+      window.sessionStorage.getItem(`qjudge.exam.precheck_gate.v1:${baseContest.id}`)
     ).toBeNull();
   });
 

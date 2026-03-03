@@ -53,7 +53,7 @@ describe("enterExam.usecase", () => {
     expect(result).toEqual({
       success: true,
       status: "started",
-      navigateTo: "/contests/contest-1/paper-exam/precheck",
+      navigateTo: "/contests/contest-1/exam-precheck",
     });
   });
 

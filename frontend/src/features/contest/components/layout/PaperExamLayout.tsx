@@ -1,18 +1,11 @@
 import React from "react";
-import { Outlet, useLocation, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
 import { PaperExamProvider, usePaperExam } from "@/features/contest/contexts/PaperExamContext";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
 
 const PaperExamLayoutContent: React.FC = () => {
-  const location = useLocation();
   const { contestId } = useParams<{ contestId: string }>();
   const { contest, refreshContest } = usePaperExam();
-
-  const isPrecheckPath = location.pathname.endsWith("/paper-exam/precheck");
-
-  if (isPrecheckPath) {
-    return <Outlet />;
-  }
 
   return (
     <ExamModeWrapper
