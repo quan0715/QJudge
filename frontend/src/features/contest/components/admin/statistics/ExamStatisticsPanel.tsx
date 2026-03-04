@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import WorkTreeShell from "@/features/contest/components/admin/examEditor/WorkTreeShell";
@@ -13,11 +13,23 @@ export default function ExamStatisticsPanel() {
   const safeStats = questionStats ?? [];
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollPaneRef = useRef<HTMLDivElement>(null);
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (safeStats.length === 0) {
+      setActiveQuestionId(null);
+      return;
+    }
+    if (!activeQuestionId || !safeStats.some((q) => q.questionId === activeQuestionId)) {
+      setActiveQuestionId(safeStats[0].questionId);
+    }
+  }, [safeStats, activeQuestionId]);
 
   const scrollToQuestion = useCallback((questionId: string) => {
     const el = cardRefs.current.get(questionId);
     const pane = scrollPaneRef.current;
     if (!el || !pane) return;
+    setActiveQuestionId(questionId);
 
     const paneRect = pane.getBoundingClientRect();
     const cardRect = el.getBoundingClientRect();
@@ -65,8 +77,11 @@ export default function ExamStatisticsPanel() {
               <button
                 key={q.questionId}
                 type="button"
-                className={styles.questionItem}
+                className={`${styles.questionItem} ${
+                  activeQuestionId === q.questionId ? styles.questionItemActive : ""
+                }`}
                 onClick={() => scrollToQuestion(q.questionId)}
+                aria-pressed={activeQuestionId === q.questionId}
               >
                 <span className={styles.questionOrder}>Q{q.questionIndex}</span>
                 <div className={styles.questionInfo}>
@@ -90,6 +105,7 @@ export default function ExamStatisticsPanel() {
             className={styles.cardItem}
             ref={(el) => {
               if (el) cardRefs.current.set(q.questionId, el);
+              else cardRefs.current.delete(q.questionId);
             }}
           >
             <QuestionStatisticsDetail stat={q} />

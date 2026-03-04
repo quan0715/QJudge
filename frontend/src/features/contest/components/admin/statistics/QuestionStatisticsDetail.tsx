@@ -10,6 +10,7 @@ interface QuestionStatisticsDetailProps {
 export default function QuestionStatisticsDetail({
   stat,
 }: QuestionStatisticsDetailProps) {
+  const optionLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const progressPercent =
     stat.totalAnswers > 0
       ? Math.round((stat.gradedCount / stat.totalAnswers) * 100)
@@ -43,15 +44,25 @@ export default function QuestionStatisticsDetail({
       {stat.isObjective ? (
         <div className={styles.distributionSection}>
           <span className={styles.sectionTitle}>選項分布</span>
+          {stat.totalAnswers === 0 && (
+            <span className={styles.emptyHint}>目前尚無作答紀錄</span>
+          )}
           {(stat.optionDistribution ?? []).map((opt, idx) => (
             <div key={idx} className={styles.optionRow}>
               <span className={styles.optionLabel} title={opt.label}>
-                {opt.label}
+                <span className={styles.optionPrefix}>
+                  {optionLetters[idx] ?? idx + 1}.
+                </span>
+                <span className={styles.optionText}>{opt.label}</span>
               </span>
               <div className={styles.optionBarWrap}>
                 <div
-                  className={`${styles.optionBar} ${opt.isCorrect ? styles.optionBarCorrect : ""}`}
-                  style={{ width: `${opt.percent}%` }}
+                  className={`${styles.optionBar} ${
+                    opt.isCorrect ? styles.optionBarCorrect : styles.optionBarWrong
+                  }`}
+                  style={{
+                    width: `${opt.count > 0 ? Math.max(opt.percent, 4) : 0}%`,
+                  }}
                 />
               </div>
               <span className={styles.optionCount}>

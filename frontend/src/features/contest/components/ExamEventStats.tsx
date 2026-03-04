@@ -10,7 +10,7 @@ import {
   TableContainer,
   InlineNotification,
 } from "@carbon/react";
-import type { ExamEventStats, ExamEvent } from "@/core/entities/contest.entity";
+import type { ExamEventStats as ExamEventStatsData, ExamEvent } from "@/core/entities/contest.entity";
 import { useContestAdmin } from "@/features/contest/contexts";
 
 const ExamEventStats: React.FC = () => {
@@ -19,7 +19,7 @@ const ExamEventStats: React.FC = () => {
 
   // Aggregate events by user
   const stats = useMemo(() => {
-    const userMap = new Map<string, ExamEventStats>();
+    const userMap = new Map<string, ExamEventStatsData>();
 
     examEvents.forEach((event: ExamEvent) => {
       const eventRaw = event as ExamEvent & {

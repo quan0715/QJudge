@@ -16,6 +16,8 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
 }
 
 .scrollPane {
@@ -27,17 +29,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: layout.$spacing-06 layout.$spacing-05 layout.$spacing-09;
-  background: var(--cds-background);
+  padding: layout.$spacing-06;
+  gap: layout.$spacing-04;
+  background: var(--cds-layer-01);
 }
 
 .cardItem {
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
   padding: layout.$spacing-05;
-  margin-bottom: layout.$spacing-05;
   background: var(--cds-layer);
   border: 1px solid var(--cds-border-subtle);
+  border-radius: 0.25rem;
 }
 
 // ─── Left sidebar question list ───
@@ -53,7 +56,7 @@
   align-items: center;
   gap: layout.$spacing-03;
   padding: layout.$spacing-03;
-  border: 1px solid transparent;
+  border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-01);
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
@@ -69,6 +72,11 @@
     box-shadow: inset 0 0 0 2px var(--cds-focus);
     outline: none;
   }
+}
+
+.questionItemActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
 }
 
 .questionOrder {
@@ -153,18 +161,36 @@
   margin-bottom: layout.$spacing-02;
 }
 
+.emptyHint {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
 .optionRow {
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
-  min-height: 2rem;
+  min-height: 1.5rem;
 }
 
 .optionLabel {
-  width: 120px;
+  width: 180px;
   flex-shrink: 0;
   font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   color: var(--cds-text-primary);
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.optionPrefix {
+  color: var(--cds-text-secondary);
+  min-width: 1.25rem;
+  flex-shrink: 0;
+}
+
+.optionText {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,21 +199,29 @@
 .optionBarWrap {
   flex: 1;
   min-width: 0;
-  height: 16px;
+  height: 10px;
   background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .optionBar {
   height: 100%;
-  background: var(--cds-interactive);
+  background: var(--cds-layer-accent-01);
   border-radius: 2px;
   transition: width 0.2s;
+  opacity: 0.9;
 }
 
 .optionBarCorrect {
   background: var(--cds-support-success);
+  opacity: 0.82;
+}
+
+.optionBarWrong {
+  background: var(--cds-support-error);
+  opacity: 0.78;
 }
 
 .optionCount {
