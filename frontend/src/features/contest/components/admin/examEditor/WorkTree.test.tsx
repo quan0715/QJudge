@@ -4,6 +4,18 @@ import { describe, expect, it, vi } from "vitest";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import WorkTree from "./WorkTree";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) => {
+      if (key === "examEditor.questionCount")
+        return `${opts?.count ?? 0} 題`;
+      if (key === "examEditor.totalScore")
+        return `總分 ${opts?.score ?? 0}`;
+      return (typeof opts === "string" ? opts : undefined) ?? key;
+    },
+  }),
+}));
+
 vi.mock("motion/react", () => ({
   Reorder: {
     Group: ({
