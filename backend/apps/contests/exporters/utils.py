@@ -60,7 +60,7 @@ def ensure_markdown_lists(text: str) -> str:
     return re.sub(r'([^\n])\n(\s*[\-\*]\s+)', r'\1\n\n\2', text)
 
 
-def render_markdown(text: str) -> str:
+def render_markdown(text: str, *, soft_breaks: bool = True) -> str:
     """
     Full markdown rendering with proper handling of HTML blocks.
     """
@@ -71,9 +71,18 @@ def render_markdown(text: str) -> str:
     # Preprocess to enable markdown inside HTML blocks
     text = preprocess_markdown_html(text)
     # Render with all necessary extensions
+    extensions = ['extra', 'tables', 'sane_lists', 'md_in_html', 'codehilite']
+    if soft_breaks:
+        extensions.append('nl2br')
     return markdown.markdown(
         text,
-        extensions=['extra', 'tables', 'sane_lists', 'md_in_html', 'nl2br']
+        extensions=extensions,
+        extension_configs={
+            'codehilite': {
+                'guess_lang': False,
+                'noclasses': True,
+            }
+        }
     )
 
 

@@ -33,9 +33,6 @@
         <strong>{{ labels.total_questions }}：</strong>{{ question_count }}
         <strong>{{ labels.total_score }}：</strong>{{ total_score }} {{ labels.points_unit }}
       </p>
-      <p class="generated-at">
-        <strong>{{ labels.generated_at }}：</strong> {{ download_time }}
-      </p>
     </section>
 
     <section class="instructions">
@@ -85,7 +82,7 @@
           </div>
         </div>
         {% elif q.show_answer_lines %}
-        <div class="answer-lines">
+        <div class="answer-lines" style="min-height: {{ q.answer_area_min_height }}px;">
           <div class="answer-label">{{ labels.answer_lines }}</div>
           {% for _ in q.answer_line_indices %}
           <div class="answer-line"></div>

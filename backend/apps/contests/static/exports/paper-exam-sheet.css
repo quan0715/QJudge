@@ -6,7 +6,7 @@
 .paper-header {
   padding-bottom: 4px;
   margin-bottom: 10px;
-  text-align: center;
+  text-align: left;
 }
 
 .paper-title {
@@ -66,12 +66,6 @@
   margin: 3px 0;
 }
 
-.generated-at {
-  color: #525252;
-  font-size: 12px;
-  text-align: right;
-}
-
 .empty-notice {
   color: #525252;
   margin-top: 18px;
@@ -127,6 +121,7 @@
 
 .answer-box {
   margin-top: 8px;
+  padding-left: 2px;
 }
 
 .choice-answer-bar {
@@ -151,12 +146,17 @@
 
 .answer-lines {
   margin-top: 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
+  padding: 6px 8px 8px;
+  background: #fff;
 }
 
 .answer-line {
-  border-bottom: 1px solid #c6c6c6;
-  height: 24px;
-  margin-top: 6px;
+  border-bottom: 1px solid #8d8d8d;
+  height: 26px;
+  margin-top: 8px;
+  width: 100%;
 }
 
 .answer-label {
@@ -192,10 +192,26 @@
   border-radius: 2px;
   background: #f8f8f8;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
   word-break: break-word;
   font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.markdown-content .codehilite {
+  margin: 8px 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
+  background: #f8f8f8;
+  padding: 10px 12px;
+}
+
+.markdown-content .codehilite pre {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .markdown-content code {

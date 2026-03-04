@@ -169,4 +169,37 @@ describe("ContestExportDialog", () => {
       );
     });
   });
+
+  it("shows loading animation while exporting", async () => {
+    const onClose = vi.fn();
+    let resolveDownload: ((value: Blob) => void) | null = null;
+    downloadContestFileMock.mockImplementation(
+      () =>
+        new Promise<Blob>((resolve) => {
+          resolveDownload = resolve;
+        })
+    );
+
+    render(
+      <ContestExportDialog
+        open
+        onClose={onClose}
+        contest={buildContest()}
+        contestId="contest-1"
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("Markdown — 題目匯出為 Markdown 檔案"));
+    fireEvent.click(screen.getByRole("button", { name: "匯出" }));
+
+    expect(screen.getByText("匯出中...")).toBeInTheDocument();
+    expect(screen.getByText("正在匯出 Markdown...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeDisabled();
+
+    resolveDownload?.(new Blob(["ok"], { type: "text/markdown" }));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
 });

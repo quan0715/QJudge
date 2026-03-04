@@ -8,6 +8,7 @@ Provides two modes:
 from __future__ import annotations
 
 import json
+import re
 from io import BytesIO
 from pathlib import Path
 
@@ -32,6 +33,18 @@ class PaperExamSheetRenderer(BaseRenderer):
         "essay": {"zh": "問答題", "en": "Essay"},
     }
     OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    DEFAULT_INSTRUCTIONS = {
+        "zh": [
+            "請先填寫姓名、學號與班級。",
+            "請依題號順序作答，答案務必清楚可辨識。",
+            "若有計算題，請保留必要計算過程。",
+        ],
+        "en": [
+            "Fill in your name, student ID, and class before answering.",
+            "Answer questions in order and keep your writing legible.",
+            "Show essential calculation steps when applicable.",
+        ],
+    }
 
     def __init__(
         self,
@@ -69,7 +82,8 @@ class PaperExamSheetRenderer(BaseRenderer):
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
         for idx, q in enumerate(questions, start=1):
-            answer_text = self._format_answer(q)
+            answer_text_raw = self._format_answer(q)
+            answer_text = self._clean_answer_markdown(answer_text_raw)
             answer_ui = self._build_answer_ui(q)
             question_rows.append(
                 {
@@ -77,17 +91,17 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": q.score,
-                    "prompt_html": render_markdown(q.prompt or ""),
+                    "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "options": self._get_options(q),
                     "answer_text": answer_text,
-                    "answer_html": render_markdown(answer_text) if answer_text else "",
+                    "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",
                     **answer_ui,
                 }
             )
             answer_key_rows.append(
                 {
                     "number": idx,
-                    "answer_text": self._format_answer_key_text(q.question_type, answer_text),
+                    "answer_text": self._format_answer_key_text(q, answer_text),
                     "score": q.score,
                 }
             )
@@ -117,7 +131,6 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "duration": "作答限時" if is_zh else "Time Limit",
                 "total_questions": "題數" if is_zh else "Questions",
                 "total_score": "滿分" if is_zh else "Total Score",
-                "generated_at": "產生時間" if is_zh else "Generated At",
                 "answer_key": "答案總表" if is_zh else "Answer Key",
                 "no_questions": "目前尚未建立題目。" if is_zh else "No questions available.",
                 "points_unit": "分" if is_zh else "pts",
@@ -130,19 +143,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_marking_hint": "請於答案欄勾選或圈選" if is_zh else "Mark your choice in the answer area",
                 "answer_key_note": "長答題請參考上方各題詳解。" if is_zh else "For long answers, see the detailed answer under each question.",
             },
-            "instructions": (
-                [
-                    "請先填寫姓名、學號與班級。",
-                    "請依題號順序作答，答案務必清楚可辨識。",
-                    "若有計算題，請保留必要計算過程。",
-                ]
-                if is_zh
-                else [
-                    "Fill in your name, student ID, and class before answering.",
-                    "Answer questions in order and keep your writing legible.",
-                    "Show essential calculation steps when applicable.",
-                ]
-            ),
+            "instructions": self._build_instructions(),
             "start_time_str": start_time.strftime("%Y/%m/%d %H:%M") if start_time else ("未設定" if is_zh else "Not set"),
             "end_time_str": end_time.strftime("%Y/%m/%d %H:%M") if end_time else ("未設定" if is_zh else "Not set"),
             "duration_str": (
@@ -150,7 +151,6 @@ class PaperExamSheetRenderer(BaseRenderer):
                     f"{duration_minutes} minutes" if duration_minutes is not None else ("未設定" if is_zh else "Not set")
                 )
             ),
-            "download_time": timezone.localtime().strftime("%Y/%m/%d %H:%M"),
             "question_count": len(questions),
             "total_score": total_score,
             "questions": question_rows,
@@ -223,18 +223,38 @@ class PaperExamSheetRenderer(BaseRenderer):
 
         return json.dumps(answer, ensure_ascii=False)
 
-    def _format_answer_key_text(self, question_type: str, answer_text: str) -> str:
+    def _format_answer_key_text(self, question: ExamQuestion, answer_text: str) -> str:
         if not answer_text:
             return "（未設定）" if self.is_chinese else "(Not set)"
 
+        question_type = question.question_type
         normalized = " ".join(str(answer_text).split())
-        is_long = len(normalized) > 36 or "\n" in str(answer_text)
 
-        if question_type in {"short_answer", "essay"} and is_long:
+        if question_type == "single_choice":
+            idx = self._to_index(question.correct_answer)
+            if idx is not None and idx >= 0:
+                return self.OPTION_LETTERS[idx] if idx < len(self.OPTION_LETTERS) else str(idx + 1)
+            return normalized
+
+        if question_type == "multiple_choice":
+            if isinstance(question.correct_answer, list):
+                letters: list[str] = []
+                for item in question.correct_answer:
+                    idx = self._to_index(item)
+                    if idx is None or idx < 0:
+                        continue
+                    letters.append(self.OPTION_LETTERS[idx] if idx < len(self.OPTION_LETTERS) else str(idx + 1))
+                if letters:
+                    return ", ".join(letters)
+            return normalized
+
+        if question_type == "true_false":
+            return "O" if str(normalized).lower() in {"o", "true", "1"} else ("X" if str(normalized).lower() in {"x", "false", "0"} else normalized)
+
+        if question_type in {"short_answer", "essay"}:
+            if len(normalized) <= 16 and "\n" not in str(answer_text):
+                return normalized
             return "見詳解" if self.is_chinese else "See details"
-
-        if len(normalized) > 56:
-            return f"{normalized[:56]}..."
 
         return normalized
 
@@ -248,6 +268,8 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_answer_slots": slots,
                 "show_answer_lines": False,
                 "answer_line_indices": [],
+                "answer_line_count": 0,
+                "answer_area_min_height": 0,
             }
 
         if question_type == "multiple_choice":
@@ -257,6 +279,8 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_answer_slots": slots,
                 "show_answer_lines": False,
                 "answer_line_indices": [],
+                "answer_line_count": 0,
+                "answer_area_min_height": 0,
             }
 
         if question_type == "true_false":
@@ -265,6 +289,8 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_answer_slots": ["O", "X"],
                 "show_answer_lines": False,
                 "answer_line_indices": [],
+                "answer_line_count": 0,
+                "answer_area_min_height": 0,
             }
 
         if question_type == "short_answer":
@@ -274,25 +300,44 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_answer_slots": [],
                 "show_answer_lines": True,
                 "answer_line_indices": list(range(line_count)),
+                "answer_line_count": line_count,
+                "answer_area_min_height": self._calc_answer_area_min_height(line_count),
             }
 
         if question_type == "essay":
+            line_count = 8
             return {
                 "show_choice_answer_bar": False,
                 "choice_answer_slots": [],
                 "show_answer_lines": True,
-                "answer_line_indices": list(range(6)),
+                "answer_line_indices": list(range(line_count)),
+                "answer_line_count": line_count,
+                "answer_area_min_height": self._calc_answer_area_min_height(line_count),
             }
 
+        line_count = 4
         return {
             "show_choice_answer_bar": False,
             "choice_answer_slots": [],
-            "show_answer_lines": False,
-            "answer_line_indices": [],
+            "show_answer_lines": True,
+            "answer_line_indices": list(range(line_count)),
+            "answer_line_count": line_count,
+            "answer_area_min_height": self._calc_answer_area_min_height(line_count),
         }
 
     def _estimate_short_answer_lines(self, prompt: str) -> int:
         normalized = (prompt or "").lower()
+        factual_keywords = (
+            "幾次",
+            "幾個",
+            "多少",
+            "輸出",
+            "結果",
+            "what is",
+            "how many",
+            "output",
+            "value of",
+        )
         hard_keywords = (
             "explain",
             "compare",
@@ -307,11 +352,90 @@ class PaperExamSheetRenderer(BaseRenderer):
             "原因",
             "分析",
         )
+        if any(keyword in normalized for keyword in factual_keywords):
+            return 1
         if any(keyword in normalized for keyword in hard_keywords):
             return 4
-        if len(prompt.strip()) <= 36:
+        if len(prompt.strip()) <= 24:
+            return 1
+        if len(prompt.strip()) <= 48:
             return 2
         return 3
+
+    @staticmethod
+    def _calc_answer_area_min_height(line_count: int) -> int:
+        if line_count <= 1:
+            return 52
+        if line_count <= 3:
+            return line_count * 30 + 24
+        return line_count * 32 + 24
+
+    def _build_instructions(self) -> list[str]:
+        """
+        Build instructions from contest rules when available.
+        Falls back to locale defaults.
+        """
+        rules = (self.contest.rules or "").strip()
+        if not rules:
+            return self.DEFAULT_INSTRUCTIONS["zh" if self.is_chinese else "en"]
+
+        instructions: list[str] = []
+        for line in rules.splitlines():
+            text = line.strip()
+            if not text:
+                continue
+            text = re.sub(r"^\s*(?:[-*•]|\d+\.)\s*", "", text).strip()
+            if text:
+                instructions.append(text)
+
+        if instructions:
+            return instructions[:8]
+
+        return self.DEFAULT_INSTRUCTIONS["zh" if self.is_chinese else "en"]
+
+    def _clean_answer_markdown(self, text: str) -> str:
+        """
+        Remove placeholder-only lines that come from old answer templates
+        (e.g. lone "1." / repeated bullets), while preserving valid content.
+        """
+        if not text:
+            return ""
+        raw_lines = str(text).splitlines()
+        non_empty_count = sum(1 for line in raw_lines if line.strip())
+        cleaned_lines: list[str] = []
+
+        for raw_line in raw_lines:
+            line = raw_line.rstrip()
+            stripped = line.strip()
+            if not stripped:
+                cleaned_lines.append("")
+                continue
+
+            is_placeholder_numbering = bool(re.fullmatch(r"(?:\d+[\.\)]\s*)+", stripped))
+            is_placeholder_bullets = bool(
+                re.fullmatch(r"(?:[•·]\s*){2,}", stripped)
+                or re.fullmatch(r"[•·\-\*]\s*", stripped)
+            )
+
+            if (is_placeholder_numbering or is_placeholder_bullets) and non_empty_count > 1:
+                continue
+
+            cleaned_lines.append(line)
+
+        # Collapse excessive blank lines.
+        compact: list[str] = []
+        blank_run = 0
+        for line in cleaned_lines:
+            if line.strip():
+                blank_run = 0
+                compact.append(line)
+            else:
+                blank_run += 1
+                if blank_run <= 1:
+                    compact.append("")
+
+        final_text = "\n".join(compact).strip()
+        return final_text or str(text).strip()
 
     def _format_single_choice(self, answer, options: list) -> str:
         idx = self._to_index(answer)

@@ -75,6 +75,23 @@ const LAYOUT_OPTIONS = [
   { id: "compact" as const, label: "緊湊" },
 ];
 
+const getExportLoadingDescription = (target: ExportTarget): string => {
+  switch (target) {
+    case "exam-question":
+      return "正在產生題目卷 PDF...";
+    case "exam-answer":
+      return "正在產生答案卷 PDF...";
+    case "exam-json":
+      return "正在匯出 Exam JSON...";
+    case "coding-pdf":
+      return "正在產生 PDF...";
+    case "coding-markdown":
+      return "正在匯出 Markdown...";
+    default:
+      return "正在匯出...";
+  }
+};
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -238,6 +255,7 @@ export default function ContestExportDialog({
                   id="export-exam-question"
                   labelText="題目卷 — 僅包含題目與選項"
                   value="exam-question"
+                  disabled={exporting}
                 />
               );
             }
@@ -248,6 +266,7 @@ export default function ContestExportDialog({
                   id="export-exam-answer"
                   labelText="答案卷 — 包含題目、選項與正確答案"
                   value="exam-answer"
+                  disabled={exporting}
                 />
               );
             }
@@ -258,6 +277,7 @@ export default function ContestExportDialog({
                   id="export-exam-json"
                   labelText={`${t("examJson.exportOption")} — 匯出可重新匯入的題目檔`}
                   value="exam-json"
+                  disabled={exporting}
                 />
               );
             }
@@ -268,6 +288,7 @@ export default function ContestExportDialog({
                   id="export-coding-markdown"
                   labelText="Markdown — 題目匯出為 Markdown 檔案"
                   value="coding-markdown"
+                  disabled={exporting}
                 />
               );
             }
@@ -277,6 +298,7 @@ export default function ContestExportDialog({
                 id="export-coding-pdf"
                 labelText="PDF — 題目匯出為 PDF 檔案"
                 value="coding-pdf"
+                disabled={exporting}
               />
             );
           })}
@@ -299,6 +321,7 @@ export default function ContestExportDialog({
               itemToString={(item) => item?.label ?? ""}
               selectedItem={LANGUAGE_OPTIONS.find((l) => l.id === language)}
               onChange={({ selectedItem }) => { if (selectedItem) setLanguage(selectedItem.id); }}
+              disabled={exporting}
             />
 
             {isCodingPdf && (
@@ -311,6 +334,7 @@ export default function ContestExportDialog({
                   itemToString={(item) => item?.label ?? ""}
                   selectedItem={SCALE_OPTIONS.find((s) => s.id === scale)}
                   onChange={({ selectedItem }) => { if (selectedItem) setScale(selectedItem.id); }}
+                  disabled={exporting}
                 />
                 <Dropdown
                   id="export-layout"
@@ -320,14 +344,21 @@ export default function ContestExportDialog({
                   itemToString={(item) => item?.label ?? ""}
                   selectedItem={LAYOUT_OPTIONS.find((l) => l.id === layout)}
                   onChange={({ selectedItem }) => { if (selectedItem) setLayout(selectedItem.id); }}
+                  disabled={exporting}
                 />
               </>
             )}
           </div>
         )}
+
+        {exporting && (
+          <div style={{ marginTop: "1rem" }} aria-live="polite">
+            <InlineLoading description={getExportLoadingDescription(target)} />
+          </div>
+        )}
       </ModalBody>
       <ModalFooter>
-        <Button kind="secondary" onClick={onClose}>
+        <Button kind="secondary" onClick={onClose} disabled={exporting}>
           取消
         </Button>
         <Button

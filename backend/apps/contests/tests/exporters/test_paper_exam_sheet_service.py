@@ -141,7 +141,7 @@ def test_renderer_short_answer_line_count_is_compact_for_fact_question(paper_exa
         include_answers=False,
     ).render_html()
 
-    assert html.count('class="answer-line"') == 2
+    assert html.count('class="answer-line"') == 1
 
 
 @pytest.mark.django_db
@@ -202,3 +202,118 @@ def test_renderer_answer_key_summarizes_long_essay_answer(paper_exam_contest):
     ).render_html()
 
     assert "見詳解" in html
+
+
+@pytest.mark.django_db
+def test_renderer_answer_key_uses_choice_letters_without_ellipsis(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="single_choice",
+        prompt="選出正確敘述",
+        options=[
+            "這是一個非常長的選項內容，用於驗證答案總表不再用省略號截斷",
+            "另一個很長的選項內容，用於驗證答案總表只顯示選項代號",
+        ],
+        correct_answer=1,
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=paper_exam_contest,
+        language="zh-TW",
+        include_answers=True,
+    ).render_html()
+
+    assert ">B<" in html
+    assert "..." not in html
+
+
+@pytest.mark.django_db
+def test_renderer_cleans_placeholder_list_artifacts_in_answer_sheet(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="essay",
+        prompt="請說明。",
+        correct_answer="1.\n1.\n• • •\n最終答案",
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=paper_exam_contest,
+        language="zh-TW",
+        include_answers=True,
+    ).render_html()
+
+    assert "最終答案" in html
+    assert "• • •" not in html
+    assert "<li></li>" not in html
+
+
+@pytest.mark.django_db
+def test_renderer_applies_codehilite_to_prompt_markdown(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="short_answer",
+        prompt="```python\nprint('hello')\n```",
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=paper_exam_contest,
+        language="zh-TW",
+        include_answers=False,
+    ).render_html()
+
+    assert "codehilite" in html
+
+
+@pytest.mark.django_db
+def test_renderer_instructions_use_contest_rules_when_present(teacher):
+    contest = Contest.objects.create(
+        name="Rules Driven Contest",
+        owner=teacher,
+        contest_type="paper_exam",
+        status="published",
+        rules="- 先寫姓名\n- 不可交頭接耳\n3. 提前離場需交卷",
+    )
+    ExamQuestion.objects.create(
+        contest=contest,
+        question_type="short_answer",
+        prompt="Q",
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=contest,
+        language="zh-TW",
+        include_answers=False,
+    ).render_html()
+
+    assert "先寫姓名" in html
+    assert "不可交頭接耳" in html
+    assert "提前離場需交卷" in html
+    assert "請依題號順序作答，答案務必清楚可辨識。" not in html
+
+
+@pytest.mark.django_db
+def test_renderer_does_not_show_generated_time(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="short_answer",
+        prompt="Q",
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=paper_exam_contest,
+        language="zh-TW",
+        include_answers=False,
+    ).render_html()
+
+    assert "產生時間" not in html
+    assert "Generated At" not in html
