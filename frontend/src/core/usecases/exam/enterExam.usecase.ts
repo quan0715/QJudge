@@ -17,6 +17,7 @@ export { requestFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 export interface EnterExamInput {
   contestId: string;
   cheatDetectionEnabled: boolean;
+  answeringEntryPath: string;
 }
 
 export interface EnterExamOutput {
@@ -29,7 +30,7 @@ export interface EnterExamOutput {
 export async function enterExamUseCase(
   input: EnterExamInput
 ): Promise<EnterExamOutput> {
-  const { contestId, cheatDetectionEnabled } = input;
+  const { contestId, cheatDetectionEnabled, answeringEntryPath } = input;
 
   // Exam mode must always go through precheck before anti-cheat activation.
   if (cheatDetectionEnabled) {
@@ -50,7 +51,7 @@ export async function enterExamUseCase(
       return {
         success: true,
         status: response.status,
-        navigateTo: `/contests/${contestId}/problems`,
+        navigateTo: answeringEntryPath,
       };
     }
 

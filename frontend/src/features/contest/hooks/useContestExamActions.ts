@@ -15,6 +15,7 @@ import {
 import { endExam } from "@/infrastructure/api/repositories";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -93,9 +94,13 @@ export const useContestExamActions = ({
       clearExamPrecheckPassed(contest.id);
     }
 
+    const module = getContestTypeModule(contest.contestType);
+    const answeringEntryPath = module.student.getAnsweringEntryPath(contest.id, contest);
+
     const result = await enterExamUseCase({
       contestId: contest.id,
       cheatDetectionEnabled: contest.cheatDetectionEnabled,
+      answeringEntryPath,
     });
 
     if (result.success && result.navigateTo) {

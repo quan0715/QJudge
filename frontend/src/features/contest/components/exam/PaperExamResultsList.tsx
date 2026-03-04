@@ -24,9 +24,18 @@ import {
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import {
-  canOpenPaperAnsweringFromDashboard,
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
+
+const canOpenPaperAnsweringFromDashboard = (contest: ContestDetail | null | undefined): boolean => {
+  if (!contest) return false;
+  const PAPER_ANSWERING_OPEN_STATUSES = new Set(["in_progress", "paused", "locked"]);
+  return (
+    contest.contestType === "paper_exam" &&
+    isContestParticipant(contest) &&
+    !!contest.examStatus && PAPER_ANSWERING_OPEN_STATUSES.has(contest.examStatus)
+  );
+};
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
   true_false: "是非題",

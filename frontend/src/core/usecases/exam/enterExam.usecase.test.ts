@@ -47,6 +47,7 @@ describe("enterExam.usecase", () => {
     const result = await enterExamUseCase({
       contestId: "contest-1",
       cheatDetectionEnabled: true,
+      answeringEntryPath: "/contests/contest-1/problems",
     });
 
     expect(startExam).not.toHaveBeenCalled();
@@ -57,19 +58,37 @@ describe("enterExam.usecase", () => {
     });
   });
 
-  it("starts exam and navigates to problems for non-exam mode", async () => {
+  it("starts exam and navigates dynamically for coding non-exam mode", async () => {
     vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
       cheatDetectionEnabled: false,
+      answeringEntryPath: "/contests/contest-1/solve/p1",
     });
 
     expect(startExam).toHaveBeenCalledWith("contest-1");
     expect(result).toEqual({
       success: true,
       status: "started",
-      navigateTo: "/contests/contest-1/problems",
+      navigateTo: "/contests/contest-1/solve/p1",
+    });
+  });
+
+  it("starts exam and navigates dynamically for paper_exam non-exam mode", async () => {
+    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
+
+    const result = await enterExamUseCase({
+      contestId: "contest-1",
+      cheatDetectionEnabled: false,
+      answeringEntryPath: "/contests/contest-1/paper-exam/answering",
+    });
+
+    expect(startExam).toHaveBeenCalledWith("contest-1");
+    expect(result).toEqual({
+      success: true,
+      status: "started",
+      navigateTo: "/contests/contest-1/paper-exam/answering",
     });
   });
 
@@ -79,6 +98,7 @@ describe("enterExam.usecase", () => {
     const result = await enterExamUseCase({
       contestId: "contest-1",
       cheatDetectionEnabled: false,
+      answeringEntryPath: "/contests/contest-1/problems",
     });
 
     expect(result).toEqual({
@@ -96,6 +116,7 @@ describe("enterExam.usecase", () => {
     const result = await enterExamUseCase({
       contestId: "contest-1",
       cheatDetectionEnabled: false,
+      answeringEntryPath: "/contests/contest-1/problems",
     });
 
     expect(result).toEqual({

@@ -34,6 +34,15 @@ export interface ContestStudentTabRenderContext {
 export type ContestStudentTabRenderer = (
   context: ContestStudentTabRenderContext,
 ) => ReactNode;
+
+export interface AdminPanelProps {
+  contestId: string;
+  contest: ContestDetail | null;
+  panelRef?: React.RefObject<any>;
+}
+
+export type AdminPanelRenderer = React.ComponentType<AdminPanelProps>;
+
 export type ContestExportTarget =
   | "exam-question"
   | "exam-answer"
@@ -55,6 +64,7 @@ export interface ContestStudentModule {
 export interface ContestAdminModule {
   editorKind: ContestAdminEditorKind;
   getAvailablePanels: (contest?: ContestDetail | null) => AdminPanelId[];
+  getPanelRenderers?: () => Partial<Record<AdminPanelId, AdminPanelRenderer>>;
   getExportTargets: (contest?: ContestDetail | null) => ContestExportTarget[];
   shouldShowJsonActions: (activePanel: AdminPanelId) => boolean;
 }

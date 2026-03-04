@@ -6,26 +6,13 @@ import {
   ContestProvider,
   ContestAdminProvider,
   useContest,
-  useContestAdmin,
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
-import ExamEditorLayout, {
-  type ExamEditorLayoutHandle,
-} from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
-import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
+import type { ExamEditorLayoutHandle } from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 
-import ContestParticipantsScreen from "@/features/contest/screens/settings/ContestParticipantsScreen";
-import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
-import ContestExamGradingScreen from "@/features/contest/screens/settings/ContestExamGradingScreen";
-import AdminContestSettingsPanel from "./panels/AdminContestSettingsScreen";
-import AdminOverviewPanel from "./panels/AdminOverviewScreen";
-import AdminClarificationsScreen from "./panels/AdminClarificationsScreen";
-import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
-import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
-
-import { computeMockKpi } from "./mockData";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
+import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 
 const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
@@ -51,14 +38,12 @@ const AdminDashboardInner = () => {
   const navigate = useNavigate();
 
   const { contest, loading } = useContest();
-  const { participants } = useContestAdmin();
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
     [contest?.contestType],
   );
 
-  const kpi = useMemo(() => computeMockKpi(participants), [participants]);
   const [exportOpen, setExportOpen] = useState(false);
   const availablePanels = useMemo(
     () => contestModule.admin.getAvailablePanels(contest),
@@ -131,47 +116,7 @@ const AdminDashboardInner = () => {
     );
   }
 
-  const renderPanel = () => {
-    switch (activePanel) {
-      case "overview":
-        return contest ? (
-          <AdminOverviewPanel kpi={kpi} contest={contest} />
-        ) : null;
-      case "clarifications":
-        return <AdminClarificationsScreen />;
-      case "logs":
-        return <ContestLogsScreen />;
-      case "participants":
-        return <ContestParticipantsScreen />;
-      case "problem_editor": {
-        if (!contest) return null;
-        const useExamEditor = contestModule.admin.editorKind === "paper_exam";
-        return useExamEditor ? (
-          <ExamEditorLayout
-            ref={examEditorRef}
-            contestId={contestId || ""}
-            contest={contest}
-          />
-        ) : (
-          <CodingTestEditorLayout contestId={contestId || ""} contest={contest} />
-        );
-      }
-      case "grading":
-        return <ContestExamGradingScreen />;
-      case "statistics":
-        return contestModule.admin.editorKind === "paper_exam" ? (
-          <ExamStatisticsPanel />
-        ) : (
-          <CodingStatisticsPlaceholder />
-        );
-      case "settings":
-        return <AdminContestSettingsPanel />;
-      default:
-        return contest ? (
-          <AdminOverviewPanel kpi={kpi} contest={contest} />
-        ) : null;
-    }
-  };
+  const PanelComponent = getAdminPanelRenderer(activePanel, contestModule);
 
   return (
     <AdminDashboardLayout
@@ -186,7 +131,11 @@ const AdminDashboardInner = () => {
       onPreview={handlePreview}
       onExport={() => setExportOpen(true)}
     >
-      {renderPanel()}
+      <PanelComponent
+        contestId={contestId || ""}
+        contest={contest}
+        panelRef={examEditorRef}
+      />
 
       {contest && contestId && (
         <ContestExportDialog

@@ -7,7 +7,7 @@ import {
   getContestPrecheckPath,
   getContestSolvePath,
   getFirstContestProblemId,
-  getPaperSubmitReviewBackPath,
+  getSubmitReviewBackPath,
   getPostPrecheckPath,
   isPathWithinContest,
   shouldRouteToPrecheck,
@@ -102,10 +102,13 @@ describe("contestRoutePolicy", () => {
   });
 
   it("computes submit-review back path", () => {
+    const paperContest = createContest({ contestType: "paper_exam" });
+    
     // cheatDetection enabled + paused → precheck
     expect(
-      getPaperSubmitReviewBackPath({
+      getSubmitReviewBackPath({
         contestId: "42",
+        contest: paperContest,
         examStatus: "paused",
         cheatDetectionEnabled: true,
         precheckPassed: false,
@@ -113,8 +116,9 @@ describe("contestRoutePolicy", () => {
     ).toBe("/contests/42/exam-precheck");
     // cheatDetection enabled + in_progress + precheck passed → answering
     expect(
-      getPaperSubmitReviewBackPath({
+      getSubmitReviewBackPath({
         contestId: "42",
+        contest: paperContest,
         examStatus: "in_progress",
         cheatDetectionEnabled: true,
         precheckPassed: true,
@@ -122,13 +126,29 @@ describe("contestRoutePolicy", () => {
     ).toBe("/contests/42/paper-exam/answering");
     // cheatDetection disabled → always answering, even if precheckPassed is false
     expect(
-      getPaperSubmitReviewBackPath({
+      getSubmitReviewBackPath({
         contestId: "42",
+        contest: paperContest,
         examStatus: "in_progress",
         cheatDetectionEnabled: false,
         precheckPassed: false,
       }),
     ).toBe("/contests/42/paper-exam/answering");
+
+    const codingContest = createContest({
+      contestType: "coding",
+      problems: [{ id: "1", problemId: "p1", label: "A", title: "P1", order: 1, score: 100 }],
+    });
+    // coding mode with cheat disabled → dynamic route
+    expect(
+      getSubmitReviewBackPath({
+        contestId: "42",
+        contest: codingContest,
+        examStatus: "in_progress",
+        cheatDetectionEnabled: false,
+        precheckPassed: false,
+      }),
+    ).toBe("/contests/42/solve/p1");
   });
 
   it("checks whether current path stays under contest scope", () => {

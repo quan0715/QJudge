@@ -1,20 +1,17 @@
+import { useMemo } from "react";
 import KpiCards from "@/features/contest/components/admin/KpiCards";
 import StudentStatusBreakdown from "@/features/contest/components/admin/StudentStatusBreakdown";
-import { useContestAdmin } from "@/features/contest/contexts";
-import type { DashboardKpi } from "../mockData";
-import type { ContestDetail } from "@/core/entities/contest.entity";
+import { useContest, useContestAdmin } from "@/features/contest/contexts";
+import { computeMockKpi } from "../mockData";
 import styles from "./AdminOverviewPanel.module.scss";
 
-interface AdminOverviewPanelProps {
-  kpi: DashboardKpi;
-  contest: ContestDetail;
-}
+export default function AdminOverviewPanel() {
+  const { contest } = useContest();
+  const { participants, refreshAdminData, isRefreshing } = useContestAdmin();
+  
+  const kpi = useMemo(() => computeMockKpi(participants), [participants]);
 
-export default function AdminOverviewPanel({
-  kpi,
-  contest,
-}: AdminOverviewPanelProps) {
-  const { refreshAdminData, isRefreshing } = useContestAdmin();
+  if (!contest) return null;
 
   return (
     <div className={styles.root}>

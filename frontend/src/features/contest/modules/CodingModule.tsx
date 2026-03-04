@@ -1,8 +1,6 @@
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   canAccessExamContent,
-  canShowStandingsTab,
-  canShowSubmissionsTab,
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import { toContestTabSpecs, type ContestTabKey } from "@/features/contest/tabConfig";
@@ -11,6 +9,8 @@ import type {
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
+import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
+import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
 
 const getFirstProblemId = (contest?: ContestDetail | null): string | undefined => {
   if (!contest?.problems?.length) return undefined;
@@ -18,6 +18,17 @@ const getFirstProblemId = (contest?: ContestDetail | null): string | undefined =
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
   )[0];
   return firstProblem?.problemId || firstProblem?.id;
+};
+
+const canShowSubmissionsTab = (contest?: ContestDetail | null): boolean =>
+  isContestParticipant(contest);
+
+const canShowStandingsTab = (contest?: ContestDetail | null): boolean => {
+  if (!canShowSubmissionsTab(contest)) return false;
+  return !!(
+    contest?.permissions?.canViewFullScoreboard ||
+    contest?.scoreboardVisibleDuringContest
+  );
 };
 
 const getCodingTabs = (contest?: ContestDetail | null) => {
@@ -82,6 +93,18 @@ export const codingContestModule: ContestTypeModule = {
   admin: {
     editorKind: "coding",
     getAvailablePanels: () => CODING_ADMIN_PANELS,
+    getPanelRenderers: () => ({
+      problem_editor: (props) => {
+        if (!props.contest) return null;
+        return (
+          <CodingTestEditorLayout
+            contestId={props.contestId}
+            contest={props.contest}
+          />
+        );
+      },
+      statistics: () => <CodingStatisticsPlaceholder />,
+    }),
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
     shouldShowJsonActions: () => false,
   },

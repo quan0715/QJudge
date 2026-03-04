@@ -24,7 +24,7 @@ import {
 } from "./hooks/useExamPrecheckGate";
 import {
   getContestDashboardPath,
-  getPaperSubmitReviewBackPath,
+  getSubmitReviewBackPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 
@@ -73,11 +73,12 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
   }, [contest?.examStatus, contestId]);
 
   const backToExamRoute =
-    contestId
-      ? getPaperSubmitReviewBackPath({
+    contestId && contest
+      ? getSubmitReviewBackPath({
           contestId,
-          examStatus: contest?.examStatus,
-          cheatDetectionEnabled: contest?.cheatDetectionEnabled,
+          contest,
+          examStatus: contest.examStatus,
+          cheatDetectionEnabled: contest.cheatDetectionEnabled,
           precheckPassed: hasExamPrecheckPassed(contestId),
         })
       : "";
@@ -179,8 +180,8 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
           <Button
             kind="secondary"
             renderIcon={ArrowLeft}
-            disabled={!contestId}
-            onClick={() => contestId && navigate(backToExamRoute)}
+            disabled={!backToExamRoute}
+            onClick={() => backToExamRoute && navigate(backToExamRoute)}
           >
             回作答頁
           </Button>

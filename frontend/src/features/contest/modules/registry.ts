@@ -1,7 +1,7 @@
 import type { ContestType } from "@/core/entities/contest.entity";
-import { codingContestModule } from "@/features/contest/modules/coding.module";
-import { paperExamContestModule } from "@/features/contest/modules/paperExam.module";
-import type { ContestTypeModule } from "@/features/contest/modules/types";
+import { codingContestModule } from "./CodingModule";
+import { paperExamContestModule } from "./PaperExamModule";
+import type { ContestTypeModule } from "./types";
 
 const MODULE_MAP: Record<ContestType, ContestTypeModule> = {
   coding: codingContestModule,

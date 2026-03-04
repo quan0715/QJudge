@@ -2,13 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   canAccessExamContent,
-  canOpenPaperAnsweringFromDashboard,
-  canShowStandingsTab,
-  canShowSubmissionsTab,
   hasStartedExam,
   isContestParticipant,
   isExamMonitoringActive,
-  isPaperExamContest,
   shouldForceEndExamOnExit,
   shouldWarnOnExit,
 } from "./contestRuntimePolicy";
@@ -48,10 +44,9 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   }) as ContestDetail;
 
 describe("contestRuntimePolicy", () => {
-  it("recognizes contest participation and paper type", () => {
+  it("recognizes contest participation", () => {
     expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: false }))).toBe(false);
     expect(isContestParticipant(createContest({ hasJoined: true, isRegistered: false }))).toBe(true);
-    expect(isPaperExamContest(createContest({ contestType: "paper_exam" }))).toBe(true);
   });
 
   it("treats submitted/locked/paused/in_progress as started exam", () => {
@@ -73,17 +68,6 @@ describe("contestRuntimePolicy", () => {
     ).toBe(true);
   });
 
-  it("computes submissions/standings visibility correctly", () => {
-    const codingContest = createContest({ contestType: "coding" });
-    const paperContest = createContest({ contestType: "paper_exam" });
-
-    expect(canShowSubmissionsTab(codingContest)).toBe(true);
-    expect(canShowSubmissionsTab(paperContest)).toBe(false);
-    expect(canShowStandingsTab(createContest({ permissions: { ...codingContest.permissions, canViewFullScoreboard: true } }))).toBe(true);
-    expect(canShowStandingsTab(createContest({ scoreboardVisibleDuringContest: true }))).toBe(true);
-    expect(canShowStandingsTab(createContest({ contestType: "paper_exam" }))).toBe(false);
-  });
-
   it("computes monitoring and exit warning flags", () => {
     const inProgress = createContest({ examStatus: "in_progress", cheatDetectionEnabled: true });
     expect(isExamMonitoringActive(inProgress)).toBe(true);
@@ -93,28 +77,5 @@ describe("contestRuntimePolicy", () => {
     expect(shouldWarnOnExit(createContest({ examStatus: "submitted" }), false)).toBe(false);
     expect(shouldWarnOnExit(createContest({ examStatus: "in_progress", status: "draft" }), false)).toBe(false);
     expect(shouldWarnOnExit(createContest({ examStatus: "in_progress" }), true)).toBe(false);
-  });
-
-  it("opens paper answering from dashboard only for eligible paper participants", () => {
-    expect(
-      canOpenPaperAnsweringFromDashboard(
-        createContest({ contestType: "paper_exam", examStatus: "paused" }),
-      ),
-    ).toBe(true);
-    expect(
-      canOpenPaperAnsweringFromDashboard(
-        createContest({ contestType: "coding", examStatus: "in_progress" }),
-      ),
-    ).toBe(false);
-    expect(
-      canOpenPaperAnsweringFromDashboard(
-        createContest({
-          contestType: "paper_exam",
-          hasJoined: false,
-          isRegistered: false,
-          examStatus: "in_progress",
-        }),
-      ),
-    ).toBe(false);
   });
 });

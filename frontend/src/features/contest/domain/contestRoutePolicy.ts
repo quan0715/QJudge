@@ -70,15 +70,19 @@ export const shouldRouteToPrecheck = (params: {
   return contest.examStatus === "in_progress" && !precheckPassed;
 };
 
-export const getPaperSubmitReviewBackPath = (params: {
+export const getSubmitReviewBackPath = (params: {
   contestId: string;
+  contest: NonNullable<ContestRouteTarget>;
   examStatus?: ExamStatusType;
   cheatDetectionEnabled?: boolean;
   precheckPassed: boolean;
 }): string => {
-  const { contestId, examStatus, cheatDetectionEnabled, precheckPassed } = params;
+  const { contestId, contest, examStatus, cheatDetectionEnabled, precheckPassed } = params;
+  
+  const targetPath = getContestAnsweringEntryPath(contestId, contest);
+
   if (!cheatDetectionEnabled) {
-    return getContestPaperAnsweringPath(contestId);
+    return targetPath;
   }
   if (
     examStatus === "paused" ||
@@ -86,7 +90,7 @@ export const getPaperSubmitReviewBackPath = (params: {
   ) {
     return getContestPrecheckPath(contestId);
   }
-  return getContestPaperAnsweringPath(contestId);
+  return targetPath;
 };
 
 export const isPathWithinContest = (params: {

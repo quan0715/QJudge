@@ -55,8 +55,6 @@ describe("contest type module registry", () => {
       "statistics",
       "settings",
     ]);
-    expect(module.admin.isFullBleedPanel("problem_editor")).toBe(true);
-    expect(module.admin.isFullBleedPanel("overview")).toBe(false);
   });
 
   it("returns paper exam module for paper_exam contests", () => {

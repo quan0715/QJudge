@@ -9,6 +9,8 @@ import type {
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
+import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
+import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
 
 const getPaperExamTabs = (contest?: ContestDetail | null) => {
   const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
@@ -57,6 +59,19 @@ export const paperExamContestModule: ContestTypeModule = {
   admin: {
     editorKind: "paper_exam",
     getAvailablePanels: () => PAPER_EXAM_ADMIN_PANELS,
+    getPanelRenderers: () => ({
+      problem_editor: (props) => {
+        if (!props.contest) return null;
+        return (
+          <ExamEditorLayout
+            contestId={props.contestId}
+            contest={props.contest}
+            ref={props.panelRef}
+          />
+        );
+      },
+      statistics: () => <ExamStatisticsPanel />,
+    }),
     getExportTargets: () => ["exam-question", "exam-answer", "exam-json"],
     shouldShowJsonActions: (activePanel) => activePanel === "problem_editor",
   },

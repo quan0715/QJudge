@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { isValidElement } from "react";
-import { codingContestModule } from "@/features/contest/modules/coding.module";
+import { codingContestModule } from "@/features/contest/modules/CodingModule";
 import type { ContestDetail, ScoreboardRow } from "@/core/entities/contest.entity";
 import type { ContestTypeModule } from "@/features/contest/modules/types";
 import { resolveStudentTabRenderer } from "@/features/contest/modules/StudentTabRendererRegistry";
