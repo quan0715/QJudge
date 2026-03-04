@@ -28,7 +28,8 @@
     "environment": "환경 설정",
     "createContest": "대회 생성",
     "createProblem": "문제 생성",
-    "editProblem": "문제 편집"
+    "editProblem": "문제 편집",
+    "teacherDashboard": "교사 대시보드"
   },
   "tab": {
     "overview": "개요",
@@ -57,7 +58,11 @@
     "createLab": "랩 생성",
     "userManagement": "사용자 관리",
     "announcements": "공지 관리",
-    "environmentSettings": "환경 설정"
+    "environmentSettings": "환경 설정",
+    "teacherDashboard": "교사 대시보드",
+    "systemSettings": "시스템 설정",
+    "contestManagement": "대회 관리",
+    "labManagement": "문제집 관리"
   },
   "dashboard": {
     "welcomeBack": "환영합니다, {{name}}",
@@ -252,6 +257,8 @@
     "endTime": "종료 시간",
     "startDate": "시작 날짜",
     "endDate": "종료 날짜",
+    "startDateTime": "시작 일시",
+    "endDateTime": "종료 일시",
     "password": "비밀번호",
     "visibility": "공개 여부"
   },

@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:docs": "tsc -b && vite build --config vite.config.docs.ts",
     "check:docs": "node scripts/check-docs-translations.js",
+    "check:i18n": "node scripts/check-i18n-sync.js",
     "lint": "eslint . --max-warnings=9999",
     "preview": "vite preview",
     "test": "vitest run",

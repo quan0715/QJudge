@@ -1,4 +1,17 @@
 {
+  "management": {
+    "description": "문제를 관리합니다",
+    "problemCount": "총 {{count}}문제"
+  },
+  "button": {
+    "createProblem": "문제 생성",
+    "create": "생성",
+    "cancel": "취소"
+  },
+  "form": {
+    "title": "제목",
+    "slug": "URL 슬러그"
+  },
   "section": {
     "description": "문제 설명",
     "inputDescription": "입력 형식",
@@ -32,7 +45,9 @@
     "submitConfirmMessage": "이 작업은 모든 숨겨진 테스트 케이스를 평가합니다.",
     "createTitle": "문제 생성",
     "createSuccess": "문제가 생성되었습니다!",
-    "createError": "생성 실패. 나중에 다시 시도해 주세요"
+    "createError": "생성 실패. 나중에 다시 시도해 주세요",
+    "confirmDelete": "삭제 확인",
+    "deleteConfirmMessage": "문제 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
   },
   "import": {
     "modalTitle": "YAML에서 문제 가져오기",

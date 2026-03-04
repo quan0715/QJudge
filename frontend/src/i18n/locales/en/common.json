@@ -28,7 +28,8 @@
     "environment": "Environment",
     "createContest": "Create Contest",
     "createProblem": "Create Problem",
-    "editProblem": "Edit Problem"
+    "editProblem": "Edit Problem",
+    "teacherDashboard": "Teacher Dashboard"
   },
   "tab": {
     "overview": "Overview",
@@ -256,6 +257,8 @@
     "endTime": "End Time",
     "startDate": "Start Date",
     "endDate": "End Date",
+    "startDateTime": "Start Date & Time",
+    "endDateTime": "End Date & Time",
     "password": "Password",
     "visibility": "Visibility"
   },

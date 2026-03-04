@@ -1,4 +1,25 @@
 {
+  "management": {
+    "description": "Manage your contests",
+    "contestCount": "{{count}} contests in total"
+  },
+  "button": {
+    "createContest": "Create Contest"
+  },
+  "placeholder": {
+    "contestName": "Enter contest name"
+  },
+  "validation": {
+    "invalidDateTime": "Please select valid start and end times",
+    "endBeforeStart": "End time must be after start time"
+  },
+  "error": {
+    "createFailed": "Failed to create contest"
+  },
+  "modal": {
+    "confirmDelete": "Confirm Delete",
+    "deleteConfirmMessage": "Are you sure you want to delete contest \"{{name}}\"? This action cannot be undone."
+  },
   "mode": "Contest Mode",
   "timeToStart": "Starts in {{time}}",
   "problemList": "Problem List",
@@ -13,7 +34,56 @@
   "examMode": "Cheat Detection",
   "startTime": "Start Time",
   "endTime": "End Time",
-  "participants": "Participants",
+  "participants": {
+    "title": "Participants",
+    "add": "Add",
+    "added": "Participant added",
+    "addFailed": "Failed to add participant",
+    "confirmUnlock": "Are you sure you want to unlock this student?",
+    "unlock": "Unlock",
+    "unlocked": "Unlocked",
+    "unlockFailed": "Unlock failed",
+    "statusUpdated": "Participant status updated",
+    "updateFailed": "Update failed",
+    "confirmReopen": "Are you sure you want to reopen this student's exam?",
+    "reopen": "Reopen",
+    "reopened": "Exam reopened",
+    "reopenFailed": "Reopen failed",
+    "confirmRemove": "Are you sure you want to remove participant {{name}}?",
+    "remove": "Remove",
+    "removed": "Participant removed",
+    "removeFailed": "Failed to remove participant",
+    "generatingReport": "Generating report for {{name}}...",
+    "reportDownloaded": "Report for {{name}} downloaded",
+    "downloadFailed": "Failed to download report",
+    "searchLabel": "Search participants",
+    "searchPlaceholder": "Search name or user ID...",
+    "filterStatus": "Filter status",
+    "selectStatus": "Select status",
+    "displayCount": "Showing {{shown}} / {{total}} participants",
+    "headers": {
+      "username": "User",
+      "score": "Score",
+      "joinedAt": "Joined At",
+      "status": "Status",
+      "lockReason": "Lock Reason",
+      "actions": "Actions"
+    },
+    "actions": {
+      "unlock": "Unlock",
+      "reopen": "Reopen Exam",
+      "download": "Download Report",
+      "edit": "Edit Status",
+      "remove": "Remove Participant"
+    },
+    "editModal": {
+      "heading": "Edit participant: {{name}}",
+      "save": "Save Changes",
+      "examStatus": "Exam Status",
+      "selectStatus": "Select Status",
+      "lockReason": "Lock Reason"
+    }
+  },
   "problems": "Problems",
   "duration": "Duration",
   "progress": "Progress",
@@ -567,56 +637,6 @@
     "saving": "Saving...",
     "save": "Save"
   },
-  "participants": {
-    "title": "Participants",
-    "add": "Add",
-    "added": "Participant added",
-    "addFailed": "Failed to add participant",
-    "confirmUnlock": "Are you sure you want to unlock this student?",
-    "unlock": "Unlock",
-    "unlocked": "Unlocked",
-    "unlockFailed": "Unlock failed",
-    "statusUpdated": "Participant status updated",
-    "updateFailed": "Update failed",
-    "confirmReopen": "Are you sure you want to reopen this student's exam?",
-    "reopen": "Reopen",
-    "reopened": "Exam reopened",
-    "reopenFailed": "Reopen failed",
-    "confirmRemove": "Are you sure you want to remove participant {{name}}?",
-    "remove": "Remove",
-    "removed": "Participant removed",
-    "removeFailed": "Failed to remove participant",
-    "generatingReport": "Generating report for {{name}}...",
-    "reportDownloaded": "Report for {{name}} downloaded",
-    "downloadFailed": "Failed to download report",
-    "searchLabel": "Search participants",
-    "searchPlaceholder": "Search name or user ID...",
-    "filterStatus": "Filter status",
-    "selectStatus": "Select status",
-    "displayCount": "Showing {{shown}} / {{total}} participants",
-    "headers": {
-      "username": "User",
-      "score": "Score",
-      "joinedAt": "Joined At",
-      "status": "Status",
-      "lockReason": "Lock Reason",
-      "actions": "Actions"
-    },
-    "actions": {
-      "unlock": "Unlock",
-      "reopen": "Reopen Exam",
-      "download": "Download Report",
-      "edit": "Edit Status",
-      "remove": "Remove Participant"
-    },
-    "editModal": {
-      "heading": "Edit participant: {{name}}",
-      "save": "Save Changes",
-      "examStatus": "Exam Status",
-      "selectStatus": "Select Status",
-      "lockReason": "Lock Reason"
-    }
-  },
   "examEditor": {
     "loadFailed": "Load failed",
     "loadFailedDetail": "Failed to load exam questions",
@@ -625,6 +645,7 @@
     "importRolledBack": "Import failed, auto-rolled back",
     "importRollbackFailed": "Import failed and rollback failed",
     "importRollbackFailedDetail": "Please refresh the page and check question content",
+    "importFrozen": "Questions are currently frozen and cannot be imported.",
     "questionAdded": "Question added",
     "addFailed": "Add failed",
     "sortUpdateFailed": "Sort update failed",

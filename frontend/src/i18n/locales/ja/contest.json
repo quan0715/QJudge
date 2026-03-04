@@ -1,4 +1,25 @@
 {
+  "management": {
+    "description": "コンテストを管理",
+    "contestCount": "全 {{count}} 件のコンテスト"
+  },
+  "button": {
+    "createContest": "コンテスト作成"
+  },
+  "placeholder": {
+    "contestName": "コンテスト名を入力"
+  },
+  "validation": {
+    "invalidDateTime": "有効な開始時間と終了時間を選択してください",
+    "endBeforeStart": "終了時間は開始時間より後にしてください"
+  },
+  "error": {
+    "createFailed": "コンテストの作成に失敗しました"
+  },
+  "modal": {
+    "confirmDelete": "削除の確認",
+    "deleteConfirmMessage": "コンテスト「{{name}}」を削除してもよろしいですか？この操作は取り消せません。"
+  },
   "mode": "コンテストモード",
   "timeToStart": "開始まで {{time}}",
   "problemList": "問題一覧",
@@ -13,7 +34,56 @@
   "examMode": "不正検出",
   "startTime": "開始時間",
   "endTime": "終了時間",
-  "participants": "参加者数",
+  "participants": {
+    "title": "参加者リスト",
+    "add": "追加",
+    "added": "参加者が追加されました",
+    "addFailed": "参加者の追加に失敗しました",
+    "confirmUnlock": "この学生のロックを解除しますか？",
+    "unlock": "解除",
+    "unlocked": "ロックが解除されました",
+    "unlockFailed": "ロック解除に失敗しました",
+    "statusUpdated": "参加者のステータスが更新されました",
+    "updateFailed": "更新に失敗しました",
+    "confirmReopen": "この学生の試験を再開しますか？",
+    "reopen": "再開",
+    "reopened": "試験が再開されました",
+    "reopenFailed": "再開に失敗しました",
+    "confirmRemove": "参加者 {{name}} を削除しますか？",
+    "remove": "削除",
+    "removed": "参加者が削除されました",
+    "removeFailed": "参加者の削除に失敗しました",
+    "generatingReport": "{{name}} のレポートを生成中...",
+    "reportDownloaded": "{{name}} のレポートがダウンロードされました",
+    "downloadFailed": "レポートのダウンロードに失敗しました",
+    "searchLabel": "参加者を検索",
+    "searchPlaceholder": "名前またはユーザーIDで検索...",
+    "filterStatus": "ステータスフィルター",
+    "selectStatus": "ステータスを選択",
+    "displayCount": "{{shown}} / {{total}} 名の参加者を表示",
+    "headers": {
+      "username": "ユーザー",
+      "score": "スコア",
+      "joinedAt": "参加日時",
+      "status": "ステータス",
+      "lockReason": "ロック理由",
+      "actions": "操作"
+    },
+    "actions": {
+      "unlock": "ロック解除",
+      "reopen": "試験再開",
+      "download": "レポートダウンロード",
+      "edit": "ステータス編集",
+      "remove": "参加者削除"
+    },
+    "editModal": {
+      "heading": "参加者を編集: {{name}}",
+      "save": "変更を保存",
+      "examStatus": "試験ステータス",
+      "selectStatus": "ステータスを選択",
+      "lockReason": "ロック理由"
+    }
+  },
   "problems": "問題数",
   "duration": "期間",
   "progress": "進捗",
@@ -174,7 +244,44 @@
     "scale": "拡大縮小",
     "selectScale": "倍率を選択",
     "scaleHint": "PDF出力のフォントとコンテンツサイズを調整します。100%が元のサイズです。",
+    "layout": "レイアウトモード",
+    "selectLayout": "レイアウトを選択",
+    "layoutNormal": "通常モード",
+    "layoutCompact": "コンパクトモード",
+    "layoutHint": "コンパクトモードでは入出力説明を2段組にし、余白を減らしてページ数を削減します。",
     "generating": "ファイル生成中..."
+  },
+  "examJson": {
+    "importAction": "JSONインポート",
+    "exportOption": "Exam JSON",
+    "import": {
+      "title": "Exam問題JSONのインポート",
+      "description": "インポートタイプを選択してからJSONファイルをアップロードしてください。システムが検証とプレビューを行い、確認後に既存の問題を上書きします。",
+      "targetLegend": "インポートタイプを選択",
+      "targetExamJson": "Exam問題JSON（既存の問題を上書き）",
+      "uploadTitle": "JSONファイルをアップロード",
+      "uploadHint": ".jsonのみ受付。厳密なスキーマ検証が必要です。",
+      "chooseFile": "ファイルを選択",
+      "selectedFile": "選択されたファイル",
+      "parsingTitle": "解析中",
+      "parsingSubtitle": "JSONスキーマと問題フィールドを検証中",
+      "validationFailed": "検証に失敗しました",
+      "validationCount": "{{count}} 件のエラーが見つかりました",
+      "previewTitle": "インポートプレビュー",
+      "previewQuestionCount": "{{count}} 問",
+      "previewTotalScore": "合計スコア {{score}}",
+      "previewScore": "配点：{{score}}",
+      "previewMore": "残り {{count}} 問は未表示",
+      "confirmReplace": "上書きを確認",
+      "cancel": "キャンセル",
+      "importing": "インポート中...",
+      "importFailedTitle": "インポート失敗",
+      "errors": {
+        "invalidJson": "JSON形式が無効です",
+        "fileReadFailed": "ファイルの読み込みに失敗しました",
+        "importFailed": "インポートプロセスに失敗しました"
+      }
+    }
   },
   "exitModal": {
     "confirmSubmitAndExit": "提出して退出を確認",
@@ -530,56 +637,6 @@
     "saving": "保存中...",
     "save": "保存"
   },
-  "participants": {
-    "title": "参加者リスト",
-    "add": "追加",
-    "added": "参加者が追加されました",
-    "addFailed": "参加者の追加に失敗しました",
-    "confirmUnlock": "この学生のロックを解除しますか？",
-    "unlock": "解除",
-    "unlocked": "ロックが解除されました",
-    "unlockFailed": "ロック解除に失敗しました",
-    "statusUpdated": "参加者のステータスが更新されました",
-    "updateFailed": "更新に失敗しました",
-    "confirmReopen": "この学生の試験を再開しますか？",
-    "reopen": "再開",
-    "reopened": "試験が再開されました",
-    "reopenFailed": "再開に失敗しました",
-    "confirmRemove": "参加者 {{name}} を削除しますか？",
-    "remove": "削除",
-    "removed": "参加者が削除されました",
-    "removeFailed": "参加者の削除に失敗しました",
-    "generatingReport": "{{name}} のレポートを生成中...",
-    "reportDownloaded": "{{name}} のレポートがダウンロードされました",
-    "downloadFailed": "レポートのダウンロードに失敗しました",
-    "searchLabel": "参加者を検索",
-    "searchPlaceholder": "名前またはユーザーIDで検索...",
-    "filterStatus": "ステータスフィルター",
-    "selectStatus": "ステータスを選択",
-    "displayCount": "{{shown}} / {{total}} 名の参加者を表示",
-    "headers": {
-      "username": "ユーザー",
-      "score": "スコア",
-      "joinedAt": "参加日時",
-      "status": "ステータス",
-      "lockReason": "ロック理由",
-      "actions": "操作"
-    },
-    "actions": {
-      "unlock": "ロック解除",
-      "reopen": "試験再開",
-      "download": "レポートダウンロード",
-      "edit": "ステータス編集",
-      "remove": "参加者削除"
-    },
-    "editModal": {
-      "heading": "参加者を編集: {{name}}",
-      "save": "変更を保存",
-      "examStatus": "試験ステータス",
-      "selectStatus": "ステータスを選択",
-      "lockReason": "ロック理由"
-    }
-  },
   "examEditor": {
     "loadFailed": "読み込み失敗",
     "loadFailedDetail": "試験問題の読み込みに失敗しました",
@@ -588,6 +645,7 @@
     "importRolledBack": "インポート失敗、自動ロールバック済み",
     "importRollbackFailed": "インポート失敗、ロールバックも失敗",
     "importRollbackFailedDetail": "ページを更新して問題内容を確認してください",
+    "importFrozen": "現在、問題は凍結されており、インポートできません。",
     "questionAdded": "問題が追加されました",
     "addFailed": "追加に失敗しました",
     "sortUpdateFailed": "並び替えの更新に失敗しました",

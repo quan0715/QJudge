@@ -1,4 +1,25 @@
 {
+  "management": {
+    "description": "대회를 관리합니다",
+    "contestCount": "총 {{count}}개의 대회"
+  },
+  "button": {
+    "createContest": "대회 생성"
+  },
+  "placeholder": {
+    "contestName": "대회 이름 입력"
+  },
+  "validation": {
+    "invalidDateTime": "유효한 시작 및 종료 시간을 선택하세요",
+    "endBeforeStart": "종료 시간은 시작 시간 이후여야 합니다"
+  },
+  "error": {
+    "createFailed": "대회 생성에 실패했습니다"
+  },
+  "modal": {
+    "confirmDelete": "삭제 확인",
+    "deleteConfirmMessage": "대회 \"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
+  },
   "mode": "대회 모드",
   "timeToStart": "시작까지 {{time}}",
   "problemList": "문제 목록",
@@ -13,7 +34,56 @@
   "examMode": "부정행위 감지",
   "startTime": "시작 시간",
   "endTime": "종료 시간",
-  "participants": "참가자 수",
+  "participants": {
+    "title": "참가자 목록",
+    "add": "추가",
+    "added": "참가자가 추가되었습니다",
+    "addFailed": "참가자 추가에 실패했습니다",
+    "confirmUnlock": "이 학생의 잠금을 해제하시겠습니까?",
+    "unlock": "해제",
+    "unlocked": "잠금이 해제되었습니다",
+    "unlockFailed": "잠금 해제에 실패했습니다",
+    "statusUpdated": "참가자 상태가 업데이트되었습니다",
+    "updateFailed": "업데이트에 실패했습니다",
+    "confirmReopen": "이 학생의 시험을 다시 열겠습니까?",
+    "reopen": "다시 열기",
+    "reopened": "시험이 다시 열렸습니다",
+    "reopenFailed": "다시 열기에 실패했습니다",
+    "confirmRemove": "참가자 {{name}}을(를) 제거하시겠습니까?",
+    "remove": "제거",
+    "removed": "참가자가 제거되었습니다",
+    "removeFailed": "참가자 제거에 실패했습니다",
+    "generatingReport": "{{name}}의 보고서를 생성 중...",
+    "reportDownloaded": "{{name}}의 보고서가 다운로드되었습니다",
+    "downloadFailed": "보고서 다운로드에 실패했습니다",
+    "searchLabel": "참가자 검색",
+    "searchPlaceholder": "이름 또는 사용자 ID로 검색...",
+    "filterStatus": "상태 필터",
+    "selectStatus": "상태 선택",
+    "displayCount": "{{shown}} / {{total}} 명의 참가자 표시",
+    "headers": {
+      "username": "사용자",
+      "score": "점수",
+      "joinedAt": "참가 일시",
+      "status": "상태",
+      "lockReason": "잠금 사유",
+      "actions": "작업"
+    },
+    "actions": {
+      "unlock": "잠금 해제",
+      "reopen": "시험 다시 열기",
+      "download": "보고서 다운로드",
+      "edit": "상태 편집",
+      "remove": "참가자 제거"
+    },
+    "editModal": {
+      "heading": "참가자 편집: {{name}}",
+      "save": "변경 저장",
+      "examStatus": "시험 상태",
+      "selectStatus": "상태 선택",
+      "lockReason": "잠금 사유"
+    }
+  },
   "problems": "문제 수",
   "duration": "기간",
   "progress": "진행률",
@@ -174,7 +244,44 @@
     "scale": "배율",
     "selectScale": "배율 선택",
     "scaleHint": "PDF 출력의 글꼴 및 콘텐츠 크기를 조정합니다. 100%가 원래 크기입니다.",
+    "layout": "레이아웃 모드",
+    "selectLayout": "레이아웃 선택",
+    "layoutNormal": "일반 모드",
+    "layoutCompact": "컴팩트 모드",
+    "layoutHint": "컴팩트 모드는 입출력 설명을 2단 레이아웃으로 변경하고 여백을 줄여 페이지 수를 절감합니다.",
     "generating": "파일 생성 중..."
+  },
+  "examJson": {
+    "importAction": "JSON 가져오기",
+    "exportOption": "Exam JSON",
+    "import": {
+      "title": "Exam 문제 JSON 가져오기",
+      "description": "가져오기 유형을 선택한 후 JSON 파일을 업로드하세요. 시스템이 검증 및 미리보기를 수행한 후 기존 문제를 덮어씁니다.",
+      "targetLegend": "가져오기 유형 선택",
+      "targetExamJson": "Exam 문제 JSON (기존 문제 덮어쓰기)",
+      "uploadTitle": "JSON 파일 업로드",
+      "uploadHint": ".json만 허용됩니다. 엄격한 스키마 검증이 필요합니다.",
+      "chooseFile": "파일 선택",
+      "selectedFile": "선택된 파일",
+      "parsingTitle": "분석 중",
+      "parsingSubtitle": "JSON 스키마 및 문제 필드 검증 중",
+      "validationFailed": "검증 실패",
+      "validationCount": "{{count}}개의 오류 발견",
+      "previewTitle": "가져오기 미리보기",
+      "previewQuestionCount": "{{count}}문제",
+      "previewTotalScore": "총점 {{score}}",
+      "previewScore": "배점: {{score}}",
+      "previewMore": "{{count}}문제 미표시",
+      "confirmReplace": "덮어쓰기 확인",
+      "cancel": "취소",
+      "importing": "가져오는 중...",
+      "importFailedTitle": "가져오기 실패",
+      "errors": {
+        "invalidJson": "잘못된 JSON 형식",
+        "fileReadFailed": "파일 읽기 실패",
+        "importFailed": "가져오기 프로세스 실패"
+      }
+    }
   },
   "exitModal": {
     "confirmSubmitAndExit": "제출 및 나가기 확인",
@@ -530,56 +637,6 @@
     "saving": "저장 중...",
     "save": "저장"
   },
-  "participants": {
-    "title": "참가자 목록",
-    "add": "추가",
-    "added": "참가자가 추가되었습니다",
-    "addFailed": "참가자 추가에 실패했습니다",
-    "confirmUnlock": "이 학생의 잠금을 해제하시겠습니까?",
-    "unlock": "해제",
-    "unlocked": "잠금이 해제되었습니다",
-    "unlockFailed": "잠금 해제에 실패했습니다",
-    "statusUpdated": "참가자 상태가 업데이트되었습니다",
-    "updateFailed": "업데이트에 실패했습니다",
-    "confirmReopen": "이 학생의 시험을 다시 열겠습니까?",
-    "reopen": "다시 열기",
-    "reopened": "시험이 다시 열렸습니다",
-    "reopenFailed": "다시 열기에 실패했습니다",
-    "confirmRemove": "참가자 {{name}}을(를) 제거하시겠습니까?",
-    "remove": "제거",
-    "removed": "참가자가 제거되었습니다",
-    "removeFailed": "참가자 제거에 실패했습니다",
-    "generatingReport": "{{name}}의 보고서를 생성 중...",
-    "reportDownloaded": "{{name}}의 보고서가 다운로드되었습니다",
-    "downloadFailed": "보고서 다운로드에 실패했습니다",
-    "searchLabel": "참가자 검색",
-    "searchPlaceholder": "이름 또는 사용자 ID로 검색...",
-    "filterStatus": "상태 필터",
-    "selectStatus": "상태 선택",
-    "displayCount": "{{shown}} / {{total}} 명의 참가자 표시",
-    "headers": {
-      "username": "사용자",
-      "score": "점수",
-      "joinedAt": "참가 일시",
-      "status": "상태",
-      "lockReason": "잠금 사유",
-      "actions": "작업"
-    },
-    "actions": {
-      "unlock": "잠금 해제",
-      "reopen": "시험 다시 열기",
-      "download": "보고서 다운로드",
-      "edit": "상태 편집",
-      "remove": "참가자 제거"
-    },
-    "editModal": {
-      "heading": "참가자 편집: {{name}}",
-      "save": "변경 저장",
-      "examStatus": "시험 상태",
-      "selectStatus": "상태 선택",
-      "lockReason": "잠금 사유"
-    }
-  },
   "examEditor": {
     "loadFailed": "로드 실패",
     "loadFailedDetail": "시험 문제 로드에 실패했습니다",
@@ -588,6 +645,7 @@
     "importRolledBack": "가져오기 실패, 자동 롤백됨",
     "importRollbackFailed": "가져오기 실패 및 롤백 실패",
     "importRollbackFailedDetail": "페이지를 새로고침하여 문제 내용을 확인하세요",
+    "importFrozen": "현재 문제가 동결되어 가져올 수 없습니다.",
     "questionAdded": "문제가 추가되었습니다",
     "addFailed": "추가에 실패했습니다",
     "sortUpdateFailed": "정렬 업데이트에 실패했습니다",

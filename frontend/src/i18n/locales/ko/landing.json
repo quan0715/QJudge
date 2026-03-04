@@ -4,23 +4,71 @@
     "subtitle": "Carbon UI 기반 온라인 저지로 수업과 대회를 위한 실시간 피드백과 명확한 결과를 제공합니다.",
     "signIn": "로그인",
     "register": "회원가입",
-    "badges": { "qjudge": "QJudge", "oj": "Online Judge", "carbon": "Carbon UI" }
+    "badges": {
+      "qjudge": "QJudge",
+      "oj": "Online Judge",
+      "carbon": "Carbon UI"
+    }
   },
   "features": {
     "eyebrow": "핵심 기능",
     "title": "현대적인 프로그래밍 워크플로우 지원",
-    "multiLanguage": { "title": "다중 언어", "description": "Python, C++, Java, JavaScript 등 주요 언어를 즉시 컴파일/실행." },
-    "analytics": { "title": "실시간 분석", "description": "실행 시간, 메모리 통계와 함께 상세 결과 제공." },
-    "contest": { "title": "대회 시스템", "description": "라이브 랭킹과 다양한 점수 모드로 대회를 개최." },
-    "lab": { "title": "랩 모드", "description": "교수자가 문제 세트와 학생 진행 상황을 관리." }
+    "multiLanguage": {
+      "title": "다중 언어",
+      "description": "Python, C++, Java, JavaScript 등 주요 언어를 즉시 컴파일/실행."
+    },
+    "analytics": {
+      "title": "실시간 분석",
+      "description": "실행 시간, 메모리 통계와 함께 상세 결과 제공."
+    },
+    "contest": {
+      "title": "대회 시스템",
+      "description": "라이브 랭킹과 다양한 점수 모드로 대회를 개최."
+    },
+    "lab": {
+      "title": "랩 모드",
+      "description": "교수자가 문제 세트와 학생 진행 상황을 관리."
+    }
+  },
+  "miniJudge": {
+    "eyebrow": "인터랙티브 데모",
+    "title": "QJudge 체험: 문제 읽기, 코딩, 제출, 결과 확인",
+    "problem": {
+      "title": "피보나치 수열의 n번째 항",
+      "description": "정수 n이 주어지면 피보나치 수열의 n번째 항을 반환합니다. F(0)=0, F(1)=1로 정의합니다.",
+      "input": "입력",
+      "output": "출력"
+    },
+    "editor": {
+      "title": "코드 입력",
+      "submit": "모의 제출"
+    },
+    "result": {
+      "title": "테스트 결과",
+      "idle": "미제출",
+      "running": "채점 중...",
+      "summary": "Passed {{passed}} / {{total}}"
+    }
   },
   "steps": {
     "eyebrow": "사용 방법",
     "title": "4단계로 시작",
-    "browse": { "title": "문제 탐색", "description": "난이도와 태그로 필터링하고 설명/샘플을 확인." },
-    "code": { "title": "코드 작성", "description": "내장 에디터로 Markdown 가이드와 함께 작성." },
-    "submit": { "title": "제출 및 채점", "description": "원클릭 제출로 즉시 결과 확인." },
-    "improve": { "title": "실력 향상", "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가." }
+    "browse": {
+      "title": "문제 탐색",
+      "description": "난이도와 태그로 필터링하고 설명/샘플을 확인."
+    },
+    "code": {
+      "title": "코드 작성",
+      "description": "내장 에디터로 Markdown 가이드와 함께 작성."
+    },
+    "submit": {
+      "title": "제출 및 채점",
+      "description": "원클릭 제출로 즉시 결과 확인."
+    },
+    "improve": {
+      "title": "실력 향상",
+      "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가."
+    }
   },
   "highlights": {
     "eyebrow": "QJudge 이유",
@@ -50,11 +98,30 @@
     "eyebrow": "문의하기",
     "title": "질문이나 제안이 있으신가요?",
     "description": "피드백, 버그 신고, 협업 제안을 환영합니다.",
-    "email": { "title": "이메일" },
-    "github": { "title": "GitHub" },
-    "university": { "title": "협력 대학", "value": "국립양명교통대학교" }
+    "email": {
+      "title": "이메일"
+    },
+    "github": {
+      "title": "GitHub"
+    },
+    "university": {
+      "title": "협력 대학",
+      "value": "국립양명교통대학교"
+    }
   },
-  "stats": { "problems": "문제", "submissions": "제출", "users": "활성 사용자", "uptime": "가용성" },
-  "cta": { "title": "지금 시작해 보세요", "description": "QJudge와 함께 코딩 여정을 시작하세요. 무료로 이용 가능합니다.", "signIn": "로그인", "docs": "자세히 보기" },
-  "footer": { "copyright": "© 2024 QJudge. Built with IBM Carbon Design System." }
+  "stats": {
+    "problems": "문제",
+    "submissions": "제출",
+    "users": "활성 사용자",
+    "uptime": "가용성"
+  },
+  "cta": {
+    "title": "지금 시작해 보세요",
+    "description": "QJudge와 함께 코딩 여정을 시작하세요. 무료로 이용 가능합니다.",
+    "signIn": "로그인",
+    "docs": "자세히 보기"
+  },
+  "footer": {
+    "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  }
 }

@@ -1,4 +1,17 @@
 {
+  "management": {
+    "description": "Manage your problems",
+    "problemCount": "{{count}} problems in total"
+  },
+  "button": {
+    "createProblem": "Create Problem",
+    "create": "Create",
+    "cancel": "Cancel"
+  },
+  "form": {
+    "title": "Title",
+    "slug": "URL Slug"
+  },
   "section": {
     "description": "Description",
     "inputDescription": "Input Description",
@@ -32,7 +45,9 @@
     "submitConfirmMessage": "This will be evaluated against all hidden test cases.",
     "createTitle": "Create Problem",
     "createSuccess": "Problem created successfully!",
-    "createError": "Failed to create. Please try again later."
+    "createError": "Failed to create. Please try again later.",
+    "confirmDelete": "Confirm Delete",
+    "deleteConfirmMessage": "Are you sure you want to delete problem \"{{title}}\"? This action cannot be undone."
   },
   "import": {
     "modalTitle": "Import Problem from YAML",

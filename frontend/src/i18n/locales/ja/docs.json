@@ -3,6 +3,9 @@
     "title": "ドキュメント",
     "subtitle": "QJudgeプラットフォームの使い方を学ぶ"
   },
+  "badge": {
+    "aiGenerated": "AI生成"
+  },
   "nav": {
     "productLabel": "ドキュメント",
     "searchPlaceholder": "ドキュメントを検索...",
@@ -30,9 +33,51 @@
       "problem-import": "YAML 問題インポート",
       "admin-overview": "管理者機能",
       "contributing": "コントリビュート",
+      "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
       "dev-setup": "開発環境セットアップ",
       "e2e-testing": "E2Eテストガイド"
     }
+  },
+  "quickLinks": {
+    "student": {
+      "tag": "学生",
+      "title": "プログラミング問題を解く",
+      "description": "問題を閲覧し、コードを書き、解答を提出する方法を学びます"
+    },
+    "contestant": {
+      "tag": "コンテスト",
+      "title": "プログラミングコンテストに参加",
+      "description": "コンテストのルール、スコアリング、トラブルシューティングについて"
+    },
+    "teacher": {
+      "tag": "教師",
+      "title": "コンテストの作成・管理",
+      "description": "コンテストの作成、問題管理、学生の成績確認と統計"
+    },
+    "admin": {
+      "tag": "管理者",
+      "title": "システム管理",
+      "description": "ユーザー、権限設定、システム構成の管理"
+    },
+    "developer": {
+      "tag": "開発者",
+      "title": "コード貢献",
+      "description": "開発環境の設定、プロジェクト構造の理解、貢献手順"
+    }
+  },
+  "search": {
+    "label": "ドキュメント検索",
+    "placeholder": "ドキュメントを検索...",
+    "searching": "検索中...",
+    "noResults": "結果が見つかりませんでした",
+    "resultsCount": "{{count}} 件の結果",
+    "matches": "件一致"
+  },
+  "feedback": {
+    "title": "このドキュメントは役に立ちましたか？",
+    "helpful": "役に立った",
+    "notHelpful": "改善が必要",
+    "thanks": "フィードバックありがとうございます！"
   },
   "message": {
     "loading": "ドキュメントを読み込み中...",

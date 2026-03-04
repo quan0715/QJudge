@@ -33,6 +33,7 @@
       "problem-import": "YAML Problem Import",
       "admin-overview": "Admin Features",
       "contributing": "Contributing",
+      "contest-extension-architecture": "Contest Extension Architecture Guide",
       "dev-setup": "Development Setup",
       "e2e-testing": "E2E Testing Guide"
     }

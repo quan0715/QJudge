@@ -1,4 +1,17 @@
 {
+  "management": {
+    "description": "問題を管理",
+    "problemCount": "全 {{count}} 問"
+  },
+  "button": {
+    "createProblem": "問題を作成",
+    "create": "作成",
+    "cancel": "キャンセル"
+  },
+  "form": {
+    "title": "タイトル",
+    "slug": "URLスラッグ"
+  },
   "section": {
     "description": "問題文",
     "inputDescription": "入力形式",
@@ -32,7 +45,9 @@
     "submitConfirmMessage": "この操作により、すべての非公開テストケースが評価されます。",
     "createTitle": "問題作成",
     "createSuccess": "問題が作成されました！",
-    "createError": "作成に失敗しました。後でもう一度お試しください"
+    "createError": "作成に失敗しました。後でもう一度お試しください",
+    "confirmDelete": "削除の確認",
+    "deleteConfirmMessage": "問題「{{title}}」を削除してもよろしいですか？この操作は取り消せません。"
   },
   "import": {
     "modalTitle": "YAMLから問題をインポート",
