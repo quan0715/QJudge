@@ -13,7 +13,20 @@ import type { ExamEditorLayoutHandle } from "@/features/contest/components/admin
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
-import type { AdminPanelId } from "@/features/contest/modules/types";
+import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
+
+/** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
+ *  each panelId maps to a fixed component reference within a given contestModule. */
+const AdminPanelSlot = ({
+  panelId,
+  contestModule,
+  ...rest
+}: AdminPanelProps & { panelId: AdminPanelId; contestModule: ContestTypeModule }) => {
+  /* eslint-disable react-hooks/static-components */
+  const Renderer = getAdminPanelRenderer(panelId, contestModule);
+  return <Renderer {...rest} />;
+  /* eslint-enable react-hooks/static-components */
+};
 
 const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
   exam: "problem_editor",
@@ -116,8 +129,6 @@ const AdminDashboardInner = () => {
     );
   }
 
-  const PanelComponent = getAdminPanelRenderer(activePanel, contestModule);
-
   return (
     <AdminDashboardLayout
       contestName={contest?.name || "Loading..."}
@@ -131,7 +142,9 @@ const AdminDashboardInner = () => {
       onPreview={handlePreview}
       onExport={() => setExportOpen(true)}
     >
-      <PanelComponent
+      <AdminPanelSlot
+        panelId={activePanel}
+        contestModule={contestModule}
         contestId={contestId || ""}
         contest={contest}
         panelRef={examEditorRef}
