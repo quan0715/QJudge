@@ -6,11 +6,16 @@
   width: 100%;
 }
 
+.heroInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
 /* Top row: info + kpi grid */
 .topRow {
   display: flex;
   gap: 2rem;
-  margin-bottom: 1.5rem;
 }
 
 /* Left 65 % */
@@ -54,12 +59,6 @@
   max-width: 600px;
 }
 
-.mockNote {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--cds-text-helper);
-}
-
 /* Right 35 % — 2×2 grid */
 .kpiGrid {
   flex: 0 0 35%;
@@ -70,7 +69,6 @@
 
 .miniCard {
   background: var(--cds-layer-01);
-  border-radius: 8px;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -97,14 +95,6 @@
 
 .warningValue {
   color: var(--cds-support-error);
-}
-
-/* Bottom badge row */
-.badgeRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
 }
 
 /* Responsive: stack on ≤ 672px */

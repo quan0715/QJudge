@@ -11,10 +11,12 @@ const baseProps = {
   activePanel: "problem_editor" as const,
   availablePanels: [
     "overview",
+    "clarifications",
     "logs",
     "participants",
     "problem_editor",
     "grading",
+    "statistics",
     "settings",
   ] as const,
   onPanelChange: vi.fn(),

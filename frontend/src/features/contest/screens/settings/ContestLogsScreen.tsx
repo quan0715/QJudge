@@ -396,7 +396,7 @@ const ContestAdminLogsPage = () => {
 
   // --- Render ---
   return (
-    <SurfaceSection maxWidth="1400px" style={{ flex: 1, minHeight: "100%" }}>
+    <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>
       {loading ? (
         <LogsSkeleton />
       ) : (

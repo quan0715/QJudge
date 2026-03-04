@@ -59,10 +59,12 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
 
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
+  "clarifications",
   "logs",
   "participants",
   "problem_editor",
   "grading",
+  "statistics",
   "settings",
 ];
 
@@ -80,8 +82,6 @@ export const codingContestModule: ContestTypeModule = {
   admin: {
     editorKind: "coding",
     getAvailablePanels: () => CODING_ADMIN_PANELS,
-    isFullBleedPanel: (panel) =>
-      panel === "problem_editor" || panel === "grading",
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
     shouldShowJsonActions: () => false,
   },

@@ -1,7 +1,7 @@
 import { Tag, Tile } from "@carbon/react";
 import {
   UserMultiple,
-  Task,
+  Trophy,
   ChartBar,
   WarningAlt,
 } from "@carbon/icons-react";
@@ -17,20 +17,16 @@ import styles from "./KpiCards.module.scss";
 interface KpiCardsProps {
   kpi: DashboardKpi;
   contest: ContestDetail;
-  isMockData?: boolean;
 }
 
-export default function KpiCards({
-  kpi,
-  contest,
-  isMockData = false,
-}: KpiCardsProps) {
+export default function KpiCards({ kpi, contest }: KpiCardsProps) {
   const state = getContestState(contest);
   const startDate = new Date(contest.startTime).toLocaleDateString();
   const endDate = new Date(contest.endTime).toLocaleDateString();
 
   return (
     <section className={styles.hero}>
+      <div className={styles.heroInner}>
       <div className={styles.topRow}>
         {/* Left Column — Contest Info */}
         <div className={styles.infoCol}>
@@ -40,21 +36,10 @@ export default function KpiCards({
             <Tag type={getContestStateColor(state)} size="sm">
               {getContestStateLabel(state)}
             </Tag>
-            {isMockData ? (
-              <Tag type="magenta" size="sm">
-                Mock
-              </Tag>
-            ) : null}
             <span className={styles.timeRange}>
               {startDate} → {endDate}
             </span>
           </div>
-
-          {isMockData ? (
-            <p className={styles.mockNote}>
-              KPI 含前端模擬資料，僅供介面展示。
-            </p>
-          ) : null}
 
           {contest.description && (
             <p className={styles.description}>{contest.description}</p>
@@ -70,16 +55,18 @@ export default function KpiCards({
           </Tile>
 
           <Tile className={styles.miniCard}>
-            <Task size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Submissions</span>
-            <span className={styles.miniValue}>{kpi.totalSubmissions}</span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
             <ChartBar size={20} className={styles.icon} />
             <span className={styles.miniLabel}>Avg Score</span>
             <span className={styles.miniValue}>
               {kpi.averageScore.toFixed(1)}
+            </span>
+          </Tile>
+
+          <Tile className={styles.miniCard}>
+            <Trophy size={20} className={styles.icon} />
+            <span className={styles.miniLabel}>Highest Score</span>
+            <span className={styles.miniValue}>
+              {kpi.highestScore.toFixed(1)}
             </span>
           </Tile>
 
@@ -94,16 +81,6 @@ export default function KpiCards({
           </Tile>
         </div>
       </div>
-
-      {/* Bottom Row — Stat Badges */}
-      <div className={styles.badgeRow}>
-        <Tag type="green" size="sm">{kpi.submittedCount} submitted</Tag>
-        <Tag type="blue" size="sm">{kpi.inProgressCount} in progress</Tag>
-        <Tag type={kpi.lockedCount > 0 ? "red" : "gray"} size="sm">
-          {kpi.lockedCount} locked
-        </Tag>
-        <Tag type="teal" size="sm">Accept Rate {kpi.acceptRate.toFixed(1)}%</Tag>
-        <Tag type="teal" size="sm">Highest Score {kpi.highestScore.toFixed(1)}</Tag>
       </div>
     </section>
   );

@@ -147,8 +147,9 @@ export default function GradingSplitPanel({
                   const correct = isCorrect(answer.correctAnswer, i);
                   const classNames = [
                     styles.optionItem,
-                    selected ? styles.optionSelected : "",
-                    correct ? styles.optionCorrect : "",
+                    selected && correct ? styles.optionSelectedCorrect : "",
+                    selected && !correct ? styles.optionSelectedWrong : "",
+                    !selected && correct ? styles.optionCorrect : "",
                   ].filter(Boolean).join(" ");
 
                   return (
@@ -167,9 +168,10 @@ export default function GradingSplitPanel({
               {/* Correct answer summary */}
               {answer.correctAnswer != null && (
                 <div className={styles.correctAnswerLine}>
-                  <Tag type="green" size="sm">
-                    正確答案：{formatCorrectLabel(answer.correctAnswer, answer.questionOptions)}
-                  </Tag>
+                  <span className={styles.correctAnswerLabel}>正確答案：</span>
+                  <span className={styles.correctAnswerText}>
+                    {formatCorrectLabel(answer.correctAnswer, answer.questionOptions)}
+                  </span>
                 </div>
               )}
             </>

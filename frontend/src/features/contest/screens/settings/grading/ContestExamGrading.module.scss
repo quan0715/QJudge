@@ -49,6 +49,13 @@
   flex-shrink: 0;
 }
 
+.toolbarDivider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--cds-border-subtle);
+  flex-shrink: 0;
+}
+
 .editorBody {
   flex: 1;
   min-height: 0;
@@ -94,13 +101,13 @@
 
 .threeCol {
   display: grid;
-  grid-template-columns: 180px 1fr 480px;
+  grid-template-columns: 160px 220px 1fr;
   gap: 0;
   height: 100%;
   overflow: hidden;
 
   @media (max-width: 1200px) {
-    grid-template-columns: 160px 1fr 400px;
+    grid-template-columns: 140px 200px 1fr;
   }
 
   @media (max-width: 900px) {
@@ -257,14 +264,13 @@
 }
 
 .panelReference {
-  background: var(--cds-layer-accent-01, rgba(36, 161, 72, 0.06));
+  background: var(--cds-field);
   padding: 0.75rem;
   border-radius: 4px;
   font-size: 0.8125rem;
   line-height: 1.5;
   color: var(--cds-text-secondary);
-  border: 1px solid var(--cds-support-success, #24a148);
-  border-left: 3px solid var(--cds-support-success, #24a148);
+  border: 1px solid var(--cds-border-subtle-01);
 }
 
 .panelActions {
@@ -289,13 +295,13 @@
 
 .threeColStudent {
   display: grid;
-  grid-template-columns: 1fr 180px 480px;
+  grid-template-columns: 220px 160px 1fr;
   gap: 0;
   height: 100%;
   overflow: hidden;
 
   @media (max-width: 1200px) {
-    grid-template-columns: 1fr 160px 400px;
+    grid-template-columns: 200px 140px 1fr;
   }
 
   @media (max-width: 900px) {
@@ -347,9 +353,15 @@
   line-height: 1.4;
 }
 
-.optionSelected {
-  background: var(--cds-highlight, rgba(0, 67, 206, 0.08));
-  border-color: var(--cds-interactive, #0f62fe);
+.optionSelectedCorrect {
+  background: rgba(36, 161, 72, 0.1);
+  border-color: var(--cds-support-success, #24a148);
+  font-weight: 500;
+}
+
+.optionSelectedWrong {
+  background: rgba(218, 30, 40, 0.08);
+  border-color: var(--cds-support-error, #da1e28);
   font-weight: 500;
 }
 
@@ -364,6 +376,22 @@
 
 .correctAnswerLine {
   margin-top: 0.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.correctAnswerLabel {
+  color: var(--cds-text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.correctAnswerText {
+  color: var(--cds-support-success, #24a148);
+  font-weight: 500;
 }
 
 .scoreRow {

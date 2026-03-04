@@ -1,56 +1,42 @@
-// Admin dashboard layout.
-// Header & SideNav keep Carbon's default position:fixed.
-// Grid reserves space so .content fills the remaining area.
-
 .layout {
-  flex: 1;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
   min-height: 0;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 3rem 1fr; // rail width | content
-  grid-template-rows: 3rem 1fr;    // header height | content
+  min-width: 0;
   background-color: var(--cds-background);
 }
 
-// Carbon Header: stays position:fixed (default).
-// Grid cell just reserves the top row.
 .header {
-  grid-column: 1 / -1;
-  grid-row: 1;
   z-index: 8001;
 }
 
-// Carbon SideNav isRail: keep position:fixed but pin below header.
 .sidenav {
-  grid-column: 1;
-  grid-row: 2;
   top: 3rem !important;   // start below 48px header
-  height: calc(100% - 3rem) !important;
+  height: calc(100vh - 3rem) !important;
+  height: calc(100dvh - 3rem) !important;
   border-right: 1px solid var(--cds-border-subtle);
 }
 
-// Sole scroll container
 .content {
-  grid-column: 2;
-  grid-row: 2;
+  position: absolute;
+  top: 3rem;
+  left: 3rem;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  min-width: 0;
+  overflow: hidden;
   background-color: var(--cds-layer-01);
 }
 
-.contentInner {
-  // each panel manages its own padding / max-width
-}
-
-.contentFullBleed {
+.contentViewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-
-  .contentInner {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
 }

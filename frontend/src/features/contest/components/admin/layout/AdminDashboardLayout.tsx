@@ -16,6 +16,8 @@ import {
   Settings,
   Launch,
   TaskComplete,
+  ChartColumn,
+  Chat,
   View,
   DocumentDownload,
   Upload,
@@ -27,7 +29,6 @@ interface AdminDashboardLayoutProps {
   contestName: string;
   activePanel: AdminPanelId;
   availablePanels: AdminPanelId[];
-  fullBleed?: boolean;
   examMode?: boolean;
   onPanelChange: (panel: AdminPanelId) => void;
   onBack: () => void;
@@ -43,6 +44,7 @@ const NAV_ITEMS: Record<
   { label: string; examLabel?: string; icon: typeof Dashboard }
 > = {
   overview: { label: "Overview", icon: Dashboard },
+  clarifications: { label: "Q&A", icon: Chat },
   logs: { label: "Event Logs", icon: Activity },
   participants: { label: "Participants", icon: UserMultiple },
   problem_editor: {
@@ -51,6 +53,7 @@ const NAV_ITEMS: Record<
     icon: Education,
   },
   grading: { label: "Grading", examLabel: "Exam Grading", icon: TaskComplete },
+  statistics: { label: "Statistics", examLabel: "Exam Statistics", icon: ChartColumn },
   settings: { label: "Settings", icon: Settings },
 };
 
@@ -58,7 +61,6 @@ export default function AdminDashboardLayout({
   contestName,
   activePanel,
   availablePanels,
-  fullBleed,
   examMode,
   onPanelChange,
   onBack,
@@ -138,8 +140,8 @@ export default function AdminDashboardLayout({
         </SideNavItems>
       </SideNav>
 
-      <main className={`${styles.content} ${fullBleed ? styles.contentFullBleed : ""}`}>
-        <div className={styles.contentInner}>{children}</div>
+      <main className={styles.content}>
+        <div className={styles.contentViewport}>{children}</div>
       </main>
     </div>
   );

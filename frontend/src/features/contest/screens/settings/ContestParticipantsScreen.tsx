@@ -292,7 +292,7 @@ const ContestAdminParticipantsPage = () => {
   // Removed full-page loading guard - show empty table instead
 
   return (
-    <SurfaceSection maxWidth="1056px" style={{ flex: 1, minHeight: "100%" }}>
+    <SurfaceSection maxWidth="1056px" style={{ height: "100%", overflowY: "auto" }}>
       <div
         style={{
           padding: "0",

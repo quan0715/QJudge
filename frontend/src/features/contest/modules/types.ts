@@ -4,10 +4,12 @@ import type { ContestTabSpec } from "@/features/contest/tabConfig";
 
 export type AdminPanelId =
   | "overview"
+  | "clarifications"
   | "logs"
   | "participants"
   | "problem_editor"
   | "grading"
+  | "statistics"
   | "settings";
 
 export type ContestAdminEditorKind = "coding" | "paper_exam";
@@ -53,7 +55,6 @@ export interface ContestStudentModule {
 export interface ContestAdminModule {
   editorKind: ContestAdminEditorKind;
   getAvailablePanels: (contest?: ContestDetail | null) => AdminPanelId[];
-  isFullBleedPanel: (panel: AdminPanelId) => boolean;
   getExportTargets: (contest?: ContestDetail | null) => ContestExportTarget[];
   shouldShowJsonActions: (activePanel: AdminPanelId) => boolean;
 }

@@ -1,0 +1,85 @@
+import { Accordion, AccordionItem, ProgressBar, Tag } from "@carbon/react";
+import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
+import type { QuestionStatistics } from "./useExamStatistics";
+import styles from "./ExamStatisticsPanel.module.scss";
+
+interface QuestionStatisticsDetailProps {
+  stat: QuestionStatistics;
+}
+
+export default function QuestionStatisticsDetail({
+  stat,
+}: QuestionStatisticsDetailProps) {
+  const progressPercent =
+    stat.totalAnswers > 0
+      ? Math.round((stat.gradedCount / stat.totalAnswers) * 100)
+      : 0;
+
+  return (
+    <div className={styles.detailRoot}>
+      <div className={styles.detailHeader}>
+        <span className={styles.detailTitle}>Q{stat.questionIndex}</span>
+        <Tag type="blue" size="sm">
+          {questionTypeLabel[stat.questionType]}
+        </Tag>
+        <Tag type={progressPercent === 100 ? "green" : "gray"} size="sm">
+          {stat.gradedCount}/{stat.totalAnswers} 已批改
+        </Tag>
+      </div>
+
+      <div className={styles.averageSection}>
+        <span className={styles.averageLabel}>平均分數</span>
+        <span className={styles.averageValue}>
+          {stat.averageScore.toFixed(1)} / {stat.maxScore}
+        </span>
+        <ProgressBar
+          label="平均分數比例"
+          hideLabel
+          value={stat.maxScore > 0 ? (stat.averageScore / stat.maxScore) * 100 : 0}
+          size="small"
+        />
+      </div>
+
+      {stat.isObjective ? (
+        <div className={styles.distributionSection}>
+          <span className={styles.sectionTitle}>選項分布</span>
+          {(stat.optionDistribution ?? []).map((opt, idx) => (
+            <div key={idx} className={styles.optionRow}>
+              <span className={styles.optionLabel} title={opt.label}>
+                {opt.label}
+              </span>
+              <div className={styles.optionBarWrap}>
+                <div
+                  className={`${styles.optionBar} ${opt.isCorrect ? styles.optionBarCorrect : ""}`}
+                  style={{ width: `${opt.percent}%` }}
+                />
+              </div>
+              <span className={styles.optionCount}>
+                {opt.count} ({opt.percent}%)
+              </span>
+              <span className={styles.correctMark}>
+                {opt.isCorrect ? "\u2713" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.distributionSection}>
+          <span className={styles.sectionTitle}>學生作答</span>
+          <Accordion>
+            {(stat.subjectiveEntries ?? []).map((entry, idx) => (
+              <AccordionItem
+                key={idx}
+                title={`${entry.studentNickname} — ${entry.score !== null ? `${entry.score} 分` : "未批改"}`}
+              >
+                <p style={{ whiteSpace: "pre-wrap", fontSize: "0.875rem" }}>
+                  {entry.answerText || "(未作答)"}
+                </p>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      )}
+    </div>
+  );
+}

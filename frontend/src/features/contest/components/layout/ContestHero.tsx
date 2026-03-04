@@ -88,7 +88,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const [progress, setProgress] = useState(0);
-  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerNickname, setRegisterNickname] = useState("");
@@ -228,11 +227,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   // ----------------------------------
 
   const handleStartClick = () => {
-    if (contest.cheatDetectionEnabled) {
-      setShowStartConfirm(true);
-    } else {
-      onStartExam?.();
-    }
+    onStartExam?.();
   };
 
   const handleEndClick = () => {
@@ -388,40 +383,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         loading={loading}
         maxWidth={maxWidth}
       />
-
-      {/* Start Exam Confirmation Modal */}
-      <Modal
-        open={showStartConfirm}
-        modalHeading={t("hero.startExamConfirm")}
-        primaryButtonText={t("hero.confirmStart")}
-        secondaryButtonText={tc("button.cancel")}
-        onRequestSubmit={() => {
-          setShowStartConfirm(false);
-          onStartExam?.();
-        }}
-        onRequestClose={() => setShowStartConfirm(false)}
-        danger
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <p style={{ fontSize: "1rem", fontWeight: "bold" }}>
-            {t("hero.antiCheatEnabled")}
-          </p>
-          <ul
-            style={{
-              listStyleType: "disc",
-              paddingLeft: "1.5rem",
-              lineHeight: "1.6",
-            }}
-          >
-            <li>{t("hero.keepFullscreen")}</li>
-            <li>{t("hero.noSwitchTabs")}</li>
-            <li>
-              {t("hero.maxWarnings", { count: contest.maxCheatWarnings })}
-            </li>
-          </ul>
-          <p>{t("hero.enterFullscreenOnStart")}</p>
-        </div>
-      </Modal>
 
       {/* End Exam Confirmation Modal */}
       <Modal

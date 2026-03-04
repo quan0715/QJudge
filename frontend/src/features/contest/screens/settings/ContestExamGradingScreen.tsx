@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import {
   ContentSwitcher,
   Switch,
@@ -6,6 +7,7 @@ import {
   Search,
   Dropdown,
   Button,
+  Tag,
 } from "@carbon/react";
 import {
   GradingByQuestionTab,
@@ -15,15 +17,37 @@ import {
 } from "./grading";
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
+import { useContest } from "@/features/contest/contexts/ContestContext";
+import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 const ContestExamGradingScreen: React.FC = () => {
+  const { contestId } = useParams<{ contestId: string }>();
+  const { contest, refreshContest } = useContest();
   const [viewMode, setViewMode] = useState<0 | 1>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<GradingFilter>("all");
   const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
+  const [publishingResults, setPublishingResults] = useState(false);
   const { showToast } = useToast();
+
+  const published = !!contest?.resultsPublished;
+
+  const handleTogglePublish = async () => {
+    if (!contestId) return;
+    const next = !published;
+    setPublishingResults(true);
+    try {
+      await updateContest(contestId, { resultsPublished: next } as any);
+      await refreshContest();
+      showToast({ kind: "success", title: next ? "成績已發布" : "已撤回發布" });
+    } catch {
+      showToast({ kind: "error", title: next ? "發布失敗" : "撤回失敗" });
+    } finally {
+      setPublishingResults(false);
+    }
+  };
 
   const {
     answers,
@@ -150,7 +174,7 @@ const ContestExamGradingScreen: React.FC = () => {
             onClick={handleRegradeObjective}
             className={styles.toolbarAction}
           >
-            {objectiveRegradedOnce ? "客觀題已重新批改" : "客觀題重新批改（一次）"}
+            {objectiveRegradedOnce ? "已自動批改" : "自動批改客觀題"}
           </Button>
         )}
 
@@ -159,6 +183,21 @@ const ContestExamGradingScreen: React.FC = () => {
             {visibleCount} 位學生
           </span>
         )}
+
+        <div className={styles.toolbarDivider} />
+
+        <Tag type={published ? "green" : "gray"} size="sm">
+          {published ? "已發布" : "未發布"}
+        </Tag>
+        <Button
+          kind={published ? "danger--ghost" : "primary"}
+          size="sm"
+          disabled={publishingResults}
+          onClick={handleTogglePublish}
+          className={styles.toolbarAction}
+        >
+          {published ? "撤回發布" : "發布成績"}
+        </Button>
       </div>
 
       {/* Editor body */}

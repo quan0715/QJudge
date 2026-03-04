@@ -54,7 +54,7 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>([
-    { id: "auth", label: "身份驗證", status: "pending" },
+    { id: "participation", label: "參賽狀態檢查", status: "pending" },
     { id: "submitted", label: "交卷記錄檢查", status: "pending" },
   ]);
   const [envChecks, setEnvChecks] = useState<CheckItem[]>([
@@ -93,14 +93,24 @@ const ExamPrecheckScreen: React.FC = () => {
     }
   }, [contest, contestId, navigate]);
 
-  // Step 1: Identity verification
+  // Step 1: Participation & submission verification
   useEffect(() => {
     if (currentStep !== 0 || !contest) return;
 
-    updateCheck(setChecks, "auth", "pass", "已通過 NYCU OAuth 驗證");
+    // 參賽狀態檢查（取代原本的 NYCU OAuth 驗證）
+    if (contest.examStatus) {
+      updateCheck(setChecks, "participation", "pass", "已確認參賽資格");
+    } else {
+      updateCheck(setChecks, "participation", "fail", "尚未取得參賽資格");
+    }
 
+    // 交卷記錄檢查：依據 contest 是否允許重複入場
     if (contest.examStatus === "submitted") {
-      updateCheck(setChecks, "submitted", "fail", "已有交卷記錄，無法重複考試");
+      if (contest.allowMultipleJoins) {
+        updateCheck(setChecks, "submitted", "pass", "已有交卷記錄，但本場考試允許重複入場");
+      } else {
+        updateCheck(setChecks, "submitted", "fail", "已有交卷記錄，無法重複考試");
+      }
     } else {
       updateCheck(setChecks, "submitted", "pass", "無交卷記錄");
     }
@@ -282,7 +292,7 @@ const ExamPrecheckScreen: React.FC = () => {
         </p>
 
         <ProgressIndicator currentIndex={currentStep} spaceEqually style={{ marginBottom: "2rem" }}>
-          <ProgressStep label="身份驗證" />
+          <ProgressStep label="資格確認" />
           <ProgressStep label="環境檢查" />
           <ProgressStep label="確認開始" />
         </ProgressIndicator>
@@ -304,7 +314,7 @@ const ExamPrecheckScreen: React.FC = () => {
             <Stack gap={5}>
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <CursorIcon size={20} /> 身份與資格驗證
+                  <CursorIcon size={20} /> 參賽資格確認
                 </h4>
                 {renderCheckList(checks)}
               </Tile>

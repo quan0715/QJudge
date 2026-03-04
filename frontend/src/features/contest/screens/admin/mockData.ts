@@ -4,6 +4,7 @@ export interface DashboardKpi {
   totalParticipants: number;
   submittedCount: number;
   inProgressCount: number;
+  pausedCount: number;
   lockedCount: number;
   notStartedCount: number;
   totalSubmissions: number;
@@ -26,6 +27,9 @@ export const computeMockKpi = (
   const inProgressCount = participants.filter(
     (p) => p.examStatus === "in_progress"
   ).length;
+  const pausedCount = participants.filter(
+    (p) => p.examStatus === "paused"
+  ).length;
   const lockedCount = participants.filter(
     (p) => p.examStatus === "locked"
   ).length;
@@ -42,6 +46,7 @@ export const computeMockKpi = (
     totalParticipants: participants.length,
     submittedCount,
     inProgressCount,
+    pausedCount,
     lockedCount,
     notStartedCount,
     totalSubmissions: 156, // mock

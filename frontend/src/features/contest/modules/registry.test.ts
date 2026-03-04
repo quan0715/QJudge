@@ -47,10 +47,12 @@ describe("contest type module registry", () => {
     ]);
     expect(module.admin.getAvailablePanels()).toEqual([
       "overview",
+      "clarifications",
       "logs",
       "participants",
       "problem_editor",
       "grading",
+      "statistics",
       "settings",
     ]);
     expect(module.admin.isFullBleedPanel("problem_editor")).toBe(true);

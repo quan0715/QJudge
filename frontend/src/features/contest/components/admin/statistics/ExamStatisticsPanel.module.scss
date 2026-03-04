@@ -1,0 +1,219 @@
+@use "@carbon/layout";
+
+// ─── 2-column layout: left sidebar + right scrollable ───
+.statisticsLayout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workTreePane {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.scrollPane {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: layout.$spacing-06 layout.$spacing-05 layout.$spacing-09;
+  background: var(--cds-background);
+}
+
+.cardItem {
+  width: 100%;
+  max-width: 720px;
+  padding: layout.$spacing-05;
+  margin-bottom: layout.$spacing-05;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+}
+
+// ─── Left sidebar question list ───
+.questionList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: layout.$spacing-03;
+}
+
+.questionItem {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03;
+  border: 1px solid transparent;
+  background: var(--cds-layer-01);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--cds-focus);
+    outline: none;
+  }
+}
+
+.questionOrder {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.questionInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.questionTitle {
+  font-size: 0.8125rem;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.questionMeta {
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+}
+
+// ─── Detail card content ───
+.detailRoot {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+}
+
+.detailTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.averageSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.averageLabel {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+}
+
+.averageValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+// ─── Option distribution (objective) ───
+.distributionSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  margin-bottom: layout.$spacing-02;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  min-height: 2rem;
+}
+
+.optionLabel {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optionBarWrap {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  background: var(--cds-layer-01);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.optionBar {
+  height: 100%;
+  background: var(--cds-interactive);
+  border-radius: 2px;
+  transition: width 0.2s;
+}
+
+.optionBarCorrect {
+  background: var(--cds-support-success);
+}
+
+.optionCount {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  text-align: right;
+}
+
+.correctMark {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-support-success);
+  width: 16px;
+}
+
+// ─── Placeholder ───
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-04;
+  height: 100%;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}

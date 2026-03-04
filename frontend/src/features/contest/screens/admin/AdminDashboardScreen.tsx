@@ -20,6 +20,9 @@ import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsSc
 import ContestExamGradingScreen from "@/features/contest/screens/settings/ContestExamGradingScreen";
 import AdminContestSettingsPanel from "./panels/AdminContestSettingsScreen";
 import AdminOverviewPanel from "./panels/AdminOverviewScreen";
+import AdminClarificationsScreen from "./panels/AdminClarificationsScreen";
+import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
+import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
 
 import { computeMockKpi } from "./mockData";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
@@ -69,7 +72,6 @@ const AdminDashboardInner = () => {
 
   const isExamMode = contestModule.admin.editorKind === "paper_exam";
   const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
-  const isFullBleed = contestModule.admin.isFullBleedPanel(activePanel);
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
@@ -135,6 +137,8 @@ const AdminDashboardInner = () => {
         return contest ? (
           <AdminOverviewPanel kpi={kpi} contest={contest} />
         ) : null;
+      case "clarifications":
+        return <AdminClarificationsScreen />;
       case "logs":
         return <ContestLogsScreen />;
       case "participants":
@@ -154,6 +158,12 @@ const AdminDashboardInner = () => {
       }
       case "grading":
         return <ContestExamGradingScreen />;
+      case "statistics":
+        return contestModule.admin.editorKind === "paper_exam" ? (
+          <ExamStatisticsPanel />
+        ) : (
+          <CodingStatisticsPlaceholder />
+        );
       case "settings":
         return <AdminContestSettingsPanel />;
       default:
@@ -168,7 +178,6 @@ const AdminDashboardInner = () => {
       contestName={contest?.name || "Loading..."}
       activePanel={activePanel}
       availablePanels={availablePanels}
-      fullBleed={isFullBleed}
       examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}

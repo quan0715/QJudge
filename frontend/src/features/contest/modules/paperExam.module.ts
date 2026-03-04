@@ -38,10 +38,12 @@ const getPaperExamTabs = (contest?: ContestDetail | null) => {
 
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
+  "clarifications",
   "logs",
   "participants",
   "problem_editor",
   "grading",
+  "statistics",
   "settings",
 ];
 
@@ -55,8 +57,6 @@ export const paperExamContestModule: ContestTypeModule = {
   admin: {
     editorKind: "paper_exam",
     getAvailablePanels: () => PAPER_EXAM_ADMIN_PANELS,
-    isFullBleedPanel: (panel) =>
-      panel === "problem_editor" || panel === "grading",
     getExportTargets: () => ["exam-question", "exam-answer", "exam-json"],
     shouldShowJsonActions: (activePanel) => activePanel === "problem_editor",
   },
