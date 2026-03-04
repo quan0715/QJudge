@@ -1,8 +1,6 @@
-@use "@carbon/react/scss/spacing" as *;
-@use "@carbon/react/scss/type" as *;
-@use "@carbon/react/scss/colors" as *;
-@use "@carbon/react/scss/theme" as *;
-@use "@carbon/react/scss/motion" as *;
+@use "@carbon/layout";
+@use "@carbon/type";
+@use "@carbon/motion";
 
 .navigator {
   display: flex;
@@ -15,10 +13,10 @@
 .navHeader {
   display: flex;
   align-items: center;
-  gap: $spacing-03;
-  padding: $spacing-04;
-  color: $text-helper;
-  @include type-style("label-01");
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  color: var(--cds-text-helper);
+  @include type.type-style("label-01");
   text-transform: uppercase;
   letter-spacing: 0.32px;
   flex-shrink: 0;
@@ -27,53 +25,53 @@
 .list {
   flex: 1;
   overflow-y: auto;
-  padding: $spacing-02 0;
+  padding: layout.$spacing-02 0;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: $spacing-03;
-  padding: $spacing-03 $spacing-04;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-04;
   cursor: pointer;
   border: none;
   background: transparent;
   width: 100%;
   text-align: left;
-  transition: background-color 100ms motion(standard, productive);
+  transition: background-color 100ms motion.motion(standard, productive);
 
   &:hover {
-    background-color: $layer-hover-01;
+    background-color: var(--cds-layer-hover-01);
   }
 }
 
 .itemActive {
   background-color: transparent;
-  border-left: 3px solid $interactive;
+  border-left: 3px solid var(--cds-interactive);
 
   &:hover {
-    background-color: $layer-hover-01;
+    background-color: var(--cds-layer-hover-01);
   }
 }
 
 .itemNumber {
-  @include type-style("body-compact-01");
+  @include type.type-style("body-compact-01");
   font-weight: 600;
-  color: $text-primary;
+  color: var(--cds-text-primary);
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background-color: $layer-02;
+  background-color: var(--cds-layer-02);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
 .itemNumberAnswered {
-  background-color: $support-success;
-  color: $text-on-color;
+  background-color: var(--cds-support-success);
+  color: var(--cds-text-on-color);
 }
 
 .itemInfo {
@@ -84,25 +82,25 @@
 }
 
 .itemType {
-  @include type-style("label-01");
-  color: $text-helper;
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
 }
 
 .itemTitle {
-  @include type-style("body-compact-01");
-  color: $text-primary;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
 .summary {
-  padding: $spacing-04;
+  padding: layout.$spacing-04;
   flex-shrink: 0;
 }
 
 .summaryText {
-  @include type-style("label-01");
-  color: $text-helper;
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
 }

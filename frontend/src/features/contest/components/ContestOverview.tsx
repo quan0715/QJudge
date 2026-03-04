@@ -24,15 +24,23 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
     message: string;
   } | null>(null);
 
-  // Check if user can download their own report (only after submission)
+  const isPaperExam = contest.contestType === "paper_exam";
+
+  // Check if user can download their own report
+  // - coding: after submission
+  // - paper_exam: after submission AND results published
   const canDownloadReport =
-    contest.examStatus === "submitted" && (contest.hasJoined || contest.isRegistered);
+    contest.examStatus === "submitted" &&
+    (contest.hasJoined || contest.isRegistered) &&
+    (!isPaperExam || contest.resultsPublished === true);
 
   const handleDownloadReport = async () => {
     try {
       setReportDownloading(true);
       setReportNotification({ kind: "success", message: "正在產生報告..." });
+
       await downloadMyReport(contest.id.toString());
+
       setReportNotification({ kind: "success", message: "報告已下載" });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "下載報告失敗";
@@ -99,7 +107,9 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
                 color: "var(--cds-text-secondary)",
               }}
             >
-              下載包含解題統計、程式碼和趨勢圖的 PDF 報告
+              {isPaperExam
+                ? "下載包含逐題作答、得分與 TA 評語的 PDF 報告"
+                : "下載包含解題統計、程式碼和趨勢圖的 PDF 報告"}
             </div>
             <Button
               kind="tertiary"

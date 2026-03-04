@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Pagination, Tag } from "@carbon/react";
-import GradingSplitPanel from "./GradingSplitPanelScreen";
+import { useTranslation } from "react-i18next";
+import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
-import styles from "./ContestExamGrading.module.scss";
+import styles from "./GradingByStudent.module.scss";
 
 interface StudentSummary {
   studentId: string;
@@ -14,19 +15,20 @@ interface StudentSummary {
   totalCount: number;
 }
 
-interface GradingByStudentTabProps {
+interface GradingByStudentTabScreenProps {
   answersByStudent: Map<string, GradingAnswerRow[]>;
   students: { studentId: string; username: string; nickname: string }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
 }
 
-export default function GradingByStudentTab({
+export default function GradingByStudentTabScreen({
   answersByStudent,
   students,
   onGrade,
   searchQuery,
-}: GradingByStudentTabProps) {
+}: GradingByStudentTabScreenProps) {
+  const { t } = useTranslation("contest");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
     null
   );
@@ -114,8 +116,8 @@ export default function GradingByStudentTab({
             <div className={styles.emptyState}>
               <span className={styles.emptyStateDesc}>
                 {searchQuery.trim()
-                  ? "沒有符合搜尋條件的學生"
-                  : "尚無學生資料"}
+                  ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
+                  : t("grading.noStudents", "尚無學生資料")}
               </span>
             </div>
           ) : (
@@ -139,11 +141,11 @@ export default function GradingByStudentTab({
                   <div className={styles.cardSecondary}>
                     <span>{s.username}</span>
                     {s.totalCount === 0 ? (
-                      <Tag type="red" size="sm">缺交</Tag>
+                      <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
                     ) : s.gradedCount === s.totalCount ? (
-                      <Tag type="green" size="sm">完成</Tag>
+                      <Tag type="green" size="sm">{t("grading.complete", "完成")}</Tag>
                     ) : (
-                      <span>{s.gradedCount}/{s.totalCount} 完成</span>
+                      <span>{s.gradedCount}/{s.totalCount} {t("grading.complete", "完成")}</span>
                     )}
                   </div>
                 </div>
@@ -154,9 +156,9 @@ export default function GradingByStudentTab({
 
         <Pagination
           totalItems={filtered.length}
-          backwardText="上一頁"
-          forwardText="下一頁"
-          itemsPerPageText="每頁"
+          backwardText={t("common.prevPage", "上一頁")}
+          forwardText={t("common.nextPage", "下一頁")}
+          itemsPerPageText={t("common.itemsPerPage", "每頁")}
           page={page}
           pageSize={pageSize}
           pageSizes={[25, 50, 100]}
@@ -177,7 +179,7 @@ export default function GradingByStudentTab({
       <div className={styles.questionSidebar}>
         {selectedStudentId && currentStudentAnswers.length > 0 ? (
           <>
-            <div className={styles.sidebarHeader}>題目</div>
+            <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
             {currentStudentAnswers.map((a, i) => {
               const isActive = i === selectedAnswerIdx;
               return (
@@ -190,21 +192,21 @@ export default function GradingByStudentTab({
                   {a.score !== null ? (
                     <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
                   ) : (
-                    <Tag type="warm-gray" size="sm">未批</Tag>
+                    <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
                   )}
                 </div>
               );
             })}
           </>
         ) : (
-          <div className={styles.sidebarHeader}>題目</div>
+          <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
         )}
       </div>
 
       {/* Right: Grading panel */}
       <div className={styles.panel}>
         {selectedStudentId && currentStudentAnswers.length > 0 ? (
-          <GradingSplitPanel
+          <GradingSplitPanelScreen
             answer={currentAnswer}
             onGrade={onGrade}
             onNext={handleNext}
@@ -215,8 +217,8 @@ export default function GradingByStudentTab({
         ) : (
           <div className={styles.panelEmpty}>
             {selectedStudentId
-              ? "此學生尚未提交任何作答"
-              : "選擇一位學生來查看其所有作答"}
+              ? t("grading.noSubmissions", "此學生尚未提交任何作答")
+              : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
           </div>
         )}
       </div>

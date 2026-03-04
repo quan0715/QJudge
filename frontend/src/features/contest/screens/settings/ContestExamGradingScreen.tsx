@@ -10,16 +10,18 @@ import {
   Tag,
 } from "@carbon/react";
 import {
-  GradingByQuestionTab,
-  GradingByStudentTab,
+  GradingByQuestionTabScreen,
+  GradingByStudentTabScreen,
   useGradingData,
   gradingFilterOptions,
 } from "./grading";
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
+import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 const ContestExamGradingScreen: React.FC = () => {
@@ -31,6 +33,7 @@ const ContestExamGradingScreen: React.FC = () => {
   const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
   const [publishingResults, setPublishingResults] = useState(false);
   const { showToast } = useToast();
+  const { t } = useTranslation("contest");
 
   const published = !!contest?.resultsPublished;
 
@@ -41,9 +44,9 @@ const ContestExamGradingScreen: React.FC = () => {
     try {
       await updateContest(contestId, { resultsPublished: next } as any);
       await refreshContest();
-      showToast({ kind: "success", title: next ? "成績已發布" : "已撤回發布" });
+      showToast({ kind: "success", title: next ? t("grading.publishSuccess", "成績已發布") : t("grading.unpublishSuccess", "已撤回發布") });
     } catch {
-      showToast({ kind: "error", title: next ? "發布失敗" : "撤回失敗" });
+      showToast({ kind: "error", title: next ? t("grading.publishFailed", "發布失敗") : t("grading.unpublishFailed", "撤回失敗") });
     } finally {
       setPublishingResults(false);
     }
@@ -93,34 +96,32 @@ const ContestExamGradingScreen: React.FC = () => {
     if (result.failed > 0) {
       showToast({
         kind: "warning",
-        title: "客觀題重新批改完成（部分失敗）",
-        subtitle: `更新 ${result.updated} 筆，失敗 ${result.failed} 筆，略過 ${result.skipped} 筆`,
+        title: t("grading.objectiveRegradePartialFail", "客觀題重新批改完成（部分失敗）"),
+        subtitle: t("grading.regradePartialDetail", { updated: result.updated, failed: result.failed, skipped: result.skipped }),
       });
       return;
     }
     showToast({
       kind: "success",
-      title: "客觀題重新批改完成",
-      subtitle: `更新 ${result.updated} 筆，略過 ${result.skipped} 筆`,
+      title: t("grading.objectiveRegradeComplete", "客觀題重新批改完成"),
+      subtitle: t("grading.regradeDetail", { updated: result.updated, skipped: result.skipped }),
     });
   };
 
   if (loading) {
     return (
       <div className={styles.editorLoading}>
-        <Loading withOverlay={false} description="載入批改資料..." />
+        <Loading withOverlay={false} description={t("grading.loading", "載入批改資料...")} />
       </div>
     );
   }
 
   if (answers.length === 0) {
     return (
-      <div className={styles.emptyState}>
-        <span className={styles.emptyStateTitle}>尚無作答資料</span>
-        <span className={styles.emptyStateDesc}>
-          目前還沒有學生提交作答，請確認考試已開始且學生已完成作答後再進入批改。
-        </span>
-      </div>
+      <EmptyState
+        title={t("grading.noAnswers", "尚無作答資料")}
+        description={t("grading.noAnswersDesc", "目前還沒有學生提交作答，請確認考試已開始且學生已完成作答後再進入批改。")}
+      />
     );
   }
 
@@ -134,16 +135,16 @@ const ContestExamGradingScreen: React.FC = () => {
           size="sm"
           className={styles.toolbarSwitcher}
         >
-          <Switch name="byQuestion" text="按題目批改" />
-          <Switch name="byStudent" text="按學生批改" />
+          <Switch name="byQuestion" text={t("grading.byQuestion", "按題目批改")} />
+          <Switch name="byStudent" text={t("grading.byStudent", "按學生批改")} />
         </ContentSwitcher>
 
         <div className={styles.toolbarSpacer} />
 
         <Search
           id="grading-search"
-          labelText="搜尋學生"
-          placeholder="搜尋學生..."
+          labelText={t("grading.searchStudent", "搜尋學生")}
+          placeholder={t("grading.searchStudent", "搜尋學生") + "..."}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           size="sm"
@@ -154,7 +155,7 @@ const ContestExamGradingScreen: React.FC = () => {
           <Dropdown
             id="grading-filter"
             titleText=""
-            label="篩選"
+            label={t("grading.filter", "篩選")}
             items={gradingFilterOptions}
             itemToString={(item) => item?.label ?? ""}
             selectedItem={gradingFilterOptions.find((o) => o.id === filter)}
@@ -174,20 +175,20 @@ const ContestExamGradingScreen: React.FC = () => {
             onClick={handleRegradeObjective}
             className={styles.toolbarAction}
           >
-            {objectiveRegradedOnce ? "已自動批改" : "自動批改客觀題"}
+            {objectiveRegradedOnce ? t("grading.autoGraded", "已自動批改") : t("grading.autoGrade", "自動批改客觀題")}
           </Button>
         )}
 
         {visibleCount !== null && (
           <span className={styles.toolbarCount}>
-            {visibleCount} 位學生
+            {t("grading.studentsCount", { count: visibleCount })}
           </span>
         )}
 
         <div className={styles.toolbarDivider} />
 
         <Tag type={published ? "green" : "gray"} size="sm">
-          {published ? "已發布" : "未發布"}
+          {published ? t("grading.published", "已發布") : t("grading.unpublished", "未發布")}
         </Tag>
         <Button
           kind={published ? "danger--ghost" : "primary"}
@@ -196,14 +197,14 @@ const ContestExamGradingScreen: React.FC = () => {
           onClick={handleTogglePublish}
           className={styles.toolbarAction}
         >
-          {published ? "撤回發布" : "發布成績"}
+          {published ? t("grading.unpublishResults", "撤回發布") : t("grading.publishResults", "發布成績")}
         </Button>
       </div>
 
       {/* Editor body */}
       <div className={styles.editorBody}>
         {viewMode === 0 ? (
-          <GradingByQuestionTab
+          <GradingByQuestionTabScreen
             questionProgress={questionProgress}
             answersByQuestion={answersByQuestion}
             students={students}
@@ -212,7 +213,7 @@ const ContestExamGradingScreen: React.FC = () => {
             filter={filter}
           />
         ) : (
-          <GradingByStudentTab
+          <GradingByStudentTabScreen
             answersByStudent={answersByStudent}
             students={students}
             onGrade={gradeAnswer}

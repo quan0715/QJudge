@@ -1,0 +1,176 @@
+/* Three-column split (ByStudent) */
+
+.threeColStudent {
+  display: grid;
+  grid-template-columns: 220px 160px 1fr;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 200px 140px 1fr;
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+}
+
+.twoColLeft {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+}
+
+.questionSidebar {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-02, var(--cds-layer));
+}
+
+/* Reuse sidebar styles */
+.sidebarHeader {
+  padding: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  transition: background 0.1s;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.sidebarItemActive {
+  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  border-left: 3px solid var(--cds-interactive);
+  padding-left: calc(0.75rem - 3px);
+
+  &:hover {
+    background: var(--cds-layer-selected-hover-01);
+  }
+}
+
+.sidebarLabel {
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+/* Card list */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 0;
+  flex: 1;
+}
+
+.answerCard {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.answerCardActive {
+  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  border-left: 3px solid var(--cds-interactive);
+  padding-left: calc(0.75rem - 3px);
+
+  &:hover {
+    background: var(--cds-layer-selected-hover-01);
+  }
+}
+
+.cardPrimary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  font-weight: 500;
+  color: var(--cds-text-primary);
+}
+
+.cardSecondary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+}
+
+/* Student answer navigator */
+.answerNav {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  background: var(--cds-layer-02, var(--cds-layer));
+  flex-shrink: 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--cds-text-secondary);
+}
+
+.emptyStateDesc {
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  color: var(--cds-text-secondary);
+  max-width: 320px;
+  line-height: var(--cds-body-compact-01-line-height, 1.5);
+}
+
+/* Panel wrappers (used by ByStudent to wrap GradingSplitPanel) */
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--cds-layer-02, var(--cds-layer));
+}
+
+.panelEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  padding: 2rem;
+  text-align: center;
+}

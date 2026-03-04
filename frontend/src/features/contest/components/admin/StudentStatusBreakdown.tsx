@@ -7,6 +7,7 @@ import {
   Locked,
   CheckmarkFilled,
 } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { DashboardKpi } from "@/features/contest/screens/admin/mockData";
 import styles from "./StudentStatusBreakdown.module.scss";
 
@@ -16,56 +17,32 @@ interface StudentStatusBreakdownProps {
   isRefreshing?: boolean;
 }
 
-const statusDefs = [
-  {
-    key: "notStartedCount",
-    label: "未開始",
-    icon: CircleDash,
-    color: "var(--cds-text-secondary)",
-  },
-  {
-    key: "inProgressCount",
-    label: "進行中",
-    icon: InProgress,
-    color: "var(--cds-support-info)",
-  },
-  {
-    key: "pausedCount",
-    label: "已暫停",
-    icon: PauseFilled,
-    color: "var(--cds-text-secondary)",
-  },
-  {
-    key: "lockedCount",
-    label: "已鎖定",
-    icon: Locked,
-    color: "var(--cds-support-error)",
-  },
-  {
-    key: "submittedCount",
-    label: "已交卷",
-    icon: CheckmarkFilled,
-    color: "var(--cds-support-success)",
-  },
-] as const;
+const STATUS_DEFS = [
+  { key: "notStartedCount" as const, statusKey: "not_started", icon: CircleDash, color: "var(--cds-text-secondary)" },
+  { key: "inProgressCount" as const, statusKey: "in_progress", icon: InProgress, color: "var(--cds-support-info)" },
+  { key: "pausedCount" as const, statusKey: "paused", icon: PauseFilled, color: "var(--cds-text-secondary)" },
+  { key: "lockedCount" as const, statusKey: "locked", icon: Locked, color: "var(--cds-support-error)" },
+  { key: "submittedCount" as const, statusKey: "submitted", icon: CheckmarkFilled, color: "var(--cds-support-success)" },
+];
 
 export default function StudentStatusBreakdown({
   kpi,
   onRefresh,
   isRefreshing = false,
 }: StudentStatusBreakdownProps) {
+  const { t } = useTranslation("contest");
   const total = kpi.totalParticipants || 1;
   const submittedPercent = Math.round((kpi.submittedCount / total) * 100);
 
   return (
     <div className={styles.section}>
       <div className={styles.header}>
-        <h3 className={styles.title}>學生狀態分佈</h3>
+        <h3 className={styles.title}>{t("studentStatus.title", "學生狀態分佈")}</h3>
         <Button
           kind="ghost"
           renderIcon={Renew}
           hasIconOnly
-          iconDescription="重新整理"
+          iconDescription={t("common.refresh", "重新整理")}
           size="sm"
           onClick={onRefresh}
           disabled={isRefreshing}
@@ -73,7 +50,7 @@ export default function StudentStatusBreakdown({
       </div>
 
       <div className={styles.grid}>
-        {statusDefs.map(({ key, label, icon: Icon, color }) => {
+        {STATUS_DEFS.map(({ key, statusKey, icon: Icon, color }) => {
           const count = kpi[key];
           const percent = Math.round((count / total) * 100);
           return (
@@ -81,11 +58,10 @@ export default function StudentStatusBreakdown({
               <Tile className={styles.tile}>
                 <div className={styles.tileBadge} style={{ color }}>
                   <Icon size={16} />
-                  <span>{label}</span>
+                  <span>{t(`examStatus.${statusKey}`, statusKey)}</span>
                 </div>
                 <span className={styles.tileCount}>
-                  {count}
-                  <span className={styles.tileUnit}> 人</span>
+                  {t("studentStatus.personCount", { count })}
                 </span>
                 <span className={styles.tilePercent}>{percent}%</span>
               </Tile>
@@ -102,7 +78,7 @@ export default function StudentStatusBreakdown({
           />
         </div>
         <span className={styles.progressLabel}>
-          已交卷 {kpi.submittedCount}/{kpi.totalParticipants}（{submittedPercent}%）
+          {t("studentStatus.submittedProgress", { submitted: kpi.submittedCount, total: kpi.totalParticipants, percent: submittedPercent })}
         </span>
       </div>
     </div>

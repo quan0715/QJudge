@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
-import QuestionSidebar from "./QuestionSidebarScreen";
-import GradingSplitPanel from "./GradingSplitPanelScreen";
+import QuestionSidebarScreen from "./QuestionSidebarScreen";
+import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type {
   GradingAnswerRow,
   QuestionProgress,
   GradingFilter,
 } from "./gradingTypes";
-import styles from "./ContestExamGrading.module.scss";
+import styles from "./GradingByQuestion.module.scss";
 
-interface GradingByQuestionTabProps {
+interface GradingByQuestionTabScreenProps {
   questionProgress: QuestionProgress[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
   students: { studentId: string; username: string; nickname: string }[];
@@ -18,14 +18,14 @@ interface GradingByQuestionTabProps {
   filter: GradingFilter;
 }
 
-export default function GradingByQuestionTab({
+export default function GradingByQuestionTabScreen({
   questionProgress,
   answersByQuestion,
   students,
   onGrade,
   searchQuery,
   filter,
-}: GradingByQuestionTabProps) {
+}: GradingByQuestionTabScreenProps) {
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
     questionProgress[0]?.questionId ?? ""
   );
@@ -131,7 +131,7 @@ export default function GradingByQuestionTab({
   return (
     <div className={styles.threeCol}>
       {/* Left: Question sidebar */}
-      <QuestionSidebar
+      <QuestionSidebarScreen
         questions={questionProgress}
         selectedQuestionId={selectedQuestionId}
         onSelect={handleQuestionSelect}
@@ -207,7 +207,7 @@ export default function GradingByQuestionTab({
       </div>
 
       {/* Right: Grading panel */}
-      <GradingSplitPanel
+      <GradingSplitPanelScreen
         answer={selectedAnswer}
         onGrade={onGrade}
         onNext={handleNext}

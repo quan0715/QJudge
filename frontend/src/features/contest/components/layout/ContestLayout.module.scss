@@ -64,7 +64,7 @@
   padding: 0 1rem;
   color: var(--cds-text-primary);
   font-family: var(--cds-code-font-family, monospace);
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 .headerScoreDisplay {
@@ -74,7 +74,7 @@
   height: 100%;
   padding: 0 1rem;
   color: var(--cds-text-primary);
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   font-weight: 600;
 }
 
@@ -106,26 +106,26 @@
   height: 100%;
   padding: 0 1rem;
   font-weight: bold;
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   cursor: help;
 }
 
 .examStatusLocked {
   composes: examStatusBase;
   background-color: var(--cds-support-error);
-  color: #fff;
+  color: var(--cds-text-on-color);
 }
 
 .examStatusPaused {
   composes: examStatusBase;
   background-color: var(--cds-support-warning);
-  color: #000;
+  color: var(--cds-text-primary);
 }
 
 .examStatusInProgress {
   composes: examStatusBase;
   background-color: var(--cds-support-success);
-  color: #fff;
+  color: var(--cds-text-on-color);
   cursor: pointer;
 }
 

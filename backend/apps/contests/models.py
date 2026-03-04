@@ -198,6 +198,17 @@ class Contest(models.Model):
             return False
     
     @property
+    def can_download_my_report(self):
+        """
+        Determine if participants can download their own report.
+        For paper exams, results must be published.
+        For coding contests, reports are available immediately after submission.
+        """
+        if self.contest_type == 'paper_exam':
+            return self.results_published
+        return True
+
+    @property
     def computed_status(self):
         """
         Calculate dynamic status based on time (for backward compatibility).

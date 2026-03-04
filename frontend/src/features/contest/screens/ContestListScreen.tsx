@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Grid, Column, Stack, SkeletonText } from "@carbon/react";
 import { useNavigate } from "react-router-dom";
 import { getContests } from "@/infrastructure/api/repositories";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useAuth } from "@/shared/hooks";
 import type { Contest } from "@/core/entities/contest.entity";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { ContestPreviewCard } from "@/features/contest/components/ContestPreviewCard";

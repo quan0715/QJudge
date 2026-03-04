@@ -44,7 +44,7 @@
   width: 100%;
   height: 100%;
   padding: 0 0.75rem;
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   background: var(--cds-field);
   border: none;
   border-bottom: 1px solid var(--cds-border-strong);
@@ -90,8 +90,8 @@
   justify-content: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-productive-heading-03-line-height, 1.4);
   color: var(--cds-text-secondary);
   border-top: 1px solid var(--cds-border-subtle-01);
   padding-top: 0.5rem;
@@ -101,7 +101,7 @@
   padding: 2rem 1rem;
   text-align: center;
   color: var(--cds-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 /* Time indicator overlay on chart */
@@ -121,7 +121,7 @@
   right: 0.5rem;
   top: 0;
   height: 2px;
-  background: var(--cds-focus, #0f62fe);
+  background: var(--cds-focus);
   opacity: 0.7;
 }
 
@@ -131,7 +131,7 @@
   top: -0.5rem;
   font-size: 0.625rem;
   font-weight: 600;
-  color: var(--cds-focus, #0f62fe);
+  color: var(--cds-focus);
   white-space: nowrap;
   line-height: 1rem;
 }
@@ -172,7 +172,7 @@ $tl-pad: 28px;
   padding: 3rem 1rem;
   text-align: center;
   color: var(--cds-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 /* Date / Time Slot Group */
@@ -182,7 +182,7 @@ $tl-pad: 28px;
 
 .dateLabel {
   position: relative;
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 600;
   color: var(--cds-text-secondary);
   letter-spacing: 0.03em;
@@ -231,25 +231,25 @@ $tl-pad: 28px;
   }
 }
 
-/* Severity color variants */
+/* Severity color variants — using Carbon semantic tokens */
 .severityViolation {
-  border-left-color: #da1e28;
-  &::before { background: #da1e28; }
+  border-left-color: var(--cds-support-error);
+  &::before { background: var(--cds-support-error); }
 }
 
 .severityLifecycle {
-  border-left-color: #24a148;
-  &::before { background: #24a148; }
+  border-left-color: var(--cds-support-success);
+  &::before { background: var(--cds-support-success); }
 }
 
 .severitySubmission {
-  border-left-color: #0f62fe;
-  &::before { background: #0f62fe; }
+  border-left-color: var(--cds-link-primary);
+  &::before { background: var(--cds-link-primary); }
 }
 
 .severityAdmin {
-  border-left-color: #8a3ffc;
-  &::before { background: #8a3ffc; }
+  border-left-color: var(--cds-support-info);
+  &::before { background: var(--cds-support-info); }
 }
 
 /* Card header */
@@ -268,7 +268,7 @@ $tl-pad: 28px;
 }
 
 .cardTime {
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -276,7 +276,7 @@ $tl-pad: 28px;
 }
 
 .cardUser {
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   font-weight: 500;
   color: var(--cds-text-primary);
   white-space: nowrap;
@@ -286,9 +286,9 @@ $tl-pad: 28px;
 
 .cardReason {
   margin-top: 0.125rem;
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   color: var(--cds-text-secondary);
-  line-height: 1.4;
+  line-height: var(--cds-productive-heading-03-line-height, 1.4);
   word-break: break-word;
 }
 
@@ -299,7 +299,7 @@ $tl-pad: 28px;
 
 .statusFooter {
   padding: 0.5rem 0;
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
   text-align: center;
 }
@@ -329,13 +329,13 @@ $tl-pad: 28px;
 }
 
 .summaryLabel {
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   color: var(--cds-text-secondary);
   flex: 1;
 }
 
 .summaryCount {
-  font-size: 1.25rem;
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
   font-weight: 600;
   color: var(--cds-text-primary);
   font-variant-numeric: tabular-nums;

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
 import type { ScoreboardRow } from "@/core/entities/contest.entity";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useAuth } from "@/shared/hooks";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 

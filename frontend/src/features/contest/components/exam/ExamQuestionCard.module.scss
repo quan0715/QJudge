@@ -1,7 +1,5 @@
-@use "@carbon/react/scss/spacing" as *;
-@use "@carbon/react/scss/type" as *;
-@use "@carbon/react/scss/colors" as *;
-@use "@carbon/react/scss/theme" as *;
+@use "@carbon/layout";
+@use "@carbon/type";
 
 .card {
   padding: 0;
@@ -12,27 +10,27 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: $spacing-05;
+  margin-bottom: layout.$spacing-05;
 }
 
 .label {
-  @include type-style("heading-compact-02");
-  color: $text-primary;
+  @include type.type-style("heading-compact-02");
+  color: var(--cds-text-primary);
   display: flex;
   align-items: center;
-  gap: $spacing-03;
+  gap: layout.$spacing-03;
 }
 
 .score {
-  @include type-style("body-compact-01");
-  color: $text-helper;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-helper);
 }
 
 .prompt {
-  margin-bottom: $spacing-06;
-  font-size: 1.125rem;
+  margin-bottom: layout.$spacing-06;
+  font-size: var(--cds-heading-compact-02-font-size, 1.125rem);
   line-height: 1.8;
-  color: $text-primary;
+  color: var(--cds-text-primary);
 
   :global(.markdown-body) {
     font-size: inherit;
@@ -47,20 +45,20 @@
 }
 
 .promptEmpty {
-  @include type-style("body-01");
-  color: $text-placeholder;
-  margin-bottom: $spacing-06;
+  @include type.type-style("body-01");
+  color: var(--cds-text-placeholder);
+  margin-bottom: layout.$spacing-06;
   font-style: italic;
 }
 
 .answerArea {
-  padding-top: $spacing-05;
+  padding-top: layout.$spacing-05;
 }
 
 .answerLabel {
-  @include type-style("label-01");
-  color: $text-helper;
-  margin-bottom: $spacing-04;
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
+  margin-bottom: layout.$spacing-04;
   text-transform: uppercase;
   letter-spacing: 0.32px;
 }
@@ -68,7 +66,7 @@
 .optionList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-04;
+  gap: layout.$spacing-04;
 }
 
 .textArea {

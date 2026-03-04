@@ -18,7 +18,7 @@
 
     h3 {
       margin: 0;
-      font-size: 1.25rem;
+      font-size: var(--cds-heading-03-font-size, 1.25rem);
       font-weight: 600;
       color: var(--cds-text-primary);
     }
@@ -44,7 +44,7 @@
     height: 100%;
     gap: var(--cds-spacing-04);
     color: var(--cds-text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   }
 }
 

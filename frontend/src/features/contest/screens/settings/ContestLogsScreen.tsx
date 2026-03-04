@@ -10,6 +10,7 @@ import { Renew } from "@carbon/icons-react";
 import { StackedBarChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
+import { useTranslation } from "react-i18next";
 import type { ExamEvent } from "@/core/entities/contest.entity";
 import { useContestAdmin } from "@/features/contest/contexts";
 import ContainerCard from "@/shared/layout/ContainerCard";
@@ -29,44 +30,44 @@ const SEVERITY_TAG: Record<Severity, "red" | "green" | "blue" | "purple"> = {
   admin: "purple",
 };
 
-const EVENT_MAP: Record<string, { label: string; severity: Severity }> = {
-  join: { label: "加入", severity: "lifecycle" },
-  register: { label: "註冊", severity: "lifecycle" },
-  unregister: { label: "取消註冊", severity: "admin" },
-  enter_contest: { label: "進入競賽", severity: "lifecycle" },
-  leave: { label: "離開競賽", severity: "lifecycle" },
-  start_exam: { label: "開始考試", severity: "lifecycle" },
-  end_exam: { label: "結束考試", severity: "lifecycle" },
-  auto_submit: { label: "自動提交", severity: "lifecycle" },
-  resume_exam: { label: "繼續考試", severity: "lifecycle" },
-  reopen_exam: { label: "重新開放考試", severity: "lifecycle" },
-  pause_exam: { label: "暫停考試", severity: "lifecycle" },
-  submit: { label: "提交", severity: "submission" },
-  submit_code: { label: "提交程式碼", severity: "submission" },
-  tab_switch: { label: "切換分頁", severity: "violation" },
-  tab_hidden: { label: "隱藏分頁", severity: "violation" },
-  window_blur: { label: "離開視窗", severity: "violation" },
-  exit_fullscreen: { label: "退出全螢幕", severity: "violation" },
-  forbidden_focus_event: { label: "禁止焦點事件", severity: "violation" },
-  forbidden_action: { label: "禁止操作", severity: "violation" },
-  multiple_displays: { label: "多螢幕偵測", severity: "violation" },
-  cheat_warning: { label: "違規警告", severity: "violation" },
-  lock: { label: "鎖定", severity: "violation" },
-  lock_user: { label: "鎖定用戶", severity: "violation" },
-  unlock: { label: "解鎖", severity: "admin" },
-  unlock_user: { label: "解鎖用戶", severity: "admin" },
-  ask_question: { label: "提問", severity: "lifecycle" },
-  reply_question: { label: "回覆提問", severity: "admin" },
-  announce: { label: "發布公告", severity: "admin" },
-  update_contest: { label: "更新競賽設定", severity: "admin" },
-  update_problem: { label: "更新題目", severity: "admin" },
-  update_participant: { label: "更新參與者", severity: "admin" },
-  publish_problem_to_practice: { label: "發布到練習區", severity: "admin" },
-  other: { label: "其他", severity: "admin" },
+const EVENT_MAP: Record<string, { labelKey: string; severity: Severity }> = {
+  join: { labelKey: "join", severity: "lifecycle" },
+  register: { labelKey: "register", severity: "lifecycle" },
+  unregister: { labelKey: "unregister", severity: "admin" },
+  enter_contest: { labelKey: "enter_contest", severity: "lifecycle" },
+  leave: { labelKey: "leave", severity: "lifecycle" },
+  start_exam: { labelKey: "start_exam", severity: "lifecycle" },
+  end_exam: { labelKey: "end_exam", severity: "lifecycle" },
+  auto_submit: { labelKey: "auto_submit", severity: "lifecycle" },
+  resume_exam: { labelKey: "resume_exam", severity: "lifecycle" },
+  reopen_exam: { labelKey: "reopen_exam", severity: "lifecycle" },
+  pause_exam: { labelKey: "pause_exam", severity: "lifecycle" },
+  submit: { labelKey: "submit", severity: "submission" },
+  submit_code: { labelKey: "submit_code", severity: "submission" },
+  tab_switch: { labelKey: "tab_switch", severity: "violation" },
+  tab_hidden: { labelKey: "tab_hidden", severity: "violation" },
+  window_blur: { labelKey: "window_blur", severity: "violation" },
+  exit_fullscreen: { labelKey: "exit_fullscreen", severity: "violation" },
+  forbidden_focus_event: { labelKey: "forbidden_focus_event", severity: "violation" },
+  forbidden_action: { labelKey: "forbidden_action", severity: "violation" },
+  multiple_displays: { labelKey: "multiple_displays", severity: "violation" },
+  cheat_warning: { labelKey: "cheat_warning", severity: "violation" },
+  lock: { labelKey: "lock", severity: "violation" },
+  lock_user: { labelKey: "lock_user", severity: "violation" },
+  unlock: { labelKey: "unlock", severity: "admin" },
+  unlock_user: { labelKey: "unlock_user", severity: "admin" },
+  ask_question: { labelKey: "ask_question", severity: "lifecycle" },
+  reply_question: { labelKey: "reply_question", severity: "admin" },
+  announce: { labelKey: "announce", severity: "admin" },
+  update_contest: { labelKey: "update_contest", severity: "admin" },
+  update_problem: { labelKey: "update_problem", severity: "admin" },
+  update_participant: { labelKey: "update_participant", severity: "admin" },
+  publish_problem_to_practice: { labelKey: "publish_problem_to_practice", severity: "admin" },
+  other: { labelKey: "other", severity: "admin" },
 };
 
 const getEventConfig = (type: string) => {
-  const entry = EVENT_MAP[type] || { label: type, severity: "admin" as Severity };
+  const entry = EVENT_MAP[type] || { labelKey: type, severity: "admin" as Severity };
   return { ...entry, tagType: SEVERITY_TAG[entry.severity] };
 };
 
@@ -77,13 +78,15 @@ const SEVERITY_CLASS: Record<Severity, string> = {
   admin: styles.severityAdmin,
 };
 
-// --- Category filter ---
-const EVENT_FILTER_OPTIONS = [
-  { id: "violation", label: "違規事件", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "forbidden_action", "multiple_displays", "lock_user", "cheat_warning", "lock", "tab_switch"] },
-  { id: "submission", label: "程式提交", types: ["submit", "submit_code"] },
-  { id: "lifecycle", label: "考試狀態", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave", "join", "ask_question"] },
-  { id: "admin", label: "管理操作", types: ["unregister", "unlock_user", "unlock", "update_participant", "update_contest", "update_problem", "announce", "reply_question", "publish_problem_to_practice", "other"] },
+// --- Log group definitions (single source of truth for id / label / color) ---
+const LOG_GROUPS = [
+  { id: "violation" as const, label: "違規事件", color: "#da1e28", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "forbidden_action", "multiple_displays", "lock_user", "cheat_warning", "lock", "tab_switch"] },
+  { id: "submission" as const, label: "程式提交", color: "#0f62fe", types: ["submit", "submit_code"] },
+  { id: "lifecycle" as const, label: "考試狀態", color: "#24a148", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave", "join", "ask_question"] },
+  { id: "admin" as const, label: "管理操作", color: "#8a3ffc", types: ["unregister", "unlock_user", "unlock", "update_participant", "update_contest", "update_problem", "announce", "reply_question", "publish_problem_to_practice", "other"] },
 ];
+
+const EVENT_FILTER_OPTIONS = LOG_GROUPS;
 
 const EVENT_CATEGORIES = {
   violation: EVENT_FILTER_OPTIONS[0].types,
@@ -162,9 +165,15 @@ const LogsSkeleton = () => (
 );
 
 // --- Component ---
-const ContestAdminLogsPage = () => {
+const ContestLogsScreen = () => {
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
   const { theme } = useTheme();
+  const { t } = useTranslation("contest");
+
+  const logGroupLabels = LOG_GROUPS.map((g) => ({
+    ...g,
+    label: t(`logs.groups.${g.id}`, g.label),
+  }));
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
@@ -335,13 +344,12 @@ const ContestAdminLogsPage = () => {
         const day = d.getDate().toString().padStart(2, "0");
         const hh = d.getHours().toString().padStart(2, "0");
         const label = `${month}/${day} ${hh}:00`;
-        data.push({ group: "違規事件", key: label, value: counts.violation });
-        data.push({ group: "程式提交", key: label, value: counts.submission });
-        data.push({ group: "考試狀態", key: label, value: counts.lifecycle });
-        data.push({ group: "管理操作", key: label, value: counts.admin });
+        for (const g of logGroupLabels) {
+          data.push({ group: g.label, key: label, value: counts[g.id] });
+        }
       });
     return data;
-  }, [examEvents, chartWindow]);
+  }, [examEvents, chartWindow, logGroupLabels]);
 
   // --- Compute time indicator Y position on chart ---
   const indicatorPosition = useMemo(() => {
@@ -372,24 +380,19 @@ const ContestAdminLogsPage = () => {
       title: "",
       axes: {
         left: { mapsTo: "key", scaleType: ScaleTypes.LABELS },
-        bottom: { mapsTo: "value", title: "事件數量", scaleType: ScaleTypes.LINEAR, stacked: true },
+        bottom: { mapsTo: "value", title: t("logs.eventCount", "事件數量"), scaleType: ScaleTypes.LINEAR, stacked: true },
       },
       height: `${Math.max(280, chartBarCount * 18)}px`,
       theme,
       color: {
-        scale: {
-          "違規事件": "#da1e28",
-          "程式提交": "#0f62fe",
-          "考試狀態": "#24a148",
-          "管理操作": "#8a3ffc",
-        },
+        scale: Object.fromEntries(logGroupLabels.map((g) => [g.label, g.color])),
       },
       legend: { alignment: "center" as const, position: "bottom" as const },
       toolbar: { enabled: false },
       tooltip: { showTotal: true },
       bars: { maxWidth: 16 },
     }),
-    [theme, chartBarCount],
+    [theme, chartBarCount, logGroupLabels, t],
   );
 
   const loading = examEvents.length === 0 && isRefreshing;
@@ -403,14 +406,9 @@ const ContestAdminLogsPage = () => {
         <div className={styles.twoColumn}>
           {/* Left Column: Charts */}
           <div className={styles.chartsCol}>
-            <ContainerCard title="事件摘要">
+            <ContainerCard title={t("logs.eventSummary", "事件摘要")}>
               <div className={styles.summaryGrid}>
-                {([
-                  { key: "violation" as const, label: "違規事件", color: "#da1e28" },
-                  { key: "submission" as const, label: "程式提交", color: "#0f62fe" },
-                  { key: "lifecycle" as const, label: "考試狀態", color: "#24a148" },
-                  { key: "admin" as const, label: "管理操作", color: "#8a3ffc" },
-                ]).map(({ key, label, color }) => (
+                {logGroupLabels.map(({ id: key, label, color }) => (
                   <div key={key} className={styles.summaryItem} style={{ borderLeftColor: color }}>
                     <span className={styles.summaryDot} style={{ background: color }} />
                     <span className={styles.summaryLabel}>{label}</span>
@@ -420,7 +418,7 @@ const ContestAdminLogsPage = () => {
               </div>
             </ContainerCard>
 
-            <ContainerCard title="事件時序圖">
+            <ContainerCard title={t("logs.eventTimeline", "事件時序圖")}>
               {chartData.length > 0 ? (
                 <div className={styles.chartBody}>
                   <div className={styles.chartWrapper}>
@@ -440,18 +438,18 @@ const ContestAdminLogsPage = () => {
                     )}
                   </div>
                   <div className={styles.chartMeta}>
-                    <span>每 1 小時統計</span>
+                    <span>{t("logs.hourlyStats", "每 1 小時統計")}</span>
                     {chartWindow ? (
-                      <span>開始：{new Date(chartWindow.startMs).toLocaleString()}</span>
+                      <span>{t("logs.start", "開始：")}{new Date(chartWindow.startMs).toLocaleString()}</span>
                     ) : null}
                     {chartWindow ? (
-                      <span>結束：{new Date(chartWindow.endMs).toLocaleString()}</span>
+                      <span>{t("logs.end", "結束：")}{new Date(chartWindow.endMs).toLocaleString()}</span>
                     ) : null}
                   </div>
                 </div>
               ) : (
                 <div className={styles.chartEmpty}>
-                  暫無事件資料可供視覺化
+                  {t("logs.noDataToVisualize", "暫無事件資料可供視覺化")}
                 </div>
               )}
             </ContainerCard>
@@ -460,14 +458,14 @@ const ContestAdminLogsPage = () => {
           {/* Right Column: Timeline */}
           <div className={styles.timelineCol}>
             <ContainerCard
-              title="事件紀錄"
+              title={t("logs.eventRecords", "事件紀錄")}
               action={
                 <Button
                   kind="ghost"
                   renderIcon={Renew}
                   onClick={refreshAdminData}
                   hasIconOnly
-                  iconDescription="重新整理"
+                  iconDescription={t("common.refresh", "重新整理")}
                   disabled={isRefreshing}
                 />
               }
@@ -477,7 +475,7 @@ const ContestAdminLogsPage = () => {
                   <input
                     className={styles.searchInput}
                     type="text"
-                    placeholder="搜尋使用者、事件類型、原因…"
+                    placeholder={t("logs.searchPlaceholder", "搜尋使用者、事件類型、原因…")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -486,7 +484,7 @@ const ContestAdminLogsPage = () => {
                   <MultiSelect
                     id="event-type-filter-timeline"
                     titleText=""
-                    label="篩選事件類型"
+                    label={t("logs.filterEventType", "篩選事件類型")}
                     items={EVENT_FILTER_OPTIONS}
                     itemToString={(item: { label: string } | null) => item?.label || ""}
                     selectedItems={EVENT_FILTER_OPTIONS.filter((opt) =>
@@ -505,7 +503,7 @@ const ContestAdminLogsPage = () => {
 
               {filteredEvents.length === 0 ? (
                 <div className={styles.timelineEmpty}>
-                  {examEvents.length === 0 ? "暫無事件紀錄" : "無符合篩選條件的事件"}
+                  {examEvents.length === 0 ? t("logs.noEvents", "暫無事件紀錄") : t("logs.noMatchingEvents", "無符合篩選條件的事件")}
                 </div>
               ) : (
                 <>
@@ -525,7 +523,7 @@ const ContestAdminLogsPage = () => {
                                 <div className={styles.cardHeader}>
                                   <div className={styles.cardLeft}>
                                     <Tag type={config.tagType} size="sm">
-                                      {config.label}
+                                      {t(`logs.eventTypes.${config.labelKey}`, config.labelKey)}
                                     </Tag>
                                     <span className={styles.cardUser}>
                                       {event.userName || "Unknown"}
@@ -550,8 +548,8 @@ const ContestAdminLogsPage = () => {
                   </div>
                   <div className={styles.statusFooter}>
                     {hasMore
-                      ? `已載入 ${visibleEvents.length} / ${filteredEvents.length} 筆`
-                      : `共 ${filteredEvents.length} 筆事件`}
+                      ? t("logs.loadedCount", { loaded: visibleEvents.length, total: filteredEvents.length })
+                      : t("logs.totalCount", { total: filteredEvents.length })}
                   </div>
                 </>
               )}
@@ -563,4 +561,4 @@ const ContestAdminLogsPage = () => {
   );
 };
 
-export default ContestAdminLogsPage;
+export default ContestLogsScreen;

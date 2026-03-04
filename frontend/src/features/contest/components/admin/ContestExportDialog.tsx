@@ -11,8 +11,11 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import { getExamQuestions, downloadContestFile } from "@/infrastructure/api/repositories";
-import { useExamPdfExport } from "@/features/contest/components/admin/examEditor/pdf/useExamPdfExport";
+import {
+  getExamQuestions,
+  downloadContestFile,
+  downloadExamPaperFile,
+} from "@/infrastructure/api/repositories";
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
 import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
@@ -88,6 +91,7 @@ export default function ContestExportDialog({
   const hasExamTargets = availableTargets.some((target) =>
     target.startsWith("exam-"),
   );
+  const hasExamJsonTarget = availableTargets.includes("exam-json");
 
   // --- Shared state ---
   const defaultTarget: ExportTarget = availableTargets[0] ?? "coding-pdf";
@@ -97,10 +101,6 @@ export default function ContestExportDialog({
   // --- Exam-specific ---
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const { exportPdf: exportExamPdf, generating: examGenerating } = useExamPdfExport({
-    contest,
-    questions: examQuestions,
-  });
 
   // --- Coding-specific ---
   const [language, setLanguage] = useState("zh-TW");
@@ -137,7 +137,7 @@ export default function ContestExportDialog({
 
   // Load exam questions when dialog opens (exam mode only)
   useEffect(() => {
-    if (!open || !hasExamTargets) return;
+    if (!open || !hasExamJsonTarget) return;
     let cancelled = false;
     (async () => {
       setLoadingQuestions(true);
@@ -151,7 +151,7 @@ export default function ContestExportDialog({
       }
     })();
     return () => { cancelled = true; };
-  }, [open, hasExamTargets, contestId]);
+  }, [open, hasExamJsonTarget, contestId]);
 
   // --- Export handler ---
   const handleExport = useCallback(async () => {
@@ -159,7 +159,12 @@ export default function ContestExportDialog({
     setBusy(true);
     try {
       if (target === "exam-question" || target === "exam-answer") {
-        await exportExamPdf(target === "exam-answer" ? "answer" : "question");
+        await downloadExamPaperFile(
+          contestId,
+          target === "exam-answer" ? "answer" : "question",
+          language,
+          scale
+        );
       } else if (target === "exam-json") {
         const safeName = sanitizeFilename(contest.name);
         const content = stringifyExamQuestionJsonV1(examQuestions, contest.name);
@@ -192,7 +197,6 @@ export default function ContestExportDialog({
     }
   }, [
     target,
-    exportExamPdf,
     examQuestions,
     contestId,
     language,
@@ -206,8 +210,8 @@ export default function ContestExportDialog({
   const isExamTarget = target.startsWith("exam-");
   const isCodingPdf = target === "coding-pdf";
   const noExamQuestions =
-    isExamTarget && hasExamTargets && !loadingQuestions && examQuestions.length === 0;
-  const exporting = busy || examGenerating;
+    target === "exam-json" && hasExamJsonTarget && !loadingQuestions && examQuestions.length === 0;
+  const exporting = busy;
 
   return (
     <ComposedModal open={open} onClose={onClose} size="sm">

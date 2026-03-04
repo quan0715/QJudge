@@ -1,4 +1,4 @@
-export { default as GradingByQuestionTab } from "./GradingByQuestionTabScreen";
-export { default as GradingByStudentTab } from "./GradingByStudentTabScreen";
+export { default as GradingByQuestionTabScreen } from "./GradingByQuestionTabScreen";
+export { default as GradingByStudentTabScreen } from "./GradingByStudentTabScreen";
 export { useGradingData } from "./useGradingData";
 export * from "./gradingTypes";

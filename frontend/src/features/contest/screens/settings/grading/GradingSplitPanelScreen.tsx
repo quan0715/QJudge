@@ -3,8 +3,9 @@ import { Button, NumberInput, TextArea, Tag } from "@carbon/react";
 import { ArrowRight, UserFollow, Checkmark } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import type { GradingAnswerRow } from "./gradingTypes";
-import { questionTypeLabel, isSubjectiveType } from "./gradingTypes";
-import styles from "./ContestExamGrading.module.scss";
+import { isSubjectiveType } from "./gradingTypes";
+import { useTranslation } from "react-i18next";
+import styles from "./GradingPanel.module.scss";
 
 /** Check whether a given option index is selected by the student. */
 function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
@@ -41,7 +42,7 @@ function getTextAnswer(row: GradingAnswerRow): string {
   return typeof text === "string" ? text : JSON.stringify(row.answerContent, null, 2);
 }
 
-interface GradingSplitPanelProps {
+interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
   onGrade: (answerId: string, score: number, feedback: string) => void;
   onNext?: () => void;
@@ -50,14 +51,15 @@ interface GradingSplitPanelProps {
   hasNextStudent?: boolean;
 }
 
-export default function GradingSplitPanel({
+export default function GradingSplitPanelScreen({
   answer,
   onGrade,
   onNext,
   hasNext = false,
   onNextStudent,
   hasNextStudent = false,
-}: GradingSplitPanelProps) {
+}: GradingSplitPanelScreenProps) {
+  const { t } = useTranslation("contest");
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
   const [saved, setSaved] = useState(false);
@@ -74,7 +76,7 @@ export default function GradingSplitPanel({
     return (
       <div className={styles.panel}>
         <div className={styles.panelEmpty}>
-          選擇一位學生的作答來開始批改
+          {t("grading.selectAnswerToGrade", "選擇一位學生的作答來開始批改")}
         </div>
       </div>
     );
@@ -102,16 +104,16 @@ export default function GradingSplitPanel({
             Q{answer.questionIndex}
           </Tag>
           <Tag type="blue" size="sm">
-            {questionTypeLabel[answer.questionType]}
+            {t(`questionTypes.${answer.questionType}`, answer.questionType)}
           </Tag>
           <Tag type="teal" size="sm">
-            滿分 {answer.maxScore}
+            {t("grading.fullScore", "滿分")} {answer.maxScore}
           </Tag>
           {answer.gradedBy && (
             <Tag type="green" size="sm">
               {answer.gradedBy === "system"
-                ? "自動批改"
-                : `${answer.gradedBy} 批改`}
+                ? t("grading.auto", "自動批改")
+                : `${answer.gradedBy}`}
             </Tag>
           )}
         </div>
@@ -120,7 +122,7 @@ export default function GradingSplitPanel({
       <div className={styles.panelContent}>
         {/* Student */}
         <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>學生</span>
+          <span className={styles.panelLabel}>{t("grading.student", "學生")}</span>
           <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
             {answer.studentNickname} ({answer.studentUsername})
           </span>
@@ -128,7 +130,7 @@ export default function GradingSplitPanel({
 
         {/* Prompt — Markdown rendered */}
         <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>題目</span>
+          <span className={styles.panelLabel}>{t("grading.question", "題目")}</span>
           <div className={styles.panelPrompt}>
             <MarkdownContent.Problem>{answer.questionPrompt}</MarkdownContent.Problem>
           </div>
@@ -136,7 +138,7 @@ export default function GradingSplitPanel({
 
         {/* Answer section — merged options + answer for objective; text for subjective */}
         <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>作答內容</span>
+          <span className={styles.panelLabel}>{t("grading.answerContent", "作答內容")}</span>
 
           {isObjective && hasOptions ? (
             <>
@@ -168,7 +170,7 @@ export default function GradingSplitPanel({
               {/* Correct answer summary */}
               {answer.correctAnswer != null && (
                 <div className={styles.correctAnswerLine}>
-                  <span className={styles.correctAnswerLabel}>正確答案：</span>
+                  <span className={styles.correctAnswerLabel}>{t("grading.correctAnswer", "正確答案")}：</span>
                   <span className={styles.correctAnswerText}>
                     {formatCorrectLabel(answer.correctAnswer, answer.questionOptions)}
                   </span>
@@ -186,7 +188,7 @@ export default function GradingSplitPanel({
         {/* Reference answer for subjective questions */}
         {!isObjective && answer.correctAnswer != null && typeof answer.correctAnswer === "string" && (
           <div className={styles.panelSection}>
-            <span className={styles.panelLabel}>參考答案</span>
+            <span className={styles.panelLabel}>{t("grading.referenceAnswer", "參考答案")}</span>
             <div className={styles.panelReference}>
               <MarkdownContent.Simple>{answer.correctAnswer}</MarkdownContent.Simple>
             </div>
@@ -198,7 +200,7 @@ export default function GradingSplitPanel({
           <div className={styles.scoreRow}>
             <NumberInput
               id="panel-score"
-              label="分數"
+              label={t("grading.score", "分數")}
               value={score}
               min={0}
               max={answer.maxScore}
@@ -217,7 +219,7 @@ export default function GradingSplitPanel({
         <div className={styles.panelSection}>
           <TextArea
             id="panel-feedback"
-            labelText="評語（選填）"
+            labelText={t("grading.feedback", "評語（選填）")}
             value={feedback}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setFeedback(e.target.value)
@@ -235,7 +237,7 @@ export default function GradingSplitPanel({
               renderIcon={ArrowRight}
               onClick={onNext}
             >
-              下一題
+              {t("grading.nextQuestion", "下一題")}
             </Button>
           )}
           {!hasNext && hasNextStudent && (
@@ -245,7 +247,7 @@ export default function GradingSplitPanel({
               renderIcon={UserFollow}
               onClick={onNextStudent}
             >
-              下一位學生
+              {t("grading.nextStudent", "下一位學生")}
             </Button>
           )}
           <Button
@@ -254,7 +256,7 @@ export default function GradingSplitPanel({
             renderIcon={Checkmark}
             onClick={handleSave}
           >
-            {saved ? "已儲存" : "儲存"}
+            {saved ? t("grading.saved", "已儲存") : t("grading.save", "儲存")}
           </Button>
         </div>
       </div>

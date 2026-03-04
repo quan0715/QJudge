@@ -4,8 +4,8 @@ import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity
 import ContestExportDialog from "./ContestExportDialog";
 
 const downloadContestFileMock = vi.fn();
+const downloadExamPaperFileMock = vi.fn();
 const getExamQuestionsMock = vi.fn();
-const exportPdfMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -18,13 +18,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/infrastructure/api/repositories", () => ({
   getExamQuestions: (...args: unknown[]) => getExamQuestionsMock(...args),
   downloadContestFile: (...args: unknown[]) => downloadContestFileMock(...args),
-}));
-
-vi.mock("@/features/contest/components/admin/examEditor/pdf/useExamPdfExport", () => ({
-  useExamPdfExport: () => ({
-    exportPdf: exportPdfMock,
-    generating: false,
-  }),
+  downloadExamPaperFile: (...args: unknown[]) => downloadExamPaperFileMock(...args),
 }));
 
 const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail => ({
@@ -83,11 +77,11 @@ const buildExamQuestion = (partial: Partial<ExamQuestion> = {}): ExamQuestion =>
 describe("ContestExportDialog", () => {
   beforeEach(() => {
     downloadContestFileMock.mockReset();
+    downloadExamPaperFileMock.mockReset();
     getExamQuestionsMock.mockReset();
-    exportPdfMock.mockReset();
     downloadContestFileMock.mockResolvedValue(new Blob(["x"], { type: "text/plain" }));
+    downloadExamPaperFileMock.mockResolvedValue(undefined);
     getExamQuestionsMock.mockResolvedValue([]);
-    exportPdfMock.mockResolvedValue(undefined);
     Object.defineProperty(window.URL, "createObjectURL", {
       configurable: true,
       writable: true,
@@ -141,7 +135,38 @@ describe("ContestExportDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "匯出" }));
 
     await waitFor(() => {
-      expect(exportPdfMock).toHaveBeenCalledWith("answer");
+      expect(downloadExamPaperFileMock).toHaveBeenCalledWith(
+        "contest-1",
+        "answer",
+        "zh-TW",
+        1
+      );
+    });
+  });
+
+  it("still exports backend exam paper when local question list is empty", async () => {
+    getExamQuestionsMock.mockResolvedValue([]);
+
+    render(
+      <ContestExportDialog
+        open
+        onClose={vi.fn()}
+        contest={buildContest({ contestType: "paper_exam", cheatDetectionEnabled: true, problems: [] })}
+        contestId="contest-1"
+      />
+    );
+
+    await screen.findByLabelText("答案卷 — 包含題目、選項與正確答案");
+    fireEvent.click(screen.getByLabelText("答案卷 — 包含題目、選項與正確答案"));
+    fireEvent.click(screen.getByRole("button", { name: "匯出" }));
+
+    await waitFor(() => {
+      expect(downloadExamPaperFileMock).toHaveBeenCalledWith(
+        "contest-1",
+        "answer",
+        "zh-TW",
+        1
+      );
     });
   });
 });

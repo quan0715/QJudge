@@ -38,6 +38,7 @@ import {
   reopenExam,
   downloadParticipantReport,
 } from "@/infrastructure/api/repositories";
+import { useTranslation } from "react-i18next";
 import { useContestAdmin } from "@/features/contest/contexts";
 import type {
   ContestParticipant,
@@ -47,8 +48,11 @@ import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
-const ContestAdminParticipantsPage = () => {
+const EXAM_STATUS_KEYS: string[] = ["not_started", "in_progress", "paused", "locked", "submitted"];
+
+const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
+  const { t } = useTranslation("contest");
   const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
 
   const [notification, setNotification] = useState<{
@@ -69,18 +73,13 @@ const ContestAdminParticipantsPage = () => {
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Exam status options for dropdown
-  const examStatusOptions = [
-    { id: "not_started", label: "未開始" },
-    { id: "in_progress", label: "進行中" },
-    { id: "paused", label: "已暫停" },
-    { id: "locked", label: "已鎖定" },
-    { id: "submitted", label: "已交卷" },
-  ];
+  const examStatusOptions = EXAM_STATUS_KEYS.map((id) => ({
+    id,
+    label: t(`examStatus.${id}`, id),
+  }));
 
-  // Status filter options (includes "all")
   const statusFilterOptions = [
-    { id: "all", label: "全部狀態" },
+    { id: "all", label: t("participantsAdmin.allStatus", "全部狀態") },
     ...examStatusOptions,
   ];
 
@@ -105,10 +104,10 @@ const ContestAdminParticipantsPage = () => {
     try {
       await addContestParticipant(contestId, username);
       await refreshAdminData();
-      setNotification({ kind: "success", message: "參賽者已新增" });
+      setNotification({ kind: "success", message: t("participants.added", "參賽者已新增") });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "新增參賽者失敗";
+        error instanceof Error ? error.message : t("participants.addFailed", "新增參賽者失敗");
       setNotification({ kind: "error", message });
       throw error;
     }
@@ -117,19 +116,19 @@ const ContestAdminParticipantsPage = () => {
   const handleUnlock = async (userId: number) => {
     if (!contestId) return;
     const confirmed = await confirm({
-      title: "確定要解除此學生的鎖定嗎？",
-      confirmLabel: "解除",
-      cancelLabel: "取消",
+      title: t("participants.confirmUnlock", "確定要解除此學生的鎖定嗎？"),
+      confirmLabel: t("participants.unlock", "解除"),
+      cancelLabel: t("common.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await unlockParticipant(contestId, userId);
       await refreshAdminData();
-      setNotification({ kind: "success", message: "已解除鎖定" });
+      setNotification({ kind: "success", message: t("participants.unlocked", "已解除鎖定") });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "解除鎖定失敗";
+        error instanceof Error ? error.message : t("participants.unlockFailed", "解除鎖定失敗");
       setNotification({ kind: "error", message });
     }
   };
@@ -151,10 +150,10 @@ const ContestAdminParticipantsPage = () => {
       });
       setEditModalOpen(false);
       await refreshAdminData();
-      setNotification({ kind: "success", message: "參賽者狀態已更新" });
+      setNotification({ kind: "success", message: t("participants.statusUpdated", "參賽者狀態已更新") });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "更新失敗";
+        error instanceof Error ? error.message : t("participants.updateFailed", "更新失敗");
       setNotification({ kind: "error", message });
     } finally {
       setSaving(false);
@@ -164,19 +163,19 @@ const ContestAdminParticipantsPage = () => {
   const handleReopenExam = async (userId: number) => {
     if (!contestId) return;
     const confirmed = await confirm({
-      title: "確定要重新開放此學生考試嗎？",
-      confirmLabel: "重新開放",
-      cancelLabel: "取消",
+      title: t("participants.confirmReopen", "確定要重新開放此學生考試嗎？"),
+      confirmLabel: t("participants.reopen", "重新開放"),
+      cancelLabel: t("common.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await reopenExam(contestId, userId);
       await refreshAdminData();
-      setNotification({ kind: "success", message: "已重新開放考試" });
+      setNotification({ kind: "success", message: t("participants.reopened", "已重新開放考試") });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "重新開放失敗";
+        error instanceof Error ? error.message : t("participants.reopenFailed", "重新開放失敗");
       setNotification({ kind: "error", message });
     }
   };
@@ -184,47 +183,52 @@ const ContestAdminParticipantsPage = () => {
   const handleRemoveParticipant = async (userId: number, username: string) => {
     if (!contestId) return;
     const confirmed = await confirm({
-      title: `確定要移除參賽者 ${username} 嗎？`,
-      confirmLabel: "移除",
-      cancelLabel: "取消",
+      title: t("participants.confirmRemove", { name: username }),
+      confirmLabel: t("participants.remove", "移除"),
+      cancelLabel: t("common.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await removeParticipant(contestId, userId);
       await refreshAdminData();
-      setNotification({ kind: "success", message: "參賽者已移除" });
+      setNotification({ kind: "success", message: t("participants.removed", "參賽者已移除") });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "移除參賽者失敗";
+        error instanceof Error ? error.message : t("participants.removeFailed", "移除參賽者失敗");
       setNotification({ kind: "error", message });
     }
   };
 
-  const handleDownloadReport = async (userId: number, username: string) => {
+  const handleDownloadReport = async (
+    userId: number,
+    username: string,
+  ) => {
     if (!contestId) return;
     try {
       setNotification({
         kind: "success",
-        message: `正在產生 ${username} 的報告...`,
+        message: t("participants.generatingReport", { name: username }),
       });
+
       await downloadParticipantReport(contestId, userId);
-      setNotification({ kind: "success", message: `${username} 的報告已下載` });
+
+      setNotification({ kind: "success", message: t("participants.reportDownloaded", { name: username }) });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "下載報告失敗";
+        error instanceof Error ? error.message : t("participants.downloadFailed", "下載報告失敗");
       setNotification({ kind: "error", message });
     }
   };
 
   // Prepare table rows
   const headers = [
-    { key: "username", header: "使用者", sortable: true },
-    { key: "score", header: "分數", sortable: true },
-    { key: "joinedAt", header: "加入時間", sortable: true },
-    { key: "status", header: "狀態" },
-    { key: "lockReason", header: "鎖定原因" },
-    { key: "actions", header: "操作" },
+    { key: "username", header: t("participants.headers.username", "使用者"), sortable: true },
+    { key: "score", header: t("participants.headers.score", "分數"), sortable: true },
+    { key: "joinedAt", header: t("participants.headers.joinedAt", "加入時間"), sortable: true },
+    { key: "status", header: t("participants.headers.status", "狀態") },
+    { key: "lockReason", header: t("participants.headers.lockReason", "鎖定原因") },
+    { key: "actions", header: t("participants.headers.actions", "操作") },
   ];
 
   // Handle sort toggle
@@ -304,7 +308,7 @@ const ContestAdminParticipantsPage = () => {
         {notification && (
           <InlineNotification
             kind={notification.kind}
-            title={notification.kind === "success" ? "成功" : "錯誤"}
+            title={notification.kind === "success" ? t("common.success", "成功") : t("common.error", "錯誤")}
             subtitle={notification.message}
             onClose={() => setNotification(null)}
             style={{ marginBottom: "1rem", maxWidth: "100%" }}
@@ -312,7 +316,7 @@ const ContestAdminParticipantsPage = () => {
         )}
 
         <ContainerCard
-          title="參賽者列表"
+          title={t("participants.title", "參賽者列表")}
           noPadding
           action={
             <div style={{ display: "flex", gap: 0 }}>
@@ -321,14 +325,14 @@ const ContestAdminParticipantsPage = () => {
                 renderIcon={Renew}
                 onClick={refreshAdminData}
                 hasIconOnly
-                iconDescription="重新整理"
+                iconDescription={t("common.refresh", "重新整理")}
                 disabled={isRefreshing}
               />
               <Button
                 renderIcon={Add}
                 onClick={() => setAddModalOpen(true)}
               >
-                新增
+                {t("participants.add", "新增")}
               </Button>
             </div>
           }
@@ -346,8 +350,8 @@ const ContestAdminParticipantsPage = () => {
           >
             <Search
               id="participant-search"
-              labelText="搜尋參賽者"
-              placeholder="搜尋姓名或使用者 ID..."
+              labelText={t("participants.searchLabel", "搜尋參賽者")}
+              placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -358,8 +362,8 @@ const ContestAdminParticipantsPage = () => {
             />
             <Dropdown
               id="status-filter"
-              titleText="篩選狀態"
-              label="選擇狀態"
+              titleText={t("participants.filterStatus", "篩選狀態")}
+              label={t("participants.selectStatus", "選擇狀態")}
               items={statusFilterOptions}
               itemToString={(item) => item?.label || ""}
               selectedItem={statusFilterOptions.find(
@@ -379,8 +383,7 @@ const ContestAdminParticipantsPage = () => {
                 marginLeft: "auto",
               }}
             >
-              顯示 {processedParticipants.length} / {participants.length}{" "}
-              位參賽者
+              {t("participants.displayCount", { shown: processedParticipants.length, total: participants.length })}
             </span>
           </div>
           <DataTable
@@ -483,28 +486,28 @@ const ContestAdminParticipantsPage = () => {
                             <div style={{ display: "flex", gap: "0.5rem" }}>
                               {p.examStatus === "locked" && (
                                 <Tag type="red" size="sm">
-                                  已鎖定
+                                  {t("examStatus.locked", "已鎖定")}
                                 </Tag>
                               )}
                               {p.examStatus === "submitted" && (
                                 <Tag type="green" size="sm">
-                                  已交卷
+                                  {t("examStatus.submitted", "已交卷")}
                                 </Tag>
                               )}
                               {p.examStatus === "in_progress" && (
                                 <Tag type="blue" size="sm">
-                                  進行中
+                                  {t("examStatus.in_progress", "進行中")}
                                 </Tag>
                               )}
                               {p.examStatus === "paused" && (
                                 <Tag type="warm-gray" size="sm">
-                                  已暫停
+                                  {t("examStatus.paused", "已暫停")}
                                 </Tag>
                               )}
                               {(p.examStatus === "not_started" ||
                                 !p.examStatus) && (
                                 <Tag type="cool-gray" size="sm">
-                                  未開始
+                                  {t("examStatus.not_started", "未開始")}
                                 </Tag>
                               )}
                             </div>
@@ -517,7 +520,7 @@ const ContestAdminParticipantsPage = () => {
                                   kind="ghost"
                                   size="sm"
                                   renderIcon={Unlocked}
-                                  iconDescription="解除鎖定"
+                                  iconDescription={t("participants.actions.unlock", "解除鎖定")}
                                   hasIconOnly
                                   onClick={() => handleUnlock(Number(p.userId))}
                                 />
@@ -527,7 +530,7 @@ const ContestAdminParticipantsPage = () => {
                                   kind="ghost"
                                   size="sm"
                                   renderIcon={Restart}
-                                  iconDescription="重新開放考試"
+                                  iconDescription={t("participants.actions.reopen", "重新開放考試")}
                                   hasIconOnly
                                   onClick={() =>
                                     handleReopenExam(Number(p.userId))
@@ -538,12 +541,12 @@ const ContestAdminParticipantsPage = () => {
                                 kind="ghost"
                                 size="sm"
                                 renderIcon={Download}
-                                iconDescription="下載報告"
+                                iconDescription={t("participants.actions.download", "下載報告")}
                                 hasIconOnly
                                 onClick={() =>
                                   handleDownloadReport(
                                     Number(p.userId),
-                                    p.username
+                                    p.username,
                                   )
                                 }
                               />
@@ -551,7 +554,7 @@ const ContestAdminParticipantsPage = () => {
                                 kind="ghost"
                                 size="sm"
                                 renderIcon={Edit}
-                                iconDescription="編輯狀態"
+                                iconDescription={t("participants.actions.edit", "編輯狀態")}
                                 hasIconOnly
                                 onClick={() => openEditModal(p)}
                               />
@@ -559,7 +562,7 @@ const ContestAdminParticipantsPage = () => {
                                 kind="danger--ghost"
                                 size="sm"
                                 renderIcon={TrashCan}
-                                iconDescription="移除參賽者"
+                                iconDescription={t("participants.actions.remove", "移除參賽者")}
                                 hasIconOnly
                                 onClick={() =>
                                   handleRemoveParticipant(
@@ -580,9 +583,9 @@ const ContestAdminParticipantsPage = () => {
           </DataTable>
           <Pagination
             totalItems={processedParticipants.length}
-            backwardText="上一頁"
-            forwardText="下一頁"
-            itemsPerPageText="每頁顯示"
+            backwardText={t("common.prevPage", "上一頁")}
+            forwardText={t("common.nextPage", "下一頁")}
+            itemsPerPageText={t("common.itemsPerPage", "每頁顯示")}
             page={page}
             pageSize={pageSize}
             pageSizes={[10, 20, 50, 100]}
@@ -603,9 +606,9 @@ const ContestAdminParticipantsPage = () => {
         {/* Edit Participant Modal */}
         <Modal
           open={editModalOpen}
-          modalHeading={`編輯參賽者: ${editingParticipant?.username}`}
-          primaryButtonText={saving ? "儲存中..." : "儲存變更"}
-          secondaryButtonText="取消"
+          modalHeading={t("participants.editModal.heading", { name: editingParticipant?.username })}
+          primaryButtonText={saving ? t("common.saving", "儲存中...") : t("participants.editModal.save", "儲存變更")}
+          secondaryButtonText={t("common.cancel", "取消")}
           onRequestSubmit={handleUpdateParticipant}
           onRequestClose={() => setEditModalOpen(false)}
           primaryButtonDisabled={saving}
@@ -615,8 +618,8 @@ const ContestAdminParticipantsPage = () => {
           >
             <Dropdown
               id="exam-status"
-              titleText="考試狀態"
-              label="選擇狀態"
+              titleText={t("participants.editModal.examStatus", "考試狀態")}
+              label={t("participants.editModal.selectStatus", "選擇狀態")}
               items={examStatusOptions}
               itemToString={(item) => item?.label || ""}
               selectedItem={examStatusOptions.find(
@@ -633,7 +636,7 @@ const ContestAdminParticipantsPage = () => {
             {editExamStatus === "locked" && (
               <TextArea
                 id="lock-reason"
-                labelText="鎖定原因"
+                labelText={t("participants.editModal.lockReason", "鎖定原因")}
                 value={editLockReason}
                 onChange={(e) => setEditLockReason(e.target.value)}
               />
@@ -646,4 +649,4 @@ const ContestAdminParticipantsPage = () => {
   );
 };
 
-export default ContestAdminParticipantsPage;
+export default ContestParticipantsScreen;

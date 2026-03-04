@@ -28,7 +28,7 @@
 
 .title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
   font-weight: 600;
   color: var(--cds-text-primary);
 }

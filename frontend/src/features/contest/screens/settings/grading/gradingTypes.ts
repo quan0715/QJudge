@@ -1,23 +1,16 @@
 /** Shared types for the exam grading system. */
 
-export type QuestionType =
-  | "true_false"
-  | "single_choice"
-  | "multiple_choice"
-  | "short_answer"
-  | "essay";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import i18n from "i18next";
+
+/** @deprecated Use ExamQuestionType from core entity directly. */
+export type QuestionType = ExamQuestionType;
 
 /** Whether a question type requires manual grading. */
-export const isSubjectiveType = (t: QuestionType): boolean =>
+export const isSubjectiveType = (t: ExamQuestionType): boolean =>
   t === "short_answer" || t === "essay";
 
-export const questionTypeLabel: Record<QuestionType, string> = {
-  true_false: "是非題",
-  single_choice: "單選題",
-  multiple_choice: "多選題",
-  short_answer: "簡答題",
-  essay: "申論題",
-};
+export { QUESTION_TYPE_LABELS as questionTypeLabel } from "@/features/contest/constants/examLabels";
 
 /** A single student answer row used across all tabs. */
 export interface GradingAnswerRow {
@@ -75,7 +68,7 @@ export interface GlobalStats {
 export type GradingFilter = "all" | "ungraded" | "graded";
 
 export const gradingFilterOptions: { id: GradingFilter; label: string }[] = [
-  { id: "all", label: "全部" },
-  { id: "ungraded", label: "未批改" },
-  { id: "graded", label: "已批改" },
+  { id: "all", get label() { return i18n.t("contest:grading.filterAll", "全部"); } },
+  { id: "ungraded", get label() { return i18n.t("contest:grading.filterUngraded", "未批改"); } },
+  { id: "graded", get label() { return i18n.t("contest:grading.filterGraded", "已批改"); } },
 ];

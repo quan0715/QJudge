@@ -1,0 +1,464 @@
+/**
+ * Paper Exam Report Styles — Paper-like report
+ *
+ * Design principle: continuous reading, minimal borders,
+ * hierarchy via font-size and whitespace only.
+ *
+ * Color palette (restrained):
+ *   Black  #161616  — primary text
+ *   Gray   #525252  — metadata / secondary
+ *   Green  #24a148  — correct
+ *   Red    #da1e28  — wrong
+ *   Amber  #eb6200  — partial correct
+ *   Light  #f4f4f4  — subtle backgrounds (code blocks only)
+ *   Border #e0e0e0  — thin separators
+ */
+
+/* ============================================================================
+   Score headline — inline, no cards
+   ============================================================================ */
+
+.score-headline {
+  margin-bottom: 32px;
+}
+
+.score-headline-primary {
+  font-size: 28px;
+  font-weight: 600;
+  color: #161616;
+  line-height: 1.2;
+}
+
+.score-headline-max {
+  font-size: 16px;
+  font-weight: 400;
+  color: #8d8d8d;
+}
+
+.score-headline-secondary {
+  font-size: 14px;
+  color: #525252;
+  margin-top: 4px;
+}
+
+.score-rate {
+  font-weight: 600;
+  color: #161616;
+}
+
+/* ============================================================================
+   Report Header — clean, no separator
+   ============================================================================ */
+
+.report-header {
+  margin-bottom: 24px;
+}
+
+.report-meta {
+  font-size: 13px;
+  color: #525252;
+  margin-top: 4px;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   Section Title — font-size hierarchy, no border
+   ============================================================================ */
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #161616;
+  margin: 32px 0 12px 0;
+  padding: 0;
+  border: none;
+}
+
+/* ============================================================================
+   Per-question Overview Table — light list style
+   ============================================================================ */
+
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.overview-th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8d8d8d;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  padding: 4px 8px 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.overview-th-score {
+  text-align: right;
+}
+
+.overview-cell {
+  padding: 5px 8px;
+  vertical-align: middle;
+  border: none;
+}
+
+.overview-cell-q {
+  font-weight: 600;
+  color: #161616;
+  width: 36px;
+  white-space: nowrap;
+}
+
+.overview-cell-type {
+  color: #6f6f6f;
+  font-size: 12px;
+}
+
+.overview-cell-status {
+  white-space: nowrap;
+}
+
+.overview-cell-score {
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+  width: 1%;
+}
+
+/* Zebra stripe — very subtle */
+.overview-row:nth-child(even) .overview-cell {
+  background-color: #fafafa;
+}
+
+/* ============================================================================
+   Status — inline colored text, no pill/tag
+   ============================================================================ */
+
+.status-text {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-correct  { color: #24a148; }
+.status-partial  { color: #eb6200; }
+.status-wrong    { color: #da1e28; }
+.status-unanswered { color: #8d8d8d; }
+.status-ungraded { color: #8d8d8d; }
+
+/* ============================================================================
+   Question — continuous flow, no card
+   ============================================================================ */
+
+.question-block {
+  margin-bottom: 28px;
+  page-break-inside: avoid;
+}
+
+.question-heading {
+  display: table;
+  width: 100%;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.question-heading > * {
+  display: table-cell;
+  vertical-align: baseline;
+}
+
+.question-heading-left {
+  font-size: 14px;
+  color: #161616;
+}
+
+.question-number {
+  font-weight: 700;
+}
+
+.question-type {
+  color: #6f6f6f;
+  margin-left: 4px;
+}
+
+.question-max-score {
+  color: #8d8d8d;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.question-heading-right {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.question-earned {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   Question Prompt — with Markdown/code rendering
+   ============================================================================ */
+
+.question-prompt {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.question-prompt p:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline code */
+.question-prompt code,
+.answer-block-content code {
+  font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+  font-size: 12px;
+  background-color: #f4f4f4;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: #161616;
+}
+
+/* Code blocks */
+.question-prompt pre,
+.answer-block-content pre {
+  background-color: #f4f4f4;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 6px 0 10px 0;
+  overflow-x: auto;
+}
+
+.question-prompt pre code,
+.answer-block-content pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Lists */
+.question-prompt ul,
+.question-prompt ol,
+.answer-block-content ul,
+.answer-block-content ol {
+  margin: 4px 0 10px 0;
+  padding-left: 24px;
+}
+
+.question-prompt li,
+.answer-block-content li {
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+
+/* ============================================================================
+   Choice Options — minimal rows
+   ============================================================================ */
+
+.question-options {
+  margin: 0 0 10px 0;
+}
+
+.option-row {
+  display: table;
+  width: 100%;
+  padding: 5px 8px;
+  margin-bottom: 1px;
+  border-radius: 3px;
+  background-color: transparent;
+  border: none;
+}
+
+.option-row > * {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.option-letter {
+  font-weight: 600;
+  font-size: 13px;
+  color: #525252;
+  width: 24px;
+  padding-right: 6px;
+  white-space: nowrap;
+}
+
+.option-text {
+  color: #161616;
+  font-size: 13px;
+}
+
+.option-markers {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+  padding-left: 8px;
+}
+
+/* Option state — subtle highlight only */
+.option-correct-selected {
+  background-color: #defbe6;
+}
+
+.option-wrong-selected {
+  background-color: #fff1f1;
+}
+
+.option-correct {
+  background-color: #f7fdf9;
+}
+
+/* Inline marker — plain small text, no pill */
+.option-marker-text {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  margin-left: 6px;
+}
+
+.marker-selected { color: #525252; }
+.marker-correct  { color: #24a148; }
+
+/* ============================================================================
+   Choice Answer Summary
+   ============================================================================ */
+
+.choice-answer-summary {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #525252;
+}
+
+.choice-answer-summary strong {
+  color: #161616;
+}
+
+.choice-summary-correct {
+  color: #24a148;
+  font-weight: 600;
+}
+
+.choice-summary-wrong {
+  color: #da1e28;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   Subjective Answer Comparison
+   ============================================================================ */
+
+.answer-compare {
+  margin: 0;
+}
+
+.answer-block {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 3px;
+}
+
+.answer-block-student {
+  background-color: #f4f4f4;
+}
+
+.answer-block-reference {
+  background-color: #f7fdf9;
+  border-left: 3px solid #24a148;
+}
+
+.answer-block-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8d8d8d;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  margin-bottom: 6px;
+}
+
+.answer-block-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #161616;
+}
+
+.answer-block-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   No answer / unanswered
+   ============================================================================ */
+
+.no-answer-text {
+  font-size: 12px;
+  color: #8d8d8d;
+  font-style: italic;
+  padding: 4px 0;
+  display: block;
+}
+
+/* ============================================================================
+   TA Feedback — subtle left accent
+   ============================================================================ */
+
+.feedback-block {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-left: 2px solid #e0e0e0;
+}
+
+.feedback-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8d8d8d;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  margin-bottom: 4px;
+}
+
+.feedback-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #161616;
+}
+
+.feedback-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   Pygments code highlight
+   ============================================================================ */
+
+.highlight {
+  background-color: #f4f4f4;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 6px 0 10px 0;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.highlight pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

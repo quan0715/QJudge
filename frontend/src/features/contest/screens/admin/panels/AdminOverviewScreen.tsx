@@ -5,7 +5,7 @@ import { useContest, useContestAdmin } from "@/features/contest/contexts";
 import { computeMockKpi } from "../mockData";
 import styles from "./AdminOverviewPanel.module.scss";
 
-export default function AdminOverviewPanel() {
+export default function AdminOverviewScreen() {
   const { contest } = useContest();
   const { participants, refreshAdminData, isRefreshing } = useContestAdmin();
   

@@ -180,7 +180,7 @@ const STATUS_LABELS: Record<ContestStatus, string> = {
 
 // ── Main Panel ──────────────────────────────────────────────────
 
-const AdminContestSettingsPanel: React.FC = () => {
+const AdminContestSettingsScreen: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("contest");
@@ -917,4 +917,4 @@ const AdminContestSettingsPanel: React.FC = () => {
   );
 };
 
-export default AdminContestSettingsPanel;
+export default AdminContestSettingsScreen;

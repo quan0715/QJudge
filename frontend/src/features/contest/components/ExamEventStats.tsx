@@ -13,7 +13,7 @@ import {
 import type { ExamEventStats, ExamEvent } from "@/core/entities/contest.entity";
 import { useContestAdmin } from "@/features/contest/contexts";
 
-const ExamEventStatsComponent: React.FC = () => {
+const ExamEventStats: React.FC = () => {
   // Use examEvents from context - no local fetch needed, no timer
   const { examEvents, isRefreshing } = useContestAdmin();
 
@@ -146,4 +146,4 @@ const ExamEventStatsComponent: React.FC = () => {
   );
 };
 
-export default ExamEventStatsComponent;
+export default ExamEventStats;

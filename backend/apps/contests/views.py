@@ -59,6 +59,7 @@ from .permissions import (
 from .services.export_service import (
     ExportValidationError,
     build_contest_download_response,
+    build_paper_exam_sheet_response,
     build_student_report_response,
     parse_scale,
 )
@@ -1084,7 +1085,14 @@ class ContestViewSet(viewsets.ModelViewSet):
                 {'error': 'You can only download your report after submitting the exam'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
+        # Check contest-level export policy
+        if not contest.can_download_my_report:
+            return Response(
+                {'error': 'Results have not been published yet'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         language = request.query_params.get('language', 'zh-TW')
         scale = parse_scale(request.query_params.get('scale', '1.0'))
         
@@ -1918,6 +1926,35 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             many=True
         )
         return Response(serialized.data)
+
+    @action(detail=False, methods=["get"], url_path="export-paper")
+    def export_paper(self, request, contest_pk=None):
+        """
+        Export formal paper-exam PDF from backend.
+        mode=question | answer
+        """
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+
+        mode = request.query_params.get("mode", "question")
+        language = request.query_params.get("language", "zh-TW")
+        scale = parse_scale(request.query_params.get("scale", "1.0"))
+
+        try:
+            return build_paper_exam_sheet_response(
+                contest=contest,
+                mode=mode,
+                language=language,
+                scale=scale,
+            )
+        except ExportValidationError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.exception("Failed to generate paper exam sheet: %s", exc)
+            return Response(
+                {"error": "Failed to generate paper exam sheet"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):

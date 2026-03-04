@@ -1,20 +1,20 @@
 import type { AdminPanelId, ContestTypeModule, AdminPanelRenderer } from "./types";
-import AdminOverviewPanel from "../screens/admin/panels/AdminOverviewScreen";
+import AdminOverviewScreen from "../screens/admin/panels/AdminOverviewScreen";
 import AdminClarificationsScreen from "../screens/admin/panels/AdminClarificationsScreen";
 import ContestLogsScreen from "../screens/settings/ContestLogsScreen";
 import ContestParticipantsScreen from "../screens/settings/ContestParticipantsScreen";
 import ContestExamGradingScreen from "../screens/settings/ContestExamGradingScreen";
-import AdminContestSettingsPanel from "../screens/admin/panels/AdminContestSettingsScreen";
+import AdminContestSettingsScreen from "../screens/admin/panels/AdminContestSettingsScreen";
 
 const DefaultEmptyPanel: AdminPanelRenderer = () => null;
 
 const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
-  overview: AdminOverviewPanel,
+  overview: AdminOverviewScreen,
   clarifications: AdminClarificationsScreen,
   logs: ContestLogsScreen,
   participants: ContestParticipantsScreen,
   grading: ContestExamGradingScreen,
-  settings: AdminContestSettingsPanel,
+  settings: AdminContestSettingsScreen,
   problem_editor: DefaultEmptyPanel,
   statistics: DefaultEmptyPanel,
 };

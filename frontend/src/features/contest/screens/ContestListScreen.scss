@@ -62,7 +62,7 @@
 }
 
 .contest-card-empty__icon {
-  font-size: 12px;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
 

@@ -2,17 +2,10 @@ import React, { useRef, useEffect } from "react";
 import { Button, IconButton, Tag } from "@carbon/react";
 import { Add, Draggable, TrashCan } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
-import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import { useTranslation } from "react-i18next";
+import type { ExamQuestion } from "@/core/entities/contest.entity";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
-
-const TYPE_LABEL: Record<ExamQuestionType, string> = {
-  true_false: "是非",
-  single_choice: "單選",
-  multiple_choice: "多選",
-  short_answer: "簡答",
-  essay: "問答",
-};
 
 const TYPE_TAG_COLOR: Record<string, string> = {
   true_false: "purple",
@@ -42,6 +35,7 @@ const TreeItem: React.FC<{
   onSelect: () => void;
   onDelete: () => void;
 }> = ({ question, index, isActive, frozen, onSelect, onDelete }) => {
+  const { t } = useTranslation("contest");
   const dragControls = useDragControls();
 
   return (
@@ -79,7 +73,7 @@ const TreeItem: React.FC<{
               type={(TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
               size="sm"
             >
-              {TYPE_LABEL[question.questionType] ?? question.questionType}
+              {t(`questionTypes.${question.questionType}`, question.questionType)}
             </Tag>
             <span className={styles.itemScore}>{question.score}pt</span>
           </div>
@@ -90,7 +84,7 @@ const TreeItem: React.FC<{
           <IconButton
             kind="ghost"
             size="sm"
-            label="刪除"
+            label={t("common.delete", "刪除")}
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               onDelete();
@@ -114,6 +108,7 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   onDelete,
   onReorder,
 }) => {
+  const { t } = useTranslation("contest");
   const totalScore = questions.reduce((s, q) => s + q.score, 0);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -130,14 +125,14 @@ const WorkTree: React.FC<WorkTreeProps> = ({
 
   return (
     <WorkTreeShell
-      title="題目列表"
+      title={t("examEditor.questionList", "題目列表")}
       actions={(
         !frozen && (
           <Button
             kind="ghost"
             renderIcon={Add}
             hasIconOnly
-            iconDescription="新增題目"
+            iconDescription={t("examEditor.addQuestion", "新增題目")}
             onClick={onAdd}
           />
         )
@@ -146,18 +141,18 @@ const WorkTree: React.FC<WorkTreeProps> = ({
       loading={loading}
       emptyState={(
         <>
-          <p>尚無題目</p>
+          <p>{t("examEditor.noQuestions", "尚無題目")}</p>
           {!frozen && (
             <Button kind="tertiary" size="sm" renderIcon={Add} onClick={onAdd}>
-              新增第一道題
+              {t("examEditor.addFirstQuestion", "新增第一道題")}
             </Button>
           )}
         </>
       )}
       footer={(
         <>
-          <span>{questions.length} 題</span>
-          <span>總分 {totalScore}</span>
+          <span>{t("examEditor.questionCount", { count: questions.length })}</span>
+          <span>{t("examEditor.totalScore", { score: totalScore })}</span>
         </>
       )}
     >

@@ -8,3 +8,4 @@ export {
   type UseScrollSpyOptions,
   type UseScrollSpyReturn,
 } from "./useScrollSpy";
+export { useAuth } from "./useAuth";

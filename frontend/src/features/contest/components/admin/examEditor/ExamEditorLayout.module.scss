@@ -99,13 +99,13 @@
 }
 
 .typePickerLabel {
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   font-weight: 600;
   color: var(--cds-text-primary);
 }
 
 .typePickerDesc {
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
 }
 

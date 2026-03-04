@@ -5,11 +5,11 @@ import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
-interface ContestQAPageProps {
+interface ContestQAScreenProps {
   maxWidth?: string;
 }
 
-const ContestQAPage: React.FC<ContestQAPageProps> = ({ maxWidth }) => {
+const ContestQAScreen: React.FC<ContestQAScreenProps> = ({ maxWidth }) => {
   const { t } = useTranslation("contest");
   const { contest, loading } = useContest();
 
@@ -47,4 +47,4 @@ const ContestQAPage: React.FC<ContestQAPageProps> = ({ maxWidth }) => {
   );
 };
 
-export default ContestQAPage;
+export default ContestQAScreen;

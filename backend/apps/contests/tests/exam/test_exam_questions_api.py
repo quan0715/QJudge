@@ -14,11 +14,13 @@ Covers:
 from datetime import timedelta
 
 import pytest
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests import views as contest_views
 
 
 @pytest.fixture
@@ -567,3 +569,72 @@ class TestIsolation:
         res = api_client.delete(url(contest.id, q.id))
         assert res.status_code == status.HTTP_404_NOT_FOUND
         assert ExamQuestion.objects.filter(id=q.id).exists()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Export Paper
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestExportPaper:
+    def test_owner_can_export_question_paper(self, api_client, teacher, contest, monkeypatch):
+        api_client.force_authenticate(user=teacher)
+
+        def _fake_builder(**kwargs):
+            assert kwargs["contest"].id == contest.id
+            assert kwargs["mode"] == "question"
+            return HttpResponse(b"%PDF-1.4", content_type="application/pdf")
+
+        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _fake_builder)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=question")
+        assert res.status_code == status.HTTP_200_OK
+        assert "application/pdf" in res["Content-Type"]
+
+    def test_owner_can_export_answer_sheet(self, api_client, teacher, contest, monkeypatch):
+        api_client.force_authenticate(user=teacher)
+
+        def _fake_builder(**kwargs):
+            assert kwargs["mode"] == "answer"
+            assert kwargs["language"] == "en"
+            return HttpResponse(b"%PDF-1.4", content_type="application/pdf")
+
+        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _fake_builder)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=answer&language=en")
+        assert res.status_code == status.HTTP_200_OK
+
+    def test_student_cannot_export_paper(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=question")
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_other_teacher_cannot_export_paper(self, api_client, another_teacher, contest):
+        api_client.force_authenticate(user=another_teacher)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=question")
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_export_paper_returns_400_on_validation_error(self, api_client, teacher, contest, monkeypatch):
+        api_client.force_authenticate(user=teacher)
+
+        def _raise_validation(**kwargs):
+            raise contest_views.ExportValidationError("invalid mode")
+
+        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _raise_validation)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=unknown")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert res.data["error"] == "invalid mode"

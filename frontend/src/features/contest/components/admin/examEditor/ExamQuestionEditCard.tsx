@@ -35,15 +35,9 @@ import styles from "./ExamQuestionEditCard.module.scss";
 
 // --- Constants ---
 
-const TRUE_FALSE_OPTIONS = ["True", "False"];
+import { useTranslation } from "react-i18next";
 
-const TYPE_LABEL: Record<ExamQuestionType, string> = {
-  true_false: "是非題",
-  single_choice: "單選題",
-  multiple_choice: "多選題",
-  short_answer: "簡答題",
-  essay: "問答題",
-};
+const TRUE_FALSE_OPTIONS = ["True", "False"];
 
 const TYPE_TAG_COLOR: Record<ExamQuestionType, string> = {
   true_false: "teal",
@@ -262,6 +256,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   onPointerDownDrag,
 }) => {
   const { showToast } = useToast();
+  const { t } = useTranslation("contest");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<QuestionFormState>(() => toFormState(question));
   const [saving, setSaving] = useState(false);
@@ -311,22 +306,22 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
   const validateForm = useCallback((): boolean => {
     if (!form.prompt.trim()) {
-      showToast({ kind: "error", title: "驗證失敗", subtitle: "題目內容不可為空" });
+      showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.emptyPrompt", "題目內容不可為空") });
       return false;
     }
     const score = Number(form.score || 0);
     if (!Number.isFinite(score) || score <= 0) {
-      showToast({ kind: "error", title: "驗證失敗", subtitle: "配分必須大於 0" });
+      showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.invalidScore", "配分必須大於 0") });
       return false;
     }
     if (!isChoiceType(form.questionType)) return true;
     if (form.questionType !== "true_false") {
       if (form.options.length < 2) {
-        showToast({ kind: "error", title: "驗證失敗", subtitle: "至少需要 2 個選項" });
+        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.minOptions", "至少需要 2 個選項") });
         return false;
       }
       if (form.options.some((o) => !o.trim())) {
-        showToast({ kind: "error", title: "驗證失敗", subtitle: "選項文字不可空白" });
+        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.blankOption", "選項文字不可空白") });
         return false;
       }
     }
@@ -389,7 +384,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   if (!editing) {
     const correctSingle = getCorrectSingleIndex(question);
     const correctMulti = getCorrectMultiIndexes(question);
-    const tfOptions = ["是 (True)", "否 (False)"];
+    const tfOptions = [t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")];
 
     return (
       <Layer>
@@ -408,25 +403,25 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           <div className={styles.previewBody}>
             <div className={styles.header}>
               <span className={styles.label}>
-                第 {index + 1} 題
+                {t("examEditor.questionNumber", { num: index + 1 })}{" "}
                 <Tag size="sm" type={TYPE_TAG_COLOR[question.questionType] as never}>
                   <span className={styles.typeTagContent}>
                     {React.createElement(TYPE_ICON[question.questionType], { size: 12 })}
-                    {TYPE_LABEL[question.questionType]}
+                    {t(`questionTypes.${question.questionType}`, question.questionType)}
                   </span>
                 </Tag>
               </span>
               <div className={styles.headerRight}>
-                <span className={styles.score}>{question.score} 分</span>
+                <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
                 {!frozen && (
                   <>
-                    <IconButton kind="ghost" size="sm" label="複製" onClick={() => onDuplicate(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={() => onDuplicate(question.id)}>
                       <Copy size={16} />
                     </IconButton>
-                    <IconButton kind="ghost" size="sm" label="編輯" onClick={() => setEditing(true)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.edit", "編輯")} onClick={() => setEditing(true)}>
                       <Edit size={16} />
                     </IconButton>
-                    <IconButton kind="ghost" size="sm" label="刪除" onClick={() => onDelete(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={() => onDelete(question.id)}>
                       <TrashCan size={16} />
                     </IconButton>
                   </>
@@ -439,11 +434,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 <MarkdownRenderer enableHighlight enableCopy>{question.prompt}</MarkdownRenderer>
               </div>
             ) : (
-              <div className={styles.promptEmpty}>（尚未填寫題目敘述）</div>
+              <div className={styles.promptEmpty}>{t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}</div>
             )}
 
             <div className={styles.answerArea}>
-              <div className={styles.answerLabel}>正確答案</div>
+              <div className={styles.answerLabel}>{t("examEditor.correctAnswer", "正確答案")}</div>
 
               {/* Non-interactive answer display */}
               <div className={styles.previewAnswers}>
@@ -507,7 +502,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <div className={styles.answerText}>
                     {question.correctAnswer != null
                       ? String(question.correctAnswer)
-                      : <span className={styles.answerEmpty}>（未設定答案）</span>}
+                      : <span className={styles.answerEmpty}>{t("examEditor.answerNotSet", "（未設定答案）")}</span>}
                   </div>
                 )}
 
@@ -516,7 +511,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <div className={styles.answerText}>
                     {question.correctAnswer
                       ? String(question.correctAnswer)
-                      : <span className={styles.answerEmpty}>（未設定參考答案）</span>}
+                      : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
                   </div>
                 )}
               </div>
@@ -548,11 +543,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 disabled={frozen}
                 inline
               >
-                <SelectItem value="single_choice" text="單選題" />
-                <SelectItem value="multiple_choice" text="多選題" />
-                <SelectItem value="true_false" text="是非題" />
-                <SelectItem value="short_answer" text="簡答題" />
-                <SelectItem value="essay" text="問答題" />
+                <SelectItem value="single_choice" text={t("questionTypes.single_choice", "單選題")} />
+                <SelectItem value="multiple_choice" text={t("questionTypes.multiple_choice", "多選題")} />
+                <SelectItem value="true_false" text={t("questionTypes.true_false", "是非題")} />
+                <SelectItem value="short_answer" text={t("questionTypes.short_answer", "簡答題")} />
+                <SelectItem value="essay" text={t("questionTypes.essay", "問答題")} />
               </Select>
             </div>
             <div className={styles.scoreInline}>
@@ -567,11 +562,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 onChange={(e) => setForm((p) => ({ ...p, score: e.target.value }))}
                 disabled={frozen}
               />
-              <span>分</span>
+              <span>{t("examEditor.scoreLabel", "分")}</span>
             </div>
           </div>
           <div className={styles.editToolbarRight}>
-            <IconButton kind="ghost" size="sm" label="取消" onClick={handleCancel}>
+            <IconButton kind="ghost" size="sm" label={t("common.cancel", "取消")} onClick={handleCancel}>
               <Close size={16} />
             </IconButton>
             <Button
@@ -581,7 +576,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               onClick={handleSave}
               disabled={!dirty || saving || frozen}
             >
-              {saving ? "儲存中..." : "儲存"}
+              {saving ? t("common.saving", "儲存中...") : t("common.save", "儲存")}
             </Button>
           </div>
         </div>
@@ -591,10 +586,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           <div className={styles.promptSection}>
             <MarkdownField
               id={`eqc-prompt-${question.id}`}
-              labelText="題目敘述"
+              labelText={t("examEditor.promptLabel", "題目敘述")}
               value={form.prompt}
               onChange={(val) => setForm((p) => ({ ...p, prompt: val }))}
-              placeholder="輸入題目敘述（支援 Markdown / LaTeX）"
+              placeholder={t("examEditor.promptPlaceholder", "輸入題目敘述（支援 Markdown / LaTeX）")}
               minHeight="200px"
               showPreview={false}
               disabled={!!frozen}
@@ -603,12 +598,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
           {/* Answer area with inline correct-answer selection */}
           <div className={styles.answerArea}>
-            <div className={styles.answerLabel}>選項與正確答案</div>
+            <div className={styles.answerLabel}>{t("examEditor.optionsAndAnswer", "選項與正確答案")}</div>
 
             {/* True/False: radio to pick correct answer */}
             {form.questionType === "true_false" && (
               <div className={styles.editOptionList}>
-                {["是 (True)", "否 (False)"].map((label, i) => (
+                {[t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")].map((label, i) => (
                   <div key={i} className={styles.editOptionRow}>
                     <RadioButton
                       name={`edit-tf-${question.id}`}
@@ -647,7 +642,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         labelText=""
                         hideLabel
                         size="sm"
-                        placeholder={`選項 ${String.fromCharCode(65 + i)}`}
+                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
                         disabled={frozen}
@@ -658,7 +653,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         <IconButton
                           kind="ghost"
                           size="sm"
-                          label="刪除選項"
+                          label={t("examEditor.deleteOption", "刪除選項")}
                           onClick={() => removeOption(i)}
                           disabled={form.options.length <= 2}
                         >
@@ -671,7 +666,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {!frozen && (
                   <div className={styles.addOptionRow}>
                     <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
-                      新增選項
+                      {t("examEditor.addOption", "新增選項")}
                     </Button>
                   </div>
                 )}
@@ -704,7 +699,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         labelText=""
                         hideLabel
                         size="sm"
-                        placeholder={`選項 ${String.fromCharCode(65 + i)}`}
+                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
                         disabled={frozen}
@@ -715,7 +710,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         <IconButton
                           kind="ghost"
                           size="sm"
-                          label="刪除選項"
+                          label={t("examEditor.deleteOption", "刪除選項")}
                           onClick={() => removeOption(i)}
                           disabled={form.options.length <= 2}
                         >
@@ -728,7 +723,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {!frozen && (
                   <div className={styles.addOptionRow}>
                     <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
-                      新增選項
+                      {t("examEditor.addOption", "新增選項")}
                     </Button>
                   </div>
                 )}
@@ -740,9 +735,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.shortInput}>
                 <TextInput
                   id={`eqc-short-answer-${question.id}`}
-                  labelText="標準答案"
+                  labelText={t("examEditor.standardAnswer", "標準答案")}
                   size="sm"
-                  placeholder="輸入簡答標準答案（如數字、關鍵字）"
+                  placeholder={t("examEditor.shortAnswerPlaceholder", "輸入簡答標準答案（如數字、關鍵字）")}
                   value={form.shortAnswer}
                   onChange={(e) => setForm((p) => ({ ...p, shortAnswer: e.target.value }))}
                   disabled={frozen}
@@ -755,11 +750,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.essayArea}>
                 <TextArea
                   id={`eqc-essay-answer-${question.id}`}
-                  labelText="參考答案"
+                  labelText={t("examEditor.referenceAnswer", "參考答案")}
                   rows={4}
                   value={form.essayReferenceAnswer}
                   onChange={(e) => setForm((p) => ({ ...p, essayReferenceAnswer: e.target.value }))}
-                  placeholder="參考答案（可選，支援 Markdown）"
+                  placeholder={t("examEditor.referencePlaceholder", "參考答案（可選，支援 Markdown）")}
                   disabled={frozen}
                 />
               </div>

@@ -37,13 +37,6 @@ const canOpenPaperAnsweringFromDashboard = (contest: ContestDetail | null | unde
   );
 };
 
-const QUESTION_TYPE_LABEL: Record<string, string> = {
-  true_false: "是非題",
-  single_choice: "單選題",
-  multiple_choice: "多選題",
-  short_answer: "簡答題",
-  essay: "問答題",
-};
 
 interface PaperExamResultsListProps {
   contest: ContestDetail;
@@ -127,10 +120,10 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
           id: String(question.id),
           index: index + 1,
           prompt: question.prompt,
-          type:
-            QUESTION_TYPE_LABEL[
-              (result?.questionType || question.questionType).toString()
-            ] ?? (result?.questionType || question.questionType || "-"),
+          type: t(
+            `questionTypes.${(result?.questionType || question.questionType)?.toString()}`,
+            (result?.questionType || question.questionType || "-").toString()
+          ),
           maxScore: question.score ?? 0,
           score:
             resultsPublished && result

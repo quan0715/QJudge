@@ -65,16 +65,6 @@ export const ContestDownloadModal = ({
   ];
 
   const handleDownload = async () => {
-    console.log(
-      "Download requested with format:",
-      format,
-      "language:",
-      language,
-      "scale:",
-      scale,
-      "layout:",
-      layout
-    );
     setLoading(true);
     try {
       const blob = await downloadContestFile(

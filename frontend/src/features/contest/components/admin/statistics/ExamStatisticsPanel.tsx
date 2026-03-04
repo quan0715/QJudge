@@ -1,11 +1,14 @@
 import { useRef, useCallback } from "react";
 import { Loading } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import WorkTreeShell from "@/features/contest/components/admin/examEditor/WorkTreeShell";
 import QuestionStatisticsDetail from "./QuestionStatisticsDetail";
 import { useExamStatistics } from "./useExamStatistics";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import styles from "./ExamStatisticsPanel.module.scss";
 
 export default function ExamStatisticsPanel() {
+  const { t } = useTranslation("contest");
   const { questionStats, loading } = useExamStatistics();
   const safeStats = questionStats ?? [];
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -17,28 +20,24 @@ export default function ExamStatisticsPanel() {
 
   if (loading) {
     return (
-      <div className={styles.placeholder}>
+      <EmptyState title="">
         <Loading withOverlay={false} />
-      </div>
+      </EmptyState>
     );
   }
 
   if (safeStats.length === 0) {
-    return (
-      <div className={styles.placeholder}>
-        <p>尚無題目資料</p>
-      </div>
-    );
+    return <EmptyState title={t("statistics.noData", "尚無題目資料")} />;
   }
 
   return (
     <div className={styles.statisticsLayout}>
       <div className={styles.workTreePane}>
         <WorkTreeShell
-          title="題目統計"
+          title={t("statistics.title", "題目統計")}
           hasItems={safeStats.length > 0}
-          emptyState="尚無題目資料"
-          footer={<span>{safeStats.length} 題</span>}
+          emptyState={t("statistics.noData", "尚無題目資料")}
+          footer={<span>{t("statistics.questionCount", { count: safeStats.length })}</span>}
         >
           <div className={styles.questionList}>
             {safeStats.map((q) => (

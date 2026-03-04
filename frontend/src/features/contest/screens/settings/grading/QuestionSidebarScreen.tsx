@@ -1,21 +1,22 @@
+import { useTranslation } from "react-i18next";
 import type { QuestionProgress } from "./gradingTypes";
-import { questionTypeLabel } from "./gradingTypes";
-import styles from "./ContestExamGrading.module.scss";
+import styles from "./GradingByQuestion.module.scss";
 
-interface QuestionSidebarProps {
+interface QuestionSidebarScreenProps {
   questions: QuestionProgress[];
   selectedQuestionId: string | null;
   onSelect: (questionId: string) => void;
 }
 
-export default function QuestionSidebar({
+export default function QuestionSidebarScreen({
   questions,
   selectedQuestionId,
   onSelect,
-}: QuestionSidebarProps) {
+}: QuestionSidebarScreenProps) {
+  const { t } = useTranslation("contest");
   return (
     <div className={styles.sidebar}>
-      <div className={styles.sidebarHeader}>題目列表</div>
+      <div className={styles.sidebarHeader}>{t("grading.questionList")}</div>
       {questions.map((q) => {
         const isActive = q.questionId === selectedQuestionId;
         return (
@@ -33,7 +34,7 @@ export default function QuestionSidebar({
                   marginTop: "2px",
                 }}
               >
-                {questionTypeLabel[q.questionType]}
+                {t(`questionTypes.${q.questionType}`, q.questionType)}
               </div>
             </div>
             <span

@@ -1,7 +1,6 @@
-@use "@carbon/react/scss/spacing" as *;
-@use "@carbon/react/scss/type" as *;
-@use "@carbon/react/scss/theme" as *;
-@use "@carbon/react/scss/motion" as *;
+@use "@carbon/layout";
+@use "@carbon/type";
+@use "@carbon/motion";
 
 // ─── Animated gradient background ───
 .page {
@@ -10,7 +9,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: $spacing-05;
+  padding: layout.$spacing-05;
   position: relative;
   overflow: hidden;
   background:
@@ -52,7 +51,7 @@
 
 // ─── Step content with fade-slide transition ───
 .stepContent {
-  animation: stepFadeIn 400ms motion(entrance, productive) both;
+  animation: stepFadeIn 400ms motion.motion(entrance, productive) both;
 }
 
 @keyframes stepFadeIn {
@@ -70,19 +69,19 @@
 .checkList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-04;
+  gap: layout.$spacing-04;
 }
 
 .checkItem {
   display: flex;
   align-items: center;
-  gap: $spacing-04;
-  padding: $spacing-04 $spacing-05;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
   background: var(--cds-layer-01);
   border-radius: 4px;
-  transition: background-color 200ms motion(standard, productive),
-              transform 200ms motion(standard, productive),
-              opacity 200ms motion(standard, productive);
+  transition: background-color 200ms motion.motion(standard, productive),
+              transform 200ms motion.motion(standard, productive),
+              opacity 200ms motion.motion(standard, productive);
 }
 
 .checkItem[data-status="running"] {
@@ -90,11 +89,11 @@
 }
 
 .checkItem[data-status="pass"] {
-  animation: checkPassPulse 500ms motion(entrance, productive) both;
+  animation: checkPassPulse 500ms motion.motion(entrance, productive) both;
 }
 
 .checkItem[data-status="fail"] {
-  animation: checkFailShake 400ms motion(entrance, productive) both;
+  animation: checkFailShake 400ms motion.motion(entrance, productive) both;
 }
 
 @keyframes checkFailShake {
@@ -145,8 +144,8 @@
 }
 
 .checkDetail {
-  @include type-style("helper-text-01");
-  color: $text-secondary;
+  @include type.type-style("helper-text-01");
+  color: var(--cds-text-secondary);
   margin-top: 2px;
 }
 

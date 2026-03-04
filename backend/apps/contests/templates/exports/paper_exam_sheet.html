@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="{{ language|default:'zh-TW' }}">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ sheet_title }} - {{ contest_name }}</title>
+    <style>
+      {{ base_css|safe }}
+    </style>
+    <style>
+      {{ sheet_css|safe }}
+    </style>
+  </head>
+  <body>
+    <header class="paper-header">
+      <h1 class="paper-title">{{ contest_name|safe }}</h1>
+      <h2 class="paper-subtitle">{{ sheet_title }}</h2>
+      {% if contest_description %}
+      <p class="paper-description">{{ contest_description }}</p>
+      {% endif %}
+    </header>
+
+    <section class="meta-lines">
+      <p>
+        <strong>{{ labels.candidate_name }}：</strong>____________________
+        <strong>{{ labels.candidate_id }}：</strong>____________________
+        <strong>{{ labels.candidate_class }}：</strong>____________________
+      </p>
+      <p>
+        <strong>{{ labels.exam_time }}：</strong>{{ start_time_str }} ~ {{ end_time_str }}
+        <strong>{{ labels.duration }}：</strong>{{ duration_str }}
+      </p>
+      <p>
+        <strong>{{ labels.total_questions }}：</strong>{{ question_count }}
+        <strong>{{ labels.total_score }}：</strong>{{ total_score }} {{ labels.points_unit }}
+      </p>
+      <p class="generated-at">
+        <strong>{{ labels.generated_at }}：</strong> {{ download_time }}
+      </p>
+    </section>
+
+    <section class="instructions">
+      <h3>{{ labels.instructions_title }}</h3>
+      <ol>
+        {% for item in instructions %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    {% if not questions %}
+    <p class="empty-notice">{{ labels.no_questions }}</p>
+    {% else %}
+    <section class="question-list">
+      {% for q in questions %}
+      <article class="question-item">
+        <div class="question-head">Q{{ q.number }}（{{ q.score }} {{ labels.points_unit }}）[{{ q.type_label }}]</div>
+        <div class="question-prompt markdown-content">{{ q.prompt_html|safe }}</div>
+        {% if q.options %}
+        <ul class="question-options">
+          {% for opt in q.options %}
+          <li>
+            <span class="choice-select">( )</span>
+            <span class="choice-letter">{{ opt.letter }}.</span>
+            <span class="choice-text">{{ opt.text }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if include_answers %}
+        <div class="answer-box">
+          <div class="answer-label">{{ labels.answer }}</div>
+          {% if q.answer_html %}
+          <div class="answer-content markdown-content">{{ q.answer_html|safe }}</div>
+          {% else %}
+          <div class="answer-content">—</div>
+          {% endif %}
+        </div>
+        {% elif q.show_choice_answer_bar %}
+        <div class="choice-answer-bar">
+          <div class="answer-label">{{ labels.answer }}（{{ labels.choice_marking_hint }}）</div>
+          <div class="choice-answer-slots">
+            {% for slot in q.choice_answer_slots %}
+            <span class="choice-answer-slot">□ {{ slot }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% elif q.show_answer_lines %}
+        <div class="answer-lines">
+          <div class="answer-label">{{ labels.answer_lines }}</div>
+          {% for _ in q.answer_line_indices %}
+          <div class="answer-line"></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </section>
+
+    {% if include_answers %}
+    <section class="answer-key-section">
+      <h3>{{ labels.answer_key }}</h3>
+      <p class="answer-key-note">{{ labels.answer_key_note }}</p>
+      <table class="answer-key-table">
+        <thead>
+          <tr>
+            <th>{{ labels.question_no }}</th>
+            <th>{{ labels.answer_col }}</th>
+            <th>{{ labels.score_col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in answer_key %}
+          <tr>
+            <td>Q{{ row.number }}</td>
+            <td>{{ row.answer_text }}</td>
+            <td>{{ row.score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+    {% endif %}
+  </body>
+</html>

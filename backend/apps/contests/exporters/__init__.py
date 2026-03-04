@@ -1,6 +1,13 @@
 """Contest exporters package public API."""
 
-from .renderers import BaseRenderer, MarkdownRenderer, PDFRenderer, StudentReportRenderer
+from .renderers import (
+    BaseRenderer,
+    MarkdownRenderer,
+    PDFRenderer,
+    StudentReportRenderer,
+    PaperExamReportRenderer,
+    PaperExamSheetRenderer,
+)
 from .data_service import ContestDataService
 from .dto import (
     ContestDTO,
@@ -34,6 +41,8 @@ __all__ = [
     "MarkdownRenderer",
     "PDFRenderer",
     "StudentReportRenderer",
+    "PaperExamReportRenderer",
+    "PaperExamSheetRenderer",
     "ContestDataService",
     "ContestDTO",
     "ContestProblemDTO",

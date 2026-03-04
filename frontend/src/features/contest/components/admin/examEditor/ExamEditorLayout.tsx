@@ -28,31 +28,31 @@ import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import WorkTree from "./WorkTree";
 import ExamQuestionEditCard from "./ExamQuestionEditCard";
+import { useTranslation } from "react-i18next";
 import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
 import { type ExamQuestionJsonNormalizedQuestion } from "./examQuestionJson";
 import styles from "./ExamEditorLayout.module.scss";
 
 // --- Question type picker config ---
 
-const QUESTION_TYPES: {
-  type: ExamQuestionType;
-  label: string;
-  description: string;
-  icon: React.ComponentType<{ size?: number }>;
-}[] = [
-  { type: "single_choice", label: "單選題", description: "從多個選項中選擇一個正確答案", icon: RadioButtonIcon },
-  { type: "multiple_choice", label: "多選題", description: "從多個選項中選擇多個正確答案", icon: CheckboxIcon },
-  { type: "true_false", label: "是非題", description: "判斷敘述為「是」或「否」", icon: Boolean },
-  { type: "short_answer", label: "簡答題", description: "輸入簡短文字作為答案", icon: Pen },
-  { type: "essay", label: "問答題", description: "長篇文字作答，支援參考答案", icon: Document },
+const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
+  "single_choice", "multiple_choice", "true_false", "short_answer", "essay",
 ];
 
+const QUESTION_TYPE_ICONS: Record<ExamQuestionType, React.ComponentType<{ size?: number }>> = {
+  single_choice: RadioButtonIcon,
+  multiple_choice: CheckboxIcon,
+  true_false: Boolean,
+  short_answer: Pen,
+  essay: Document,
+};
+
 const DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload, "order">> = {
-  single_choice: { question_type: "single_choice", prompt: "新題目", score: 5, options: ["選項 A", "選項 B"], correct_answer: 0 },
-  multiple_choice: { question_type: "multiple_choice", prompt: "新題目", score: 5, options: ["選項 A", "選項 B"], correct_answer: [0] },
-  true_false: { question_type: "true_false", prompt: "新題目", score: 5, options: ["True", "False"], correct_answer: true },
-  short_answer: { question_type: "short_answer", prompt: "新題目", score: 5 },
-  essay: { question_type: "essay", prompt: "新題目", score: 5 },
+  single_choice: { question_type: "single_choice", prompt: "New question", score: 5, options: ["Option A", "Option B"], correct_answer: 0 },
+  multiple_choice: { question_type: "multiple_choice", prompt: "New question", score: 5, options: ["Option A", "Option B"], correct_answer: [0] },
+  true_false: { question_type: "true_false", prompt: "New question", score: 5, options: ["True", "False"], correct_answer: true },
+  short_answer: { question_type: "short_answer", prompt: "New question", score: 5 },
+  essay: { question_type: "essay", prompt: "New question", score: 5 },
 };
 
 interface ExamEditorLayoutProps {
@@ -69,6 +69,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   contest,
 }, ref) => {
   const { showToast } = useToast();
+  const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
 
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -176,7 +177,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       setQuestions(sorted);
     } catch (error) {
       console.error("Failed to load exam questions", error);
-      showToast({ kind: "error", title: "載入失敗", subtitle: "載入 Exam 題目失敗" });
+      showToast({ kind: "error", title: t("examEditor.loadFailed", "載入失敗"), subtitle: t("examEditor.loadFailedDetail", "載入 Exam 題目失敗") });
     } finally {
       setLoading(false);
     }
@@ -217,8 +218,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         setSelectedId(null);
         showToast({
           kind: "success",
-          title: "匯入成功",
-          subtitle: `已覆蓋 ${normalizedQuestions.length} 題`,
+          title: t("examEditor.importSuccess", "匯入成功"),
+          subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
         });
       } catch (importError) {
         try {
@@ -228,14 +229,14 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           await loadQuestions();
           showToast({
             kind: "warning",
-            title: "匯入失敗，已自動回滾",
+            title: t("examEditor.importRolledBack", "匯入失敗，已自動回滾"),
           });
         } catch (rollbackError) {
           console.error("Rollback failed", rollbackError);
           showToast({
             kind: "error",
-            title: "匯入失敗且回滾失敗",
-            subtitle: "請重新整理頁面後檢查題目內容",
+            title: t("examEditor.importRollbackFailed", "匯入失敗且回滾失敗"),
+            subtitle: t("examEditor.importRollbackFailedDetail", "請重新整理頁面後檢查題目內容"),
           });
         }
 
@@ -344,7 +345,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         const base = DEFAULT_PAYLOADS[type];
         const order = insertAtOrder ?? questions.length;
         const created = await createExamQuestion(contestId, { ...base, order });
-        showToast({ kind: "success", title: "題目已新增" });
+        showToast({ kind: "success", title: t("examEditor.questionAdded", "題目已新增") });
         await loadQuestions();
         if (created?.id) {
           setSelectedId(created.id);
@@ -355,8 +356,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         }
       } catch (error) {
         console.error("Failed to create exam question", error);
-        const message = error instanceof Error ? error.message : "新增失敗";
-        showToast({ kind: "error", title: "新增失敗", subtitle: message });
+        const message = error instanceof Error ? error.message : t("examEditor.addFailed", "新增失敗");
+        showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗"), subtitle: message });
       }
     },
     [contestId, frozen, insertAtOrder, questions.length, loadQuestions, showToast],
@@ -373,7 +374,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           await reorderExamQuestions(contestId, orders);
         } catch (error) {
           console.error("Failed to reorder", error);
-          showToast({ kind: "error", title: "排序更新失敗" });
+          showToast({ kind: "error", title: t("examEditor.sortUpdateFailed", "排序更新失敗") });
           loadQuestions();
         }
       }, 600);
@@ -387,13 +388,13 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       try {
         if (questionId) {
           await updateExamQuestion(contestId, questionId, payload);
-          showToast({ kind: "success", title: "題目已更新" });
+          showToast({ kind: "success", title: t("examEditor.questionUpdated", "題目已更新") });
         }
         await loadQuestions();
       } catch (error) {
         console.error("Failed to save exam question", error);
-        const message = error instanceof Error ? error.message : "儲存失敗";
-        showToast({ kind: "error", title: "儲存失敗", subtitle: message });
+        const message = error instanceof Error ? error.message : t("examEditor.saveFailed", "儲存失敗");
+        showToast({ kind: "error", title: t("examEditor.saveFailed", "儲存失敗"), subtitle: message });
       }
     },
     [contestId, loadQuestions, showToast],
@@ -421,7 +422,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
             : source.correctAnswer;
         }
         const created = await createExamQuestion(contestId, payload);
-        showToast({ kind: "success", title: "題目已複製" });
+        showToast({ kind: "success", title: t("examEditor.questionCopied", "題目已複製") });
         await loadQuestions();
         if (created?.id) {
           setSelectedId(created.id);
@@ -432,8 +433,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         }
       } catch (error) {
         console.error("Failed to duplicate exam question", error);
-        const message = error instanceof Error ? error.message : "複製失敗";
-        showToast({ kind: "error", title: "複製失敗", subtitle: message });
+        const message = error instanceof Error ? error.message : t("examEditor.copyFailed", "複製失敗");
+        showToast({ kind: "error", title: t("examEditor.copyFailed", "複製失敗"), subtitle: message });
       }
     },
     [contestId, frozen, questions, loadQuestions, showToast],
@@ -444,22 +445,22 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     async (questionId: string) => {
       const q = questions.find((q) => q.id === questionId);
       const accepted = await confirm({
-        title: `確定刪除題目 #${(q?.order ?? 0) + 1}？`,
+        title: t("examEditor.confirmDelete", { num: (q?.order ?? 0) + 1 }),
         danger: true,
-        confirmLabel: "刪除",
-        cancelLabel: "取消",
+        confirmLabel: t("common.delete", "刪除"),
+        cancelLabel: t("common.cancel", "取消"),
       });
       if (!accepted) return;
       try {
         await deleteExamQuestion(contestId, questionId);
-        showToast({ kind: "success", title: "題目已刪除" });
+        showToast({ kind: "success", title: t("examEditor.questionDeleted", "題目已刪除") });
         if (selectedId === questionId) {
           setSelectedId(null);
         }
         await loadQuestions();
       } catch (error) {
         console.error("Failed to delete exam question", error);
-        showToast({ kind: "error", title: "刪除失敗" });
+        showToast({ kind: "error", title: t("examEditor.deleteFailed", "刪除失敗") });
       }
     },
     [contestId, questions, selectedId, confirm, loadQuestions, showToast],
@@ -515,7 +516,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                 renderIcon={Add}
                 onClick={() => openTypePicker()}
               >
-                新增題目
+                {t("examEditor.addQuestion", "新增題目")}
               </Button>
             </div>
           )}
@@ -526,25 +527,32 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       <Modal
         open={typePickerOpen}
         onRequestClose={() => setTypePickerOpen(false)}
-        modalHeading="選擇題目類型"
+        modalHeading={t("examEditor.selectQuestionType", "選擇題目類型")}
         passiveModal
         size="sm"
       >
         <div className={styles.typePickerGrid}>
-          {QUESTION_TYPES.map(({ type, label, description, icon: Icon }) => (
-            <button
-              key={type}
-              type="button"
-              className={styles.typePickerCard}
-              onClick={() => handleCreateQuestion(type)}
-            >
-              <Icon size={24} />
-              <div className={styles.typePickerInfo}>
-                <span className={styles.typePickerLabel}>{label}</span>
-                <span className={styles.typePickerDesc}>{description}</span>
-              </div>
-            </button>
-          ))}
+          {QUESTION_TYPE_ORDER.map((type) => {
+            const Icon = QUESTION_TYPE_ICONS[type];
+            return (
+              <button
+                key={type}
+                type="button"
+                className={styles.typePickerCard}
+                onClick={() => handleCreateQuestion(type)}
+              >
+                <Icon size={24} />
+                <div className={styles.typePickerInfo}>
+                  <span className={styles.typePickerLabel}>
+                    {t(`questionTypes.${type}`, type)}
+                  </span>
+                  <span className={styles.typePickerDesc}>
+                    {t(`questionTypeDescriptions.${type}`, "")}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </Modal>
 
@@ -606,6 +614,7 @@ const InsertDivider: React.FC<{ frozen?: boolean; onClick: () => void }> = ({
   frozen,
   onClick,
 }) => {
+  const { t } = useTranslation("contest");
   if (frozen) {
     return <div className={styles.divider} />;
   }
@@ -616,7 +625,7 @@ const InsertDivider: React.FC<{ frozen?: boolean; onClick: () => void }> = ({
         type="button"
         className={styles.dividerBtn}
         onClick={onClick}
-        aria-label="在此插入題目"
+        aria-label={t("examEditor.insertHere", "在此插入題目")}
       >
         <Add size={14} />
       </button>

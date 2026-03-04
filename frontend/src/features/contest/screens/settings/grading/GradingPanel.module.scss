@@ -1,0 +1,165 @@
+/* Right panel (GradingSplitPanel) */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--cds-layer-02, var(--cds-layer));
+}
+
+.panelEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  padding: 2rem;
+  text-align: center;
+}
+
+.panelHeader {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-02, var(--cds-layer));
+  flex-shrink: 0;
+}
+
+.panelContent {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.panelSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.panelLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Shared field base for prompt / answer / reference */
+.panelFieldBase {
+  background: var(--cds-field);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.5);
+  color: var(--cds-text-primary);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.panelPrompt {
+  composes: panelFieldBase;
+}
+
+.panelAnswer {
+  composes: panelFieldBase;
+}
+
+.panelReference {
+  composes: panelFieldBase;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  color: var(--cds-text-secondary);
+}
+
+.panelActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+  margin-top: auto;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.panelMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Options list (objective questions) */
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  color: var(--cds-text-secondary);
+  padding-left: 0;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-field);
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  line-height: var(--cds-productive-heading-03-line-height, 1.4);
+}
+
+.optionSelectedCorrect {
+  background: color-mix(in srgb, var(--cds-support-success) 10%, transparent);
+  border-color: var(--cds-support-success);
+  font-weight: 500;
+}
+
+.optionSelectedWrong {
+  background: color-mix(in srgb, var(--cds-support-error) 8%, transparent);
+  border-color: var(--cds-support-error);
+  font-weight: 500;
+}
+
+.optionCorrect {
+  border-color: var(--cds-support-success);
+}
+
+.correctIcon {
+  color: var(--cds-support-success);
+  flex-shrink: 0;
+}
+
+.correctAnswerLine {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  line-height: var(--cds-productive-heading-03-line-height, 1.4);
+}
+
+.correctAnswerLabel {
+  color: var(--cds-text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.correctAnswerText {
+  color: var(--cds-support-success);
+  font-weight: 500;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.scoreMax {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-secondary);
+  padding-bottom: 0.5rem;
+}

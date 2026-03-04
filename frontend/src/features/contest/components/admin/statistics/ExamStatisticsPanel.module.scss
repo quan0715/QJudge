@@ -72,7 +72,7 @@
 }
 
 .questionOrder {
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 600;
   color: var(--cds-text-secondary);
   min-width: 20px;
@@ -89,7 +89,7 @@
 }
 
 .questionTitle {
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   color: var(--cds-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -117,7 +117,7 @@
 }
 
 .detailTitle {
-  font-size: 1.125rem;
+  font-size: var(--cds-heading-compact-02-font-size, 1.125rem);
   font-weight: 600;
   color: var(--cds-text-primary);
 }
@@ -129,12 +129,12 @@
 }
 
 .averageLabel {
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-secondary);
 }
 
 .averageValue {
-  font-size: 1.5rem;
+  font-size: var(--cds-heading-04-font-size, 1.5rem);
   font-weight: 600;
   color: var(--cds-text-primary);
 }
@@ -147,7 +147,7 @@
 }
 
 .sectionTitle {
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   font-weight: 600;
   color: var(--cds-text-secondary);
   margin-bottom: layout.$spacing-02;
@@ -163,7 +163,7 @@
 .optionLabel {
   width: 120px;
   flex-shrink: 0;
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   color: var(--cds-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -193,14 +193,14 @@
 .optionCount {
   width: 64px;
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
   text-align: right;
 }
 
 .correctMark {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 600;
   color: var(--cds-support-success);
   width: 16px;
@@ -215,5 +215,5 @@
   gap: layout.$spacing-04;
   height: 100%;
   color: var(--cds-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }

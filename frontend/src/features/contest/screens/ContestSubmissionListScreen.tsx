@@ -18,7 +18,7 @@ import {
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useAuth } from "@/shared/hooks";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
@@ -26,7 +26,7 @@ import ContainerCard from "@/shared/layout/ContainerCard";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
 
-interface ContestSubmissionListPageProps {
+interface ContestSubmissionListScreenProps {
   maxWidth?: string;
 }
 
@@ -50,7 +50,7 @@ const flipAnimationStyles = `
   }
 `;
 
-const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
+const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = ({
   maxWidth,
 }) => {
   const { t } = useTranslation("contest");
@@ -482,4 +482,4 @@ const ContestSubmissionListPage: React.FC<ContestSubmissionListPageProps> = ({
   );
 };
 
-export default ContestSubmissionListPage;
+export default ContestSubmissionListScreen;

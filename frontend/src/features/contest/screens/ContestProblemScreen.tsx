@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useContestNavigationGuard } from "@/features/contest/hooks/useContestNavigationGuard";
 import { Loading, Button } from "@carbon/react";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useAuth } from "@/shared/hooks";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isContestEnded } from "@/core/entities/contest.entity";
 import { useContestProblemSelection } from "@/features/contest/hooks/useContestProblemSelection";
@@ -13,7 +13,7 @@ import { ProblemFullPageSolve } from "@/features/problems/components/solve/edito
 import ContestProblemSubmissions from "@/features/contest/components/solver/submissions/ContestProblemSubmissions";
 import "./ContestProblemScreen.scss";
 
-const ContestProblemPage = () => {
+const ContestProblemScreen = () => {
   const { contestId, problemId } = useParams<{
     contestId: string;
     problemId: string;
@@ -135,4 +135,4 @@ const ContestProblemPage = () => {
   );
 };
 
-export default ContestProblemPage;
+export default ContestProblemScreen;

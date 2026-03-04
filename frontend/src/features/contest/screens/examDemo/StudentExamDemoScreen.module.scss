@@ -1,15 +1,13 @@
-@use "@carbon/react/scss/spacing" as *;
-@use "@carbon/react/scss/type" as *;
-@use "@carbon/react/scss/colors" as *;
-@use "@carbon/react/scss/theme" as *;
-@use "@carbon/react/scss/motion" as *;
+@use "@carbon/layout";
+@use "@carbon/type";
+@use "@carbon/motion";
 
 .container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background-color: $background;
+  background-color: var(--cds-background);
   position: relative;
 }
 
@@ -18,12 +16,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-03 $spacing-05;
+  padding: layout.$spacing-03 layout.$spacing-05;
   flex-shrink: 0;
-  gap: $spacing-04;
-  background-color: $background;
-  transition: transform 200ms motion(standard, productive),
-              opacity 200ms motion(standard, productive);
+  gap: layout.$spacing-04;
+  background-color: var(--cds-background);
+  transition: transform 200ms motion.motion(standard, productive),
+              opacity 200ms motion.motion(standard, productive);
 }
 
 .toolbarHidden {
@@ -40,13 +38,13 @@
 .toolbarLeft {
   display: flex;
   align-items: center;
-  gap: $spacing-03;
+  gap: layout.$spacing-03;
   min-width: 0;
 }
 
 .title {
-  @include type-style("heading-compact-01");
-  color: $text-secondary;
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -55,26 +53,26 @@
 .toolbarCenter {
   display: flex;
   align-items: center;
-  gap: $spacing-05;
+  gap: layout.$spacing-05;
 }
 
 .timer {
   display: flex;
   align-items: center;
-  gap: $spacing-02;
-  color: $text-secondary;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
 }
 
 .timerText {
-  @include type-style("heading-compact-01");
+  @include type.type-style("heading-compact-01");
   font-variant-numeric: tabular-nums;
-  color: $text-primary;
+  color: var(--cds-text-primary);
 }
 
 // ─── Vertical mode switcher (right-center) ───
 .modeSwitcher {
   position: fixed;
-  right: $spacing-05;
+  right: layout.$spacing-05;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;
@@ -89,30 +87,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $spacing-03;
-  border: 1px solid $border-subtle-01;
-  background-color: $background;
-  color: $text-secondary;
+  padding: layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-background);
+  color: var(--cds-text-secondary);
   cursor: pointer;
-  transition: background-color 100ms motion(standard, productive),
-              color 100ms motion(standard, productive);
+  transition: background-color 100ms motion.motion(standard, productive),
+              color 100ms motion.motion(standard, productive);
 
   &:not(:first-child) {
     border-top: none;
   }
 
   &:hover {
-    background-color: $layer-hover-01;
+    background-color: var(--cds-layer-hover-01);
   }
 }
 
 .modeBtnActive {
-  background-color: $background-inverse;
-  color: $text-inverse;
-  border-color: $background-inverse;
+  background-color: var(--cds-background-inverse);
+  color: var(--cds-text-inverse);
+  border-color: var(--cds-background-inverse);
 
   &:hover {
-    background-color: $background-inverse;
+    background-color: var(--cds-background-inverse);
   }
 }
 
@@ -128,11 +126,11 @@
 }
 
 .slideInRight {
-  animation: slideInFromRight 280ms motion(entrance, productive) both;
+  animation: slideInFromRight 280ms motion.motion(entrance, productive) both;
 }
 
 .slideInLeft {
-  animation: slideInFromLeft 280ms motion(entrance, productive) both;
+  animation: slideInFromLeft 280ms motion.motion(entrance, productive) both;
 }
 
 // Main content area
@@ -170,15 +168,15 @@
   height: 40px;
   border: none;
   border-radius: 0 6px 6px 0;
-  background-color: $layer-01;
-  color: $text-secondary;
+  background-color: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
   cursor: pointer;
   box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
-  transition: background-color 100ms motion(standard, productive);
+  transition: background-color 100ms motion.motion(standard, productive);
 
   &:hover {
-    background-color: $layer-hover-01;
-    color: $text-primary;
+    background-color: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
   }
 }
 
@@ -196,7 +194,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $spacing-07 $spacing-05;
+  padding: layout.$spacing-07 layout.$spacing-05;
 }
 
 .questionInner {
@@ -209,13 +207,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-03 $spacing-05;
+  padding: layout.$spacing-03 layout.$spacing-05;
   flex-shrink: 0;
 }
 
 .navInfo {
-  @include type-style("label-01");
-  color: $text-helper;
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
   letter-spacing: 0.32px;
 }
 
@@ -226,7 +224,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: $spacing-07 $spacing-05 $spacing-09;
+  padding: layout.$spacing-07 layout.$spacing-05 layout.$spacing-09;
 }
 
 // Spacer to allow first/last item to center in viewport
@@ -238,12 +236,12 @@
 .allItem {
   width: 100%;
   max-width: 720px;
-  padding-bottom: $spacing-07;
-  margin-bottom: $spacing-07;
-  transition: opacity 400ms motion(standard, productive);
+  padding-bottom: layout.$spacing-07;
+  margin-bottom: layout.$spacing-07;
+  transition: opacity 400ms motion.motion(standard, productive);
 
   &:not(:last-child) {
-    border-bottom: 1px solid $border-subtle-00;
+    border-bottom: 1px solid var(--cds-border-subtle-00);
   }
 }
 
@@ -260,20 +258,20 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: $spacing-05;
+  margin-bottom: layout.$spacing-05;
 }
 
 .codingLabel {
-  @include type-style("heading-compact-02");
-  color: $text-primary;
+  @include type.type-style("heading-compact-02");
+  color: var(--cds-text-primary);
   display: flex;
   align-items: center;
-  gap: $spacing-03;
+  gap: layout.$spacing-03;
 }
 
 .codingScore {
-  @include type-style("body-compact-01");
-  color: $text-helper;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-helper);
 }
 
 // Loading / empty states
@@ -283,8 +281,8 @@
   justify-content: center;
   height: 100vh;
   width: 100%;
-  color: $text-secondary;
-  @include type-style("body-01");
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-01");
   flex-direction: column;
-  gap: $spacing-04;
+  gap: layout.$spacing-04;
 }
