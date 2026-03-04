@@ -251,10 +251,10 @@ test.describe("Paper Exam Precheck E2E", () => {
     await page.goto(`/contests/${contestId}/exam-precheck`);
     await page.waitForLoadState("networkidle");
 
-    // --- Step 1: Identity checks (auto-pass) ---
-    // Wait for the identity checks to show "pass"
+    // --- Step 1: Participation checks (auto-pass) ---
+    // Wait for the participation checks to show "pass"
     await expect(
-      page.locator("[data-status='pass']").filter({ hasText: /身份驗證/ })
+      page.locator("[data-status='pass']").filter({ hasText: /參賽狀態/ })
     ).toBeVisible({ timeout: 10000 });
     await expect(
       page.locator("[data-status='pass']").filter({ hasText: /交卷記錄/ })
