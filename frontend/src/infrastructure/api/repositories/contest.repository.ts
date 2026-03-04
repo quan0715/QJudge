@@ -117,26 +117,15 @@ export const archiveContest = async (id: string): Promise<void> => {
 export const getContestStandings = async (
   id: string
 ): Promise<ScoreboardData> => {
-  const data = await requestJson<any>(
-    httpClient.get(`/api/v1/contests/${id}/standings/`),
-    "Failed to fetch standings"
-  );
-  return mapScoreboardDto(data);
-};
-
-export const getScoreboard = async (
-  contestId: string
-): Promise<ScoreboardData> => {
-  const res = await httpClient.get(`/api/v1/contests/${contestId}/standings/`);
+  const res = await httpClient.get(`/api/v1/contests/${id}/standings/`);
   if (!res.ok) {
     if (res.status === 403) {
       throw new Error("Scoreboard not available yet");
     }
     const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.detail || "Failed to fetch scoreboard");
+    throw new Error(errorData?.detail || "Failed to fetch standings");
   }
-  const data = await res.json();
-  return mapScoreboardDto(data);
+  return mapScoreboardDto(await res.json());
 };
 
 // ============================================================================
@@ -155,7 +144,6 @@ export const contestRepository: IContestRepository = {
   leaveContest,
   archiveContest,
   getContestStandings,
-  getScoreboard,
 };
 
 export default contestRepository;

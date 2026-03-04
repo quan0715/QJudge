@@ -38,7 +38,6 @@ export interface IContestRepository {
   archiveContest(id: string): Promise<void>;
 
   // Scoreboard
-  getScoreboard(contestId: string): Promise<ScoreboardData>;
   getContestStandings(id: string): Promise<ScoreboardData>;
 }
 

@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from .models import Contest, ContestParticipant, ExamStatus
-from .permissions import get_user_role_in_contest
+from .permissions import get_contest_scope_role
 
 
 # ============================================================================
@@ -66,9 +66,9 @@ class ErrorCodes:
 # Role-Based Permissions
 # ============================================================================
 
-# Base permissions for each role (not considering context)
+# Base permissions for each scope role (not considering context)
 BASE_ROLE_PERMISSIONS = {
-    'admin': {
+    'platform_admin': {
         'manage_contest_settings', 'manage_contest_lifecycle',
         'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
@@ -82,20 +82,29 @@ BASE_ROLE_PERMISSIONS = {
         'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
-    'teacher': {
+    'co_owner': {
         'manage_contest_settings', 'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
         'submit', 'view_draft', 'view_archived', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
-    'student': {
+    'participant': {
         'view_scoreboard_limited', 'submit', 'view_own_report',
         'create_clarification',
     },
+    'outsider': {
+        'view_public_contest',
+        'view_own_report',  # passes role check; context check enforces participant status
+    },
     'anonymous': {
         'view_public_contest',
-    }
+    },
 }
+
+# Backward-compat aliases (legacy role names → scope role names)
+BASE_ROLE_PERMISSIONS['admin'] = BASE_ROLE_PERMISSIONS['platform_admin']
+BASE_ROLE_PERMISSIONS['teacher'] = BASE_ROLE_PERMISSIONS['co_owner']
+BASE_ROLE_PERMISSIONS['student'] = BASE_ROLE_PERMISSIONS['participant']
 
 # Restrictions based on contest status
 STATUS_RESTRICTIONS = {
@@ -195,7 +204,7 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         user = request.user
         action = view.action
-        role = get_user_role_in_contest(user, contest) if user.is_authenticated else 'anonymous'
+        role = get_contest_scope_role(user, contest) if user.is_authenticated else 'anonymous'
 
         # 1. Check contest status restrictions
         status_error = self._check_contest_status(contest, user, role, action)
@@ -265,8 +274,8 @@ class ContestAccessPolicy(permissions.BasePermission):
         """Check context-specific conditions (scoreboard settings, exam status, etc.)."""
         is_ended = bool(contest.end_time and timezone.now() > contest.end_time)
 
-        # Scoreboard visibility for students
-        if action == 'standings' and role == 'student':
+        # Scoreboard visibility for participants and outsiders (not managers)
+        if action == 'standings' and role in ('participant', 'outsider', 'student'):
             if not contest.scoreboard_visible_during_contest:
                 # Allow viewing after contest ends
                 if not is_ended:
@@ -336,19 +345,11 @@ class ContestAccessPolicy(permissions.BasePermission):
 def check_contest_permission(user, contest, permission: str) -> bool:
     """
     Utility function to check if a user has a specific permission on a contest.
-
-    Args:
-        user: User instance
-        contest: Contest instance
-        permission: Permission name to check
-
-    Returns:
-        True if user has permission, False otherwise
     """
     if not user or not user.is_authenticated:
         role = 'anonymous'
     else:
-        role = get_user_role_in_contest(user, contest)
+        role = get_contest_scope_role(user, contest)
 
     role_permissions = BASE_ROLE_PERMISSIONS.get(role, set())
     return permission in role_permissions
@@ -357,17 +358,10 @@ def check_contest_permission(user, contest, permission: str) -> bool:
 def get_all_permissions(user, contest) -> set:
     """
     Get all permissions a user has for a contest.
-
-    Args:
-        user: User instance
-        contest: Contest instance
-
-    Returns:
-        Set of permission names
     """
     if not user or not user.is_authenticated:
         role = 'anonymous'
     else:
-        role = get_user_role_in_contest(user, contest)
+        role = get_contest_scope_role(user, contest)
 
     return BASE_ROLE_PERMISSIONS.get(role, set()).copy()

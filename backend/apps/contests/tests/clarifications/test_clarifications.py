@@ -207,6 +207,95 @@ def test_create_clarification_sets_defaults(
 
 
 @pytest.mark.django_db
+def test_student_cannot_update_others_public_clarification(
+    api_client: APIClient,
+    contest: Contest,
+    student: User,
+    clarification_data: dict[str, Clarification],
+) -> None:
+    """A student must not PATCH a public clarification authored by someone else."""
+    api_client.force_authenticate(user=student)
+    public_clarifiation = clarification_data["other_public"]
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/clarifications/{public_clarifiation.id}/",
+        {"question": "Overwritten"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_student_cannot_delete_others_public_clarification(
+    api_client: APIClient,
+    contest: Contest,
+    student: User,
+    clarification_data: dict[str, Clarification],
+) -> None:
+    """A student must not DELETE a public clarification authored by someone else."""
+    api_client.force_authenticate(user=student)
+    public_clarification = clarification_data["other_public"]
+    response = api_client.delete(
+        f"/api/v1/contests/{contest.id}/clarifications/{public_clarification.id}/"
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert Clarification.objects.filter(id=public_clarification.id).exists()
+
+
+@pytest.mark.django_db
+def test_student_can_update_own_clarification(
+    api_client: APIClient,
+    contest: Contest,
+    student: User,
+    clarification_data: dict[str, Clarification],
+) -> None:
+    """A student can PATCH their own clarification."""
+    api_client.force_authenticate(user=student)
+    own = clarification_data["own_private"]
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/clarifications/{own.id}/",
+        {"question": "Updated question"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    own.refresh_from_db()
+    assert own.question == "Updated question"
+
+
+@pytest.mark.django_db
+def test_student_can_delete_own_clarification(
+    api_client: APIClient,
+    contest: Contest,
+    student: User,
+    clarification_data: dict[str, Clarification],
+) -> None:
+    """A student can DELETE their own clarification."""
+    api_client.force_authenticate(user=student)
+    own = clarification_data["own_private"]
+    response = api_client.delete(
+        f"/api/v1/contests/{contest.id}/clarifications/{own.id}/"
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Clarification.objects.filter(id=own.id).exists()
+
+
+@pytest.mark.django_db
+def test_teacher_can_delete_any_clarification(
+    api_client: APIClient,
+    contest: Contest,
+    teacher: User,
+    clarification_data: dict[str, Clarification],
+) -> None:
+    """Contest owner/teacher can DELETE any clarification including public ones."""
+    api_client.force_authenticate(user=teacher)
+    public_clarification = clarification_data["other_public"]
+    response = api_client.delete(
+        f"/api/v1/contests/{contest.id}/clarifications/{public_clarification.id}/"
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Clarification.objects.filter(id=public_clarification.id).exists()
+
+
+@pytest.mark.django_db
 def test_reply_requires_owner_or_admin(
     api_client: APIClient,
     contest: Contest,

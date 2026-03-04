@@ -815,3 +815,102 @@ def test_my_report_returns_500_when_report_generation_fails(
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.data["error"] == "Failed to generate report"
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle permission tests (IsContestLifecycleOwner)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def co_owner_user(contest: Contest) -> User:
+    u = User.objects.create_user(
+        username="lifecycle_co_owner",
+        email="lifecycle_co_owner@example.com",
+        password="pass",
+        role="teacher",
+    )
+    contest.admins.add(u)
+    return u
+
+
+@pytest.fixture
+def platform_admin_user() -> User:
+    return User.objects.create_superuser(
+        username="lifecycle_platform_admin",
+        email="lifecycle_platform_admin@example.com",
+        password="pass",
+    )
+
+
+@pytest.mark.django_db
+def test_co_owner_cannot_toggle_status(
+    api_client: APIClient, contest: Contest, co_owner_user: User
+) -> None:
+    """co_owner must be blocked from toggle_status (lifecycle-only)."""
+    api_client.force_authenticate(user=co_owner_user)
+    response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_co_owner_cannot_archive(
+    api_client: APIClient, contest: Contest, co_owner_user: User
+) -> None:
+    """co_owner must be blocked from archive (lifecycle-only)."""
+    api_client.force_authenticate(user=co_owner_user)
+    response = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_co_owner_cannot_add_admin(
+    api_client: APIClient, contest: Contest, co_owner_user: User
+) -> None:
+    """co_owner must be blocked from add_admin."""
+    api_client.force_authenticate(user=co_owner_user)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_admin/",
+        {"username": "someone"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_co_owner_cannot_delete_contest(
+    api_client: APIClient, contest: Contest, co_owner_user: User
+) -> None:
+    """co_owner must be blocked from deleting a contest."""
+    api_client.force_authenticate(user=co_owner_user)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert Contest.objects.filter(id=contest.id).exists()
+
+
+@pytest.mark.django_db
+def test_owner_can_toggle_status(
+    api_client: APIClient, contest: Contest, owner: User
+) -> None:
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_platform_admin_can_toggle_status(
+    api_client: APIClient, contest: Contest, platform_admin_user: User
+) -> None:
+    api_client.force_authenticate(user=platform_admin_user)
+    response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_platform_admin_can_archive(
+    api_client: APIClient, contest: Contest, platform_admin_user: User
+) -> None:
+    api_client.force_authenticate(user=platform_admin_user)
+    response = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    contest.refresh_from_db()
+    assert contest.status == "archived"

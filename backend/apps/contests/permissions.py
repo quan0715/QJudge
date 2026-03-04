@@ -5,31 +5,67 @@ from rest_framework import permissions
 from django.utils import timezone
 
 
-def get_user_role_in_contest(user, contest):
-    """
-    Determine user's role in a contest.
+# ---------------------------------------------------------------------------
+# Scope Role System
+# ---------------------------------------------------------------------------
 
-    Returns: 'student' | 'owner' | 'teacher' | 'admin'
-    - 'admin': system staff/superuser
-    - 'owner': contest creator
-    - 'teacher': co-admin (added via admins M2M)
-    - 'student': everyone else
+#: All roles that can manage contest resources (create/update/delete).
+MANAGER_SCOPE_ROLES = frozenset(('platform_admin', 'owner', 'co_owner'))
+
+#: Roles allowed for irreversible lifecycle operations (toggle status, archive, delete, manage admins).
+#: co_owner is intentionally excluded.
+LIFECYCLE_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
+
+#: Maps scope role → legacy role name (for backward-compat callers).
+_SCOPE_TO_LEGACY = {
+    'platform_admin': 'admin',
+    'owner': 'owner',
+    'co_owner': 'teacher',
+    'participant': 'student',
+    'outsider': 'student',
+    'anonymous': 'student',
+}
+
+
+def get_contest_scope_role(user, contest) -> str:
+    """
+    Return the canonical scope role for *user* within *contest*.
+
+    Roles (most → least privileged):
+      platform_admin  – system staff / superuser
+      owner           – contest creator
+      co_owner        – co-admin added via admins M2M
+      participant     – registered contest participant
+      outsider        – authenticated but not registered
+      anonymous       – unauthenticated
     """
     if not user or not user.is_authenticated:
-        return 'student'
-
+        return 'anonymous'
     if user.is_staff or user.is_superuser:
-        return 'admin'
-
-    # Check if user is the contest owner
+        return 'platform_admin'
     if contest.owner_id == user.id:
         return 'owner'
-
-    # Check if user is in the admins M2M relationship (co-admin)
     if contest.admins.filter(pk=user.pk).exists():
-        return 'teacher'
+        return 'co_owner'
+    from .models import ContestParticipant  # avoid circular import
+    if ContestParticipant.objects.filter(contest=contest, user=user).exists():
+        return 'participant'
+    return 'outsider'
 
-    return 'student'
+
+def can_manage_contest(user, contest) -> bool:
+    """Return True if *user* has management rights over *contest*."""
+    return get_contest_scope_role(user, contest) in MANAGER_SCOPE_ROLES
+
+
+def get_user_role_in_contest(user, contest) -> str:
+    """
+    Legacy helper – maps scope role to old role strings.
+
+    Returns: 'admin' | 'owner' | 'teacher' | 'student'
+    Prefer get_contest_scope_role() for new code.
+    """
+    return _SCOPE_TO_LEGACY[get_contest_scope_role(user, contest)]
 
 
 def get_contest_permissions(user, contest):
@@ -97,31 +133,33 @@ def get_contest_permissions(user, contest):
 
 class IsContestOwnerOrAdmin(permissions.BasePermission):
     """
-    Permission class: only contest owner, admins M2M, or system admin can access.
+    Object-level permission: only platform_admin, owner, or co_owner can access.
+    The contest must be reachable via ``obj`` directly or ``obj.contest``.
     """
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        
-        if request.user.is_staff or request.user.is_superuser:
-            return True
-        
-        # Check if user is the owner
-        if hasattr(obj, 'owner_id') and obj.owner_id == request.user.id:
-            return True
-        
-        # Check if user is in admins M2M (contest or linked contest)
         contest = obj if hasattr(obj, 'admins') else getattr(obj, 'contest', None)
-        if contest and hasattr(contest, 'admins'):
-            if contest.admins.filter(pk=request.user.pk).exists():
-                return True
-        
-        # Check if object is linked to a contest (e.g. Clarification)
-        if hasattr(obj, 'contest') and hasattr(obj.contest, 'owner_id'):
-            if obj.contest.owner_id == request.user.id:
-                return True
-            
-        return False
+        if contest is None:
+            return False
+        return can_manage_contest(request.user, contest)
+
+
+class IsContestLifecycleOwner(permissions.BasePermission):
+    """
+    Stricter object-level permission: only platform_admin and owner.
+    co_owner is intentionally excluded.
+
+    Use for irreversible lifecycle operations: toggle status, archive, delete,
+    manage admins.
+    """
+    def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        contest = obj if hasattr(obj, 'admins') else getattr(obj, 'contest', None)
+        if contest is None:
+            return False
+        return get_contest_scope_role(request.user, contest) in LIFECYCLE_OWNER_ROLES
 
 
 class IsContestParticipant(permissions.BasePermission):
@@ -149,12 +187,14 @@ class IsContestParticipant(permissions.BasePermission):
 
 class IsTeacherOrAdmin(permissions.BasePermission):
     """
-    Permission class: only teachers or admin can access.
-    Useful for general teacher-level endpoints.
+    Permission class: only platform teachers or system admins can access.
+    Used for platform-level (non-contest-scoped) endpoints.
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        
-        # Check if user is staff/superuser or has teacher role
-        return request.user.is_staff or request.user.is_superuser or hasattr(request.user, 'role') and request.user.role == 'teacher'
+        return (
+            request.user.is_staff
+            or request.user.is_superuser
+            or getattr(request.user, 'role', None) == 'teacher'
+        )

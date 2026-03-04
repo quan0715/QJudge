@@ -51,8 +51,10 @@ from .serializers import (
 )
 from .permissions import (
     IsContestOwnerOrAdmin,
+    IsContestLifecycleOwner,
     IsContestParticipant,
-    get_user_role_in_contest
+    get_user_role_in_contest,
+    can_manage_contest,
 )
 from .services.export_service import (
     ExportValidationError,
@@ -191,7 +193,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
     def toggle_status(self, request, pk=None):
         """
         Toggle contest status between published and draft.
@@ -218,7 +220,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return Response({'status': contest.status})
 
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
     def archive(self, request, pk=None):
         """
         Archive a contest. This action is irreversible.
@@ -250,17 +252,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         admins = contest.admins.all()
         return Response([{'id': u.id, 'username': u.username} for u in admins])
 
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_admin')
+    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='add_admin')
     def add_admin(self, request, pk=None):
         """
-        Add a user as admin for this contest.
-        Only owner can add admins.
+        Add a user as co-admin for this contest.
+        Only owner (or platform admin) can add co-admins.
         """
         contest = self.get_object()
-        
-        # Only owner can add admins
-        if request.user != contest.owner and not request.user.is_superuser:
-            return Response({'error': 'Only owner can add admins'}, status=status.HTTP_403_FORBIDDEN)
         
         username = request.data.get('username')
         if not username:
@@ -297,17 +295,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'added', 'user': {'id': user.id, 'username': user.username}})
 
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='remove_admin')
+    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='remove_admin')
     def remove_admin(self, request, pk=None):
         """
-        Remove a user from admins.
-        Only owner can remove admins.
+        Remove a user from co-admins.
+        Only owner (or platform admin) can remove co-admins.
         """
         contest = self.get_object()
-        
-        # Only owner can remove admins
-        if request.user != contest.owner and not request.user.is_superuser:
-            return Response({'error': 'Only owner can remove admins'}, status=status.HTTP_403_FORBIDDEN)
         
         user_id = request.data.get('user_id')
         if not user_id:
@@ -336,17 +330,15 @@ class ContestViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         """
-        Delete a contest. Only owner can delete.
+        Delete a contest. Only owner or platform_admin can delete.
         """
         contest = self.get_object()
-        
-        # Check ownership (IsContestOwnerOrAdmin permission might allow admins, but let's enforce owner or superuser)
-        if request.user != contest.owner and not request.user.is_superuser:
-             return Response(
+        lifecycle_perm = IsContestLifecycleOwner()
+        if not lifecycle_perm.has_object_permission(request, self, contest):
+            return Response(
                 {'error': 'Only the contest owner can delete this contest.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-            
         return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
@@ -621,10 +613,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         contest = self.get_object()
         user = request.user
         
-        role = get_user_role_in_contest(user, contest)
-        
-        # Admin/Teacher can always enter
-        if role in ['admin', 'owner', 'teacher']:
+        # Managers (platform_admin / owner / co_owner) can always enter
+        if can_manage_contest(user, contest):
             return Response({'message': 'Entered successfully (Privileged)'})
 
         if contest.status == 'draft':
@@ -1133,21 +1123,31 @@ class ClarificationViewSet(viewsets.ModelViewSet):
         # Base queryset
         queryset = Clarification.objects.filter(contest_id=contest_id).select_related('author', 'problem')
         
-        # Admin/Teacher see all
-        contest = Contest.objects.get(id=contest_id)
-        role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'owner', 'teacher']:
+        # Managers (platform_admin / owner / co_owner) see all
+        contest = get_object_or_404(Contest, id=contest_id)
+        if can_manage_contest(user, contest):
             return queryset
             
-        # Students see their own + public ones
+        # Participants see their own + public ones
         return queryset.filter(
             Q(author=user) | Q(is_public=True)
         )
     
     def perform_create(self, serializer):
         contest_id = self.kwargs.get('contest_pk')
-        contest = Contest.objects.get(id=contest_id)
+        contest = get_object_or_404(Contest, id=contest_id)
         serializer.save(author=self.request.user, contest=contest, status='pending', is_public=True)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        if not can_manage_contest(self.request.user, instance.contest) and instance.author != self.request.user:
+            raise PermissionDenied("You can only edit your own clarifications")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not can_manage_contest(self.request.user, instance.contest) and instance.author != self.request.user:
+            raise PermissionDenied("You can only delete your own clarifications")
+        instance.delete()
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def reply(self, request, pk=None, contest_pk=None):
@@ -1187,16 +1187,14 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
              If validation passes: (participant, None)
              If validation fails: (None, Response)
     """
-    # Admin/Teacher bypass for Layer 1 and 2
-    if allow_admin_bypass:
-        role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'owner', 'teacher']:
-            try:
-                participant = ContestParticipant.objects.get(contest=contest, user=user)
-                return participant, None
-            except ContestParticipant.DoesNotExist:
-                # Admins/Teachers don't need to be registered
-                return None, None
+    # Manager bypass for Layer 1 and 2 (platform_admin / owner / co_owner)
+    if allow_admin_bypass and can_manage_contest(user, contest):
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user=user)
+            return participant, None
+        except ContestParticipant.DoesNotExist:
+            # Managers don't need to be registered
+            return None, None
     
     # Layer 1: Contest status
     if contest.status != 'published':
@@ -1248,7 +1246,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         """
         Signal that user is starting the exam (entering full screen).
         """
-        contest = Contest.objects.get(id=contest_pk)
+        contest = get_object_or_404(Contest, id=contest_pk)
         
         # 3-layer permission check (don't require in_progress for start)
         participant, error_response = validate_exam_operation(
@@ -1315,7 +1313,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         User manually finishes the exam.
         Allowed in: in_progress, locked, paused states.
         """
-        contest = Contest.objects.get(id=contest_pk)
+        contest = get_object_or_404(Contest, id=contest_pk)
         
         # Don't require in_progress - allow submission from in_progress, locked, or paused
         participant, error_response = validate_exam_operation(
@@ -1365,12 +1363,11 @@ class ExamViewSet(viewsets.GenericViewSet):
         POST /api/v1/contests/{id}/exam/heartbeat
         Body: { "is_focused": true, "is_fullscreen": true }
         """
-        contest = Contest.objects.get(id=contest_pk)
+        contest = get_object_or_404(Contest, id=contest_pk)
         user = request.user
         
         # Admin/Teacher bypass
-        role = get_user_role_in_contest(user, contest)
-        if role in ['admin', 'owner', 'teacher']:
+        if can_manage_contest(user, contest):
             return Response({'status': 'ok', 'bypass': True})
         
         try:
@@ -1426,7 +1423,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         Log an exam event (tab switch, etc).
         Only logs events when exam is in_progress.
         """
-        contest = Contest.objects.get(id=contest_pk)
+        contest = get_object_or_404(Contest, id=contest_pk)
         
         # 3-layer permission check (require in_progress for event logging)
         participant, error_response = validate_exam_operation(
@@ -1435,9 +1432,8 @@ class ExamViewSet(viewsets.GenericViewSet):
         if error_response:
             return error_response
         
-        # Admin/Teacher bypass - don't log violations
-        role = get_user_role_in_contest(request.user, contest)
-        if role in ['admin', 'owner', 'teacher']:
+        # Manager bypass - don't log violations for platform_admin/owner/co_owner
+        if can_manage_contest(request.user, contest):
             return Response({'status': 'logged', 'locked': False, 'bypass': True})
         
         if participant is None:
@@ -1508,17 +1504,10 @@ class ExamViewSet(viewsets.GenericViewSet):
         """
         # Manual permission check since we can't use permission_classes on helper methods
         # and the main action allows all authenticated users (for POST)
-        contest = Contest.objects.get(id=contest_pk)
+        contest = get_object_or_404(Contest, id=contest_pk)
         user = request.user
         
-        is_allowed = (
-            user.is_staff or 
-            user.is_superuser or 
-            contest.owner_id == user.id or
-            contest.admins.filter(pk=user.pk).exists()
-        )
-        
-        if not is_allowed:
+        if not can_manage_contest(user, contest):
             return Response(
                 {'detail': 'You do not have permission to perform this action.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1540,14 +1529,15 @@ class ContestAnnouncementViewSet(viewsets.ModelViewSet):
         contest_id = self.kwargs.get('contest_pk')
         return ContestAnnouncement.objects.filter(contest_id=contest_id).order_by('-created_at')
     
+    def _check_owner_permission(self, contest):
+        if not can_manage_contest(self.request.user, contest):
+            raise PermissionDenied("Only contest owner or admin can manage announcements")
+
     def perform_create(self, serializer):
         contest_id = self.kwargs.get('contest_pk')
-        contest = Contest.objects.get(id=contest_id)
-        
+        contest = get_object_or_404(Contest, id=contest_id)
+        self._check_owner_permission(contest)
         user = self.request.user
-        if not (user.is_staff or user == contest.owner):
-            raise permissions.PermissionDenied("Only contest owner can post announcements")
-            
         serializer.save(created_by=user, contest=contest)
         
         # Log activity
@@ -1558,6 +1548,14 @@ class ContestAnnouncementViewSet(viewsets.ModelViewSet):
             'announce', 
             f"Posted announcement: {serializer.validated_data.get('title')}"
         )
+
+    def perform_update(self, serializer):
+        self._check_owner_permission(serializer.instance.contest)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_owner_permission(instance.contest)
+        instance.delete()
 
 
 class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1598,10 +1596,9 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         contest = contest_problem.contest
         user = request.user
-        role = get_user_role_in_contest(user, contest)
 
-        # Privileged users (owner/admin/co-admin) can always view problem details
-        is_privileged = role in ('admin', 'owner', 'teacher')
+        # Privileged users (platform_admin / owner / co_owner) can always view problem details
+        is_privileged = can_manage_contest(user, contest)
 
         if not is_privileged:
             # Check if registered
@@ -1665,9 +1662,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
 
-        # Check permissions using contest role
-        role = get_user_role_in_contest(user, contest)
-        if role not in ('admin', 'owner', 'teacher'):
+        if not can_manage_contest(user, contest):
              return Response(
                 {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1734,9 +1729,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
 
-        # Check permissions using contest role
-        role = get_user_role_in_contest(user, contest)
-        if role not in ('admin', 'owner', 'teacher'):
+        if not can_manage_contest(user, contest):
              return Response(
                 {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1798,8 +1791,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Contest, pk=contest_pk)
 
     def _is_admin(self, contest):
-        role = get_user_role_in_contest(self.request.user, contest)
-        return role in ['admin', 'owner', 'teacher']
+        return can_manage_contest(self.request.user, contest)
 
     def _ensure_admin_permission(self, contest):
         if not self._is_admin(contest):
@@ -1942,8 +1934,7 @@ class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         contest = get_object_or_404(Contest, pk=contest_pk)
         
-        role = get_user_role_in_contest(user, contest)
-        if role not in ['admin', 'owner', 'teacher']:
+        if not can_manage_contest(user, contest):
             return ContestActivity.objects.none()
             
         return ContestActivity.objects.filter(contest=contest).order_by('-created_at')
@@ -2044,8 +2035,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         # Check if results are published
         if not contest.results_published:
-            role = get_user_role_in_contest(request.user, contest)
-            if role not in ('owner', 'admin', 'teacher'):
+            if not can_manage_contest(request.user, contest):
                 return Response(
                     {'error': 'Results have not been published yet.'},
                     status=status.HTTP_403_FORBIDDEN
@@ -2072,8 +2062,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def all_answers(self, request, contest_pk=None):
         """List all answers for all students (TA/admin only)."""
         contest = self._get_contest(contest_pk)
-        role = get_user_role_in_contest(request.user, contest)
-        if role not in ('owner', 'admin', 'teacher'):
+        if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can view all answers.')
 
         answers = ExamAnswer.objects.filter(
@@ -2094,8 +2083,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def grade_answer(self, request, contest_pk=None, pk=None):
         """Grade a single answer (TA/admin only)."""
         contest = self._get_contest(contest_pk)
-        role = get_user_role_in_contest(request.user, contest)
-        if role not in ('owner', 'admin', 'teacher'):
+        if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can grade answers.')
 
         answer_obj = get_object_or_404(

@@ -161,7 +161,7 @@ def test_add_admin_requires_owner(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data.get("error") == "Only owner can add admins"
+    # Permission is now enforced at the decorator level (IsContestLifecycleOwner)
 
 
 @pytest.mark.django_db
@@ -294,7 +294,7 @@ def test_remove_admin_requires_owner(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data.get("error") == "Only owner can remove admins"
+    # Permission is now enforced at the decorator level (IsContestLifecycleOwner)
 
 
 @pytest.mark.django_db
