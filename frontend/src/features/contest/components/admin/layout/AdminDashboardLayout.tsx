@@ -26,6 +26,8 @@ import styles from "./AdminDashboardLayout.module.scss";
 interface AdminDashboardLayoutProps {
   contestName: string;
   activePanel: AdminPanelId;
+  availablePanels: AdminPanelId[];
+  fullBleed?: boolean;
   examMode?: boolean;
   onPanelChange: (panel: AdminPanelId) => void;
   onBack: () => void;
@@ -36,18 +38,27 @@ interface AdminDashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS: { id: AdminPanelId; label: string; examLabel?: string; icon: typeof Dashboard }[] = [
-  { id: "overview", label: "Overview", icon: Dashboard },
-  { id: "logs", label: "Event Logs", icon: Activity },
-  { id: "participants", label: "Participants", icon: UserMultiple },
-  { id: "exam", label: "Problem Management", examLabel: "Exam Management", icon: Education },
-  { id: "grading", label: "Grading", examLabel: "Exam Grading", icon: TaskComplete },
-  { id: "settings", label: "Settings", icon: Settings },
-];
+const NAV_ITEMS: Record<
+  AdminPanelId,
+  { label: string; examLabel?: string; icon: typeof Dashboard }
+> = {
+  overview: { label: "Overview", icon: Dashboard },
+  logs: { label: "Event Logs", icon: Activity },
+  participants: { label: "Participants", icon: UserMultiple },
+  problem_editor: {
+    label: "Problem Management",
+    examLabel: "Exam Management",
+    icon: Education,
+  },
+  grading: { label: "Grading", examLabel: "Exam Grading", icon: TaskComplete },
+  settings: { label: "Settings", icon: Settings },
+};
 
 export default function AdminDashboardLayout({
   contestName,
   activePanel,
+  availablePanels,
+  fullBleed,
   examMode,
   onPanelChange,
   onBack,
@@ -58,7 +69,6 @@ export default function AdminDashboardLayout({
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
-  const fullBleed = activePanel === "exam" || activePanel === "grading";
 
   return (
     <div className={styles.layout}>
@@ -110,16 +120,21 @@ export default function AdminDashboardLayout({
         className={styles.sidenav}
       >
         <SideNavItems>
-          {NAV_ITEMS.map(({ id, label, examLabel, icon: Icon }) => (
-            <SideNavLink
-              key={id}
-              renderIcon={Icon}
-              isActive={activePanel === id}
-              onClick={() => onPanelChange(id)}
-            >
-              {examMode && examLabel ? examLabel : label}
-            </SideNavLink>
-          ))}
+          {availablePanels.map((id) => {
+            const item = NAV_ITEMS[id];
+            if (!item) return null;
+            const { label, examLabel, icon: Icon } = item;
+            return (
+              <SideNavLink
+                key={id}
+                renderIcon={Icon}
+                isActive={activePanel === id}
+                onClick={() => onPanelChange(id)}
+              >
+                {examMode && examLabel ? examLabel : label}
+              </SideNavLink>
+            );
+          })}
         </SideNavItems>
       </SideNav>
 

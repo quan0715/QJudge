@@ -36,3 +36,8 @@
 - `docs:` 文件
 - `refactor:` 重構
 - `test:` 測試
+
+## Contest 擴充參考
+
+- Contest 前端擴充（tab/panel/module/route）請先看：
+  - [Contest 頁面擴充架構指南](/docs/zh-TW/contest-extension-architecture)

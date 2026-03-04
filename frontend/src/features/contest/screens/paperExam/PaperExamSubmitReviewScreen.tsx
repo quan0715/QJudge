@@ -77,6 +77,7 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
       ? getPaperSubmitReviewBackPath({
           contestId,
           examStatus: contest?.examStatus,
+          cheatDetectionEnabled: contest?.cheatDetectionEnabled,
           precheckPassed: hasExamPrecheckPassed(contestId),
         })
       : "";

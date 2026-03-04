@@ -8,7 +8,15 @@ vi.mock("react-i18next", () => ({
 
 const baseProps = {
   contestName: "Contest A",
-  activePanel: "exam" as const,
+  activePanel: "problem_editor" as const,
+  availablePanels: [
+    "overview",
+    "logs",
+    "participants",
+    "problem_editor",
+    "grading",
+    "settings",
+  ] as const,
   onPanelChange: vi.fn(),
   onBack: vi.fn(),
   onExport: vi.fn(),

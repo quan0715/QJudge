@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 
@@ -25,24 +25,28 @@ import { computeMockKpi } from "./mockData";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 
-const PANEL_KEYS: readonly AdminPanelId[] = [
-  "overview",
-  "logs",
-  "participants",
-  "exam",
-  "grading",
-  "settings",
-];
+const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
+  exam: "problem_editor",
+};
 
-const getActivePanel = (value: string | null): AdminPanelId =>
-  PANEL_KEYS.includes(value as AdminPanelId) ? (value as AdminPanelId) : "overview";
+const normalizePanelParam = (value: string | null): string | null =>
+  value ? (LEGACY_PANEL_ALIAS[value] ?? value) : value;
+
+const resolveActivePanel = (
+  value: string | null,
+  availablePanels: AdminPanelId[],
+): AdminPanelId => {
+  const normalized = normalizePanelParam(value);
+  return availablePanels.includes(normalized as AdminPanelId)
+    ? (normalized as AdminPanelId)
+    : "overview";
+};
 
 const AdminDashboardInner = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const activePanel = getActivePanel(searchParams.get("panel"));
   const { contest, loading } = useContest();
   const { participants } = useContestAdmin();
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
@@ -53,9 +57,19 @@ const AdminDashboardInner = () => {
 
   const kpi = useMemo(() => computeMockKpi(participants), [participants]);
   const [exportOpen, setExportOpen] = useState(false);
+  const availablePanels = useMemo(
+    () => contestModule.admin.getAvailablePanels(contest),
+    [contestModule, contest],
+  );
+  const panelParam = searchParams.get("panel");
+  const activePanel = useMemo(
+    () => resolveActivePanel(panelParam, availablePanels),
+    [panelParam, availablePanels],
+  );
 
   const isExamMode = contestModule.admin.editorKind === "paper_exam";
   const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
+  const isFullBleed = contestModule.admin.isFullBleedPanel(activePanel);
 
   const handleBack = () => {
     navigate(`/contests/${contestId}`);
@@ -76,6 +90,29 @@ const AdminDashboardInner = () => {
       return next;
     });
   };
+
+  useEffect(() => {
+    const normalized = normalizePanelParam(panelParam);
+    if (
+      (panelParam === null && activePanel === "overview") ||
+      panelParam === activePanel
+    ) {
+      return;
+    }
+    if (normalized === activePanel && panelParam === normalized) {
+      return;
+    }
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (activePanel === "overview") {
+        next.delete("panel");
+      } else {
+        next.set("panel", activePanel);
+      }
+      return next;
+    });
+  }, [activePanel, panelParam, setSearchParams]);
 
   if (loading && !contest) {
     return (
@@ -102,7 +139,7 @@ const AdminDashboardInner = () => {
         return <ContestLogsScreen />;
       case "participants":
         return <ContestParticipantsScreen />;
-      case "exam": {
+      case "problem_editor": {
         if (!contest) return null;
         const useExamEditor = contestModule.admin.editorKind === "paper_exam";
         return useExamEditor ? (
@@ -130,6 +167,8 @@ const AdminDashboardInner = () => {
     <AdminDashboardLayout
       contestName={contest?.name || "Loading..."}
       activePanel={activePanel}
+      availablePanels={availablePanels}
+      fullBleed={isFullBleed}
       examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}

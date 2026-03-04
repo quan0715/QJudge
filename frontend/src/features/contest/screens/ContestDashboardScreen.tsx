@@ -8,18 +8,11 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
-// Student Components
-import { ContestOverview } from "@/features/contest/components/ContestOverview";
-import { ContestProblemList } from "@/features/contest/components/ContestProblemList";
-import PaperExamResultsList from "@/features/contest/components/exam/PaperExamResultsList";
-import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmissionListScreen";
-import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
-import ContestQAScreen from "@/features/contest/screens/ContestQAScreen";
-
 import {
   type ContestTabKey,
 } from "@/features/contest/tabConfig";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
+import { resolveStudentTabRenderer } from "@/features/contest/modules/StudentTabRendererRegistry";
 
 const ContestDashboard = () => {
   const { t } = useTranslation('contest');
@@ -63,25 +56,30 @@ const ContestDashboard = () => {
     () => getContestTypeModule(contest?.contestType),
     [contest?.contestType],
   );
-
-  const availableTabKeys = useMemo(
-    () => contestModule.student.getTabs(contest).map((tab) => tab.key),
-    [contest, contestModule]
+  const availableTabs = useMemo(
+    () => contestModule.student.getTabs(contest),
+    [contest, contestModule],
   );
 
-  const selectedTab = availableTabKeys.includes(selectedTabParam as ContestTabKey)
+  const availableTabKeys = useMemo(
+    () => availableTabs.map((tab) => tab.key),
+    [availableTabs]
+  );
+
+  const selectedTabKey = availableTabKeys.includes(selectedTabParam as ContestTabKey)
     ? selectedTabParam
     : availableTabKeys[0];
+  const selectedTab = availableTabs.find((tab) => tab.key === selectedTabKey) ?? availableTabs[0];
 
   useEffect(() => {
     if (!contest) return;
-    if (selectedTabParam === selectedTab) return;
+    if (selectedTabParam === selectedTabKey) return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set("tab", selectedTab);
+      next.set("tab", selectedTabKey);
       return next;
     });
-  }, [contest, selectedTab, selectedTabParam, setSearchParams]);
+  }, [contest, selectedTabKey, selectedTabParam, setSearchParams]);
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -120,47 +118,18 @@ const ContestDashboard = () => {
 
   // Guard against null contest
   if (!contest) return renderSkeleton();
+  if (!selectedTab) return null;
 
   const renderTabContent = () => {
-    switch (selectedTab) {
-      case "overview":
-        return (
-          <ContestOverview
-            contest={contest!}
-            maxWidth="1056px"
-          />
-        );
-      case "problems":
-        if (contestModule.student.problemsViewKind === "paper_exam") {
-          return (
-            <PaperExamResultsList
-              contest={contest}
-              maxWidth="1056px"
-            />
-          );
-        }
-        return (
-          <ContestProblemList
-            contest={contest}
-            problems={contest.problems || []}
-            myRank={myRank}
-            maxWidth="1056px"
-          />
-        );
-      case "submissions":
-        return <ContestSubmissionListScreen maxWidth="1056px" />;
-      case "standings":
-        return <ContestStandingsScreen maxWidth="1056px" />;
-      case "clarifications":
-        return <ContestQAScreen maxWidth="1056px" />;
-      default:
-        return (
-          <ContestOverview
-            contest={contest!}
-            maxWidth="1056px"
-          />
-        );
-    }
+    const render = resolveStudentTabRenderer(
+      contestModule,
+      selectedTab.contentKind,
+    );
+    return render({
+      contest,
+      myRank,
+      maxWidth: "1056px",
+    });
   };
 
   return (

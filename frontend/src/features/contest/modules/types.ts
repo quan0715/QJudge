@@ -1,16 +1,37 @@
-import type { ContestDetail, ContestType } from "@/core/entities/contest.entity";
+import type { ReactNode } from "react";
+import type { ContestDetail, ContestType, ScoreboardRow } from "@/core/entities/contest.entity";
 import type { ContestTabSpec } from "@/features/contest/tabConfig";
 
 export type AdminPanelId =
   | "overview"
   | "logs"
   | "participants"
-  | "exam"
+  | "problem_editor"
   | "grading"
   | "settings";
 
-export type ContestStudentProblemsViewKind = "coding" | "paper_exam";
 export type ContestAdminEditorKind = "coding" | "paper_exam";
+export type ContestStudentTabContentKind =
+  | "overview"
+  | "coding_problems"
+  | "paper_exam_problems"
+  | "submissions"
+  | "standings"
+  | "clarifications";
+
+export interface ContestStudentTabDefinition extends ContestTabSpec {
+  contentKind: ContestStudentTabContentKind;
+}
+
+export interface ContestStudentTabRenderContext {
+  contest: ContestDetail;
+  myRank: ScoreboardRow | null;
+  maxWidth: string;
+}
+
+export type ContestStudentTabRenderer = (
+  context: ContestStudentTabRenderContext,
+) => ReactNode;
 export type ContestExportTarget =
   | "exam-question"
   | "exam-answer"
@@ -19,8 +40,10 @@ export type ContestExportTarget =
   | "coding-markdown";
 
 export interface ContestStudentModule {
-  problemsViewKind: ContestStudentProblemsViewKind;
-  getTabs: (contest?: ContestDetail | null) => ContestTabSpec[];
+  getTabs: (contest?: ContestDetail | null) => ContestStudentTabDefinition[];
+  getTabRenderers?: () => Partial<
+    Record<ContestStudentTabContentKind, ContestStudentTabRenderer>
+  >;
   getAnsweringEntryPath: (
     contestId: string,
     contest?: ContestDetail | null,
@@ -29,6 +52,8 @@ export interface ContestStudentModule {
 
 export interface ContestAdminModule {
   editorKind: ContestAdminEditorKind;
+  getAvailablePanels: (contest?: ContestDetail | null) => AdminPanelId[];
+  isFullBleedPanel: (panel: AdminPanelId) => boolean;
   getExportTargets: (contest?: ContestDetail | null) => ContestExportTarget[];
   shouldShowJsonActions: (activePanel: AdminPanelId) => boolean;
 }

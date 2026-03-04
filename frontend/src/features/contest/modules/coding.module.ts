@@ -6,7 +6,11 @@ import {
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import { toContestTabSpecs, type ContestTabKey } from "@/features/contest/tabConfig";
-import type { ContestTypeModule } from "@/features/contest/modules/types";
+import type {
+  AdminPanelId,
+  ContestStudentTabContentKind,
+  ContestTypeModule,
+} from "@/features/contest/modules/types";
 
 const getFirstProblemId = (contest?: ContestDetail | null): string | undefined => {
   if (!contest?.problems?.length) return undefined;
@@ -17,8 +21,21 @@ const getFirstProblemId = (contest?: ContestDetail | null): string | undefined =
 };
 
 const getCodingTabs = (contest?: ContestDetail | null) => {
+  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
+    overview: "overview",
+    problems: "coding_problems",
+    submissions: "submissions",
+    standings: "standings",
+    clarifications: "clarifications",
+  };
+  const toTabDefinitions = (keys: ContestTabKey[]) =>
+    toContestTabSpecs(keys).map((tab) => ({
+      ...tab,
+      contentKind: keyToContentKind[tab.key],
+    }));
+
   if (!contest || !isContestParticipant(contest)) {
-    return toContestTabSpecs(["overview"]);
+    return toTabDefinitions(["overview"]);
   }
 
   const tabs: ContestTabKey[] = ["overview"];
@@ -37,13 +54,21 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
     tabs.push("clarifications");
   }
 
-  return toContestTabSpecs(tabs);
+  return toTabDefinitions(tabs);
 };
+
+const CODING_ADMIN_PANELS: AdminPanelId[] = [
+  "overview",
+  "logs",
+  "participants",
+  "problem_editor",
+  "grading",
+  "settings",
+];
 
 export const codingContestModule: ContestTypeModule = {
   type: "coding",
   student: {
-    problemsViewKind: "coding",
     getTabs: (contest) => getCodingTabs(contest),
     getAnsweringEntryPath: (contestId, contest) => {
       const firstProblemId = getFirstProblemId(contest);
@@ -54,6 +79,9 @@ export const codingContestModule: ContestTypeModule = {
   },
   admin: {
     editorKind: "coding",
+    getAvailablePanels: () => CODING_ADMIN_PANELS,
+    isFullBleedPanel: (panel) =>
+      panel === "problem_editor" || panel === "grading",
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
     shouldShowJsonActions: () => false,
   },

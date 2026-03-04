@@ -102,18 +102,31 @@ describe("contestRoutePolicy", () => {
   });
 
   it("computes submit-review back path", () => {
+    // cheatDetection enabled + paused → precheck
     expect(
       getPaperSubmitReviewBackPath({
         contestId: "42",
         examStatus: "paused",
+        cheatDetectionEnabled: true,
         precheckPassed: false,
       }),
     ).toBe("/contests/42/exam-precheck");
+    // cheatDetection enabled + in_progress + precheck passed → answering
     expect(
       getPaperSubmitReviewBackPath({
         contestId: "42",
         examStatus: "in_progress",
+        cheatDetectionEnabled: true,
         precheckPassed: true,
+      }),
+    ).toBe("/contests/42/paper-exam/answering");
+    // cheatDetection disabled → always answering, even if precheckPassed is false
+    expect(
+      getPaperSubmitReviewBackPath({
+        contestId: "42",
+        examStatus: "in_progress",
+        cheatDetectionEnabled: false,
+        precheckPassed: false,
       }),
     ).toBe("/contests/42/paper-exam/answering");
   });

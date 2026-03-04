@@ -87,15 +87,34 @@ fi
 if [ "$SKIP_E2E" = "true" ]; then
     print_warning "已跳過 E2E 檢查（SKIP_E2E=true）"
 else
+    # 停止 dev 環境避免 port 衝突（dev 和 test 共用 port 如 8001）
+    DEV_WAS_RUNNING=false
+    if docker compose -f "$PROJECT_ROOT/docker-compose.dev.yml" ps --status running -q 2>/dev/null | grep -q .; then
+        DEV_WAS_RUNNING=true
+        print_step "暫停 dev 環境以避免 port 衝突..."
+        docker compose -f "$PROJECT_ROOT/docker-compose.dev.yml" stop
+    fi
+
     print_step "執行前端 E2E 測試..."
     cd frontend
+    E2E_RESULT=0
     if E2E_CLEANUP=true npm run test:e2e; then
         print_success "前端 E2E 測試通過"
     else
         print_error "前端 E2E 測試失敗"
-        exit 1
+        E2E_RESULT=1
     fi
     cd "$PROJECT_ROOT"
+
+    # 恢復 dev 環境
+    if [ "$DEV_WAS_RUNNING" = "true" ]; then
+        print_step "恢復 dev 環境..."
+        docker compose -f "$PROJECT_ROOT/docker-compose.dev.yml" start
+    fi
+
+    if [ "$E2E_RESULT" -ne 0 ]; then
+        exit 1
+    fi
 fi
 
 # ==================== 6. Docker 環境啟動測試（可選）====================

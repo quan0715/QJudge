@@ -22,7 +22,12 @@
     },
     {
       "id": "developer-guide",
-      "items": ["contributing", "dev-setup", "e2e-testing"]
+      "items": [
+        "contributing",
+        "contest-extension-architecture",
+        "dev-setup",
+        "e2e-testing"
+      ]
     }
   ],
   "defaultDoc": "overview"

@@ -40,25 +40,33 @@ describe("contest type module registry", () => {
   it("returns coding module by default", () => {
     const module = getContestTypeModule(undefined);
     expect(module.type).toBe("coding");
-    expect(module.student.problemsViewKind).toBe("coding");
     expect(module.admin.editorKind).toBe("coding");
     expect(module.admin.getExportTargets()).toEqual([
       "coding-pdf",
       "coding-markdown",
     ]);
+    expect(module.admin.getAvailablePanels()).toEqual([
+      "overview",
+      "logs",
+      "participants",
+      "problem_editor",
+      "grading",
+      "settings",
+    ]);
+    expect(module.admin.isFullBleedPanel("problem_editor")).toBe(true);
+    expect(module.admin.isFullBleedPanel("overview")).toBe(false);
   });
 
   it("returns paper exam module for paper_exam contests", () => {
     const module = getContestTypeModule("paper_exam");
     expect(module.type).toBe("paper_exam");
-    expect(module.student.problemsViewKind).toBe("paper_exam");
     expect(module.admin.editorKind).toBe("paper_exam");
     expect(module.admin.getExportTargets()).toEqual([
       "exam-question",
       "exam-answer",
       "exam-json",
     ]);
-    expect(module.admin.shouldShowJsonActions("exam")).toBe(true);
+    expect(module.admin.shouldShowJsonActions("problem_editor")).toBe(true);
     expect(module.admin.shouldShowJsonActions("overview")).toBe(false);
   });
 
@@ -105,6 +113,8 @@ describe("contest type module registry", () => {
       "submissions",
       "clarifications",
     ]);
+    const problemsTab = module.student.getTabs(inProgress).find((tab) => tab.key === "problems");
+    expect(problemsTab?.contentKind).toBe("coding_problems");
   });
 
   it("keeps paper-exam tab visibility rules", () => {
@@ -128,5 +138,7 @@ describe("contest type module registry", () => {
       "problems",
       "clarifications",
     ]);
+    const problemsTab = module.student.getTabs(inProgress).find((tab) => tab.key === "problems");
+    expect(problemsTab?.contentKind).toBe("paper_exam_problems");
   });
 });
