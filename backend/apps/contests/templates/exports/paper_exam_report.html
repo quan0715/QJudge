@@ -18,9 +18,10 @@
         {{ labels.student }}: {{ student_name }} &nbsp;&middot;&nbsp;
         {{ labels.generated }}: {{ download_time }}
       </div>
+      {{ score_line|safe }}
     </div>
 
-    {{ score_cards|safe }}
+    {{ overview_table|safe }}
 
     {{ question_details|safe }}
   </body>

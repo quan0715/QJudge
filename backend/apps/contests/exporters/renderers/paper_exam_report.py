@@ -57,6 +57,10 @@ class PaperExamReportRenderer(BaseRenderer):
 
     def render_html(self) -> str:
         """Render the full HTML document for PDF conversion."""
+        questions = self._get_questions()
+        answers_map = self._get_answers_map()
+        is_zh = self.is_chinese
+
         context = {
             'language': self.language,
             'contest_name': inline_markdown(self.contest.name),
@@ -69,8 +73,9 @@ class PaperExamReportRenderer(BaseRenderer):
             },
             'base_css': self._get_base_css(),
             'report_css': self._get_report_css(),
-            'score_cards': self._render_score_summary(),
-            'question_details': self._render_questions(),
+            'score_line': self._render_score_line(questions, answers_map, is_zh),
+            'overview_table': self._render_overview_table(questions, answers_map, is_zh),
+            'question_details': self._render_questions(questions, answers_map, is_zh),
         }
         return render_to_string('exports/paper_exam_report.html', context)
 
@@ -136,15 +141,11 @@ class PaperExamReportRenderer(BaseRenderer):
         return self._answers_cache
 
     # ----------------------------------------------------------------
-    # Score summary — 2×2 grid layout
+    # Score line — inline within header
     # ----------------------------------------------------------------
 
-    def _render_score_summary(self) -> str:
-        """Render score headline + per-question overview table."""
-        questions = self._get_questions()
-        answers_map = self._get_answers_map()
-        is_zh = self.is_chinese
-
+    def _render_score_line(self, questions, answers_map, is_zh) -> str:
+        """Render score as a single line inside the report header."""
         max_score = sum(q.score for q in questions)
 
         total_score = 0.0
@@ -163,23 +164,20 @@ class PaperExamReportRenderer(BaseRenderer):
         correct_rate = (correct_count / graded_count * 100) if graded_count > 0 else 0
         score_display = int(total_score) if total_score == int(total_score) else f"{total_score:.1f}"
 
+        score_label = '總分' if is_zh else 'Score'
         rate_label = '正確率' if is_zh else 'Correct rate'
 
-        parts = [
-            f'<div class="score-headline">',
-            f'<div class="score-headline-primary">{score_display}'
-            f'<span class="score-headline-max"> / {max_score}</span></div>',
-            f'<div class="score-headline-secondary">'
-            f'{rate_label} <span class="score-rate">{correct_rate:.0f}%</span>'
-            f'</div>',
-            f'</div>',
-            self._render_overview_table(questions, answers_map, is_zh),
-        ]
-        return '\n'.join(parts)
+        return (
+            f'<div class="score-line">'
+            f'{score_label}: <span class="score-value">{score_display} / {max_score}</span>'
+            f' &nbsp;&middot;&nbsp; '
+            f'{rate_label}: <span class="score-value">{correct_rate:.0f}%</span>'
+            f'</div>'
+        )
 
     def _render_overview_table(self, questions, answers_map, is_zh) -> str:
         """Render a compact per-question overview table."""
-        col_q = '#'
+        col_q = '題號' if is_zh else 'No.'
         col_type = '題型' if is_zh else 'Type'
         col_status = '狀態' if is_zh else 'Status'
         col_score = '得分' if is_zh else 'Score'
@@ -201,12 +199,13 @@ class PaperExamReportRenderer(BaseRenderer):
             else:
                 score_display = f'- / {q.score}'
 
+            # Overview uses icon-only for compact scanning
             rows.append(
                 f'<tr class="overview-row">'
                 f'<td class="overview-cell overview-cell-q">Q{idx}</td>'
                 f'<td class="overview-cell overview-cell-type">{type_label}</td>'
                 f'<td class="overview-cell overview-cell-status">'
-                f'<span class="status-text {status["status_class"]}">{status["icon"]} {status["label"]}</span></td>'
+                f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
                 f'<td class="overview-cell overview-cell-score" style="color:{status["color"]}">'
                 f'{score_display}</td>'
                 f'</tr>'
@@ -229,12 +228,8 @@ class PaperExamReportRenderer(BaseRenderer):
     # Question rendering
     # ----------------------------------------------------------------
 
-    def _render_questions(self) -> str:
-        """Render per-question detail cards."""
-        questions = self._get_questions()
-        answers_map = self._get_answers_map()
-        is_zh = self.is_chinese
-
+    def _render_questions(self, questions, answers_map, is_zh) -> str:
+        """Render per-question detail blocks."""
         section_label = '逐題詳情' if is_zh else 'Question Details'
         parts = [f'<div class="section-title">{section_label}</div>']
 
@@ -418,13 +413,11 @@ class PaperExamReportRenderer(BaseRenderer):
         correct_letters = {self._index_to_letter(idx) for idx in correct_indices}
 
         # Answer summary line: "你的答案: B · 正確答案: D"
+        # (unanswered already shown in heading, no need to repeat)
         if has_ans or correct_letters:
             lines.append(self._render_choice_answer_summary(
                 student_letters, correct_letters, student_indices == correct_indices and has_ans, is_zh
             ))
-        elif not has_ans:
-            no_label = '未作答' if is_zh else 'Unanswered'
-            lines.append(f'<span class="no-answer-text">⚠ {no_label}</span>')
 
         return '\n'.join(lines)
 
@@ -459,6 +452,8 @@ class PaperExamReportRenderer(BaseRenderer):
         if answer and answer.answer:
             student_text = answer.answer.get('text', '')
 
+        # Only show student answer block if they answered
+        # (unanswered already shown in heading, no need to repeat)
         if student_text:
             ans_label = '你的回答' if is_zh else 'Your Answer'
             lines.append(
@@ -467,9 +462,6 @@ class PaperExamReportRenderer(BaseRenderer):
                 f'<div class="answer-block-content">{render_markdown(student_text)}</div>'
                 f'</div>'
             )
-        else:
-            no_label = '未作答' if is_zh else 'Unanswered'
-            lines.append(f'<span class="no-answer-text">⚠ {no_label}</span>')
 
         if question.correct_answer:
             ref_label = '參考答案' if is_zh else 'Reference Answer'

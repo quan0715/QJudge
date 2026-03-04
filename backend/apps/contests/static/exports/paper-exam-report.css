@@ -15,33 +15,16 @@
  */
 
 /* ============================================================================
-   Score headline — inline, no cards
+   Score line — part of header
    ============================================================================ */
 
-.score-headline {
-  margin-bottom: 32px;
-}
-
-.score-headline-primary {
-  font-size: 28px;
-  font-weight: 600;
-  color: #161616;
-  line-height: 1.2;
-}
-
-.score-headline-max {
-  font-size: 16px;
-  font-weight: 400;
-  color: #8d8d8d;
-}
-
-.score-headline-secondary {
+.score-line {
   font-size: 14px;
   color: #525252;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
-.score-rate {
+.score-value {
   font-weight: 600;
   color: #161616;
 }
@@ -88,11 +71,9 @@
 .overview-th {
   text-align: left;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   color: #8d8d8d;
-  text-transform: uppercase;
-  letter-spacing: 0.32px;
-  padding: 4px 8px 6px 8px;
+  padding: 0 8px 4px 8px;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -101,13 +82,13 @@
 }
 
 .overview-cell {
-  padding: 5px 8px;
+  padding: 4px 8px;
   vertical-align: middle;
   border: none;
 }
 
 .overview-cell-q {
-  font-weight: 600;
+  font-weight: 400;
   color: #161616;
   width: 36px;
   white-space: nowrap;
@@ -124,14 +105,9 @@
 
 .overview-cell-score {
   text-align: right;
-  font-weight: 600;
+  font-weight: 400;
   white-space: nowrap;
   width: 1%;
-}
-
-/* Zebra stripe — very subtle */
-.overview-row:nth-child(even) .overview-cell {
-  background-color: #fafafa;
 }
 
 /* ============================================================================
@@ -223,29 +199,35 @@
   font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
   font-size: 12px;
   background-color: #f4f4f4;
-  border-radius: 3px;
+
   padding: 1px 4px;
   color: #161616;
 }
 
-/* Code blocks */
+/* Code blocks — <pre>, codehilite, highlight */
 .question-prompt pre,
-.answer-block-content pre {
+.answer-block-content pre,
+.question-prompt .codehilite pre,
+.answer-block-content .codehilite pre {
+  font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.5;
   background-color: #f4f4f4;
-  border-radius: 4px;
   padding: 10px 14px;
   margin: 6px 0 10px 0;
   overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .question-prompt pre code,
 .answer-block-content pre code {
   background: transparent;
   padding: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: inherit;
+  word-wrap: inherit;
 }
 
 /* Lists */
@@ -276,7 +258,7 @@
   width: 100%;
   padding: 5px 8px;
   margin-bottom: 1px;
-  border-radius: 3px;
+
   background-color: transparent;
   border: none;
 }
@@ -367,7 +349,7 @@
 .answer-block {
   padding: 10px 12px;
   margin-bottom: 10px;
-  border-radius: 3px;
+
 }
 
 .answer-block-student {
@@ -445,7 +427,7 @@
 
 .highlight {
   background-color: #f4f4f4;
-  border-radius: 4px;
+
   padding: 8px 10px;
   margin: 6px 0 10px 0;
   overflow-x: auto;
