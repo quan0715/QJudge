@@ -94,14 +94,12 @@ function buildOptionDistribution(answers: GradingAnswerRow[]): OptionStat[] {
   const first = answers[0];
   const options = first.questionOptions ?? [];
   const correctAnswer = first.correctAnswer;
+  const questionType = first.questionType;
 
   const correctSet = new Set<number>();
-  if (Array.isArray(correctAnswer)) {
-    for (const v of correctAnswer) {
-      correctSet.add(Number(v));
-    }
-  } else if (correctAnswer !== null && correctAnswer !== undefined) {
-    correctSet.add(Number(correctAnswer));
+  const correctIndexes = normalizeSelectedIndexes(correctAnswer, questionType, options);
+  for (const idx of correctIndexes) {
+    correctSet.add(idx);
   }
 
   const safeOptions = Array.isArray(options) ? options : [];
@@ -114,8 +112,9 @@ function buildOptionDistribution(answers: GradingAnswerRow[]): OptionStat[] {
   for (const a of answers) {
     const content = a.answerContent;
     const raw = content?.selected;
-    const selected = Array.isArray(raw) ? (raw as number[]) : [];
+    const selected = normalizeSelectedIndexes(raw, a.questionType, safeOptions);
     for (const idx of selected) {
+      if (idx < 0 || idx >= safeOptions.length) continue;
       counts.set(idx, (counts.get(idx) ?? 0) + 1);
     }
   }
@@ -127,6 +126,65 @@ function buildOptionDistribution(answers: GradingAnswerRow[]): OptionStat[] {
     percent: total > 0 ? Math.round(((counts.get(idx) ?? 0) / total) * 100) : 0,
     isCorrect: correctSet.has(idx),
   }));
+}
+
+function normalizeSelectedIndexes(
+  value: unknown,
+  questionType: QuestionType,
+  options: string[],
+): number[] {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((entry) => normalizeChoiceIndex(entry, questionType, options))
+      .filter((entry): entry is number => entry !== null);
+    return [...new Set(normalized)];
+  }
+
+  const single = normalizeChoiceIndex(value, questionType, options);
+  return single === null ? [] : [single];
+}
+
+function normalizeChoiceIndex(
+  value: unknown,
+  questionType: QuestionType,
+  options: string[],
+): number | null {
+  if (questionType === "true_false") {
+    return normalizeTrueFalseIndex(value);
+  }
+
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+    return value;
+  }
+
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const numeric = Number(trimmed);
+  if (Number.isInteger(numeric) && numeric >= 0) return numeric;
+
+  const alpha = trimmed.toUpperCase();
+  if (alpha.length === 1 && alpha >= "A" && alpha <= "Z") {
+    return alpha.charCodeAt(0) - 65;
+  }
+
+  const optionIndex = options.findIndex(
+    (opt) => opt.trim().toLowerCase() === trimmed.toLowerCase(),
+  );
+  return optionIndex >= 0 ? optionIndex : null;
+}
+
+function normalizeTrueFalseIndex(value: unknown): number | null {
+  if (value === 0 || value === true) return 0;
+  if (value === 1 || value === false) return 1;
+
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  if (["0", "true", "t", "yes", "y", "a"].includes(normalized)) return 0;
+  if (["1", "false", "f", "no", "n", "b"].includes(normalized)) return 1;
+  return null;
 }
 
 function extractAnswerText(a: GradingAnswerRow): string {

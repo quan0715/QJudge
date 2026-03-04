@@ -9,6 +9,7 @@ import {
   gradeExamAnswer,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
+import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { useContestAdmin } from "@/features/contest/contexts";
 import { isSubjectiveType } from "./gradingTypes";
 import { calculateObjectiveExpectedScore } from "./objectiveRegrade";
@@ -25,6 +26,7 @@ export function useGradingData() {
   const { participants } = useContestAdmin();
 
   const [answers, setAnswers] = useState<GradingAnswerRow[]>([]);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [regradingObjective, setRegradingObjective] = useState(false);
 
@@ -50,11 +52,17 @@ export function useGradingData() {
         getExamQuestions(contestId),
       ]);
 
+      const sortedQuestions = questions
+        .slice()
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      setQuestions(sortedQuestions);
+
       const rows = buildGradingRows(allAnswers, questions, participantMap);
       setAnswers(rows);
     } catch (err) {
       console.error("Failed to fetch grading data:", err);
       setAnswers([]);
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -64,7 +72,7 @@ export function useGradingData() {
     void fetchData();
   }, [fetchData]);
 
-  // ── Derived: unique question info from answers ──
+  // ── Derived: unique question info (source of truth = question list; fallback = answers) ──
   const questionInfoMap = useMemo(() => {
     const map = new Map<
       string,
@@ -76,19 +84,32 @@ export function useGradingData() {
         maxScore: number;
       }
     >();
+
+    // Always include all questions, even if no answer exists.
+    for (let idx = 0; idx < questions.length; idx += 1) {
+      const q = questions[idx];
+      map.set(q.id, {
+        questionId: q.id,
+        questionIndex: (q.order ?? idx) + 1,
+        questionType: q.questionType,
+        prompt: q.prompt ?? "",
+        maxScore: q.score ?? 0,
+      });
+    }
+
+    // Backfill orphan answer rows (defensive: stale/deleted question snapshots).
     for (const a of answers) {
-      if (!map.has(a.questionId)) {
-        map.set(a.questionId, {
-          questionId: a.questionId,
-          questionIndex: a.questionIndex,
-          questionType: a.questionType,
-          prompt: a.questionPrompt,
-          maxScore: a.maxScore,
-        });
-      }
+      if (map.has(a.questionId)) continue;
+      map.set(a.questionId, {
+        questionId: a.questionId,
+        questionIndex: a.questionIndex,
+        questionType: a.questionType,
+        prompt: a.questionPrompt,
+        maxScore: a.maxScore,
+      });
     }
     return map;
-  }, [answers]);
+  }, [questions, answers]);
 
   // ── Derived: answers grouped by question ──
   const answersByQuestion = useMemo(() => {

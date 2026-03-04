@@ -12,10 +12,31 @@ export default function ExamStatisticsPanel() {
   const { questionStats, loading } = useExamStatistics();
   const safeStats = questionStats ?? [];
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const scrollPaneRef = useRef<HTMLDivElement>(null);
 
   const scrollToQuestion = useCallback((questionId: string) => {
     const el = cardRefs.current.get(questionId);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const pane = scrollPaneRef.current;
+    if (!el || !pane) return;
+
+    const paneRect = pane.getBoundingClientRect();
+    const cardRect = el.getBoundingClientRect();
+    const safeMargin = 12;
+    let delta = 0;
+
+    // Minimal-scroll behavior: only move when card is outside current viewport.
+    if (cardRect.top < paneRect.top + safeMargin) {
+      delta = cardRect.top - (paneRect.top + safeMargin);
+    } else if (cardRect.bottom > paneRect.bottom - safeMargin) {
+      delta = cardRect.bottom - (paneRect.bottom - safeMargin);
+    }
+
+    if (delta !== 0) {
+      pane.scrollTo({
+        top: pane.scrollTop + delta,
+        behavior: "smooth",
+      });
+    }
   }, []);
 
   if (loading) {
@@ -62,7 +83,7 @@ export default function ExamStatisticsPanel() {
         </WorkTreeShell>
       </div>
 
-      <div className={styles.scrollPane}>
+      <div className={styles.scrollPane} ref={scrollPaneRef}>
         {safeStats.map((q) => (
           <div
             key={q.questionId}
