@@ -34,6 +34,7 @@
   "examMode": "Cheat Detection",
   "startTime": "Start Time",
   "endTime": "End Time",
+  "participantCount": "Participants",
   "participants": {
     "title": "Participants",
     "add": "Add",
@@ -406,6 +407,9 @@
     "cannotUndo": "This action cannot be undone!",
     "autoLockIn": "Auto-locking in {{seconds}} seconds",
     "warningTimeoutLock": "Warning not acknowledged in time, auto-locked",
+    "fullscreenRecoveryTitle": "Exited fullscreen",
+    "fullscreenRecoveryDesc": "Return to fullscreen within {{seconds}} seconds, or this will count as one violation.",
+    "returnToFullscreen": "Return to Fullscreen",
     "forceSubmitCountdown": "Auto-submit after 3 minutes of being locked",
     "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted"
   },

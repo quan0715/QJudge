@@ -20,6 +20,16 @@ export function useExamState({
   onRefresh,
   requestFullscreen,
 }: UseExamStateProps) {
+  const EVENT_RETRY_DELAY_MS = 1500;
+  const WARNING_TIMEOUT_SECONDS = 30;
+  const WARNING_TIMEOUT_REASON =
+    "Warning timeout: student did not acknowledge warning within 30 seconds";
+
+  type ViolationPayload = {
+    eventType: string;
+    reason: string;
+  };
+
   const [examState, setExamState] = useState<ExamModeState>({
     isActive: false,
     isLocked: false,
@@ -44,9 +54,90 @@ export function useExamState({
     | null
   >(null);
   const [showUnlockNotification, setShowUnlockNotification] = useState(false);
+  const [warningCountdown, setWarningCountdown] = useState<number | null>(null);
 
   const isProcessingEventRef = useRef(false);
+  const queuedViolationRef = useRef<ViolationPayload[]>([]);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const warningTimeoutProcessingRef = useRef(false);
   const prevExamStatusRef = useRef(examStatus);
+
+  const stopWarningCountdown = useCallback(() => {
+    if (warningCountdownTimerRef.current) {
+      clearInterval(warningCountdownTimerRef.current);
+      warningCountdownTimerRef.current = null;
+    }
+    setWarningCountdown(null);
+  }, []);
+
+  const handleWarningTimeout = useCallback(async () => {
+    if (warningTimeoutProcessingRef.current || isBypassed || examStatus === "locked") {
+      return;
+    }
+
+    warningTimeoutProcessingRef.current = true;
+    setPendingApiResponse(true);
+    try {
+      const response = await recordExamEvent(
+        contestId,
+        "warning_timeout",
+        WARNING_TIMEOUT_REASON
+      );
+      if (!response || typeof response !== "object") {
+        throw new Error("Failed to record warning timeout event");
+      }
+
+      setLastApiResponse(response);
+      if (!response.bypass) {
+        setExamState((prev) => ({
+          ...prev,
+          violationCount: response.violation_count ?? prev.violationCount,
+          maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
+          autoUnlockAt: response.auto_unlock_at,
+          isLocked: !!response.locked || prev.isLocked,
+          lockReason: response.locked ? WARNING_TIMEOUT_REASON : prev.lockReason,
+        }));
+      }
+      if (onRefresh) {
+        void onRefresh().catch((refreshError) => {
+          console.error("Failed to refresh exam state after warning timeout:", refreshError);
+        });
+      }
+      queuedViolationRef.current = [];
+    } catch (error) {
+      console.error("Failed to record warning timeout:", error);
+      setLastApiResponse({
+        error: true,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to record warning timeout event",
+      });
+    } finally {
+      setPendingApiResponse(false);
+      warningTimeoutProcessingRef.current = false;
+    }
+  }, [contestId, examStatus, isBypassed, onRefresh]);
+
+  const startWarningCountdown = useCallback(() => {
+    stopWarningCountdown();
+    setWarningCountdown(WARNING_TIMEOUT_SECONDS);
+    warningCountdownTimerRef.current = setInterval(() => {
+      setWarningCountdown((prev) => {
+        if (prev == null) return null;
+        if (prev <= 1) {
+          if (warningCountdownTimerRef.current) {
+            clearInterval(warningCountdownTimerRef.current);
+            warningCountdownTimerRef.current = null;
+          }
+          void handleWarningTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [handleWarningTimeout, stopWarningCountdown]);
 
   useEffect(() => {
     const effectiveIsLocked = examStatus === "locked";
@@ -66,52 +157,116 @@ export function useExamState({
     // Reset processing state when monitoring becomes active
     if (effectiveIsActive && !isBypassed) {
       isProcessingEventRef.current = false;
+      queuedViolationRef.current = [];
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      warningTimeoutProcessingRef.current = false;
+      stopWarningCountdown();
     }
 
     prevExamStatusRef.current = examStatus;
-  }, [examStatus, lockReason, isBypassed]);
+  }, [examStatus, lockReason, isBypassed, stopWarningCountdown]);
 
-  const handleViolation = useCallback(
-    async (eventType: string, reason: string) => {
-      const isCurrentlyLocked = examStatus === "locked";
+  const drainViolationQueue = useCallback(async () => {
+    if (isProcessingEventRef.current) return;
+    if (isBypassed || examStatus === "locked") return;
+    if (queuedViolationRef.current.length === 0) return;
 
-      if (isProcessingEventRef.current || isCurrentlyLocked || isBypassed) {
-        return;
-      }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
 
-      isProcessingEventRef.current = true;
-      setPendingApiResponse(true);
-      setWarningEventType(eventType);
-      setShowWarning(true);
+    isProcessingEventRef.current = true;
+    try {
+      while (queuedViolationRef.current.length > 0) {
+        if (isBypassed || examStatus === "locked") break;
 
-      try {
-        const response = await recordExamEvent(contestId, eventType, reason);
-        setLastApiResponse(response);
+        const currentViolation = queuedViolationRef.current[0];
+        setPendingApiResponse(true);
+        setWarningEventType(currentViolation.eventType);
+        setShowWarning(true);
 
-        if (response && typeof response === "object") {
+        try {
+          const response = await recordExamEvent(
+            contestId,
+            currentViolation.eventType,
+            currentViolation.reason
+          );
+
+          if (!response || typeof response !== "object") {
+            throw new Error("Failed to record exam event");
+          }
+
+          setLastApiResponse(response);
           if (!response.bypass) {
             setExamState((prev) => ({
               ...prev,
               violationCount: response.violation_count ?? prev.violationCount,
               maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
               autoUnlockAt: response.auto_unlock_at,
+              isLocked: !!response.locked || prev.isLocked,
             }));
           }
-        }
-      } catch (error) {
-        console.error("Failed to record event:", error);
-        setLastApiResponse({ error: true });
-      }
+          if (onRefresh) {
+            void onRefresh().catch((refreshError) => {
+              console.error("Failed to refresh exam state after violation:", refreshError);
+            });
+          }
 
-      setPendingApiResponse(false);
+          queuedViolationRef.current.shift();
+
+          if (response.locked) {
+            stopWarningCountdown();
+            queuedViolationRef.current = [];
+            break;
+          }
+          startWarningCountdown();
+        } catch (error) {
+          console.error("Failed to record event:", error);
+          setLastApiResponse({
+            error: true,
+            message: error instanceof Error ? error.message : "Failed to record event",
+          });
+          break;
+        } finally {
+          setPendingApiResponse(false);
+        }
+      }
+    } finally {
+      isProcessingEventRef.current = false;
+      if (
+        queuedViolationRef.current.length > 0 &&
+        !isBypassed &&
+        examStatus !== "locked"
+      ) {
+        retryTimerRef.current = setTimeout(() => {
+          void drainViolationQueue();
+        }, EVENT_RETRY_DELAY_MS);
+      }
+    }
+  }, [contestId, examStatus, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
+
+  const handleViolation = useCallback(
+    async (eventType: string, reason: string) => {
+      if (examStatus === "locked" || isBypassed) {
+        return;
+      }
+      queuedViolationRef.current.push({ eventType, reason });
+      if (!isProcessingEventRef.current) {
+        await drainViolationQueue();
+      }
     },
-    [contestId, examStatus, isBypassed]
+    [drainViolationQueue, examStatus, isBypassed]
   );
 
   const handleWarningClose = useCallback(async () => {
     if (pendingApiResponse) return;
 
     setShowWarning(false);
+    stopWarningCountdown();
 
     if (lastApiResponse?.locked) {
       if (!isFullscreen()) {
@@ -123,7 +278,6 @@ export function useExamState({
       }
       if (onRefresh) onRefresh();
     } else {
-      isProcessingEventRef.current = false;
       if (!isFullscreen()) {
         try {
           await requestFullscreen();
@@ -135,7 +289,15 @@ export function useExamState({
 
     setWarningEventType(null);
     setLastApiResponse(null);
-  }, [pendingApiResponse, lastApiResponse, onRefresh, requestFullscreen]);
+
+    if (
+      !lastApiResponse?.locked &&
+      queuedViolationRef.current.length > 0 &&
+      !isProcessingEventRef.current
+    ) {
+      void drainViolationQueue();
+    }
+  }, [drainViolationQueue, pendingApiResponse, lastApiResponse, onRefresh, requestFullscreen, stopWarningCountdown]);
 
   const handleUnlockContinue = useCallback(async () => {
     setShowUnlockNotification(false);
@@ -148,12 +310,26 @@ export function useExamState({
     }
   }, [requestFullscreen]);
 
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      if (warningCountdownTimerRef.current) {
+        clearInterval(warningCountdownTimerRef.current);
+        warningCountdownTimerRef.current = null;
+      }
+    };
+  }, []);
+
   return {
     examState,
     showWarning,
     warningEventType,
     pendingApiResponse,
     lastApiResponse,
+    warningCountdown,
     showUnlockNotification,
     isProcessingEventRef,
     handleViolation,

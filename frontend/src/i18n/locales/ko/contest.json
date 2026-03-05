@@ -34,6 +34,7 @@
   "examMode": "부정행위 감지",
   "startTime": "시작 시간",
   "endTime": "종료 시간",
+  "participantCount": "참가자 수",
   "participants": {
     "title": "참가자 목록",
     "add": "추가",
@@ -406,6 +407,9 @@
     "cannotUndo": "이 작업은 취소할 수 없습니다!",
     "autoLockIn": "{{seconds}}초 후 자동 잠금됩니다",
     "warningTimeoutLock": "시간 내에 경고를 확인하지 않아 자동 잠금되었습니다",
+    "fullscreenRecoveryTitle": "전체 화면이 해제되었습니다",
+    "fullscreenRecoveryDesc": "{{seconds}}초 이내에 전체 화면으로 복귀하지 않으면 위반 1회로 기록됩니다.",
+    "returnToFullscreen": "전체 화면으로 복귀",
     "forceSubmitCountdown": "잠금 3분 후 자동 제출됩니다",
     "forceSubmittedReason": "3분 이상 잠금 상태로 인해 시스템이 자동 제출했습니다"
   },

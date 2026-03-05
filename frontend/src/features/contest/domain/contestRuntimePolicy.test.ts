@@ -66,6 +66,16 @@ describe("contestRuntimePolicy", () => {
         createContest({ hasJoined: true, isRegistered: true, examStatus: "in_progress" }),
       ),
     ).toBe(true);
+    expect(
+      canAccessExamContent(
+        createContest({ hasJoined: true, isRegistered: true, examStatus: "paused" }),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessExamContent(
+        createContest({ hasJoined: true, isRegistered: true, examStatus: "locked" }),
+      ),
+    ).toBe(false);
   });
 
   it("computes monitoring and exit warning flags", () => {

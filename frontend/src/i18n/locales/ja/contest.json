@@ -34,6 +34,7 @@
   "examMode": "不正検出",
   "startTime": "開始時間",
   "endTime": "終了時間",
+  "participantCount": "参加者数",
   "participants": {
     "title": "参加者リスト",
     "add": "追加",
@@ -406,6 +407,9 @@
     "cannotUndo": "この操作は取り消せません！",
     "autoLockIn": "{{seconds}} 秒後に自動ロックされます",
     "warningTimeoutLock": "警告が時間内に確認されず、自動ロックされました",
+    "fullscreenRecoveryTitle": "全画面表示を終了しました",
+    "fullscreenRecoveryDesc": "{{seconds}} 秒以内に全画面へ戻らない場合、違反として1回記録されます。",
+    "returnToFullscreen": "全画面に戻る",
     "forceSubmitCountdown": "ロックから3分経過後に自動提出されます",
     "forceSubmittedReason": "ロックが3分以上続いたため、システムが自動的に提出しました"
   },

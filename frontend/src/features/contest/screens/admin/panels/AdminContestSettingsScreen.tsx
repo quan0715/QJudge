@@ -424,18 +424,19 @@ const AdminContestSettingsScreen: React.FC = () => {
 
   return (
     <div className={s.root}>
-      <div className={s.pageHeader}>
-        <h2 style={{
-          fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
-          fontWeight: 400,
-          lineHeight: "1.625rem",
-          color: "var(--cds-text-primary)",
-          margin: 0,
-        }}>
-          {t("settings.title")}
-        </h2>
-        <GlobalSaveStatus status={autoSave.globalStatus} />
-      </div>
+      <div className={s.inner}>
+        <div className={s.pageHeader}>
+          <h2 style={{
+            fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
+            fontWeight: 400,
+            lineHeight: "1.625rem",
+            color: "var(--cds-text-primary)",
+            margin: 0,
+          }}>
+            {t("settings.title")}
+          </h2>
+          <GlobalSaveStatus status={autoSave.globalStatus} />
+        </div>
 
       {/* ── 基本資訊 ── */}
       <Section title="基本資訊">
@@ -913,6 +914,7 @@ const AdminContestSettingsScreen: React.FC = () => {
         onSubmit={handleAddAdmin}
       />
       <ConfirmModal {...modalProps} />
+      </div>
     </div>
   );
 };

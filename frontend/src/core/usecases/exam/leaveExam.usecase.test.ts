@@ -28,9 +28,12 @@ describe("leaveExam.usecase", () => {
   });
 
   it("exits fullscreen when fullscreen element exists", async () => {
-    const exitMock = vi.fn().mockResolvedValue(undefined);
+    let fullscreenActive = true;
+    const exitMock = vi.fn().mockImplementation(async () => {
+      fullscreenActive = false;
+    });
     Object.defineProperty(document, "fullscreenElement", {
-      value: document.documentElement,
+      get: () => (fullscreenActive ? document.documentElement : null),
       configurable: true,
     });
     Object.defineProperty(document, "exitFullscreen", {
@@ -44,12 +47,15 @@ describe("leaveExam.usecase", () => {
   });
 
   it("returns false when fullscreen exit throws", async () => {
+    let fullscreenActive = true;
     Object.defineProperty(document, "fullscreenElement", {
-      value: document.documentElement,
+      get: () => (fullscreenActive ? document.documentElement : null),
       configurable: true,
     });
     Object.defineProperty(document, "exitFullscreen", {
-      value: vi.fn().mockRejectedValue(new Error("failed")),
+      value: vi.fn().mockImplementation(async () => {
+        throw new Error("failed");
+      }),
       configurable: true,
     });
 
@@ -59,12 +65,15 @@ describe("leaveExam.usecase", () => {
 
   it("ends exam then navigates to contests", async () => {
     vi.mocked(endExam).mockResolvedValue(undefined as void);
+    let fullscreenActive = true;
     Object.defineProperty(document, "fullscreenElement", {
-      value: document.documentElement,
+      get: () => (fullscreenActive ? document.documentElement : null),
       configurable: true,
     });
     Object.defineProperty(document, "exitFullscreen", {
-      value: vi.fn().mockResolvedValue(undefined),
+      value: vi.fn().mockImplementation(async () => {
+        fullscreenActive = false;
+      }),
       configurable: true,
     });
 
@@ -82,12 +91,15 @@ describe("leaveExam.usecase", () => {
 
   it("still navigates when endExam fails", async () => {
     vi.mocked(endExam).mockRejectedValue(new Error("api down"));
+    let fullscreenActive = true;
     Object.defineProperty(document, "fullscreenElement", {
-      value: document.documentElement,
+      get: () => (fullscreenActive ? document.documentElement : null),
       configurable: true,
     });
     Object.defineProperty(document, "exitFullscreen", {
-      value: vi.fn().mockResolvedValue(undefined),
+      value: vi.fn().mockImplementation(async () => {
+        fullscreenActive = false;
+      }),
       configurable: true,
     });
 

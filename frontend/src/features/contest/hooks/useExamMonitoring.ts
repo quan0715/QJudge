@@ -1,11 +1,17 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { isFullscreen } from "@/core/usecases/exam";
+import {
+  EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS,
+  EXAM_MONITORING_BLUR_DEBOUNCE_MS,
+  EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS,
+  EXAM_MONITORING_FOCUS_CHECK_DELAY_MS,
+  EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
+  EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS,
+  EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS,
+} from "@/features/contest/domain/examMonitoringPolicy";
 
-const BLUR_DEBOUNCE_MS = 200;
-const FOCUS_CHECK_DELAY_MS = 50;
-const MULTI_DISPLAY_CHECK_INTERVAL_MS = 5000;
-const MULTI_DISPLAY_REPORT_COOLDOWN_MS = 15000;
+const FULLSCREEN_RECOVERY_GRACE_SECONDS = 5;
 
 interface ScreenDetailsLike extends EventTarget {
   screens?: unknown[];
@@ -18,56 +24,112 @@ type WindowWithScreenDetails = Window & {
 interface UseExamMonitoringProps {
   enabled: boolean;
   onViolation: (eventType: string, reason: string) => Promise<void> | void;
+  onBlockedAction?: (message: string) => void;
+  onFullscreenRecoveryCountdownChange?: (secondsLeft: number | null) => void;
 }
 
-export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringProps) {
+export function useExamMonitoring({
+  enabled,
+  onViolation,
+  onBlockedAction,
+  onFullscreenRecoveryCountdownChange,
+}: UseExamMonitoringProps) {
   const { t } = useTranslation("contest");
   const lastInteractionTime = useRef<number>(0);
   const lastMultiDisplayReportAt = useRef<number>(0);
+  const lastVisibilityHiddenAtRef = useRef<number>(0);
+  const lastUserDisplayCheckAt = useRef<number>(0);
   const blurCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // Track last interaction time to debounce blur events
-  useEffect(() => {
-    if (!enabled) return;
-
-    const handleInteraction = () => {
-      lastInteractionTime.current = Date.now();
-    };
-
-    const events = [
-      "mousedown", "pointerdown", "click", "keydown", "keyup",
-      "touchstart", "touchend", "focusin", "focusout", "input"
-    ];
-
-    events.forEach(e => document.addEventListener(e, handleInteraction, true));
-
-    return () => {
-      events.forEach(e => document.removeEventListener(e, handleInteraction, true));
-    };
-  }, [enabled]);
+  const blurConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const onViolationRef = useRef(onViolation);
+  const onBlockedActionRef = useRef(onBlockedAction);
+  const onFullscreenRecoveryCountdownChangeRef = useRef(
+    onFullscreenRecoveryCountdownChange
+  );
+  const tRef = useRef(t);
+  const fullscreenRecoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fullscreenRecoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fullscreenRecoveryActiveRef = useRef(false);
+  const fullscreenRecoverySecondsRef = useRef<number>(FULLSCREEN_RECOVERY_GRACE_SECONDS);
 
   useEffect(() => {
-    if (!enabled) return;
+    onViolationRef.current = onViolation;
+  }, [onViolation]);
 
+  useEffect(() => {
+    onBlockedActionRef.current = onBlockedAction;
+  }, [onBlockedAction]);
+
+  useEffect(() => {
+    onFullscreenRecoveryCountdownChangeRef.current = onFullscreenRecoveryCountdownChange;
+  }, [onFullscreenRecoveryCountdownChange]);
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
+  useEffect(() => {
+    if (!enabled) return;
     let disposed = false;
     let screenDetails: ScreenDetailsLike | null = null;
+    let attachedScreenDetails: ScreenDetailsLike | null = null;
     let detachScreensChangeListener: (() => void) | null = null;
+
+    const emitViolation = (eventType: string, message: string) =>
+      Promise.resolve(onViolationRef.current(eventType, message)).catch(console.error);
+
+    const updateFullscreenRecoveryCountdown = (secondsLeft: number | null) => {
+      onFullscreenRecoveryCountdownChangeRef.current?.(secondsLeft);
+    };
+
+    const clearFullscreenRecoveryTracking = () => {
+      if (fullscreenRecoveryTimeoutRef.current) {
+        clearTimeout(fullscreenRecoveryTimeoutRef.current);
+        fullscreenRecoveryTimeoutRef.current = null;
+      }
+      if (fullscreenRecoveryIntervalRef.current) {
+        clearInterval(fullscreenRecoveryIntervalRef.current);
+        fullscreenRecoveryIntervalRef.current = null;
+      }
+      fullscreenRecoveryActiveRef.current = false;
+      updateFullscreenRecoveryCountdown(null);
+    };
+
+    const startFullscreenRecoveryTracking = () => {
+      if (fullscreenRecoveryActiveRef.current) return;
+      fullscreenRecoveryActiveRef.current = true;
+      fullscreenRecoverySecondsRef.current = FULLSCREEN_RECOVERY_GRACE_SECONDS;
+      updateFullscreenRecoveryCountdown(FULLSCREEN_RECOVERY_GRACE_SECONDS);
+
+      fullscreenRecoveryIntervalRef.current = setInterval(() => {
+        fullscreenRecoverySecondsRef.current -= 1;
+        if (fullscreenRecoverySecondsRef.current > 0) {
+          updateFullscreenRecoveryCountdown(fullscreenRecoverySecondsRef.current);
+        }
+      }, 1000);
+
+      fullscreenRecoveryTimeoutRef.current = setTimeout(() => {
+        clearFullscreenRecoveryTracking();
+        emitViolation("exit_fullscreen", tRef.current("exam.exitedFullscreen"));
+      }, FULLSCREEN_RECOVERY_GRACE_SECONDS * 1000);
+    };
 
     const reportMultiDisplayViolation = () => {
       const now = Date.now();
-      if (now - lastMultiDisplayReportAt.current < MULTI_DISPLAY_REPORT_COOLDOWN_MS) {
+      if (
+        now - lastMultiDisplayReportAt.current <
+        EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS
+      ) {
         return;
       }
       lastMultiDisplayReportAt.current = now;
-      Promise.resolve(
-        onViolation(
-          "multiple_displays",
-          t(
-            "exam.multipleDisplaysDetected",
-            "Multiple displays detected. Please keep only one physical screen connected."
-          )
+      emitViolation(
+        "multiple_displays",
+        tRef.current(
+          "exam.multipleDisplaysDetected",
+          "Multiple displays detected. Please keep only one physical screen connected."
         )
-      ).catch(console.error);
+      );
     };
 
     const hasMultipleDisplays = (screens: unknown[] | undefined) =>
@@ -79,7 +141,7 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
     };
 
     const evaluateDisplays = (screens: unknown[] | undefined) => {
-      if (hasMultipleDisplays(screens)) {
+      if (hasMultipleDisplays(screens) || checkScreenExtended()) {
         reportMultiDisplayViolation();
       }
     };
@@ -89,7 +151,6 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
 
       if (screenDetails) {
         evaluateDisplays(screenDetails.screens);
-        return;
       }
 
       const getScreenDetails = (window as WindowWithScreenDetails).getScreenDetails;
@@ -106,9 +167,17 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
         screenDetails = details;
         evaluateDisplays(details.screens);
 
-        if (typeof details.addEventListener === "function") {
+        if (
+          attachedScreenDetails !== details &&
+          typeof details.addEventListener === "function"
+        ) {
+          if (detachScreensChangeListener) {
+            detachScreensChangeListener();
+            detachScreensChangeListener = null;
+          }
           const onScreensChange = () => evaluateDisplays(screenDetails?.screens);
           details.addEventListener("screenschange", onScreensChange as EventListener);
+          attachedScreenDetails = details;
           detachScreensChangeListener = () => {
             details.removeEventListener("screenschange", onScreensChange as EventListener);
           };
@@ -121,30 +190,73 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
 
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "hidden") {
-        await onViolation("tab_hidden", t("exam.tabHidden"));
+        lastVisibilityHiddenAtRef.current = Date.now();
+        await emitViolation("tab_hidden", tRef.current("exam.tabHidden"));
       }
+    };
+
+    const handleInteraction = () => {
+      const now = Date.now();
+      lastInteractionTime.current = now;
+      if (
+        now - lastUserDisplayCheckAt.current <
+        EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS
+      ) {
+        return;
+      }
+      lastUserDisplayCheckAt.current = now;
+      void ensureSingleDisplay();
     };
 
     const handleBlur = () => {
       const timeSinceInteraction = Date.now() - lastInteractionTime.current;
-      if (timeSinceInteraction < BLUR_DEBOUNCE_MS) {
+      if (timeSinceInteraction < EXAM_MONITORING_BLUR_DEBOUNCE_MS) {
         return;
       }
 
       clearTimeout(blurCheckTimeoutRef.current);
+      clearTimeout(blurConfirmTimeoutRef.current);
 
       blurCheckTimeoutRef.current = setTimeout(() => {
         blurCheckTimeoutRef.current = undefined;
-        if (!document.hasFocus()) {
-          Promise.resolve(onViolation("window_blur", t("exam.windowBlur"))).catch(console.error);
+        if (document.hasFocus()) {
+          return;
         }
-      }, FOCUS_CHECK_DELAY_MS);
+
+        // If tab-hidden was just reported, skip duplicated blur violation.
+        if (
+          Date.now() - lastVisibilityHiddenAtRef.current <
+          EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS
+        ) {
+          return;
+        }
+
+        if (document.visibilityState === "hidden") {
+          emitViolation("window_blur", tRef.current("exam.windowBlur"));
+          return;
+        }
+
+        // Confirm sustained focus loss to avoid transient browser blur glitches.
+        blurConfirmTimeoutRef.current = setTimeout(() => {
+          blurConfirmTimeoutRef.current = undefined;
+          if (document.hasFocus()) return;
+          if (
+            Date.now() - lastVisibilityHiddenAtRef.current <
+            EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS
+          ) {
+            return;
+          }
+          emitViolation("window_blur", tRef.current("exam.windowBlur"));
+        }, EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS);
+      }, EXAM_MONITORING_FOCUS_CHECK_DELAY_MS);
     };
 
     const handleFullscreenChange = async () => {
-      if (!isFullscreen()) {
-        await onViolation("exit_fullscreen", t("exam.exitedFullscreen"));
+      if (isFullscreen()) {
+        clearFullscreenRecoveryTracking();
+        return;
       }
+      startFullscreenRecoveryTracking();
     };
 
     const handleCopyPaste = (e: ClipboardEvent) => {
@@ -153,13 +265,31 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
       e.preventDefault();
       const action = e.type === "copy" ? "Copy" : e.type === "cut" ? "Cut" : "Paste";
       const messageKey = (e.type === "copy" || e.type === "cut") ? "exam.forbiddenCopy" : "exam.forbiddenPaste";
-      Promise.resolve(onViolation("forbidden_action", t(messageKey, action + " is forbidden"))).catch(console.error);
+      onBlockedActionRef.current?.(tRef.current(messageKey, action + " is forbidden"));
     };
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
-      Promise.resolve(onViolation("forbidden_action", t("exam.forbiddenContextMenu", "Context menu is forbidden"))).catch(console.error);
+      onBlockedActionRef.current?.(
+        tRef.current("exam.forbiddenContextMenu", "Context menu is forbidden")
+      );
     };
+
+    const interactionEvents = [
+      "mousedown",
+      "pointerdown",
+      "click",
+      "keydown",
+      "keyup",
+      "touchstart",
+      "touchend",
+      "focusin",
+      "focusout",
+      "input",
+    ];
+    interactionEvents.forEach((eventName) =>
+      document.addEventListener(eventName, handleInteraction, true)
+    );
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleBlur);
@@ -172,7 +302,7 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
     void ensureSingleDisplay();
     const multiDisplayInterval = setInterval(() => {
       void ensureSingleDisplay();
-    }, MULTI_DISPLAY_CHECK_INTERVAL_MS);
+    }, EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS);
 
     return () => {
       disposed = true;
@@ -183,13 +313,19 @@ export function useExamMonitoring({ enabled, onViolation }: UseExamMonitoringPro
       document.removeEventListener("cut", handleCopyPaste);
       document.removeEventListener("paste", handleCopyPaste);
       document.removeEventListener("contextmenu", handleContextMenu);
+      interactionEvents.forEach((eventName) =>
+        document.removeEventListener(eventName, handleInteraction, true)
+      );
 
       clearInterval(multiDisplayInterval);
       if (detachScreensChangeListener) {
         detachScreensChangeListener();
       }
+      clearFullscreenRecoveryTracking();
       clearTimeout(blurCheckTimeoutRef.current);
+      clearTimeout(blurConfirmTimeoutRef.current);
       blurCheckTimeoutRef.current = undefined;
+      blurConfirmTimeoutRef.current = undefined;
     };
-  }, [enabled, onViolation, t]);
+  }, [enabled]);
 }

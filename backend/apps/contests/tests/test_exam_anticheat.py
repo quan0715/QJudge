@@ -2,7 +2,7 @@
 Tests for exam anti-cheat API logic.
 
 Covers violation counting, auto-lock, warning timeout, force-submit,
-admin bypass, and auto-unlock eligibility checks.
+event logging for all participant roles, and auto-unlock eligibility checks.
 """
 from datetime import timedelta
 
@@ -133,19 +133,30 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.lock_reason, custom_reason)
 
     # ------------------------------------------------------------------
-    # 5. Admin/teacher bypass - no ExamEvent created
+    # 5. Owner/teacher participant should also be logged (no bypass)
     # ------------------------------------------------------------------
-    def test_admin_bypass(self):
+    def test_owner_participant_event_is_logged(self):
+        ContestParticipant.objects.create(
+            contest=self.contest,
+            user=self.teacher,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+
         self.client.force_authenticate(user=self.teacher)
         resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data.get("bypass"))
+        self.assertIn("violation_count", resp.data)
+        self.assertFalse(resp.data.get("bypass", False))
 
-        # No ExamEvent should be created for admin
         self.assertEqual(
-            ExamEvent.objects.filter(contest=self.contest, user=self.teacher).count(),
-            0,
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.teacher,
+                event_type="tab_hidden",
+            ).count(),
+            1,
         )
 
     # ------------------------------------------------------------------

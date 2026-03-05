@@ -18,6 +18,8 @@ interface ExamModalsProps {
   onFullscreenExitConfirm?: () => void;
   onFullscreenExitCancel?: () => void;
   warningCountdown?: number | null;
+  fullscreenRecoveryCountdown?: number | null;
+  onRecoverFullscreen?: () => void;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
@@ -34,6 +36,8 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   onFullscreenExitConfirm,
   onFullscreenExitCancel,
   warningCountdown,
+  fullscreenRecoveryCountdown,
+  onRecoverFullscreen,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
@@ -230,6 +234,35 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               {t("exam.zeroChanceWarning")}
             </p>
           )}
+        </div>
+      </Modal>
+
+      {/* Fullscreen recovery warning (grace window before counting a violation) */}
+      <Modal
+        open={fullscreenRecoveryCountdown != null}
+        modalHeading={t("exam.fullscreenRecoveryTitle")}
+        primaryButtonText={t("exam.returnToFullscreen")}
+        onRequestSubmit={onRecoverFullscreen}
+        onRequestClose={onRecoverFullscreen}
+        preventCloseOnClickOutside
+        danger
+        size="sm"
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ margin: 0, color: "var(--cds-text-primary)", lineHeight: 1.5 }}>
+            {t("exam.fullscreenRecoveryDesc", {
+              seconds: fullscreenRecoveryCountdown ?? 0,
+            })}
+          </p>
+          <p style={{ margin: 0, color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
+            {t("exam.stayInExamPage")}
+          </p>
         </div>
       </Modal>
 

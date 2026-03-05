@@ -25,10 +25,15 @@ type ExitTarget =
   | null
   | undefined;
 
-const EXAM_CONTENT_STATUSES = new Set<ExamStatusType>([
+const EXAM_STARTED_STATUSES = new Set<ExamStatusType>([
   "in_progress",
   "paused",
   "locked",
+  "submitted",
+]);
+
+const EXAM_CONTENT_ACCESS_STATUSES = new Set<ExamStatusType>([
+  "in_progress",
   "submitted",
 ]);
 
@@ -47,10 +52,18 @@ export const isContestParticipant = (contest: ParticipantTarget): boolean =>
   !!(contest?.hasJoined || contest?.isRegistered);
 
 export const hasStartedExam = (contest: ExamStatusTarget): boolean =>
-  !!contest && (contest.hasStarted === true || isExamStatusIn(contest.examStatus, EXAM_CONTENT_STATUSES));
+  !!contest && (contest.hasStarted === true || isExamStatusIn(contest.examStatus, EXAM_STARTED_STATUSES));
 
-export const canAccessExamContent = (contest: TabTarget): boolean =>
-  isContestParticipant(contest) && hasStartedExam(contest);
+export const canAccessExamContent = (contest: TabTarget): boolean => {
+  if (!isContestParticipant(contest)) return false;
+  if (!contest) return false;
+
+  if (contest.examStatus) {
+    return isExamStatusIn(contest.examStatus, EXAM_CONTENT_ACCESS_STATUSES);
+  }
+
+  return contest.hasStarted === true;
+};
 
 export const isExamMonitoringActive = (
   contest: MonitoringTarget,

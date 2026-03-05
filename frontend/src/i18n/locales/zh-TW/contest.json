@@ -34,7 +34,7 @@
   "examMode": "作弊檢查",
   "startTime": "開始時間",
   "endTime": "結束時間",
-  "participants": "參賽人數",
+  "participantCount": "參賽人數",
   "problems": "題目數",
   "duration": "時長",
   "progress": "考試進度",
@@ -357,6 +357,9 @@
     "cannotUndo": "此操作無法復原！",
     "autoLockIn": "將在 {{seconds}} 秒後自動鎖定",
     "warningTimeoutLock": "未在時限內確認警告，已自動鎖定",
+    "fullscreenRecoveryTitle": "已退出全螢幕",
+    "fullscreenRecoveryDesc": "請在 {{seconds}} 秒內回到全螢幕，否則將記錄一次違規。",
+    "returnToFullscreen": "回到全螢幕",
     "forceSubmitCountdown": "鎖定超過 3 分鐘後將自動交卷",
     "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷"
   },

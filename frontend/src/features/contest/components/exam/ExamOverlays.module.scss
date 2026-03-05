@@ -1,0 +1,126 @@
+.lockBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 20% 20%, rgb(15 98 254 / 8%) 0%, transparent 38%),
+    radial-gradient(circle at 80% 80%, rgb(218 30 40 / 8%) 0%, transparent 34%),
+    var(--cds-overlay);
+  backdrop-filter: blur(2px);
+}
+
+.lockPanel {
+  width: min(34rem, 100%);
+  padding: 2rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer);
+  box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 26%);
+}
+
+.lockHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.lockIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--cds-notification-background-error);
+  flex-shrink: 0;
+}
+
+.lockIcon {
+  color: var(--cds-support-error);
+}
+
+.lockTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lockReason {
+  margin: 0.5rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.countdownSection {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-accent-01);
+}
+
+.countdownLabel {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.countdownValue {
+  margin: 0.5rem 0 0;
+  color: var(--cds-support-success);
+  font-size: 2rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.noticeSection {
+  margin-top: 1.75rem;
+  padding: 1rem;
+  border-left: 0.25rem solid var(--cds-border-interactive);
+  background: var(--cds-layer-accent-01);
+}
+
+.noticeText {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.violationText {
+  margin: 1.25rem 0 0;
+  color: var(--cds-text-helper);
+  font-size: 0.8125rem;
+}
+
+.actionSection {
+  margin-top: 1.75rem;
+}
+
+.actionHint {
+  margin: 0.75rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 42rem) {
+  .lockPanel {
+    padding: 1.5rem;
+  }
+
+  .lockTitle {
+    font-size: 1.375rem;
+  }
+
+  .countdownValue {
+    font-size: 1.75rem;
+  }
+}

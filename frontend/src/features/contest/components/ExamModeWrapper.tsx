@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { endExam as serviceEndExam } from "@/infrastructure/api/repositories";
@@ -8,7 +8,8 @@ import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
-import { isPathWithinContest } from "@/features/contest/domain/contestRoutePolicy";
+import { getContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { useToast } from "@/shared/contexts/ToastContext";
 import {
   exitFullscreen,
   isFullscreen,
@@ -35,6 +36,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastBlockedActionToastAt = useRef<number>(0);
+  const { showToast } = useToast();
 
   // 1. Core State & API actions
   const {
@@ -43,6 +46,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     warningEventType,
     pendingApiResponse,
     lastApiResponse,
+    warningCountdown,
     showUnlockNotification,
     handleViolation,
     handleWarningClose,
@@ -58,22 +62,38 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   // 2. Monitoring Hook
   const isCurrentlyActive = examStatus === "in_progress";
-  useExamMonitoring({
-    enabled: cheatDetectionEnabled && isCurrentlyActive,
-    onViolation: handleViolation,
-  });
+  const handleBlockedAction = useCallback((message: string) => {
+    const now = Date.now();
+    if (now - lastBlockedActionToastAt.current < 1000) {
+      return;
+    }
+    lastBlockedActionToastAt.current = now;
+    showToast({
+      kind: "warning",
+      title: message,
+      timeout: 2000,
+    });
+  }, [showToast]);
 
   // 3. UI Status Management (Fullscreen modals & exit flows)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
   const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] = useState(false);
+  const [fullscreenRecoveryCountdown, setFullscreenRecoveryCountdown] = useState<number | null>(null);
   const initialFullscreenCheckDone = useRef(false);
+
+  useExamMonitoring({
+    enabled: cheatDetectionEnabled && isCurrentlyActive,
+    onViolation: handleViolation,
+    onBlockedAction: handleBlockedAction,
+    onFullscreenRecoveryCountdownChange: setFullscreenRecoveryCountdown,
+  });
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {
     if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
 
     const shouldBeInFullscreen =
-      examStatus === "in_progress" || examStatus === "locked" || examStatus === "paused";
+      examStatus === "in_progress" || examStatus === "locked";
 
     if (shouldBeInFullscreen && !isFullscreen()) {
       const timer = setTimeout(() => {
@@ -100,36 +120,36 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
     if (
       cheatDetectionEnabled &&
-      (examStatus === "locked" || examStatus === "paused") &&
+      examStatus === "locked" &&
       !isFullscreen()
     ) {
       setTimeout(() => {
         if (!isFullscreen()) {
           requestFullscreen().catch((e) => {
-            console.warn("[Exam] Failed to enter fullscreen for locked/paused state:", e);
+            console.warn("[Exam] Failed to enter fullscreen for locked state:", e);
           });
         }
       }, 100);
     }
   }, [examStatus, cheatDetectionEnabled]);
 
-  // Monitor fullscreen exit for locked/paused states - show submit confirmation
+  // Monitor fullscreen exit for locked states - show submit confirmation
   useEffect(() => {
     const shouldMonitorFullscreen =
-      cheatDetectionEnabled && (examStatus === "locked" || examStatus === "paused");
+      cheatDetectionEnabled && examStatus === "locked";
 
     if (!shouldMonitorFullscreen) return;
 
-    const handleFullscreenExitForLockedPaused = () => {
+    const handleFullscreenExitForLocked = () => {
       if (!isFullscreen() && !isSubmittingFromFullscreenExit) {
         setShowFullscreenExitConfirm(true);
       }
     };
 
-    document.addEventListener("fullscreenchange", handleFullscreenExitForLockedPaused);
+    document.addEventListener("fullscreenchange", handleFullscreenExitForLocked);
 
     return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenExitForLockedPaused);
+      document.removeEventListener("fullscreenchange", handleFullscreenExitForLocked);
     };
   }, [cheatDetectionEnabled, examStatus, isSubmittingFromFullscreenExit]);
 
@@ -161,11 +181,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
   };
 
-  const isAllowedPath = () => {
-    return isPathWithinContest({ contestId, pathname: location.pathname });
+  const handleRecoverFullscreen = useCallback(async () => {
+    try {
+      await requestFullscreen();
+    } catch (error) {
+      console.error("Failed to recover fullscreen:", error);
+    }
+  }, []);
+
+  const isAnsweringPath = () => {
+    const contestBasePath = getContestDashboardPath(contestId);
+    const normalizedPath = location.pathname.replace(/\/+$/, "");
+    return (
+      normalizedPath.startsWith(`${contestBasePath}/solve/`) ||
+      normalizedPath.startsWith(`${contestBasePath}/paper-exam/answering`)
+    );
   };
 
-  const shouldShowLockScreen = examState.isLocked && !isAllowedPath();
+  // Locked state should always block answering views.
+  const shouldShowLockScreen = examState.isLocked && isAnsweringPath();
   const { unlockTimeLeft } = useContestTimers({
     contest: null,
     contestId,
@@ -197,6 +231,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         lastApiResponse={lastApiResponse}
         warningEventType={warningEventType}
         examState={examState}
+        warningCountdown={warningCountdown}
+        fullscreenRecoveryCountdown={fullscreenRecoveryCountdown}
+        onRecoverFullscreen={handleRecoverFullscreen}
         onWarningClose={handleWarningClose}
         showUnlockNotification={showUnlockNotification}
         onUnlockContinue={handleUnlockContinue}

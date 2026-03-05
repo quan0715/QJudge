@@ -8,6 +8,10 @@ import {
   isExamMonitoringActive,
   shouldWarnOnExit as shouldWarnOnExitByPolicy,
 } from "@/features/contest/domain/contestRuntimePolicy";
+import {
+  getContestDashboardPath,
+  getContestPrecheckPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
 
 export function useContestLayoutState() {
@@ -116,16 +120,21 @@ export function useContestLayoutState() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [shouldWarnOnExit]);
 
-  // Redirect paused users to overview
+  // Treat paused state as a strict gate only for answering-related routes.
+  // Keep dashboard root accessible so users can return from precheck without redirect loop.
   useEffect(() => {
-    if (contest?.examStatus === "paused") {
-      const path = window.location.pathname;
-      const restrictedPaths = ["/problems", "/solve", "/submissions", "/standings"];
-      if (restrictedPaths.some((p) => path.includes(p))) {
-        navigate(`/contests/${contestId}`);
-      }
+    if (!contestId || !contest?.cheatDetectionEnabled) return;
+    if (contest.examStatus !== "paused") return;
+
+    const dashboardPath = getContestDashboardPath(contestId);
+    const targetPath = getContestPrecheckPath(contestId);
+
+    const normalizedPath = location.pathname.replace(/\/+$/, "");
+    const isDashboardHome = normalizedPath === dashboardPath;
+    if (!isDashboardHome && location.pathname !== targetPath) {
+      navigate(targetPath, { replace: true });
     }
-  }, [contest, contestId, navigate]);
+  }, [contest?.cheatDetectionEnabled, contest?.examStatus, contestId, location.pathname, navigate]);
 
   // Exam active beforeunload
   useEffect(() => {

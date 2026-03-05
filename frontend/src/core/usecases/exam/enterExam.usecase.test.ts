@@ -14,7 +14,14 @@ describe("enterExam.usecase", () => {
   });
 
   it("requests fullscreen via standard API", async () => {
-    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    let fullscreenActive = false;
+    const requestFullscreenMock = vi.fn().mockImplementation(async () => {
+      fullscreenActive = true;
+    });
+    Object.defineProperty(document, "fullscreenElement", {
+      get: () => (fullscreenActive ? document.documentElement : null),
+      configurable: true,
+    });
     Object.defineProperty(document.documentElement, "requestFullscreen", {
       value: requestFullscreenMock,
       configurable: true,
@@ -36,6 +43,24 @@ describe("enterExam.usecase", () => {
   it("returns false when fullscreen request throws", async () => {
     Object.defineProperty(document.documentElement, "requestFullscreen", {
       value: vi.fn().mockRejectedValue(new Error("denied")),
+      configurable: true,
+    });
+
+    const result = await requestFullscreen();
+    expect(result).toBe(false);
+  });
+
+  it("returns false when fullscreen API is unavailable", async () => {
+    Object.defineProperty(document.documentElement, "requestFullscreen", {
+      value: undefined,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "webkitRequestFullscreen", {
+      value: undefined,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "msRequestFullscreen", {
+      value: undefined,
       configurable: true,
     });
 

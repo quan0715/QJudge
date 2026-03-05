@@ -202,7 +202,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <KpiCard
         icon={UserMultiple}
         value={contest.participantCount || 0}
-        label={t("participants")}
+        label={t("participantCount")}
       />
       <KpiCard
         icon={Catalog}

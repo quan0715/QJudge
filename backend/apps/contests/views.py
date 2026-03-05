@@ -1374,10 +1374,6 @@ class ExamViewSet(viewsets.GenericViewSet):
         contest = get_object_or_404(Contest, id=contest_pk)
         user = request.user
         
-        # Admin/Teacher bypass
-        if can_manage_contest(user, contest):
-            return Response({'status': 'ok', 'bypass': True})
-        
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=user)
         except ContestParticipant.DoesNotExist:
@@ -1435,14 +1431,10 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         # 3-layer permission check (require in_progress for event logging)
         participant, error_response = validate_exam_operation(
-            contest, request.user, require_in_progress=True, allow_admin_bypass=True
+            contest, request.user, require_in_progress=True, allow_admin_bypass=False
         )
         if error_response:
             return error_response
-        
-        # Manager bypass - don't log violations for platform_admin/owner/co_owner
-        if can_manage_contest(request.user, contest):
-            return Response({'status': 'logged', 'locked': False, 'bypass': True})
         
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1478,7 +1470,7 @@ class ExamViewSet(viewsets.GenericViewSet):
                 if custom_reason:
                     participant.lock_reason = custom_reason
                 elif force_lock:
-                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 15 seconds"
+                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
                 else:
                     participant.lock_reason = f"System lock: {event_type}"
                 update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])

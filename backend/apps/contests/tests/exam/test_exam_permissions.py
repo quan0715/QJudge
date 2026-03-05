@@ -194,10 +194,10 @@ class ExamPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get('status'), 'started')
 
-    # ===== Admin/Teacher Bypass Tests =====
+    # ===== Admin/Teacher Permission Consistency =====
     
-    def test_teacher_bypass_draft_contest(self):
-        """Teachers should bypass Layer 1 and 2 checks."""
+    def test_teacher_draft_contest_not_bypassed(self):
+        """Owners/teachers should not bypass exam event checks."""
         ContestParticipant.objects.create(
             contest=self.draft_contest,
             user=self.teacher,
@@ -210,5 +210,5 @@ class ExamPermissionTests(APITestCase):
             f'/api/v1/contests/{self.draft_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data.get('bypass', False))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('not published', response.data.get('error', ''))
