@@ -182,7 +182,7 @@ export function useExamState({
     isProcessingEventRef.current = true;
     try {
       while (queuedViolationRef.current.length > 0) {
-        if (isBypassed || examStatus === "locked") break;
+        if (isBypassed || (examStatus as string) === "locked") break;
 
         const currentViolation = queuedViolationRef.current[0];
         setPendingApiResponse(true);
@@ -240,7 +240,7 @@ export function useExamState({
       if (
         queuedViolationRef.current.length > 0 &&
         !isBypassed &&
-        examStatus !== "locked"
+        (examStatus as string) !== "locked"
       ) {
         retryTimerRef.current = setTimeout(() => {
           void drainViolationQueue();
