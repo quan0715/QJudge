@@ -72,6 +72,9 @@ describe("useExamMonitoring", () => {
     Object.defineProperty(document, "fullscreenElement", { value: null });
     document.dispatchEvent(new Event("fullscreenchange"));
 
+    // Wait for 100ms stabilization delay before fullscreen state is read
+    vi.advanceTimersByTime(100);
+
     expect(onFullscreenRecoveryCountdownChange).toHaveBeenCalledWith(5);
     expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
 
@@ -88,6 +91,7 @@ describe("useExamMonitoring", () => {
 
     Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
     document.dispatchEvent(new Event("fullscreenchange"));
+    vi.advanceTimersByTime(100); // stabilization delay
     vi.advanceTimersByTime(3000);
 
     Object.defineProperty(document, "fullscreenElement", {
@@ -95,6 +99,7 @@ describe("useExamMonitoring", () => {
       configurable: true,
     });
     document.dispatchEvent(new Event("fullscreenchange"));
+    vi.advanceTimersByTime(100); // stabilization delay
     vi.advanceTimersByTime(3000);
 
     expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
@@ -254,5 +259,94 @@ describe("useExamMonitoring", () => {
       "multiple_displays",
       "exam.multipleDisplaysDetected"
     );
+  });
+
+  // --- KeyboardShortcutDetector extended tests ---
+
+  it("blocks Cmd+Space (Spotlight) and calls onBlockedAction", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    const event = new KeyboardEvent("keydown", {
+      key: " ",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenKeyboardShortcut");
+  });
+
+  it("blocks Cmd+P (print) and calls onBlockedAction", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "p",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.printBlocked");
+  });
+
+  it("blocks F12 (DevTools) and calls onBlockedAction", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "F12",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenKeyboardShortcut");
+  });
+
+  it("triggers onBlockedAction on beforeprint event", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    window.dispatchEvent(new Event("beforeprint"));
+
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.printBlocked");
+  });
+
+  // --- PopupGuardDetector tests ---
+
+  it("blocks window.open and calls onBlockedAction", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    const originalOpen = window.open;
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    const result = window.open("https://example.com");
+
+    expect(result).toBeNull();
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.popupBlocked");
+
+    // Cleanup: window.open is restored by detector stop, but let's verify
+    // it won't affect other tests by unmounting (renderHook cleanup)
+  });
+
+  it("calls onBlockedAction on enterpictureinpicture event", () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+
+    document.dispatchEvent(new Event("enterpictureinpicture", { bubbles: true }));
+
+    expect(onBlockedAction).toHaveBeenCalledWith("exam.pipBlocked");
   });
 });

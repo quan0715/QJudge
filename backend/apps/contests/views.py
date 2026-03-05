@@ -1248,6 +1248,91 @@ class ExamViewSet(viewsets.GenericViewSet):
     """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ExamEventCreateSerializer
+    PENALIZED_EVENT_TYPES = {
+        'tab_hidden',
+        'window_blur',
+        'exit_fullscreen',
+        'multiple_displays',
+        'mouse_leave',
+        'warning_timeout',
+        'heartbeat_timeout',
+        'forbidden_focus_event',
+    }
+    IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout'}
+    MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED}
+
+    def _build_event_response(self, participant, contest):
+        auto_unlock_at = None
+        if participant.exam_status == ExamStatus.LOCKED and participant.locked_at and contest.allow_auto_unlock:
+            minutes = contest.auto_unlock_minutes or 0
+            auto_unlock_at = participant.locked_at + timezone.timedelta(minutes=minutes)
+
+        return {
+            'exam_status': participant.exam_status,
+            'violation_count': participant.violation_count,
+            'max_cheat_warnings': contest.max_cheat_warnings,
+            'locked': participant.exam_status == ExamStatus.LOCKED,
+            'submitted': participant.exam_status == ExamStatus.SUBMITTED,
+            'submit_reason': participant.submit_reason or "",
+            'auto_unlock_at': auto_unlock_at,
+        }
+
+    def _auto_submit_participant(self, participant, contest, actor, reason):
+        participant.exam_status = ExamStatus.SUBMITTED
+        participant.left_at = timezone.now()
+        participant.submit_reason = reason
+        participant.save(update_fields=['exam_status', 'left_at', 'submit_reason'])
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            actor,
+            'auto_submit',
+            reason
+        )
+
+    def _process_penalized_event(self, participant, contest, actor, event_type, custom_lock_reason=""):
+        """
+        Unified anti-cheat state handling.
+        - in_progress: threshold => lock
+        - paused/locked: threshold => auto-submit
+        """
+        participant.violation_count += 1
+        update_fields = ['violation_count']
+        force_lock = event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
+        reached_threshold = participant.violation_count >= contest.max_cheat_warnings
+        should_escalate = force_lock or reached_threshold
+
+        if should_escalate:
+            if participant.exam_status == ExamStatus.IN_PROGRESS:
+                participant.exam_status = ExamStatus.LOCKED
+                participant.locked_at = timezone.now()
+                if custom_lock_reason:
+                    participant.lock_reason = custom_lock_reason
+                elif force_lock:
+                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                else:
+                    participant.lock_reason = f"System lock: {event_type}"
+                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+                participant.save(update_fields=update_fields)
+                ContestActivityViewSet.log_activity(
+                    contest,
+                    actor,
+                    'lock_user',
+                    f"Auto-locked due to {event_type}"
+                )
+                return participant
+
+            # paused/locked are non-answering states; escalate to immediate submission.
+            reason = (
+                f"Auto-submitted: violation while {participant.exam_status} "
+                f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
+            )
+            participant.save(update_fields=update_fields)
+            self._auto_submit_participant(participant, contest, actor, reason)
+            return ContestParticipant.objects.get(pk=participant.pk)
+
+        participant.save(update_fields=update_fields)
+        return participant
     
     @action(detail=False, methods=['post'], url_path='start')
     def start_exam(self, request, contest_pk=None):
@@ -1346,19 +1431,25 @@ class ExamViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        submit_reason = str(request.data.get('submit_reason') or "Submitted exam").strip()
         participant.left_at = timezone.now()
         participant.exam_status = ExamStatus.SUBMITTED
-        participant.save()
+        participant.submit_reason = submit_reason
+        participant.save(update_fields=['left_at', 'exam_status', 'submit_reason'])
         
         # Log activity
         ContestActivityViewSet.log_activity(
             contest, 
             request.user, 
             'end_exam', 
-            "Submitted exam"
+            submit_reason
         )
         
-        return Response({'status': 'finished', 'exam_status': ExamStatus.SUBMITTED})
+        return Response({
+            'status': 'finished',
+            'exam_status': ExamStatus.SUBMITTED,
+            'submit_reason': submit_reason,
+        })
 
     @action(detail=False, methods=['post'], url_path='heartbeat',
             permission_classes=[permissions.IsAuthenticated],
@@ -1379,34 +1470,42 @@ class ExamViewSet(viewsets.GenericViewSet):
         except ContestParticipant.DoesNotExist:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Only update heartbeat if exam is in progress
-        if participant.exam_status == ExamStatus.IN_PROGRESS:
+        if participant.exam_status in self.MONITORED_STATUSES:
             participant.last_heartbeat = timezone.now()
             participant.save(update_fields=['last_heartbeat'])
-            
-            # Check for violations reported in heartbeat
+
             is_focused = request.data.get('is_focused', True)
             is_fullscreen = request.data.get('is_fullscreen', True)
-            
-            if not is_focused or not is_fullscreen:
-                # Log potential violation (but don't auto-lock from heartbeat alone)
-                ExamEvent.objects.create(
-                    contest=contest,
-                    user=user,
-                    event_type='forbidden_focus_event' if not is_focused else 'exit_fullscreen',
-                    metadata={
-                        'source': 'heartbeat',
-                        'is_focused': is_focused,
-                        'is_fullscreen': is_fullscreen
-                    }
-                )
-        
-        return Response({
-            'status': 'ok',
-            'exam_status': participant.exam_status,
-            'violation_count': participant.violation_count,
-            'max_warnings': contest.max_cheat_warnings,
-        })
+
+            heartbeat_event_type = None
+            if not is_focused:
+                heartbeat_event_type = 'forbidden_focus_event'
+            elif not is_fullscreen:
+                heartbeat_event_type = 'exit_fullscreen'
+
+            if heartbeat_event_type:
+                with transaction.atomic():
+                    ExamEvent.objects.create(
+                        contest=contest,
+                        user=user,
+                        event_type=heartbeat_event_type,
+                        metadata={
+                            'source': 'heartbeat',
+                            'is_focused': is_focused,
+                            'is_fullscreen': is_fullscreen
+                        }
+                    )
+                    participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+                    participant = self._process_penalized_event(
+                        participant=participant,
+                        contest=contest,
+                        actor=user,
+                        event_type='heartbeat_timeout',
+                    )
+
+        payload = self._build_event_response(participant, contest)
+        payload.update({'status': 'ok', 'max_warnings': contest.max_cheat_warnings})
+        return Response(payload)
 
     @action(detail=False, methods=['post', 'get'], url_path='events',
             permission_classes=[permissions.IsAuthenticated],
@@ -1425,13 +1524,13 @@ class ExamViewSet(viewsets.GenericViewSet):
     def _log_event(self, request, contest_pk=None):
         """
         Log an exam event (tab switch, etc).
-        Only logs events when exam is in_progress.
+        Logs monitored events for in_progress / paused / locked participants.
         """
         contest = get_object_or_404(Contest, id=contest_pk)
         
-        # 3-layer permission check (require in_progress for event logging)
+        # 3-layer permission check (status validated below)
         participant, error_response = validate_exam_operation(
-            contest, request.user, require_in_progress=True, allow_admin_bypass=False
+            contest, request.user, require_in_progress=False, allow_admin_bypass=False
         )
         if error_response:
             return error_response
@@ -1443,60 +1542,39 @@ class ExamViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         
         event_type = serializer.validated_data['event_type']
+        if participant.exam_status not in self.MONITORED_STATUSES:
+            return Response(
+                {'error': f'Exam event is not accepted in current state: {participant.exam_status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        ExamEvent.objects.create(
-            contest=contest,
-            user=request.user,
-            event_type=event_type,
-            metadata=serializer.validated_data.get('metadata')
-        )
-
-        # Increment violation count with row lock to avoid lost updates under concurrency.
-        with transaction.atomic():
-            participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
-            participant.violation_count += 1
-
-            update_fields = ['violation_count']
-
-            # warning_timeout always forces lock regardless of violation_count
-            force_lock = event_type == 'warning_timeout'
-            should_lock = force_lock or participant.violation_count >= contest.max_cheat_warnings
-
-            if should_lock and participant.exam_status != ExamStatus.LOCKED:
-                participant.exam_status = ExamStatus.LOCKED
-                participant.locked_at = timezone.now()
-                # Use provided lock reason or default
-                custom_reason = serializer.validated_data.get('lock_reason')
-                if custom_reason:
-                    participant.lock_reason = custom_reason
-                elif force_lock:
-                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
-                else:
-                    participant.lock_reason = f"System lock: {event_type}"
-                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
-
-                # Log activity
-                ContestActivityViewSet.log_activity(
-                    contest,
-                    request.user,
-                    'lock_user',
-                    f"Auto-locked due to {event_type}"
+        if event_type in self.PENALIZED_EVENT_TYPES:
+            with transaction.atomic():
+                ExamEvent.objects.create(
+                    contest=contest,
+                    user=request.user,
+                    event_type=event_type,
+                    metadata=serializer.validated_data.get('metadata')
                 )
+                participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+                participant = self._process_penalized_event(
+                    participant=participant,
+                    contest=contest,
+                    actor=request.user,
+                    event_type=event_type,
+                    custom_lock_reason=serializer.validated_data.get('lock_reason') or "",
+                )
+        else:
+            ExamEvent.objects.create(
+                contest=contest,
+                user=request.user,
+                event_type=event_type,
+                metadata=serializer.validated_data.get('metadata')
+            )
 
-            participant.save(update_fields=update_fields)
-        
-        # Calculate auto unlock time
-        auto_unlock_at = None
-        if participant.exam_status == ExamStatus.LOCKED and participant.locked_at and contest.allow_auto_unlock:
-            minutes = contest.auto_unlock_minutes or 0
-            auto_unlock_at = participant.locked_at + timezone.timedelta(minutes=minutes)
-        
-        return Response({
-            'violation_count': participant.violation_count,
-            'max_cheat_warnings': contest.max_cheat_warnings,
-            'locked': participant.exam_status == ExamStatus.LOCKED,
-            'auto_unlock_at': auto_unlock_at
-        })
+        payload = self._build_event_response(participant, contest)
+        payload.update({'max_cheat_warnings': contest.max_cheat_warnings})
+        return Response(payload)
         
     def _list_events(self, request, contest_pk=None):
         """

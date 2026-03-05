@@ -43,6 +43,12 @@ const EXIT_WARNING_STATUSES = new Set<ExamStatusType>([
   "locked",
 ]);
 
+const EXAM_MONITORING_STATUSES = new Set<ExamStatusType>([
+  "in_progress",
+  "paused",
+  "locked",
+]);
+
 const isExamStatusIn = (
   status: ExamStatusType | undefined,
   allowed: Set<ExamStatusType>,
@@ -68,7 +74,10 @@ export const canAccessExamContent = (contest: TabTarget): boolean => {
 export const isExamMonitoringActive = (
   contest: MonitoringTarget,
 ): boolean =>
-  !!(contest?.cheatDetectionEnabled && contest.examStatus === "in_progress");
+  !!(
+    contest?.cheatDetectionEnabled &&
+    isExamStatusIn(contest.examStatus, EXAM_MONITORING_STATUSES)
+  );
 
 export const shouldWarnOnExit = (
   contest: ExitTarget,

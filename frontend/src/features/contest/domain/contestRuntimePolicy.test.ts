@@ -81,6 +81,16 @@ describe("contestRuntimePolicy", () => {
   it("computes monitoring and exit warning flags", () => {
     const inProgress = createContest({ examStatus: "in_progress", cheatDetectionEnabled: true });
     expect(isExamMonitoringActive(inProgress)).toBe(true);
+    expect(
+      isExamMonitoringActive(
+        createContest({ examStatus: "paused", cheatDetectionEnabled: true }),
+      ),
+    ).toBe(true);
+    expect(
+      isExamMonitoringActive(
+        createContest({ examStatus: "locked", cheatDetectionEnabled: true }),
+      ),
+    ).toBe(true);
     expect(shouldWarnOnExit(inProgress, false)).toBe(true);
     expect(shouldForceEndExamOnExit(inProgress, false)).toBe(true);
 

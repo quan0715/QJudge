@@ -215,6 +215,31 @@ describe("useExamState", () => {
     expect(result.current.showWarning).toBe(false);
   });
 
+  it("records violations in locked state without opening warning modal", async () => {
+    vi.mocked(recordExamEvent).mockResolvedValue({
+      violation_count: 4,
+      max_cheat_warnings: 3,
+      bypass: false,
+      submitted: true,
+      exam_status: "submitted",
+    } as any);
+
+    const { result } = renderHook(() =>
+      useExamState({ ...defaultProps, examStatus: "locked" })
+    );
+
+    await act(async () => {
+      await result.current.handleViolation("tab_hidden", "locked state event");
+    });
+
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "123",
+      "tab_hidden",
+      "locked state event"
+    );
+    expect(result.current.showWarning).toBe(false);
+  });
+
   it("closes warning and requests fullscreen", async () => {
     const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>

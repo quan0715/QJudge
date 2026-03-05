@@ -5,12 +5,81 @@ and check for heartbeat timeouts.
 """
 from celery import shared_task
 from django.utils import timezone
+from django.db import transaction
 from datetime import timedelta
 from .models import Contest, ContestParticipant, ExamStatus, ExamEvent, ContestActivity
 
-# Heartbeat timeout in seconds (log warning if no heartbeat for this long)
+# Heartbeat timeout in seconds.
 HEARTBEAT_TIMEOUT_SECONDS = 90  # 1.5 minutes
 FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
+PENALIZED_EVENT_TYPES = {
+    'heartbeat_timeout',
+    'tab_hidden',
+    'window_blur',
+    'exit_fullscreen',
+    'multiple_displays',
+    'mouse_leave',
+    'warning_timeout',
+    'forbidden_focus_event',
+}
+
+
+def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
+    """
+    Unified server-side anti-cheat escalation.
+    - in_progress: threshold => lock
+    - paused/locked: threshold => auto-submit
+    """
+    contest = participant.contest
+    if event_type not in PENALIZED_EVENT_TYPES:
+        return participant
+
+    participant.violation_count += 1
+    update_fields = ['violation_count']
+    should_escalate = (
+        event_type == 'warning_timeout'
+        or participant.violation_count >= contest.max_cheat_warnings
+    )
+
+    if should_escalate:
+        if participant.exam_status == ExamStatus.IN_PROGRESS:
+            participant.exam_status = ExamStatus.LOCKED
+            participant.locked_at = timezone.now()
+            participant.lock_reason = (
+                "Warning timeout: student did not acknowledge warning within 30 seconds"
+                if event_type == 'warning_timeout'
+                else f"System lock: {event_type}"
+            )
+            update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+            participant.save(update_fields=update_fields)
+            ContestActivity.objects.create(
+                contest=contest,
+                user=participant.user,
+                action_type='lock_user',
+                details=f"Auto-locked due to {event_type}",
+            )
+            return participant
+
+        if participant.exam_status in [ExamStatus.PAUSED, ExamStatus.LOCKED]:
+            reason = (
+                f"Auto-submitted: violation while {participant.exam_status} "
+                f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
+            )
+            participant.exam_status = ExamStatus.SUBMITTED
+            participant.left_at = timezone.now()
+            participant.submit_reason = reason
+            update_fields.extend(['exam_status', 'left_at', 'submit_reason'])
+            participant.save(update_fields=update_fields)
+            ContestActivity.objects.create(
+                contest=contest,
+                user=participant.user,
+                action_type='auto_submit',
+                details=reason,
+            )
+            return participant
+
+    participant.save(update_fields=update_fields)
+    return participant
 
 
 @shared_task
@@ -28,9 +97,9 @@ def check_heartbeat_timeout():
     now = timezone.now()
     timeout_threshold = now - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
     
-    # Find in-progress participants with stale heartbeats
+    # Find monitored participants with stale heartbeats
     stale_participants = ContestParticipant.objects.filter(
-        exam_status=ExamStatus.IN_PROGRESS,
+        exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED],
         last_heartbeat__lt=timeout_threshold,
         contest__status='published',
         contest__cheat_detection_enabled=True,
@@ -50,7 +119,7 @@ def check_heartbeat_timeout():
         if already_logged:
             continue
 
-        # Log heartbeat timeout event (don't auto-lock, just log)
+        # Log heartbeat timeout event
         ExamEvent.objects.create(
             contest=participant.contest,
             user=participant.user,
@@ -61,9 +130,14 @@ def check_heartbeat_timeout():
                 'timeout_seconds': HEARTBEAT_TIMEOUT_SECONDS
             }
         )
+        with transaction.atomic():
+            refreshed = ContestParticipant.objects.select_for_update().select_related('contest', 'user').get(
+                pk=participant.pk
+            )
+            _apply_penalty_from_event(refreshed, 'heartbeat_timeout')
         count += 1
     
-    return f"Logged {count} heartbeat timeout warnings"
+    return f"Processed {count} heartbeat timeout events"
 
 
 @shared_task
@@ -115,7 +189,8 @@ def auto_submit_participants(contest_id):
             ]
         ).update(
             exam_status=ExamStatus.SUBMITTED,
-            left_at=timezone.now()
+            left_at=timezone.now(),
+            submit_reason='Auto-submitted: contest ended',
         )
         
         return f"Auto-submitted {count} participants for contest {contest_id}"
@@ -168,7 +243,7 @@ def auto_unlock_participant(participant_id):
             participant.locked_at = None
             participant.violation_count = 0
             participant.lock_reason = ""
-            participant.save()
+            participant.save(update_fields=['exam_status', 'locked_at', 'violation_count', 'lock_reason'])
             return f"Unlocked participant {participant_id}"
             
         return f"Participant {participant_id} not locked"
@@ -206,10 +281,11 @@ def check_force_submit_locked():
             if unlock_minutes > 0 and unlock_minutes * 60 < FORCE_SUBMIT_LOCKED_SECONDS:
                 continue
 
-        force_submit_locked_participant.delay(participant.id)
+        # Execute directly inside periodic task context to avoid queue lag/race.
+        force_submit_locked_participant(participant.id)
         count += 1
 
-    return f"Queued {count} force-submit tasks for locked participants"
+    return f"Processed {count} locked participants for force-submit"
 
 
 @shared_task
@@ -234,7 +310,10 @@ def force_submit_locked_participant(participant_id):
 
         participant.exam_status = ExamStatus.SUBMITTED
         participant.left_at = timezone.now()
-        participant.save(update_fields=['exam_status', 'left_at'])
+        participant.submit_reason = (
+            f"Auto-submitted: locked for more than {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes"
+        )
+        participant.save(update_fields=['exam_status', 'left_at', 'submit_reason'])
 
         # Record ExamEvent
         ExamEvent.objects.create(

@@ -13,6 +13,7 @@ export type ExamViolationType =
   | "forbidden_focus_event"
   | "forbidden_action"
   | "multiple_displays"
+  | "mouse_leave"
   | "warning_timeout"
   | "force_submit_locked";
 
@@ -71,6 +72,7 @@ export interface ContestParticipant {
   // Legacy fields removed
   lockReason?: string;
   violationCount: number;
+  submitReason?: string;
   // Anonymous mode fields
   nickname?: string;
   displayName?: string;
@@ -136,6 +138,7 @@ export interface ContestDetail extends Contest {
   leftAt?: string;
   lockedAt?: string;
   lockReason?: string;
+  submitReason?: string;
   examStatus?: ExamStatusType; // Primary state field
   autoUnlockAt?: string; // Auto-unlock time when locked
 

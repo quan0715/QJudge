@@ -70,6 +70,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     leftAt: dto.left_at,
     lockedAt: dto.locked_at,
     lockReason: dto.lock_reason,
+    submitReason: dto.submit_reason,
     examStatus: dto.exam_status,
     autoUnlockAt: dto.auto_unlock_at,
 
@@ -110,6 +111,7 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     examStatus: dto.exam_status || "not_started",
     lockReason: dto.lock_reason,
     violationCount: dto.violation_count || 0,
+    submitReason: dto.submit_reason,
     nickname: dto.nickname,
     displayName: dto.display_name,
   };

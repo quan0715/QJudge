@@ -77,6 +77,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     left_at = serializers.SerializerMethodField()
     locked_at = serializers.SerializerMethodField()
     lock_reason = serializers.SerializerMethodField()
+    submit_reason = serializers.SerializerMethodField()
     exam_status = serializers.SerializerMethodField()
     auto_unlock_at = serializers.SerializerMethodField()
     my_nickname = serializers.SerializerMethodField()
@@ -118,6 +119,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'left_at',
             'locked_at',
             'lock_reason',
+            'submit_reason',
             'exam_status',
             'auto_unlock_at',
             'problems',
@@ -165,6 +167,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return None
         registration = obj.registrations.filter(user=request.user).first()
         return registration.exam_status if registration else None
+
+    def get_submit_reason(self, obj):
+        """Get submit reason for current user."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        registration = obj.registrations.filter(user=request.user).first()
+        return registration.submit_reason if registration else None
     
     def get_auto_unlock_at(self, obj):
         """Calculate auto unlock time for current user if locked."""
@@ -735,7 +745,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         fields = [
             'user_id', 'username', 'user', 'score', 'total_score', 'rank', 
             'joined_at', 'exam_status',
-            'lock_reason', 'violation_count', 'auto_unlock_at', 'remaining_unlock_seconds',
+            'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
             'nickname', 'display_name',
         ]
     

@@ -1,10 +1,14 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
-import type { ExamEvent } from "@/core/entities/contest.entity";
+import type {
+  ExamEvent,
+  ExamStatusType,
+} from "@/core/entities/contest.entity";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
 
 interface ExamSessionResponse {
   status: string;
-  exam_status?: string;
+  exam_status?: ExamStatusType;
+  submit_reason?: string;
   error?: string;
 }
 
@@ -14,6 +18,9 @@ interface ExamEventResponse {
   error?: string;
   violation_count?: number;
   max_cheat_warnings?: number;
+  exam_status?: ExamStatusType;
+  submitted?: boolean;
+  submit_reason?: string;
   locked?: boolean;
   bypass?: boolean;
   auto_unlock_at?: string;
@@ -39,9 +46,12 @@ export const startExam = async (contestId: string): Promise<ExamSessionResponse>
   );
 };
 
-export const endExam = async (contestId: string): Promise<ExamSessionResponse> => {
+export const endExam = async (
+  contestId: string,
+  payload?: { submit_reason?: string }
+): Promise<ExamSessionResponse> => {
   return requestJson<ExamSessionResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam/end/`),
+    httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
     "Failed to end exam"
   );
 };
@@ -51,13 +61,13 @@ export const sendExamHeartbeat = async (
   payload: { is_focused: boolean; is_fullscreen: boolean }
 ): Promise<{
   status: string;
-  exam_status?: string;
+  exam_status?: ExamStatusType;
   violation_count?: number;
   max_warnings?: number;
 }> => {
   return requestJson<{
     status: string;
-    exam_status?: string;
+    exam_status?: ExamStatusType;
     violation_count?: number;
     max_warnings?: number;
   }>(

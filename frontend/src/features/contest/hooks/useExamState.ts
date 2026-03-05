@@ -12,6 +12,9 @@ export interface UseExamStateProps {
   requestFullscreen: () => Promise<unknown>;
 }
 
+const isMonitoredExamStatus = (status?: ExamStatusType) =>
+  status === "in_progress" || status === "paused" || status === "locked";
+
 export function useExamState({
   contestId,
   examStatus,
@@ -46,6 +49,9 @@ export function useExamState({
         message?: string;
         error?: boolean | string;
         locked?: boolean;
+        submitted?: boolean;
+        exam_status?: ExamStatusType;
+        submit_reason?: string;
         violation_count?: number;
         max_cheat_warnings?: number;
         auto_unlock_at?: string;
@@ -72,7 +78,11 @@ export function useExamState({
   }, []);
 
   const handleWarningTimeout = useCallback(async () => {
-    if (warningTimeoutProcessingRef.current || isBypassed || examStatus === "locked") {
+    if (
+      warningTimeoutProcessingRef.current ||
+      isBypassed ||
+      examStatus !== "in_progress"
+    ) {
       return;
     }
 
@@ -155,7 +165,7 @@ export function useExamState({
     }
 
     // Reset processing state when monitoring becomes active
-    if (effectiveIsActive && !isBypassed) {
+    if (isMonitoredExamStatus(examStatus) && !isBypassed) {
       isProcessingEventRef.current = false;
       queuedViolationRef.current = [];
       if (retryTimerRef.current) {
@@ -171,7 +181,7 @@ export function useExamState({
 
   const drainViolationQueue = useCallback(async () => {
     if (isProcessingEventRef.current) return;
-    if (isBypassed || examStatus === "locked") return;
+    if (isBypassed || !isMonitoredExamStatus(examStatus)) return;
     if (queuedViolationRef.current.length === 0) return;
 
     if (retryTimerRef.current) {
@@ -182,12 +192,14 @@ export function useExamState({
     isProcessingEventRef.current = true;
     try {
       while (queuedViolationRef.current.length > 0) {
-        if (isBypassed || (examStatus as string) === "locked") break;
+        if (isBypassed || !isMonitoredExamStatus(examStatus)) break;
 
         const currentViolation = queuedViolationRef.current[0];
         setPendingApiResponse(true);
-        setWarningEventType(currentViolation.eventType);
-        setShowWarning(true);
+        if (examStatus === "in_progress") {
+          setWarningEventType(currentViolation.eventType);
+          setShowWarning(true);
+        }
 
         try {
           const response = await recordExamEvent(
@@ -207,7 +219,8 @@ export function useExamState({
               violationCount: response.violation_count ?? prev.violationCount,
               maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
               autoUnlockAt: response.auto_unlock_at,
-              isLocked: !!response.locked || prev.isLocked,
+              isLocked:
+                response.exam_status === "locked" || !!response.locked || prev.isLocked,
             }));
           }
           if (onRefresh) {
@@ -218,12 +231,22 @@ export function useExamState({
 
           queuedViolationRef.current.shift();
 
-          if (response.locked) {
+          if (response.submitted || response.exam_status === "submitted") {
+            stopWarningCountdown();
+            setShowWarning(false);
+            setWarningEventType(null);
+            queuedViolationRef.current = [];
+            break;
+          }
+
+          if (response.locked || response.exam_status === "locked") {
             stopWarningCountdown();
             queuedViolationRef.current = [];
             break;
           }
-          startWarningCountdown();
+          if (examStatus === "in_progress") {
+            startWarningCountdown();
+          }
         } catch (error) {
           console.error("Failed to record event:", error);
           setLastApiResponse({
@@ -240,7 +263,7 @@ export function useExamState({
       if (
         queuedViolationRef.current.length > 0 &&
         !isBypassed &&
-        (examStatus as string) !== "locked"
+        isMonitoredExamStatus(examStatus)
       ) {
         retryTimerRef.current = setTimeout(() => {
           void drainViolationQueue();
@@ -251,7 +274,7 @@ export function useExamState({
 
   const handleViolation = useCallback(
     async (eventType: string, reason: string) => {
-      if (examStatus === "locked" || isBypassed) {
+      if (!isMonitoredExamStatus(examStatus) || isBypassed) {
         return;
       }
       queuedViolationRef.current.push({ eventType, reason });

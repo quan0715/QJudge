@@ -358,6 +358,12 @@ class ContestParticipant(models.Model):
     )
     
     violation_count = models.IntegerField(default=0, verbose_name='違規次數')
+    submit_reason = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='交卷原因',
+        help_text='手動或系統自動交卷原因'
+    )
     
     # Anonymous mode nickname
     nickname = models.CharField(
@@ -517,6 +523,7 @@ class ExamEvent(models.Model):
         ('forbidden_focus_event', 'Forbidden Focus Event'),
         ('forbidden_action', 'Forbidden Action'),
         ('multiple_displays', 'Multiple Displays'),
+        ('mouse_leave', 'Mouse Leave'),
         ('warning_timeout', 'Warning Timeout'),
         ('force_submit_locked', 'Force Submit Locked'),
     ]

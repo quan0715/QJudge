@@ -61,7 +61,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   });
 
   // 2. Monitoring Hook
-  const isCurrentlyActive = examStatus === "in_progress";
+  const isCurrentlyMonitored =
+    examStatus === "in_progress" || examStatus === "paused" || examStatus === "locked";
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();
     if (now - lastBlockedActionToastAt.current < 1000) {
@@ -82,7 +83,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const initialFullscreenCheckDone = useRef(false);
 
   useExamMonitoring({
-    enabled: cheatDetectionEnabled && isCurrentlyActive,
+    enabled: cheatDetectionEnabled && isCurrentlyMonitored,
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
     onFullscreenRecoveryCountdownChange: setFullscreenRecoveryCountdown,

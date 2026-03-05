@@ -100,6 +100,35 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
         self.assertEqual(self.participant.violation_count, 3)
 
+    def test_paused_violation_at_threshold_auto_submits(self):
+        self.client.force_authenticate(user=self.student)
+        self.participant.exam_status = ExamStatus.PAUSED
+        self.participant.violation_count = self.contest.max_cheat_warnings - 1
+        self.participant.save()
+
+        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data["submitted"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
+        self.assertIn("Auto-submitted", self.participant.submit_reason)
+
+    def test_locked_violation_auto_submits(self):
+        self.client.force_authenticate(user=self.student)
+        self.participant.exam_status = ExamStatus.LOCKED
+        self.participant.violation_count = self.contest.max_cheat_warnings
+        self.participant.locked_at = timezone.now()
+        self.participant.save()
+
+        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data["submitted"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
+        self.assertIn("Auto-submitted", self.participant.submit_reason)
+
     # ------------------------------------------------------------------
     # 3. warning_timeout forces lock regardless of count
     # ------------------------------------------------------------------
