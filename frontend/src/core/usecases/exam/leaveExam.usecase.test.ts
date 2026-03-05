@@ -47,7 +47,7 @@ describe("leaveExam.usecase", () => {
   });
 
   it("returns false when fullscreen exit throws", async () => {
-    let fullscreenActive = true;
+    const fullscreenActive = true;
     Object.defineProperty(document, "fullscreenElement", {
       get: () => (fullscreenActive ? document.documentElement : null),
       configurable: true,
