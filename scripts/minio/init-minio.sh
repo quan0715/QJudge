@@ -6,6 +6,20 @@ MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://minio:9000}"
 RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
 VIDEO_BUCKET="${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}"
 CORS_ALLOWED_ORIGINS="${ANTICHEAT_CORS_ALLOWED_ORIGINS:-http://localhost:5173}"
+MINIO_INIT_MAX_ATTEMPTS="${MINIO_INIT_MAX_ATTEMPTS:-120}"
+
+build_mc_host() {
+  endpoint="${MINIO_ENDPOINT%/}"
+  scheme="http"
+  case "$endpoint" in
+    https://*) scheme="https" ;;
+    http://*) scheme="http" ;;
+    *) endpoint="http://$endpoint" ;;
+  esac
+  endpoint_no_scheme="${endpoint#http://}"
+  endpoint_no_scheme="${endpoint_no_scheme#https://}"
+  echo "${scheme}://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@${endpoint_no_scheme}"
+}
 
 build_cors_xml() {
   cors_file="$1"
@@ -30,8 +44,19 @@ build_cors_xml() {
   } > "$cors_file"
 }
 
-until mc alias set "$MINIO_ALIAS_NAME" "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
-  echo "Waiting for MinIO to be ready..."
+MC_HOST_ENV_KEY="MC_HOST_${MINIO_ALIAS_NAME}"
+MC_HOST_VALUE="$(build_mc_host)"
+export "${MC_HOST_ENV_KEY}=${MC_HOST_VALUE}"
+
+attempt=1
+until mc ls "$MINIO_ALIAS_NAME" >/dev/null 2>&1; do
+  if [ "$attempt" -ge "$MINIO_INIT_MAX_ATTEMPTS" ]; then
+    echo "MinIO is not reachable after ${MINIO_INIT_MAX_ATTEMPTS} attempts." >&2
+    echo "endpoint=${MINIO_ENDPOINT}" >&2
+    exit 1
+  fi
+  echo "Waiting for MinIO to be ready... (${attempt}/${MINIO_INIT_MAX_ATTEMPTS})"
+  attempt=$((attempt + 1))
   sleep 2
 done
 
