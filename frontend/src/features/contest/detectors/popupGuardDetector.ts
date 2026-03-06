@@ -39,16 +39,15 @@ export class PopupGuardDetector implements ExamDetector {
     if (typeof HTMLVideoElement.prototype.requestPictureInPicture === "function") {
       this.originalRequestPiP =
         HTMLVideoElement.prototype.requestPictureInPicture;
-      const detector = this;
-      HTMLVideoElement.prototype.requestPictureInPicture = function () {
-        detector.onViolation?.({
-          detectorId: detector.id,
+      HTMLVideoElement.prototype.requestPictureInPicture = () => {
+        this.onViolation?.({
+          detectorId: this.id,
           eventType: "forbidden_action",
-          message: detector.t(
+          message: this.t(
             "exam.pipBlocked",
             "Picture-in-Picture is blocked",
           ),
-          severity: detector.severity,
+          severity: this.severity,
         });
         return Promise.reject(
           new DOMException("Blocked by exam mode", "NotAllowedError"),
