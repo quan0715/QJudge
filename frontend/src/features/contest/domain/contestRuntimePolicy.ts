@@ -29,6 +29,7 @@ const EXAM_STARTED_STATUSES = new Set<ExamStatusType>([
   "in_progress",
   "paused",
   "locked",
+  "locked_takeover",
   "submitted",
 ]);
 

@@ -14,35 +14,37 @@ import {
 } from "@/features/contest/detectors";
 import type { ViolationEvent, ExamDetector } from "@/features/contest/detectors";
 
+export type RecoverySource = "fullscreen" | "mouse-leave";
+
 interface UseExamMonitoringProps {
   enabled: boolean;
   onViolation: (eventType: string, reason: string) => Promise<void> | void;
   onBlockedAction?: (message: string) => void;
-  onFullscreenRecoveryCountdownChange?: (secondsLeft: number | null) => void;
+  onRecoveryCountdownChange?: (secondsLeft: number | null, source: RecoverySource) => void;
 }
 
 export function useExamMonitoring({
   enabled,
   onViolation,
   onBlockedAction,
-  onFullscreenRecoveryCountdownChange,
+  onRecoveryCountdownChange,
 }: UseExamMonitoringProps) {
   const { t } = useTranslation("contest");
   const onViolationRef = useRef(onViolation);
   const onBlockedActionRef = useRef(onBlockedAction);
-  const onFullscreenRecoveryCountdownChangeRef = useRef(onFullscreenRecoveryCountdownChange);
+  const onRecoveryCountdownChangeRef = useRef(onRecoveryCountdownChange);
   const tRef = useRef(t);
 
   useEffect(() => { onViolationRef.current = onViolation; }, [onViolation]);
   useEffect(() => { onBlockedActionRef.current = onBlockedAction; }, [onBlockedAction]);
-  useEffect(() => { onFullscreenRecoveryCountdownChangeRef.current = onFullscreenRecoveryCountdownChange; }, [onFullscreenRecoveryCountdownChange]);
+  useEffect(() => { onRecoveryCountdownChangeRef.current = onRecoveryCountdownChange; }, [onRecoveryCountdownChange]);
   useEffect(() => { tRef.current = t; }, [t]);
 
   useEffect(() => {
     if (!enabled) return;
 
     const emitViolation = (eventType: string, message: string) =>
-      Promise.resolve(onViolationRef.current(eventType, message)).catch(console.error);
+      Promise.resolve(onViolationRef.current(eventType, message)).catch(() => undefined);
 
     const handleViolation = (event: ViolationEvent) => {
       if (event.severity === "info") {
@@ -65,13 +67,15 @@ export function useExamMonitoring({
 
     const detectors: ExamDetector[] = [
       new FullscreenDetector(tRef.current, {
-        onCountdownChange: (s) => onFullscreenRecoveryCountdownChangeRef.current?.(s),
+        onCountdownChange: (s) => onRecoveryCountdownChangeRef.current?.(s, "fullscreen"),
       }),
       multiDisplayDetector,
       focusDetector,
       new ClipboardDetector(tRef.current),
       new KeyboardShortcutDetector(tRef.current),
-      new MouseLeaveDetector(tRef.current),
+      new MouseLeaveDetector(tRef.current, {
+        onCountdownChange: (s) => onRecoveryCountdownChangeRef.current?.(s, "mouse-leave"),
+      }),
       new PopupGuardDetector(tRef.current),
     ];
 

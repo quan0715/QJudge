@@ -151,7 +151,5 @@ export const API_ENDPOINTS = {
     examStart: (id: string | number) => `/api/v1/contests/${id}/exam/start/`,
     examEnd: (id: string | number) => `/api/v1/contests/${id}/exam/end/`,
     examEvents: (id: string | number) => `/api/v1/contests/${id}/exam/events/`,
-    examHeartbeat: (id: string | number) =>
-      `/api/v1/contests/${id}/exam/heartbeat/`,
   },
 } as const;

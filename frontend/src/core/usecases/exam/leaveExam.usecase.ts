@@ -9,6 +9,7 @@
 
 import { endExam } from "@/infrastructure/api/repositories";
 import { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
+import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 export { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 
 // ============================================================================
@@ -34,7 +35,9 @@ export async function leaveExamUseCase(
   try {
     // End exam if needed
     if (shouldEndExam) {
-      await endExam(contestId);
+      await endExam(contestId, {
+        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+      });
     }
 
     // Exit fullscreen

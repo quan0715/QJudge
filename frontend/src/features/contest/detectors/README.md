@@ -29,7 +29,7 @@ interface ExamDetector {
 | `fullscreen` | FullscreenDetector | violation | 偵測退出全螢幕，提供 5 秒回復寬限期 |
 | `focus` | FocusDetector | violation | 偵測 `visibilitychange` (tab hidden) 及 `blur` (視窗失焦) |
 | `multi-display` | MultiDisplayDetector | violation | 透過 Screen Enumeration API 偵測多螢幕 |
-| `mouse-leave` | MouseLeaveDetector | warning | 偵測滑鼠離開視窗邊界 |
+| `mouse-leave` | MouseLeaveDetector | warning | 偵測滑鼠離開視窗邊界，提供 3 秒回復寬限期 |
 | `clipboard` | ClipboardDetector | info | 攔截 copy/paste/cut/contextmenu |
 | `keyboard-shortcut` | KeyboardShortcutDetector | info | 攔截危險快捷鍵（Cmd+T/N/W/P、Cmd+Space、F12 等）+ 列印保護 |
 | `popup-guard` | PopupGuardDetector | info | 攔截 `window.open`、PiP、Notification |

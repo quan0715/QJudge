@@ -385,6 +385,7 @@
     "forbiddenContextMenu": "Context menu is disabled",
     "forbiddenAction": "Forbidden action detected",
     "multipleDisplaysDetected": "Multiple displays detected. Please keep only one physical screen.",
+    "displayApiDegraded": "Display monitoring API is unavailable. The system may not detect multiple displays.",
     "mouseLeftWindow": "Mouse left the window",
     "forbiddenKeyboardShortcut": "Keyboard shortcuts are disabled",
     "popupBlocked": "Popup windows are blocked",
@@ -415,6 +416,8 @@
     "fullscreenRecoveryTitle": "Exited fullscreen",
     "fullscreenRecoveryDesc": "Return to fullscreen within {{seconds}} seconds, or this will count as one violation.",
     "returnToFullscreen": "Return to Fullscreen",
+    "mouseLeaveRecoveryTitle": "Mouse left the window",
+    "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
     "forceSubmitCountdown": "Auto-submit after 3 minutes of being locked",
     "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted"
   },
@@ -491,6 +494,7 @@
     "in_progress": "In Progress",
     "paused": "Paused",
     "locked": "Locked",
+    "locked_takeover": "Takeover Locked",
     "submitted": "Submitted"
   },
   "grading": {

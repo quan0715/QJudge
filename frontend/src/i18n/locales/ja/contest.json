@@ -385,6 +385,7 @@
     "forbiddenContextMenu": "右クリックメニューは無効です",
     "forbiddenAction": "禁止操作が検出されました",
     "multipleDisplaysDetected": "複数ディスプレイが検出されました。物理的に1画面のみ接続してください。",
+    "displayApiDegraded": "ディスプレイ監視APIが利用できません。複数ディスプレイを検出できない場合があります。",
     "windowBlur": "ウィンドウを離れました",
     "exitedFullscreen": "フルスクリーンを解除しました",
     "stayInExamPage": "試験ページに留まり、フルスクリーンモードを維持してください。",
@@ -410,6 +411,8 @@
     "fullscreenRecoveryTitle": "全画面表示を終了しました",
     "fullscreenRecoveryDesc": "{{seconds}} 秒以内に全画面へ戻らない場合、違反として1回記録されます。",
     "returnToFullscreen": "全画面に戻る",
+    "mouseLeaveRecoveryTitle": "マウスがウィンドウ外に出ました",
+    "mouseLeaveRecoveryDesc": "{{seconds}} 秒以内にマウスを試験ウィンドウ内に戻さない場合、違反として1回記録されます。",
     "forceSubmitCountdown": "ロックから3分経過後に自動提出されます",
     "forceSubmittedReason": "ロックが3分以上続いたため、システムが自動的に提出しました"
   },

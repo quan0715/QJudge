@@ -96,6 +96,10 @@
   animation: checkFailShake 400ms motion.motion(entrance, productive) both;
 }
 
+.checkItem[data-status="blocked"] {
+  background: var(--cds-layer-02);
+}
+
 @keyframes checkFailShake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-4px); }
@@ -119,28 +123,40 @@
   justify-content: center;
 }
 
-.checkIconPending {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid var(--cds-border-subtle-01);
-}
-
-.checkIconRunning {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid var(--cds-interactive);
-  border-top-color: transparent;
-  animation: spin 800ms linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.checkLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
 }
 
 .checkLabel {
   font-weight: 500;
+}
+
+.checkStatusText {
+  @include type.type-style("helper-text-01");
+  font-weight: 600;
+}
+
+.checkStatusText[data-status="pending"] {
+  color: var(--cds-text-secondary);
+}
+
+.checkStatusText[data-status="running"] {
+  color: var(--cds-support-info);
+}
+
+.checkStatusText[data-status="pass"] {
+  color: var(--cds-support-success);
+}
+
+.checkStatusText[data-status="fail"] {
+  color: var(--cds-support-error);
+}
+
+.checkStatusText[data-status="blocked"] {
+  color: var(--cds-support-warning);
 }
 
 .checkDetail {

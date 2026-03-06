@@ -21,6 +21,7 @@ export const EXAM_STATUS_LABELS: Record<ExamStatusType, string> = {
   in_progress: "進行中",
   paused: "已暫停",
   locked: "已鎖定",
+  locked_takeover: "接管鎖定",
   submitted: "已交卷",
 };
 

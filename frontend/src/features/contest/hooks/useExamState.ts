@@ -150,7 +150,7 @@ export function useExamState({
   }, [handleWarningTimeout, stopWarningCountdown]);
 
   useEffect(() => {
-    const effectiveIsLocked = examStatus === "locked";
+    const effectiveIsLocked = examStatus === "locked" || examStatus === "locked_takeover";
     const effectiveIsActive = examStatus === "in_progress";
 
     setExamState((prev) => ({
@@ -164,8 +164,13 @@ export function useExamState({
       setShowUnlockNotification(true);
     }
 
-    // Reset processing state when monitoring becomes active
-    if (isMonitoredExamStatus(examStatus) && !isBypassed) {
+    // Reset processing state only when transitioning FROM non-monitored TO monitored
+    // (e.g., not_started → in_progress, or submitted → in_progress on re-entry).
+    // Do NOT clear the queue when transitioning between monitored states
+    // (e.g., in_progress → locked), as that would drop queued violations.
+    const wasMonitored = isMonitoredExamStatus(prevExamStatusRef.current);
+    const isNowMonitored = isMonitoredExamStatus(examStatus) && !isBypassed;
+    if (isNowMonitored && !wasMonitored) {
       isProcessingEventRef.current = false;
       queuedViolationRef.current = [];
       if (retryTimerRef.current) {

@@ -15,7 +15,13 @@ export type ExamViolationType =
   | "multiple_displays"
   | "mouse_leave"
   | "warning_timeout"
-  | "force_submit_locked";
+  | "force_submit_locked"
+  | "screen_share_stopped"
+  | "screen_share_invalid_surface"
+  | "capture_upload_degraded"
+  | "concurrent_login_detected"
+  | "takeover_locked"
+  | "takeover_approved";
 
 // Activity events (from ContestActivity model)
 export type ContestActivityType =
@@ -32,6 +38,9 @@ export type ContestActivityType =
   | "update_contest"
   | "update_problem"
   | "update_participant"
+  | "concurrent_login_detected"
+  | "takeover_lock"
+  | "takeover_approve"
   | "announce"
   | "other";
 
@@ -102,6 +111,7 @@ export type ExamStatusType =
   | "in_progress"
   | "paused"
   | "locked"
+  | "locked_takeover"
   | "submitted";
 
 export interface ContestDetail extends Contest {

@@ -335,6 +335,7 @@
     "forbiddenContextMenu": "禁止使用右鍵選單",
     "forbiddenAction": "偵測到禁止操作",
     "multipleDisplaysDetected": "偵測到多螢幕，請僅保留單一實體螢幕",
+    "displayApiDegraded": "螢幕偵測 API 無法使用，系統可能無法偵測多螢幕。",
     "mouseLeftWindow": "滑鼠離開了視窗",
     "forbiddenKeyboardShortcut": "禁止使用快捷鍵",
     "popupBlocked": "禁止開啟彈出視窗",
@@ -365,6 +366,8 @@
     "fullscreenRecoveryTitle": "已退出全螢幕",
     "fullscreenRecoveryDesc": "請在 {{seconds}} 秒內回到全螢幕，否則將記錄一次違規。",
     "returnToFullscreen": "回到全螢幕",
+    "mouseLeaveRecoveryTitle": "滑鼠已離開視窗",
+    "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
     "forceSubmitCountdown": "鎖定超過 3 分鐘後將自動交卷",
     "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷"
   },
@@ -441,6 +444,7 @@
     "in_progress": "進行中",
     "paused": "已暫停",
     "locked": "已鎖定",
+    "locked_takeover": "接管鎖定",
     "submitted": "已交卷"
   },
   "grading": {

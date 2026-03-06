@@ -385,6 +385,7 @@
     "forbiddenContextMenu": "우클릭 메뉴가 비활성화되었습니다",
     "forbiddenAction": "금지된 동작이 감지되었습니다",
     "multipleDisplaysDetected": "다중 모니터가 감지되었습니다. 물리적으로 하나의 화면만 사용해 주세요.",
+    "displayApiDegraded": "디스플레이 모니터링 API를 사용할 수 없습니다. 다중 모니터를 감지하지 못할 수 있습니다.",
     "windowBlur": "창을 떠났습니다",
     "exitedFullscreen": "전체 화면을 종료했습니다",
     "stayInExamPage": "시험 페이지에 머무르고 전체 화면 모드를 유지하세요.",
@@ -410,6 +411,8 @@
     "fullscreenRecoveryTitle": "전체 화면이 해제되었습니다",
     "fullscreenRecoveryDesc": "{{seconds}}초 이내에 전체 화면으로 복귀하지 않으면 위반 1회로 기록됩니다.",
     "returnToFullscreen": "전체 화면으로 복귀",
+    "mouseLeaveRecoveryTitle": "마우스가 창 밖으로 나갔습니다",
+    "mouseLeaveRecoveryDesc": "{{seconds}}초 이내에 마우스를 시험 창으로 되돌리지 않으면 위반 1회로 기록됩니다.",
     "forceSubmitCountdown": "잠금 3분 후 자동 제출됩니다",
     "forceSubmittedReason": "3분 이상 잠금 상태로 인해 시스템이 자동 제출했습니다"
   },

@@ -14,6 +14,7 @@ import {
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
+import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 
@@ -114,7 +115,9 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     try {
-      await endExam(contest.id);
+      await endExam(contest.id, {
+        upload_session_id: getExamCaptureSessionId(contest.id) || undefined,
+      });
       clearExamPrecheckPassed(contest.id);
       await refreshContest();
     } catch {

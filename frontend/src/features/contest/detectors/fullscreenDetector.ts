@@ -1,5 +1,5 @@
 import { isFullscreen } from "@/core/usecases/exam";
-import { EXAM_MONITORING_FULLSCREEN_RECOVERY_GRACE_MS } from "@/features/contest/domain/examMonitoringPolicy";
+import { EXAM_MONITORING_RECOVERY_GRACE_MS } from "@/features/contest/domain/examMonitoringPolicy";
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 import type { TFunction } from "i18next";
 
@@ -60,12 +60,12 @@ export class FullscreenDetector implements ExamDetector {
     this.recoveryActive = true;
     this.graceStartedAt = Date.now();
 
-    const graceSeconds = EXAM_MONITORING_FULLSCREEN_RECOVERY_GRACE_MS / 1000;
+    const graceSeconds = EXAM_MONITORING_RECOVERY_GRACE_MS / 1000;
     this.options.onCountdownChange?.(graceSeconds);
 
     this.recoveryInterval = setInterval(() => {
       const elapsed = Date.now() - this.graceStartedAt;
-      const remaining = Math.ceil((EXAM_MONITORING_FULLSCREEN_RECOVERY_GRACE_MS - elapsed) / 1000);
+      const remaining = Math.ceil((EXAM_MONITORING_RECOVERY_GRACE_MS - elapsed) / 1000);
       if (remaining > 0) {
         this.options.onCountdownChange?.(remaining);
       }
@@ -79,7 +79,7 @@ export class FullscreenDetector implements ExamDetector {
         message: this.t("exam.exitedFullscreen"),
         severity: this.severity,
       });
-    }, EXAM_MONITORING_FULLSCREEN_RECOVERY_GRACE_MS);
+    }, EXAM_MONITORING_RECOVERY_GRACE_MS);
   }
 
   private clearRecovery(): void {

@@ -26,12 +26,15 @@ import {
   Renew,
   Restart,
   Download,
+  View,
   ArrowUp,
   ArrowDown,
 } from "@carbon/icons-react";
 import { AddParticipantModal } from "../../components/modals/AddParticipantModal";
+import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
 import {
   addContestParticipant,
+  approveTakeover,
   unlockParticipant,
   updateParticipant,
   removeParticipant,
@@ -48,7 +51,14 @@ import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
-const EXAM_STATUS_KEYS: string[] = ["not_started", "in_progress", "paused", "locked", "submitted"];
+const EXAM_STATUS_KEYS: string[] = [
+  "not_started",
+  "in_progress",
+  "paused",
+  "locked",
+  "locked_takeover",
+  "submitted",
+];
 
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -72,6 +82,8 @@ const ContestParticipantsScreen = () => {
     useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [videoTargetUserId, setVideoTargetUserId] = useState<string | undefined>(undefined);
 
   const examStatusOptions = EXAM_STATUS_KEYS.map((id) => ({
     id,
@@ -129,6 +141,25 @@ const ContestParticipantsScreen = () => {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.unlockFailed", "解除鎖定失敗");
+      setNotification({ kind: "error", message });
+    }
+  };
+
+  const handleTakeoverApprove = async (userId: number) => {
+    if (!contestId) return;
+    const confirmed = await confirm({
+      title: "確定要核可此學生的裝置接管嗎？",
+      confirmLabel: "核可",
+      cancelLabel: t("common.cancel", "取消"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await approveTakeover(contestId, userId);
+      await refreshAdminData();
+      setNotification({ kind: "success", message: "已核可裝置接管，可繼續作答" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "核可接管失敗";
       setNotification({ kind: "error", message });
     }
   };
@@ -489,6 +520,11 @@ const ContestParticipantsScreen = () => {
                                   {t("examStatus.locked", "已鎖定")}
                                 </Tag>
                               )}
+                              {p.examStatus === "locked_takeover" && (
+                                <Tag type="red" size="sm">
+                                  {t("examStatus.locked_takeover", "接管鎖定")}
+                                </Tag>
+                              )}
                               {p.examStatus === "submitted" && (
                                 <Tag type="green" size="sm">
                                   {t("examStatus.submitted", "已交卷")}
@@ -525,6 +561,16 @@ const ContestParticipantsScreen = () => {
                                   onClick={() => handleUnlock(Number(p.userId))}
                                 />
                               )}
+                              {p.examStatus === "locked_takeover" && (
+                                <Button
+                                  kind="ghost"
+                                  size="sm"
+                                  renderIcon={Unlocked}
+                                  iconDescription="核可接管"
+                                  hasIconOnly
+                                  onClick={() => handleTakeoverApprove(Number(p.userId))}
+                                />
+                              )}
                               {p.examStatus === "submitted" && (
                                 <Button
                                   kind="ghost"
@@ -537,6 +583,17 @@ const ContestParticipantsScreen = () => {
                                   }
                                 />
                               )}
+                              <Button
+                                kind="ghost"
+                                size="sm"
+                                renderIcon={View}
+                                iconDescription="檢視監控影片"
+                                hasIconOnly
+                                onClick={() => {
+                                  setVideoTargetUserId(String(p.userId));
+                                  setVideoModalOpen(true);
+                                }}
+                              />
                               <Button
                                 kind="ghost"
                                 size="sm"
@@ -643,6 +700,12 @@ const ContestParticipantsScreen = () => {
             )}
           </div>
         </Modal>
+        <ExamVideoReviewModal
+          contestId={contestId}
+          open={videoModalOpen}
+          onClose={() => setVideoModalOpen(false)}
+          userIdFilter={videoTargetUserId}
+        />
       </div>
       <ConfirmModal {...modalProps} />
     </SurfaceSection>

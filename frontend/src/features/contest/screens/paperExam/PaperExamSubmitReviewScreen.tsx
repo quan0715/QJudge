@@ -86,7 +86,8 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
   const canSubmit =
     contest?.examStatus === "in_progress" ||
     contest?.examStatus === "paused" ||
-    contest?.examStatus === "locked";
+    contest?.examStatus === "locked" ||
+    contest?.examStatus === "locked_takeover";
 
   const unanswered = examQuestions.filter((q) => !answeredIds.has(String(q.id)));
   const totalCount = examQuestions.length;

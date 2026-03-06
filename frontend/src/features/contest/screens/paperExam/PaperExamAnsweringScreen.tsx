@@ -19,6 +19,7 @@ import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import {
   useCountdownTo,
+  useAnticheatScreenCapture,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
   hasExamPrecheckPassed,
@@ -44,13 +45,28 @@ const SAVE_STATUS_LABEL: Record<string, string> = {
 const PaperExamAnsweringScreen: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, heartbeat, submitExam, refreshContest } = usePaperExamFlow();
+  const { contestId, contest, submitExam, refreshContest } = usePaperExamFlow();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const countdown = useCountdownTo(contest?.endTime);
+  const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
+  const captureEnabled =
+    !!contest?.cheatDetectionEnabled &&
+    (contest?.examStatus === "in_progress" ||
+      contest?.examStatus === "locked" ||
+      contest?.examStatus === "locked_takeover" ||
+      contest?.examStatus === "paused") &&
+    precheckPassed;
+  const {
+    uploadSessionId: anticheatUploadSessionId,
+    flushPendingUploads,
+  } = useAnticheatScreenCapture({
+    contestId,
+    enabled: captureEnabled,
+  });
 
   const { markDirty, saveIfDirty, flushAll, saveStatus } = usePaperExamSaveOnLeave({
     contestId,
@@ -84,7 +100,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   useInterval(() => {
-    heartbeat().catch(() => {});
     refreshContest().catch(() => {});
   }, isInProgress ? 30000 : null);
 
@@ -93,19 +108,28 @@ const PaperExamAnsweringScreen: React.FC = () => {
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
       flushAll()
-        .then(() => submitExam())
+        .then(async () => {
+          await flushPendingUploads();
+          return submitExam(anticheatUploadSessionId || undefined);
+        })
         .finally(() => {
           setAutoSubmitted(true);
           if (isFullscreen()) exitFullscreen().catch(() => {});
         });
     }
-  }, [countdown.remaining, isInProgress, contestId, submitExam, flushAll]);
+  }, [
+    anticheatUploadSessionId,
+    countdown.remaining,
+    flushPendingUploads,
+    isInProgress,
+    contestId,
+    submitExam,
+    flushAll,
+  ]);
 
   useEffect(() => {
     if (!contestId || contest?.contestType !== "paper_exam") return;
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
-
-    const precheckPassed = hasExamPrecheckPassed(contestId);
 
     if (
       shouldRouteToPrecheck({

@@ -24,6 +24,18 @@ export const unlockParticipant = async (
   );
 };
 
+export const approveTakeover = async (
+  contestId: string,
+  userId: number
+): Promise<void> => {
+  await ensureOk(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/takeover-approve/`, {
+      user_id: userId,
+    }),
+    "Failed to approve takeover"
+  );
+};
+
 export const updateNickname = async (
   contestId: string,
   nickname: string

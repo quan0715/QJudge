@@ -5,9 +5,11 @@ import {
   registerContest,
   startExam,
   endExam,
-  sendExamHeartbeat,
 } from "@/infrastructure/api/repositories";
-import { isFullscreen } from "@/core/usecases/exam";
+import {
+  clearExamCaptureSessionId,
+  getExamCaptureSessionId,
+} from "./hooks/examCaptureSession";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -50,6 +52,7 @@ export const usePaperExamFlow = () => {
     setLoading(true);
     setError(null);
     try {
+      clearExamCaptureSessionId(id);
       // 考試模式只需 startExam，不需 enterContest
       // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
       await startExam(id);
@@ -63,13 +66,16 @@ export const usePaperExamFlow = () => {
     }
   };
 
-  const submitExam = async () => {
+  const submitExam = async (uploadSessionId?: string) => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
     try {
-      await endExam(id);
+      await endExam(id, {
+        upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+      });
       await refreshContest();
+      clearExamCaptureSessionId(id);
       return true;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "交卷失敗"));
@@ -77,14 +83,6 @@ export const usePaperExamFlow = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const heartbeat = async () => {
-    const id = guardContestId();
-    return sendExamHeartbeat(id, {
-      is_focused: document.hasFocus(),
-      is_fullscreen: isFullscreen(),
-    });
   };
 
   return {
@@ -96,7 +94,6 @@ export const usePaperExamFlow = () => {
     register,
     startSession,
     submitExam,
-    heartbeat,
     refreshContest,
   };
 };

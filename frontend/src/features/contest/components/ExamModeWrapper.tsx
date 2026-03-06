@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { endExam as serviceEndExam } from "@/infrastructure/api/repositories";
+import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
@@ -60,9 +61,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     requestFullscreen,
   });
 
-  // 2. Monitoring Hook
+  // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
   const isCurrentlyMonitored =
-    examStatus === "in_progress" || examStatus === "paused" || examStatus === "locked";
+    examStatus === "in_progress" ||
+    examStatus === "locked" ||
+    examStatus === "locked_takeover" ||
+    examStatus === "paused";
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();
     if (now - lastBlockedActionToastAt.current < 1000) {
@@ -79,14 +83,18 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   // 3. UI Status Management (Fullscreen modals & exit flows)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
   const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] = useState(false);
-  const [fullscreenRecoveryCountdown, setFullscreenRecoveryCountdown] = useState<number | null>(null);
+  const [recoveryCountdown, setRecoveryCountdown] = useState<number | null>(null);
+  const [recoverySource, setRecoverySource] = useState<"fullscreen" | "mouse-leave" | null>(null);
   const initialFullscreenCheckDone = useRef(false);
 
   useExamMonitoring({
     enabled: cheatDetectionEnabled && isCurrentlyMonitored,
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
-    onFullscreenRecoveryCountdownChange: setFullscreenRecoveryCountdown,
+    onRecoveryCountdownChange: (secondsLeft, source) => {
+      setRecoveryCountdown(secondsLeft);
+      setRecoverySource(secondsLeft != null ? source : null);
+    },
   });
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
@@ -113,9 +121,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     if (examStatus === "submitted") {
       if (isFullscreen()) {
-        exitFullscreen().catch((e) => {
-          console.warn("Failed to exit fullscreen on submit:", e);
-        });
+        exitFullscreen().catch(() => undefined);
       }
     }
 
@@ -126,9 +132,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     ) {
       setTimeout(() => {
         if (!isFullscreen()) {
-          requestFullscreen().catch((e) => {
-            console.warn("[Exam] Failed to enter fullscreen for locked state:", e);
-          });
+          requestFullscreen().catch(() => undefined);
         }
       }, 100);
     }
@@ -157,16 +161,17 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleFullscreenExitConfirm = async () => {
     setIsSubmittingFromFullscreenExit(true);
     try {
-      await serviceEndExam(contestId);
+      await serviceEndExam(contestId, {
+        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+      });
       if (onRefresh) await onRefresh();
       setShowFullscreenExitConfirm(false);
-    } catch (error) {
-      console.error("Failed to submit exam:", error);
+    } catch {
       setShowFullscreenExitConfirm(false);
       try {
         await requestFullscreen();
-      } catch (e) {
-        console.error("Failed to re-enter fullscreen:", e);
+      } catch {
+        // noop
       }
     } finally {
       setIsSubmittingFromFullscreenExit(false);
@@ -177,16 +182,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     setShowFullscreenExitConfirm(false);
     try {
       await requestFullscreen();
-    } catch (error) {
-      console.error("Failed to re-enter fullscreen:", error);
+    } catch {
+      // noop
     }
   };
 
   const handleRecoverFullscreen = useCallback(async () => {
     try {
       await requestFullscreen();
-    } catch (error) {
-      console.error("Failed to recover fullscreen:", error);
+    } catch {
+      // noop
     }
   }, []);
 
@@ -233,7 +238,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         warningEventType={warningEventType}
         examState={examState}
         warningCountdown={warningCountdown}
-        fullscreenRecoveryCountdown={fullscreenRecoveryCountdown}
+        recoveryCountdown={recoveryCountdown}
+        recoverySource={recoverySource}
         onRecoverFullscreen={handleRecoverFullscreen}
         onWarningClose={handleWarningClose}
         showUnlockNotification={showUnlockNotification}

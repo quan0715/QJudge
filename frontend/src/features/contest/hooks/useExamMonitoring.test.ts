@@ -62,11 +62,11 @@ describe("useExamMonitoring", () => {
     expect(onViolation).toHaveBeenCalledWith("tab_hidden", "exam.tabHidden");
   });
 
-  it("starts fullscreen recovery countdown and records violation only after 5 seconds", () => {
+  it("starts fullscreen recovery countdown and records violation only after 3 seconds", () => {
     const onViolation = vi.fn();
-    const onFullscreenRecoveryCountdownChange = vi.fn();
+    const onRecoveryCountdownChange = vi.fn();
     renderHook(() =>
-      useExamMonitoring({ enabled: true, onViolation, onFullscreenRecoveryCountdownChange })
+      useExamMonitoring({ enabled: true, onViolation, onRecoveryCountdownChange })
     );
 
     Object.defineProperty(document, "fullscreenElement", { value: null });
@@ -75,24 +75,24 @@ describe("useExamMonitoring", () => {
     // Wait for 100ms stabilization delay before fullscreen state is read
     vi.advanceTimersByTime(100);
 
-    expect(onFullscreenRecoveryCountdownChange).toHaveBeenCalledWith(5);
+    expect(onRecoveryCountdownChange).toHaveBeenCalledWith(3, "fullscreen");
     expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
 
-    vi.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(3000);
     expect(onViolation).toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
   });
 
-  it("cancels fullscreen violation if user returns to fullscreen within 5 seconds", () => {
+  it("cancels fullscreen violation if user returns to fullscreen within 3 seconds", () => {
     const onViolation = vi.fn();
-    const onFullscreenRecoveryCountdownChange = vi.fn();
+    const onRecoveryCountdownChange = vi.fn();
     renderHook(() =>
-      useExamMonitoring({ enabled: true, onViolation, onFullscreenRecoveryCountdownChange })
+      useExamMonitoring({ enabled: true, onViolation, onRecoveryCountdownChange })
     );
 
     Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
     document.dispatchEvent(new Event("fullscreenchange"));
     vi.advanceTimersByTime(100); // stabilization delay
-    vi.advanceTimersByTime(3000);
+    vi.advanceTimersByTime(2000);
 
     Object.defineProperty(document, "fullscreenElement", {
       value: document.createElement("div"),
@@ -100,10 +100,10 @@ describe("useExamMonitoring", () => {
     });
     document.dispatchEvent(new Event("fullscreenchange"));
     vi.advanceTimersByTime(100); // stabilization delay
-    vi.advanceTimersByTime(3000);
+    vi.advanceTimersByTime(2000);
 
     expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
-    expect(onFullscreenRecoveryCountdownChange).toHaveBeenCalledWith(null);
+    expect(onRecoveryCountdownChange).toHaveBeenCalledWith(null, "fullscreen");
   });
 
   it("calls onViolation for blur event if no recent interaction", () => {
@@ -194,7 +194,7 @@ describe("useExamMonitoring", () => {
     expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenContextMenu");
   });
 
-  it("reports multiple displays when Screen Details API detects more than one screen", async () => {
+  it("reports multiple displays after 2 consecutive detections (debounce)", async () => {
     const onViolation = vi.fn();
     const addEventListener = vi.fn();
     const removeEventListener = vi.fn();
@@ -209,16 +209,22 @@ describe("useExamMonitoring", () => {
     });
 
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    await Promise.resolve();
-    await Promise.resolve();
+    // First poll — detection count = 1, not yet reported
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onViolation).not.toHaveBeenCalledWith(
+      "multiple_displays",
+      "exam.multipleDisplaysDetected"
+    );
 
+    // Second poll — detection count = 2, now reported
+    await vi.advanceTimersByTimeAsync(5000);
     expect(onViolation).toHaveBeenCalledWith(
       "multiple_displays",
       "exam.multipleDisplaysDetected"
     );
   });
 
-  it("reports multiple displays when Screen Details API returns one screen but display is extended", async () => {
+  it("reports multiple displays after 2 polls when display is extended", async () => {
     const onViolation = vi.fn();
     const addEventListener = vi.fn();
     const removeEventListener = vi.fn();
@@ -237,16 +243,22 @@ describe("useExamMonitoring", () => {
     });
 
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    await Promise.resolve();
-    await Promise.resolve();
+    // First poll
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onViolation).not.toHaveBeenCalledWith(
+      "multiple_displays",
+      "exam.multipleDisplaysDetected"
+    );
 
+    // Second poll
+    await vi.advanceTimersByTimeAsync(5000);
     expect(onViolation).toHaveBeenCalledWith(
       "multiple_displays",
       "exam.multipleDisplaysDetected"
     );
   });
 
-  it("reports multiple displays when Screen Details API is unavailable but screen is extended", () => {
+  it("reports multiple displays after 2 polls when API unavailable but screen is extended", async () => {
     const onViolation = vi.fn();
     Object.defineProperty(window.screen, "isExtended", {
       value: true,
@@ -254,10 +266,45 @@ describe("useExamMonitoring", () => {
     });
 
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
+    // First poll — API unavailable, falls back to sync isExtended check, count = 1
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onViolation).not.toHaveBeenCalledWith(
+      "multiple_displays",
+      "exam.multipleDisplaysDetected"
+    );
 
+    // Second poll
+    await vi.advanceTimersByTimeAsync(5000);
     expect(onViolation).toHaveBeenCalledWith(
       "multiple_displays",
       "exam.multipleDisplaysDetected"
+    );
+  });
+
+  it("reports display_api_degraded warning after 3 consecutive API failures", async () => {
+    const onViolation = vi.fn();
+
+    // API is "supported" but always rejects (simulates permission revoked)
+    Object.defineProperty(window, "getScreenDetails", {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    });
+
+    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
+    // Poll 1
+    await vi.advanceTimersByTimeAsync(0);
+    // Poll 2
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onViolation).not.toHaveBeenCalledWith(
+      "display_api_degraded",
+      expect.any(String)
+    );
+
+    // Poll 3 — threshold reached
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onViolation).toHaveBeenCalledWith(
+      "display_api_degraded",
+      "exam.displayApiDegraded"
     );
   });
 

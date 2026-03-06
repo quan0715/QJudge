@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Button,
   InlineNotification,
@@ -9,34 +9,36 @@ import {
   Tile,
 } from "@carbon/react";
 import {
-  Checkmark,
+  CheckmarkFilled,
+  ErrorFilled,
+  InProgress,
+  Time,
   WarningAlt,
   Screen,
   FitToScreen,
   Cursor_1 as CursorIcon,
   ArrowRight,
 } from "@carbon/icons-react";
-import { requestFullscreen, isFullscreen, exitFullscreen } from "@/core/usecases/exam";
+import { requestFullscreen, isFullscreen } from "@/core/usecases/exam";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
+import { DisplayCheckService } from "@/features/contest/detectors/displayCheckService";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import {
-  hasExamPrecheckPassed,
   markExamPrecheckPassed,
+  clearExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
 } from "./hooks/useExamPrecheckGate";
+import {
+  clearPrecheckScreenShareHandoff,
+  setPrecheckScreenShareHandoff,
+} from "./hooks/examScreenShareHandoff";
 import {
   getPostPrecheckPath,
   getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
-import {
-  EXAM_MONITORING_FOCUS_CHECK_DELAY_MS,
-  EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS,
-  EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
-  EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS,
-} from "@/features/contest/domain/examMonitoringPolicy";
 import styles from "./ExamPrecheck.module.scss";
 
-type CheckStatus = "pending" | "running" | "pass" | "fail";
+type CheckStatus = "pending" | "running" | "pass" | "fail" | "blocked";
 
 interface CheckItem {
   id: string;
@@ -45,22 +47,11 @@ interface CheckItem {
   detail?: string;
 }
 
-type ScreenDetailsLike = { screens?: unknown[] };
-type WindowWithScreenDetails = Window & {
-  getScreenDetails?: () => Promise<ScreenDetailsLike>;
-};
-
 const COUNTDOWN_SECONDS = 3;
-const DISPLAY_SAMPLE_INTERVAL_MS =
-  EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS;
-const DISPLAY_SAMPLE_COUNT =
-  Math.ceil(
-    EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS / DISPLAY_SAMPLE_INTERVAL_MS
-  ) + 1;
-const PRECHECK_INTERACTION_TIMEOUT_MS = 5000;
-const PRECHECK_SCREEN_DETAILS_TIMEOUT_MS = 2500;
-const PRECHECK_FULLSCREEN_TIMEOUT_MS = 6000;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const PRECHECK_FULLSCREEN_TIMEOUT_MS = 4000;
+const PRECHECK_RECENT_INTERACTION_WINDOW_MS = 30000;
+const PRECHECK_SHARE_RECHECK_DELAY_MS = 350;
+const PRECHECK_MIN_RUNNING_MS = 1000;
 
 const withTimeout = async <T,>(
   promise: Promise<T>,
@@ -78,80 +69,60 @@ const withTimeout = async <T,>(
   }
 };
 
-const isScreenExtended = (): boolean => {
-  const screenWithExtended = window.screen as Screen & { isExtended?: boolean };
-  return screenWithExtended.isExtended === true;
-};
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 
-const getPermissionState = async (): Promise<string | null> => {
-  if (!navigator.permissions?.query) return null;
+const displayService = new DisplayCheckService();
+
+const requestMonitorScreenShare = async (): Promise<{
+  granted: boolean;
+  displaySurface: string | null;
+  detail: string;
+}> => {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    return {
+      granted: false,
+      displaySurface: null,
+      detail: "瀏覽器不支援螢幕分享 API，請改用最新版 Chrome / Edge。",
+    };
+  }
   try {
-    const status = await navigator.permissions.query({
-      name: "window-management" as PermissionName,
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: false,
     });
-    return status.state;
+    const track = stream.getVideoTracks()[0];
+    const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
+      displaySurface?: string;
+    };
+    const displaySurface = settings.displaySurface;
+
+    setPrecheckScreenShareHandoff(stream);
+
+    return {
+      granted: true,
+      displaySurface: displaySurface ?? null,
+      detail:
+        displaySurface === "monitor"
+          ? "已確認分享來源為整個螢幕。"
+          : displaySurface
+            ? "已完成螢幕分享授權（目前來源非整個螢幕，將依多螢幕規則檢核）。"
+            : "已完成螢幕分享授權（瀏覽器未回報 displaySurface，將以規則持續監控）。",
+    };
   } catch {
-    return null;
-  }
-};
-
-type DisplayDiagnostics = {
-  supportsScreenDetails: boolean;
-  screenCount: number | null;
-  isExtended: boolean;
-  permissionState: string | null;
-  errorMessage: string | null;
-};
-
-const detectDisplayDiagnostics = async (): Promise<DisplayDiagnostics> => {
-  const getScreenDetails = (window as WindowWithScreenDetails).getScreenDetails;
-  const supportsScreenDetails = typeof getScreenDetails === "function";
-  const permissionState = await withTimeout(
-    getPermissionState(),
-    PRECHECK_SCREEN_DETAILS_TIMEOUT_MS,
-    "Permission query timeout"
-  ).catch(() => null);
-  const extended = isScreenExtended();
-
-  if (!supportsScreenDetails) {
+    clearPrecheckScreenShareHandoff(true);
     return {
-      supportsScreenDetails,
-      screenCount: null,
-      isExtended: extended,
-      permissionState,
-      errorMessage: "Screen Details API unavailable",
-    };
-  }
-
-  try {
-    const details = await withTimeout(
-      getScreenDetails(),
-      PRECHECK_SCREEN_DETAILS_TIMEOUT_MS,
-      "getScreenDetails timeout"
-    );
-    return {
-      supportsScreenDetails,
-      screenCount: Array.isArray(details?.screens) ? details.screens.length : null,
-      isExtended: extended,
-      permissionState,
-      errorMessage: null,
-    };
-  } catch (error) {
-    return {
-      supportsScreenDetails,
-      screenCount: null,
-      isExtended: extended,
-      permissionState,
-      errorMessage:
-        error instanceof Error ? error.message : "Failed to fetch screen details",
+      granted: false,
+      displaySurface: null,
+      detail: "未完成螢幕分享授權，請允許分享整個螢幕後重試。",
     };
   }
 };
 
 const ExamPrecheckScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const debugEnabled = searchParams.get("debug_precheck") === "1";
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
 
@@ -170,20 +141,17 @@ const ExamPrecheckScreen: React.FC = () => {
     { id: "submitted", label: "交卷記錄檢查", status: "pending" },
   ]);
   const [envChecks, setEnvChecks] = useState<CheckItem[]>([
-    { id: "screen", label: "單螢幕檢查", status: "pending" },
+    { id: "singleMonitor", label: "單螢幕檢查", status: "pending" },
+    { id: "shareScreen", label: "分享螢幕", status: "pending" },
     { id: "fullscreen", label: "全螢幕測試", status: "pending" },
-    { id: "focus", label: "焦點偵測測試", status: "pending" },
     { id: "interaction", label: "互動輸入檢查", status: "pending" },
   ]);
   const [envTestDone, setEnvTestDone] = useState(false);
   const [envTestRunning, setEnvTestRunning] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [startGuardError, setStartGuardError] = useState<string | null>(null);
-  const [displayDiagnostics, setDisplayDiagnostics] = useState<DisplayDiagnostics | null>(null);
-  const [debugUpdatedAt, setDebugUpdatedAt] = useState<string>("");
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastPointerInteractionAtRef = useRef<number>(0);
-  const lastKeyInteractionAtRef = useRef<number>(0);
+  const lastInteractionAtRef = useRef<number>(Date.now());
 
   const updateCheck = (
     setter: React.Dispatch<React.SetStateAction<CheckItem[]>>,
@@ -196,20 +164,44 @@ const ExamPrecheckScreen: React.FC = () => {
     );
   };
 
+  const statusMeta: Record<
+    CheckStatus,
+    { label: string; color: string; Icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }> }
+  > = {
+    pending: {
+      label: "等待執行",
+      color: "var(--cds-text-secondary)",
+      Icon: Time,
+    },
+    running: {
+      label: "測試中",
+      color: "var(--cds-support-info)",
+      Icon: InProgress,
+    },
+    pass: {
+      label: "成功",
+      color: "var(--cds-support-success)",
+      Icon: CheckmarkFilled,
+    },
+    fail: {
+      label: "失敗",
+      color: "var(--cds-support-error)",
+      Icon: ErrorFilled,
+    },
+    blocked: {
+      label: "未通過",
+      color: "var(--cds-support-warning)",
+      Icon: WarningAlt,
+    },
+  };
+
   // Keep precheck-gate in sync with server status.
   useEffect(() => {
     if (!contest || !contestId) return;
+    // Force fresh precheck checks every time user enters this screen.
+    clearExamPrecheckPassed(contestId);
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
-
-    // Only skip precheck when this tab/session already passed precheck and exam is active.
-    // Paused (freshly unlocked) must re-run precheck before resuming.
-    if (
-      contest.examStatus === "in_progress" &&
-      hasExamPrecheckPassed(contestId)
-    ) {
-      navigate(getPostPrecheckRoute(), { replace: true });
-    }
-  }, [contest, contestId, getPostPrecheckRoute, navigate]);
+  }, [contest, contestId]);
 
   // Step 1: Participation & submission verification
   useEffect(() => {
@@ -236,262 +228,184 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const step1AllPass = checks.every((c) => c.status === "pass");
 
-  const refreshDisplayDiagnostics = useCallback(async () => {
-    if (!debugEnabled) return;
-    const diagnostics = await detectDisplayDiagnostics();
-    setDisplayDiagnostics(diagnostics);
-    setDebugUpdatedAt(new Date().toLocaleTimeString("zh-TW"));
-  }, [debugEnabled]);
-
   useEffect(() => {
-    if (!debugEnabled) return;
-    void refreshDisplayDiagnostics();
-    const timer = window.setInterval(() => {
-      void refreshDisplayDiagnostics();
-    }, 3000);
-    return () => {
-      window.clearInterval(timer);
+    const markInteracted = () => {
+      lastInteractionAtRef.current = Date.now();
     };
-  }, [debugEnabled, refreshDisplayDiagnostics]);
+    document.addEventListener("pointerdown", markInteracted, true);
+    document.addEventListener("keydown", markInteracted, true);
+    return () => {
+      document.removeEventListener("pointerdown", markInteracted, true);
+      document.removeEventListener("keydown", markInteracted, true);
+    };
+  }, []);
 
   // Step 2: Environment checks
   const runEnvChecks = useCallback(async () => {
     if (envTestRunning) return;
     setEnvTestRunning(true);
     setEnvChecks([
-      { id: "screen", label: "單螢幕檢查", status: "pending" },
+      { id: "singleMonitor", label: "單螢幕檢查", status: "pending" },
+      { id: "shareScreen", label: "分享螢幕", status: "pending" },
       { id: "fullscreen", label: "全螢幕測試", status: "pending" },
-      { id: "focus", label: "焦點偵測測試", status: "pending" },
       { id: "interaction", label: "互動輸入檢查", status: "pending" },
     ]);
     setEnvTestDone(false);
 
+    const runningAt = new Map<string, number>();
+    const markRunning = (id: string, detail?: string) => {
+      runningAt.set(id, Date.now());
+      updateCheck(setEnvChecks, id, "running", detail);
+    };
+    const finalizeCheck = async (
+      id: string,
+      status: Exclude<CheckStatus, "pending" | "running">,
+      detail?: string
+    ) => {
+      const startedAt = runningAt.get(id);
+      if (startedAt) {
+        const elapsed = Date.now() - startedAt;
+        const remain = PRECHECK_MIN_RUNNING_MS - elapsed;
+        if (remain > 0) await sleep(remain);
+      }
+      runningAt.delete(id);
+      updateCheck(setEnvChecks, id, status, detail);
+    };
+    const markBlocked = (id: string, detail: string) => {
+      updateCheck(setEnvChecks, id, "blocked", detail);
+    };
+    const failShareAndBlock = async (detail: string) => {
+      await finalizeCheck("shareScreen", "fail", detail);
+      markBlocked("fullscreen", "需先通過分享螢幕檢查。");
+      markBlocked("interaction", "需先通過分享螢幕檢查。");
+      clearPrecheckScreenShareHandoff(true);
+    };
+    const blockRemainingAfterSingleMonitor = (detail: string) => {
+      markBlocked("shareScreen", detail);
+      markBlocked("fullscreen", detail);
+      markBlocked("interaction", detail);
+      clearPrecheckScreenShareHandoff(true);
+    };
+
     try {
-      // Ensure display diagnostics are measured in windowed mode.
-      // Some browsers may report inconsistent display info while fullscreen.
-      if (isFullscreen()) {
-        try {
-          await withTimeout(exitFullscreen(), PRECHECK_FULLSCREEN_TIMEOUT_MS, "exitFullscreen timeout");
-          await sleep(250);
-        } catch {
-          // Keep going with diagnostics even if exit fails.
-        }
+      markRunning("singleMonitor", "檢測中...");
+      const diagnostics = await displayService.check();
+
+      if (!diagnostics.supportsScreenDetails) {
+        await finalizeCheck(
+          "singleMonitor",
+          "fail",
+          "[阻擋] 你的瀏覽器不支援考場要求的監控技術。請改用最新版的 Google Chrome 或 Microsoft Edge。"
+        );
+        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        return;
       }
 
-      await sleep(600);
-      updateCheck(setEnvChecks, "screen", "running");
-      // Align with runtime monitoring cadence: sample immediately, then follow the
-      // same interaction/interval rhythm.
-      await sleep(EXAM_MONITORING_FOCUS_CHECK_DELAY_MS);
-      let screenCheckPassed = false;
-      try {
-        const diagnosticsSamples: DisplayDiagnostics[] = [];
-        for (let i = 0; i < DISPLAY_SAMPLE_COUNT; i += 1) {
-          diagnosticsSamples.push(await detectDisplayDiagnostics());
-          if (i < DISPLAY_SAMPLE_COUNT - 1) {
-            await sleep(DISPLAY_SAMPLE_INTERVAL_MS);
-          }
-        }
-        const diagnostics =
-          diagnosticsSamples[diagnosticsSamples.length - 1] ?? (await detectDisplayDiagnostics());
-        const hasAnyMultiDisplay = diagnosticsSamples.some(
-          (sample) => (sample.screenCount !== null && sample.screenCount > 1) || sample.isExtended
-        );
-        const hasAnyScreenDetailsSupport = diagnosticsSamples.some(
-          (sample) => sample.supportsScreenDetails
-        );
-        const allSamplesReadableScreenCount = diagnosticsSamples.every(
-          (sample) => sample.screenCount !== null
-        );
-
-        if (debugEnabled) {
-          setDisplayDiagnostics(diagnostics);
-          setDebugUpdatedAt(new Date().toLocaleTimeString("zh-TW"));
-        }
-
-        if (!hasAnyScreenDetailsSupport) {
-          updateCheck(
-            setEnvChecks,
-            "screen",
-            "fail",
-            "瀏覽器不支援單螢幕檢測 API。請改用最新版 Chrome/Edge 後重試。"
-          );
-        } else if (!allSamplesReadableScreenCount) {
-          updateCheck(
-            setEnvChecks,
-            "screen",
-            "fail",
-            "螢幕檢測結果不穩定，請確認已允許瀏覽器螢幕權限並關閉可能干擾的外掛後重試。"
-          );
-        } else if (hasAnyMultiDisplay) {
-          updateCheck(
-            setEnvChecks,
-            "screen",
-            "fail",
-            "偵測到多個實體顯示器，請僅保留單螢幕後重試。多個瀏覽器分頁不會被視為多螢幕。"
-          );
-        } else {
-          updateCheck(
-            setEnvChecks,
-            "screen",
-            "pass",
-            "單螢幕環境。提醒：多個瀏覽器分頁不會被視為多螢幕。"
-          );
-          screenCheckPassed = true;
-        }
-      } catch {
-        updateCheck(
-          setEnvChecks,
-          "screen",
+      if (diagnostics.screenCount === null) {
+        await finalizeCheck(
+          "singleMonitor",
           "fail",
-          "無法取得螢幕檢測權限，請允許瀏覽器螢幕權限並重新測試。"
+          "[阻擋] 系統無法取得螢幕數量。請確認你在彈出的視窗中選擇了「允許」，並關閉阻擋追蹤的外掛後重試。"
         );
+        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        return;
       }
 
-      if (!screenCheckPassed) {
-        updateCheck(
-          setEnvChecks,
-          "fullscreen",
+      if (diagnostics.isExtended || diagnostics.screenCount > 1) {
+        await finalizeCheck(
+          "singleMonitor",
           "fail",
-          "需先通過單螢幕檢查，才可進行全螢幕測試。"
+          `[阻擋] 偵測到多個實體顯示器 (${diagnostics.screenCount} 個)。為確保公平，請拔除或關閉外接螢幕後重試。`
         );
-        updateCheck(
-          setEnvChecks,
-          "focus",
-          "fail",
-          "需先通過單螢幕檢查，才可進行焦點測試。"
-        );
-        updateCheck(
-          setEnvChecks,
-          "interaction",
-          "fail",
-          "需先通過單螢幕檢查，才可進行互動輸入檢查。"
+        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        return;
+      }
+
+      await finalizeCheck(
+        "singleMonitor",
+        "pass",
+        "已確認為單一螢幕環境。"
+      );
+
+      markRunning("shareScreen", "請於彈窗選擇整個螢幕。");
+      const shareResult = await requestMonitorScreenShare();
+      if (!shareResult.granted) {
+        await failShareAndBlock(`[阻擋] ${shareResult.detail}`);
+        return;
+      }
+
+      // Recheck after user selected the shared screen to avoid stale pre-share state.
+      await sleep(PRECHECK_SHARE_RECHECK_DELAY_MS);
+      const diagnosticsAfterShare = await displayService.check();
+      if (diagnosticsAfterShare.screenCount === null) {
+        await failShareAndBlock("[阻擋] 分享後無法確認螢幕數量。請關閉 Sidecar/外接螢幕並重試。");
+        return;
+      }
+      if (diagnosticsAfterShare.isExtended || diagnosticsAfterShare.screenCount > 1) {
+        await failShareAndBlock(
+          `[阻擋] 分享後仍偵測到多螢幕 (${diagnosticsAfterShare.screenCount} 個)。請先關閉 Sidecar/外接螢幕。`
         );
         return;
       }
 
-      await sleep(800);
-      updateCheck(setEnvChecks, "fullscreen", "running");
-      await sleep(150);
+      const isMonitorSurface = shareResult.displaySurface === "monitor";
+      if (!isMonitorSurface) {
+        await failShareAndBlock(
+          "[阻擋] 必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗、分頁或未知來源。"
+        );
+        return;
+      } else {
+        await finalizeCheck(
+          "shareScreen",
+          "pass",
+          "已成功分享整個螢幕畫面。"
+        );
+      }
+
+      markRunning("fullscreen", "啟用全螢幕中...");
       try {
         const enteredFullscreen = await withTimeout(
           requestFullscreen(),
           PRECHECK_FULLSCREEN_TIMEOUT_MS,
           "requestFullscreen timeout"
         );
-        await sleep(250);
         if (enteredFullscreen && isFullscreen()) {
-          updateCheck(setEnvChecks, "fullscreen", "pass", "全螢幕正常運作");
+          await finalizeCheck("fullscreen", "pass", "全螢幕啟用成功。");
         } else {
-          updateCheck(
-            setEnvChecks,
+          await finalizeCheck(
             "fullscreen",
             "fail",
-            "全螢幕未啟用。請點擊頁面後重試，並確認瀏覽器允許全螢幕。"
+            "無法啟用全螢幕，請允許瀏覽器全螢幕後重試。"
           );
+          markBlocked("interaction", "需先通過全螢幕測試。");
+          return;
         }
       } catch {
-        updateCheck(
-          setEnvChecks,
-          "fullscreen",
-          "fail",
-          "全螢幕檢查逾時或失敗。請點一下頁面後重試，並確認瀏覽器允許全螢幕。"
-        );
+        await finalizeCheck("fullscreen", "fail", "全螢幕檢查逾時，請重試。");
+        markBlocked("interaction", "需先通過全螢幕測試。");
+        return;
       }
 
-      await sleep(700);
-      updateCheck(setEnvChecks, "focus", "running");
-      await sleep(EXAM_MONITORING_FOCUS_CHECK_DELAY_MS);
-      let hasFocus = document.hasFocus();
-      if (!hasFocus) {
-        const focusDeadline = Date.now() + EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS;
-        while (Date.now() < focusDeadline) {
-          await sleep(100);
-          hasFocus = document.hasFocus();
-          if (hasFocus) break;
-        }
-      }
-      if (hasFocus) {
-        updateCheck(
-          setEnvChecks,
-          "focus",
-          "pass",
-          "視窗焦點正常。提醒：切換到其他分頁會觸發焦點離開事件。"
+      markRunning("interaction", "檢查頁面焦點與近期輸入...");
+      const hasRecentInput =
+        Date.now() - lastInteractionAtRef.current <= PRECHECK_RECENT_INTERACTION_WINDOW_MS;
+      if (!document.hasFocus()) {
+        await finalizeCheck("interaction", "fail", "請先切回此頁面後重試。");
+      } else if (!hasRecentInput) {
+        await finalizeCheck(
+          "interaction",
+          "fail",
+          "未偵測到近期輸入，請先點擊頁面或按下任意鍵後重試。"
         );
       } else {
-        updateCheck(
-          setEnvChecks,
-          "focus",
-          "fail",
-          "目前頁面未取得焦點，請先點擊此頁面後重試。"
-        );
+        await finalizeCheck("interaction", "pass", "已偵測到互動輸入。");
       }
 
-      await sleep(600);
-      updateCheck(
-        setEnvChecks,
-        "interaction",
-        "running",
-        "請在 5 秒內按任意鍵，確認鍵盤互動可被系統正確辨識。"
-      );
-      const interactionCheckStartAt = Date.now();
-      // The "開始環境測試" button click counts as a pointer interaction baseline.
-      lastPointerInteractionAtRef.current = interactionCheckStartAt;
-      let hasPointerInteraction = true;
-      let hasKeyboardInteraction = lastKeyInteractionAtRef.current >= interactionCheckStartAt;
-      const interactionCheckDeadline = interactionCheckStartAt + PRECHECK_INTERACTION_TIMEOUT_MS;
-
-      while (Date.now() < interactionCheckDeadline && !hasKeyboardInteraction) {
-        await sleep(120);
-        hasPointerInteraction =
-          hasPointerInteraction || lastPointerInteractionAtRef.current >= interactionCheckStartAt;
-        hasKeyboardInteraction = lastKeyInteractionAtRef.current >= interactionCheckStartAt;
-      }
-
-      if (hasPointerInteraction && hasKeyboardInteraction) {
-        updateCheck(
-          setEnvChecks,
-          "interaction",
-          "pass",
-          "已偵測按鈕點擊與鍵盤輸入。一般頁面操作不會被誤判為作弊。"
-        );
-      } else if (!hasKeyboardInteraction) {
-        updateCheck(
-          setEnvChecks,
-          "interaction",
-          "fail",
-          "未偵測到鍵盤輸入，請按任意鍵後重新測試。"
-        );
-      } else {
-        updateCheck(
-          setEnvChecks,
-          "interaction",
-          "fail",
-          "未偵測到按鈕/滑鼠互動，請點擊頁面後重新測試。"
-        );
-      }
     } finally {
       setEnvTestDone(true);
       setEnvTestRunning(false);
     }
-  }, [debugEnabled, envTestRunning]);
-
-  useEffect(() => {
-    const handlePointerInteraction = () => {
-      lastPointerInteractionAtRef.current = Date.now();
-    };
-    const handleKeyboardInteraction = () => {
-      lastKeyInteractionAtRef.current = Date.now();
-    };
-
-    document.addEventListener("pointerdown", handlePointerInteraction, true);
-    document.addEventListener("keydown", handleKeyboardInteraction, true);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerInteraction, true);
-      document.removeEventListener("keydown", handleKeyboardInteraction, true);
-    };
-  }, []);
+  }, [envTestRunning]);
 
   const envAllPass = envChecks.every((c) => c.status === "pass");
 
@@ -523,21 +437,23 @@ const ExamPrecheckScreen: React.FC = () => {
   }, [countdown, contestId, getPostPrecheckRoute, navigate, startSession]);
 
   const renderCheckList = (items: CheckItem[]) => (
-    <div className={styles.checkList}>
+        <div className={styles.checkList}>
       {items.map((item) => (
         <div key={item.id} className={styles.checkItem} data-status={item.status}>
           <div className={styles.checkIcon}>
-            {item.status === "pass" && (
-              <Checkmark size={20} style={{ color: "var(--cds-support-success)" }} />
-            )}
-            {item.status === "fail" && (
-              <WarningAlt size={20} style={{ color: "var(--cds-support-error)" }} />
-            )}
-            {item.status === "pending" && <div className={styles.checkIconPending} />}
-            {item.status === "running" && <div className={styles.checkIconRunning} />}
+            {(() => {
+              const meta = statusMeta[item.status];
+              const Icon = meta.Icon;
+              return <Icon size={20} style={{ color: meta.color }} />;
+            })()}
           </div>
           <div style={{ flex: 1 }}>
-            <div className={styles.checkLabel}>{item.label}</div>
+            <div className={styles.checkLabelRow}>
+              <div className={styles.checkLabel}>{item.label}</div>
+              <div className={styles.checkStatusText} data-status={item.status}>
+                {statusMeta[item.status].label}
+              </div>
+            </div>
             {item.detail && <div className={styles.checkDetail}>{item.detail}</div>}
           </div>
         </div>
@@ -566,27 +482,8 @@ const ExamPrecheckScreen: React.FC = () => {
           </Button>
         </div>
         <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
-          正式作答前，請完成以下三項驗證。若為多螢幕或未授權螢幕檢測，將無法開始考試。
+          正式作答前，請完成以下檢查。若未通過螢幕分享或全螢幕檢查，將無法開始考試。
         </p>
-
-        {debugEnabled && (
-          <Tile style={{ marginBottom: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", gap: "0.75rem" }}>
-              <strong>Precheck Debug</strong>
-              <Button kind="ghost" size="sm" onClick={() => void refreshDisplayDiagnostics()}>
-                重新偵測
-              </Button>
-            </div>
-            <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontSize: "0.75rem", lineHeight: 1.5 }}>
-              <div>supportsScreenDetails: {String(displayDiagnostics?.supportsScreenDetails ?? false)}</div>
-              <div>permission(window-management): {displayDiagnostics?.permissionState ?? "unknown"}</div>
-              <div>screenCount: {displayDiagnostics?.screenCount ?? "null"}</div>
-              <div>isExtended: {String(displayDiagnostics?.isExtended ?? false)}</div>
-              <div>error: {displayDiagnostics?.errorMessage ?? "none"}</div>
-              <div>updatedAt: {debugUpdatedAt || "not yet"}</div>
-            </div>
-          </Tile>
-        )}
 
         <ProgressIndicator currentIndex={currentStep} spaceEqually style={{ marginBottom: "2rem" }}>
           <ProgressStep label="資格確認" />
@@ -647,8 +544,11 @@ const ExamPrecheckScreen: React.FC = () => {
                   <Screen size={20} /> 環境檢查
                 </h4>
                 <p style={{ marginTop: 0, marginBottom: "1rem", color: "var(--cds-text-secondary)", lineHeight: 1.6 }}>
-                  單螢幕檢查只會判斷「實體顯示器數量」，不會把多個瀏覽器分頁視為多螢幕。
-                  此步驟需要瀏覽器支援與授權螢幕檢測 API，建議使用最新版 Chrome / Edge。
+                  <b>本考場採取嚴格環境限制：</b><br/>
+                  1. 僅允許使用最新版 Google Chrome 或 Microsoft Edge。<br/>
+                  2. 瀏覽器彈出「管理視窗與顯示器」權限時，必須點擊<b>【允許】</b>。<br/>
+                  3. 必須為<b>單一實體螢幕</b>（請拔除外接顯示器）。<br/>
+                  4. 畫面分享時必須選擇<b>【整個螢幕 (Entire Screen)】</b>。
                 </p>
                 {renderCheckList(envChecks)}
               </Tile>
