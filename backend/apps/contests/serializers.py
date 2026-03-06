@@ -716,7 +716,7 @@ class ExamEventCreateSerializer(serializers.ModelSerializer):
 
 
 class AnticheatUrlsQuerySerializer(serializers.Serializer):
-    count = serializers.IntegerField(required=False, min_value=1, max_value=60, default=30)
+    count = serializers.IntegerField(required=False, min_value=1, max_value=300, default=30)
     upload_session_id = serializers.RegexField(
         required=False,
         allow_blank=True,

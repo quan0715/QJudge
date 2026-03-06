@@ -14,12 +14,12 @@ import {
   consumePrecheckScreenShareHandoff,
 } from "./examScreenShareHandoff";
 
-const CAPTURE_BASE_INTERVAL_MS = 10_000;
-const CAPTURE_JITTER_RATIO = 0.3; // ±30% → 7–13 秒
-const MAX_FRAME_BYTES = 50 * 1024;
-const MAX_IDB_QUEUE = 200;
-const MAX_MEMORY_QUEUE = 30;
-const URL_BATCH_COUNT = 30;
+const CAPTURE_BASE_INTERVAL_MS = 1_000;
+const CAPTURE_JITTER_RATIO = 0.15; // ±15% → 0.85–1.15 秒
+const MAX_FRAME_BYTES = 80 * 1024;
+const MAX_IDB_QUEUE = 600;
+const MAX_MEMORY_QUEUE = 120;
+const URL_BATCH_COUNT = 120;
 const DEGRADE_REPORT_COOLDOWN_MS = 60_000;
 
 const IDB_DB_NAME = "qjudge_anticheat_capture";
@@ -233,7 +233,7 @@ const createPlaceholderFrame = async (): Promise<Blob> => {
 };
 
 const encodeUnderBudget = async (canvas: HTMLCanvasElement): Promise<Blob> => {
-  const qualityChain = [0.4, 0.3, 0.2];
+  const qualityChain = [0.7, 0.5, 0.4];
   let best = await canvasToWebpBlob(canvas, qualityChain[0]);
   if (best.size <= MAX_FRAME_BYTES) return best;
 
@@ -277,6 +277,7 @@ export const useAnticheatScreenCapture = ({
   const isStoppingRef = useRef(false);
   const intentionalStopUntilRef = useRef(0);
   const degradedReportedAtRef = useRef(0);
+  const enabledRef = useRef(enabled);
 
   const [uploadSessionId, setUploadSessionIdState] = useState<string | null>(null);
 
@@ -500,12 +501,25 @@ export const useAnticheatScreenCapture = ({
     await flushPendingUploads();
   }, [contestId, enabled, ensureQueue, ensureScreenStream, flushPendingUploads, refreshPendingCount, reportDegraded]);
 
-  // Separate effect for stream lifecycle — only stop when truly disabled
+  // Keep enabledRef in sync for the unmount-only cleanup below
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
+  // Stream lifecycle — stop stream when disabled
   useEffect(() => {
     if (!enabled || !contestId) {
       stopScreenStream();
     }
   }, [enabled, contestId, stopScreenStream]);
+
+  // Unmount-only: always stop stream when component is destroyed
+  useEffect(() => {
+    return () => {
+      stopScreenStream();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Capture loop — does NOT touch the stream on cleanup (stream managed above)
   useEffect(() => {

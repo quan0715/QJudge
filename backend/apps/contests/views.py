@@ -1289,7 +1289,7 @@ class ExamViewSet(viewsets.GenericViewSet):
         'forbidden_focus_event',
     }
     IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout', 'screen_share_stopped'}
-    MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED}
+    MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER}
 
     def _conflict_payload(self, contest, participant):
         return {
@@ -1601,7 +1601,7 @@ class ExamViewSet(viewsets.GenericViewSet):
             {
                 "upload_session_id": upload_session_id,
                 "expires_at": timezone.now() + timedelta(seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
-                "interval_seconds": 10,
+                "interval_seconds": 1,
                 "next_seq": start_seq + count,
                 "items": items,
             }
