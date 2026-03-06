@@ -58,6 +58,13 @@ docker compose build
 echo "[deploy] start services"
 docker compose up -d --remove-orphans
 
+echo "[deploy] initialize MinIO anti-cheat buckets/policies"
+if [ ! -x "./scripts/minio/run-init.sh" ]; then
+  echo "[deploy] scripts/minio/run-init.sh not found or not executable" >&2
+  exit 1
+fi
+ENV_FILE="${DEPLOY_PATH}/.env" ./scripts/minio/run-init.sh docker-compose.yml
+
 echo "[deploy] prune old images"
 docker image prune -f
 

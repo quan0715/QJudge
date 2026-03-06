@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-videos-180d",
+      "Status": "Enabled",
+      "Filter": {},
+      "Expiration": {
+        "Days": 180
+      }
+    }
+  ]
+}

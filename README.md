@@ -47,7 +47,8 @@ GitHub (push to main)
   → CD: Tailscale SSH → remote server
     → git fetch + checkout
     → docker compose build + up
-    → smoke check (curl localhost:80)
+    → scripts/minio/run-init.sh (MinIO anti-cheat init)
+    → smoke checks (web + anti-cheat)
 ```
 
 - 生產環境：`~/deploy/QJudge`（Ubuntu 22.04 + Docker Compose）
@@ -62,10 +63,25 @@ GitHub (push to main)
 | 變數 | 說明 |
 | --- | --- |
 | `SECRET_KEY` | Django secret key |
+| `ENCRYPTION_KEY` | API key 加密金鑰（production 必須更換） |
+| `DJANGO_ENV` | 應設為 `production` |
 | `DB_PASSWORD` | PostgreSQL 密碼 |
 | `DB_SSLMODE` | 本地 Docker postgres 設 `disable` |
+| `FRONTEND_URL` | 前端正式網址 |
+| `CORS_ALLOWED_ORIGINS` | 後端允許的跨域來源（含前端網址） |
+| `CSRF_TRUSTED_ORIGINS` | Django CSRF 信任來源（含前端網址） |
+| `REDIS_URL` | Redis 連線位址 |
 | `HMAC_SECRET` | AI service 內部 HMAC 驗證 |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service 內部 token |
+| `MINIO_ROOT_USER` | MinIO 管理帳號（勿用預設值） |
+| `MINIO_ROOT_PASSWORD` | MinIO 管理密碼（勿用預設值） |
+| `MINIO_API_CORS_ALLOW_ORIGIN` | MinIO API CORS allow origin |
+| `ANTICHEAT_S3_ENDPOINT_URL` | 後端到 MinIO 內網 endpoint（例：`http://minio:9000`） |
+| `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL` | 瀏覽器直傳 MinIO 的公開 HTTPS endpoint |
+| `ANTICHEAT_CORS_ALLOWED_ORIGINS` | anti-cheat presigned 上傳允許來源 |
+| `ANTICHEAT_RAW_BUCKET` | anti-cheat 原始截圖 bucket |
+| `ANTICHEAT_VIDEO_BUCKET` | anti-cheat 影片 bucket |
+| `ANTICHEAT_S3_ACCESS_KEY/SECRET_KEY` | 選填；未填時 fallback 到 `MINIO_ROOT_USER/PASSWORD` |
 | `TUNNEL_TOKEN` | Cloudflare Tunnel token |
 | `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth |
 

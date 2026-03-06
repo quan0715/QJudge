@@ -1,0 +1,17 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-raw-cleanup-72h",
+      "Status": "Enabled",
+      "Filter": {
+        "Tag": {
+          "Key": "cleanup",
+          "Value": "true"
+        }
+      },
+      "Expiration": {
+        "Days": 3
+      }
+    }
+  ]
+}

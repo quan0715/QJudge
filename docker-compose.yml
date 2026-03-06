@@ -40,6 +40,23 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: oj_minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-https://q-judge-dev.quan.wtf}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - oj_network
+
   # AI Service (LangChain DeepAgent)
   ai-service:
     build:
@@ -98,6 +115,14 @@ services:
       - HMAC_SECRET=${HMAC_SECRET}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
       - JUDGE_TMP_DIR=/judge_tmp
+      - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
+      - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
+      - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
+      - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
+      - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
+      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
+      - ANTICHEAT_PRESIGNED_URL_TTL_SECONDS=${ANTICHEAT_PRESIGNED_URL_TTL_SECONDS:-300}
     depends_on:
       postgres:
         condition: service_healthy
@@ -124,6 +149,12 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
+      - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
+      - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
+      - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
+      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
         condition: service_healthy
@@ -155,6 +186,48 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
+      - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
+      - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
+      - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
+      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - oj_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  celery-video:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: oj_celery_video
+    restart: always
+    command: celery -A config worker -l info -Q video_queue --concurrency=2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
+    env_file:
+      - .env
+    environment:
+      - JUDGE_TMP_DIR=/judge_tmp
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
+      - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
+      - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
+      - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
+      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
         condition: service_healthy
@@ -232,6 +305,7 @@ volumes:
   static_volume:
   media_volume:
   judge_tmp:
+  minio_data:
 
 networks:
   oj_network:
