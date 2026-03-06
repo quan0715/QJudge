@@ -144,22 +144,51 @@ class ExamAntiCheatTests(APITestCase):
         self.assertIn("Warning timeout", self.participant.lock_reason)
 
     # ------------------------------------------------------------------
-    # 4. Custom lock_reason is stored on participant
+    # 3b. capture_upload_degraded should be informational only
     # ------------------------------------------------------------------
-    def test_custom_lock_reason(self):
+    def test_capture_upload_degraded_does_not_increase_violation_or_lock(self):
         self.client.force_authenticate(user=self.student)
-        custom_reason = "Student opened DevTools"
+
+        resp = self.client.post(
+            self.events_url,
+            {"event_type": "capture_upload_degraded"},
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["violation_count"], 0)
+        self.assertFalse(resp.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertTrue(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="capture_upload_degraded",
+            ).exists()
+        )
+
+    # ------------------------------------------------------------------
+    # 4. lock_reason is set by server (client lock_reason is ignored)
+    # ------------------------------------------------------------------
+    def test_lock_reason_set_by_server(self):
+        self.client.force_authenticate(user=self.student)
         resp = self.client.post(
             self.events_url,
             {
                 "event_type": "warning_timeout",
-                "lock_reason": custom_reason,
+                "lock_reason": "Student opened DevTools",  # should be ignored
             },
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.lock_reason, custom_reason)
+        # Server sets lock_reason based on event_type, not client input
+        self.assertEqual(
+            self.participant.lock_reason,
+            "Warning timeout: student did not acknowledge warning within 30 seconds",
+        )
 
     # ------------------------------------------------------------------
     # 5. Owner/teacher participant should also be logged (no bypass)

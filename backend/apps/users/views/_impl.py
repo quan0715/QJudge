@@ -7,6 +7,8 @@ Security:
 - Authorization header authentication is exempt from CSRF (tokens aren't sent automatically).
 """
 import secrets
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import status, generics, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -25,6 +27,7 @@ from ..serializers import (
     LoginSerializer,
     OAuthCallbackSerializer,
     TokenRefreshSerializer,
+    ResolveConflictSerializer,
     UserProfileSerializer,
     UserSearchSerializer,
     UserRoleUpdateSerializer,
@@ -37,6 +40,14 @@ from ..services import EmailAuthService, NYCUOAuthService, JWTService, APIKeySer
 from ..permissions import IsSuperAdmin
 from ..authentication import set_jwt_cookies, clear_jwt_cookies, get_refresh_token_from_cookie
 from ..models import UserAPIKey
+from apps.contests.models import ContestParticipant, ContestActivity, ExamEvent, ExamStatus
+from apps.contests.services.anti_cheat_session import (
+    create_conflict_token_payload,
+    find_exam_conflict,
+    get_device_id,
+    set_active_session,
+    consume_conflict_token,
+)
 import asyncio
 
 User = get_user_model()
@@ -47,6 +58,54 @@ class SchemaAPIView(generics.GenericAPIView):
     """APIView with serializer support for schema generation."""
 
     serializer_class = serializers.Serializer
+
+
+def _build_conflict_response(user, request, provider: str):
+    device_id = get_device_id(request)
+    conflict = find_exam_conflict(user, device_id)
+    if not conflict:
+        return None
+
+    token, _payload = create_conflict_token_payload(
+        conflict=conflict,
+        request=request,
+        device_id=device_id,
+        provider=provider,
+    )
+    ExamEvent.objects.create(
+        contest=conflict.contest,
+        user=user,
+        event_type="concurrent_login_detected",
+        metadata={
+            "source": f"auth_{provider}",
+            "incoming_device_id": device_id,
+            "existing_device_id": (conflict.active_session or {}).get("device_id", ""),
+        },
+    )
+    ContestActivity.objects.create(
+        contest=conflict.contest,
+        user=user,
+        action_type="concurrent_login_detected",
+        details=(
+            f"Detected concurrent login conflict (provider={provider}, "
+            f"incoming_device_id={device_id})"
+        ),
+    )
+    return Response(
+        {
+            "success": False,
+            "code": "EXAM_CONFLICT_ACTIVE_SESSION",
+            "message": "你有一場考試仍在進行中",
+            "conflict_token": token,
+            "active_exam": {
+                "contest_id": conflict.contest.id,
+                "contest_name": conflict.contest.name,
+                "exam_status": conflict.participant.exam_status,
+                "started_at": conflict.participant.started_at,
+            },
+        },
+        status=status.HTTP_409_CONFLICT,
+    )
 
 
 @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
@@ -151,6 +210,10 @@ class LoginView(SchemaAPIView):
                     'message': 'Email 或密碼錯誤'
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+        conflict_response = _build_conflict_response(user, request, provider="email")
+        if conflict_response is not None:
+            return conflict_response
         
         tokens = JWTService.generate_tokens(user)
         response = Response(JWTService.get_user_response_data(user, tokens))
@@ -297,6 +360,10 @@ class NYCUOAuthCallbackView(SchemaAPIView):
             
             # Get or create user
             user = NYCUOAuthService.get_or_create_user(oauth_data)
+
+            conflict_response = _build_conflict_response(user, request, provider="oauth")
+            if conflict_response is not None:
+                return conflict_response
             
             # Generate JWT tokens
             tokens = JWTService.generate_tokens(user)
@@ -317,6 +384,107 @@ class NYCUOAuthCallbackView(SchemaAPIView):
                     'message': 'NYCU OAuth 授權失敗',
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class ResolveConflictView(SchemaAPIView):
+    """
+    Resolve login conflict by locking previous exam session for takeover.
+
+    POST /api/v1/auth/resolve-conflict
+    Body: { "conflict_token": "...", "action": "takeover_lock" }
+    """
+    permission_classes = [AllowAny]
+    serializer_class = ResolveConflictSerializer
+
+    def post(self, request):
+        serializer = ResolveConflictSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        conflict_token = serializer.validated_data["conflict_token"]
+        payload = consume_conflict_token(conflict_token)
+        if not payload:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_CONFLICT_TOKEN",
+                        "message": "Conflict token is invalid or expired.",
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user_id = payload.get("user_id")
+        participant_id = payload.get("participant_id")
+        if not user_id or not participant_id:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_CONFLICT_PAYLOAD",
+                        "message": "Malformed conflict payload.",
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                user = User.objects.get(id=user_id, is_active=True)
+                participant = ContestParticipant.objects.select_related("contest").select_for_update().get(
+                    id=participant_id,
+                    user_id=user_id,
+                )
+                contest = participant.contest
+
+                if participant.exam_status in [ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED]:
+                    participant.exam_status = ExamStatus.LOCKED_TAKEOVER
+                    participant.locked_at = timezone.now()
+                    participant.lock_reason = "Device takeover requested during login conflict"
+                    participant.save(update_fields=["exam_status", "locked_at", "lock_reason"])
+
+                    ExamEvent.objects.create(
+                        contest=contest,
+                        user=user,
+                        event_type="takeover_locked",
+                        metadata={
+                            "source": "resolve_conflict",
+                            "requested_device_id": payload.get("device_id", ""),
+                        },
+                    )
+                    ContestActivity.objects.create(
+                        contest=contest,
+                        user=user,
+                        action_type="takeover_lock",
+                        details=(
+                            "Locked exam session due to device takeover request "
+                            f"(device_id={payload.get('device_id', '')})"
+                        ),
+                    )
+
+                set_active_session(
+                    contest=contest,
+                    participant=participant,
+                    request=request,
+                    device_id=str(payload.get("device_id") or get_device_id(request)),
+                )
+
+                tokens = JWTService.generate_tokens(user)
+                response = Response(JWTService.get_user_response_data(user, tokens))
+                set_jwt_cookies(response, tokens)
+                return response
+        except (User.DoesNotExist, ContestParticipant.DoesNotExist):
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONFLICT_TARGET_NOT_FOUND",
+                        "message": "Target session no longer exists.",
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')

@@ -13,7 +13,7 @@ WORKDIR /app
 RUN for i in 1 2 3 4 5; do \
       apt-get update && \
       apt-get install -y --no-install-recommends \
-        postgresql-client gcc \
+        postgresql-client gcc ffmpeg \
         libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
         libffi-dev libcairo2 shared-mime-info \
         fonts-noto-cjk fonts-noto-color-emoji && \

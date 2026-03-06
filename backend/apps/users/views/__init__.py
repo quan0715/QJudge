@@ -8,7 +8,7 @@ from .auth import (
     NYCUOAuthLoginView,
     NYCUOAuthCallbackView,
 )
-from .token import TokenRefreshView, LogoutView
+from .token import TokenRefreshView, LogoutView, ResolveConflictView
 from .profile import (
     CurrentUserView,
     UserStatsView,
@@ -27,6 +27,7 @@ __all__ = [
     "NYCUOAuthCallbackView",
     "TokenRefreshView",
     "LogoutView",
+    "ResolveConflictView",
     "CurrentUserView",
     "UserSearchView",
     "UserRoleUpdateView",

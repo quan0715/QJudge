@@ -15,6 +15,7 @@ from .models import (
     ContestActivity,
     ExamStatus,
     ExamAnswer,
+    ExamEvidenceVideo,
 )
 from django.db.models import Sum
 from .permissions import get_user_role_in_contest, get_contest_permissions
@@ -697,11 +698,40 @@ class ExamEventSerializer(serializers.ModelSerializer):
 
 class ExamEventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating exam events."""
-    lock_reason = serializers.CharField(required=False, write_only=True, allow_blank=True)
+    METADATA_MAX_SIZE = 4096  # bytes
 
     class Meta:
         model = ExamEvent
-        fields = ['event_type', 'metadata', 'lock_reason']
+        fields = ['event_type', 'metadata']
+
+    def validate_metadata(self, value):
+        if value is not None:
+            import json
+            serialized = json.dumps(value, ensure_ascii=False)
+            if len(serialized.encode('utf-8')) > self.METADATA_MAX_SIZE:
+                raise serializers.ValidationError(
+                    f"Metadata exceeds maximum size of {self.METADATA_MAX_SIZE} bytes."
+                )
+        return value
+
+
+class AnticheatUrlsQuerySerializer(serializers.Serializer):
+    count = serializers.IntegerField(required=False, min_value=1, max_value=60, default=30)
+    upload_session_id = serializers.RegexField(
+        required=False,
+        allow_blank=True,
+        max_length=64,
+        regex=r"^[A-Za-z0-9_-]+$",
+    )
+    start_seq = serializers.IntegerField(required=False, min_value=1, default=1)
+
+
+class ActiveSessionClearSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True, min_value=1)
+
+
+class ExamTakeoverApproveSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True, min_value=1)
 
 
 class ContestActivitySerializer(serializers.ModelSerializer):
@@ -712,6 +742,53 @@ class ContestActivitySerializer(serializers.ModelSerializer):
         model = ContestActivity
         fields = ['id', 'user', 'username', 'action_type', 'details', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
+
+
+class ExamEvidenceVideoSerializer(serializers.ModelSerializer):
+    participant_user_id = serializers.IntegerField(source="participant.user_id", read_only=True)
+    participant_username = serializers.CharField(source="participant.user.username", read_only=True)
+    suspected_by_username = serializers.CharField(source="suspected_by.username", read_only=True)
+
+    class Meta:
+        model = ExamEvidenceVideo
+        fields = [
+            "id",
+            "participant_user_id",
+            "participant_username",
+            "upload_session_id",
+            "bucket",
+            "object_key",
+            "duration_seconds",
+            "frame_count",
+            "size_bytes",
+            "is_suspected",
+            "suspected_note",
+            "suspected_by",
+            "suspected_by_username",
+            "suspected_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "participant_user_id",
+            "participant_username",
+            "bucket",
+            "object_key",
+            "duration_seconds",
+            "frame_count",
+            "size_bytes",
+            "suspected_by",
+            "suspected_by_username",
+            "suspected_at",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ExamEvidenceVideoFlagSerializer(serializers.Serializer):
+    is_suspected = serializers.BooleanField(required=True)
+    note = serializers.CharField(required=False, allow_blank=True, max_length=1000)
 
 
 # ============================================================================

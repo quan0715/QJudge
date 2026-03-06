@@ -1,19 +1,33 @@
 """
 Celery tasks for contest scheduled operations.
 Auto-submit participants when contest ends, auto-unlock locked participants,
-and check for heartbeat timeouts.
+and handle evidence video compilation/cleanup.
 """
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+
 from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
-from .models import Contest, ContestParticipant, ExamStatus, ExamEvent, ContestActivity
+from django.conf import settings
+from .models import (
+    Contest,
+    ContestParticipant,
+    ContestActivity,
+    ExamEvent,
+    ExamEvidenceJob,
+    ExamEvidenceVideo,
+    ExamStatus,
+    EvidenceJobStatus,
+)
+from .services.anticheat_storage import get_s3_client, tag_object_retain
 
-# Heartbeat timeout in seconds.
-HEARTBEAT_TIMEOUT_SECONDS = 90  # 1.5 minutes
 FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
 PENALIZED_EVENT_TYPES = {
-    'heartbeat_timeout',
     'tab_hidden',
     'window_blur',
     'exit_fullscreen',
@@ -29,115 +43,66 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
     Unified server-side anti-cheat escalation.
     - in_progress: threshold => lock
     - paused/locked: threshold => auto-submit
+    - submitted: no-op (already finished)
+
+    Uses transaction.atomic + select_for_update to ensure atomicity.
     """
     contest = participant.contest
     if event_type not in PENALIZED_EVENT_TYPES:
         return participant
 
-    participant.violation_count += 1
-    update_fields = ['violation_count']
-    should_escalate = (
-        event_type == 'warning_timeout'
-        or participant.violation_count >= contest.max_cheat_warnings
-    )
+    with transaction.atomic():
+        participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
 
-    if should_escalate:
-        if participant.exam_status == ExamStatus.IN_PROGRESS:
-            participant.exam_status = ExamStatus.LOCKED
-            participant.locked_at = timezone.now()
-            participant.lock_reason = (
-                "Warning timeout: student did not acknowledge warning within 30 seconds"
-                if event_type == 'warning_timeout'
-                else f"System lock: {event_type}"
-            )
-            update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
-            participant.save(update_fields=update_fields)
-            ContestActivity.objects.create(
-                contest=contest,
-                user=participant.user,
-                action_type='lock_user',
-                details=f"Auto-locked due to {event_type}",
-            )
+        if participant.exam_status == ExamStatus.SUBMITTED:
             return participant
 
-        if participant.exam_status in [ExamStatus.PAUSED, ExamStatus.LOCKED]:
-            reason = (
-                f"Auto-submitted: violation while {participant.exam_status} "
-                f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
-            )
-            participant.exam_status = ExamStatus.SUBMITTED
-            participant.left_at = timezone.now()
-            participant.submit_reason = reason
-            update_fields.extend(['exam_status', 'left_at', 'submit_reason'])
-            participant.save(update_fields=update_fields)
-            ContestActivity.objects.create(
-                contest=contest,
-                user=participant.user,
-                action_type='auto_submit',
-                details=reason,
-            )
-            return participant
-
-    participant.save(update_fields=update_fields)
-    return participant
-
-
-@shared_task
-def check_heartbeat_timeout():
-    """
-    Periodic task: Check for participants with stale heartbeats during active exams.
-    
-    Runs every 30 seconds via Celery Beat. Finds participants whose last heartbeat
-    is older than HEARTBEAT_TIMEOUT_SECONDS and logs a warning event.
-    This helps detect:
-    - Students who closed their browser without proper logout
-    - Network disconnections
-    - Attempts to bypass monitoring
-    """
-    now = timezone.now()
-    timeout_threshold = now - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
-    
-    # Find monitored participants with stale heartbeats
-    stale_participants = ContestParticipant.objects.filter(
-        exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED],
-        last_heartbeat__lt=timeout_threshold,
-        contest__status='published',
-        contest__cheat_detection_enabled=True,
-        contest__end_time__gt=now  # Only active contests
-    ).select_related('contest', 'user')
-    
-    count = 0
-    for participant in stale_participants:
-        # Avoid creating duplicate timeout events for the same stale heartbeat.
-        already_logged = ExamEvent.objects.filter(
-            contest=participant.contest,
-            user=participant.user,
-            event_type='forbidden_focus_event',
-            metadata__source='heartbeat_timeout',
-            created_at__gte=participant.last_heartbeat,
-        ).exists()
-        if already_logged:
-            continue
-
-        # Log heartbeat timeout event
-        ExamEvent.objects.create(
-            contest=participant.contest,
-            user=participant.user,
-            event_type='forbidden_focus_event',  # Use existing type
-            metadata={
-                'source': 'heartbeat_timeout',
-                'last_heartbeat': participant.last_heartbeat.isoformat() if participant.last_heartbeat else None,
-                'timeout_seconds': HEARTBEAT_TIMEOUT_SECONDS
-            }
+        participant.violation_count += 1
+        update_fields = ['violation_count']
+        should_escalate = (
+            event_type == 'warning_timeout'
+            or participant.violation_count >= contest.max_cheat_warnings
         )
-        with transaction.atomic():
-            refreshed = ContestParticipant.objects.select_for_update().select_related('contest', 'user').get(
-                pk=participant.pk
-            )
-            _apply_penalty_from_event(refreshed, 'heartbeat_timeout')
-        count += 1
-    
-    return f"Processed {count} heartbeat timeout events"
+
+        if should_escalate:
+            if participant.exam_status == ExamStatus.IN_PROGRESS:
+                participant.exam_status = ExamStatus.LOCKED
+                participant.locked_at = timezone.now()
+                participant.lock_reason = (
+                    "Warning timeout: student did not acknowledge warning within 30 seconds"
+                    if event_type == 'warning_timeout'
+                    else f"System lock: {event_type}"
+                )
+                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+                participant.save(update_fields=update_fields)
+                ContestActivity.objects.create(
+                    contest=contest,
+                    user=participant.user,
+                    action_type='lock_user',
+                    details=f"Auto-locked due to {event_type}",
+                )
+                return participant
+
+            if participant.exam_status in [ExamStatus.PAUSED, ExamStatus.LOCKED]:
+                reason = (
+                    f"Auto-submitted: violation while {participant.exam_status} "
+                    f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
+                )
+                participant.exam_status = ExamStatus.SUBMITTED
+                participant.left_at = timezone.now()
+                participant.submit_reason = reason
+                update_fields.extend(['exam_status', 'left_at', 'submit_reason'])
+                participant.save(update_fields=update_fields)
+                ContestActivity.objects.create(
+                    contest=contest,
+                    user=participant.user,
+                    action_type='auto_submit',
+                    details=reason,
+                )
+                return participant
+
+        participant.save(update_fields=update_fields)
+        return participant
 
 
 @shared_task
@@ -158,6 +123,7 @@ def check_contest_end():
             ExamStatus.IN_PROGRESS,
             ExamStatus.PAUSED,
             ExamStatus.LOCKED,
+            ExamStatus.LOCKED_TAKEOVER,
         ],
     ).distinct()
     
@@ -180,18 +146,26 @@ def auto_submit_participants(contest_id):
         if contest.end_time and contest.end_time > timezone.now():
             return f"Contest {contest_id} end_time extended, skipping"
         
-        count = ContestParticipant.objects.filter(
+        qs = ContestParticipant.objects.filter(
             contest_id=contest_id,
             exam_status__in=[
                 ExamStatus.IN_PROGRESS,
                 ExamStatus.PAUSED,
-                ExamStatus.LOCKED
+                ExamStatus.LOCKED,
+                ExamStatus.LOCKED_TAKEOVER,
             ]
-        ).update(
+        )
+        participant_ids = list(qs.values_list("id", flat=True))
+        count = qs.update(
             exam_status=ExamStatus.SUBMITTED,
             left_at=timezone.now(),
             submit_reason='Auto-submitted: contest ended',
         )
+        for participant_id in participant_ids:
+            compile_anticheat_video.apply_async(
+                args=[participant_id, "default"],
+                queue="video_queue",
+            )
         
         return f"Auto-submitted {count} participants for contest {contest_id}"
         
@@ -241,9 +215,8 @@ def auto_unlock_participant(participant_id):
         if participant.exam_status == ExamStatus.LOCKED:
             participant.exam_status = ExamStatus.PAUSED
             participant.locked_at = None
-            participant.violation_count = 0
             participant.lock_reason = ""
-            participant.save(update_fields=['exam_status', 'locked_at', 'violation_count', 'lock_reason'])
+            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason'])
             return f"Unlocked participant {participant_id}"
             
         return f"Participant {participant_id} not locked"
@@ -314,6 +287,10 @@ def force_submit_locked_participant(participant_id):
             f"Auto-submitted: locked for more than {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes"
         )
         participant.save(update_fields=['exam_status', 'left_at', 'submit_reason'])
+        compile_anticheat_video.apply_async(
+            args=[participant.id, "default"],
+            queue="video_queue",
+        )
 
         # Record ExamEvent
         ExamEvent.objects.create(
@@ -339,3 +316,153 @@ def force_submit_locked_participant(participant_id):
 
     except ContestParticipant.DoesNotExist:
         return f"Participant {participant_id} not found"
+
+
+def _extract_seq_from_key(key: str) -> int:
+    match = re.search(r"_seq_(\d+)\.webp$", key)
+    if not match:
+        return 0
+    return int(match.group(1))
+
+
+def _list_raw_keys(client, bucket: str, prefix: str) -> list[str]:
+    paginator = client.get_paginator("list_objects_v2")
+    keys: list[str] = []
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for item in page.get("Contents", []):
+            key = item.get("Key")
+            if key and key.endswith(".webp"):
+                keys.append(key)
+    keys.sort(key=_extract_seq_from_key)
+    return keys
+
+
+def _delete_raw_keys(client, bucket: str, keys: list[str]) -> None:
+    chunk_size = 500
+    for i in range(0, len(keys), chunk_size):
+        chunk = keys[i:i + chunk_size]
+        if not chunk:
+            continue
+        client.delete_objects(
+            Bucket=bucket,
+            Delete={
+                "Objects": [{"Key": key} for key in chunk],
+                "Quiet": True,
+            },
+        )
+
+
+@shared_task
+def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
+    """
+    Compile raw anti-cheat screenshots into a single MP4.
+    """
+    try:
+        participant = ContestParticipant.objects.select_related("contest", "user").get(id=participant_id)
+    except ContestParticipant.DoesNotExist:
+        return f"Participant {participant_id} not found"
+
+    contest = participant.contest
+    if not upload_session_id:
+        upload_session_id = "default"
+
+    job, created = ExamEvidenceJob.objects.get_or_create(
+        contest=contest,
+        participant=participant,
+        upload_session_id=upload_session_id,
+        defaults={"status": EvidenceJobStatus.PENDING},
+    )
+    if not created and job.status in [EvidenceJobStatus.RUNNING, EvidenceJobStatus.SUCCESS]:
+        return f"Job already {job.status} for participant={participant_id} session={upload_session_id}"
+
+    client = get_s3_client()
+    raw_bucket = settings.ANTICHEAT_RAW_BUCKET
+    video_bucket = settings.ANTICHEAT_VIDEO_BUCKET
+    if upload_session_id and upload_session_id != "default":
+        raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/session_{upload_session_id}/"
+    else:
+        raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
+
+    job.status = EvidenceJobStatus.RUNNING
+    job.started_at = timezone.now()
+    job.error_message = ""
+    job.save(update_fields=["status", "started_at", "error_message", "updated_at"])
+
+    temp_dir = tempfile.mkdtemp(prefix=f"anticheat_{contest.id}_{participant.user_id}_")
+    raw_keys: list[str] = []
+    try:
+        raw_keys = _list_raw_keys(client, raw_bucket, raw_prefix)
+        if not raw_keys:
+            job.status = EvidenceJobStatus.FAILED
+            job.error_message = "No raw screenshots found"
+            job.finished_at = timezone.now()
+            job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+            return "No raw screenshots found"
+
+        job.raw_count = len(raw_keys)
+        job.save(update_fields=["raw_count", "updated_at"])
+
+        for index, key in enumerate(raw_keys, start=1):
+            filename = os.path.join(temp_dir, f"frame_{index:06d}.webp")
+            client.download_file(raw_bucket, key, filename)
+
+        output_name = f"session_{upload_session_id}.mp4"
+        output_path = os.path.join(temp_dir, output_name)
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-y",
+            "-framerate",
+            "1",
+            "-i",
+            os.path.join(temp_dir, "frame_%06d.webp"),
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            output_path,
+        ]
+        subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
+
+        video_key = f"contest_{contest.id}/user_{participant.user_id}/{output_name}"
+        client.upload_file(
+            output_path,
+            video_bucket,
+            video_key,
+            ExtraArgs={"ContentType": "video/mp4"},
+        )
+        size_bytes = os.path.getsize(output_path)
+
+        ExamEvidenceVideo.objects.update_or_create(
+            contest=contest,
+            participant=participant,
+            upload_session_id=upload_session_id,
+            defaults={
+                "bucket": video_bucket,
+                "object_key": video_key,
+                "frame_count": len(raw_keys),
+                "duration_seconds": len(raw_keys),
+                "size_bytes": size_bytes,
+            },
+        )
+        _delete_raw_keys(client, raw_bucket, raw_keys)
+        job.status = EvidenceJobStatus.SUCCESS
+        job.video_bucket = video_bucket
+        job.video_key = video_key
+        job.finished_at = timezone.now()
+        job.save(update_fields=["status", "video_bucket", "video_key", "finished_at", "updated_at"])
+        return f"Compiled video for participant {participant_id} ({len(raw_keys)} frames)"
+    except Exception as exc:
+        for key in raw_keys:
+            try:
+                tag_object_retain(raw_bucket, key)
+            except Exception:
+                pass
+        job.status = EvidenceJobStatus.FAILED
+        job.error_message = str(exc)
+        job.finished_at = timezone.now()
+        job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+        raise
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)

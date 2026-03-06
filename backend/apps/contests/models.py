@@ -328,6 +328,7 @@ class ExamStatus(models.TextChoices):
     IN_PROGRESS = 'in_progress', '進行中'
     PAUSED = 'paused', '暫停'
     LOCKED = 'locked', '已鎖定'
+    LOCKED_TAKEOVER = 'locked_takeover', '接管鎖定'
     SUBMITTED = 'submitted', '已交卷'
 
 
@@ -380,17 +381,9 @@ class ContestParticipant(models.Model):
         choices=ExamStatus.choices,
         default=ExamStatus.NOT_STARTED,
         verbose_name='考試狀態',
-        help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
+        help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/接管鎖定/已交卷'
     )
     
-    # Heartbeat tracking for exam mode security
-    last_heartbeat = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='最後心跳時間',
-        help_text='用於追蹤考試期間學生的連線狀態'
-    )
-
     @property
     def has_finished_exam(self):
         return self.exam_status == ExamStatus.SUBMITTED
@@ -526,6 +519,12 @@ class ExamEvent(models.Model):
         ('mouse_leave', 'Mouse Leave'),
         ('warning_timeout', 'Warning Timeout'),
         ('force_submit_locked', 'Force Submit Locked'),
+        ('screen_share_stopped', 'Screen Share Stopped'),
+        ('screen_share_invalid_surface', 'Screen Share Invalid Surface'),
+        ('capture_upload_degraded', 'Capture Upload Degraded'),
+        ('concurrent_login_detected', 'Concurrent Login Detected'),
+        ('takeover_locked', 'Takeover Locked'),
+        ('takeover_approved', 'Takeover Approved'),
     ]
     event_type = models.CharField(
         max_length=50,
@@ -533,7 +532,7 @@ class ExamEvent(models.Model):
         verbose_name='事件類型'
     )
     
-    metadata =models.JSONField(
+    metadata = models.JSONField(
         null=True,
         blank=True,
         verbose_name='額外資訊',
@@ -663,6 +662,111 @@ class ExamAnswer(models.Model):
             self.score = q_score if self.is_correct else 0
 
 
+class EvidenceJobStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    RUNNING = "running", "Running"
+    SUCCESS = "success", "Success"
+    FAILED = "failed", "Failed"
+
+
+class ExamEvidenceJob(models.Model):
+    """
+    Background compilation job for anti-cheat raw screenshots.
+    """
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name="evidence_jobs",
+    )
+    participant = models.ForeignKey(
+        ContestParticipant,
+        on_delete=models.CASCADE,
+        related_name="evidence_jobs",
+    )
+    upload_session_id = models.CharField(max_length=64, default="", blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=EvidenceJobStatus.choices,
+        default=EvidenceJobStatus.PENDING,
+    )
+    raw_count = models.PositiveIntegerField(default=0)
+    video_bucket = models.CharField(max_length=128, default="", blank=True)
+    video_key = models.CharField(max_length=512, default="", blank=True)
+    error_message = models.TextField(default="", blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "exam_evidence_jobs"
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contest", "participant", "upload_session_id"],
+                name="uniq_evidence_job_contest_participant_session",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["contest", "status"],
+                name="exam_eviden_contest_2bf0d4_idx",
+            ),
+            models.Index(
+                fields=["participant", "created_at"],
+                name="exam_eviden_partici_a82453_idx",
+            ),
+        ]
+
+
+class ExamEvidenceVideo(models.Model):
+    """
+    Compiled anti-cheat evidence video metadata.
+    """
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name="evidence_videos",
+    )
+    participant = models.ForeignKey(
+        ContestParticipant,
+        on_delete=models.CASCADE,
+        related_name="evidence_videos",
+    )
+    upload_session_id = models.CharField(max_length=64, default="", blank=True)
+    bucket = models.CharField(max_length=128)
+    object_key = models.CharField(max_length=512)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    frame_count = models.PositiveIntegerField(default=0)
+    size_bytes = models.BigIntegerField(default=0)
+    is_suspected = models.BooleanField(default=False)
+    suspected_note = models.TextField(default="", blank=True)
+    suspected_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="flagged_exam_videos",
+    )
+    suspected_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "exam_evidence_videos"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["contest", "participant"],
+                name="exam_eviden_contest_5f7ba0_idx",
+            ),
+            models.Index(
+                fields=["contest", "is_suspected"],
+                name="exam_eviden_contest_0efcb1_idx",
+            ),
+        ]
+
+
 class ContestActivity(models.Model):
     """
     General activity log for a contest.
@@ -695,6 +799,9 @@ class ContestActivity(models.Model):
         ('update_contest', 'Update Contest'),
         ('update_problem', 'Update Problem'),
         ('update_participant', 'Update Participant'),
+        ('concurrent_login_detected', 'Concurrent Login Detected'),
+        ('takeover_lock', 'Takeover Lock'),
+        ('takeover_approve', 'Takeover Approve'),
         ('announce', 'Announce'),
         ('other', 'Other'),
     ]

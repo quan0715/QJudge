@@ -122,17 +122,26 @@ class LoginSerializer(serializers.Serializer):
         required=True,
         style={'input_type': 'password'}
     )
+    device_id = serializers.CharField(required=False, allow_blank=True, max_length=128)
 
 
 class OAuthCallbackSerializer(serializers.Serializer):
     """Serializer for OAuth callback."""
     code = serializers.CharField(required=True)
     redirect_uri = serializers.URLField(required=True)
+    device_id = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    conflict_token = serializers.CharField(required=False, allow_blank=True, max_length=256)
 
 
 class TokenRefreshSerializer(serializers.Serializer):
     """Serializer for token refresh."""
     refresh = serializers.CharField(required=True)
+
+
+class ResolveConflictSerializer(serializers.Serializer):
+    """Serializer for login conflict resolution (device takeover lock)."""
+    conflict_token = serializers.CharField(required=True, max_length=256)
+    action = serializers.ChoiceField(required=True, choices=["takeover_lock"])
 
 
 class UserSearchSerializer(serializers.ModelSerializer):

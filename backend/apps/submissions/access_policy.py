@@ -64,5 +64,9 @@ class SubmissionAccessPolicy:
                 )
             if participant.exam_status == ExamStatus.LOCKED:
                 raise SubmissionAccessError("You have been locked out of this exam and cannot submit.")
+            if participant.exam_status == ExamStatus.LOCKED_TAKEOVER:
+                raise SubmissionAccessError(
+                    "Your exam session is locked for device takeover and requires invigilator approval."
+                )
 
         return False

@@ -62,11 +62,11 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 
 ## 四、常見問題
 
-### 問題 1：誤連 cloud DB
+### 問題 1：誤連外部 DB
 
 症狀：
 
-- 測試錯誤訊息出現 Supabase host
+- 測試錯誤訊息出現外部 DB host
 - `FATAL: Tenant or user not found`
 
 處理：

@@ -162,8 +162,8 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "user": "120/min",
-        "exam_heartbeat": "4/min",
         "exam_events": "30/min",
+        "exam_anticheat_urls": "6/min",
     },
 }
 
@@ -287,10 +287,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contests.tasks.check_auto_unlock",
         "schedule": 30.0,  # Every 30 seconds
     },
-    "check-heartbeat-timeout-every-30-seconds": {
-        "task": "apps.contests.tasks.check_heartbeat_timeout",
-        "schedule": 30.0,  # Every 30 seconds
-    },
     "check-force-submit-locked-every-30-seconds": {
         "task": "apps.contests.tasks.check_force_submit_locked",
         "schedule": 30.0,  # Every 30 seconds
@@ -336,6 +332,26 @@ AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
 AI_SERVICE_INTERNAL_TOKEN = os.getenv(
     "AI_SERVICE_INTERNAL_TOKEN",
     os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
+)
+
+# Anti-cheat evidence storage (MinIO / S3-compatible)
+ANTICHEAT_S3_ENDPOINT_URL = os.getenv("ANTICHEAT_S3_ENDPOINT_URL", "")
+# Optional browser-facing endpoint used to rewrite presigned URLs
+# Example (dev): http://localhost:9000
+ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", "")
+ANTICHEAT_S3_REGION = os.getenv("ANTICHEAT_S3_REGION", "us-east-1")
+ANTICHEAT_S3_ACCESS_KEY = os.getenv(
+    "ANTICHEAT_S3_ACCESS_KEY",
+    os.getenv("MINIO_ROOT_USER", ""),
+)
+ANTICHEAT_S3_SECRET_KEY = os.getenv(
+    "ANTICHEAT_S3_SECRET_KEY",
+    os.getenv("MINIO_ROOT_PASSWORD", ""),
+)
+ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+ANTICHEAT_VIDEO_BUCKET = os.getenv("ANTICHEAT_VIDEO_BUCKET", "anticheat-videos")
+ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = int(
+    os.getenv("ANTICHEAT_PRESIGNED_URL_TTL_SECONDS", "300")
 )
 
 # HMAC secret for internal API authentication between ai-service and backend

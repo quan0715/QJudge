@@ -1974,45 +1974,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExamEventCreate'
           description: ''
-  /api/v1/contests/{contest_pk}/exam/heartbeat/:
-    post:
-      operationId: v1_contests_exam_heartbeat_create
-      description: |-
-        Exam heartbeat to verify client connectivity.
-        Should be called every 30 seconds during exam.
-
-        POST /api/v1/contests/{id}/exam/heartbeat
-        Body: { "is_focused": true, "is_fullscreen": true }
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
   /api/v1/contests/{contest_pk}/exam/start/:
     post:
       operationId: v1_contests_exam_start_create

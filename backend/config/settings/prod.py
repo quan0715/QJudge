@@ -13,11 +13,11 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # =============================================================================
 DATABASES['default'] = {
     'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.getenv('DB_NAME', os.getenv('CLOUD_DB_NAME', 'postgres')),
-    'USER': os.getenv('DB_USER', os.getenv('CLOUD_DB_USER', 'postgres')),
-    'PASSWORD': os.getenv('DB_PASSWORD', os.getenv('CLOUD_DB_PASSWORD', '')),
-    'HOST': os.getenv('DB_HOST', os.getenv('CLOUD_DB_HOST', '')),
-    'PORT': os.getenv('DB_PORT', os.getenv('CLOUD_DB_PORT', '5432')),
+    'NAME': os.getenv('DB_NAME', 'postgres'),
+    'USER': os.getenv('DB_USER', 'postgres'),
+    'PASSWORD': os.getenv('DB_PASSWORD', ''),
+    'HOST': os.getenv('DB_HOST', ''),
+    'PORT': os.getenv('DB_PORT', '5432'),
     'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
     'OPTIONS': {
         'connect_timeout': 10,
@@ -26,8 +26,8 @@ DATABASES['default'] = {
         'keepalives_idle': 30,      # 30 秒無活動後開始發送 keepalive
         'keepalives_interval': 10,  # 每 10 秒發送一次 keepalive
         'keepalives_count': 5,      # 5 次無回應後視為斷線
-        # SSL 設置 (Supabase 需要 SSL)
-        'sslmode': os.getenv('DB_SSLMODE', os.getenv('CLOUD_DB_SSLMODE', 'require')),
+        # External managed databases usually require SSL.
+        'sslmode': os.getenv('DB_SSLMODE', 'require'),
     },
 }
 
@@ -99,4 +99,3 @@ if os.getenv('FRONTEND_URL'):
 CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
     CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
-

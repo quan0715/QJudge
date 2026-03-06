@@ -2,9 +2,11 @@
 Views for contests app.
 """
 import logging
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.utils import timezone
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Sum, Max
 from rest_framework import viewsets, permissions, filters, status
@@ -15,7 +17,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 
 from .access_policy import ContestAccessPolicy
-from apps.core.throttles import ExamHeartbeatThrottle, ExamEventsThrottle
+from apps.core.throttles import (
+    ExamAnticheatUrlsThrottle,
+    ExamEventsThrottle,
+)
 from .models import (
     Contest,
     ContestParticipant,
@@ -27,6 +32,7 @@ from .models import (
     ContestActivity,
     ExamStatus,
     ExamAnswer,
+    ExamEvidenceVideo,
 )
 from .serializers import (
     ContestListSerializer,
@@ -48,11 +54,17 @@ from .serializers import (
     ExamAnswerDetailSerializer,
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
+    AnticheatUrlsQuerySerializer,
+    ActiveSessionClearSerializer,
+    ExamTakeoverApproveSerializer,
+    ExamEvidenceVideoSerializer,
+    ExamEvidenceVideoFlagSerializer,
 )
 from .permissions import (
     IsContestOwnerOrAdmin,
     IsContestLifecycleOwner,
     IsContestParticipant,
+    get_contest_scope_role,
     get_user_role_in_contest,
     can_manage_contest,
 )
@@ -64,6 +76,19 @@ from .services.export_service import (
     parse_scale,
 )
 from .services.scoreboard import ScoreboardScope, ScoreboardService
+from .services.anti_cheat_session import (
+    clear_active_session,
+    get_active_session,
+    get_device_id,
+    set_active_session,
+)
+from .services.anticheat_storage import (
+    build_raw_object_key,
+    build_upload_session_id,
+    generate_get_url,
+    generate_put_url,
+)
+from .tasks import compile_anticheat_video
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
 
@@ -175,7 +200,12 @@ class ContestViewSet(viewsets.ModelViewSet):
                 
                 # Auto-submit if contest ended and participant still active
                 if instance.status == 'published' and instance.end_time and timezone.now() >= instance.end_time:
-                    if participant.exam_status in [ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED]:
+                    if participant.exam_status in [
+                        ExamStatus.IN_PROGRESS,
+                        ExamStatus.PAUSED,
+                        ExamStatus.LOCKED,
+                        ExamStatus.LOCKED_TAKEOVER,
+                    ]:
                         participant.exam_status = ExamStatus.SUBMITTED
                         participant.left_at = timezone.now()
                         participant.save()
@@ -1254,12 +1284,42 @@ class ExamViewSet(viewsets.GenericViewSet):
         'exit_fullscreen',
         'multiple_displays',
         'mouse_leave',
+        'screen_share_stopped',
         'warning_timeout',
-        'heartbeat_timeout',
         'forbidden_focus_event',
     }
-    IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout'}
+    IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout', 'screen_share_stopped'}
     MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED}
+
+    def _conflict_payload(self, contest, participant):
+        return {
+            "code": "EXAM_ACTIVE_OTHER_DEVICE",
+            "message": "Another device is currently active for this exam session.",
+            "active_exam": {
+                "contest_id": contest.id,
+                "contest_name": contest.name,
+                "exam_status": participant.exam_status,
+                "started_at": participant.started_at,
+            },
+        }
+
+    def _ensure_active_device_session(self, contest, participant, request):
+        device_id = get_device_id(request)
+        active = get_active_session(contest.id, participant.user_id)
+        if active and active.get("device_id") and active.get("device_id") != device_id:
+            ExamEvent.objects.create(
+                contest=contest,
+                user=participant.user,
+                event_type="concurrent_login_detected",
+                metadata={
+                    "existing_device_id": active.get("device_id"),
+                    "incoming_device_id": device_id,
+                    "source": "exam_api",
+                },
+            )
+            return Response(self._conflict_payload(contest, participant), status=status.HTTP_409_CONFLICT)
+        set_active_session(contest, participant, request, device_id)
+        return None
 
     def _build_event_response(self, participant, contest):
         auto_unlock_at = None
@@ -1271,7 +1331,7 @@ class ExamViewSet(viewsets.GenericViewSet):
             'exam_status': participant.exam_status,
             'violation_count': participant.violation_count,
             'max_cheat_warnings': contest.max_cheat_warnings,
-            'locked': participant.exam_status == ExamStatus.LOCKED,
+            'locked': participant.exam_status in {ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER},
             'submitted': participant.exam_status == ExamStatus.SUBMITTED,
             'submit_reason': participant.submit_reason or "",
             'auto_unlock_at': auto_unlock_at,
@@ -1290,12 +1350,16 @@ class ExamViewSet(viewsets.GenericViewSet):
             reason
         )
 
-    def _process_penalized_event(self, participant, contest, actor, event_type, custom_lock_reason=""):
+    def _process_penalized_event(self, participant, contest, actor, event_type):
         """
         Unified anti-cheat state handling.
         - in_progress: threshold => lock
         - paused/locked: threshold => auto-submit
+        - submitted: no-op (already finished)
         """
+        if participant.exam_status == ExamStatus.SUBMITTED:
+            return participant
+
         participant.violation_count += 1
         update_fields = ['violation_count']
         force_lock = event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
@@ -1306,9 +1370,7 @@ class ExamViewSet(viewsets.GenericViewSet):
             if participant.exam_status == ExamStatus.IN_PROGRESS:
                 participant.exam_status = ExamStatus.LOCKED
                 participant.locked_at = timezone.now()
-                if custom_lock_reason:
-                    participant.lock_reason = custom_lock_reason
-                elif force_lock:
+                if force_lock:
                     participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
                 else:
                     participant.lock_reason = f"System lock: {event_type}"
@@ -1351,11 +1413,21 @@ class ExamViewSet(viewsets.GenericViewSet):
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if locked
-        if participant.exam_status == ExamStatus.LOCKED:
+        if participant.exam_status in {ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER}:
+            message = (
+                'Exam session has been locked due to device takeover. '
+                'Please wait for invigilator approval.'
+                if participant.exam_status == ExamStatus.LOCKED_TAKEOVER
+                else 'You have been locked out of this contest.'
+            )
             return Response(
-                {'error': 'You have been locked out of this contest.'},
+                {'error': message},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        conflict_response = self._ensure_active_device_session(contest, participant, request)
+        if conflict_response:
+            return conflict_response
 
         # Check if already submitted
         if participant.exam_status == ExamStatus.SUBMITTED:
@@ -1398,6 +1470,7 @@ class ExamViewSet(viewsets.GenericViewSet):
                 "Started exam"
             )
         
+        set_active_session(contest, participant, request, get_device_id(request))
         return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
 
     @action(detail=False, methods=['post'], url_path='end')
@@ -1417,8 +1490,13 @@ class ExamViewSet(viewsets.GenericViewSet):
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if exam can be submitted (must be in_progress, locked, or paused)
-        submittable_states = [ExamStatus.IN_PROGRESS, ExamStatus.LOCKED, ExamStatus.PAUSED]
+        # Check if exam can be submitted (must be in_progress, locked, paused, or takeover-locked)
+        submittable_states = [
+            ExamStatus.IN_PROGRESS,
+            ExamStatus.LOCKED,
+            ExamStatus.PAUSED,
+            ExamStatus.LOCKED_TAKEOVER,
+        ]
         if participant.exam_status not in submittable_states:
             return Response(
                 {'error': f'Cannot submit exam in current state: {participant.exam_status}'}, 
@@ -1436,6 +1514,11 @@ class ExamViewSet(viewsets.GenericViewSet):
         participant.exam_status = ExamStatus.SUBMITTED
         participant.submit_reason = submit_reason
         participant.save(update_fields=['left_at', 'exam_status', 'submit_reason'])
+        clear_active_session(contest.id, request.user.id)
+        compile_anticheat_video.apply_async(
+            args=[participant.id, str(request.data.get("upload_session_id") or "default")],
+            queue="video_queue",
+        )
         
         # Log activity
         ContestActivityViewSet.log_activity(
@@ -1451,61 +1534,78 @@ class ExamViewSet(viewsets.GenericViewSet):
             'submit_reason': submit_reason,
         })
 
-    @action(detail=False, methods=['post'], url_path='heartbeat',
-            permission_classes=[permissions.IsAuthenticated],
-            throttle_classes=[ExamHeartbeatThrottle])
-    def heartbeat(self, request, contest_pk=None):
-        """
-        Exam heartbeat to verify client connectivity.
-        Should be called every 30 seconds during exam.
-        
-        POST /api/v1/contests/{id}/exam/heartbeat
-        Body: { "is_focused": true, "is_fullscreen": true }
-        """
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='anticheat-urls',
+        permission_classes=[permissions.IsAuthenticated],
+        throttle_classes=[ExamAnticheatUrlsThrottle],
+    )
+    def anticheat_urls(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        user = request.user
-        
-        try:
-            participant = ContestParticipant.objects.get(contest=contest, user=user)
-        except ContestParticipant.DoesNotExist:
+        participant, error_response = validate_exam_operation(
+            contest, request.user, require_in_progress=False
+        )
+        if error_response:
+            return error_response
+        if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if participant.exam_status in self.MONITORED_STATUSES:
-            participant.last_heartbeat = timezone.now()
-            participant.save(update_fields=['last_heartbeat'])
+        if participant.exam_status not in self.MONITORED_STATUSES:
+            return Response(
+                {'error': f'Cannot issue anticheat upload URLs in status: {participant.exam_status}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            is_focused = request.data.get('is_focused', True)
-            is_fullscreen = request.data.get('is_fullscreen', True)
+        conflict_response = self._ensure_active_device_session(contest, participant, request)
+        if conflict_response:
+            return conflict_response
 
-            heartbeat_event_type = None
-            if not is_focused:
-                heartbeat_event_type = 'forbidden_focus_event'
-            elif not is_fullscreen:
-                heartbeat_event_type = 'exit_fullscreen'
+        query_serializer = AnticheatUrlsQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        count = query_serializer.validated_data["count"]
 
-            if heartbeat_event_type:
-                with transaction.atomic():
-                    ExamEvent.objects.create(
-                        contest=contest,
-                        user=user,
-                        event_type=heartbeat_event_type,
-                        metadata={
-                            'source': 'heartbeat',
-                            'is_focused': is_focused,
-                            'is_fullscreen': is_fullscreen
-                        }
-                    )
-                    participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
-                    participant = self._process_penalized_event(
-                        participant=participant,
-                        contest=contest,
-                        actor=user,
-                        event_type='heartbeat_timeout',
-                    )
+        upload_session_id = str(query_serializer.validated_data.get("upload_session_id") or "").strip()
+        if not upload_session_id:
+            upload_session_id = build_upload_session_id()
+        start_seq = int(query_serializer.validated_data.get("start_seq") or 1)
+        base_ts = int(timezone.now().timestamp() * 1000)
+        items = []
+        for i in range(count):
+            seq = start_seq + i
+            ts_ms = base_ts + i * 10_000
+            object_key = build_raw_object_key(
+                contest_id=contest.id,
+                user_id=request.user.id,
+                upload_session_id=upload_session_id,
+                ts_ms=ts_ms,
+                seq=seq,
+            )
+            put_url = generate_put_url(
+                settings.ANTICHEAT_RAW_BUCKET,
+                object_key,
+                expires_seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS,
+            )
+            items.append(
+                {
+                    "seq": seq,
+                    "object_key": object_key,
+                    "put_url": put_url,
+                    "required_headers": {
+                        "Content-Type": "image/webp",
+                        "x-amz-tagging": "cleanup=true",
+                    },
+                }
+            )
 
-        payload = self._build_event_response(participant, contest)
-        payload.update({'status': 'ok', 'max_warnings': contest.max_cheat_warnings})
-        return Response(payload)
+        return Response(
+            {
+                "upload_session_id": upload_session_id,
+                "expires_at": timezone.now() + timedelta(seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
+                "interval_seconds": 10,
+                "next_seq": start_seq + count,
+                "items": items,
+            }
+        )
 
     @action(detail=False, methods=['post', 'get'], url_path='events',
             permission_classes=[permissions.IsAuthenticated],
@@ -1537,6 +1637,10 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+        if participant.exam_status in self.MONITORED_STATUSES:
+            conflict_response = self._ensure_active_device_session(contest, participant, request)
+            if conflict_response:
+                return conflict_response
         
         serializer = ExamEventCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1562,7 +1666,6 @@ class ExamViewSet(viewsets.GenericViewSet):
                     contest=contest,
                     actor=request.user,
                     event_type=event_type,
-                    custom_lock_reason=serializer.validated_data.get('lock_reason') or "",
                 )
         else:
             ExamEvent.objects.create(
@@ -1593,6 +1696,158 @@ class ExamViewSet(viewsets.GenericViewSet):
 
         events = ExamEvent.objects.filter(contest_id=contest_pk).select_related('user').order_by('-created_at')
         return Response(ExamEventSerializer(events, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="active-sessions")
+    def active_sessions(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        participants = ContestParticipant.objects.filter(
+            contest=contest,
+            exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER],
+        ).select_related("user")
+        rows = []
+        for participant in participants:
+            session_data = get_active_session(contest.id, participant.user_id)
+            if not session_data:
+                continue
+            rows.append(
+                {
+                    "user_id": participant.user_id,
+                    "username": participant.user.username,
+                    "exam_status": participant.exam_status,
+                    "started_at": participant.started_at,
+                    "session": session_data,
+                }
+            )
+        return Response(rows)
+
+    @action(detail=False, methods=["post"], url_path="active-sessions/clear")
+    def clear_active_session(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        serializer = ActiveSessionClearSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_id = serializer.validated_data["user_id"]
+        clear_active_session(contest.id, user_id)
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            "update_participant",
+            f"Cleared active session for user_id={user_id}",
+        )
+        return Response({"status": "cleared", "user_id": user_id})
+
+    @action(detail=False, methods=["post"], url_path="takeover-approve")
+    def takeover_approve(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        serializer = ExamTakeoverApproveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_id = serializer.validated_data["user_id"]
+        participant = get_object_or_404(ContestParticipant, contest=contest, user_id=user_id)
+        if participant.exam_status != ExamStatus.LOCKED_TAKEOVER:
+            return Response(
+                {"error": "Participant is not in takeover-locked state."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        participant.exam_status = ExamStatus.PAUSED
+        participant.lock_reason = ""
+        participant.locked_at = None
+        participant.save(update_fields=["exam_status", "lock_reason", "locked_at"])
+        ExamEvent.objects.create(
+            contest=contest,
+            user=participant.user,
+            event_type="takeover_approved",
+            metadata={"approved_by": request.user.id},
+        )
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            "takeover_approve",
+            f"Approved takeover for user_id={participant.user_id}",
+        )
+        return Response({"status": "approved", "exam_status": participant.exam_status})
+
+    @action(detail=False, methods=["get"], url_path="videos")
+    def videos(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        qs = ExamEvidenceVideo.objects.filter(contest=contest).select_related(
+            "participant__user", "suspected_by"
+        )
+        user_id = request.query_params.get("user_id")
+        if user_id:
+            qs = qs.filter(participant__user_id=user_id)
+        if request.query_params.get("flagged") == "true":
+            qs = qs.filter(is_suspected=True)
+        return Response(ExamEvidenceVideoSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path=r"videos/(?P<video_id>[^/.]+)/play-url")
+    def video_play_url(self, request, contest_pk=None, video_id=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        video = get_object_or_404(ExamEvidenceVideo, id=video_id, contest=contest)
+        url = generate_get_url(video.bucket, video.object_key, expires_seconds=120)
+        return Response({"url": url, "expires_in": 120})
+
+    @action(detail=False, methods=["get"], url_path=r"videos/(?P<video_id>[^/.]+)/download-url")
+    def video_download_url(self, request, contest_pk=None, video_id=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        video = get_object_or_404(ExamEvidenceVideo, id=video_id, contest=contest)
+        url = generate_get_url(video.bucket, video.object_key, expires_seconds=120)
+        return Response({"url": url, "expires_in": 120})
+
+    @action(detail=False, methods=["patch"], url_path=r"videos/(?P<video_id>[^/.]+)/flag")
+    def video_flag(self, request, contest_pk=None, video_id=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        video = get_object_or_404(ExamEvidenceVideo, id=video_id, contest=contest)
+        serializer = ExamEvidenceVideoFlagSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        is_suspected = serializer.validated_data["is_suspected"]
+        note = serializer.validated_data.get("note", "")
+        video.is_suspected = is_suspected
+        video.suspected_note = note
+        if is_suspected:
+            video.suspected_by = request.user
+            video.suspected_at = timezone.now()
+        else:
+            video.suspected_by = None
+            video.suspected_at = None
+        video.save(update_fields=["is_suspected", "suspected_note", "suspected_by", "suspected_at", "updated_at"])
+        return Response(ExamEvidenceVideoSerializer(video).data)
 
 
 class ContestAnnouncementViewSet(viewsets.ModelViewSet):

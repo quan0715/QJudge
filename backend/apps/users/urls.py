@@ -10,6 +10,7 @@ from .views import (
     NYCUOAuthLoginView,
     NYCUOAuthCallbackView,
     TokenRefreshView,
+    ResolveConflictView,
     CurrentUserView,
     UserSearchView,
     UserRoleUpdateView,
@@ -37,6 +38,7 @@ urlpatterns = [
     
     # Token management
     path('refresh', TokenRefreshView.as_view(), name='token-refresh'),
+    path('resolve-conflict', ResolveConflictView.as_view(), name='resolve-conflict'),
     path('logout', LogoutView.as_view(), name='logout'),
     
     # Current user
