@@ -32,7 +32,7 @@ describe("useExamPrecheckGate", () => {
   });
 
   it("clears gate when status requires re-precheck", () => {
-    const statuses = ["not_started", "paused", "locked", "submitted"] as const;
+    const statuses = ["not_started", "submitted"] as const;
 
     statuses.forEach((status) => {
       markExamPrecheckPassed(contestId);

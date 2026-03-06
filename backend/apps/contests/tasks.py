@@ -216,7 +216,8 @@ def auto_unlock_participant(participant_id):
             participant.exam_status = ExamStatus.PAUSED
             participant.locked_at = None
             participant.lock_reason = ""
-            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason'])
+            participant.violation_count = 0
+            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason', 'violation_count'])
             return f"Unlocked participant {participant_id}"
             
         return f"Participant {participant_id} not locked"
@@ -467,6 +468,6 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         job.error_message = str(exc)
         job.finished_at = timezone.now()
         job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
-        raise
+        return f"Failed to compile video for participant {participant_id}: {exc}"
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)

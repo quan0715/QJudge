@@ -35,9 +35,12 @@ export async function leaveExamUseCase(
   try {
     // End exam if needed
     if (shouldEndExam) {
-      await endExam(contestId, {
-        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
-      });
+      const uploadSessionId = getExamCaptureSessionId(contestId);
+      if (uploadSessionId) {
+        await endExam(contestId, { upload_session_id: uploadSessionId });
+      } else {
+        await endExam(contestId);
+      }
     }
 
     // Exit fullscreen

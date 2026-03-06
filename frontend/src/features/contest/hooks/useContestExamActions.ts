@@ -115,9 +115,12 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     try {
-      await endExam(contest.id, {
-        upload_session_id: getExamCaptureSessionId(contest.id) || undefined,
-      });
+      const uploadSessionId = getExamCaptureSessionId(contest.id);
+      if (uploadSessionId) {
+        await endExam(contest.id, { upload_session_id: uploadSessionId });
+      } else {
+        await endExam(contest.id);
+      }
       clearExamPrecheckPassed(contest.id);
       await refreshContest();
     } catch {
