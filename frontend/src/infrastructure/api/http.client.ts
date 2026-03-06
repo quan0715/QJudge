@@ -29,6 +29,22 @@ const getCsrfToken = (): string | null => {
   return null;
 };
 
+const DEVICE_ID_KEY = "qjudge.device_id.v1";
+
+const ensureDeviceId = (): string => {
+  if (typeof window === "undefined") return "server";
+  const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+  if (existing) return existing;
+  let nextId = "";
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    nextId = crypto.randomUUID();
+  } else {
+    nextId = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+  window.localStorage.setItem(DEVICE_ID_KEY, nextId);
+  return nextId;
+};
+
 const redirectToLogin = () => {
   if (
     typeof window !== "undefined" &&
@@ -154,6 +170,9 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
   // Ensure we accept JSON
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
+  }
+  if (!headers.has("X-Device-Id")) {
+    headers.set("X-Device-Id", ensureDeviceId());
   }
 
   // Include credentials (cookies) in requests for HttpOnly cookie auth

@@ -64,11 +64,33 @@ export const getOAuthUrl = async (provider: string): Promise<string> => {
 export const oauthCallback = async (data: {
   code: string;
   redirect_uri: string;
+  conflict_token?: string;
 }): Promise<AuthResponse> => {
-  return requestJson<AuthResponse>(
-    httpClient.post(`${API_BASE}/nycu/callback`, data),
-    "OAuth callback failed"
-  );
+  const res = await httpClient.post(`${API_BASE}/nycu/callback`, data);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    const error: any = new Error("OAuth callback failed");
+    error.response = { data: errorData, status: res.status };
+    throw error;
+  }
+  return res.json();
+};
+
+export const resolveConflict = async (data: {
+  conflict_token: string;
+  action?: "takeover_lock";
+}): Promise<AuthResponse> => {
+  const res = await httpClient.post(`${API_BASE}/resolve-conflict`, {
+    action: data.action || "takeover_lock",
+    conflict_token: data.conflict_token,
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    const error: any = new Error("Resolve conflict failed");
+    error.response = { data: errorData, status: res.status };
+    throw error;
+  }
+  return res.json();
 };
 
 export const logout = async (): Promise<void> => {
@@ -202,6 +224,7 @@ export default {
   register,
   getOAuthUrl,
   oauthCallback,
+  resolveConflict,
   logout,
   searchUsers,
   updateUserRole,
