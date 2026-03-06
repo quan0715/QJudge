@@ -210,28 +210,6 @@ const resizeCanvasLongEdge = (source: HTMLCanvasElement, longEdge: number): HTML
   return target;
 };
 
-const PLACEHOLDER_WIDTH = 640;
-const PLACEHOLDER_HEIGHT = 360;
-
-/** Generate a black frame with a timestamp so the video timeline stays continuous. */
-const createPlaceholderFrame = async (): Promise<Blob> => {
-  const canvas = document.createElement("canvas");
-  canvas.width = PLACEHOLDER_WIDTH;
-  canvas.height = PLACEHOLDER_HEIGHT;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT);
-    ctx.fillStyle = "#fff";
-    ctx.font = "20px monospace";
-    ctx.textAlign = "center";
-    const ts = new Date().toISOString();
-    ctx.fillText("SCREEN SHARE INTERRUPTED", PLACEHOLDER_WIDTH / 2, PLACEHOLDER_HEIGHT / 2 - 14);
-    ctx.fillText(ts, PLACEHOLDER_WIDTH / 2, PLACEHOLDER_HEIGHT / 2 + 14);
-  }
-  return canvasToWebpBlob(canvas, 0.3);
-};
-
 const encodeUnderBudget = async (canvas: HTMLCanvasElement): Promise<Blob> => {
   const qualityChain = [0.7, 0.5, 0.4];
   let best = await canvasToWebpBlob(canvas, qualityChain[0]);
@@ -278,6 +256,8 @@ export const useAnticheatScreenCapture = ({
   const intentionalStopUntilRef = useRef(0);
   const degradedReportedAtRef = useRef(0);
   const enabledRef = useRef(enabled);
+  const screenShareStoppedReportedRef = useRef(false);
+  const streamAuthFailedRef = useRef(false);
 
   const [uploadSessionId, setUploadSessionIdState] = useState<string | null>(null);
 
@@ -321,45 +301,107 @@ export const useAnticheatScreenCapture = ({
       videoRef.current.srcObject = null;
       videoRef.current = null;
     }
+    streamAuthFailedRef.current = false;
+    screenShareStoppedReportedRef.current = false;
     isStoppingRef.current = false;
   }, []);
 
-  const ensureScreenStream = useCallback(async (): Promise<boolean> => {
-    if (!enabled || !contestId) return false;
+  const reportScreenShareStopped = useCallback(
+    async (reason: string) => {
+      if (!contestId) return;
+      if (screenShareStoppedReportedRef.current) return;
+      screenShareStoppedReportedRef.current = true;
+      streamAuthFailedRef.current = true;
+      await recordExamEvent(contestId, "screen_share_stopped", reason).catch(() => null);
+    },
+    [contestId]
+  );
 
-    const current = streamRef.current;
-    const liveTrack = current?.getVideoTracks?.()[0];
-    if (liveTrack && liveTrack.readyState === "live") return true;
+  const attachStream = useCallback(
+    async (stream: MediaStream): Promise<boolean> => {
+      const track = stream.getVideoTracks?.()[0];
+      if (!track || track.readyState !== "live") return false;
 
-    const handoffStream = consumePrecheckScreenShareHandoff();
-    const handoffTrack = handoffStream?.getVideoTracks?.()[0];
-    if (handoffStream && handoffTrack && handoffTrack.readyState === "live") {
-      streamRef.current = handoffStream;
+      streamRef.current = stream;
       const video = document.createElement("video");
       video.autoplay = true;
       video.muted = true;
       video.playsInline = true;
-      video.srcObject = handoffStream;
+      video.srcObject = stream;
       try {
         await video.play();
       } catch {
         // Ignore autoplay errors; first capture tick may still render frame.
       }
       videoRef.current = video;
+      streamAuthFailedRef.current = false;
+      screenShareStoppedReportedRef.current = false;
 
-      handoffTrack.onended = () => {
+      track.onended = () => {
         if (isStoppingRef.current) return;
         if (Date.now() < intentionalStopUntilRef.current) return;
-        if (streamRef.current?.getVideoTracks?.()[0] !== handoffTrack) return;
-        void recordExamEvent(contestId, "screen_share_stopped", "Screen share track ended").catch(() => null);
+        if (streamRef.current?.getVideoTracks?.()[0] !== track) return;
+        streamRef.current = null;
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+          videoRef.current = null;
+        }
+        void reportScreenShareStopped("Screen share track ended");
       };
 
       return true;
+    },
+    [reportScreenShareStopped]
+  );
+
+  const requestRuntimeMonitorStream = useCallback(async (): Promise<MediaStream | null> => {
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      await reportDegraded("Browser does not support runtime getDisplayMedia");
+      await reportScreenShareStopped("Browser does not support runtime screen-share");
+      return null;
     }
 
-    await reportDegraded("Missing reusable screen share stream from precheck; skip runtime re-prompt");
-    return false;
-  }, [contestId, enabled, reportDegraded]);
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      const track = stream.getVideoTracks?.()[0];
+      const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
+        displaySurface?: string;
+      };
+      if (settings.displaySurface !== "monitor") {
+        for (const t of stream.getTracks()) {
+          t.stop();
+        }
+        await reportScreenShareStopped("Runtime screen-share source is not monitor");
+        return null;
+      }
+      return stream;
+    } catch {
+      await reportScreenShareStopped("Runtime screen-share re-authorization denied");
+      return null;
+    }
+  }, [reportDegraded, reportScreenShareStopped]);
+
+  const ensureScreenStream = useCallback(async (): Promise<boolean> => {
+    if (!enabled || !contestId) return false;
+    if (streamAuthFailedRef.current) return false;
+
+    const current = streamRef.current;
+    const liveTrack = current?.getVideoTracks?.()[0];
+    if (liveTrack && liveTrack.readyState === "live") return true;
+
+    const handoffStream = consumePrecheckScreenShareHandoff();
+    if (handoffStream) {
+      const attached = await attachStream(handoffStream);
+      if (attached) return true;
+    }
+
+    const runtimeStream = await requestRuntimeMonitorStream();
+    if (!runtimeStream) return false;
+    return attachStream(runtimeStream);
+  }, [attachStream, contestId, enabled, requestRuntimeMonitorStream]);
 
   const ensureUploadUrls = useCallback(
     async (needed = 1) => {
@@ -394,7 +436,7 @@ export const useAnticheatScreenCapture = ({
         fetchingUrlsRef.current = false;
       }
     },
-    [contestId]
+    [contestId, reportDegraded]
   );
 
   const flushPendingUploads = useCallback(async () => {
@@ -460,35 +502,43 @@ export const useAnticheatScreenCapture = ({
       uploadBusyRef.current = false;
       await refreshPendingCount();
     }
-  }, [contestId, enabled, ensureQueue, ensureUploadUrls, refreshPendingCount]);
+  }, [contestId, enabled, ensureQueue, ensureUploadUrls, refreshPendingCount, reportDegraded]);
 
   const captureAndQueue = useCallback(async () => {
-    if (!enabled || !contestId) return;
+    if (!enabledRef.current || !contestId) return;
 
     const queue = await ensureQueue();
-    const streamAvailable = await ensureScreenStream();
 
-    let blob: Blob;
-    if (!streamAvailable || !videoRef.current) {
-      // Stream dead — insert placeholder to keep timeline continuous
-      blob = await createPlaceholderFrame();
-    } else {
-      const video = videoRef.current;
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      if (!width || !height) return;
+    // Check existing stream first — avoid consuming handoff repeatedly
+    const liveTrack = streamRef.current?.getVideoTracks?.()?.[0];
+    const streamAlive = liveTrack && liveTrack.readyState === "live";
 
-      const canvas = canvasRef.current ?? document.createElement("canvas");
-      canvasRef.current = canvas;
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.drawImage(video, 0, 0, width, height);
-      blob = await encodeUnderBudget(canvas);
+    if (!streamAlive) {
+      // Try to recover missing stream; ensureScreenStream fails-closed on denial/non-monitor.
+      const acquired = await ensureScreenStream();
+      if (!acquired || !videoRef.current) {
+        // Stop capturing when stream is unavailable; backend lock should be triggered by screen_share_stopped.
+        return;
+      }
     }
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) return;
+
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    canvasRef.current = canvas;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, width, height);
+    const blob = await encodeUnderBudget(canvas);
 
     await queue.enqueue(blob);
     await refreshPendingCount();
@@ -499,7 +549,7 @@ export const useAnticheatScreenCapture = ({
     }
 
     await flushPendingUploads();
-  }, [contestId, enabled, ensureQueue, ensureScreenStream, flushPendingUploads, refreshPendingCount, reportDegraded]);
+  }, [contestId, ensureQueue, ensureScreenStream, flushPendingUploads, refreshPendingCount, reportDegraded]);
 
   // Keep enabledRef in sync for the unmount-only cleanup below
   useEffect(() => {

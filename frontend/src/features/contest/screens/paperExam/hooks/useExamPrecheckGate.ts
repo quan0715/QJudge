@@ -39,9 +39,6 @@ export const syncExamPrecheckGateByStatus = (
   if (!contestId) return;
   if (
     examStatus === "not_started" ||
-    examStatus === "paused" ||
-    examStatus === "locked" ||
-    examStatus === "locked_takeover" ||
     examStatus === "submitted"
   ) {
     clearExamPrecheckPassed(contestId);

@@ -1371,7 +1371,12 @@ class ExamViewSet(viewsets.GenericViewSet):
                 participant.exam_status = ExamStatus.LOCKED
                 participant.locked_at = timezone.now()
                 if force_lock:
-                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                    if event_type == "warning_timeout":
+                        participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                    elif event_type == "screen_share_stopped":
+                        participant.lock_reason = "Screen share stopped during exam session"
+                    else:
+                        participant.lock_reason = f"System lock (immediate): {event_type}"
                 else:
                     participant.lock_reason = f"System lock: {event_type}"
                 update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
