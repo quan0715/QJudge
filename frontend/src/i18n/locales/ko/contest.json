@@ -386,6 +386,11 @@
     "forbiddenAction": "금지된 동작이 감지되었습니다",
     "multipleDisplaysDetected": "다중 모니터가 감지되었습니다. 물리적으로 하나의 화면만 사용해 주세요.",
     "displayApiDegraded": "디스플레이 모니터링 API를 사용할 수 없습니다. 다중 모니터를 감지하지 못할 수 있습니다.",
+    "mouseLeftWindow": "마우스가 창 밖으로 벗어났습니다",
+    "forbiddenKeyboardShortcut": "키보드 단축키 사용은 금지되어 있습니다",
+    "popupBlocked": "팝업 창 열기는 금지되어 있습니다",
+    "pipBlocked": "화면 속 화면 사용은 금지되어 있습니다",
+    "printBlocked": "시험 내용 인쇄는 금지되어 있습니다",
     "windowBlur": "창을 떠났습니다",
     "exitedFullscreen": "전체 화면을 종료했습니다",
     "stayInExamPage": "시험 페이지에 머무르고 전체 화면 모드를 유지하세요.",
@@ -489,6 +494,7 @@
     "in_progress": "진행 중",
     "paused": "일시 정지",
     "locked": "잠금",
+    "locked_takeover": "인수 잠금",
     "submitted": "제출 완료"
   },
   "grading": {
@@ -546,6 +552,69 @@
     "filterGraded": "채점됨",
     "gradedBy": "{{name}} 채점",
     "maxScore": "만점"
+  },
+  "examVideoReview": {
+    "modalHeading": "감독 영상 검토",
+    "loadErrorTitle": "감독 영상 불러오기에 실패했습니다",
+    "empty": "표시할 감독 영상이 없습니다.",
+    "listTitle": "영상 목록",
+    "videoCount": "{{count}}건",
+    "bulkCompile": "전체 변환 ({{count}})",
+    "bulkCompiling": "전송 중...",
+    "headers": {
+      "student": "학생",
+      "updatedAt": "마지막 업데이트",
+      "duration": "길이",
+      "flag": "표시",
+      "jobStatus": "변환 상태"
+    },
+    "status": {
+      "pending": "변환 대기",
+      "running": "변환 중",
+      "failed": "변환 실패",
+      "ready": "재생 가능"
+    },
+    "flag": {
+      "suspected": "의심",
+      "normal": "정상"
+    },
+    "preview": {
+      "failed": "영상 변환에 실패했습니다. 나중에 다시 시도하거나 오류 메시지를 확인하세요.",
+      "running": "영상을 변환 중이며 완료되면 자동으로 표시됩니다.",
+      "pending": "이 영상은 아직 변환 대기 상태입니다. 수동으로 변환을 시작하면 여기에 표시됩니다.",
+      "selectVideo": "영상을 선택하세요"
+    },
+    "fields": {
+      "student": "학생",
+      "fileSize": "파일 크기",
+      "duration": "영상 길이",
+      "frameCount": "프레임 수",
+      "jobStatus": "변환 상태"
+    },
+    "suspicion": {
+      "suspected": "부정행위 의심",
+      "normal": "정상"
+    },
+    "transcodeErrorTitle": "변환 오류",
+    "note": "메모",
+    "actions": {
+      "download": "영상 다운로드",
+      "flag": "부정행위 의심 표시",
+      "unflag": "의심 표시 해제",
+      "compile": "변환 시작",
+      "submitting": "전송 중...",
+      "delete": "영상 삭제",
+      "deleting": "삭제 중..."
+    },
+    "confirmDelete": "{{name}}의 감독 영상 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "errors": {
+      "load": "영상 불러오기에 실패했습니다",
+      "playUrl": "재생 URL 불러오기에 실패했습니다",
+      "compile": "변환 시작에 실패했습니다",
+      "compileAll": "일괄 변환 시작에 실패했습니다",
+      "deleteBlocked": "영상이 현재 처리 중이어서 아직 삭제할 수 없습니다.",
+      "delete": "영상 삭제에 실패했습니다"
+    }
   },
   "participantsAdmin": {
     "title": "참가자 목록",
@@ -616,6 +685,7 @@
       "exit_fullscreen": "전체화면 종료",
       "forbidden_focus_event": "금지 포커스 이벤트",
       "forbidden_action": "금지 작업",
+      "mouse_leave": "마우스가 창 밖으로 벗어남",
       "multiple_displays": "다중 디스플레이 감지",
       "cheat_warning": "부정행위 경고",
       "lock": "잠금",

@@ -47,9 +47,6 @@ interface UseContestExamActionsParams {
   onError: ErrorHandler;
 }
 
-// Re-export fullscreen utilities for backward compatibility
-export { requestFullscreen, exitFullscreen };
-
 export const useContestExamActions = ({
   contest,
   contestId,
@@ -130,14 +127,15 @@ export const useContestExamActions = ({
       } else {
         await endExam(contest.id);
       }
-      clearExamCaptureSessionId(contest.id);
-      clearExamPrecheckPassed(contest.id);
-      await refreshContest();
-      markAnticheatTerminal(contest.id);
     } catch {
       syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
       onError(messages.endError);
+      return;
     }
+    clearExamCaptureSessionId(contest.id);
+    clearExamPrecheckPassed(contest.id);
+    await refreshContest();
+    markAnticheatTerminal(contest.id);
   }, [contest, messages.endError, onError, refreshContest]);
 
   const handleExit = useCallback(async () => {

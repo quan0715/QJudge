@@ -262,10 +262,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       );
     }
 
-    // Determine my status
-    const examStatus =
-      contest.examStatus ||
-      (contest.hasStarted ? "in_progress" : "not_started");
+    // Use backend examStatus as source of truth — no frontend fallback guessing
+    const examStatus = contest.examStatus || "not_started";
 
     // Contest must be published for exam actions
     if (contest.status !== "published") {

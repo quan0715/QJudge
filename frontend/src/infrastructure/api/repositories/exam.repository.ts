@@ -9,6 +9,7 @@ interface ExamSessionResponse {
   status: string;
   exam_status?: ExamStatusType;
   submit_reason?: string;
+  already_submitted?: boolean;
   error?: string;
 }
 
@@ -19,7 +20,6 @@ export interface ExamEventResponse {
   violation_count?: number;
   max_cheat_warnings?: number;
   exam_status?: ExamStatusType;
-  submitted?: boolean;
   submit_reason?: string;
   locked?: boolean;
   bypass?: boolean;
@@ -209,6 +209,7 @@ export const getAnticheatUrls = async (
 
 export interface ExamVideoDto {
   id: number;
+  job_id?: number;
   participant_user_id: number;
   participant_username: string;
   upload_session_id: string;
@@ -263,6 +264,38 @@ export const getExamVideoDownloadUrl = async (
   return requestJson<{ url: string; expires_in: number }>(
     httpClient.get(`/api/v1/contests/${contestId}/exam/videos/${videoId}/download-url/`),
     "Failed to fetch video download URL"
+  );
+};
+
+export const compileExamVideos = async (
+  contestId: string,
+  targets: Array<{ user_id: number; upload_session_id?: string }>,
+): Promise<{ queued: Array<{ user_id: number; upload_session_id: string }> }> => {
+  return requestJson<{ queued: Array<{ user_id: number; upload_session_id: string }> }>(
+    httpClient.post(
+      `/api/v1/contests/${contestId}/exam/videos/compile/`,
+      { targets },
+    ),
+    "Failed to trigger video compilation"
+  );
+};
+
+export const deleteExamVideos = async (
+  contestId: string,
+  targets: Array<{ user_id: number; upload_session_id?: string }>,
+): Promise<{
+  deleted: Array<{ user_id: number; upload_session_id: string }>;
+  blocked: Array<{ user_id: number; upload_session_id: string; reason: string }>;
+}> => {
+  return requestJson<{
+    deleted: Array<{ user_id: number; upload_session_id: string }>;
+    blocked: Array<{ user_id: number; upload_session_id: string; reason: string }>;
+  }>(
+    httpClient.post(
+      `/api/v1/contests/${contestId}/exam/videos/delete/`,
+      { targets },
+    ),
+    "Failed to delete exam videos"
   );
 };
 

@@ -5,10 +5,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from django.db import transaction
 from django.utils import timezone
 
-from apps.contests.models import ContestActivity, ExamStatus
+from apps.contests.models import (
+    ContestActivity,
+    ExamEvidenceJob,
+    EvidenceJobStatus,
+    ExamStatus,
+)
 
 from .anti_cheat_session import clear_active_session
 
@@ -31,6 +35,19 @@ def enqueue_compile_video(participant_id: int, upload_session_id: str | None) ->
     )
 
 
+def ensure_evidence_job(
+    participant: "ContestParticipant", upload_session_id: str | None
+) -> ExamEvidenceJob:
+    session_id = normalize_upload_session_id(upload_session_id)
+    job, _ = ExamEvidenceJob.objects.get_or_create(
+        contest=participant.contest,
+        participant=participant,
+        upload_session_id=session_id,
+        defaults={"status": EvidenceJobStatus.PENDING},
+    )
+    return job
+
+
 def finalize_submission(
     participant: "ContestParticipant",
     *,
@@ -39,11 +56,11 @@ def finalize_submission(
     activity_user: "User | None" = None,
     activity_action_type: str | None = None,
     activity_details: str = "",
-    enqueue_compile: bool = True,
 ) -> str:
     """
     Finalize participant submission in a single idempotent flow.
-    Returns normalized upload_session_id used for compile task.
+    Always records a pending evidence job for monitored exams.
+    Video compilation is triggered only by the explicit manual compile endpoint.
     """
     session_id = normalize_upload_session_id(upload_session_id)
 
@@ -63,10 +80,8 @@ def finalize_submission(
 
     clear_active_session(participant.contest_id, participant.user_id)
 
-    if enqueue_compile:
-        transaction.on_commit(
-            lambda: enqueue_compile_video(participant.id, session_id)
-        )
+    if participant.contest.cheat_detection_enabled:
+        ensure_evidence_job(participant, session_id)
 
     if activity_user and activity_action_type:
         ContestActivity.objects.create(

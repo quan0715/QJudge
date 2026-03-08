@@ -3,15 +3,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useExamState } from "./useExamState";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
+import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn(),
+}));
+
+vi.mock("@/features/contest/screens/paperExam/hooks/examCaptureSession", () => ({
+  getExamCaptureSessionId: vi.fn(),
 }));
 
 describe("useExamState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAnticheatOrchestrator("123");
+    vi.mocked(getExamCaptureSessionId).mockReturnValue("session-123");
   });
 
   afterEach(() => {
@@ -51,7 +57,12 @@ describe("useExamState", () => {
     expect(recordExamEvent).toHaveBeenCalledWith(
       "123",
       "window_blur",
-      expect.objectContaining({ reason: "Left window" })
+      expect.objectContaining({
+        reason: "Left window",
+        metadata: expect.objectContaining({
+          upload_session_id: "session-123",
+        }),
+      })
     );
     expect(result.current.showWarning).toBe(true);
     expect(result.current.warningEventType).toBe("window_blur");
@@ -174,6 +185,9 @@ describe("useExamState", () => {
       "warning_timeout",
       expect.objectContaining({
         reason: "Warning timeout: student did not acknowledge warning within 30 seconds",
+        metadata: expect.objectContaining({
+          upload_session_id: "session-123",
+        }),
       })
     );
     expect(result.current.lastApiResponse?.locked).toBe(true);
@@ -229,7 +243,6 @@ describe("useExamState", () => {
       violation_count: 4,
       max_cheat_warnings: 3,
       bypass: false,
-      submitted: true,
       exam_status: "submitted",
     } as any);
 

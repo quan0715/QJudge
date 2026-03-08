@@ -16,6 +16,8 @@ from django.contrib.auth import get_user_model
 from apps.contests.models import (
     Contest,
     ContestParticipant,
+    ExamEvidenceJob,
+    ExamEvidenceVideo,
     ExamEvent,
     ExamStatus,
     ContestActivity,
@@ -45,6 +47,12 @@ class ExamAntiCheatTests(APITestCase):
             password="pass",
             role="student",
         )
+        self.co_owner = User.objects.create_user(
+            username="coowner",
+            email="coowner@test.com",
+            password="pass",
+            role="teacher",
+        )
 
         now = timezone.now()
         self.contest = Contest.objects.create(
@@ -58,6 +66,7 @@ class ExamAntiCheatTests(APITestCase):
             max_cheat_warnings=3,
             allow_auto_unlock=False,
         )
+        self.contest.admins.add(self.co_owner)
 
         self.participant = ContestParticipant.objects.create(
             contest=self.contest,
@@ -101,7 +110,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
         self.assertEqual(self.participant.violation_count, 3)
 
-    def test_paused_violation_at_threshold_auto_submits(self):
+    def test_paused_violation_at_threshold_creates_pending_evidence_job(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.PAUSED
         self.participant.violation_count = self.contest.max_cheat_warnings - 1
@@ -118,14 +127,21 @@ class ExamAntiCheatTests(APITestCase):
                     format="json",
                 )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data["submitted"])
-        mock_compile.assert_called_once_with(self.participant.id, "session-paused-1")
+        self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
+        mock_compile.assert_not_called()
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
         self.assertIn("Auto-submitted", self.participant.submit_reason)
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-paused-1",
+            ).exists()
+        )
 
-    def test_locked_violation_auto_submits(self):
+    def test_locked_violation_auto_submits_and_creates_pending_job(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.LOCKED
         self.participant.violation_count = self.contest.max_cheat_warnings
@@ -136,12 +152,19 @@ class ExamAntiCheatTests(APITestCase):
             with self.captureOnCommitCallbacks(execute=True):
                 resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data["submitted"])
-        mock_compile.assert_called_once_with(self.participant.id, "default")
+        self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
+        mock_compile.assert_not_called()
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
         self.assertIn("Auto-submitted", self.participant.submit_reason)
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="default",
+            ).exists()
+        )
 
     # ------------------------------------------------------------------
     # 3. warning_timeout forces lock regardless of count
@@ -252,7 +275,7 @@ class ExamAntiCheatTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data.get("decision"), "terminal_guard")
-        self.assertTrue(resp.data["submitted"])
+        self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
@@ -397,3 +420,167 @@ class ExamAntiCheatTests(APITestCase):
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
+
+    def test_videos_lists_pending_job_for_submitted_participant(self):
+        self.client.force_authenticate(user=self.student)
+        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
+        response = self.client.post(
+            end_url,
+            {"upload_session_id": "session-review-1"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.client.force_authenticate(user=self.teacher)
+        videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])
+        response = self.client.get(videos_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["has_video"], False)
+        self.assertEqual(response.data[0]["upload_session_id"], "session-review-1")
+        self.assertEqual(response.data[0]["job_status"], "pending")
+
+    def test_end_exam_never_auto_enqueues_video_compile(self):
+        self.client.force_authenticate(user=self.student)
+        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
+
+        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
+            response = self.client.post(
+                end_url,
+                {"upload_session_id": "session-manual-only-1"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_compile.assert_not_called()
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-manual-only-1",
+            ).exists()
+        )
+
+    def test_videos_get_does_not_create_missing_jobs(self):
+        self.client.force_authenticate(user=self.teacher)
+        videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])
+
+        response = self.client.get(videos_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+        self.assertEqual(ExamEvidenceJob.objects.count(), 0)
+
+    def test_video_compile_uses_requested_session(self):
+        ExamEvidenceJob.objects.create(
+            contest=self.contest,
+            participant=self.participant,
+            upload_session_id="session-manual-1",
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        compile_url = reverse("contests:contest-exam-video-compile", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.enqueue_compile_video") as mock_compile:
+            response = self.client.post(
+                compile_url,
+                {
+                    "targets": [
+                        {
+                            "user_id": self.student.id,
+                            "upload_session_id": "session-manual-1",
+                        }
+                    ]
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_compile.assert_called_once_with(self.participant.id, "session-manual-1")
+
+    def test_owner_can_delete_exam_video_and_pending_job(self):
+        job = ExamEvidenceJob.objects.create(
+            contest=self.contest,
+            participant=self.participant,
+            upload_session_id="session-delete-1",
+        )
+        video = ExamEvidenceVideo.objects.create(
+            contest=self.contest,
+            participant=self.participant,
+            upload_session_id="session-delete-1",
+            bucket="anticheat-videos",
+            object_key="contest_1/user_1/session_delete_1.mp4",
+            duration_seconds=10,
+            frame_count=10,
+            size_bytes=1234,
+        )
+
+        paginator = type(
+            "Paginator",
+            (),
+            {
+                "paginate": lambda self, **kwargs: [
+                    {"Contents": [{"Key": "contest_1/user_1/session_session-delete-1/frame_000001.webp"}]}
+                ]
+            },
+        )()
+
+        self.client.force_authenticate(user=self.teacher)
+        delete_url = reverse("contests:contest-exam-video-delete", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.get_s3_client") as mock_get_client:
+            mock_client = mock_get_client.return_value
+            mock_client.get_paginator.return_value = paginator
+            response = self.client.post(
+                delete_url,
+                {
+                    "targets": [
+                        {
+                            "user_id": self.student.id,
+                            "upload_session_id": "session-delete-1",
+                        }
+                    ]
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["deleted"]), 1)
+        self.assertEqual(response.data["blocked"], [])
+        mock_client.delete_object.assert_called_once_with(
+            Bucket=video.bucket,
+            Key=video.object_key,
+        )
+        mock_client.delete_objects.assert_called()
+        self.assertFalse(ExamEvidenceJob.objects.filter(id=job.id).exists())
+        self.assertFalse(ExamEvidenceVideo.objects.filter(id=video.id).exists())
+
+    def test_co_owner_cannot_delete_exam_video(self):
+        ExamEvidenceJob.objects.create(
+            contest=self.contest,
+            participant=self.participant,
+            upload_session_id="session-delete-blocked",
+        )
+
+        self.client.force_authenticate(user=self.co_owner)
+        delete_url = reverse("contests:contest-exam-video-delete", args=[self.contest.id])
+        response = self.client.post(
+            delete_url,
+            {
+                "targets": [
+                    {
+                        "user_id": self.student.id,
+                        "upload_session_id": "session-delete-blocked",
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-delete-blocked",
+            ).exists()
+        )

@@ -18,6 +18,7 @@ import {
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
@@ -28,6 +29,7 @@ import styles from "./grading/ContestExamGrading.module.scss";
 const ContestExamGradingScreen: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { contest, refreshContest } = useContest();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<0 | 1>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<GradingFilter>("all");
@@ -38,6 +40,11 @@ const ContestExamGradingScreen: React.FC = () => {
   const { t } = useTranslation("contest");
 
   const published = !!contest?.resultsPublished;
+  const canDeleteExamVideos = useMemo(() => {
+    if (!contest || !user) return false;
+    if (contest.permissions?.canDeleteContest) return true;
+    return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
+  }, [contest, user]);
 
   const handleTogglePublish = async () => {
     if (!contestId) return;
@@ -235,6 +242,7 @@ const ContestExamGradingScreen: React.FC = () => {
         contestId={contestId}
         open={videoModalOpen}
         onClose={() => setVideoModalOpen(false)}
+        canDelete={canDeleteExamVideos}
       />
     </div>
   );

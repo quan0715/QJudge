@@ -18,9 +18,8 @@ from .models import (
     ExamEvidenceVideo,
 )
 from django.db.models import Sum
-from .permissions import get_user_role_in_contest, get_contest_permissions
+from .permissions import can_manage_contest, get_contest_permissions, get_user_role_in_contest
 from apps.users.serializers import UserSerializer
-from apps.problems.serializers import ProblemListSerializer
 
 
 # ============================================================================
@@ -48,7 +47,6 @@ class ContestListSerializer(serializers.ModelSerializer):
             'owner_username',
             'participant_count',
             'is_registered',
-            'created_at',
             'created_at',
         ]
     
@@ -88,6 +86,11 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     is_exam_questions_frozen = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
 
+    # SSoT computed flags — frontend should consume these instead of deriving from examStatus
+    is_exam_monitored = serializers.SerializerMethodField()
+    requires_fullscreen = serializers.SerializerMethodField()
+    can_submit_exam = serializers.SerializerMethodField()
+
     rule = serializers.CharField(source='rules', read_only=True)
     
     class Meta:
@@ -106,8 +109,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'cheat_detection_enabled',
             'scoreboard_visible_during_contest',
             'owner_username',
-            'created_at',
-            'updated_at',
             'created_at',
             'updated_at',
             # Computed fields
@@ -129,60 +130,62 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'allow_auto_unlock',
             'auto_unlock_minutes',
             'anonymous_mode_enabled',
-            'my_nickname',
             'participant_count',
             'admins',
             'results_published',
             'is_exam_questions_frozen',
             'exam_questions_count',
+            'is_exam_monitored',
+            'requires_fullscreen',
+            'can_submit_exam',
         ]
+
+    def _get_request_user(self):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return None
+        return user
+
+    def _get_current_registration(self, obj):
+        user = self._get_request_user()
+        if user is None:
+            return None
+
+        cache = self.context.setdefault('_contest_registration_cache', {})
+        cache_key = (obj.pk, user.pk)
+        if cache_key not in cache:
+            cache[cache_key] = obj.registrations.filter(user=user).first()
+        return cache[cache_key]
 
     def get_my_nickname(self, obj):
         """Get nickname for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.nickname if registration else None
 
     def get_lock_reason(self, obj):
         """Get lock reason for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.lock_reason if registration else None
 
     def get_locked_at(self, obj):
         """Get locked_at timestamp for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.locked_at if registration else None
 
     def get_exam_status(self, obj):
         """Get exam status for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.exam_status if registration else None
 
     def get_submit_reason(self, obj):
         """Get submit reason for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.submit_reason if registration else None
     
     def get_auto_unlock_at(self, obj):
         """Calculate auto unlock time for current user if locked."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         if not registration or registration.exam_status != ExamStatus.LOCKED:
             return None
         if not registration.locked_at or not obj.allow_auto_unlock:
@@ -193,47 +196,35 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
+        user = self._get_request_user()
+        if user is None:
             return 'student'
-        return get_user_role_in_contest(request.user, obj)
+        return get_user_role_in_contest(user, obj)
     
     def get_permissions(self, obj):
         """Get all permissions for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
+        user = self._get_request_user()
+        if user is None:
             return get_contest_permissions(None, obj)
-        return get_contest_permissions(request.user, obj)
+        return get_contest_permissions(user, obj)
     
     def get_has_joined(self, obj):
         """Check if current user has registered."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        return obj.registrations.filter(user=request.user).exists()
+        return self._get_current_registration(obj) is not None
     
     def get_has_started(self, obj):
         """Check if current user has started the exam."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return bool(registration and registration.started_at)
 
     def get_started_at(self, obj):
         """Get start time for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.started_at if registration else None
 
     def get_left_at(self, obj):
         """Get left time for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        registration = obj.registrations.filter(user=request.user).first()
+        registration = self._get_current_registration(obj)
         return registration.left_at if registration else None
 
     def get_participant_count(self, obj):
@@ -253,6 +244,27 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         """紙筆題數量"""
         return obj.exam_questions.count()
 
+    # -- SSoT computed flags --
+    MONITORED_STATUSES = {"in_progress", "paused", "locked", "locked_takeover"}
+    SUBMITTABLE_STATUSES = {"in_progress", "paused", "locked", "locked_takeover"}
+    FULLSCREEN_STATUSES = {"in_progress", "locked"}
+
+    def get_is_exam_monitored(self, obj):
+        if not obj.cheat_detection_enabled:
+            return False
+        reg = self._get_current_registration(obj)
+        return bool(reg and reg.exam_status in self.MONITORED_STATUSES)
+
+    def get_requires_fullscreen(self, obj):
+        if not obj.cheat_detection_enabled:
+            return False
+        reg = self._get_current_registration(obj)
+        return bool(reg and reg.exam_status in self.FULLSCREEN_STATUSES)
+
+    def get_can_submit_exam(self, obj):
+        reg = self._get_current_registration(obj)
+        return bool(reg and reg.exam_status in self.SUBMITTABLE_STATUSES)
+
     def get_problems(self, obj):
         """
         Get contest problems with labels.
@@ -262,12 +274,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         
         Non-registered users NEVER see problem structure.
         """
-        request = self.context.get('request')
-        user = request.user if request else None
+        user = self._get_request_user()
 
-        # Check if user is owner, admin, or co-admin using contest role
-        role = get_user_role_in_contest(user, obj) if user and user.is_authenticated else 'student'
-        is_privileged = role in ('admin', 'owner', 'teacher')
+        is_privileged = bool(user and can_manage_contest(user, obj))
 
         # Privileged users can always see problems
         if is_privileged:
@@ -275,8 +284,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
 
         # Check if user is a registered participant
-        is_participant = user and user.is_authenticated and \
-            ContestParticipant.objects.filter(contest=obj, user=user).exists()
+        is_participant = self._get_current_registration(obj) is not None
 
         # Non-registered users cannot see problems at all
         if not is_participant:

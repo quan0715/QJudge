@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useContestExamActions } from "./useContestExamActions";
+import * as examUseCases from "@/core/usecases/exam";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   startExam: vi.fn(),
@@ -49,6 +50,10 @@ describe("useContestExamActions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     window.sessionStorage.clear();
+    vi.spyOn(examUseCases, "leaveExamUseCase").mockResolvedValue({
+      success: true,
+      navigateTo: "/contests",
+    });
     Object.defineProperty(document.documentElement, "requestFullscreen", {
       value: vi.fn().mockResolvedValue(undefined),
       configurable: true,
@@ -130,7 +135,7 @@ describe("useContestExamActions", () => {
   });
 
   it("ends exam before exit and exits fullscreen", async () => {
-    const contest = { ...baseContest, examStatus: "in_progress" };
+    const contest = { ...baseContest, examStatus: "in_progress", isExamMonitored: true };
     vi.mocked(endExam).mockResolvedValue(undefined as void);
     Object.defineProperty(document, "fullscreenElement", {
       value: document.documentElement,
@@ -154,8 +159,10 @@ describe("useContestExamActions", () => {
       await result.current.handleExit();
     });
 
-    expect(endExam).toHaveBeenCalledWith(contest.id);
-    expect(document.exitFullscreen).toHaveBeenCalled();
+    expect(examUseCases.leaveExamUseCase).toHaveBeenCalledWith({
+      contestId: contest.id,
+      shouldEndExam: true,
+    });
     expect(navigate).toHaveBeenCalledWith("/contests");
   });
 });

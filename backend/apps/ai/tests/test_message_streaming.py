@@ -1,7 +1,5 @@
 """Tests for AI message streaming functionality."""
-
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -58,8 +56,11 @@ class MessageStreamingTestCase(TestCase):
 
     def test_send_message_stream_to_own_session(self):
         self.client.force_authenticate(user=self.user)
-        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
-            "apps.ai.views.httpx.stream"
+        with patch(
+            "apps.ai.services.session_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch(
+            "apps.ai.services.session_runtime.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
                 self.session.session_id
@@ -85,8 +86,11 @@ class MessageStreamingTestCase(TestCase):
     def test_message_saved_after_streaming(self):
         self.client.force_authenticate(user=self.user)
 
-        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
-            "apps.ai.views.httpx.stream"
+        with patch(
+            "apps.ai.services.session_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch(
+            "apps.ai.services.session_runtime.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
                 self.session.session_id
@@ -116,8 +120,11 @@ class MessageStreamingTestCase(TestCase):
         backend_session_id = "66666666-6666-6666-6666-666666666666"
         ai_thread_id = "77777777-7777-7777-7777-777777777777"
 
-        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
-            "apps.ai.views.httpx.stream"
+        with patch(
+            "apps.ai.services.session_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch(
+            "apps.ai.services.session_runtime.httpx.stream"
         ) as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
                 ai_thread_id
@@ -137,8 +144,11 @@ class MessageStreamingTestCase(TestCase):
     def test_ai_service_error_handling(self):
         self.client.force_authenticate(user=self.user)
 
-        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), patch(
-            "apps.ai.views.httpx.stream"
+        with patch(
+            "apps.ai.services.session_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch(
+            "apps.ai.services.session_runtime.httpx.stream"
         ) as mock_stream:
             mock_response = MagicMock()
             mock_response.status_code = 500
@@ -173,8 +183,10 @@ class MessageStreamingTestCase(TestCase):
     def test_api_key_override_passed_to_ai_service(self):
         """Verify api_key_override is included in the ai-service payload."""
         self.client.force_authenticate(user=self.user)
-        with patch("apps.ai.views.build_ai_service_headers", return_value={"X-AI-Internal-Token": "test"}), \
-             patch("apps.ai.views.httpx.stream") as mock_stream:
+        with patch(
+            "apps.ai.services.session_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.session_runtime.httpx.stream") as mock_stream:
             mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
                 self.session.session_id
             )
@@ -191,6 +203,38 @@ class MessageStreamingTestCase(TestCase):
             payload = call_args.kwargs.get("json") or call_args[1].get("json")
             self.assertIn("api_key_override", payload)
             self.assertEqual(payload["api_key_override"], FAKE_KEY)
+
+    def test_submit_answer_returns_ai_service_payload(self):
+        self.client.force_authenticate(user=self.user)
+        mock_client = MagicMock()
+        mock_client.submit_user_answer = AsyncMock(
+            return_value={"ok": True, "request_id": "req-1"}
+        )
+
+        with patch(
+            "apps.ai.services.session_runtime.get_ai_client",
+            return_value=mock_client,
+        ):
+            response = self.client.post(
+                f"/api/v1/ai/sessions/{self.session.session_id}/submit_answer/",
+                {"request_id": "req-1", "answers": {"Question": "A"}},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"ok": True, "request_id": "req-1"})
+
+    def test_submit_answer_requires_non_empty_dict(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            f"/api/v1/ai/sessions/{self.session.session_id}/submit_answer/",
+            {"request_id": "req-1", "answers": []},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"], "answers must be a non-empty dictionary")
 
 
 class MessagePersistenceTestCase(TestCase):

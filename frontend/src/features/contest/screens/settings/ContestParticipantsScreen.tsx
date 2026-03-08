@@ -42,7 +42,9 @@ import {
   downloadParticipantReport,
 } from "@/infrastructure/api/repositories";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContestAdmin } from "@/features/contest/contexts";
+import { useContest } from "@/features/contest/contexts/ContestContext";
 import type {
   ContestParticipant,
   ExamStatusType,
@@ -64,6 +66,8 @@ const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
   const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { contest } = useContest();
+  const { user } = useAuth();
 
   const [notification, setNotification] = useState<{
     kind: "success" | "error";
@@ -110,6 +114,12 @@ const ContestParticipantsScreen = () => {
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const canDeleteExamVideos = useMemo(() => {
+    if (!contest || !user) return false;
+    if (contest.permissions?.canDeleteContest) return true;
+    return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
+  }, [contest, user]);
 
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
@@ -705,6 +715,7 @@ const ContestParticipantsScreen = () => {
           open={videoModalOpen}
           onClose={() => setVideoModalOpen(false)}
           userIdFilter={videoTargetUserId}
+          canDelete={canDeleteExamVideos}
         />
       </div>
       <ConfirmModal {...modalProps} />

@@ -503,6 +503,69 @@
     "gradedBy": "{{name}} 批改",
     "maxScore": "滿分"
   },
+  "examVideoReview": {
+    "modalHeading": "防弊影片檢視",
+    "loadErrorTitle": "載入監控影片失敗",
+    "empty": "目前沒有可顯示的監控影片。",
+    "listTitle": "影片清單",
+    "videoCount": "{{count}} 筆",
+    "bulkCompile": "全部轉檔 ({{count}})",
+    "bulkCompiling": "送出中...",
+    "headers": {
+      "student": "學生",
+      "updatedAt": "最後更新",
+      "duration": "長度",
+      "flag": "標記",
+      "jobStatus": "轉檔狀態"
+    },
+    "status": {
+      "pending": "待轉檔",
+      "running": "轉檔中",
+      "failed": "轉檔失敗",
+      "ready": "可播放"
+    },
+    "flag": {
+      "suspected": "疑似",
+      "normal": "正常"
+    },
+    "preview": {
+      "failed": "影片轉檔失敗，請稍後重試或查看錯誤訊息。",
+      "running": "影片轉檔中，完成後會自動顯示。",
+      "pending": "影片目前為待轉檔，手動送出轉檔後會顯示於此。",
+      "selectVideo": "請選擇影片"
+    },
+    "fields": {
+      "student": "學生",
+      "fileSize": "檔案大小",
+      "duration": "影片長度",
+      "frameCount": "幀數",
+      "jobStatus": "轉檔狀態"
+    },
+    "suspicion": {
+      "suspected": "疑似作弊",
+      "normal": "正常"
+    },
+    "transcodeErrorTitle": "轉檔錯誤",
+    "note": "備註",
+    "actions": {
+      "download": "下載影片",
+      "flag": "標記疑似作弊",
+      "unflag": "取消疑似標記",
+      "compile": "開始轉檔",
+      "submitting": "送出中...",
+      "delete": "刪除影片",
+      "deleting": "刪除中..."
+    },
+    "confirmDelete": "確定要刪除 {{name}} 的監控影片資料嗎？此操作不可復原。",
+    "errors": {
+      "load": "載入影片失敗",
+      "playUrl": "載入播放連結失敗",
+      "compile": "觸發轉檔失敗",
+      "compileAll": "觸發批次轉檔失敗",
+      "deleteBlocked": "影片正在處理中，暫時無法刪除",
+      "delete": "刪除影片失敗"
+    }
+  },
   "participantsAdmin": {
     "title": "參賽者列表",
     "allStatus": "全部狀態",

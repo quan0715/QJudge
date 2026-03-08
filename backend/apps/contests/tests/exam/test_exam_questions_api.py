@@ -21,6 +21,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
 from apps.contests import views as contest_views
+from apps.contests.views import exam_question as exam_question_view_module
 
 
 @pytest.fixture
@@ -585,7 +586,7 @@ class TestExportPaper:
             assert kwargs["mode"] == "question"
             return HttpResponse(b"%PDF-1.4", content_type="application/pdf")
 
-        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _fake_builder)
+        monkeypatch.setattr(exam_question_view_module, "build_paper_exam_sheet_response", _fake_builder)
         contest.contest_type = "paper_exam"
         contest.save(update_fields=["contest_type"])
 
@@ -601,7 +602,7 @@ class TestExportPaper:
             assert kwargs["language"] == "en"
             return HttpResponse(b"%PDF-1.4", content_type="application/pdf")
 
-        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _fake_builder)
+        monkeypatch.setattr(exam_question_view_module, "build_paper_exam_sheet_response", _fake_builder)
         contest.contest_type = "paper_exam"
         contest.save(update_fields=["contest_type"])
 
@@ -629,9 +630,10 @@ class TestExportPaper:
         api_client.force_authenticate(user=teacher)
 
         def _raise_validation(**kwargs):
-            raise contest_views.ExportValidationError("invalid mode")
+            from apps.contests.services.export_service import ExportValidationError
+            raise ExportValidationError("invalid mode")
 
-        monkeypatch.setattr(contest_views, "build_paper_exam_sheet_response", _raise_validation)
+        monkeypatch.setattr(exam_question_view_module, "build_paper_exam_sheet_response", _raise_validation)
         contest.contest_type = "paper_exam"
         contest.save(update_fields=["contest_type"])
 

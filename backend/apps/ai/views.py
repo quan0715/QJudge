@@ -1,11 +1,8 @@
 """AI Chat API views."""
 
-import json
 import logging
-import httpx
 
 from django.db import transaction
-from django.http import StreamingHttpResponse
 from rest_framework import status, viewsets, generics, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -17,14 +14,14 @@ from django.utils import timezone
 from .models import AIMessage, AIPendingAction, AISession
 from .permissions import IsInternalService
 from .services.pending_actions import execute_create_action, execute_patch_action
-from .services.stream_proxy import (
-    ai_service_base_url,
-    build_ai_service_headers,
-    complete_execution_log,
-    create_execution_log,
+from .services.session_runtime import (
+    ChatStreamRuntime,
+    ResumeStreamRuntime,
+    build_sse_response,
+    get_active_user_api_key,
+    submit_pending_answer,
 )
 from .serializers import (
-    AIMessageSerializer,
     AISessionListSerializer,
     AISessionSerializer,
     CodeRunRequestSerializer,
@@ -122,14 +119,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
             )
 
         # 取得使用者的 API Key（若有設定）
-        user_api_key = None
-        try:
-            user_api_key_obj = request.user.api_key
-            if user_api_key_obj.is_active:
-                user_api_key = user_api_key_obj.get_key()
-        except Exception:
-            pass  # 使用者未設定 API Key，ai-service 會 fallback 到 env var
-
+        user_api_key = get_active_user_api_key(request.user)
         if not user_api_key:
             return Response(
                 {"error": "請先在設定頁面設定您的 API Key"},
@@ -159,8 +149,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data["content"]
         skill = serializer.validated_data.get("skill")
-        # 前端可能傳送已保存的 claude_session_id
-        frontend_session_id = None
 
         if skill and not (
             request.user.is_staff
@@ -171,286 +159,16 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Check if this is the first message (for auto-naming)
-        is_first_message = session is None or session.messages.count() == 0
-
-        # Save user message (only if session exists)
-        # For new sessions, we'll save the message after session is created in generate_stream()
-        user_message_id = None
-        if session:
-            msg = AIMessage.objects.create(
-                session=session,
-                role=AIMessage.Role.USER,
-                content=content,
-                message_type=AIMessage.MessageType.TEXT,
-            )
-            user_message_id = msg.id
-
-        # Create execution log for streaming (only if session exists)
-        log = None
-        if session:
-            log = create_execution_log(
-                user=request.user,
-                session=session,
-                user_message=content,
-            )
-
-        def generate_stream():
-            """Generate SSE stream by proxying to ai-service.
-
-            新設計：
-            1. 如果前端傳送了 session_id，優先使用前端傳送的 session_id
-            2. 如果 session 存在（資料庫查詢到），使用 session.session_id
-            3. 否則 session_id = None，ai-service 會初始化新會話
-
-            元數據收集：
-            - 收集所有 thinking、tool_start/result、usage 事件
-            - 保存到 AIMessage.metadata 和 AIExecutionLog
-            """
-            nonlocal session  # 允許修改外部的 session 變量
-
-            full_response = ""
-            stream_error = None
-            received_session_id = None
-
-            # 元數據收集變量 (v2 events)
-            all_tools_executed = []
-            collected_usage = None
-            current_tool = None
-            collected_thinking = ""
-
-            # 1. 決定使用哪個 session_id 與 ai-service 通信
-            # 優先順序：前端傳送的 session_id > 現存會話的 session_id > None（新會話）
-            ai_service_session_id = None
-            if frontend_session_id:  # 前端傳送的 session_id（已保存的 claude_session_id）
-                ai_service_session_id = frontend_session_id
-                logger.debug(f"Using frontend session_id {ai_service_session_id[:8]}... for user {request.user.id}")
-            elif session:  # 現存會話
-                ai_service_session_id = session.session_id
-                logger.debug(f"Resuming existing session {ai_service_session_id[:8]}... for user {request.user.id}")
-            else:  # 新會話
-                logger.debug(f"Creating new session for user {request.user.id}")
-
-            # 2. 構建 ai-service 請求 (v2 ChatRequest schema)
-            ai_service_payload = {
-                "content": content,
-                "conversation": [],
-            }
-
-            # 傳遞使用者 API Key 給 ai-service
-            if user_api_key:
-                ai_service_payload["api_key_override"] = user_api_key
-
-            # v2: model_id from serializer
-            model_id = serializer.validated_data.get("model_id")
-            if model_id:
-                ai_service_payload["model_id"] = model_id
-
-            # v2: thread_id for DeepAgent resume
-            if ai_service_session_id:
-                ai_service_payload["thread_id"] = ai_service_session_id
-
-            if skill:
-                ai_service_payload["skill"] = skill
-
-            # v2: session_id and user_id for write tool binding
-            if session:
-                ai_service_payload["session_id"] = session.session_id
-            elif ai_service_session_id:
-                ai_service_payload["session_id"] = ai_service_session_id
-            ai_service_payload["user_id"] = request.user.id
-
-            try:
-                try:
-                    ai_headers = build_ai_service_headers()
-                except RuntimeError as exc:
-                    stream_error = str(exc)
-                    logger.error(stream_error)
-                    yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
-                    return
-
-                # 3. 發送初始化事件（告知前端這個請求使用的 backend_session_id）
-                init_event = {
-                    "type": "init",
-                    "backend_session_id": pk,  # 前端用於識別的 ID
-                    "is_new_session": session is None,
-                }
-                yield f"data: {json.dumps(init_event)}\n\n"
-
-                # 4. 代理請求到 ai-service
-                with httpx.stream(
-                    "POST",
-                    f"{ai_service_base_url()}/api/chat/stream",
-                    json=ai_service_payload,
-                    headers=ai_headers,
-                    timeout=120.0
-                ) as response:
-                    if response.status_code != 200:
-                        response.read()
-                        error_text = response.text
-                        logger.error(f"ai-service error: {response.status_code} - {error_text}")
-                        stream_error = f"ai-service error: {response.status_code}"
-                        yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
-                        return
-
-                    # 5. 轉發 SSE 流並完整收集元數據 (v2 events)
-                    for line in response.iter_lines():
-                        if line.strip():
-                            if line.startswith("data: "):
-                                try:
-                                    event = json.loads(line[6:])
-                                    event_type = event.get("type")
-
-                                    # ===== v2 元數據收集 =====
-
-                                    # run_started: 捕獲 thread_id 作為 session_id
-                                    if event_type == "run_started" and event.get("thread_id"):
-                                        received_session_id = event["thread_id"]
-                                        logger.info(f"run_started: thread_id={received_session_id[:8]}...")
-
-                                    # thinking_delta: 累積思考內容
-                                    if event_type == "thinking_delta" and event.get("content"):
-                                        collected_thinking += event["content"]
-
-                                    # agent_message_delta: 累積回應內容
-                                    if event_type == "agent_message_delta" and event.get("content"):
-                                        full_response += event["content"]
-
-                                    # tool_call_started: 記錄工具調用
-                                    if event_type == "tool_call_started":
-                                        current_tool = {
-                                            "tool_name": event.get("tool_name"),
-                                            "tool_call_id": event.get("tool_call_id"),
-                                            "input": event.get("input_data"),
-                                        }
-                                        logger.debug(f"Tool start: {current_tool.get('tool_name')}")
-
-                                    # tool_call_finished: 記錄工具結果
-                                    if event_type == "tool_call_finished" and current_tool:
-                                        current_tool["result"] = event.get("result")
-                                        current_tool["is_error"] = event.get("is_error", False)
-                                        all_tools_executed.append(current_tool)
-                                        logger.debug(
-                                            f"Tool result: {current_tool.get('tool_name')} "
-                                            f"({'error' if current_tool.get('is_error') else 'success'})"
-                                        )
-                                        current_tool = None
-
-                                    # usage_report: 收集 token 用量
-                                    if event_type == "usage_report":
-                                        collected_usage = {
-                                            "input_tokens": event.get("input_tokens"),
-                                            "output_tokens": event.get("output_tokens"),
-                                            "cost_cents": event.get("cost_cents"),
-                                            "model_used": event.get("model_used"),
-                                        }
-                                        logger.debug(f"Usage: {collected_usage}")
-
-                                    # ===== 元數據收集結束 =====
-
-                                    # 轉發事件給前端
-                                    yield f"{line}\n\n"
-                                except json.JSONDecodeError:
-                                    logger.debug(f"Failed to parse SSE line: {line}")
-                                    yield f"{line}\n\n"
-                            else:
-                                yield f"{line}\n"
-                        else:
-                            yield "\n"
-
-            except Exception as e:
-                stream_error = str(e)
-                logger.exception(f"Error proxying to ai-service: {e}")
-                yield f"data: {json.dumps({'type': 'error', 'content': stream_error})}\n\n"
-
-            finally:
-                # 6. 保存/創建 AISession
-                if received_session_id:
-                    if not session:
-                        # 新會話：使用 ai-service 返回的 session_id 作為 pk 創建 AISession
-                        session = AISession.objects.create(
-                            session_id=received_session_id,
-                            user=request.user,
-                            context={},
-                        )
-                        logger.info(f"Created new session {received_session_id[:8]}... for user {request.user.id}")
-
-                        # 新會話時，需要創建用戶訊息
-                        AIMessage.objects.create(
-                            session=session,
-                            role=AIMessage.Role.USER,
-                            content=content,
-                            message_type=AIMessage.MessageType.TEXT,
-                        )
-
-                        # 新會話時，需要創建執行日誌
-                        nonlocal log
-                        if not log:
-                            log = create_execution_log(
-                                user=request.user,
-                                session=session,
-                                user_message=content,
-                            )
-                    else:
-                        # 現存會話：確保 session_id 一致（不應該改變）
-                        if session.session_id != received_session_id:
-                            logger.warning(
-                                f"Session ID mismatch: expected {session.session_id}, "
-                                f"got {received_session_id}"
-                            )
-                        session.updated_at = timezone.now()
-                        session.save(update_fields=["updated_at"])
-
-                # 7. 保存 AI 回應訊息（包含完整元數據）
-                if session and full_response:
-                    # 構建元數據
-                    message_metadata = {}
-                    if collected_thinking:
-                        message_metadata["thinking"] = collected_thinking
-                    if all_tools_executed:
-                        message_metadata["tools_executed"] = all_tools_executed
-                    if collected_usage:
-                        message_metadata["usage"] = collected_usage
-
-                    AIMessage.objects.create(
-                        session=session,
-                        role=AIMessage.Role.ASSISTANT,
-                        content=full_response,
-                        message_type=AIMessage.MessageType.TEXT,
-                        metadata=message_metadata,
-                    )
-
-                # 9. 完成執行日誌（傳遞完整元數據）
-                if log:
-                    # 構建執行日誌的元數據
-                    log_metadata = {
-                        "error": stream_error,
-                        "session_id": received_session_id,
-                    }
-                    if all_tools_executed:
-                        log_metadata["tools_executed"] = all_tools_executed
-                    if collected_usage:
-                        log_metadata["usage"] = collected_usage
-
-                    complete_execution_log(
-                        log=log,
-                        ai_response=full_response if full_response else None,
-                        raw_log=log_metadata,
-                        metadata=log_metadata,
-                    )
-
-                    # 保存 token 計數（確保有默認值）
-                    log.input_tokens = collected_usage.get("input_tokens", 0) if collected_usage else 0
-                    log.output_tokens = collected_usage.get("output_tokens", 0) if collected_usage else 0
-                    log.cost_cents = collected_usage.get("cost_cents", 0) if collected_usage else 0
-                    log.save()
-
-        response = StreamingHttpResponse(
-            generate_stream(), content_type="text/event-stream"
+        runtime = ChatStreamRuntime(
+            user=request.user,
+            backend_session_id=pk,
+            session=session,
+            content=content,
+            validated_data=serializer.validated_data,
+            skill=skill,
+            user_api_key=user_api_key,
         )
-        response["Cache-Control"] = "no-cache"
-        response["X-Accel-Buffering"] = "no"
-        return response
+        return build_sse_response(runtime.generate())
 
     @action(detail=True, methods=["post"])
     def rename(self, request, pk=None):
@@ -522,7 +240,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         This endpoint forwards the answer to the AI Service, which will resume
         the blocked chat_stream.
         """
-        session = self.get_object()
+        self.get_object()
 
         request_id = request.data.get("request_id")
         answers = request.data.get("answers")
@@ -539,19 +257,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            client = get_ai_client()
-
-            # Run async call in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(
-                    client.submit_user_answer(request_id, answers)
-                )
-            finally:
-                loop.close()
-
-            return Response(result)
+            return Response(submit_pending_answer(request_id, answers))
 
         except Exception as e:
             logger.exception(f"Error submitting user answer: {e}")
@@ -583,14 +289,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
             )
 
         # 取得使用者的 API Key（若有設定）
-        user_api_key = None
-        try:
-            user_api_key_obj = request.user.api_key
-            if user_api_key_obj.is_active:
-                user_api_key = user_api_key_obj.get_key()
-        except Exception:
-            pass
-
+        user_api_key = get_active_user_api_key(request.user)
         if not user_api_key:
             return Response(
                 {"error": "請先在設定頁面設定您的 API Key"},
@@ -606,95 +305,13 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        def generate_resume():
-            """Proxy resume request to ai-service."""
-            resume_payload = {
-                "thread_id": session.session_id,
-                "decision": decision,
-                "session_id": session.session_id,
-                "user_id": request.user.id,
-                "api_key_override": user_api_key,
-            }
-
-            full_response = ""
-            collected_usage = None
-
-            try:
-                try:
-                    ai_headers = build_ai_service_headers()
-                except RuntimeError as exc:
-                    logger.error(str(exc))
-                    yield f"data: {json.dumps({'type': 'error', 'content': str(exc)})}\n\n"
-                    return
-
-                with httpx.stream(
-                    "POST",
-                    f"{ai_service_base_url()}/api/chat/resume",
-                    json=resume_payload,
-                    headers=ai_headers,
-                    timeout=120.0,
-                ) as response:
-                    if response.status_code != 200:
-                        response.read()
-                        error_text = response.text
-                        logger.error(f"ai-service resume error: {response.status_code} - {error_text}")
-                        yield f"data: {json.dumps({'type': 'error', 'content': f'ai-service error: {response.status_code}'})}\n\n"
-                        return
-
-                    for line in response.iter_lines():
-                        if line.strip():
-                            if line.startswith("data: "):
-                                try:
-                                    event = json.loads(line[6:])
-                                    event_type = event.get("type")
-
-                                    if event_type == "agent_message_delta" and event.get("content"):
-                                        full_response += event["content"]
-
-                                    if event_type == "usage_report":
-                                        collected_usage = {
-                                            "input_tokens": event.get("input_tokens"),
-                                            "output_tokens": event.get("output_tokens"),
-                                            "cost_cents": event.get("cost_cents"),
-                                            "model_used": event.get("model_used"),
-                                        }
-
-                                    yield f"{line}\n\n"
-                                except json.JSONDecodeError:
-                                    yield f"{line}\n\n"
-                            else:
-                                yield f"{line}\n"
-                        else:
-                            yield "\n"
-
-            except Exception as e:
-                logger.exception(f"Error proxying resume to ai-service: {e}")
-                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-
-            finally:
-                # Save AI response if any
-                if full_response:
-                    message_metadata = {}
-                    if collected_usage:
-                        message_metadata["usage"] = collected_usage
-
-                    AIMessage.objects.create(
-                        session=session,
-                        role=AIMessage.Role.ASSISTANT,
-                        content=full_response,
-                        message_type=AIMessage.MessageType.TEXT,
-                        metadata=message_metadata,
-                    )
-
-                session.updated_at = timezone.now()
-                session.save(update_fields=["updated_at"])
-
-        response = StreamingHttpResponse(
-            generate_resume(), content_type="text/event-stream"
+        runtime = ResumeStreamRuntime(
+            user=request.user,
+            session=session,
+            decision=decision,
+            user_api_key=user_api_key,
         )
-        response["Cache-Control"] = "no-cache"
-        response["X-Accel-Buffering"] = "no"
-        return response
+        return build_sse_response(runtime.generate())
 
     # ================================================================
     # v2 Actions

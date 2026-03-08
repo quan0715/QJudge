@@ -386,6 +386,11 @@
     "forbiddenAction": "禁止操作が検出されました",
     "multipleDisplaysDetected": "複数ディスプレイが検出されました。物理的に1画面のみ接続してください。",
     "displayApiDegraded": "ディスプレイ監視APIが利用できません。複数ディスプレイを検出できない場合があります。",
+    "mouseLeftWindow": "マウスがウィンドウ外に出ました",
+    "forbiddenKeyboardShortcut": "キーボードショートカットの使用は禁止されています",
+    "popupBlocked": "ポップアップを開くことは禁止されています",
+    "pipBlocked": "ピクチャー・イン・ピクチャーの使用は禁止されています",
+    "printBlocked": "試験内容の印刷は禁止されています",
     "windowBlur": "ウィンドウを離れました",
     "exitedFullscreen": "フルスクリーンを解除しました",
     "stayInExamPage": "試験ページに留まり、フルスクリーンモードを維持してください。",
@@ -489,6 +494,7 @@
     "in_progress": "進行中",
     "paused": "一時停止",
     "locked": "ロック中",
+    "locked_takeover": "引き継ぎロック",
     "submitted": "提出済み"
   },
   "grading": {
@@ -546,6 +552,69 @@
     "filterGraded": "採点済み",
     "gradedBy": "{{name}} が採点",
     "maxScore": "満点"
+  },
+  "examVideoReview": {
+    "modalHeading": "監視動画レビュー",
+    "loadErrorTitle": "監視動画の読み込みに失敗しました",
+    "empty": "表示できる監視動画はありません。",
+    "listTitle": "動画一覧",
+    "videoCount": "{{count}} 件",
+    "bulkCompile": "すべて変換 ({{count}})",
+    "bulkCompiling": "送信中...",
+    "headers": {
+      "student": "学生",
+      "updatedAt": "最終更新",
+      "duration": "長さ",
+      "flag": "判定",
+      "jobStatus": "変換状態"
+    },
+    "status": {
+      "pending": "変換待ち",
+      "running": "変換中",
+      "failed": "変換失敗",
+      "ready": "再生可能"
+    },
+    "flag": {
+      "suspected": "疑い",
+      "normal": "正常"
+    },
+    "preview": {
+      "failed": "動画の変換に失敗しました。後でもう一度試すか、エラーメッセージを確認してください。",
+      "running": "動画を変換中です。完了すると自動的に表示されます。",
+      "pending": "この動画は変換待ちです。手動で変換を開始するとここに表示されます。",
+      "selectVideo": "動画を選択してください"
+    },
+    "fields": {
+      "student": "学生",
+      "fileSize": "ファイルサイズ",
+      "duration": "動画の長さ",
+      "frameCount": "フレーム数",
+      "jobStatus": "変換状態"
+    },
+    "suspicion": {
+      "suspected": "不正の疑い",
+      "normal": "正常"
+    },
+    "transcodeErrorTitle": "変換エラー",
+    "note": "メモ",
+    "actions": {
+      "download": "動画をダウンロード",
+      "flag": "不正の疑いとしてマーク",
+      "unflag": "疑いマークを解除",
+      "compile": "変換開始",
+      "submitting": "送信中...",
+      "delete": "動画を削除",
+      "deleting": "削除中..."
+    },
+    "confirmDelete": "{{name}} の監視動画データを削除してもよろしいですか？この操作は元に戻せません。",
+    "errors": {
+      "load": "動画の読み込みに失敗しました",
+      "playUrl": "再生 URL の取得に失敗しました",
+      "compile": "変換開始に失敗しました",
+      "compileAll": "一括変換の開始に失敗しました",
+      "deleteBlocked": "動画は現在処理中のため、まだ削除できません。",
+      "delete": "動画の削除に失敗しました"
+    }
   },
   "participantsAdmin": {
     "title": "参加者リスト",
@@ -616,6 +685,7 @@
       "exit_fullscreen": "全画面終了",
       "forbidden_focus_event": "禁止フォーカスイベント",
       "forbidden_action": "禁止操作",
+      "mouse_leave": "マウスがウィンドウ外に出る",
       "multiple_displays": "マルチディスプレイ検出",
       "cheat_warning": "不正警告",
       "lock": "ロック",

@@ -1,22 +1,15 @@
 """
 Views for problems app.
 """
-from django.db.models import Case, ExpressionWrapper, F, FloatField, Value, When
-from rest_framework import viewsets, permissions, filters, status, serializers, generics
+from rest_framework import viewsets, permissions, filters, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
-from rest_framework.exceptions import PermissionDenied
 
 from .models import (
     Problem,
     Tag,
-    ProblemDiscussion,
-    ProblemDiscussionComment,
-    DiscussionLike,
-    CommentLike,
 )
 from .serializers import (
     ProblemListSerializer,
@@ -24,15 +17,8 @@ from .serializers import (
     ProblemAdminSerializer,
     TagSerializer,
     TestRunSerializer,
-    ProblemDiscussionSerializer,
-    ProblemDiscussionCommentSerializer,
 )
-
-
-class SchemaAPIView(generics.GenericAPIView):
-    """APIView with serializer support for schema generation."""
-
-    serializer_class = serializers.Serializer
+from .test_run_service import ProblemTestRunService, TestRunSetupError
 
 
 class ProblemFilter(django_filters.FilterSet):
@@ -202,107 +188,27 @@ class ProblemViewSet(viewsets.ModelViewSet):
         Execute code with sample + custom inputs without creating a submission.
         Returns execution results immediately.
         """
-        from apps.problems.models import TestCase
-        from apps.submissions.tasks import MockTestCase
-
         problem = self.get_object()
         serializer = TestRunSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        language = serializer.validated_data['language']
-        source_code = serializer.validated_data['code']
-        use_samples = serializer.validated_data.get('use_samples', True)
-        custom_test_cases = serializer.validated_data.get('custom_test_cases') or []
-
-        # Build test case list: samples first, then custom
-        test_cases = []
-        if use_samples:
-            test_cases.extend(list(problem.test_cases.filter(is_sample=True)))
-
-        custom_cases = [
-            MockTestCase({'input': case['input'], 'output': ''}, idx + 1)
-            for idx, case in enumerate(custom_test_cases)
-        ]
-        test_cases.extend(custom_cases)
-
-        # Prepare judge
         try:
-            from apps.judge.judge_factory import get_judge
-            judge = get_judge(language)
-        except ValueError as exc:
-            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as exc:  # pragma: no cover - safety net
-            return Response(
-                {'error': f'Judge system error: {str(exc)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            result = ProblemTestRunService.run(
+                problem=problem,
+                language=serializer.validated_data["language"],
+                source_code=serializer.validated_data["code"],
+                use_samples=serializer.validated_data.get("use_samples", True),
+                custom_test_cases=serializer.validated_data.get("custom_test_cases") or [],
             )
+        except TestRunSetupError as exc:
+            error_text = str(exc)
+            error_status = (
+                status.HTTP_400_BAD_REQUEST
+                if not error_text.startswith("Judge system error:")
+                else status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            return Response({"error": error_text}, status=error_status)
 
-        results = []
-        max_exec_time = 0
-        max_memory_usage = 0
-        final_status = 'AC'
-
-        for tc in test_cases:
-            try:
-                expected_output = getattr(tc, 'output_data', '') or ''
-                exec_result = judge.execute(
-                    code=source_code,
-                    input_data=tc.input_data,
-                    expected_output=expected_output,
-                    time_limit=problem.time_limit,
-                    memory_limit=problem.memory_limit,
-                )
-                raw_status = exec_result.get('status', 'SE')
-                exec_time = exec_result.get('time', 0)
-                memory = exec_result.get('memory', 0)
-                output = exec_result.get('output', '')
-                error_msg = exec_result.get('error', '')
-            except Exception as exc:  # pragma: no cover - safety net
-                raw_status = 'SE'
-                exec_time = 0
-                memory = 0
-                output = ''
-                error_msg = str(exc)
-
-            is_sample = isinstance(tc, TestCase)
-            source = 'sample' if is_sample else 'custom'
-            expected_output = getattr(tc, 'output_data', None) if is_sample else None
-            visible_input = tc.input_data if is_sample else getattr(tc, 'input_data', '')
-            visible_expected = expected_output if is_sample else None
-
-            # Decide verdict: custom cases without ground truth become 'info'
-            if is_sample:
-                verdict = raw_status
-            else:
-                verdict = raw_status if raw_status in ['CE', 'RE', 'TLE', 'MLE', 'SE'] else 'info'
-
-            max_exec_time = max(max_exec_time, exec_time)
-            max_memory_usage = max(max_memory_usage, memory)
-            if verdict not in ['AC', 'info'] and final_status == 'AC':
-                final_status = verdict
-            if verdict == 'info' and final_status == 'AC' and raw_status in ['CE', 'RE', 'TLE', 'MLE', 'SE']:
-                # For custom cases, propagate hard failures (e.g., compile error)
-                final_status = raw_status
-
-            results.append({
-                'case_id': getattr(tc, 'id', None),
-                'source': source,
-                'status': verdict,
-                'exec_time': exec_time,
-                'memory_usage': memory,
-                'output': output,
-                'error_message': error_msg,
-                'input': visible_input,
-                'expected_output': visible_expected,
-                'is_hidden': getattr(tc, 'is_hidden', False) if is_sample else False,
-            })
-
-        return Response({
-            'status': final_status,
-            'exec_time': max_exec_time,
-            'memory_usage': max_memory_usage,
-            'results': results,
-        })
+        return Response(result)
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrTeacherOrReadOnly])
     def import_yaml(self, request, id=None):
@@ -371,7 +277,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         
         # For contest statistics, check if user is a participant and get problem directly
         if contest_id:
-            from apps.contests.models import Contest, ContestParticipant, ContestProblem
+            from apps.contests.models import ContestParticipant, ContestProblem
             from django.shortcuts import get_object_or_404
             from rest_framework.exceptions import PermissionDenied
             
@@ -465,240 +371,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
             'status_counts': status_counts,
             'trend': formatted_trend,
         })
-
-
-def _can_view_problem(user, problem: Problem) -> bool:
-    if problem.visibility == 'public':
-        return True
-    if not user or not user.is_authenticated:
-        return False
-    if user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]:
-        return True
-    return problem.created_by_id == user.id
-
-
-def _is_privileged(user, problem: Problem) -> bool:
-    if not user or not user.is_authenticated:
-        return False
-    if user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]:
-        return True
-    return problem.created_by_id == user.id
-
-
-class ProblemDiscussionListCreateView(SchemaAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ProblemDiscussionSerializer
-
-    def get_problem(self, request, problem_id: int) -> Problem:
-        problem = get_object_or_404(Problem, id=problem_id)
-        if not _can_view_problem(request.user, problem):
-            raise PermissionDenied("You do not have access to this problem.")
-        return problem
-
-    def get(self, request, problem_id: int):
-        problem = self.get_problem(request, problem_id)
-        discussions = ProblemDiscussion.objects.filter(problem=problem).select_related("user")
-        serializer = ProblemDiscussionSerializer(
-            discussions, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
-
-    def post(self, request, problem_id: int):
-        problem = self.get_problem(request, problem_id)
-        serializer = ProblemDiscussionSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        discussion = serializer.save(problem=problem, user=request.user)
-        return Response(
-            ProblemDiscussionSerializer(discussion, context={"request": request}).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class ProblemDiscussionDetailView(SchemaAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ProblemDiscussionSerializer
-
-    def get_object(self, request, pk: int) -> ProblemDiscussion:
-        discussion = get_object_or_404(ProblemDiscussion.objects.select_related("problem", "user"), id=pk)
-        if not _can_view_problem(request.user, discussion.problem):
-            raise PermissionDenied("You do not have access to this problem.")
-        return discussion
-
-    def get(self, request, pk: int):
-        discussion = self.get_object(request, pk)
-        return Response(
-            ProblemDiscussionSerializer(discussion, context={"request": request}).data
-        )
-
-    def patch(self, request, pk: int):
-        """Edit a discussion - only author can edit."""
-        discussion = self.get_object(request, pk)
-        # Only author can edit
-        if request.user != discussion.user:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        serializer = ProblemDiscussionSerializer(
-            discussion, data=request.data, partial=True, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def delete(self, request, pk: int):
-        discussion = self.get_object(request, pk)
-        if not (request.user == discussion.user or _is_privileged(request.user, discussion.problem)):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        discussion.is_deleted = True
-        discussion.save(update_fields=["is_deleted", "updated_at"])
-        return Response(
-            ProblemDiscussionSerializer(discussion, context={"request": request}).data,
-            status=status.HTTP_200_OK,
-        )
-
-
-class ProblemDiscussionCommentListCreateView(SchemaAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ProblemDiscussionCommentSerializer
-
-    def get_discussion(self, request, discussion_id: int) -> ProblemDiscussion:
-        discussion = get_object_or_404(
-            ProblemDiscussion.objects.select_related("problem", "user"), id=discussion_id
-        )
-        if not _can_view_problem(request.user, discussion.problem):
-            raise PermissionDenied("You do not have access to this problem.")
-        return discussion
-
-    def get(self, request, discussion_id: int):
-        discussion = self.get_discussion(request, discussion_id)
-        comments = discussion.comments.select_related("user", "parent")
-        serializer = ProblemDiscussionCommentSerializer(
-            comments, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
-
-    def post(self, request, discussion_id: int):
-        discussion = self.get_discussion(request, discussion_id)
-        serializer = ProblemDiscussionCommentSerializer(
-            data=request.data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        parent = serializer.validated_data.get("parent")
-        if parent and parent.discussion_id != discussion.id:
-            return Response(
-                {"detail": "Parent comment does not belong to this discussion."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        comment = serializer.save(discussion=discussion, user=request.user)
-        return Response(
-            ProblemDiscussionCommentSerializer(comment, context={"request": request}).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class ProblemDiscussionCommentDetailView(SchemaAPIView):
-    """View for editing and deleting comments."""
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ProblemDiscussionCommentSerializer
-
-    def get_object(self, request, pk: int) -> ProblemDiscussionComment:
-        comment = get_object_or_404(
-            ProblemDiscussionComment.objects.select_related("discussion__problem", "user"), id=pk
-        )
-        if not _can_view_problem(request.user, comment.discussion.problem):
-            raise PermissionDenied("You do not have access to this problem.")
-        return comment
-
-    def patch(self, request, pk: int):
-        """Edit a comment - only author can edit."""
-        comment = self.get_object(request, pk)
-        # Only author can edit
-        if request.user != comment.user:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        serializer = ProblemDiscussionCommentSerializer(
-            comment, data=request.data, partial=True, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def delete(self, request, pk: int):
-        comment = self.get_object(request, pk)
-        if not (request.user == comment.user or _is_privileged(request.user, comment.discussion.problem)):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        comment.is_deleted = True
-        comment.save(update_fields=["is_deleted", "updated_at"])
-        return Response(
-            ProblemDiscussionCommentSerializer(comment, context={"request": request}).data,
-            status=status.HTTP_200_OK,
-        )
-
-
-class DiscussionLikeView(SchemaAPIView):
-    """Toggle like on a discussion."""
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.Serializer
-
-    def post(self, request, pk: int):
-        discussion = get_object_or_404(
-            ProblemDiscussion.objects.select_related("problem"), id=pk
-        )
-        if not _can_view_problem(request.user, discussion.problem):
-            raise PermissionDenied("You do not have access to this problem.")
-
-        # Toggle like
-        like, created = DiscussionLike.objects.get_or_create(
-            discussion=discussion, user=request.user
-        )
-        if not created:
-            # Already liked, so unlike
-            like.delete()
-            is_liked = False
-        else:
-            is_liked = True
-
-        return Response(
-            {
-                "is_liked": is_liked,
-                "like_count": discussion.likes.count(),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class CommentLikeView(SchemaAPIView):
-    """Toggle like on a comment."""
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.Serializer
-
-    def post(self, request, pk: int):
-        comment = get_object_or_404(
-            ProblemDiscussionComment.objects.select_related("discussion__problem"), id=pk
-        )
-        if not _can_view_problem(request.user, comment.discussion.problem):
-            raise PermissionDenied("You do not have access to this problem.")
-
-        # Toggle like
-        like, created = CommentLike.objects.get_or_create(
-            comment=comment, user=request.user
-        )
-        if not created:
-            # Already liked, so unlike
-            like.delete()
-            is_liked = False
-        else:
-            is_liked = True
-
-        return Response(
-            {
-                "is_liked": is_liked,
-                "like_count": comment.likes.count(),
-            },
-            status=status.HTTP_200_OK,
-        )
 
 
 # TagViewSet - API endpoints for managing tags
