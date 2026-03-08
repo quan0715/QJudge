@@ -29,6 +29,9 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     autoUnlockMinutes: 0,
     resultsPublished: false,
     examQuestionsCount: 0,
+    isExamMonitored: false,
+    requiresFullscreen: false,
+    canSubmitExam: false,
     permissions: {
       canSwitchView: true,
       canEditContest: false,
@@ -50,8 +53,10 @@ describe("contestRuntimePolicy", () => {
   });
 
   it("treats submitted/locked/paused/in_progress as started exam", () => {
-    expect(hasStartedExam(createContest({ hasStarted: true, examStatus: "not_started" }))).toBe(true);
+    expect(hasStartedExam(createContest({ hasStarted: true, examStatus: "not_started" }))).toBe(false);
     expect(hasStartedExam(createContest({ hasStarted: false, examStatus: "submitted" }))).toBe(true);
+    expect(hasStartedExam(createContest({ hasStarted: false, examStatus: "paused" }))).toBe(true);
+    expect(hasStartedExam(createContest({ hasStarted: false, examStatus: "locked" }))).toBe(true);
     expect(hasStartedExam(createContest({ hasStarted: false, examStatus: "not_started" }))).toBe(false);
   });
 
@@ -79,22 +84,29 @@ describe("contestRuntimePolicy", () => {
   });
 
   it("computes monitoring and exit warning flags", () => {
-    const inProgress = createContest({ examStatus: "in_progress", cheatDetectionEnabled: true });
+    const inProgress = createContest({
+      examStatus: "in_progress",
+      cheatDetectionEnabled: true,
+      isExamMonitored: true,
+    });
     expect(isExamMonitoringActive(inProgress)).toBe(true);
     expect(
       isExamMonitoringActive(
-        createContest({ examStatus: "paused", cheatDetectionEnabled: true }),
+        createContest({ examStatus: "paused", cheatDetectionEnabled: true, isExamMonitored: true }),
       ),
     ).toBe(true);
     expect(
       isExamMonitoringActive(
-        createContest({ examStatus: "locked", cheatDetectionEnabled: true }),
+        createContest({ examStatus: "locked", cheatDetectionEnabled: true, isExamMonitored: true }),
       ),
     ).toBe(true);
     expect(shouldWarnOnExit(inProgress, false)).toBe(true);
     expect(shouldForceEndExamOnExit(inProgress, false)).toBe(true);
 
     expect(shouldWarnOnExit(createContest({ examStatus: "submitted" }), false)).toBe(false);
+    expect(
+      shouldWarnOnExit(createContest({ examStatus: "in_progress", isExamMonitored: false }), false),
+    ).toBe(false);
     expect(shouldWarnOnExit(createContest({ examStatus: "in_progress", status: "draft" }), false)).toBe(false);
     expect(shouldWarnOnExit(createContest({ examStatus: "in_progress" }), true)).toBe(false);
   });
