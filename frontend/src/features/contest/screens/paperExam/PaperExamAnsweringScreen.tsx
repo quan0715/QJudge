@@ -5,6 +5,8 @@ import {
   Tag,
   Loading,
   Tooltip,
+  Modal,
+  InlineNotification,
 } from "@carbon/react";
 import {
   ChevronLeft,
@@ -19,21 +21,21 @@ import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import {
   useCountdownTo,
-  useAnticheatScreenCapture,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
 } from "./hooks";
+import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
 import styles from "./PaperExamAnswering.module.scss";
 import {
   getContestDashboardPath,
-  getContestPaperSubmitReviewPath,
   shouldRouteToPrecheck,
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
+import { clearExamCaptureSessionId } from "./hooks/examCaptureSession";
 
 const SAVE_STATUS_LABEL: Record<string, string> = {
   idle: "",
@@ -45,7 +47,7 @@ const SAVE_STATUS_LABEL: Record<string, string> = {
 const PaperExamAnsweringScreen: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, submitExam, refreshContest } = usePaperExamFlow();
+  const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -53,20 +55,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const isInProgress = contest?.examStatus === "in_progress";
   const countdown = useCountdownTo(contest?.endTime);
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
-  const captureEnabled =
-    !!contest?.cheatDetectionEnabled &&
-    (contest?.examStatus === "in_progress" ||
-      contest?.examStatus === "locked" ||
-      contest?.examStatus === "locked_takeover" ||
-      contest?.examStatus === "paused") &&
-    precheckPassed;
   const {
     uploadSessionId: anticheatUploadSessionId,
     flushPendingUploads,
-  } = useAnticheatScreenCapture({
-    contestId,
-    enabled: captureEnabled,
-  });
+    forceStopCapture,
+  } = useExamCapture();
 
   const { markDirty, saveIfDirty, flushAll, saveStatus } = usePaperExamSaveOnLeave({
     contestId,
@@ -113,6 +106,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
           return submitExam(anticheatUploadSessionId || undefined);
         })
         .finally(() => {
+          if (contestId) clearExamCaptureSessionId(contestId);
+          forceStopCapture();
           setAutoSubmitted(true);
           if (isFullscreen()) exitFullscreen().catch(() => {});
         });
@@ -125,6 +120,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId,
     submitExam,
     flushAll,
+    forceStopCapture,
   ]);
 
   useEffect(() => {
@@ -142,12 +138,23 @@ const PaperExamAnsweringScreen: React.FC = () => {
     }
 
     if (contest.examStatus === "submitted") {
+      clearExamCaptureSessionId(contestId);
+      forceStopCapture();
       setAutoSubmitted(true);
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
-  }, [contest?.contestType, contest?.examStatus, contestId, navigate]);
+  }, [contest?.contestType, contest?.examStatus, contestId, navigate, forceStopCapture]);
 
   const requestedQuestionId = searchParams.get("q");
+  const initialReviewOpen = searchParams.get("review") === "1";
+  const [showSubmitReview, setShowSubmitReview] = useState(initialReviewOpen);
+  const [isSubmittingExam, setIsSubmittingExam] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("review") === "1") {
+      setShowSubmitReview(true);
+    }
+  }, [searchParams]);
   const syncIndex = useMemo(() => {
     if (!requestedQuestionId || items.length === 0) return null;
     const index = items.findIndex(
@@ -171,6 +178,38 @@ const PaperExamAnsweringScreen: React.FC = () => {
     },
     [answers, handleAnswerChange, handleBlur]
   );
+
+  const totalCount = items.length;
+  const answeredCount = answeredIds.size;
+  const unansweredCount = Math.max(0, totalCount - answeredCount);
+
+  const openSubmitReview = useCallback(async () => {
+    await flushAll();
+    setShowSubmitReview(true);
+  }, [flushAll]);
+
+  const handleSubmitExam = useCallback(async () => {
+    if (!contestId || isSubmittingExam) return;
+    setIsSubmittingExam(true);
+    await flushAll();
+    await flushPendingUploads();
+    const success = await submitExam(anticheatUploadSessionId || undefined);
+    setIsSubmittingExam(false);
+    if (!success) return;
+    clearExamCaptureSessionId(contestId);
+    forceStopCapture();
+    setShowSubmitReview(false);
+    navigate(getContestDashboardPath(contestId));
+  }, [
+    anticheatUploadSessionId,
+    contestId,
+    flushAll,
+    flushPendingUploads,
+    forceStopCapture,
+    isSubmittingExam,
+    navigate,
+    submitExam,
+  ]);
 
   if (autoSubmitted) {
     return (
@@ -206,61 +245,124 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }
 
   return (
-    <PaperExamCore
-      items={items}
-      answeredIds={answeredIds}
-      styles={styles}
-      syncIndex={syncIndex}
-      renderItem={renderItem}
-      onActiveIndexChange={handleActiveIndexChange}
-      toolbarLeft={(
-        <>
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            renderIcon={ChevronLeft}
-            iconDescription="返回競賽主頁"
-            onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
-          />
-          <span className={styles.title}>{contest?.name ?? "考試"}</span>
-          {contest?.cheatDetectionEnabled && (
-            <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
-              <Tag size="sm" type="red" renderIcon={Recording}>
-                監測中
-              </Tag>
-            </Tooltip>
-          )}
-          {!isInProgress && (
-            <Tag size="sm" type="red">考試未開始</Tag>
-          )}
-        </>
-      )}
-      toolbarCenter={(
-        <>
-          {saveStatus !== "idle" && (
-            <span className={`${styles.saveStatus} ${saveStatus === "error" ? styles.saveStatusError : ""}`}>
-              {SAVE_STATUS_LABEL[saveStatus]}
-            </span>
-          )}
-          <div className={styles.timer}>
-            <Time size={16} />
-            <span className={styles.timerText}>{countdown.display}</span>
+    <>
+      <PaperExamCore
+        items={items}
+        answeredIds={answeredIds}
+        styles={styles}
+        syncIndex={syncIndex}
+        renderItem={renderItem}
+        onActiveIndexChange={handleActiveIndexChange}
+        toolbarLeft={(
+          <>
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={ChevronLeft}
+              iconDescription="返回競賽主頁"
+              onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
+            />
+            <span className={styles.title}>{contest?.name ?? "考試"}</span>
+            {contest?.cheatDetectionEnabled && (
+              <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
+                <Tag size="sm" type="red" renderIcon={Recording}>
+                  監測中
+                </Tag>
+              </Tooltip>
+            )}
+            {!isInProgress && (
+              <Tag size="sm" type="red">考試未開始</Tag>
+            )}
+          </>
+        )}
+        toolbarCenter={(
+          <>
+            {saveStatus !== "idle" && (
+              <span className={`${styles.saveStatus} ${saveStatus === "error" ? styles.saveStatusError : ""}`}>
+                {SAVE_STATUS_LABEL[saveStatus]}
+              </span>
+            )}
+            <div className={styles.timer}>
+              <Time size={16} />
+              <span className={styles.timerText}>{countdown.display}</span>
+            </div>
+            <Button
+              kind="primary"
+              size="sm"
+              renderIcon={SendFilled}
+              onClick={openSubmitReview}
+            >
+              交卷
+            </Button>
+          </>
+        )}
+      />
+      <Modal
+        open={showSubmitReview}
+        modalHeading="交卷前確認"
+        primaryButtonText={isSubmittingExam ? "交卷中..." : "確認交卷"}
+        secondaryButtonText="回作答頁"
+        primaryButtonDisabled={isSubmittingExam || loading || !isInProgress}
+        onRequestSubmit={() => {
+          void handleSubmitExam();
+        }}
+        onRequestClose={() => setShowSubmitReview(false)}
+        onSecondarySubmit={() => setShowSubmitReview(false)}
+        danger
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <Tag type={unansweredCount === 0 ? "green" : "red"}>
+              {`已作答 ${answeredCount} / ${totalCount} 題`}
+            </Tag>
+            <Tag type="teal">
+              {contest?.endTime
+                ? `截止：${new Date(contest.endTime).toLocaleString("zh-TW")}`
+                : "未設定截止時間"}
+            </Tag>
           </div>
-          <Button
-            kind="primary"
-            size="sm"
-            renderIcon={SendFilled}
-            onClick={async () => {
-              await flushAll();
-              if (contestId) navigate(getContestPaperSubmitReviewPath(contestId));
+
+          {unansweredCount > 0 && (
+            <InlineNotification
+              kind="warning"
+              lowContrast
+              hideCloseButton
+              title={`尚有 ${unansweredCount} 題未作答`}
+              subtitle="建議先返回作答頁補完答案，再進行交卷。"
+            />
+          )}
+
+          <div
+            style={{
+              maxHeight: "42vh",
+              overflow: "auto",
+              border: "1px solid var(--cds-border-subtle-01)",
+              borderRadius: "4px",
             }}
           >
-            交卷
-          </Button>
-        </>
-      )}
-    />
+            {items.map((item, index) => {
+              if (item.kind !== "question") return null;
+              const done = answeredIds.has(item.data.id);
+              const prompt = item.data.prompt || "";
+              const preview = prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt;
+              return (
+                <div
+                  key={item.data.id}
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    borderBottom: "1px solid var(--cds-border-subtle-00)",
+                    color: done ? "var(--cds-text-primary)" : "var(--cds-support-error)",
+                  }}
+                >
+                  第 {index + 1} 題 {preview ? `— ${preview}` : ""}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 };
 

@@ -23,6 +23,7 @@
 
 - 後端已補強私人競賽密碼處理（以資料庫 hash 方式儲存）。
 - Exam V2 流程已在前後端建立骨架，可作為課堂考試延伸場景。
+- 考前檢查與防弊回退流程文件：[/docs/exam-precheck-anticheat](/docs/exam-precheck-anticheat)
 
 ## 注意事項
 

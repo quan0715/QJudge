@@ -5,6 +5,7 @@ Covers violation counting, auto-lock, warning timeout, force-submit,
 event logging for all participant roles, and auto-unlock eligibility checks.
 """
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -106,9 +107,19 @@ class ExamAntiCheatTests(APITestCase):
         self.participant.violation_count = self.contest.max_cheat_warnings - 1
         self.participant.save()
 
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
+            with self.captureOnCommitCallbacks(execute=True):
+                resp = self.client.post(
+                    self.events_url,
+                    {
+                        "event_type": "tab_hidden",
+                        "metadata": {"upload_session_id": "session-paused-1"},
+                    },
+                    format="json",
+                )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data["submitted"])
+        mock_compile.assert_called_once_with(self.participant.id, "session-paused-1")
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
@@ -121,9 +132,12 @@ class ExamAntiCheatTests(APITestCase):
         self.participant.locked_at = timezone.now()
         self.participant.save()
 
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
+            with self.captureOnCommitCallbacks(execute=True):
+                resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data["submitted"])
+        mock_compile.assert_called_once_with(self.participant.id, "default")
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
@@ -166,6 +180,88 @@ class ExamAntiCheatTests(APITestCase):
                 contest=self.contest,
                 user=self.student,
                 event_type="capture_upload_degraded",
+            ).exists()
+        )
+
+    def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
+        self.client.force_authenticate(user=self.student)
+
+        resp = self.client.post(
+            self.events_url,
+            {
+                "event_type": "screen_share_stopped",
+                "metadata": {
+                    "phase": "TERMINATING",
+                    "event_idempotency_key": "term-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get("decision"), "terminal_guard")
+        self.assertFalse(resp.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(self.participant.violation_count, 0)
+
+    def test_duplicate_event_idempotency_key_counts_once(self):
+        self.client.force_authenticate(user=self.student)
+        payload = {
+            "event_type": "tab_hidden",
+            "metadata": {"event_idempotency_key": "same-key-1"},
+        }
+
+        first = self.client.post(self.events_url, payload, format="json")
+        second = self.client.post(self.events_url, payload, format="json")
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.data.get("decision"), "dedupe_hit")
+        self.assertTrue(second.data.get("dedupe_hit"))
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 1)
+        self.assertEqual(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="tab_hidden",
+            ).count(),
+            1,
+        )
+
+    def test_submitted_status_event_is_logged_without_escalation(self):
+        self.client.force_authenticate(user=self.student)
+        self.participant.exam_status = ExamStatus.SUBMITTED
+        self.participant.violation_count = 2
+        self.participant.save(update_fields=["exam_status", "violation_count"])
+
+        resp = self.client.post(
+            self.events_url,
+            {
+                "event_type": "warning_timeout",
+                "metadata": {
+                    "phase": "TERMINAL",
+                    "event_idempotency_key": "submitted-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get("decision"), "terminal_guard")
+        self.assertTrue(resp.data["submitted"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
+        self.assertEqual(self.participant.violation_count, 2)
+        self.assertTrue(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="warning_timeout",
             ).exists()
         )
 

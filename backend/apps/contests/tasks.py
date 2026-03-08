@@ -25,6 +25,7 @@ from .models import (
     EvidenceJobStatus,
 )
 from .services.anticheat_storage import get_s3_client, tag_object_retain
+from .services.exam_submission import finalize_submission, normalize_upload_session_id
 
 FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
 PENALIZED_EVENT_TYPES = {
@@ -88,16 +89,14 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
                     f"Auto-submitted: violation while {participant.exam_status} "
                     f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
                 )
-                participant.exam_status = ExamStatus.SUBMITTED
-                participant.left_at = timezone.now()
-                participant.submit_reason = reason
-                update_fields.extend(['exam_status', 'left_at', 'submit_reason'])
                 participant.save(update_fields=update_fields)
-                ContestActivity.objects.create(
-                    contest=contest,
-                    user=participant.user,
-                    action_type='auto_submit',
-                    details=reason,
+                finalize_submission(
+                    participant,
+                    submit_reason=reason,
+                    upload_session_id="default",
+                    activity_user=participant.user,
+                    activity_action_type="auto_submit",
+                    activity_details=reason,
                 )
                 return participant
 
@@ -146,7 +145,8 @@ def auto_submit_participants(contest_id):
         if contest.end_time and contest.end_time > timezone.now():
             return f"Contest {contest_id} end_time extended, skipping"
         
-        qs = ContestParticipant.objects.filter(
+        participants = list(
+            ContestParticipant.objects.select_related("contest", "user").filter(
             contest_id=contest_id,
             exam_status__in=[
                 ExamStatus.IN_PROGRESS,
@@ -155,17 +155,19 @@ def auto_submit_participants(contest_id):
                 ExamStatus.LOCKED_TAKEOVER,
             ]
         )
-        participant_ids = list(qs.values_list("id", flat=True))
-        count = qs.update(
-            exam_status=ExamStatus.SUBMITTED,
-            left_at=timezone.now(),
-            submit_reason='Auto-submitted: contest ended',
         )
-        for participant_id in participant_ids:
-            compile_anticheat_video.apply_async(
-                args=[participant_id, "default"],
-                queue="video_queue",
+
+        count = 0
+        for participant in participants:
+            finalize_submission(
+                participant,
+                submit_reason='Auto-submitted: contest ended',
+                upload_session_id="default",
+                activity_user=participant.user,
+                activity_action_type="auto_submit",
+                activity_details="Auto-submitted: contest ended",
             )
+            count += 1
         
         return f"Auto-submitted {count} participants for contest {contest_id}"
         
@@ -282,15 +284,18 @@ def force_submit_locked_participant(participant_id):
         if participant.contest.end_time and participant.contest.end_time <= timezone.now():
             return f"Contest ended, skipping force-submit for {participant_id}"
 
-        participant.exam_status = ExamStatus.SUBMITTED
-        participant.left_at = timezone.now()
-        participant.submit_reason = (
+        submit_reason = (
             f"Auto-submitted: locked for more than {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes"
         )
-        participant.save(update_fields=['exam_status', 'left_at', 'submit_reason'])
-        compile_anticheat_video.apply_async(
-            args=[participant.id, "default"],
-            queue="video_queue",
+        finalize_submission(
+            participant,
+            submit_reason=submit_reason,
+            upload_session_id="default",
+            activity_user=participant.user,
+            activity_action_type="auto_submit",
+            activity_details=(
+                f"Force-submitted after being locked for {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes"
+            ),
         )
 
         # Record ExamEvent
@@ -303,14 +308,6 @@ def force_submit_locked_participant(participant_id):
                 'locked_at': participant.locked_at.isoformat() if participant.locked_at else None,
                 'lock_reason': participant.lock_reason,
             }
-        )
-
-        # Record ContestActivity
-        ContestActivity.objects.create(
-            contest=participant.contest,
-            user=participant.user,
-            action_type='auto_submit',
-            details=f"Force-submitted after being locked for {FORCE_SUBMIT_LOCKED_SECONDS // 60} minutes",
         )
 
         return f"Force-submitted participant {participant_id}"
@@ -364,8 +361,7 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         return f"Participant {participant_id} not found"
 
     contest = participant.contest
-    if not upload_session_id:
-        upload_session_id = "default"
+    upload_session_id = normalize_upload_session_id(upload_session_id)
 
     job, created = ExamEvidenceJob.objects.get_or_create(
         contest=contest,
@@ -373,8 +369,8 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         upload_session_id=upload_session_id,
         defaults={"status": EvidenceJobStatus.PENDING},
     )
-    if not created and job.status in [EvidenceJobStatus.RUNNING, EvidenceJobStatus.SUCCESS]:
-        return f"Job already {job.status} for participant={participant_id} session={upload_session_id}"
+    if not created and job.status == EvidenceJobStatus.RUNNING:
+        return f"Job already running for participant={participant_id} session={upload_session_id}"
 
     client = get_s3_client()
     raw_bucket = settings.ANTICHEAT_RAW_BUCKET
@@ -384,21 +380,27 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
     else:
         raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
 
-    job.status = EvidenceJobStatus.RUNNING
-    job.started_at = timezone.now()
-    job.error_message = ""
-    job.save(update_fields=["status", "started_at", "error_message", "updated_at"])
-
     temp_dir = tempfile.mkdtemp(prefix=f"anticheat_{contest.id}_{participant.user_id}_")
     raw_keys: list[str] = []
     try:
         raw_keys = _list_raw_keys(client, raw_bucket, raw_prefix)
         if not raw_keys:
+            if not created and job.status == EvidenceJobStatus.SUCCESS:
+                return (
+                    f"No new raw screenshots for participant={participant_id} "
+                    f"session={upload_session_id}; keeping previous SUCCESS"
+                )
             job.status = EvidenceJobStatus.FAILED
             job.error_message = "No raw screenshots found"
             job.finished_at = timezone.now()
             job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
             return "No raw screenshots found"
+
+        job.status = EvidenceJobStatus.RUNNING
+        job.started_at = timezone.now()
+        job.error_message = ""
+        job.finished_at = None
+        job.save(update_fields=["status", "started_at", "error_message", "finished_at", "updated_at"])
 
         job.raw_count = len(raw_keys)
         job.save(update_fields=["raw_count", "updated_at"])

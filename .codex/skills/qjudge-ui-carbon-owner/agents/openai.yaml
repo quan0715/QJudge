@@ -1,0 +1,4 @@
+interface:
+  display_name: "QJudge UI Carbon Owner"
+  short_description: "Carbon-first UI owner with Storybook and overflow stability rules"
+  default_prompt: "Implement or review QJudge UI work with Carbon-first constraints, Storybook synchronization, and single-scroll-owner layout patterns."

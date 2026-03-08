@@ -1,0 +1,4 @@
+interface:
+  display_name: "QJudge Architecture Owner"
+  short_description: "Owner of layer boundaries, import direction, and feature decomposition"
+  default_prompt: "Define and enforce QJudge architecture boundaries, decide code placement, and guide feature refactors with clean dependency direction."

@@ -10,7 +10,6 @@ import StudentExamDemoScreen from "./screens/examDemo/StudentExamDemoScreen";
 import {
   ExamPrecheckScreen,
   PaperExamAnsweringScreen,
-  PaperExamSubmitReviewScreen,
 } from "./screens/paperExam";
 
 /**
@@ -33,6 +32,11 @@ export const contestDetailRoutes = (
     <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
     {/* Problem Solving Page */}
     <Route path="solve/:problemId" element={<ContestProblemScreen />} />
+    <Route path="paper-exam" element={<PaperExamLayout />}>
+      <Route index element={<Navigate to="answering" replace />} />
+      <Route path="answering" element={<PaperExamAnsweringScreen />} />
+      <Route path="submit-review" element={<Navigate to="../answering?review=1" replace />} />
+    </Route>
   </Route>
 );
 
@@ -69,16 +73,4 @@ export const examPrecheckRoute = (
       </PaperExamProvider>
     }
   />
-);
-
-/**
- * Paper Exam Flow — 獨立全頁面，不嵌套在 ContestLayout 內
- * 使用 PaperExamLayout 提供 ContestContext
- */
-export const paperExamRoutes = (
-  <Route path="/contests/:contestId/paper-exam" element={<PaperExamLayout />}>
-    <Route index element={<Navigate to="answering" replace />} />
-    <Route path="answering" element={<PaperExamAnsweringScreen />} />
-    <Route path="submit-review" element={<PaperExamSubmitReviewScreen />} />
-  </Route>
 );

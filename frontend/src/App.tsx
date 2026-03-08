@@ -24,7 +24,7 @@ import {
   RequireTeacherOrAdmin,
 } from "@/features/auth";
 import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute, paperExamRoutes } from "@/features/contest";
+import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -123,8 +123,6 @@ function App() {
                           {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
                           {examPrecheckRoute}
 
-                          {/* Paper Exam Flow - Standalone full page */}
-                          {paperExamRoutes}
                         </Route>
 
                         {/* Teacher/Admin Routes */}

@@ -14,9 +14,17 @@ import {
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import {
+  clearExamCaptureSessionId,
+  getExamCaptureSessionId,
+} from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
+import {
+  beginAnticheatTermination,
+  markAnticheatTerminal,
+  syncAnticheatPhaseWithExamStatus,
+} from "@/features/contest/anticheat/orchestrator";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -114,6 +122,7 @@ export const useContestExamActions = ({
 
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
+    beginAnticheatTermination(contest.id);
     try {
       const uploadSessionId = getExamCaptureSessionId(contest.id);
       if (uploadSessionId) {
@@ -121,9 +130,12 @@ export const useContestExamActions = ({
       } else {
         await endExam(contest.id);
       }
+      clearExamCaptureSessionId(contest.id);
       clearExamPrecheckPassed(contest.id);
       await refreshContest();
+      markAnticheatTerminal(contest.id);
     } catch {
+      syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
       onError(messages.endError);
     }
   }, [contest, messages.endError, onError, refreshContest]);
@@ -132,8 +144,10 @@ export const useContestExamActions = ({
     if (!contestId || !contest) return;
 
     try {
-      const shouldEndExam =
-        shouldForceEndExamOnExit(contest, hasEnded);
+      const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
+      if (shouldEndExam) {
+        beginAnticheatTermination(contest.id);
+      }
 
       const result = await leaveExamUseCase({
         contestId: contest.id,
@@ -143,8 +157,12 @@ export const useContestExamActions = ({
       if (contest.cheatDetectionEnabled) {
         clearExamPrecheckPassed(contest.id);
       }
+      if (shouldEndExam) {
+        markAnticheatTerminal(contest.id);
+      }
       navigate(result.navigateTo);
     } catch {
+      syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
       onError(messages.exitError);
     }
   }, [contest, contestId, hasEnded, messages.exitError, navigate, onError]);

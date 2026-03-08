@@ -27,6 +27,9 @@ export function useContestLayoutState() {
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
   const isSolvePage = location.pathname.includes("/solve/");
+  const isPaperExamPage =
+    location.pathname.includes("/paper-exam/") ||
+    /\/paper-exam\/?$/.test(location.pathname);
   const isExamActive = isExamMonitoringActive(contest);
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
@@ -169,6 +172,7 @@ export function useContestLayoutState() {
     isFullscreen,
     isRefreshing,
     isSolvePage,
+    isPaperExamPage,
     isExamActive,
     hasEnded,
     isUpcoming,

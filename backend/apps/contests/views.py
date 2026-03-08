@@ -32,6 +32,7 @@ from .models import (
     ContestActivity,
     ExamStatus,
     ExamAnswer,
+    ExamEvidenceJob,
     ExamEvidenceVideo,
 )
 from .serializers import (
@@ -80,6 +81,7 @@ from .services.anti_cheat_session import (
     clear_active_session,
     get_active_session,
     get_device_id,
+    is_duplicate_exam_event,
     set_active_session,
 )
 from .services.anticheat_storage import (
@@ -88,7 +90,7 @@ from .services.anticheat_storage import (
     generate_get_url,
     generate_put_url,
 )
-from .tasks import compile_anticheat_video
+from .services.exam_submission import finalize_submission
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
 
@@ -1337,20 +1339,31 @@ class ExamViewSet(viewsets.GenericViewSet):
             'auto_unlock_at': auto_unlock_at,
         }
 
-    def _auto_submit_participant(self, participant, contest, actor, reason):
-        participant.exam_status = ExamStatus.SUBMITTED
-        participant.left_at = timezone.now()
-        participant.submit_reason = reason
-        participant.save(update_fields=['exam_status', 'left_at', 'submit_reason'])
-
-        ContestActivityViewSet.log_activity(
-            contest,
-            actor,
-            'auto_submit',
-            reason
+    def _auto_submit_participant(
+        self,
+        participant,
+        contest,
+        actor,
+        reason,
+        upload_session_id: str | None = None,
+    ):
+        finalize_submission(
+            participant,
+            submit_reason=reason,
+            upload_session_id=upload_session_id,
+            activity_user=actor,
+            activity_action_type="auto_submit",
+            activity_details=reason,
         )
 
-    def _process_penalized_event(self, participant, contest, actor, event_type):
+    def _process_penalized_event(
+        self,
+        participant,
+        contest,
+        actor,
+        event_type,
+        upload_session_id: str | None = None,
+    ):
         """
         Unified anti-cheat state handling.
         - in_progress: threshold => lock
@@ -1395,7 +1408,13 @@ class ExamViewSet(viewsets.GenericViewSet):
                 f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
             )
             participant.save(update_fields=update_fields)
-            self._auto_submit_participant(participant, contest, actor, reason)
+            self._auto_submit_participant(
+                participant,
+                contest,
+                actor,
+                reason,
+                upload_session_id=upload_session_id,
+            )
             return ContestParticipant.objects.get(pk=participant.pk)
 
         participant.save(update_fields=update_fields)
@@ -1515,22 +1534,13 @@ class ExamViewSet(viewsets.GenericViewSet):
             )
         
         submit_reason = str(request.data.get('submit_reason') or "Submitted exam").strip()
-        participant.left_at = timezone.now()
-        participant.exam_status = ExamStatus.SUBMITTED
-        participant.submit_reason = submit_reason
-        participant.save(update_fields=['left_at', 'exam_status', 'submit_reason'])
-        clear_active_session(contest.id, request.user.id)
-        compile_anticheat_video.apply_async(
-            args=[participant.id, str(request.data.get("upload_session_id") or "default")],
-            queue="video_queue",
-        )
-        
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest, 
-            request.user, 
-            'end_exam', 
-            submit_reason
+        finalize_submission(
+            participant,
+            submit_reason=submit_reason,
+            upload_session_id=str(request.data.get("upload_session_id") or ""),
+            activity_user=request.user,
+            activity_action_type="end_exam",
+            activity_details=submit_reason,
         )
         
         return Response({
@@ -1608,6 +1618,8 @@ class ExamViewSet(viewsets.GenericViewSet):
                 "expires_at": timezone.now() + timedelta(seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
                 "interval_seconds": 1,
                 "next_seq": start_seq + count,
+                "throttle_scope": "exam_anticheat_urls",
+                "server_time": timezone.now(),
                 "items": items,
             }
         )
@@ -1649,21 +1661,78 @@ class ExamViewSet(viewsets.GenericViewSet):
         
         serializer = ExamEventCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         event_type = serializer.validated_data['event_type']
+        raw_metadata = serializer.validated_data.get('metadata')
+        metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+        upload_session_id = str(metadata.get("upload_session_id") or "").strip() or None
+        event_phase = str(metadata.get("phase") or "").upper()
+        idempotency_token = str(metadata.get("event_idempotency_key") or "").strip()
+
+        if is_duplicate_exam_event(
+            contest_id=contest.id,
+            user_id=request.user.id,
+            event_type=event_type,
+            token=idempotency_token or None,
+        ):
+            logger.info(
+                "anticheat_event_decision contest=%s user=%s event=%s decision=dedupe_hit phase=%s",
+                contest.id,
+                request.user.id,
+                event_type,
+                event_phase or "unknown",
+            )
+            payload = self._build_event_response(participant, contest)
+            payload.update(
+                {
+                    'max_cheat_warnings': contest.max_cheat_warnings,
+                    'decision': 'dedupe_hit',
+                    'dedupe_hit': True,
+                }
+            )
+            return Response(payload)
+
+        if participant.exam_status == ExamStatus.SUBMITTED:
+            ExamEvent.objects.create(
+                contest=contest,
+                user=request.user,
+                event_type=event_type,
+                metadata=metadata,
+            )
+            logger.info(
+                "anticheat_event_decision contest=%s user=%s event=%s decision=terminal_guard status=submitted",
+                contest.id,
+                request.user.id,
+                event_type,
+            )
+            payload = self._build_event_response(participant, contest)
+            payload.update(
+                {
+                    'max_cheat_warnings': contest.max_cheat_warnings,
+                    'decision': 'terminal_guard',
+                    'dedupe_hit': False,
+                }
+            )
+            return Response(payload)
+
         if participant.exam_status not in self.MONITORED_STATUSES:
             return Response(
                 {'error': f'Exam event is not accepted in current state: {participant.exam_status}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if event_type in self.PENALIZED_EVENT_TYPES:
+        terminal_phase_guard = (
+            event_phase in {"TERMINATING", "TERMINAL"}
+            and event_type in self.PENALIZED_EVENT_TYPES
+        )
+
+        if event_type in self.PENALIZED_EVENT_TYPES and not terminal_phase_guard:
             with transaction.atomic():
                 ExamEvent.objects.create(
                     contest=contest,
                     user=request.user,
                     event_type=event_type,
-                    metadata=serializer.validated_data.get('metadata')
+                    metadata=metadata
                 )
                 participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
                 participant = self._process_penalized_event(
@@ -1671,17 +1740,32 @@ class ExamViewSet(viewsets.GenericViewSet):
                     contest=contest,
                     actor=request.user,
                     event_type=event_type,
+                    upload_session_id=upload_session_id,
                 )
         else:
             ExamEvent.objects.create(
                 contest=contest,
                 user=request.user,
                 event_type=event_type,
-                metadata=serializer.validated_data.get('metadata')
+                metadata=metadata
             )
 
         payload = self._build_event_response(participant, contest)
-        payload.update({'max_cheat_warnings': contest.max_cheat_warnings})
+        logger.info(
+            "anticheat_event_decision contest=%s user=%s event=%s decision=%s phase=%s",
+            contest.id,
+            request.user.id,
+            event_type,
+            'terminal_guard' if terminal_phase_guard else 'accepted',
+            event_phase or "unknown",
+        )
+        payload.update(
+            {
+                'max_cheat_warnings': contest.max_cheat_warnings,
+                'decision': 'terminal_guard' if terminal_phase_guard else 'accepted',
+                'dedupe_hit': False,
+            }
+        )
         return Response(payload)
         
     def _list_events(self, request, contest_pk=None):
@@ -1801,9 +1885,86 @@ class ExamViewSet(viewsets.GenericViewSet):
         user_id = request.query_params.get("user_id")
         if user_id:
             qs = qs.filter(participant__user_id=user_id)
-        if request.query_params.get("flagged") == "true":
+        flagged_only = request.query_params.get("flagged") == "true"
+        if flagged_only:
             qs = qs.filter(is_suspected=True)
-        return Response(ExamEvidenceVideoSerializer(qs, many=True).data)
+
+        jobs_qs = ExamEvidenceJob.objects.filter(contest=contest).select_related("participant__user")
+        if user_id:
+            jobs_qs = jobs_qs.filter(participant__user_id=user_id)
+
+        jobs_by_key: dict[tuple[int, str], ExamEvidenceJob] = {}
+        for job in jobs_qs.order_by("-created_at"):
+            key = (job.participant_id, job.upload_session_id or "default")
+            jobs_by_key.setdefault(key, job)
+
+        rows: list[dict] = []
+        existing_keys: set[tuple[int, str]] = set()
+        serialized_videos = ExamEvidenceVideoSerializer(qs, many=True).data
+        for row in serialized_videos:
+            participant_user_id = int(row.get("participant_user_id"))
+            upload_session_id = str(row.get("upload_session_id") or "default")
+            key = (participant_user_id, upload_session_id)
+            existing_keys.add(key)
+            matched_job = jobs_by_key.get(key)
+
+            merged = dict(row)
+            merged["has_video"] = True
+            merged["job_status"] = matched_job.status if matched_job else "success"
+            merged["job_error_message"] = matched_job.error_message if matched_job else ""
+            merged["job_raw_count"] = matched_job.raw_count if matched_job else int(row.get("frame_count") or 0)
+            merged["job_updated_at"] = (
+                matched_job.updated_at.isoformat() if matched_job else row.get("updated_at")
+            )
+            merged["last_activity_at"] = (
+                matched_job.updated_at.isoformat()
+                if matched_job
+                else str(row.get("updated_at") or row.get("created_at") or "")
+            )
+            rows.append(merged)
+
+        if not flagged_only:
+            for job in jobs_qs.order_by("-created_at"):
+                key = (job.participant.user_id, job.upload_session_id or "default")
+                if key in existing_keys:
+                    continue
+                rows.append(
+                    {
+                        "id": -int(job.id),
+                        "participant_user_id": job.participant.user_id,
+                        "participant_username": job.participant.user.username,
+                        "upload_session_id": job.upload_session_id or "default",
+                        "bucket": "",
+                        "object_key": "",
+                        "duration_seconds": 0,
+                        "frame_count": 0,
+                        "size_bytes": 0,
+                        "is_suspected": False,
+                        "suspected_note": "",
+                        "suspected_by": None,
+                        "suspected_by_username": None,
+                        "suspected_at": None,
+                        "created_at": job.created_at.isoformat(),
+                        "updated_at": job.updated_at.isoformat(),
+                        "has_video": False,
+                        "job_status": job.status,
+                        "job_error_message": job.error_message,
+                        "job_raw_count": job.raw_count,
+                        "job_updated_at": job.updated_at.isoformat(),
+                        "last_activity_at": job.updated_at.isoformat(),
+                    }
+                )
+
+        rows.sort(
+            key=lambda item: str(
+                item.get("last_activity_at")
+                or item.get("updated_at")
+                or item.get("created_at")
+                or ""
+            ),
+            reverse=True,
+        )
+        return Response(rows)
 
     @action(detail=False, methods=["get"], url_path=r"videos/(?P<video_id>[^/.]+)/play-url")
     def video_play_url(self, request, contest_pk=None, video_id=None):

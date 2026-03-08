@@ -45,6 +45,7 @@ const ContestLayout = () => {
     isFullscreen,
     isRefreshing,
     isSolvePage,
+    isPaperExamPage,
     hasEnded,
     isUpcoming,
     isAdmin,
@@ -173,6 +174,16 @@ const ContestLayout = () => {
   };
 
   const renderMainContent = () => {
+    const outletContent = (
+      <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
+        <Outlet context={{ refreshContest }} />
+      </ContestProvider>
+    );
+
+    if (isPaperExamPage) {
+      return outletContent;
+    }
+
     if (isUpcoming && contest && !isAdmin) {
       return (
         <div className={styles.scrollableContent}>
@@ -185,19 +196,7 @@ const ContestLayout = () => {
     }
 
     if (isSolvePage) {
-      return (
-        <ExamModeWrapper
-          contestId={contestId || ""}
-          cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-          lockReason={contest?.lockReason}
-          examStatus={contest?.examStatus}
-          onRefresh={refreshContest}
-        >
-          <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
-            <Outlet context={{ refreshContest }} />
-          </ContestProvider>
-        </ExamModeWrapper>
-      );
+      return outletContent;
     }
 
     return (
@@ -218,20 +217,26 @@ const ContestLayout = () => {
           contest ? <ContestTabs contest={contest} maxWidth="1056px" /> : undefined
         }
       >
-        <ExamModeWrapper
-          contestId={contestId || ""}
-          cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-          lockReason={contest?.lockReason}
-          examStatus={contest?.examStatus}
-          onRefresh={refreshContest}
-        >
-          <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
-            <Outlet context={{ refreshContest }} />
-          </ContestProvider>
-        </ExamModeWrapper>
+        {outletContent}
       </ContentPage>
     );
   };
+
+  const wrappedMainContent = (
+    <ExamModeWrapper
+      contestId={contestId || ""}
+      cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
+      lockReason={contest?.lockReason}
+      examStatus={contest?.examStatus}
+      onRefresh={refreshContest}
+    >
+      {renderMainContent()}
+    </ExamModeWrapper>
+  );
+
+  if (isPaperExamPage) {
+    return wrappedMainContent;
+  }
 
   const showContestTimer =
     contest &&
@@ -329,7 +334,7 @@ const ContestLayout = () => {
 
       <div className={styles.mainContent}>
         <div className={styles.contentWrapper}>
-          {renderMainContent()}
+          {wrappedMainContent}
         </div>
       </div>
 

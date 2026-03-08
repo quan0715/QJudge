@@ -2,6 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useExamState } from "./useExamState";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn(),
@@ -10,10 +11,12 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 describe("useExamState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAnticheatOrchestrator("123");
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    resetAnticheatOrchestrator("123");
   });
 
   const defaultProps = {
@@ -45,7 +48,11 @@ describe("useExamState", () => {
       await result.current.handleViolation("window_blur", "Left window");
     });
 
-    expect(recordExamEvent).toHaveBeenCalledWith("123", "window_blur", "Left window");
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "123",
+      "window_blur",
+      expect.objectContaining({ reason: "Left window" })
+    );
     expect(result.current.showWarning).toBe(true);
     expect(result.current.warningEventType).toBe("window_blur");
     expect(result.current.examState.violationCount).toBe(1);
@@ -100,7 +107,7 @@ describe("useExamState", () => {
       2,
       "123",
       "tab_hidden",
-      "Second event"
+      expect.objectContaining({ reason: "Second event" })
     );
   });
 
@@ -165,7 +172,9 @@ describe("useExamState", () => {
       2,
       "123",
       "warning_timeout",
-      "Warning timeout: student did not acknowledge warning within 30 seconds"
+      expect.objectContaining({
+        reason: "Warning timeout: student did not acknowledge warning within 30 seconds",
+      })
     );
     expect(result.current.lastApiResponse?.locked).toBe(true);
     expect(onRefresh).toHaveBeenCalledTimes(2);
@@ -235,7 +244,7 @@ describe("useExamState", () => {
     expect(recordExamEvent).toHaveBeenCalledWith(
       "123",
       "tab_hidden",
-      "locked state event"
+      expect.objectContaining({ reason: "locked state event" })
     );
     expect(result.current.showWarning).toBe(false);
   });

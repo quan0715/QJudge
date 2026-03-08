@@ -12,7 +12,7 @@ interface ExamSessionResponse {
   error?: string;
 }
 
-interface ExamEventResponse {
+export interface ExamEventResponse {
   status?: string;
   message?: string;
   error?: string;
@@ -24,6 +24,14 @@ interface ExamEventResponse {
   locked?: boolean;
   bypass?: boolean;
   auto_unlock_at?: string;
+}
+
+export interface RecordExamEventOptions {
+  reason?: string;
+  metadata?: Record<string, unknown>;
+  source?: string;
+  phase?: string;
+  eventIdempotencyKey?: string;
 }
 
 interface ContestActivityDto {
@@ -59,14 +67,28 @@ export const endExam = async (
 export const recordExamEvent = async (
   contestId: string,
   eventType: string,
-  lockReason?: string
+  reasonOrOptions?: string | RecordExamEventOptions
 ): Promise<ExamEventResponse | null> => {
+  const options: RecordExamEventOptions =
+    typeof reasonOrOptions === "string"
+      ? { reason: reasonOrOptions }
+      : reasonOrOptions || {};
+
+  const metadata = {
+    ...(options.metadata || {}),
+    ...(options.reason ? { reason: options.reason } : {}),
+    ...(options.source ? { source: options.source } : {}),
+    ...(options.phase ? { phase: options.phase } : {}),
+    ...(options.eventIdempotencyKey
+      ? { event_idempotency_key: options.eventIdempotencyKey }
+      : {}),
+  };
+
   const res = await httpClient.post(
     `/api/v1/contests/${contestId}/exam/events/`,
     {
       event_type: eventType,
-      lock_reason: lockReason,
-      metadata: lockReason ? { reason: lockReason } : undefined,
+      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     }
   );
   if (!res.ok) {
@@ -133,6 +155,23 @@ export interface AnticheatUrlsResponse {
   items: AnticheatUploadItem[];
 }
 
+export interface AnticheatUrlsRequestError extends Error {
+  status?: number;
+  retryAfterMs?: number;
+}
+
+const parseRetryAfterMs = (value: string | null): number | undefined => {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
+  const asDate = Date.parse(value);
+  if (Number.isNaN(asDate)) return undefined;
+  const delta = asDate - Date.now();
+  return delta > 0 ? delta : undefined;
+};
+
 export const getAnticheatUrls = async (
   contestId: string,
   count = 30,
@@ -146,10 +185,26 @@ export const getAnticheatUrls = async (
   if (typeof options?.start_seq === "number" && options.start_seq > 0) {
     search.set("start_seq", String(options.start_seq));
   }
-  return requestJson<AnticheatUrlsResponse>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/anticheat-urls/?${search.toString()}`),
-    "Failed to fetch anticheat upload URLs"
+
+  const response = await httpClient.get(
+    `/api/v1/contests/${contestId}/exam/anticheat-urls/?${search.toString()}`
   );
+  if (!response.ok) {
+    const errorData = (await response.json().catch(() => null)) as
+      | { detail?: string; message?: string; error?: string }
+      | null;
+    const message =
+      errorData?.detail ||
+      errorData?.message ||
+      errorData?.error ||
+      "Failed to fetch anticheat upload URLs";
+    const err = new Error(message) as AnticheatUrlsRequestError;
+    err.status = response.status;
+    err.retryAfterMs = parseRetryAfterMs(response.headers.get("Retry-After"));
+    throw err;
+  }
+
+  return (await response.json()) as AnticheatUrlsResponse;
 };
 
 export interface ExamVideoDto {
@@ -169,6 +224,12 @@ export interface ExamVideoDto {
   suspected_at?: string | null;
   created_at: string;
   updated_at: string;
+  has_video?: boolean;
+  job_status?: "pending" | "running" | "success" | "failed";
+  job_error_message?: string;
+  job_raw_count?: number;
+  job_updated_at?: string;
+  last_activity_at?: string;
 }
 
 export const listExamVideos = async (

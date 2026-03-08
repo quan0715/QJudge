@@ -1,24 +1,6 @@
 import React from "react";
-import { Outlet, useParams } from "react-router-dom";
-import { PaperExamProvider, usePaperExam } from "@/features/contest/contexts/PaperExamContext";
-import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
-
-const PaperExamLayoutContent: React.FC = () => {
-  const { contestId } = useParams<{ contestId: string }>();
-  const { contest, refreshContest } = usePaperExam();
-
-  return (
-    <ExamModeWrapper
-      contestId={contestId || ""}
-      cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-      lockReason={contest?.lockReason}
-      examStatus={contest?.examStatus}
-      onRefresh={refreshContest}
-    >
-      <Outlet />
-    </ExamModeWrapper>
-  );
-};
+import { Outlet } from "react-router-dom";
+import { PaperExamProvider } from "@/features/contest/contexts/PaperExamContext";
 
 /**
  * Lightweight wrapper for paper-exam screens.
@@ -27,7 +9,7 @@ const PaperExamLayoutContent: React.FC = () => {
  */
 const PaperExamLayout: React.FC = () => (
   <PaperExamProvider>
-    <PaperExamLayoutContent />
+    <Outlet />
   </PaperExamProvider>
 );
 

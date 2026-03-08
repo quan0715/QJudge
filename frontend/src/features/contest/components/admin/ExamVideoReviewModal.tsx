@@ -30,7 +30,18 @@ interface Props {
   userIdFilter?: string;
 }
 
-const tableHeaders = ["學生", "建立時間", "長度", "標記"];
+const tableHeaders = ["學生", "最後更新", "長度", "標記"];
+const getJobTag = (video: ExamVideoDto) => {
+  const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as
+    | "pending"
+    | "running"
+    | "success"
+    | "failed";
+  if (status === "failed") return <Tag type="red">轉檔失敗</Tag>;
+  if (status === "running") return <Tag type="blue">轉檔中</Tag>;
+  if (status === "pending") return <Tag type="cool-gray">排隊中</Tag>;
+  return <Tag type="green">可播放</Tag>;
+};
 
 const formatBytes = (bytes: number): string => {
   if (!bytes || bytes <= 0) return "0 B";
@@ -91,7 +102,8 @@ const ExamVideoReviewModal: React.FC<Props> = ({
         return;
       }
       const matched = selectedId && data.some((v) => v.id === selectedId);
-      const nextId = matched ? selectedId : data[0].id;
+      const preferred = data.find((v) => v.has_video !== false) || data[0];
+      const nextId = matched ? selectedId : preferred.id;
       setSelectedId(nextId);
     } catch (error) {
       const message = error instanceof Error ? error.message : "載入影片失敗";
@@ -110,7 +122,10 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   }, [open, reload]);
 
   useEffect(() => {
-    if (!contestId || !selectedId) return;
+    if (!contestId || !selectedId || !selectedVideo || selectedVideo.has_video === false) {
+      setPlayUrl("");
+      return;
+    }
     const fetchPlayUrl = async () => {
       try {
         setErrorMessage("");
@@ -123,20 +138,20 @@ const ExamVideoReviewModal: React.FC<Props> = ({
       }
     };
     void fetchPlayUrl();
-  }, [contestId, selectedId]);
+  }, [contestId, selectedId, selectedVideo]);
 
   useEffect(() => {
     setNote(selectedVideo?.suspected_note || "");
   }, [selectedVideo]);
 
   const handleDownload = async () => {
-    if (!contestId || !selectedId) return;
+    if (!contestId || !selectedId || !selectedVideo || selectedVideo.has_video === false) return;
     const data = await getExamVideoDownloadUrl(contestId, selectedId);
     window.open(data.url, "_blank", "noopener,noreferrer");
   };
 
   const handleToggleFlag = async () => {
-    if (!contestId || !selectedVideo) return;
+    if (!contestId || !selectedVideo || selectedVideo.has_video === false) return;
     const updated = await flagExamVideo(contestId, selectedVideo.id, {
       is_suspected: !selectedVideo.is_suspected,
       note,
@@ -191,6 +206,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                         {tableHeaders.map((header) => (
                           <TableHeader key={header}>{header}</TableHeader>
                         ))}
+                        <TableHeader>轉檔狀態</TableHeader>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -210,7 +226,9 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                           >
                             <TableCell>{video.participant_username}</TableCell>
                             <TableCell>
-                              {new Date(video.created_at).toLocaleString()}
+                              {new Date(
+                                video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
+                              ).toLocaleString()}
                             </TableCell>
                             <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
                             <TableCell>
@@ -220,6 +238,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                                 <Tag type="green">正常</Tag>
                               )}
                             </TableCell>
+                            <TableCell>{getJobTag(video)}</TableCell>
                           </TableRow>
                         );
                       })}
@@ -239,7 +258,13 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                       overflow: "hidden",
                     }}
                   >
-                    {playUrl ? (
+                    {selectedVideo?.has_video === false ? (
+                      <div style={{ padding: "1rem", color: "var(--cds-text-secondary)" }}>
+                        {selectedVideo.job_status === "failed"
+                          ? "影片轉檔失敗，請稍後重試或查看錯誤訊息。"
+                          : "影片仍在處理中，完成後會自動顯示。"}
+                      </div>
+                    ) : playUrl ? (
                       <video controls src={playUrl} style={{ width: "100%", display: "block" }} />
                     ) : (
                       <div style={{ padding: "1rem", color: "var(--cds-text-secondary)" }}>
@@ -277,12 +302,27 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                           {selectedVideo.frame_count.toLocaleString()} 幀 ({getFpsText(selectedVideo.frame_count, selectedVideo.duration_seconds)})
                         </div>
                       </div>
+                      <div>
+                        <div style={{ color: "var(--cds-text-secondary)", fontSize: "0.75rem" }}>轉檔狀態</div>
+                        <div>{selectedVideo.job_status || (selectedVideo.has_video === false ? "pending" : "success")}</div>
+                      </div>
                     </div>
 
                     {selectedVideo.is_suspected ? (
                       <Tag type="red">疑似作弊</Tag>
                     ) : (
                       <Tag type="green">正常</Tag>
+                    )}
+                    {!!selectedVideo.job_error_message && (
+                      <div style={{ marginTop: "0.75rem" }}>
+                        <InlineNotification
+                          kind="warning"
+                          lowContrast
+                          title="轉檔錯誤"
+                          subtitle={selectedVideo.job_error_message}
+                          hideCloseButton
+                        />
+                      </div>
                     )}
                   </Tile>
                 )}
@@ -299,7 +339,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                       kind="secondary"
                       size="sm"
                       onClick={handleDownload}
-                      disabled={!selectedId}
+                      disabled={!selectedVideo || selectedVideo.has_video === false}
                     >
                       下載影片
                     </Button>
@@ -307,7 +347,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                       kind="primary"
                       size="sm"
                       onClick={handleToggleFlag}
-                      disabled={!selectedVideo}
+                      disabled={!selectedVideo || selectedVideo.has_video === false}
                     >
                       {selectedVideo?.is_suspected ? "取消疑似標記" : "標記疑似作弊"}
                     </Button>

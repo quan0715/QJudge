@@ -13,6 +13,7 @@ import {
   PopupGuardDetector,
 } from "@/features/contest/detectors";
 import type { ViolationEvent, ExamDetector } from "@/features/contest/detectors";
+import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 
 export type RecoverySource = "fullscreen" | "mouse-leave";
 
@@ -47,6 +48,9 @@ export function useExamMonitoring({
       Promise.resolve(onViolationRef.current(eventType, message)).catch(() => undefined);
 
     const handleViolation = (event: ViolationEvent) => {
+      if (isRuntimeScreenShareReauthActive()) {
+        return;
+      }
       if (event.severity === "info") {
         onBlockedActionRef.current?.(event.message);
         return;

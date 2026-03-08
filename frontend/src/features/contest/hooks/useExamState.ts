@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ExamModeState, ExamStatusType } from "@/core/entities/contest.entity";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
+import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 import { isFullscreen } from "@/core/usecases/exam";
+import {
+  buildAnticheatMetadata,
+  decideAnticheatSignal,
+  syncAnticheatPhaseWithExamStatus,
+} from "@/features/contest/anticheat/orchestrator";
+import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 
 export interface UseExamStateProps {
   contestId: string;
@@ -13,7 +20,10 @@ export interface UseExamStateProps {
 }
 
 const isMonitoredExamStatus = (status?: ExamStatusType) =>
-  status === "in_progress" || status === "paused" || status === "locked";
+  status === "in_progress" ||
+  status === "paused" ||
+  status === "locked" ||
+  status === "locked_takeover";
 
 export function useExamState({
   contestId,
@@ -31,6 +41,15 @@ export function useExamState({
   type ViolationPayload = {
     eventType: string;
     reason: string;
+    source?: string;
+    severity?: "info" | "warning" | "violation";
+  };
+  type SkippedDispatchResult = { skipped: true };
+
+  const isSkippedDispatchResult = (
+    value: ExamEventResponse | SkippedDispatchResult | null
+  ): value is SkippedDispatchResult => {
+    return !!value && typeof value === "object" && "skipped" in value;
   };
 
   const [examState, setExamState] = useState<ExamModeState>({
@@ -77,6 +96,43 @@ export function useExamState({
     setWarningCountdown(null);
   }, []);
 
+  const dispatchExamEvent = useCallback(
+    async ({
+      eventType,
+      reason,
+      source,
+      severity,
+    }: {
+      eventType: string;
+      reason: string;
+      source: string;
+      severity?: "info" | "warning" | "violation";
+    }): Promise<ExamEventResponse | SkippedDispatchResult | null> => {
+      const decision = decideAnticheatSignal(contestId, {
+        eventType,
+        reason,
+        source,
+        severity,
+      });
+      if (!decision.accepted) {
+        return { skipped: true as const };
+      }
+
+      const response = await recordExamEvent(contestId, eventType, {
+        reason,
+        source,
+        phase: decision.phase,
+        eventIdempotencyKey: decision.eventIdempotencyKey,
+        metadata: buildAnticheatMetadata(decision, {
+          source,
+          severity,
+        }),
+      });
+      return response;
+    },
+    [contestId]
+  );
+
   const handleWarningTimeout = useCallback(async () => {
     if (
       warningTimeoutProcessingRef.current ||
@@ -89,11 +145,15 @@ export function useExamState({
     warningTimeoutProcessingRef.current = true;
     setPendingApiResponse(true);
     try {
-      const response = await recordExamEvent(
-        contestId,
-        "warning_timeout",
-        WARNING_TIMEOUT_REASON
-      );
+      const response = await dispatchExamEvent({
+        eventType: "warning_timeout",
+        reason: WARNING_TIMEOUT_REASON,
+        source: "warning_timeout",
+        severity: "violation",
+      });
+      if (isSkippedDispatchResult(response)) {
+        return;
+      }
       if (!response || typeof response !== "object") {
         throw new Error("Failed to record warning timeout event");
       }
@@ -128,7 +188,7 @@ export function useExamState({
       setPendingApiResponse(false);
       warningTimeoutProcessingRef.current = false;
     }
-  }, [contestId, examStatus, isBypassed, onRefresh]);
+  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh]);
 
   const startWarningCountdown = useCallback(() => {
     stopWarningCountdown();
@@ -150,6 +210,8 @@ export function useExamState({
   }, [handleWarningTimeout, stopWarningCountdown]);
 
   useEffect(() => {
+    syncAnticheatPhaseWithExamStatus(contestId, examStatus);
+
     const effectiveIsLocked = examStatus === "locked" || examStatus === "locked_takeover";
     const effectiveIsActive = examStatus === "in_progress";
 
@@ -182,7 +244,7 @@ export function useExamState({
     }
 
     prevExamStatusRef.current = examStatus;
-  }, [examStatus, lockReason, isBypassed, stopWarningCountdown]);
+  }, [contestId, examStatus, lockReason, isBypassed, stopWarningCountdown]);
 
   const drainViolationQueue = useCallback(async () => {
     if (isProcessingEventRef.current) return;
@@ -207,11 +269,16 @@ export function useExamState({
         }
 
         try {
-          const response = await recordExamEvent(
-            contestId,
-            currentViolation.eventType,
-            currentViolation.reason
-          );
+          const response = await dispatchExamEvent({
+            eventType: currentViolation.eventType,
+            reason: currentViolation.reason,
+            source: currentViolation.source || "detector:unknown",
+            severity: currentViolation.severity || "warning",
+          });
+          if (isSkippedDispatchResult(response)) {
+            queuedViolationRef.current.shift();
+            continue;
+          }
 
           if (!response || typeof response !== "object") {
             throw new Error("Failed to record exam event");
@@ -275,14 +342,26 @@ export function useExamState({
         }, EVENT_RETRY_DELAY_MS);
       }
     }
-  }, [contestId, examStatus, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
+  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
 
   const handleViolation = useCallback(
-    async (eventType: string, reason: string) => {
+    async (
+      eventType: string,
+      reason: string,
+      options?: { source?: string; severity?: "info" | "warning" | "violation" }
+    ) => {
       if (!isMonitoredExamStatus(examStatus) || isBypassed) {
         return;
       }
-      queuedViolationRef.current.push({ eventType, reason });
+      if (isRuntimeScreenShareReauthActive()) {
+        return;
+      }
+      queuedViolationRef.current.push({
+        eventType,
+        reason,
+        source: options?.source || "detector:unknown",
+        severity: options?.severity,
+      });
       if (!isProcessingEventRef.current) {
         await drainViolationQueue();
       }

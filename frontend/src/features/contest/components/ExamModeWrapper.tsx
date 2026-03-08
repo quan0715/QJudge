@@ -11,11 +11,12 @@ import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
 import { getContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
-import {
-  exitFullscreen,
-  isFullscreen,
-  requestFullscreen,
-} from "@/core/usecases/exam";
+import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
+import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
+import { useRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
+import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
+import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
+import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -38,6 +39,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const lastBlockedActionToastAt = useRef<number>(0);
+  const fullscreenAdapterRef = useRef(createFullscreenAdapter());
+  const runtimeReauthActive = useRuntimeScreenShareReauth();
   const { showToast } = useToast();
 
   // 1. Core State & API actions
@@ -58,7 +61,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     lockReason,
     isBypassed: false,
     onRefresh,
-    requestFullscreen,
+    requestFullscreen: fullscreenAdapterRef.current.request,
   });
 
   // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
@@ -67,6 +70,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     examStatus === "locked" ||
     examStatus === "locked_takeover" ||
     examStatus === "paused";
+  const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
+  const captureEnabled = cheatDetectionEnabled && isCurrentlyMonitored && precheckPassed;
+  const capture = useAnticheatScreenCapture({
+    contestId,
+    enabled: captureEnabled,
+  });
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();
     if (now - lastBlockedActionToastAt.current < 1000) {
@@ -99,14 +108,21 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {
+    if (contestId) {
+      syncAnticheatPhaseWithExamStatus(contestId, examStatus);
+    }
+  }, [contestId, examStatus]);
+
+  useEffect(() => {
     if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
+    if (runtimeReauthActive) return;
 
     const shouldBeInFullscreen =
       examStatus === "in_progress" || examStatus === "locked";
 
-    if (shouldBeInFullscreen && !isFullscreen()) {
+    if (shouldBeInFullscreen && !fullscreenAdapterRef.current.isActive()) {
       const timer = setTimeout(() => {
-        if (!isFullscreen() && !isSubmittingFromFullscreenExit) {
+        if (!fullscreenAdapterRef.current.isActive() && !isSubmittingFromFullscreenExit) {
           setShowFullscreenExitConfirm(true);
         }
         initialFullscreenCheckDone.current = true;
@@ -115,28 +131,29 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } else {
       initialFullscreenCheckDone.current = true;
     }
-  }, [examStatus, cheatDetectionEnabled, isSubmittingFromFullscreenExit]);
+  }, [examStatus, cheatDetectionEnabled, isSubmittingFromFullscreenExit, runtimeReauthActive]);
 
   // Fullscreen transition flows for submit / locked states
   useEffect(() => {
+    if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
-      if (isFullscreen()) {
-        exitFullscreen().catch(() => undefined);
+      if (fullscreenAdapterRef.current.isActive()) {
+        void fullscreenAdapterRef.current.exit();
       }
     }
 
     if (
       cheatDetectionEnabled &&
       examStatus === "locked" &&
-      !isFullscreen()
+      !fullscreenAdapterRef.current.isActive()
     ) {
       setTimeout(() => {
-        if (!isFullscreen()) {
-          requestFullscreen().catch(() => undefined);
+        if (!fullscreenAdapterRef.current.isActive()) {
+          void fullscreenAdapterRef.current.request();
         }
       }, 100);
     }
-  }, [examStatus, cheatDetectionEnabled]);
+  }, [examStatus, cheatDetectionEnabled, runtimeReauthActive]);
 
   // Monitor fullscreen exit for locked states - show submit confirmation
   useEffect(() => {
@@ -146,7 +163,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (!shouldMonitorFullscreen) return;
 
     const handleFullscreenExitForLocked = () => {
-      if (!isFullscreen() && !isSubmittingFromFullscreenExit) {
+      if (runtimeReauthActive) return;
+      if (!fullscreenAdapterRef.current.isActive() && !isSubmittingFromFullscreenExit) {
         setShowFullscreenExitConfirm(true);
       }
     };
@@ -156,7 +174,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenExitForLocked);
     };
-  }, [cheatDetectionEnabled, examStatus, isSubmittingFromFullscreenExit]);
+  }, [cheatDetectionEnabled, examStatus, isSubmittingFromFullscreenExit, runtimeReauthActive]);
+
+  useEffect(() => {
+    if (runtimeReauthActive && showFullscreenExitConfirm) {
+      setShowFullscreenExitConfirm(false);
+    }
+  }, [runtimeReauthActive, showFullscreenExitConfirm]);
 
   const handleFullscreenExitConfirm = async () => {
     setIsSubmittingFromFullscreenExit(true);
@@ -168,11 +192,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       setShowFullscreenExitConfirm(false);
     } catch {
       setShowFullscreenExitConfirm(false);
-      try {
-        await requestFullscreen();
-      } catch {
-        // noop
-      }
+      await fullscreenAdapterRef.current.request();
     } finally {
       setIsSubmittingFromFullscreenExit(false);
     }
@@ -180,19 +200,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const handleFullscreenExitCancel = async () => {
     setShowFullscreenExitConfirm(false);
-    try {
-      await requestFullscreen();
-    } catch {
-      // noop
-    }
+    await fullscreenAdapterRef.current.request();
   };
 
   const handleRecoverFullscreen = useCallback(async () => {
-    try {
-      await requestFullscreen();
-    } catch {
-      // noop
-    }
+    await fullscreenAdapterRef.current.request();
   }, []);
 
   const isAnsweringPath = () => {
@@ -221,35 +233,37 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   };
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%", flex: 1 }}>
-      {children}
-      <ExamOverlays
-        showGracePeriod={false}
-        gracePeriodCountdown={0}
-        showLockScreen={shouldShowLockScreen}
-        lockReason={examState.lockReason}
-        timeLeft={unlockTimeLeft}
-        onBackToContest={handleBackToContest}
-      />
-      <ExamModals
-        showWarning={showWarning}
-        pendingApiResponse={pendingApiResponse}
-        lastApiResponse={lastApiResponse}
-        warningEventType={warningEventType}
-        examState={examState}
-        warningCountdown={warningCountdown}
-        recoveryCountdown={recoveryCountdown}
-        recoverySource={recoverySource}
-        onRecoverFullscreen={handleRecoverFullscreen}
-        onWarningClose={handleWarningClose}
-        showUnlockNotification={showUnlockNotification}
-        onUnlockContinue={handleUnlockContinue}
-        showFullscreenExitConfirm={showFullscreenExitConfirm}
-        isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
-        onFullscreenExitConfirm={handleFullscreenExitConfirm}
-        onFullscreenExitCancel={handleFullscreenExitCancel}
-      />
-    </div>
+    <ExamCaptureProvider value={capture}>
+      <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%", flex: 1 }}>
+        {children}
+        <ExamOverlays
+          showGracePeriod={false}
+          gracePeriodCountdown={0}
+          showLockScreen={shouldShowLockScreen}
+          lockReason={examState.lockReason}
+          timeLeft={unlockTimeLeft}
+          onBackToContest={handleBackToContest}
+        />
+        <ExamModals
+          showWarning={showWarning}
+          pendingApiResponse={pendingApiResponse}
+          lastApiResponse={lastApiResponse}
+          warningEventType={warningEventType}
+          examState={examState}
+          warningCountdown={warningCountdown}
+          recoveryCountdown={recoveryCountdown}
+          recoverySource={recoverySource}
+          onRecoverFullscreen={handleRecoverFullscreen}
+          onWarningClose={handleWarningClose}
+          showUnlockNotification={showUnlockNotification}
+          onUnlockContinue={handleUnlockContinue}
+          showFullscreenExitConfirm={showFullscreenExitConfirm}
+          isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
+          onFullscreenExitConfirm={handleFullscreenExitConfirm}
+          onFullscreenExitCancel={handleFullscreenExitCancel}
+        />
+      </div>
+    </ExamCaptureProvider>
   );
 };
 

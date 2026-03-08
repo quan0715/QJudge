@@ -10,6 +10,12 @@ import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,
 } from "./hooks/examCaptureSession";
+import {
+  beginAnticheatTermination,
+  markAnticheatTerminal,
+  resetAnticheatOrchestrator,
+  syncAnticheatPhaseWithExamStatus,
+} from "@/features/contest/anticheat/orchestrator";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -53,10 +59,12 @@ export const usePaperExamFlow = () => {
     setError(null);
     try {
       clearExamCaptureSessionId(id);
+      resetAnticheatOrchestrator(id);
       // 考試模式只需 startExam，不需 enterContest
       // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
       await startExam(id);
       await refreshContest();
+      syncAnticheatPhaseWithExamStatus(id, "in_progress");
       return true;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "無法開始考試"));
@@ -70,14 +78,17 @@ export const usePaperExamFlow = () => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
+    beginAnticheatTermination(id);
     try {
       await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
       });
       await refreshContest();
       clearExamCaptureSessionId(id);
+      markAnticheatTerminal(id);
       return true;
     } catch (err: unknown) {
+      syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
       setError(getErrorMessage(err, "交卷失敗"));
       return false;
     } finally {

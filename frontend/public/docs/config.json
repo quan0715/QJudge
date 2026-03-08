@@ -25,6 +25,7 @@
       "items": [
         "contributing",
         "contest-extension-architecture",
+        "exam-precheck-anticheat",
         "dev-setup",
         "e2e-testing"
       ]

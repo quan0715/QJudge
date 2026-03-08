@@ -34,6 +34,7 @@
       "admin-overview": "관리자 기능",
       "contributing": "기여하기",
       "contest-extension-architecture": "대회 확장 아키텍처 가이드",
+      "exam-precheck-anticheat": "Exam Pre-check 및 부정행위 방지 시퀀스",
       "dev-setup": "개발 환경 설정",
       "e2e-testing": "E2E 테스트 가이드"
     }

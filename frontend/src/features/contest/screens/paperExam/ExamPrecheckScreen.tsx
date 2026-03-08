@@ -30,12 +30,14 @@ import {
 } from "./hooks/useExamPrecheckGate";
 import {
   clearPrecheckScreenShareHandoff,
+  peekPrecheckScreenShareHandoff,
   setPrecheckScreenShareHandoff,
 } from "./hooks/examScreenShareHandoff";
 import {
   getPostPrecheckPath,
   getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
+import { setAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
 import styles from "./ExamPrecheck.module.scss";
 
 type CheckStatus = "pending" | "running" | "pass" | "fail" | "blocked";
@@ -46,6 +48,21 @@ interface CheckItem {
   status: CheckStatus;
   detail?: string;
 }
+
+type EnvCheckId = "singleMonitor" | "shareScreen" | "fullscreen" | "interaction";
+
+interface PreflightValidationFailure {
+  checkId: EnvCheckId;
+  detail: string;
+  clearShareHandoff?: boolean;
+}
+
+const ENV_CHECK_ORDER: EnvCheckId[] = [
+  "singleMonitor",
+  "shareScreen",
+  "fullscreen",
+  "interaction",
+];
 
 const COUNTDOWN_SECONDS = 3;
 const PRECHECK_FULLSCREEN_TIMEOUT_MS = 4000;
@@ -201,6 +218,7 @@ const ExamPrecheckScreen: React.FC = () => {
     // Force fresh precheck checks every time user enters this screen.
     clearExamPrecheckPassed(contestId);
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
+    setAnticheatPhase(contestId, "PRECHECK");
   }, [contest, contestId]);
 
   // Step 1: Participation & submission verification
@@ -243,6 +261,7 @@ const ExamPrecheckScreen: React.FC = () => {
   // Step 2: Environment checks
   const runEnvChecks = useCallback(async () => {
     if (envTestRunning) return;
+    setStartGuardError(null);
     setEnvTestRunning(true);
     setEnvChecks([
       { id: "singleMonitor", label: "單螢幕檢查", status: "pending" },
@@ -409,10 +428,111 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const envAllPass = envChecks.every((c) => c.status === "pass");
 
+  const applyPreflightFailureToEnvChecks = useCallback(
+    (failure: PreflightValidationFailure) => {
+      const failureIndex = ENV_CHECK_ORDER.indexOf(failure.checkId);
+      if (failureIndex < 0) return;
+
+      setEnvChecks((prev) =>
+        prev.map((item) => {
+          const itemId = item.id as EnvCheckId;
+          const idx = ENV_CHECK_ORDER.indexOf(itemId);
+          if (idx === failureIndex) {
+            return {
+              ...item,
+              status: "fail" as const,
+              detail: failure.detail,
+            };
+          }
+          if (idx > failureIndex) {
+            return {
+              ...item,
+              status: "blocked" as const,
+              detail: `需先通過「${failure.checkId === "singleMonitor" ? "單螢幕檢查" : failure.checkId === "shareScreen" ? "分享螢幕" : failure.checkId === "fullscreen" ? "全螢幕測試" : "互動輸入檢查"}」。`,
+            };
+          }
+          return item;
+        })
+      );
+      setEnvTestDone(true);
+      setEnvTestRunning(false);
+      if (failure.clearShareHandoff) {
+        clearPrecheckScreenShareHandoff(true);
+      }
+    },
+    []
+  );
+
+  const runStartPreflightValidation = useCallback(async (): Promise<PreflightValidationFailure | null> => {
+    const diagnostics = await displayService.check();
+    if (!diagnostics.supportsScreenDetails) {
+      return {
+        checkId: "singleMonitor",
+        detail: "瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
+        clearShareHandoff: true,
+      };
+    }
+    if (diagnostics.screenCount === null) {
+      return {
+        checkId: "singleMonitor",
+        detail: "無法確認螢幕數量，請重新執行環境檢查。",
+        clearShareHandoff: true,
+      };
+    }
+    if (diagnostics.isExtended || diagnostics.screenCount > 1) {
+      return {
+        checkId: "singleMonitor",
+        detail: `目前偵測到多螢幕 (${diagnostics.screenCount} 個)，請先關閉外接螢幕後重試。`,
+        clearShareHandoff: true,
+      };
+    }
+
+    const handoffStream = peekPrecheckScreenShareHandoff();
+    if (!handoffStream) {
+      return {
+        checkId: "shareScreen",
+        detail: "螢幕分享已失效，請回到上一步重新完成分享螢幕檢查。",
+        clearShareHandoff: true,
+      };
+    }
+    const track = handoffStream.getVideoTracks?.()[0];
+    if (!track || track.readyState !== "live") {
+      return {
+        checkId: "shareScreen",
+        detail: "螢幕分享已中斷，請回到上一步重新完成分享螢幕檢查。",
+        clearShareHandoff: true,
+      };
+    }
+    const settings = (track.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
+    if (settings.displaySurface !== "monitor") {
+      return {
+        checkId: "shareScreen",
+        detail: "目前分享來源不是整個螢幕 (monitor)，請回到上一步重新分享。",
+        clearShareHandoff: true,
+      };
+    }
+
+    if (!isFullscreen()) {
+      return {
+        checkId: "fullscreen",
+        detail: "目前不是全螢幕模式，請回到上一步重新完成全螢幕檢查。",
+      };
+    }
+
+    return null;
+  }, []);
+
   const handleStart = useCallback(async () => {
     setStartGuardError(null);
+    const validationFailure = await runStartPreflightValidation();
+    if (validationFailure) {
+      applyPreflightFailureToEnvChecks(validationFailure);
+      setStartGuardError(validationFailure.detail);
+      setCurrentStep(1);
+      return;
+    }
     setCountdown(COUNTDOWN_SECONDS);
-  }, []);
+  }, [applyPreflightFailureToEnvChecks, runStartPreflightValidation]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -421,6 +541,14 @@ const ExamPrecheckScreen: React.FC = () => {
       return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
     }
     (async () => {
+      const validationFailure = await runStartPreflightValidation();
+      if (validationFailure) {
+        applyPreflightFailureToEnvChecks(validationFailure);
+        setStartGuardError(validationFailure.detail);
+        setCurrentStep(1);
+        setCountdown(null);
+        return;
+      }
       const started = await startSession();
       if (!started || !contestId) { setCountdown(null); return; }
       if (!isFullscreen()) {
@@ -434,7 +562,15 @@ const ExamPrecheckScreen: React.FC = () => {
       markExamPrecheckPassed(contestId);
       navigate(getPostPrecheckRoute());
     })();
-  }, [countdown, contestId, getPostPrecheckRoute, navigate, startSession]);
+  }, [
+    applyPreflightFailureToEnvChecks,
+    countdown,
+    contestId,
+    getPostPrecheckRoute,
+    navigate,
+    runStartPreflightValidation,
+    startSession,
+  ]);
 
   const renderCheckList = (items: CheckItem[]) => (
         <div className={styles.checkList}>
@@ -507,7 +643,7 @@ const ExamPrecheckScreen: React.FC = () => {
             kind="error"
             lowContrast
             hideCloseButton
-            title="全螢幕啟用失敗"
+            title="開始前檢查未通過"
             subtitle={startGuardError}
             style={{ marginBottom: "1rem" }}
           />

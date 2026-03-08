@@ -163,7 +163,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "user": "120/min",
         "exam_events": "30/min",
-        "exam_anticheat_urls": "6/min",
+        "exam_anticheat_urls": "30/min",
     },
 }
 

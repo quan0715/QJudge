@@ -1,0 +1,4 @@
+interface:
+  display_name: "QJudge GitHub Workflow Owner"
+  short_description: "Branch, commit, PR, and release workflow owner for QJudge"
+  default_prompt: "Handle QJudge GitHub workflow tasks, including branch strategy, commits, PR creation, labels, and dev-to-main release flow."

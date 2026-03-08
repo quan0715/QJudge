@@ -15,8 +15,10 @@ from apps.contests.models import Contest, ContestParticipant, ExamStatus
 
 ACTIVE_SESSION_KEY_PREFIX = "exam:active"
 CONFLICT_TOKEN_KEY_PREFIX = "exam:conflict"
+EVENT_IDEMPOTENCY_KEY_PREFIX = "exam:event:idempotency"
 CONFLICT_TOKEN_TTL_SECONDS = 300
 DEFAULT_ACTIVE_TTL_SECONDS = 2 * 60 * 60
+DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 3
 
 
 @dataclass
@@ -62,6 +64,11 @@ def active_session_key(contest_id: int, user_id: int) -> str:
 
 def conflict_token_key(token: str) -> str:
     return f"{CONFLICT_TOKEN_KEY_PREFIX}:{token}"
+
+
+def exam_event_idempotency_key(contest_id: int, user_id: int, event_type: str, token: str) -> str:
+    compact = token.strip()[:128]
+    return f"{EVENT_IDEMPOTENCY_KEY_PREFIX}:{contest_id}:{user_id}:{event_type}:{compact}"
 
 
 def build_active_session_ttl(contest: Contest) -> int:
@@ -170,3 +177,18 @@ def consume_conflict_token(token: str) -> dict[str, Any] | None:
     value = cache.get(key)
     cache.delete(key)
     return value if isinstance(value, dict) else None
+
+
+def is_duplicate_exam_event(
+    *,
+    contest_id: int,
+    user_id: int,
+    event_type: str,
+    token: str | None,
+    ttl_seconds: int = DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS,
+) -> bool:
+    if not token:
+        return False
+    key = exam_event_idempotency_key(contest_id, user_id, event_type, token)
+    # cache.add returns False when key already exists.
+    return not cache.add(key, timezone.now().isoformat(), timeout=max(1, ttl_seconds))
