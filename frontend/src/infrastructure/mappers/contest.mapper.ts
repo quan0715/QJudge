@@ -74,6 +74,11 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     examStatus: dto.exam_status,
     autoUnlockAt: dto.auto_unlock_at,
 
+    // SSoT computed flags
+    isExamMonitored: !!dto.is_exam_monitored,
+    requiresFullscreen: !!dto.requires_fullscreen,
+    canSubmitExam: !!dto.can_submit_exam,
+
     permissions: {
       canSwitchView: !!dto.permissions?.can_switch_view,
       canEditContest: !!dto.permissions?.can_edit_contest,

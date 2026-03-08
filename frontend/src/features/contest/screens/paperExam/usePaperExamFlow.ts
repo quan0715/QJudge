@@ -83,17 +83,17 @@ export const usePaperExamFlow = () => {
       await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
       });
-      await refreshContest();
-      clearExamCaptureSessionId(id);
-      markAnticheatTerminal(id);
-      return true;
     } catch (err: unknown) {
       syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
       setError(getErrorMessage(err, "交卷失敗"));
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
+    await refreshContest();
+    clearExamCaptureSessionId(id);
+    markAnticheatTerminal(id);
+    setLoading(false);
+    return true;
   };
 
   return {

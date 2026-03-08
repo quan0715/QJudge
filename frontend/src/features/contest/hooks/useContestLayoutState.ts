@@ -13,6 +13,9 @@ import {
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
+import { useInterval } from "@/shared/hooks/useInterval";
+
+const CONTEST_POLL_INTERVAL_MS = 15_000;
 
 export function useContestLayoutState() {
   const { contestId } = useParams<{ contestId: string }>();
@@ -44,7 +47,7 @@ export function useContestLayoutState() {
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
 
-  const refreshContest = async () => {
+  const refreshContest = useCallback(async () => {
     if (contestId) {
       setIsRefreshing(true);
       try {
@@ -54,7 +57,7 @@ export function useContestLayoutState() {
         setIsRefreshing(false);
       }
     }
-  };
+  }, [contestId]);
 
   const fetchStandings = useCallback(async () => {
     if (!contestId) return;
@@ -66,7 +69,7 @@ export function useContestLayoutState() {
     }
   }, [contestId]);
 
-  // Fetch contest on mount
+  // Fetch contest on mount and when navigating back (path changes)
   useEffect(() => {
     if (contestId) {
       setContestLoading(true);
@@ -89,7 +92,7 @@ export function useContestLayoutState() {
           setContestLoading(false);
         });
     }
-  }, [contestId]);
+  }, [contestId, location.pathname]);
 
   // Redirect to 404 if not found
   useEffect(() => {
@@ -104,6 +107,11 @@ export function useContestLayoutState() {
       fetchStandings();
     }
   }, [isSolvePage, contest?.id, fetchStandings]);
+
+  // Poll contest data periodically while exam is active (backend is source of truth)
+  useInterval(() => {
+    refreshContest().catch(() => {});
+  }, isExamActive ? CONTEST_POLL_INTERVAL_MS : null);
 
   // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
   useEffect(() => {

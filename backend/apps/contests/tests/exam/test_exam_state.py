@@ -53,6 +53,21 @@ class ExamStateTests(APITestCase):
         p.refresh_from_db()
         self.assertEqual(p.exam_status, ExamStatus.SUBMITTED)
 
+    def test_end_exam_is_idempotent_when_already_submitted(self):
+        p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
+        p.exam_status = ExamStatus.SUBMITTED
+        p.started_at = timezone.now()
+        p.submit_reason = "Already submitted"
+        p.save(update_fields=["exam_status", "started_at", "submit_reason"])
+
+        url = reverse('contests:contest-exam-end-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["exam_status"], ExamStatus.SUBMITTED)
+        self.assertTrue(response.data["already_submitted"])
+        self.assertEqual(response.data["submit_reason"], "Already submitted")
+
     def test_unlock_participant(self):
         # Lock user
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)

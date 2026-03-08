@@ -152,6 +152,11 @@ export interface ContestDetail extends Contest {
   examStatus?: ExamStatusType; // Primary state field
   autoUnlockAt?: string; // Auto-unlock time when locked
 
+  // SSoT computed flags from backend
+  isExamMonitored: boolean;
+  requiresFullscreen: boolean;
+  canSubmitExam: boolean;
+
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
 

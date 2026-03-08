@@ -497,3 +497,51 @@ class ProblemTestRunTests(TestCase):
         self.assertEqual(custom_result['input'], 'hello')
         self.assertIsNone(custom_result['expected_output'])
         self.assertEqual(Submission.objects.count(), 0)
+
+    def test_test_run_stops_after_compile_error(self):
+        """Hard failures should stop remaining case execution like the submission path."""
+        ProblemTestCase.objects.create(
+            problem=self.problem,
+            input_data='2 3',
+            output_data='5',
+            is_sample=True,
+            score=100,
+            order=2,
+        )
+
+        with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
+            mock_judge = MagicMock()
+            mock_judge.execute.side_effect = [
+                {
+                    'status': 'CE',
+                    'time': 0,
+                    'memory': 0,
+                    'output': '',
+                    'error': 'compile error',
+                },
+                {
+                    'status': 'AC',
+                    'time': 12,
+                    'memory': 2048,
+                    'output': '5',
+                    'error': '',
+                },
+            ]
+            mock_get_judge.return_value = mock_judge
+
+            response = self.client.post(
+                f'/api/v1/problems/{self.problem.id}/test_run/',
+                {
+                    'language': 'python',
+                    'code': 'broken code',
+                    'use_samples': True,
+                    'custom_test_cases': [],
+                },
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'CE')
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['status'], 'CE')
+        self.assertEqual(mock_judge.execute.call_count, 1)

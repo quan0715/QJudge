@@ -553,6 +553,69 @@
     "gradedBy": "Graded by {{name}}",
     "maxScore": "Full Score"
   },
+  "examVideoReview": {
+    "modalHeading": "Exam Video Review",
+    "loadErrorTitle": "Failed to load monitoring videos",
+    "empty": "No monitoring videos are available.",
+    "listTitle": "Video List",
+    "videoCount": "{{count}} items",
+    "bulkCompile": "Transcode All ({{count}})",
+    "bulkCompiling": "Submitting...",
+    "headers": {
+      "student": "Student",
+      "updatedAt": "Last Updated",
+      "duration": "Duration",
+      "flag": "Flag",
+      "jobStatus": "Transcode Status"
+    },
+    "status": {
+      "pending": "Pending Transcode",
+      "running": "Transcoding",
+      "failed": "Transcode Failed",
+      "ready": "Ready"
+    },
+    "flag": {
+      "suspected": "Suspected",
+      "normal": "Normal"
+    },
+    "preview": {
+      "failed": "Video transcoding failed. Please retry later or review the error message.",
+      "running": "Video is being transcoded and will appear automatically when ready.",
+      "pending": "This video is pending transcode. It will appear here after you manually start transcoding.",
+      "selectVideo": "Select a video"
+    },
+    "fields": {
+      "student": "Student",
+      "fileSize": "File Size",
+      "duration": "Duration",
+      "frameCount": "Frame Count",
+      "jobStatus": "Transcode Status"
+    },
+    "suspicion": {
+      "suspected": "Suspected Cheating",
+      "normal": "Normal"
+    },
+    "transcodeErrorTitle": "Transcode Error",
+    "note": "Note",
+    "actions": {
+      "download": "Download Video",
+      "flag": "Mark as Suspected",
+      "unflag": "Clear Suspected Flag",
+      "compile": "Start Transcode",
+      "submitting": "Submitting...",
+      "delete": "Delete Video",
+      "deleting": "Deleting..."
+    },
+    "confirmDelete": "Are you sure you want to delete {{name}}'s monitoring video data? This action cannot be undone.",
+    "errors": {
+      "load": "Failed to load videos",
+      "playUrl": "Failed to load playback URL",
+      "compile": "Failed to start transcode",
+      "compileAll": "Failed to start batch transcode",
+      "deleteBlocked": "The video is currently being processed and cannot be deleted yet.",
+      "delete": "Failed to delete video"
+    }
+  },
   "participantsAdmin": {
     "title": "Participants",
     "allStatus": "All Status",

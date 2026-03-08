@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
 from apps.contests import views as contest_views
+from apps.contests.views import contest as contest_view_module
 from apps.problems.models import Problem
 from apps.users.models import User
 
@@ -713,7 +714,7 @@ def test_export_results_generates_csv_with_problem_cells(
             }
         ],
     )
-    monkeypatch.setattr(contest_views.ScoreboardService, "calculate", staticmethod(lambda *_a, **_k: result))
+    monkeypatch.setattr(contest_view_module.ScoreboardService, "calculate", staticmethod(lambda *_a, **_k: result))
     api_client.force_authenticate(user=owner)
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/export_results/")
@@ -735,9 +736,10 @@ def test_download_returns_400_on_export_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _raise_validation(*args, **kwargs):
-        raise contest_views.ExportValidationError("invalid export options")
+        from apps.contests.services.export_service import ExportValidationError
+        raise ExportValidationError("invalid export options")
 
-    monkeypatch.setattr(contest_views, "build_contest_download_response", _raise_validation)
+    monkeypatch.setattr(contest_view_module, "build_contest_download_response", _raise_validation)
     api_client.force_authenticate(user=owner)
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/download/?scale=1.0")
@@ -756,7 +758,7 @@ def test_download_returns_500_on_unexpected_exception(
     def _raise_unexpected(*args, **kwargs):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(contest_views, "build_contest_download_response", _raise_unexpected)
+    monkeypatch.setattr(contest_view_module, "build_contest_download_response", _raise_unexpected)
     api_client.force_authenticate(user=owner)
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/download/?scale=1.0")
@@ -788,7 +790,7 @@ def test_participant_report_error_paths(
     def _raise_report(*args, **kwargs):
         raise RuntimeError("report failed")
 
-    monkeypatch.setattr(contest_views, "build_student_report_response", _raise_report)
+    monkeypatch.setattr(contest_view_module, "build_student_report_response", _raise_report)
     report_failed = api_client.get(
         f"/api/v1/contests/{contest.id}/participants/{student.id}/report/?scale=1.0"
     )
@@ -808,7 +810,7 @@ def test_my_report_returns_500_when_report_generation_fails(
     def _raise_report(*args, **kwargs):
         raise RuntimeError("personal report failed")
 
-    monkeypatch.setattr(contest_views, "build_student_report_response", _raise_report)
+    monkeypatch.setattr(contest_view_module, "build_student_report_response", _raise_report)
     api_client.force_authenticate(user=student)
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/my_report/?scale=1.0")

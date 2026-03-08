@@ -21,6 +21,8 @@ import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureCont
 interface ExamModeWrapperProps {
   contestId: string;
   cheatDetectionEnabled: boolean;
+  isExamMonitored: boolean;
+  requiresFullscreen: boolean;
   lockReason?: string;
   examStatus?: ExamStatusType;
   onRefresh?: () => Promise<void>;
@@ -30,6 +32,8 @@ interface ExamModeWrapperProps {
 const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   contestId,
   cheatDetectionEnabled,
+    isExamMonitored,
+    requiresFullscreen,
     lockReason,
     examStatus,
     onRefresh,
@@ -58,6 +62,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   } = useExamState({
     contestId,
     examStatus,
+    isExamMonitored,
     lockReason,
     isBypassed: false,
     onRefresh,
@@ -65,13 +70,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   });
 
   // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
-  const isCurrentlyMonitored =
-    examStatus === "in_progress" ||
-    examStatus === "locked" ||
-    examStatus === "locked_takeover" ||
-    examStatus === "paused";
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
-  const captureEnabled = cheatDetectionEnabled && isCurrentlyMonitored && precheckPassed;
+  const captureEnabled = isExamMonitored && precheckPassed;
   const capture = useAnticheatScreenCapture({
     contestId,
     enabled: captureEnabled,
@@ -97,7 +97,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const initialFullscreenCheckDone = useRef(false);
 
   useExamMonitoring({
-    enabled: cheatDetectionEnabled && isCurrentlyMonitored,
+    enabled: isExamMonitored,
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
     onRecoveryCountdownChange: (secondsLeft, source) => {
@@ -117,10 +117,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
     if (runtimeReauthActive) return;
 
-    const shouldBeInFullscreen =
-      examStatus === "in_progress" || examStatus === "locked";
-
-    if (shouldBeInFullscreen && !fullscreenAdapterRef.current.isActive()) {
+    if (requiresFullscreen && !fullscreenAdapterRef.current.isActive()) {
       const timer = setTimeout(() => {
         if (!fullscreenAdapterRef.current.isActive() && !isSubmittingFromFullscreenExit) {
           setShowFullscreenExitConfirm(true);

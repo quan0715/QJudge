@@ -3,16 +3,15 @@ URL configuration for problems app.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    ProblemViewSet,
-    TagViewSet,
+from .discussion_views import (
+    CommentLikeView,
+    DiscussionLikeView,
     ProblemDiscussionListCreateView,
     ProblemDiscussionDetailView,
     ProblemDiscussionCommentListCreateView,
     ProblemDiscussionCommentDetailView,
-    DiscussionLikeView,
-    CommentLikeView,
 )
+from .views import ProblemViewSet, TagViewSet
 
 app_name = 'problems'
 

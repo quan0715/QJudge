@@ -353,6 +353,9 @@ ANTICHEAT_VIDEO_BUCKET = os.getenv("ANTICHEAT_VIDEO_BUCKET", "anticheat-videos")
 ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = int(
     os.getenv("ANTICHEAT_PRESIGNED_URL_TTL_SECONDS", "300")
 )
+ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
+    os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
+)
 
 # HMAC secret for internal API authentication between ai-service and backend
 AI_SERVICE_HMAC_SECRET = os.getenv("HMAC_SECRET", "")

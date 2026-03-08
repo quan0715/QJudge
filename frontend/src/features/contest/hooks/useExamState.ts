@@ -9,16 +9,27 @@ import {
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
+import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 
 export interface UseExamStateProps {
   contestId: string;
   examStatus?: ExamStatusType;
+  isExamMonitored?: boolean;
   lockReason?: string;
   isBypassed: boolean;
   onRefresh?: () => Promise<void>;
   requestFullscreen: () => Promise<unknown>;
 }
 
+type SkippedDispatchResult = { skipped: true };
+
+const isSkippedDispatchResult = (
+  value: ExamEventResponse | SkippedDispatchResult | null
+): value is SkippedDispatchResult => {
+  return !!value && typeof value === "object" && "skipped" in value;
+};
+
+/** Local fallback when backend flag hasn't propagated yet (e.g. from event API responses). */
 const isMonitoredExamStatus = (status?: ExamStatusType) =>
   status === "in_progress" ||
   status === "paused" ||
@@ -28,6 +39,7 @@ const isMonitoredExamStatus = (status?: ExamStatusType) =>
 export function useExamState({
   contestId,
   examStatus,
+  isExamMonitored,
   lockReason,
   isBypassed,
   onRefresh,
@@ -43,13 +55,6 @@ export function useExamState({
     reason: string;
     source?: string;
     severity?: "info" | "warning" | "violation";
-  };
-  type SkippedDispatchResult = { skipped: true };
-
-  const isSkippedDispatchResult = (
-    value: ExamEventResponse | SkippedDispatchResult | null
-  ): value is SkippedDispatchResult => {
-    return !!value && typeof value === "object" && "skipped" in value;
   };
 
   const [examState, setExamState] = useState<ExamModeState>({
@@ -68,7 +73,6 @@ export function useExamState({
         message?: string;
         error?: boolean | string;
         locked?: boolean;
-        submitted?: boolean;
         exam_status?: ExamStatusType;
         submit_reason?: string;
         violation_count?: number;
@@ -126,6 +130,7 @@ export function useExamState({
         metadata: buildAnticheatMetadata(decision, {
           source,
           severity,
+          upload_session_id: getExamCaptureSessionId(contestId) || undefined,
         }),
       });
       return response;
@@ -231,7 +236,7 @@ export function useExamState({
     // Do NOT clear the queue when transitioning between monitored states
     // (e.g., in_progress → locked), as that would drop queued violations.
     const wasMonitored = isMonitoredExamStatus(prevExamStatusRef.current);
-    const isNowMonitored = isMonitoredExamStatus(examStatus) && !isBypassed;
+    const isNowMonitored = (isExamMonitored ?? isMonitoredExamStatus(examStatus)) && !isBypassed;
     if (isNowMonitored && !wasMonitored) {
       isProcessingEventRef.current = false;
       queuedViolationRef.current = [];
@@ -244,11 +249,11 @@ export function useExamState({
     }
 
     prevExamStatusRef.current = examStatus;
-  }, [contestId, examStatus, lockReason, isBypassed, stopWarningCountdown]);
+  }, [contestId, examStatus, isExamMonitored, lockReason, isBypassed, stopWarningCountdown]);
 
   const drainViolationQueue = useCallback(async () => {
     if (isProcessingEventRef.current) return;
-    if (isBypassed || !isMonitoredExamStatus(examStatus)) return;
+    if (isBypassed || !(isExamMonitored ?? isMonitoredExamStatus(examStatus))) return;
     if (queuedViolationRef.current.length === 0) return;
 
     if (retryTimerRef.current) {
@@ -259,7 +264,7 @@ export function useExamState({
     isProcessingEventRef.current = true;
     try {
       while (queuedViolationRef.current.length > 0) {
-        if (isBypassed || !isMonitoredExamStatus(examStatus)) break;
+        if (isBypassed || !(isExamMonitored ?? isMonitoredExamStatus(examStatus))) break;
 
         const currentViolation = queuedViolationRef.current[0];
         setPendingApiResponse(true);
@@ -303,7 +308,7 @@ export function useExamState({
 
           queuedViolationRef.current.shift();
 
-          if (response.submitted || response.exam_status === "submitted") {
+          if (response.exam_status === "submitted") {
             stopWarningCountdown();
             setShowWarning(false);
             setWarningEventType(null);
@@ -335,14 +340,14 @@ export function useExamState({
       if (
         queuedViolationRef.current.length > 0 &&
         !isBypassed &&
-        isMonitoredExamStatus(examStatus)
+        (isExamMonitored ?? isMonitoredExamStatus(examStatus))
       ) {
         retryTimerRef.current = setTimeout(() => {
           void drainViolationQueue();
         }, EVENT_RETRY_DELAY_MS);
       }
     }
-  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
+  }, [dispatchExamEvent, examStatus, isExamMonitored, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
 
   const handleViolation = useCallback(
     async (
@@ -350,7 +355,7 @@ export function useExamState({
       reason: string,
       options?: { source?: string; severity?: "info" | "warning" | "violation" }
     ) => {
-      if (!isMonitoredExamStatus(examStatus) || isBypassed) {
+      if (!(isExamMonitored ?? isMonitoredExamStatus(examStatus)) || isBypassed) {
         return;
       }
       if (isRuntimeScreenShareReauthActive()) {
@@ -366,7 +371,7 @@ export function useExamState({
         await drainViolationQueue();
       }
     },
-    [drainViolationQueue, examStatus, isBypassed]
+    [drainViolationQueue, examStatus, isExamMonitored, isBypassed]
   );
 
   const handleWarningClose = useCallback(async () => {

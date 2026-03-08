@@ -30,8 +30,8 @@ import {
   endRuntimeScreenShareReauth,
 } from "@/features/contest/anticheat/runtimeReauthState";
 
-const CAPTURE_BASE_INTERVAL_MS = 1_000;
-const CAPTURE_JITTER_RATIO = 0.15; // ±15% → 0.85–1.15 秒
+const DEFAULT_CAPTURE_INTERVAL_MS = 3_000; // fallback，與後端預設一致
+const CAPTURE_JITTER_RATIO = 0.15; // ±15%
 const MAX_FRAME_BYTES = 80 * 1024;
 const MAX_IDB_QUEUE = 600;
 const MAX_MEMORY_QUEUE = 120;
@@ -278,6 +278,7 @@ export const useAnticheatScreenCapture = ({
   const streamAuthFailedRef = useRef(false);
   const streamAdapterRef = useRef(createStreamAdapter());
   const runtimeReauthPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
+  const captureIntervalMsRef = useRef(DEFAULT_CAPTURE_INTERVAL_MS);
   const urlFetchFailureCountRef = useRef(0);
   const nextUrlFetchAllowedAtRef = useRef(0);
 
@@ -553,6 +554,10 @@ export const useAnticheatScreenCapture = ({
           setExamCaptureSessionId(contestId, response.upload_session_id);
         }
 
+        if (typeof response.interval_seconds === "number" && response.interval_seconds > 0) {
+          captureIntervalMsRef.current = response.interval_seconds * 1000;
+        }
+
         if (Array.isArray(response.items) && response.items.length > 0) {
           urlsRef.current.push(...response.items);
         }
@@ -762,7 +767,7 @@ export const useAnticheatScreenCapture = ({
 
     const nextJitteredDelay = () => {
       const jitter = 1 + (Math.random() * 2 - 1) * CAPTURE_JITTER_RATIO;
-      return Math.round(CAPTURE_BASE_INTERVAL_MS * jitter);
+      return Math.round(captureIntervalMsRef.current * jitter);
     };
 
     const scheduleNext = () => {

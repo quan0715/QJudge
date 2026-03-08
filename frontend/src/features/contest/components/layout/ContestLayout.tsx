@@ -226,6 +226,8 @@ const ContestLayout = () => {
     <ExamModeWrapper
       contestId={contestId || ""}
       cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
+      isExamMonitored={!!contest?.isExamMonitored}
+      requiresFullscreen={!!contest?.requiresFullscreen}
       lockReason={contest?.lockReason}
       examStatus={contest?.examStatus}
       onRefresh={refreshContest}
