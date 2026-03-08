@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   Button,
   InlineNotification,
@@ -36,11 +37,7 @@ interface Props {
   canDelete?: boolean;
 }
 
-type TranslateFn = (
-  key: string,
-  defaultValue?: string,
-  options?: Record<string, unknown>
-) => string;
+type TranslateFn = TFunction<"contest">;
 
 const getJobStatusText = (video: ExamVideoDto, t: TranslateFn): string => {
   const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as

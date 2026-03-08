@@ -20,7 +20,7 @@ type MonitoringTarget =
   | null
   | undefined;
 type ExitTarget =
-  | Pick<ContestDetail, "isExamMonitored" | "status">
+  | Pick<ContestDetail, "isExamMonitored" | "status" | "examStatus">
   | null
   | undefined;
 
@@ -71,6 +71,7 @@ export const shouldWarnOnExit = (
 ): boolean => {
   if (!contest) return false;
   if (!contest.isExamMonitored) return false;
+  if (!isExamStatusIn(contest.examStatus, EXIT_WARNING_STATUSES)) return false;
 
   const status: ContestStatus | undefined = contest.status;
   if (status !== "published") return false;
