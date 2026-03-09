@@ -1,14 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tag, InlineLoading } from "@carbon/react";
 import { ChevronDown, ChevronUp } from "@carbon/icons-react";
-import { useTranslation, type TFunction } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import { PRIORITY_LABELS, PRIORITY_TAG_COLOR } from "@/features/contest/constants/eventTaxonomy";
 import { fetchScreenshots, type ScreenshotFrame } from "@/infrastructure/api/repositories/exam.repository";
 import styles from "./IncidentCard.module.scss";
-
-type TFn = TFunction<"contest", undefined>;
 
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
@@ -51,6 +49,14 @@ function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
   };
 }
 
+function formatMetaValue(key: string, value: unknown): string {
+  if (key === "locked_at" && typeof value === "string") {
+    try { return new Date(value).toLocaleString(); } catch { /* fall through */ }
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
 interface IncidentCardProps {
   incident: EventFeedItem;
 }
@@ -76,10 +82,10 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
       .filter(([k]) => !HIDDEN_META_KEYS.has(k))
       .map(([k, v]) => ({
         key: k,
-        label: META_LABEL_KEYS[k] ? t(META_LABEL_KEYS[k], k) : k,
-        value: formatMetaValue(k, v, t),
+        label: META_LABEL_KEYS[k] ? String(t(META_LABEL_KEYS[k], { defaultValue: k })) : k,
+        value: formatMetaValue(k, v),
       }));
-  }, [meta]);
+  }, [meta, t]);
 
   const hasEvidence = incident.evidenceCount > 0;
   const hasDetail = !!(
@@ -198,7 +204,7 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t("logs.detail.captureStatus", "截圖狀態")}</span>
                 <span className={styles.detailValue}>
-                  <CaptureStatusTag info={captureInfo} t={t} />
+                  <CaptureStatusTag info={captureInfo} />
                 </span>
               </div>
             )}
@@ -208,7 +214,7 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
               <div className={styles.screenshotSection}>
                 <span className={styles.detailLabel}>{t("logs.detail.evidence", "截圖證據")}</span>
                 {screenshotLoading && (
-                  <InlineLoading description={t("logs.detail.loadingScreenshots", "載入截圖中…")} />
+                  <InlineLoading description={String(t("logs.detail.loadingScreenshots", "載入截圖中…"))} />
                 )}
                 {screenshotError && (
                   <span className={styles.screenshotError}>
@@ -266,12 +272,13 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
 }
 
 /** Render capture result as a colored tag */
-function CaptureStatusTag({ info, t }: { info: CaptureInfo; t: TFn }) {
+function CaptureStatusTag({ info }: { info: CaptureInfo }) {
+  const { t } = useTranslation("contest");
   if (info.result === "uploaded") {
-    return <Tag type="green" size="sm">{t("logs.capture.uploaded", "Uploaded")}{info.seq != null ? ` #${info.seq}` : ""}</Tag>;
+    return <Tag type="green" size="sm">{t("logs.capture.uploaded", "已上傳")}{info.seq != null ? ` #${info.seq}` : ""}</Tag>;
   }
   if (info.result === "captured") {
-    return <Tag type="blue" size="sm">{t("logs.capture.capturedNotUploaded", "Captured (not uploaded)")}</Tag>;
+    return <Tag type="blue" size="sm">{t("logs.capture.capturedNotUploaded", "已擷取（未上傳）")}</Tag>;
   }
   if (info.result.startsWith("skipped:")) {
     const reason = info.result.replace("skipped:", "");
@@ -281,19 +288,11 @@ function CaptureStatusTag({ info, t }: { info: CaptureInfo; t: TFn }) {
       stream_unavailable: "logs.capture.skipStreamUnavailable",
       capture_unavailable: "logs.capture.skipCaptureUnavailable",
     };
-    const label = skipLabelKeys[reason] ? t(skipLabelKeys[reason], reason) : reason;
-    return <Tag type="cool-gray" size="sm">{t("logs.capture.skipped", "Skipped")}: {label}</Tag>;
+    const label = skipLabelKeys[reason] ? String(t(skipLabelKeys[reason], { defaultValue: reason })) : reason;
+    return <Tag type="cool-gray" size="sm">{t("logs.capture.skipped", "略過")}: {label}</Tag>;
   }
   if (info.hasError) {
-    return <Tag type="red" size="sm">{t("logs.capture.failed", "Failed")}: {info.errorCode}</Tag>;
+    return <Tag type="red" size="sm">{t("logs.capture.failed", "失敗")}: {info.errorCode}</Tag>;
   }
   return <Tag type="cool-gray" size="sm">{info.result}</Tag>;
-}
-
-function formatMetaValue(key: string, value: unknown, t: TFn): string {
-  if (key === "locked_at" && typeof value === "string") {
-    try { return new Date(value).toLocaleString(); } catch { /* fall through */ }
-  }
-  if (typeof value === "boolean") return value ? t("common.yes", "Yes") : t("common.no", "No");
-  return String(value);
 }
