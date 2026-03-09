@@ -193,13 +193,13 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   const selectedIndex = Math.max(availableDetails.indexOf(activeDetail), 0);
   const primaryAction =
-    dashboard.actions.canUnlock
+    dashboard?.actions.canUnlock
       ? {
           label: t("participants.actions.unlock", "解除鎖定"),
           icon: Locked,
           onClick: onUnlock,
         }
-      : dashboard.actions.canReopenExam
+      : dashboard?.actions.canReopenExam
         ? {
             label: t("participants.actions.reopen", "重新開放考試"),
             icon: DocumentTasks,
