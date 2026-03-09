@@ -55,6 +55,6 @@ describe("AdminDashboardLayout", () => {
     expect(
       screen.queryByLabelText(/匯入 JSON|Import JSON|examJson\.importAction/),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText("匯出檔案")).toBeInTheDocument();
+    expect(screen.getByLabelText("adminLayout.header.exportFiles")).toBeInTheDocument();
   });
 });
