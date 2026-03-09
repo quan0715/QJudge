@@ -1,0 +1,195 @@
+# Override for docker-compose.test.yml — adds MinIO, celery workers, and monitoring
+# Usage: docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
+
+services:
+  # Override backend-test to use loadtest settings
+  backend-test:
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.loadtest
+      - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
+      - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-http://localhost:9002}
+      - ANTICHEAT_S3_ACCESS_KEY=minioadmin
+      - ANTICHEAT_S3_SECRET_KEY=minioadmin
+      - ANTICHEAT_S3_BUCKET=anticheat
+    depends_on:
+      minio-test:
+        condition: service_started
+
+  # Override celery-test: real async worker with concurrency
+  celery-test:
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.loadtest
+      - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
+      - ANTICHEAT_S3_ACCESS_KEY=minioadmin
+      - ANTICHEAT_S3_SECRET_KEY=minioadmin
+    command: celery -A config worker -l info -Q celery,default,high_priority --concurrency=4
+    depends_on:
+      minio-test:
+        condition: service_started
+
+  # ---- New services ----
+
+  minio-test:
+    image: minio/minio:latest
+    container_name: oj_minio_test
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    ports:
+      - "9002:9000"   # API (not conflicting with dev MinIO 9000)
+      - "9003:9001"   # Console
+    networks:
+      - test-network
+
+  # Create the anticheat bucket on startup
+  minio-init:
+    image: minio/mc:latest
+    container_name: oj_minio_init
+    depends_on:
+      minio-test:
+        condition: service_started
+    entrypoint: >
+      sh -c "
+        sleep 3 &&
+        mc alias set local http://minio-test:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/anticheat &&
+        mc anonymous set download local/anticheat &&
+        echo 'MinIO bucket ready'
+      "
+    networks:
+      - test-network
+
+  celery-video-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
+    container_name: oj_celery_video_test
+    command: celery -A config worker -l info -Q video_queue --concurrency=2
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.loadtest
+      - POSTGRES_DB=test_oj_e2e
+      - POSTGRES_USER=oj_user
+      - POSTGRES_PASSWORD=oj_password
+      - POSTGRES_HOST=postgres-test
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis-test
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis-test:6379/0
+      - SECRET_KEY=test-secret-key-for-ci-only
+      - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
+      - ANTICHEAT_S3_ACCESS_KEY=minioadmin
+      - ANTICHEAT_S3_SECRET_KEY=minioadmin
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      minio-test:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    networks:
+      - test-network
+
+  celery-beat-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
+    container_name: oj_celery_beat_test
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.loadtest
+      - POSTGRES_DB=test_oj_e2e
+      - POSTGRES_USER=oj_user
+      - POSTGRES_PASSWORD=oj_password
+      - POSTGRES_HOST=postgres-test
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis-test
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis-test:6379/0
+      - SECRET_KEY=test-secret-key-for-ci-only
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - test-network
+
+  # ---- Monitoring ----
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: oj_prometheus_loadtest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./loadtest/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    networks:
+      - test-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: oj_grafana_loadtest
+    ports:
+      - "3001:3000"   # 3001 to avoid conflict with frontend dev
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./loadtest/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - test-network
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: oj_pg_exporter_loadtest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://oj_user:oj_password@postgres-test:5432/test_oj_e2e?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: oj_redis_exporter_loadtest
+    environment:
+      REDIS_ADDR: "redis-test:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis-test:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: oj_cadvisor_loadtest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - test-network
