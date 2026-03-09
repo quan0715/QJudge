@@ -86,6 +86,16 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
       title={t("participants.title", "參賽者列表")}
       subtitle={t("participantsDashboard.listSubtitle", "選擇一位參賽者查看個人作答、事件與報告資訊")}
       className={styles.pane}
+      action={
+        <Button
+          kind="primary"
+          size="sm"
+          renderIcon={Add}
+          onClick={onAddParticipant}
+        >
+          {t("participants.add", "新增")}
+        </Button>
+      }
     >
       <div className={styles.paneInner}>
       <div className={styles.toolbar}>
@@ -120,15 +130,6 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           onChange={({ selectedItem }) => onSortChange(selectedItem?.id ?? "score_desc")}
           size="sm"
         />
-        <Button
-          kind="primary"
-          size="sm"
-          renderIcon={Add}
-          onClick={onAddParticipant}
-          className={styles.toolbarAction}
-        >
-          {t("participants.add", "新增")}
-        </Button>
       </div>
 
       <div className={styles.toolbarMeta}>
@@ -158,7 +159,6 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
         ) : (
           participants.map((participant) => {
             const isSelected = participant.userId === selectedUserId;
-            const recentActivity = getRecentActivity(participant.userId);
             return (
               <div
                 key={participant.userId}
@@ -189,17 +189,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
                   <div className={styles.listItemStats}>
                     <span>{t("participants.headers.score", "分數")} <strong>{participant.score ?? 0}</strong></span>
                     <span>{t("participantsDashboard.violations", "違規")} {participant.violationCount}</span>
-                    {recentActivity && (
-                      <span className={styles.listItemTimestamp}>
-                        {formatRecentActivity(recentActivity)}
-                      </span>
-                    )}
                   </div>
-                  {(participant.lockReason || participant.submitReason) && (
-                    <div className={`${styles.listItemTimestamp} ${styles.secondaryText}`} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {participant.lockReason || participant.submitReason}
-                    </div>
-                  )}
                 </div>
               </div>
             );
