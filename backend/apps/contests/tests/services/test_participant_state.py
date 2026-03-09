@@ -7,8 +7,10 @@ from django.utils import timezone
 
 from apps.contests.models import Contest, ContestActivity, ContestParticipant, ExamStatus
 from apps.contests.services.participant_state import (
+    admin_update_participant,
     get_auto_unlock_at,
     reconcile_participant_on_contest_access,
+    reopen_participant_exam,
 )
 from apps.users.models import User
 
@@ -106,4 +108,75 @@ def test_reconcile_participant_auto_submits_after_contest_end(
         user=student,
         action_type="auto_submit",
         details="Auto-submitted: contest ended",
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_admin_update_participant_clears_lock_metadata_on_transition(
+    contest: Contest,
+    teacher: User,
+    student: User,
+) -> None:
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.LOCKED,
+        locked_at=timezone.now() - timedelta(minutes=1),
+        violation_count=3,
+        lock_reason="tab switch",
+    )
+
+    admin_update_participant(
+        participant,
+        exam_status=ExamStatus.IN_PROGRESS,
+        activity_user=teacher,
+        activity_details="Admin moved to in_progress",
+    )
+
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
+    assert participant.locked_at is None
+    assert participant.violation_count == 0
+    assert participant.lock_reason == ""
+    assert ContestActivity.objects.filter(
+        contest=contest,
+        user=teacher,
+        action_type="update_participant",
+        details="Admin moved to in_progress",
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_reopen_participant_exam_clears_submit_reason_and_lock_metadata(
+    contest: Contest,
+    teacher: User,
+    student: User,
+) -> None:
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+        submit_reason="Student submitted",
+        locked_at=timezone.now() - timedelta(minutes=5),
+        violation_count=1,
+        lock_reason="old lock",
+    )
+
+    reopen_participant_exam(
+        participant,
+        activity_user=teacher,
+        activity_details="Reopened for student",
+    )
+
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.PAUSED
+    assert participant.submit_reason == ""
+    assert participant.locked_at is None
+    assert participant.violation_count == 0
+    assert participant.lock_reason == ""
+    assert ContestActivity.objects.filter(
+        contest=contest,
+        user=teacher,
+        action_type="reopen_exam",
+        details="Reopened for student",
     ).exists()

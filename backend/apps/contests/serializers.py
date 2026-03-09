@@ -485,15 +485,6 @@ class ContestProblemSerializer(serializers.ModelSerializer):
         return obj.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
 
 
-class ContestProblemCreateSerializer(serializers.Serializer):
-    """
-    Serializer for adding a problem to a contest.
-    """
-    problem_id = serializers.IntegerField()
-    # label = serializers.CharField(max_length=10) # Dynamic now
-    order = serializers.IntegerField(default=0)
-    # score = serializers.IntegerField(default=100)
-
 
 # ============================================================================
 # Exam Question Serializers
@@ -802,13 +793,6 @@ class ExamEvidenceVideoFlagSerializer(serializers.Serializer):
 # ============================================================================
 # Registration Serializers
 # ============================================================================
-
-class ContestRegistrationSerializer(serializers.Serializer):
-    """
-    Serializer for contest registration.
-    """
-    password = serializers.CharField(required=False, allow_blank=True)
-    nickname = serializers.CharField(required=False, allow_blank=True, max_length=50)
 
 
 class ContestParticipantSerializer(serializers.ModelSerializer):
