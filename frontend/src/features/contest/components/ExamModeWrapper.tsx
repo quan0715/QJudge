@@ -83,7 +83,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const captureEnabled = isExamMonitored && precheckPassed && examStatus !== "submitted";
   const hasSentDegradedRef = useRef(false);
-  const onScreenShareLostRef = useRef<() => void>();
+  const onScreenShareLostRef = useRef<(() => void) | undefined>(undefined);
   const reportDegraded = useCallback((isDegraded: boolean) => {
     if (!isDegraded) {
       hasSentDegradedRef.current = false;

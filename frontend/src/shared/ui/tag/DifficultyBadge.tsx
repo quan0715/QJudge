@@ -30,7 +30,7 @@ export const DifficultyBadge: React.FC<Props> = ({
   // Stronger contrast: increase color ratio for mix
   const background = `color-mix(in srgb, ${color} 26%, var(--cds-layer) 74%)`;
 
-  const label = t(`difficulty.${difficulty}`, { defaultValue: config.label });
+  const label = t(`difficulty.${difficulty}`, { defaultValue: config.labelKey });
 
   if (variant === "text") {
     return (

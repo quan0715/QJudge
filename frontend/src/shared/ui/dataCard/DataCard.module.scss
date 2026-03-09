@@ -124,3 +124,7 @@
   color: var(--cds-text-secondary);
 }
 
+.kpiActive {
+  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+}
+

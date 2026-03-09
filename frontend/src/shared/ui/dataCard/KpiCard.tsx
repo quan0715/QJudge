@@ -6,6 +6,8 @@ export interface KpiCardProps {
   value: ReactNode;
   label: string;
   showBorder?: boolean;
+  active?: boolean;
+  onClick?: () => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -30,13 +32,19 @@ export const KpiCard = ({
   value,
   label,
   showBorder = true,
+  active,
+  onClick,
   className,
   style,
 }: KpiCardProps) => {
   return (
     <div
-      className={`${styles.card} ${styles.kpi} ${showBorder ? styles.kpiBorder : ""} ${className || ""}`}
-      style={style}
+      className={`${styles.card} ${styles.kpi} ${showBorder ? styles.kpiBorder : ""} ${active ? styles.kpiActive : ""} ${className || ""}`}
+      style={{ ...style, cursor: onClick ? "pointer" : undefined }}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
     >
       <div className={styles.kpiIcon}>{renderIconNode(icon)}</div>
       <div className={styles.kpiValue}>{value}</div>
