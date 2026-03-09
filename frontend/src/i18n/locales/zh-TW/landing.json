@@ -1,13 +1,36 @@
 {
   "hero": {
-    "title": "程式評測，立即開始",
-    "subtitle": "Carbon 風格的線上評測平台，為課程與競賽提供即時回饋、完整結果與討論協作。",
+    "title": "QJudge - 程式測驗平台",
+    "subtitle": "即時評測、考場防作弊、AI 助教輔助，讓教學與學習流程更順暢。",
     "signIn": "立即登入",
     "register": "免費註冊",
+    "badge": {
+      "product": "QJudge",
+      "tagline": "程式評測平台"
+    },
     "badges": {
       "qjudge": "QJudge",
       "oj": "Online Judge",
       "carbon": "Carbon UI"
+    },
+    "signal": {
+      "realtime": "即時評測",
+      "sandbox": "沙盒執行",
+      "report": "詳細報告"
+    }
+  },
+  "feature": {
+    "judge": {
+      "title": "良好的測驗體驗",
+      "description": "提交後即時回傳測資結果、執行時間與記憶體資訊，並提供清楚的除錯脈絡。"
+    },
+    "antiCheat": {
+      "title": "防作弊系統",
+      "description": "考場模式支援違規事件記錄、狀態鎖定與管理端追蹤，維持公平的程式測驗流程。"
+    },
+    "ai": {
+      "title": "AI 助教出題輔助",
+      "description": "協助教師整理題意、產生題目草稿與教學內容，讓課程準備更快且品質一致。"
     }
   },
   "features": {
@@ -53,10 +76,22 @@
   "steps": {
     "eyebrow": "使用流程",
     "title": "四步驟開始你的程式旅程",
-    "browse": { "title": "瀏覽題庫", "description": "依難度與標籤篩選題目，查看說明與範例測資。" },
-    "code": { "title": "撰寫程式", "description": "使用內建編輯器撰寫程式，支援語法高亮與自動補全。" },
-    "submit": { "title": "提交評測", "description": "一鍵提交，即時取得測試結果與詳細報告。" },
-    "improve": { "title": "持續精進", "description": "參與討論、查看他人解法，加入競賽或 Lab。" }
+    "browse": {
+      "title": "瀏覽題庫",
+      "description": "依難度與標籤篩選題目，查看說明與範例測資。"
+    },
+    "code": {
+      "title": "撰寫程式",
+      "description": "使用內建編輯器撰寫程式，支援語法高亮與自動補全。"
+    },
+    "submit": {
+      "title": "提交評測",
+      "description": "一鍵提交，即時取得測試結果與詳細報告。"
+    },
+    "improve": {
+      "title": "持續精進",
+      "description": "參與討論、查看他人解法，加入競賽或 Lab。"
+    }
   },
   "highlights": {
     "eyebrow": "為什麼選擇 QJudge",
@@ -86,9 +121,16 @@
     "eyebrow": "聯絡我們",
     "title": "有任何問題或建議？",
     "description": "歡迎回饋、Bug 回報或合作洽談，透過以下方式與我們聯繫。",
-    "email": { "title": "電子郵件" },
-    "github": { "title": "GitHub" },
-    "university": { "title": "合作院校", "value": "國立陽明交通大學" }
+    "email": {
+      "title": "電子郵件"
+    },
+    "github": {
+      "title": "GitHub"
+    },
+    "university": {
+      "title": "合作院校",
+      "value": "國立陽明交通大學"
+    }
   },
   "stats": {
     "problems": "程式題目",

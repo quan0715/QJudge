@@ -118,8 +118,8 @@ const LandingScreen = () => {
         <div className="landing__hero-content">
           <div className="landing__hero-text">
             <div className="landing__badge-row">
-              <Tag type="green" size="md">QJudge</Tag>
-              <Tag type="blue" size="md">Programming Assessment</Tag>
+              <Tag type="green" size="md">{t("landing.hero.badge.product", { defaultValue: "QJudge" })}</Tag>
+              <Tag type="blue" size="md">{t("landing.hero.badge.tagline", { defaultValue: "Programming Assessment" })}</Tag>
             </div>
 
             <h1 className="landing__title">

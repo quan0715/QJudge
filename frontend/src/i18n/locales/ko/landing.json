@@ -1,13 +1,36 @@
 {
   "hero": {
-    "title": "지금 바로 코딩하고 채점하기",
-    "subtitle": "Carbon UI 기반 온라인 저지로 수업과 대회를 위한 실시간 피드백과 명확한 결과를 제공합니다.",
+    "title": "QJudge - 프로그래밍 시험 플랫폼",
+    "subtitle": "실시간 평가, 시험 부정행위 방지, AI 조교 지원으로 교수 및 학습 프로세스를 더욱 원활하게 만듭니다.",
     "signIn": "로그인",
     "register": "회원가입",
+    "badge": {
+      "product": "QJudge",
+      "tagline": "프로그래밍 평가 플랫폼"
+    },
     "badges": {
       "qjudge": "QJudge",
       "oj": "Online Judge",
       "carbon": "Carbon UI"
+    },
+    "signal": {
+      "realtime": "실시간 평가",
+      "sandbox": "샌드박스 실행",
+      "report": "상세 보고서"
+    }
+  },
+  "feature": {
+    "judge": {
+      "title": "우수한 시험 경험",
+      "description": "제출 후 테스트 케이스 결과, 실행 시간 및 메모리 정보를 즉시 반환하며 명확한 디버깅 맥락을 제공합니다."
+    },
+    "antiCheat": {
+      "title": "부정행위 방지 시스템",
+      "description": "시험 모드는 위반 이벤트 기록, 상태 잠금 및 관리자 추적을 지원하여 공정한 프로그래밍 시험 프로세스를 유지합니다."
+    },
+    "ai": {
+      "title": "AI 조교 출제 보조",
+      "description": "교사가 문제 의도를 정리하고 문제 초안 및 교육 콘텐츠를 생성하는 것을 도와 강의 준비를 빠르고 일관된 품질로 만들어 줍니다."
     }
   },
   "features": {

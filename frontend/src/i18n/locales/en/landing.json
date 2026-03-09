@@ -1,13 +1,36 @@
 {
   "hero": {
-    "title": "Code, test, and compete instantly",
-    "subtitle": "A Carbon-powered online judge for courses and contests with realtime feedback and clear results.",
+    "title": "QJudge - Programming Assessment Platform",
+    "subtitle": "Real-time evaluation, anti-cheat exam mode, and AI teaching assistant to streamline teaching and learning.",
     "signIn": "Sign in",
     "register": "Create account",
+    "badge": {
+      "product": "QJudge",
+      "tagline": "Programming Assessment"
+    },
     "badges": {
       "qjudge": "QJudge",
       "oj": "Online Judge",
       "carbon": "Carbon UI"
+    },
+    "signal": {
+      "realtime": "Real-time Judge",
+      "sandbox": "Sandbox Execution",
+      "report": "Detailed Report"
+    }
+  },
+  "feature": {
+    "judge": {
+      "title": "Great Testing Experience",
+      "description": "Get instant feedback on test cases, execution time, and memory usage after submission, with clear debugging context."
+    },
+    "antiCheat": {
+      "title": "Anti-Cheat System",
+      "description": "Exam mode supports violation logging, state locking, and admin tracking to maintain a fair assessment process."
+    },
+    "ai": {
+      "title": "AI Teaching Assistant",
+      "description": "Help teachers organize problem statements, generate drafts, and create educational content faster with consistent quality."
     }
   },
   "features": {
@@ -53,10 +76,22 @@
   "steps": {
     "eyebrow": "How it works",
     "title": "Start in four steps",
-    "browse": { "title": "Browse problems", "description": "Filter by difficulty and tags; review statements and samples." },
-    "code": { "title": "Write code", "description": "Use the built-in editor with Markdown guidance and hints." },
-    "submit": { "title": "Submit & test", "description": "One-click submission with instant results and detailed report." },
-    "improve": { "title": "Keep improving", "description": "Discuss, compare solutions, and join contests or labs." }
+    "browse": {
+      "title": "Browse problems",
+      "description": "Filter by difficulty and tags; review statements and samples."
+    },
+    "code": {
+      "title": "Write code",
+      "description": "Use the built-in editor with Markdown guidance and hints."
+    },
+    "submit": {
+      "title": "Submit & test",
+      "description": "One-click submission with instant results and detailed report."
+    },
+    "improve": {
+      "title": "Keep improving",
+      "description": "Discuss, compare solutions, and join contests or labs."
+    }
   },
   "highlights": {
     "eyebrow": "Why QJudge",
@@ -86,9 +121,16 @@
     "eyebrow": "Contact",
     "title": "Questions or ideas?",
     "description": "We welcome feedback, bug reports, and collaboration proposals.",
-    "email": { "title": "Email" },
-    "github": { "title": "GitHub" },
-    "university": { "title": "Partner", "value": "National Yang Ming Chiao Tung University" }
+    "email": {
+      "title": "Email"
+    },
+    "github": {
+      "title": "GitHub"
+    },
+    "university": {
+      "title": "Partner",
+      "value": "National Yang Ming Chiao Tung University"
+    }
   },
   "stats": {
     "problems": "Problems",
