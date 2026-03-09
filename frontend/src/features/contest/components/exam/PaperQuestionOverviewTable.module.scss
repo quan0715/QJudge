@@ -1,0 +1,16 @@
+.promptCell {
+  max-width: 28rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scoreCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.statusTag {
+  flex-shrink: 0;
+}

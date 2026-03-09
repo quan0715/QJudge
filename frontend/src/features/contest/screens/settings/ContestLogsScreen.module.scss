@@ -10,6 +10,18 @@
   }
 }
 
+.embeddedRoot {
+  height: 100%;
+
+  .chartsCol {
+    position: static;
+  }
+
+  .timelineScroll {
+    max-height: 36rem;
+  }
+}
+
 .chartsCol {
   display: flex;
   flex-direction: column;

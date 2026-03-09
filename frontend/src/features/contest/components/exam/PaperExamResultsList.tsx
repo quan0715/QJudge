@@ -1,14 +1,6 @@
 import React from "react";
 import {
-  DataTable,
   InlineNotification,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableHeader,
-  TableRow,
   Tag,
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +18,7 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import {
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
+import PaperQuestionOverviewTable from "./PaperQuestionOverviewTable";
 
 const canOpenPaperAnsweringFromDashboard = (contest: ContestDetail | null | undefined): boolean => {
   if (!contest) return false;
@@ -138,23 +131,6 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
     [questions, resultMap, resultsPublished, t]
   );
 
-  const headers = useMemo(() => {
-    const base = [
-      { key: "index", header: "#" },
-      { key: "prompt", header: t("paperExamProblems.headers.prompt") },
-      { key: "type", header: t("paperExamProblems.headers.type") },
-      { key: "maxScore", header: t("paperExamProblems.headers.maxScore") },
-    ];
-
-    if (resultsPublished) {
-      base.push(
-        { key: "score", header: t("paperExamProblems.headers.score") },
-        { key: "feedback", header: t("paperExamProblems.headers.feedback") }
-      );
-    }
-    return base;
-  }, [resultsPublished, t]);
-
   const totalScore = useMemo(
     () => results.reduce((sum, item) => sum + (item.score ?? 0), 0),
     [results]
@@ -232,62 +208,25 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
             )}
 
             {canQueryExamData && (
-              <DataTable rows={rows} headers={headers}>
-                {({
-                  rows: tableRows,
-                  headers: tableHeaders,
-                  getHeaderProps,
-                  getRowProps,
-                  getTableProps,
-                }) => (
-                  <TableContainer>
-                    <Table {...getTableProps()}>
-                      <TableHead>
-                        <TableRow>
-                          {tableHeaders.map((header) => {
-                            const { key, ...headerProps } = getHeaderProps({
-                              header,
-                            });
-                            return (
-                              <TableHeader key={key} {...headerProps}>
-                                {header.header}
-                              </TableHeader>
-                            );
-                          })}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {tableRows.map((row) => {
-                          const { key, ...rowProps } = getRowProps({ row });
-                          return (
-                            <TableRow
-                              key={key}
-                              {...rowProps}
-                              onClick={() => {
-                                if (!canOpenAnswering) return;
-                                navigate(
-                                  `/contests/${contestId}/paper-exam/answering?q=${row.id}`
-                                );
-                              }}
-                              style={
-                                canOpenAnswering
-                                  ? {
-                                      cursor: "pointer",
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {row.cells.map((cell) => (
-                                <TableCell key={cell.id}>{cell.value}</TableCell>
-                              ))}
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </DataTable>
+              <PaperQuestionOverviewTable
+                rows={rows.map((row) => ({
+                  id: row.id,
+                  index: row.index,
+                  prompt: row.prompt,
+                  typeLabel: row.type,
+                  maxScore: row.maxScore,
+                  scoreDisplay: row.score,
+                  feedbackDisplay: row.feedback,
+                }))}
+                showScore={resultsPublished}
+                showFeedback={resultsPublished}
+                onRowClick={
+                  canOpenAnswering
+                    ? (questionId) =>
+                        navigate(`/contests/${contestId}/paper-exam/answering?q=${questionId}`)
+                    : undefined
+                }
+              />
             )}
 
             {!loading && rows.length === 0 && (

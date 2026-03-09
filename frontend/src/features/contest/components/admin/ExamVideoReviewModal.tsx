@@ -4,7 +4,6 @@ import type { TFunction } from "i18next";
 import {
   Button,
   InlineNotification,
-  Modal,
   SkeletonPlaceholder,
   SkeletonText,
   Table,
@@ -31,8 +30,7 @@ import styles from "./ExamVideoReviewModal.module.scss";
 
 interface Props {
   contestId?: string;
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
   userIdFilter?: string;
   canDelete?: boolean;
 }
@@ -149,8 +147,7 @@ const ExamVideoReviewSkeleton = () => (
 
 const ExamVideoReviewModal: React.FC<Props> = ({
   contestId,
-  open,
-  onClose,
+  open = true,
   userIdFilter,
   canDelete = false,
 }) => {
@@ -165,11 +162,15 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   const [compiling, setCompiling] = useState(false);
   const [compilingAll, setCompilingAll] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const loadErrorFallback = "載入影片失敗";
+  const playUrlErrorFallback = "載入播放連結失敗";
 
   const selectedVideo = useMemo(
     () => videos.find((v) => v.id === selectedId) || null,
     [videos, selectedId]
   );
+  const hasSelectedVideo = selectedVideo !== null;
+  const selectedVideoHasVideo = selectedVideo?.has_video === true;
   const tableHeaders = useMemo(
     () => [
       t("examVideoReview.headers.student", "學生"),
@@ -194,12 +195,16 @@ const ExamVideoReviewModal: React.FC<Props> = ({
         setPlayUrl("");
         return;
       }
-      const matched = selectedId && data.some((v) => v.id === selectedId);
       const preferred = data.find((v) => v.has_video !== false) || data[0];
-      const nextId = matched ? selectedId : preferred.id;
-      setSelectedId(nextId);
+      setSelectedId((previousSelectedId) => {
+        const matched =
+          previousSelectedId != null &&
+          data.some((video) => video.id === previousSelectedId);
+        return matched ? previousSelectedId : preferred.id;
+      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("examVideoReview.errors.load", "載入影片失敗");
+      const message =
+        error instanceof Error ? error.message : loadErrorFallback;
       setErrorMessage(message);
       setVideos([]);
       setSelectedId(null);
@@ -207,7 +212,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [contestId, t, userIdFilter, selectedId]);
+  }, [contestId, userIdFilter]);
 
   useEffect(() => {
     if (!open) return;
@@ -215,7 +220,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   }, [open, reload]);
 
   useEffect(() => {
-    if (!contestId || !selectedId || !selectedVideo || selectedVideo.has_video === false) {
+    if (!open || !contestId || !selectedId || !hasSelectedVideo || !selectedVideoHasVideo) {
       setPlayUrl("");
       setPlayUrlLoading(false);
       return;
@@ -229,9 +234,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
         setPlayUrl(data.url);
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : t("examVideoReview.errors.playUrl", "載入播放連結失敗");
+          error instanceof Error ? error.message : playUrlErrorFallback;
         setErrorMessage(message);
         setPlayUrl("");
       } finally {
@@ -239,7 +242,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
       }
     };
     void fetchPlayUrl();
-  }, [contestId, selectedId, selectedVideo, t]);
+  }, [open, contestId, selectedId, hasSelectedVideo, selectedVideoHasVideo]);
 
   useEffect(() => {
     setNote(selectedVideo?.suspected_note || "");
@@ -333,270 +336,264 @@ const ExamVideoReviewModal: React.FC<Props> = ({
     }
   };
 
-  return (
-    <Modal
-      open={open}
-      onRequestClose={onClose}
-      passiveModal
-      size="lg"
-      modalHeading={t("examVideoReview.modalHeading", "防弊影片檢視")}
-    >
-      <div className={styles.root}>
-        {loading ? (
-          <ExamVideoReviewSkeleton />
-        ) : (
-          <>
-            {errorMessage && (
-              <InlineNotification
-                kind="error"
-                lowContrast
-                title={t("examVideoReview.loadErrorTitle", "載入監控影片失敗")}
-                subtitle={errorMessage}
-                hideCloseButton
-              />
-            )}
+  if (!open) return null;
 
-            {videos.length === 0 ? (
-              <Tile className={styles.emptyState}>
-                {t("examVideoReview.empty", "目前沒有可顯示的監控影片。")}
-              </Tile>
-            ) : (
-              <div className={styles.contentGrid}>
-                <Tile className={styles.listTile}>
-                  <div className={styles.listHeader}>
-                    <strong className={styles.listTitle}>
-                      {t("examVideoReview.listTitle", "影片清單")}
-                    </strong>
-                    <div className={styles.listHeaderActions}>
-                      {pendingVideos.length > 0 && (
-                        <Button
-                          kind="ghost"
-                          size="sm"
-                          onClick={handleCompileAll}
-                          disabled={isMutating}
-                        >
-                          {compilingAll
-                            ? t("examVideoReview.bulkCompiling", "送出中...")
-                            : t("examVideoReview.bulkCompile", `全部轉檔 (${pendingVideos.length})`, {
-                                count: pendingVideos.length,
-                              })}
-                        </Button>
-                      )}
-                      <Tag type="cool-gray">
-                        {t("examVideoReview.videoCount", "{{count}} 筆", {
-                          count: videos.length,
-                        })}
-                      </Tag>
-                    </div>
+  return (
+    <div className={styles.root}>
+      {loading ? (
+        <ExamVideoReviewSkeleton />
+      ) : (
+        <>
+          {errorMessage && (
+            <InlineNotification
+              kind="error"
+              lowContrast
+              title={t("examVideoReview.loadErrorTitle", "載入監控影片失敗")}
+              subtitle={errorMessage}
+              hideCloseButton
+            />
+          )}
+
+          {videos.length === 0 ? (
+            <Tile className={styles.emptyState}>
+              {t("examVideoReview.empty", "目前沒有可顯示的監控影片。")}
+            </Tile>
+          ) : (
+            <div className={styles.contentGrid}>
+              <Tile className={styles.listTile}>
+                <div className={styles.listHeader}>
+                  <strong className={styles.listTitle}>
+                    {t("examVideoReview.listTitle", "影片清單")}
+                  </strong>
+                  <div className={styles.listHeaderActions}>
+                    {pendingVideos.length > 0 && (
+                      <Button
+                        kind="ghost"
+                        size="sm"
+                        onClick={handleCompileAll}
+                        disabled={isMutating}
+                      >
+                        {compilingAll
+                          ? t("examVideoReview.bulkCompiling", "送出中...")
+                          : t("examVideoReview.bulkCompile", `全部轉檔 (${pendingVideos.length})`, {
+                              count: pendingVideos.length,
+                            })}
+                      </Button>
+                    )}
+                    <Tag type="cool-gray">
+                      {t("examVideoReview.videoCount", "{{count}} 筆", {
+                        count: videos.length,
+                      })}
+                    </Tag>
                   </div>
-                  <TableContainer>
-                    <Table size="sm">
-                      <TableHead>
-                        <TableRow>
-                          {tableHeaders.map((header) => (
-                            <TableHeader key={header}>{header}</TableHeader>
-                          ))}
-                          <TableHeader>
-                            {t("examVideoReview.headers.jobStatus", "轉檔狀態")}
-                          </TableHeader>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {videos.map((video) => {
-                          const isSelected = video.id === selectedId;
-                          return (
-                            <TableRow
-                              key={video.id}
-                              className={`${styles.tableRow} ${
-                                isSelected ? styles.tableRowSelected : ""
-                              }`}
-                              aria-selected={isSelected}
-                              onClick={() => setSelectedId(video.id)}
-                            >
-                              <TableCell>{video.participant_username}</TableCell>
-                              <TableCell>
-                                {new Date(
-                                  video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
-                                ).toLocaleString()}
-                              </TableCell>
-                              <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
-                              <TableCell>
-                                {video.is_suspected ? (
-                                  <Tag type="red">
-                                    {t("examVideoReview.flag.suspected", "疑似")}
-                                  </Tag>
-                                ) : (
-                                  <Tag type="green">
-                                    {t("examVideoReview.flag.normal", "正常")}
-                                  </Tag>
-                                )}
-                              </TableCell>
-                              <TableCell>{getJobTag(video, t)}</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                </div>
+                <TableContainer>
+                  <Table size="sm">
+                    <TableHead>
+                      <TableRow>
+                        {tableHeaders.map((header) => (
+                          <TableHeader key={header}>{header}</TableHeader>
+                        ))}
+                        <TableHeader>
+                          {t("examVideoReview.headers.jobStatus", "轉檔狀態")}
+                        </TableHeader>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {videos.map((video) => {
+                        const isSelected = video.id === selectedId;
+                        return (
+                          <TableRow
+                            key={video.id}
+                            className={`${styles.tableRow} ${
+                              isSelected ? styles.tableRowSelected : ""
+                            }`}
+                            aria-selected={isSelected}
+                            onClick={() => setSelectedId(video.id)}
+                          >
+                            <TableCell>{video.participant_username}</TableCell>
+                            <TableCell>
+                              {new Date(
+                                video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
+                              ).toLocaleString()}
+                            </TableCell>
+                            <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
+                            <TableCell>
+                              {video.is_suspected ? (
+                                <Tag type="red">
+                                  {t("examVideoReview.flag.suspected", "疑似")}
+                                </Tag>
+                              ) : (
+                                <Tag type="green">
+                                  {t("examVideoReview.flag.normal", "正常")}
+                                </Tag>
+                              )}
+                            </TableCell>
+                            <TableCell>{getJobTag(video, t)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Tile>
+
+              <div className={styles.sideColumn}>
+                <Tile className={styles.previewTile}>
+                  <div className={styles.previewSurface}>
+                    {selectedVideo?.has_video === false ? (
+                      <div className={styles.previewMessage}>
+                        {selectedVideo.job_status === "failed"
+                          ? t(
+                              "examVideoReview.preview.failed",
+                              "影片轉檔失敗，請稍後重試或查看錯誤訊息。"
+                            )
+                          : selectedVideo.job_status === "running"
+                            ? t(
+                                "examVideoReview.preview.running",
+                                "影片轉檔中，完成後會自動顯示。"
+                              )
+                            : t(
+                                "examVideoReview.preview.pending",
+                                "影片目前為待轉檔，手動送出轉檔後會顯示於此。"
+                              )}
+                      </div>
+                    ) : selectedVideo && playUrlLoading ? (
+                      <div className={styles.previewLoading}>
+                        <SkeletonPlaceholder style={{ width: "100%", height: 188 }} />
+                        <SkeletonText width="45%" />
+                      </div>
+                    ) : playUrl ? (
+                      <video controls src={playUrl} className={styles.previewVideo} />
+                    ) : (
+                      <div className={styles.previewMessage}>
+                        {t("examVideoReview.preview.selectVideo", "請選擇影片")}
+                      </div>
+                    )}
+                  </div>
                 </Tile>
 
-                <div className={styles.sideColumn}>
-                  <Tile className={styles.previewTile}>
-                    <div className={styles.previewSurface}>
-                      {selectedVideo?.has_video === false ? (
-                        <div className={styles.previewMessage}>
-                          {selectedVideo.job_status === "failed"
-                            ? t(
-                                "examVideoReview.preview.failed",
-                                "影片轉檔失敗，請稍後重試或查看錯誤訊息。"
-                              )
-                            : selectedVideo.job_status === "running"
-                              ? t(
-                                  "examVideoReview.preview.running",
-                                  "影片轉檔中，完成後會自動顯示。"
-                                )
-                              : t(
-                                  "examVideoReview.preview.pending",
-                                  "影片目前為待轉檔，手動送出轉檔後會顯示於此。"
-                                )}
+                {selectedVideo && (
+                  <Tile className={styles.metaTile}>
+                    <div className={styles.metaGrid}>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.student", "學生")}
                         </div>
-                      ) : selectedVideo && playUrlLoading ? (
-                        <div className={styles.previewLoading}>
-                          <SkeletonPlaceholder style={{ width: "100%", height: 188 }} />
-                          <SkeletonText width="45%" />
+                        <div className={styles.metaValue}>{selectedVideo.participant_username}</div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.fileSize", "檔案大小")}
                         </div>
-                      ) : playUrl ? (
-                        <video controls src={playUrl} className={styles.previewVideo} />
+                        <div className={styles.metaValue}>{formatBytes(selectedVideo.size_bytes)}</div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.duration", "影片長度")}
+                        </div>
+                        <div className={styles.metaValue}>{formatDuration(selectedVideo.duration_seconds)}</div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.frameCount", "幀數")}
+                        </div>
+                        <div className={styles.metaValue}>
+                          {selectedVideo.frame_count.toLocaleString()} 幀 ({getFpsText(selectedVideo.frame_count, selectedVideo.duration_seconds)})
+                        </div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.jobStatus", "轉檔狀態")}
+                        </div>
+                        <div className={styles.metaValue}>
+                          {getJobStatusText(selectedVideo, t)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.metaStatusRow}>
+                      {selectedVideo.is_suspected ? (
+                        <Tag type="red">
+                          {t("examVideoReview.suspicion.suspected", "疑似作弊")}
+                        </Tag>
                       ) : (
-                        <div className={styles.previewMessage}>
-                          {t("examVideoReview.preview.selectVideo", "請選擇影片")}
-                        </div>
+                        <Tag type="green">
+                          {t("examVideoReview.suspicion.normal", "正常")}
+                        </Tag>
                       )}
+                      {getJobTag(selectedVideo, t)}
                     </div>
-                  </Tile>
-
-                  {selectedVideo && (
-                    <Tile className={styles.metaTile}>
-                      <div className={styles.metaGrid}>
-                        <div className={styles.metaItem}>
-                          <div className={styles.metaLabel}>
-                            {t("examVideoReview.fields.student", "學生")}
-                          </div>
-                          <div className={styles.metaValue}>{selectedVideo.participant_username}</div>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <div className={styles.metaLabel}>
-                            {t("examVideoReview.fields.fileSize", "檔案大小")}
-                          </div>
-                          <div className={styles.metaValue}>{formatBytes(selectedVideo.size_bytes)}</div>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <div className={styles.metaLabel}>
-                            {t("examVideoReview.fields.duration", "影片長度")}
-                          </div>
-                          <div className={styles.metaValue}>{formatDuration(selectedVideo.duration_seconds)}</div>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <div className={styles.metaLabel}>
-                            {t("examVideoReview.fields.frameCount", "幀數")}
-                          </div>
-                          <div className={styles.metaValue}>
-                            {selectedVideo.frame_count.toLocaleString()} 幀 ({getFpsText(selectedVideo.frame_count, selectedVideo.duration_seconds)})
-                          </div>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <div className={styles.metaLabel}>
-                            {t("examVideoReview.fields.jobStatus", "轉檔狀態")}
-                          </div>
-                          <div className={styles.metaValue}>
-                            {getJobStatusText(selectedVideo, t)}
-                          </div>
-                        </div>
+                    {!!selectedVideo.job_error_message && (
+                      <div className={styles.errorBlock}>
+                        <InlineNotification
+                          kind="warning"
+                          lowContrast
+                          title={t("examVideoReview.transcodeErrorTitle", "轉檔錯誤")}
+                          subtitle={selectedVideo.job_error_message}
+                          hideCloseButton
+                        />
                       </div>
-
-                      <div className={styles.metaStatusRow}>
-                        {selectedVideo.is_suspected ? (
-                          <Tag type="red">
-                            {t("examVideoReview.suspicion.suspected", "疑似作弊")}
-                          </Tag>
-                        ) : (
-                          <Tag type="green">
-                            {t("examVideoReview.suspicion.normal", "正常")}
-                          </Tag>
-                        )}
-                        {getJobTag(selectedVideo, t)}
-                      </div>
-                      {!!selectedVideo.job_error_message && (
-                        <div className={styles.errorBlock}>
-                          <InlineNotification
-                            kind="warning"
-                            lowContrast
-                            title={t("examVideoReview.transcodeErrorTitle", "轉檔錯誤")}
-                            subtitle={selectedVideo.job_error_message}
-                            hideCloseButton
-                          />
-                        </div>
-                      )}
-                    </Tile>
-                  )}
-
-                  <Tile className={styles.actionTile}>
-                    <TextArea
-                      id="video-note"
-                      labelText={t("examVideoReview.note", "備註")}
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                    <div className={styles.actionRow}>
-                      <Button
-                        kind="secondary"
-                        size="sm"
-                        onClick={handleDownload}
-                        disabled={!selectedVideo || selectedVideo.has_video === false || isMutating}
-                      >
-                        {t("examVideoReview.actions.download", "下載影片")}
-                      </Button>
-                      <Button
-                        kind="primary"
-                        size="sm"
-                        onClick={handleToggleFlag}
-                        disabled={!selectedVideo || selectedVideo.has_video === false || isMutating}
-                      >
-                        {selectedVideo?.is_suspected
-                          ? t("examVideoReview.actions.unflag", "取消疑似標記")
-                          : t("examVideoReview.actions.flag", "標記疑似作弊")}
-                      </Button>
-                      <Button
-                        kind="tertiary"
-                        size="sm"
-                        onClick={handleCompile}
-                        disabled={!selectedVideo || isMutating || selectedVideo.job_status === "running"}
-                      >
-                        {compiling
-                          ? t("examVideoReview.actions.submitting", "送出中...")
-                          : t("examVideoReview.actions.compile", "開始轉檔")}
-                      </Button>
-                      {canDelete && (
-                        <Button
-                          kind="danger--tertiary"
-                          size="sm"
-                          onClick={handleDelete}
-                          disabled={!selectedVideo || isMutating || selectedVideo?.job_status === "running"}
-                        >
-                          {deleting
-                            ? t("examVideoReview.actions.deleting", "刪除中...")
-                            : t("examVideoReview.actions.delete", "刪除影片")}
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </Tile>
-                </div>
+                )}
+
+                <Tile className={styles.actionTile}>
+                  <TextArea
+                    id="video-note"
+                    labelText={t("examVideoReview.note", "備註")}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  <div className={styles.actionRow}>
+                    <Button
+                      kind="secondary"
+                      size="sm"
+                      onClick={handleDownload}
+                      disabled={!selectedVideo || selectedVideo.has_video === false || isMutating}
+                    >
+                      {t("examVideoReview.actions.download", "下載影片")}
+                    </Button>
+                    <Button
+                      kind="primary"
+                      size="sm"
+                      onClick={handleToggleFlag}
+                      disabled={!selectedVideo || selectedVideo.has_video === false || isMutating}
+                    >
+                      {selectedVideo?.is_suspected
+                        ? t("examVideoReview.actions.unflag", "取消疑似標記")
+                        : t("examVideoReview.actions.flag", "標記疑似作弊")}
+                    </Button>
+                    <Button
+                      kind="tertiary"
+                      size="sm"
+                      onClick={handleCompile}
+                      disabled={!selectedVideo || isMutating || selectedVideo.job_status === "running"}
+                    >
+                      {compiling
+                        ? t("examVideoReview.actions.submitting", "送出中...")
+                        : t("examVideoReview.actions.compile", "開始轉檔")}
+                    </Button>
+                    {canDelete && (
+                      <Button
+                        kind="danger--tertiary"
+                        size="sm"
+                        onClick={handleDelete}
+                        disabled={!selectedVideo || isMutating || selectedVideo?.job_status === "running"}
+                      >
+                        {deleting
+                          ? t("examVideoReview.actions.deleting", "刪除中...")
+                          : t("examVideoReview.actions.delete", "刪除影片")}
+                      </Button>
+                    )}
+                  </div>
+                </Tile>
               </div>
-            )}
-          </>
-        )}
-      </div>
-    </Modal>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

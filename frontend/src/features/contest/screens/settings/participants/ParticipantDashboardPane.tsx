@@ -192,6 +192,21 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   }, [dashboard]);
 
   const selectedIndex = Math.max(availableDetails.indexOf(activeDetail), 0);
+  const primaryAction =
+    dashboard.actions.canUnlock
+      ? {
+          label: t("participants.actions.unlock", "解除鎖定"),
+          icon: Locked,
+          onClick: onUnlock,
+        }
+      : dashboard.actions.canReopenExam
+        ? {
+            label: t("participants.actions.reopen", "重新開放考試"),
+            icon: DocumentTasks,
+            onClick: onReopenExam,
+          }
+        : null;
+
   const submissionsEnabled =
     dashboard?.contestType === "coding" && activeDetail === "submissions";
 
@@ -363,15 +378,28 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           </div>
 
           <div className={styles.actionsRow}>
-            <Button kind="ghost" size="sm" renderIcon={Edit} onClick={onEditStatus}>
-              {t("participants.actions.edit", "編輯狀態")}
-            </Button>
+            {primaryAction ? (
+              <Button
+                kind="secondary"
+                size="sm"
+                renderIcon={primaryAction.icon}
+                onClick={primaryAction.onClick}
+              >
+                {primaryAction.label}
+              </Button>
+            ) : null}
             <MenuButton
               kind="tertiary"
               size="sm"
               label={t("participantsDashboard.moreActions", "更多操作")}
               menuAlignment="bottom-end"
             >
+              <MenuItem
+                label={t("participants.actions.edit", "編輯狀態")}
+                renderIcon={Edit}
+                onClick={onEditStatus}
+              />
+              <MenuItemDivider />
               <MenuItem
                 label={t("participants.actions.download", "下載報告")}
                 renderIcon={Download}
@@ -395,7 +423,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   onClick={onOpenGrading}
                 />
               ) : null}
-              {dashboard.actions.canUnlock ? (
+              {dashboard.actions.canUnlock && !primaryAction ? (
                 <MenuItem
                   label={t("participants.actions.unlock", "解除鎖定")}
                   renderIcon={Locked}
@@ -409,7 +437,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   onClick={onApproveTakeover}
                 />
               ) : null}
-              {dashboard.actions.canReopenExam ? (
+              {dashboard.actions.canReopenExam && !primaryAction ? (
                 <MenuItem
                   label={t("participants.actions.reopen", "重新開放考試")}
                   renderIcon={DocumentTasks}

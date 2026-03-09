@@ -18,33 +18,24 @@ import {
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 const ContestExamGradingScreen: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { contest, refreshContest } = useContest();
-  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<0 | 1>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<GradingFilter>("all");
   const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
   const [publishingResults, setPublishingResults] = useState(false);
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
 
   const published = !!contest?.resultsPublished;
-  const canDeleteExamVideos = useMemo(() => {
-    if (!contest || !user) return false;
-    if (contest.permissions?.canDeleteContest) return true;
-    return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
-  }, [contest, user]);
 
   const handleTogglePublish = async () => {
     if (!contestId) return;
@@ -195,15 +186,6 @@ const ContestExamGradingScreen: React.FC = () => {
         )}
 
         <div className={styles.toolbarDivider} />
-        <Button
-          kind="secondary"
-          size="sm"
-          onClick={() => setVideoModalOpen(true)}
-          className={styles.toolbarAction}
-        >
-          監控影片
-        </Button>
-
         <Tag type={published ? "green" : "gray"} size="sm">
           {published ? t("grading.published", "已發布") : t("grading.unpublished", "未發布")}
         </Tag>
@@ -238,12 +220,6 @@ const ContestExamGradingScreen: React.FC = () => {
           />
         )}
       </div>
-      <ExamVideoReviewModal
-        contestId={contestId}
-        open={videoModalOpen}
-        onClose={() => setVideoModalOpen(false)}
-        canDelete={canDeleteExamVideos}
-      />
     </div>
   );
 };

@@ -768,6 +768,7 @@
     "noTimeline": "이벤트 기록이 없습니다",
     "evidenceSessions": "감독 영상 및 변환 상태",
     "manageEvidence": "영상 관리 열기",
+    "monitoringUseExistingUi": "이 탭은 기존 영상 관리 UI를 사용합니다. 위 버튼을 눌러 열어 주세요.",
     "noEvidence": "감독 영상 또는 대기 중인 변환 항목이 없습니다",
     "session": "세션",
     "flagged": "표시됨",

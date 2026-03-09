@@ -164,8 +164,16 @@ const LogsSkeleton = () => (
   </div>
 );
 
+interface ContestLogsScreenProps {
+  userIdFilter?: string;
+  embedded?: boolean;
+}
+
 // --- Component ---
-const ContestLogsScreen = () => {
+const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
+  userIdFilter,
+  embedded = false,
+}) => {
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
   const { theme } = useTheme();
   const { t } = useTranslation("contest");
@@ -174,6 +182,11 @@ const ContestLogsScreen = () => {
     ...g,
     label: t(`logs.groups.${g.id}`, g.label),
   }));
+
+  const sourceEvents = useMemo(() => {
+    if (!userIdFilter) return examEvents;
+    return examEvents.filter((event) => String(event.userId) === userIdFilter);
+  }, [examEvents, userIdFilter]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
@@ -187,10 +200,10 @@ const ContestLogsScreen = () => {
   // --- Sorting & Filtering ---
   const sortedEvents = useMemo(
     () =>
-      [...examEvents].sort(
+      [...sourceEvents].sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       ),
-    [examEvents],
+    [sourceEvents],
   );
 
   const selectedTypes = useMemo(() => {
@@ -282,17 +295,17 @@ const ContestLogsScreen = () => {
   // --- Summary counts ---
   const summaryCounts = useMemo(() => {
     const counts = { violation: 0, submission: 0, lifecycle: 0, admin: 0 };
-    examEvents.forEach((e) => {
+    sourceEvents.forEach((e) => {
       if (EVENT_CATEGORIES.violation.includes(e.eventType)) counts.violation++;
       else if (EVENT_CATEGORIES.submission.includes(e.eventType)) counts.submission++;
       else if (EVENT_CATEGORIES.lifecycle.includes(e.eventType)) counts.lifecycle++;
       else counts.admin++;
     });
     return counts;
-  }, [examEvents]);
+  }, [sourceEvents]);
 
   const chartWindow = useMemo(() => {
-    const eventTimes = examEvents
+    const eventTimes = sourceEvents
       .map((event) => parseMs(event.timestamp))
       .filter((ms): ms is number => ms !== null)
       .sort((a, b) => a - b);
@@ -303,7 +316,7 @@ const ContestLogsScreen = () => {
     const endMs = eventTimes[eventTimes.length - 1];
 
     return { startMs, endMs };
-  }, [examEvents]);
+  }, [sourceEvents]);
 
   // --- Chart data ---
   const chartData = useMemo(() => {
@@ -321,7 +334,7 @@ const ContestLogsScreen = () => {
       t += HOUR_MS;
     }
 
-    examEvents.forEach((event) => {
+    sourceEvents.forEach((event) => {
       const et = parseMs(event.timestamp);
       if (et === null || et < startMs || et > endMs) return;
       const slot =
@@ -349,7 +362,7 @@ const ContestLogsScreen = () => {
         }
       });
     return data;
-  }, [examEvents, chartWindow, logGroupLabels]);
+  }, [sourceEvents, chartWindow, logGroupLabels]);
 
   // --- Compute time indicator Y position on chart ---
   const indicatorPosition = useMemo(() => {
@@ -395,11 +408,10 @@ const ContestLogsScreen = () => {
     [theme, chartBarCount, logGroupLabels, t],
   );
 
-  const loading = examEvents.length === 0 && isRefreshing;
+  const loading = sourceEvents.length === 0 && isRefreshing;
 
-  // --- Render ---
-  return (
-    <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>
+  const logsContent = (
+    <>
       {loading ? (
         <LogsSkeleton />
       ) : (
@@ -503,7 +515,7 @@ const ContestLogsScreen = () => {
 
               {filteredEvents.length === 0 ? (
                 <div className={styles.timelineEmpty}>
-                  {examEvents.length === 0 ? t("logs.noEvents", "暫無事件紀錄") : t("logs.noMatchingEvents", "無符合篩選條件的事件")}
+                  {sourceEvents.length === 0 ? t("logs.noEvents", "暫無事件紀錄") : t("logs.noMatchingEvents", "無符合篩選條件的事件")}
                 </div>
               ) : (
                 <>
@@ -557,8 +569,13 @@ const ContestLogsScreen = () => {
           </div>
         </div>
       )}
-    </SurfaceSection>
+    </>
   );
+
+  if (embedded) {
+    return <div className={styles.embeddedRoot}>{logsContent}</div>;
+  }
+  return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>{logsContent}</SurfaceSection>;
 };
 
 export default ContestLogsScreen;

@@ -14,7 +14,6 @@ import type {
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
 import { useContestAdmin } from "@/features/contest/contexts";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
@@ -65,7 +64,6 @@ const ContestParticipantsScreen = () => {
   } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<ContestParticipant | null>(null);
   const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
@@ -169,11 +167,25 @@ const ContestParticipantsScreen = () => {
   const updateParams = useCallback((updates: Record<string, string | null>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
+      let hasChanges = false;
+
       Object.entries(updates).forEach(([key, value]) => {
-        if (!value) next.delete(key);
-        else next.set(key, value);
+        const current = next.get(key);
+        if (!value) {
+          if (current !== null) {
+            next.delete(key);
+            hasChanges = true;
+          }
+          return;
+        }
+
+        if (current !== value) {
+          next.set(key, value);
+          hasChanges = true;
+        }
       });
-      return next;
+
+      return hasChanges ? next : prev;
     });
   }, [setSearchParams]);
 
@@ -395,7 +407,7 @@ const ContestParticipantsScreen = () => {
           onApproveTakeover={handleApproveTakeover}
           onReopenExam={handleReopenExam}
           onRemoveParticipant={handleRemoveParticipant}
-          onOpenEvidenceModal={() => setVideoModalOpen(true)}
+          canDeleteExamVideos={canDeleteExamVideos}
           onOpenGrading={() => updateParams({ panel: "grading" })}
         />
       </div>
@@ -414,14 +426,6 @@ const ContestParticipantsScreen = () => {
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onAdd={handleAddParticipant}
-      />
-
-      <ExamVideoReviewModal
-        contestId={contestId}
-        open={videoModalOpen}
-        onClose={() => setVideoModalOpen(false)}
-        userIdFilter={selectedUserId || undefined}
-        canDelete={canDeleteExamVideos}
       />
 
       <Modal

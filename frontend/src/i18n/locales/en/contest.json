@@ -768,6 +768,7 @@
     "noTimeline": "No events yet",
     "evidenceSessions": "Evidence Sessions",
     "manageEvidence": "Open evidence manager",
+    "monitoringUseExistingUi": "This tab reuses the existing video manager UI. Use the button above to open it.",
     "noEvidence": "No evidence videos or pending transcodes yet",
     "session": "Session",
     "flagged": "Flagged",

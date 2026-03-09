@@ -138,6 +138,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
+      capture.forceStopCapture();
       if (fullscreenAdapterRef.current.isActive()) {
         void fullscreenAdapterRef.current.exit();
       }
@@ -197,6 +198,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       await serviceEndExam(contestId, {
         upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
+      capture.forceStopCapture();
       if (onRefresh) await onRefresh();
       setShowFullscreenExitConfirm(false);
     } catch {

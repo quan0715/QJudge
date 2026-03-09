@@ -8,7 +8,7 @@ import ContestParticipantsScreen from "./ContestParticipantsScreen";
 const useContestAdminMock = vi.fn();
 const useContestMock = vi.fn();
 const useAuthMock = vi.fn();
-const useParticipantDashboardMock = vi.fn();
+const participantDashboardHookMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -30,7 +30,7 @@ vi.mock("@/features/auth/contexts/AuthContext", () => ({
 }));
 
 vi.mock("./participants/useParticipantDashboard", () => ({
-  default: (...args: unknown[]) => useParticipantDashboardMock(...args),
+  default: (...args: unknown[]) => participantDashboardHookMock(...args),
 }));
 
 vi.mock("./participants/ParticipantsListPane", () => ({
@@ -55,10 +55,6 @@ vi.mock("./participants/ParticipantDashboardPane", () => ({
 
 vi.mock("@/features/contest/components/modals/AddParticipantModal", () => ({
   AddParticipantModal: () => null,
-}));
-
-vi.mock("@/features/contest/components/admin/ExamVideoReviewModal", () => ({
-  default: () => null,
 }));
 
 vi.mock("@/shared/ui/modal", () => ({
@@ -123,11 +119,15 @@ const makeDashboard = (contestType: "coding" | "paper_exam"): ParticipantDashboa
           problemDetails: [],
           trend: {
             statusCounts: {},
+            submissionTimeline: [],
             cumulativeProgress: [],
           },
         },
   timeline: [],
   actions: {
+    canDownloadReport: true,
+    canEditStatus: true,
+    canRemoveParticipant: true,
     canUnlock: false,
     canApproveTakeover: false,
     canReopenExam: false,
@@ -164,7 +164,7 @@ describe("ContestParticipantsScreen", () => {
     useContestMock.mockReturnValue({
       contest: { ownerUsername: "owner", permissions: {}, contestType: "coding" },
     });
-    useParticipantDashboardMock.mockReturnValue({
+    participantDashboardHookMock.mockReturnValue({
       data: makeDashboard("coding"),
       loading: false,
       error: "",
@@ -184,7 +184,7 @@ describe("ContestParticipantsScreen", () => {
     useContestMock.mockReturnValue({
       contest: { ownerUsername: "owner", permissions: {}, contestType: "paper_exam" },
     });
-    useParticipantDashboardMock.mockReturnValue({
+    participantDashboardHookMock.mockReturnValue({
       data: makeDashboard("paper_exam"),
       loading: false,
       error: "",

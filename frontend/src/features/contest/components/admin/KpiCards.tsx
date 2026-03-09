@@ -1,4 +1,4 @@
-import { Tag, Tile } from "@carbon/react";
+import { Tag } from "@carbon/react";
 import {
   UserMultiple,
   Trophy,
@@ -12,6 +12,7 @@ import {
   getContestStateLabel,
   getContestStateColor,
 } from "@/core/entities/contest.entity";
+import { OverviewDataCards } from "@/shared/ui/dataCard";
 import styles from "./KpiCards.module.scss";
 
 interface KpiCardsProps {
@@ -48,37 +49,35 @@ export default function KpiCards({ kpi, contest }: KpiCardsProps) {
 
         {/* Right Column — 2×2 KPI Grid */}
         <div className={styles.kpiGrid}>
-          <Tile className={styles.miniCard}>
-            <UserMultiple size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Participants</span>
-            <span className={styles.miniValue}>{kpi.totalParticipants}</span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <ChartBar size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Avg Score</span>
-            <span className={styles.miniValue}>
-              {kpi.averageScore.toFixed(1)}
-            </span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <Trophy size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Highest Score</span>
-            <span className={styles.miniValue}>
-              {kpi.highestScore.toFixed(1)}
-            </span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <WarningAlt size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Violations</span>
-            <span
-              className={`${styles.miniValue} ${kpi.totalViolations > 0 ? styles.warningValue : ""}`}
-            >
-              {kpi.totalViolations}
-            </span>
-          </Tile>
+          <OverviewDataCards
+            items={[
+              {
+                key: "participants",
+                icon: UserMultiple,
+                label: "Participants",
+                value: String(kpi.totalParticipants),
+              },
+              {
+                key: "averageScore",
+                icon: ChartBar,
+                label: "Avg Score",
+                value: kpi.averageScore.toFixed(1),
+              },
+              {
+                key: "highestScore",
+                icon: Trophy,
+                label: "Highest Score",
+                value: kpi.highestScore.toFixed(1),
+              },
+              {
+                key: "violations",
+                icon: WarningAlt,
+                label: "Violations",
+                value: String(kpi.totalViolations),
+                tone: kpi.totalViolations > 0 ? "warning" : "default",
+              },
+            ]}
+          />
         </div>
       </div>
       </div>

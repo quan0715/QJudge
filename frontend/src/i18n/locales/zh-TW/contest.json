@@ -768,6 +768,7 @@
     "noTimeline": "尚無事件紀錄",
     "evidenceSessions": "監控影片與轉檔狀態",
     "manageEvidence": "開啟影片管理",
+    "monitoringUseExistingUi": "此分頁沿用既有影片管理 UI，請點擊上方按鈕開啟。",
     "noEvidence": "目前沒有監控影片或待轉檔項目",
     "session": "Session",
     "flagged": "已標記",

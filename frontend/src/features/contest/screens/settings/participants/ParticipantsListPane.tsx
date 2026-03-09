@@ -85,6 +85,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
     <ContainerCard
       title={t("participants.title", "參賽者列表")}
       className={styles.pane}
+      noPadding
       action={
         <Button
           kind="primary"

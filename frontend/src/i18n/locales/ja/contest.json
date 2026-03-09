@@ -768,6 +768,7 @@
     "noTimeline": "イベント記録がありません",
     "evidenceSessions": "監視動画と変換状態",
     "manageEvidence": "動画管理を開く",
+    "monitoringUseExistingUi": "このタブは既存の動画管理UIを利用します。上のボタンから開いてください。",
     "noEvidence": "監視動画または未変換項目はありません",
     "session": "セッション",
     "flagged": "要確認",

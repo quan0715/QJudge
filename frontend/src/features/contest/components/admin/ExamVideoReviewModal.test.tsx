@@ -50,25 +50,27 @@ const translationMap: Record<string, string> = {
   "examVideoReview.actions.deleting": "刪除中...",
 };
 
+const tMock = (
+  key: string,
+  defaultValueOrOptions?: string | Record<string, unknown>,
+  maybeOptions?: Record<string, unknown>
+) => {
+  const options =
+    typeof defaultValueOrOptions === "string"
+      ? maybeOptions
+      : (defaultValueOrOptions ?? {});
+  const template =
+    translationMap[key] ||
+    (typeof defaultValueOrOptions === "string" ? defaultValueOrOptions : key);
+  if (!options) return template;
+  return Object.entries(options).reduce((text, [name, value]) => {
+    return text.replace(`{{${name}}}`, String(value));
+  }, template);
+};
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (
-      key: string,
-      defaultValueOrOptions?: string | Record<string, unknown>,
-      maybeOptions?: Record<string, unknown>
-    ) => {
-      const options =
-        typeof defaultValueOrOptions === "string"
-          ? maybeOptions
-          : (defaultValueOrOptions ?? {});
-      const template =
-        translationMap[key] ||
-        (typeof defaultValueOrOptions === "string" ? defaultValueOrOptions : key);
-      if (!options) return template;
-      return Object.entries(options).reduce((text, [name, value]) => {
-        return text.replace(`{{${name}}}`, String(value));
-      }, template);
-    },
+    t: tMock,
   }),
 }));
 
@@ -129,7 +131,7 @@ describe("ExamVideoReviewModal", () => {
       buildVideo({ id: 4, participant_username: "failed-user", has_video: false, job_status: "failed" }),
     ]);
 
-    render(<ExamVideoReviewModal contestId="contest-1" open onClose={vi.fn()} />);
+    render(<ExamVideoReviewModal contestId="contest-1" open />);
 
     await screen.findByText("影片清單");
     expect(screen.getAllByText("可播放").length).toBeGreaterThan(0);
@@ -145,7 +147,7 @@ describe("ExamVideoReviewModal", () => {
       buildVideo({ id: 2, participant_username: "pending-user", has_video: false, job_status: "pending" }),
     ]);
 
-    render(<ExamVideoReviewModal contestId="contest-1" open onClose={vi.fn()} />);
+    render(<ExamVideoReviewModal contestId="contest-1" open />);
 
     await screen.findByText("pending-user");
     fireEvent.click(screen.getByText("pending-user"));
