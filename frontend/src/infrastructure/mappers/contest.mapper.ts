@@ -8,6 +8,7 @@ import type {
   ExamEventStats,
   ExamQuestion,
   ContestParticipant,
+  EventFeedItem,
   ParticipantCodingProblemDetail,
   ParticipantCodingProblemRow,
   ParticipantCodingTrendPoint,
@@ -246,6 +247,23 @@ const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
   videoId: dto?.video_id != null ? Number(dto.video_id) : null,
 });
 
+const mapEventFeedItemDto = (dto: any): EventFeedItem => ({
+  incidentKey: dto?.incident_key || "",
+  eventType: dto?.event_type || "",
+  priority: Number(dto?.priority ?? 3),
+  category: dto?.category || "system",
+  penalized: !!dto?.penalized,
+  firstAt: dto?.first_at || "",
+  lastAt: dto?.last_at || "",
+  count: Number(dto?.count ?? 1),
+  evidenceCount: Number(dto?.evidence_count ?? 0),
+  summary: dto?.summary || "",
+  source: dto?.source === "exam_event" ? "exam_event" : "activity",
+  userName: dto?.user_name || "",
+  userId: dto?.user_id?.toString() || "",
+  metadata: dto?.metadata || {},
+});
+
 export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
   const participant = mapContestParticipantDto(dto?.participant || {});
   const baseParticipant = {
@@ -290,6 +308,7 @@ export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
     overview: mapParticipantOverviewDto(dto?.overview || {}),
     report,
     timeline: Array.isArray(dto?.timeline) ? dto.timeline.map(mapParticipantTimelineDto) : [],
+    eventFeed: Array.isArray(dto?.event_feed) ? dto.event_feed.map(mapEventFeedItemDto) : [],
     actions: {
       canDownloadReport: !!dto?.actions?.can_download_report,
       canEditStatus: !!dto?.actions?.can_edit_status,

@@ -23,7 +23,10 @@ export type ExamViolationType =
   | "exam_submit_initiated"
   | "concurrent_login_detected"
   | "takeover_locked"
-  | "takeover_approved";
+  | "takeover_approved"
+  | "heartbeat"
+  | "heartbeat_timeout"
+  | "listener_tampered";
 
 // Activity events (from ContestActivity model)
 export type ContestActivityType =
@@ -215,6 +218,23 @@ export interface ParticipantEvidenceRow {
   videoId: number | null;
 }
 
+export interface EventFeedItem {
+  incidentKey: string;
+  eventType: string;
+  priority: number;
+  category: string;
+  penalized: boolean;
+  firstAt: string;
+  lastAt: string;
+  count: number;
+  evidenceCount: number;
+  summary: string;
+  source: "exam_event" | "activity";
+  userName?: string;
+  userId?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ParticipantDashboard {
   contestType: ContestType;
   participant: ContestParticipant & {
@@ -238,6 +258,7 @@ export interface ParticipantDashboard {
         };
       };
   timeline: ParticipantDashboardTimelineItem[];
+  eventFeed: EventFeedItem[];
   actions: ParticipantDashboardActions;
   evidence?: ParticipantEvidenceRow[];
 }

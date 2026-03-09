@@ -665,6 +665,58 @@
     "totalCount": "合計 {{total}} 件のイベント",
     "eventRecords": "イベント記録",
     "noDataToVisualize": "視覚化できるイベントデータがありません",
+    "tabs": {
+      "abnormal": "異常イベント",
+      "system": "システム/管理イベント"
+    },
+    "priorityGroups": {
+      "critical": "P0 重大",
+      "violation": "P1 違反",
+      "info": "P2 情報",
+      "system": "P3 システム"
+    },
+    "kpi": {
+      "critical": "高リスクイベント",
+      "violation": "ペナルティ対象違反",
+      "heartbeatTimeout": "ハートビートタイムアウト",
+      "degraded": "証拠アップロード異常"
+    },
+    "filterCategory": "優先度で絞り込み",
+    "penalized": "ペナルティ対象",
+    "evidenceCount": "証拠 {{count}}",
+    "detail": {
+      "user": "ユーザー",
+      "time": "時刻",
+      "type": "イベントタイプ",
+      "reason": "理由",
+      "priority": "優先度",
+      "count": "回数",
+      "penalized": "ペナルティ対象",
+      "evidence": "証拠キャプチャ",
+      "timeRange": "時間範囲",
+      "captureStatus": "キャプチャ状態",
+      "loadingScreenshots": "スクリーンショット読み込み中…",
+      "screenshotLoadFailed": "スクリーンショットの読み込みに失敗しました",
+      "noScreenshots": "元のスクリーンショットは削除済みまたは動画に変換済み"
+    },
+    "meta": {
+      "existingDeviceId": "既存デバイス ID",
+      "incomingDeviceId": "新規ログインデバイス ID",
+      "approvedBy": "承認者",
+      "lockedAt": "ロック時刻",
+      "lockReason": "ロック理由",
+      "retryCount": "リトライ回数"
+    },
+    "capture": {
+      "uploaded": "アップロード済み",
+      "capturedNotUploaded": "キャプチャ済み（未アップロード）",
+      "skipped": "スキップ",
+      "skipDisabled": "機能無効",
+      "skipCooldown": "クールダウン中",
+      "skipStreamUnavailable": "ストリーム利用不可",
+      "skipCaptureUnavailable": "キャプチャ利用不可",
+      "failed": "失敗"
+    },
     "eventTypes": {
       "join": "参加",
       "register": "登録",
@@ -699,6 +751,18 @@
       "update_problem": "問題更新",
       "update_participant": "参加者更新",
       "publish_problem_to_practice": "練習に公開",
+      "warning_timeout": "警告タイムアウト",
+      "screen_share_stopped": "画面共有停止",
+      "heartbeat_timeout": "ハートビートタイムアウト",
+      "listener_tampered": "監視リスナー改ざん",
+      "capture_upload_degraded": "キャプチャアップロード異常",
+      "screen_share_invalid_surface": "画面共有ソース異常",
+      "exam_entered": "試験画面に入室",
+      "exam_submit_initiated": "提出開始",
+      "takeover_locked": "デバイス引き継ぎロック",
+      "takeover_approved": "デバイス引き継ぎ承認",
+      "force_submit_locked": "ロック時強制提出",
+      "concurrent_login_detected": "同時ログイン検知",
       "other": "その他"
     }
   },

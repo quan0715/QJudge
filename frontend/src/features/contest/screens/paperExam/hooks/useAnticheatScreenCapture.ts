@@ -8,13 +8,16 @@ import {
   type ForcedCaptureOptions,
   type ForcedCaptureResult,
 } from "@/features/contest/anticheat/forcedCapture";
-import { getExamCaptureSessionId } from "./examCaptureSession";
+import { getExamCaptureSessionId, setExamCaptureSessionId } from "./examCaptureSession";
 import {
   consumePrecheckScreenShareHandoff,
   consumeRuntimeScreenShareHandoff,
 } from "./examScreenShareHandoff";
 
+import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
+
 const FORCED_CAPTURE_COOLDOWN_MS = 1_000;
+const P1_FORCED_CAPTURE_COOLDOWN_MS = 15_000;
 
 interface Options {
   contestId: string;
@@ -33,15 +36,20 @@ export const useAnticheatScreenCapture = ({
   reportDegraded,
   onUploadProgress,
 }: Options) => {
-  const [uploadSessionId] = useState(() =>
-    Math.random().toString(36).substring(2, 15)
-  );
+  const [uploadSessionId] = useState(() => {
+    // Reuse existing session ID if available (e.g. page reload during exam)
+    const existing = getExamCaptureSessionId(contestId);
+    if (existing) return existing;
+    const newId = Math.random().toString(36).substring(2, 15);
+    setExamCaptureSessionId(contestId, newId);
+    return newId;
+  });
   const isCapturingRef = useRef(false);
   const isUploadingRef = useRef(false);
   const retryCountRef = useRef(0);
   const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const lastForcedCaptureAtRef = useRef<number>(0);
+  const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
@@ -146,7 +154,7 @@ export const useAnticheatScreenCapture = ({
 
   const forceCaptureNow = useCallback(async (
     _reason: string,
-    _options?: ForcedCaptureOptions,
+    _options?: ForcedCaptureOptions & { eventType?: string },
   ): Promise<ForcedCaptureResult> => {
     const currentUploadSessionId =
       uploadSessionId || (contestId ? getExamCaptureSessionId(contestId) : null);
@@ -163,19 +171,30 @@ export const useAnticheatScreenCapture = ({
       };
     }
 
+    const eventType = _options?.eventType;
+    const priority = eventType ? getEventPriority(eventType) : 1;
     const now = Date.now();
-    if (now - lastForcedCaptureAtRef.current < FORCED_CAPTURE_COOLDOWN_MS) {
-      return {
-        attempted: false,
-        captured: false,
-        uploaded: false,
-        skipped: "cooldown",
-        errorCode: "capture_cooldown",
-        uploadSessionId: currentUploadSessionId,
-        seq: null,
-      };
+
+    // P0: no cooldown — always capture
+    // P1: 15s per-type cooldown
+    // P2/P3: should not reach here (handled by recordViolation.usecase)
+    if (priority > 0) {
+      const cooldownMs = priority === 1 ? P1_FORCED_CAPTURE_COOLDOWN_MS : FORCED_CAPTURE_COOLDOWN_MS;
+      const cooldownKey = eventType || "_default";
+      const lastCapture = lastForcedCaptureByTypeRef.current.get(cooldownKey) || 0;
+      if (now - lastCapture < cooldownMs) {
+        return {
+          attempted: false,
+          captured: false,
+          uploaded: false,
+          skipped: "cooldown",
+          errorCode: "capture_cooldown",
+          uploadSessionId: currentUploadSessionId,
+          seq: null,
+        };
+      }
+      lastForcedCaptureByTypeRef.current.set(cooldownKey, now);
     }
-    lastForcedCaptureAtRef.current = now;
 
     const blob = await captureFrameBlob();
     if (!blob) {

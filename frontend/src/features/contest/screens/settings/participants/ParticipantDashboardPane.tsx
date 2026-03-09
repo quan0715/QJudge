@@ -75,6 +75,7 @@ interface ParticipantDashboardPaneProps {
   onRemoveParticipant: () => void;
   canDeleteExamVideos: boolean;
   onOpenGrading: () => void;
+  onRefreshEvents?: () => Promise<void> | void;
 }
 
 const toTagType = (status: ParticipantDashboardStatus | null | undefined) => {
@@ -92,6 +93,8 @@ const toTagType = (status: ParticipantDashboardStatus | null | undefined) => {
   }
 };
 
+type PaperReportPayload = Extract<ParticipantDashboard["report"], { overviewRows: unknown[] }>;
+type CodingReportPayload = Extract<ParticipantDashboard["report"], { problemGrid: unknown[] }>;
 
 const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   contestId,
@@ -108,6 +111,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   onRemoveParticipant,
   canDeleteExamVideos,
   onOpenGrading,
+  onRefreshEvents,
 }) => {
   const { t } = useTranslation("contest");
   const { theme } = useTheme();
@@ -152,7 +156,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
   const donutData = useMemo(() => {
     if (!dashboard || dashboard.contestType !== "coding") return [];
-    const trend = dashboard.report.trend;
+    const trend = (dashboard.report as CodingReportPayload).trend;
     return Object.entries(trend.statusCounts).map(([group, value]) => ({
       group: group.toUpperCase(),
       value,
@@ -161,7 +165,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   const cumulativeData = useMemo(() => {
     if (!dashboard || dashboard.contestType !== "coding") return [];
-    return dashboard.report.trend.cumulativeProgress.flatMap((point) => [
+    const trend = (dashboard.report as CodingReportPayload).trend;
+    return trend.cumulativeProgress.flatMap((point) => [
       { group: t("participantsDashboard.score", "分數"), date: point.createdAt, value: point.score },
       { group: t("participantsDashboard.solved", "解題"), date: point.createdAt, value: point.solved ?? 0 },
     ]);
@@ -211,6 +216,14 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   }
 
   const participant = dashboard.participant;
+  const paperReport =
+    dashboard.contestType === "paper_exam"
+      ? (dashboard.report as PaperReportPayload)
+      : null;
+  const codingReport =
+    dashboard.contestType === "coding"
+      ? (dashboard.report as CodingReportPayload)
+      : null;
   const overviewItems =
     dashboard.contestType === "paper_exam"
       ? [
@@ -434,12 +447,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   </div>
                 ) : null}
 
-                {detail === "report" && dashboard.contestType === "paper_exam" ? (
+                {detail === "report" && paperReport ? (
                   <div className={styles.sectionStack}>
                     <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionOverview", "題目總覽")}</h5>
                     <PaperQuestionOverviewTable
-                      rows={dashboard.report.overviewRows.map((row) => {
-                        const questionDetail = dashboard.report.questionDetails.find(
+                      rows={paperReport.overviewRows.map((row) => {
+                        const questionDetail = paperReport.questionDetails.find(
                           (detailRow) => detailRow.questionId === row.questionId,
                         );
                         return {
@@ -461,7 +474,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                     <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionDetails", "逐題詳情")}</h5>
                     <div className={styles.questionList}>
-                      {dashboard.report.questionDetails.map((row) => (
+                      {paperReport.questionDetails.map((row) => (
                         <div key={row.questionId} className={styles.questionItem}>
                           <div className={styles.questionHeader}>
                             <div>
@@ -506,11 +519,11 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   </div>
                 ) : null}
 
-                {detail === "report" && dashboard.contestType === "coding" ? (
+                {detail === "report" && codingReport ? (
                   <div className={styles.sectionStack}>
                     <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemGrid", "題目成績摘要")}</h5>
                     <div className={styles.problemList}>
-                      {dashboard.report.problemGrid.map((row: ParticipantCodingProblemRow) => (
+                      {codingReport.problemGrid.map((row: ParticipantCodingProblemRow) => (
                         <div key={row.problemId} className={styles.problemItem}>
                           <div className={styles.problemHeader}>
                             <div>
@@ -530,7 +543,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                     <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemDetails", "題目詳情")}</h5>
                     <div className={styles.problemList}>
-                      {dashboard.report.problemDetails.map((row: ParticipantCodingProblemDetail) => (
+                      {codingReport.problemDetails.map((row: ParticipantCodingProblemDetail) => (
                         <div key={row.problemId} className={styles.problemItem}>
                           <div className={styles.problemHeader}>
                             <div>
@@ -618,7 +631,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                 ) : null}
 
                 {detail === "events" ? (
-                  <ContestLogsScreen embedded userIdFilter={participant.userId} />
+                  <ContestLogsScreen
+                    embedded
+                    userIdFilter={participant.userId}
+                    eventFeed={dashboard?.eventFeed}
+                    onRefresh={onRefreshEvents}
+                  />
                 ) : null}
 
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (

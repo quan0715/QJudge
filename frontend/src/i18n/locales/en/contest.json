@@ -665,6 +665,58 @@
     "totalCount": "{{total}} events total",
     "eventRecords": "Event Records",
     "noDataToVisualize": "No event data available for visualization",
+    "tabs": {
+      "abnormal": "Abnormal Events",
+      "system": "System/Management Events"
+    },
+    "priorityGroups": {
+      "critical": "P0 Critical",
+      "violation": "P1 Violation",
+      "info": "P2 Info",
+      "system": "P3 System"
+    },
+    "kpi": {
+      "critical": "High-risk Events",
+      "violation": "Penalized Violations",
+      "heartbeatTimeout": "Heartbeat Timeouts",
+      "degraded": "Evidence Degraded"
+    },
+    "filterCategory": "Filter priority",
+    "penalized": "Penalized",
+    "evidenceCount": "Evidence {{count}}",
+    "detail": {
+      "user": "User",
+      "time": "Time",
+      "type": "Event Type",
+      "reason": "Reason",
+      "priority": "Priority",
+      "count": "Count",
+      "penalized": "Penalized",
+      "evidence": "Evidence Captures",
+      "timeRange": "Time Range",
+      "captureStatus": "Capture Status",
+      "loadingScreenshots": "Loading screenshots…",
+      "screenshotLoadFailed": "Failed to load screenshots",
+      "noScreenshots": "Raw screenshots cleared or compiled into video"
+    },
+    "meta": {
+      "existingDeviceId": "Existing Device ID",
+      "incomingDeviceId": "Incoming Device ID",
+      "approvedBy": "Approved By",
+      "lockedAt": "Locked At",
+      "lockReason": "Lock Reason",
+      "retryCount": "Retry Count"
+    },
+    "capture": {
+      "uploaded": "Uploaded",
+      "capturedNotUploaded": "Captured (not uploaded)",
+      "skipped": "Skipped",
+      "skipDisabled": "Disabled",
+      "skipCooldown": "Cooldown",
+      "skipStreamUnavailable": "Stream unavailable",
+      "skipCaptureUnavailable": "Capture unavailable",
+      "failed": "Failed"
+    },
     "eventTypes": {
       "join": "Join",
       "register": "Register",
@@ -699,6 +751,18 @@
       "update_problem": "Update Problem",
       "update_participant": "Update Participant",
       "publish_problem_to_practice": "Publish to Practice",
+      "warning_timeout": "Warning Timeout",
+      "screen_share_stopped": "Screen Share Stopped",
+      "heartbeat_timeout": "Heartbeat Timeout",
+      "listener_tampered": "Listener Tampered",
+      "capture_upload_degraded": "Capture Upload Degraded",
+      "screen_share_invalid_surface": "Screen Share Invalid Surface",
+      "exam_entered": "Exam Entered",
+      "exam_submit_initiated": "Exam Submit Initiated",
+      "takeover_locked": "Takeover Locked",
+      "takeover_approved": "Takeover Approved",
+      "force_submit_locked": "Force Submit (Locked)",
+      "concurrent_login_detected": "Concurrent Login Detected",
       "other": "Other"
     }
   },

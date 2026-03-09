@@ -19,6 +19,7 @@ import { useRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtim
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -73,10 +74,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
-  const captureEnabled = isExamMonitored && precheckPassed;
+  const captureEnabled = isExamMonitored && precheckPassed && examStatus !== "submitted";
+  const hasSentDegradedRef = useRef(false);
+  const reportDegraded = useCallback((isDegraded: boolean) => {
+    if (!isDegraded) {
+      hasSentDegradedRef.current = false;
+      return;
+    }
+    if (hasSentDegradedRef.current) return;
+    hasSentDegradedRef.current = true;
+    recordExamEvent(contestId, "capture_upload_degraded", {
+      reason: "Upload retries exhausted",
+      source: "exam_mode:capture_degraded",
+      metadata: { upload_session_id: getExamCaptureSessionId(contestId) || undefined },
+    }).catch(() => {});
+  }, [contestId]);
   const capture = useAnticheatScreenCapture({
     contestId,
     enabled: captureEnabled,
+    reportDegraded,
   });
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();

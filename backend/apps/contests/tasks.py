@@ -32,19 +32,9 @@ from .services.anti_cheat_session import (
 )
 from .services.anticheat_storage import get_s3_client, tag_object_retain
 from .services.exam_submission import finalize_submission, normalize_upload_session_id
+from .constants import PENALIZED_EVENT_TYPES
 
 FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
-PENALIZED_EVENT_TYPES = {
-    'tab_hidden',
-    'window_blur',
-    'exit_fullscreen',
-    'multiple_displays',
-    'mouse_leave',
-    'warning_timeout',
-    'forbidden_focus_event',
-    'heartbeat_timeout',
-    'listener_tampered',
-}
 
 
 def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):

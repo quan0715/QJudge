@@ -128,6 +128,7 @@ export function useExamState({
         phase: decision.phase,
         eventIdempotencyKey: decision.eventIdempotencyKey,
         forceCaptureReason: `${eventType}:${reason}`,
+        captureOptions: { eventType },
         metadata: buildAnticheatMetadata(decision, {
           source,
           severity,

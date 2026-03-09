@@ -470,6 +470,7 @@ const ContestParticipantsScreen = () => {
           onRemoveParticipant={handleRemoveParticipant}
           canDeleteExamVideos={canDeleteExamVideos}
           onOpenGrading={() => updateParams({ panel: "grading" })}
+          onRefreshEvents={refreshBoth}
         />
       </div>
 

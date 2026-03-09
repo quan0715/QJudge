@@ -615,6 +615,58 @@
     "totalCount": "共 {{total}} 筆事件",
     "eventRecords": "事件紀錄",
     "noDataToVisualize": "暫無事件資料可供視覺化",
+    "tabs": {
+      "abnormal": "異常事件",
+      "system": "系統/管理事件"
+    },
+    "priorityGroups": {
+      "critical": "P0 嚴重",
+      "violation": "P1 違規",
+      "info": "P2 資訊",
+      "system": "P3 系統"
+    },
+    "kpi": {
+      "critical": "高風險事件",
+      "violation": "計罰違規",
+      "heartbeatTimeout": "心跳逾時",
+      "degraded": "證據異常"
+    },
+    "filterCategory": "篩選優先級",
+    "penalized": "計罰",
+    "evidenceCount": "證據 {{count}}",
+    "detail": {
+      "user": "使用者",
+      "time": "時間",
+      "type": "事件類型",
+      "reason": "原因",
+      "priority": "優先級",
+      "count": "次數",
+      "penalized": "計罰",
+      "evidence": "截圖證據",
+      "timeRange": "時間範圍",
+      "captureStatus": "截圖狀態",
+      "loadingScreenshots": "載入截圖中…",
+      "screenshotLoadFailed": "截圖載入失敗",
+      "noScreenshots": "原始截圖已清除或轉檔為影片"
+    },
+    "meta": {
+      "existingDeviceId": "原有裝置 ID",
+      "incomingDeviceId": "新登入裝置 ID",
+      "approvedBy": "核准人",
+      "lockedAt": "鎖定時間",
+      "lockReason": "鎖定原因",
+      "retryCount": "重試次數"
+    },
+    "capture": {
+      "uploaded": "已上傳",
+      "capturedNotUploaded": "已擷取（未上傳）",
+      "skipped": "略過",
+      "skipDisabled": "功能停用",
+      "skipCooldown": "冷卻中",
+      "skipStreamUnavailable": "串流不可用",
+      "skipCaptureUnavailable": "擷取不可用",
+      "failed": "失敗"
+    },
     "eventTypes": {
       "join": "加入",
       "register": "註冊",
@@ -649,6 +701,18 @@
       "update_problem": "更新題目",
       "update_participant": "更新參與者",
       "publish_problem_to_practice": "發布到練習區",
+      "warning_timeout": "警告逾時",
+      "screen_share_stopped": "螢幕分享中斷",
+      "heartbeat_timeout": "心跳逾時",
+      "listener_tampered": "監控偵測器遭篡改",
+      "capture_upload_degraded": "截圖上傳異常",
+      "screen_share_invalid_surface": "螢幕分享來源異常",
+      "exam_entered": "進入考試作答",
+      "exam_submit_initiated": "發起交卷",
+      "takeover_locked": "裝置接管鎖定",
+      "takeover_approved": "裝置接管核可",
+      "force_submit_locked": "鎖定後強制交卷",
+      "concurrent_login_detected": "偵測到多端登入",
       "other": "其他"
     }
   },

@@ -16,7 +16,7 @@ export function useExamHeartbeat(
   contestId: string | undefined,
   enabled: boolean
 ) {
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!enabled || !contestId) return;
@@ -33,7 +33,9 @@ export function useExamHeartbeat(
     intervalRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
 
     return () => {
-      clearInterval(intervalRef.current);
+      if (intervalRef.current != null) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [contestId, enabled]);
 }

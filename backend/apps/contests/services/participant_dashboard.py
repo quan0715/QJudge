@@ -20,6 +20,12 @@ from apps.contests.models import (
     ExamQuestionType,
     ExamStatus,
 )
+from apps.contests.constants import (
+    EVENT_PRIORITY,
+    EVENT_CATEGORY,
+    EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
+    PENALIZED_EVENT_TYPES,
+)
 
 
 ACTIVE_SUBMISSION_STATUSES = {"AC", "WA", "TLE", "MLE", "RE", "CE", "SE", "KR", "NS"}
@@ -404,6 +410,107 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
     return overview, report
 
 
+def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
+    """Build aggregated event feed with 60s-window incident grouping."""
+    window = EVENT_FEED_AGGREGATION_WINDOW_SECONDS
+
+    user_name = participant.user.username
+
+    # Fetch exam events (excluding heartbeat) in chronological order
+    exam_events = list(
+        ExamEvent.objects.filter(
+            contest=contest,
+            user_id=participant.user_id,
+        ).exclude(event_type="heartbeat").order_by("created_at")
+    )
+
+    # Fetch contest activities
+    activities = list(
+        ContestActivity.objects.filter(
+            contest=contest,
+            user_id=participant.user_id,
+        ).order_by("created_at")
+    )
+
+    # Aggregate exam events into incidents using (event_type, 60s window) key
+    incidents: list[dict[str, Any]] = []
+    # Track open incidents: event_type -> index in incidents list
+    open_incidents: dict[str, int] = {}
+
+    for event in exam_events:
+        et = event.event_type
+        ts = event.created_at
+        meta = event.metadata or {}
+        has_evidence = bool(meta.get("forced_capture_uploaded"))
+
+        idx = open_incidents.get(et)
+        if idx is not None:
+            inc = incidents[idx]
+            # Check if still within the 60s window from last_at
+            if (ts - inc["_last_at_dt"]).total_seconds() <= window:
+                inc["count"] += 1
+                inc["last_at"] = ts.isoformat()
+                inc["_last_at_dt"] = ts
+                if has_evidence:
+                    inc["evidence_count"] += 1
+                inc["summary"] = meta.get("reason") or inc["summary"]
+                continue
+
+        # Start new incident
+        priority = EVENT_PRIORITY.get(et, 3)
+        new_inc: dict[str, Any] = {
+            "incident_key": f"{et}:{ts.isoformat()}",
+            "event_type": et,
+            "priority": priority,
+            "category": EVENT_CATEGORY.get(priority, "system"),
+            "penalized": et in PENALIZED_EVENT_TYPES,
+            "first_at": ts.isoformat(),
+            "last_at": ts.isoformat(),
+            "count": 1,
+            "evidence_count": 1 if has_evidence else 0,
+            "summary": meta.get("reason", ""),
+            "metadata": meta,
+            "source": "exam_event",
+            "user_name": user_name,
+            "user_id": participant.user_id,
+            # Internal tracking (stripped before return)
+            "_last_at_dt": ts,
+        }
+        incidents.append(new_inc)
+        open_incidents[et] = len(incidents) - 1
+
+    # Add ContestActivity items as individual incidents
+    for activity in activities:
+        at = activity.action_type
+        priority = EVENT_PRIORITY.get(at, 3)
+        incidents.append({
+            "incident_key": f"activity:{activity.id}",
+            "event_type": at,
+            "priority": priority,
+            "category": EVENT_CATEGORY.get(priority, "system"),
+            "penalized": False,
+            "first_at": activity.created_at.isoformat(),
+            "last_at": activity.created_at.isoformat(),
+            "count": 1,
+            "evidence_count": 0,
+            "summary": activity.details or "",
+            "metadata": {},
+            "source": "activity",
+            "user_name": user_name,
+            "user_id": participant.user_id,
+            "_last_at_dt": activity.created_at,
+        })
+
+    # Sort by first_at descending (newest first)
+    incidents.sort(key=lambda inc: inc["first_at"], reverse=True)
+
+    # Strip internal fields
+    for inc in incidents:
+        inc.pop("_last_at_dt", None)
+
+    return incidents
+
+
 def build_participant_dashboard(contest: Contest, participant: ContestParticipant) -> dict[str, Any]:
     timeline = _serialize_timeline(contest, participant)
     actions = {
@@ -417,10 +524,13 @@ def build_participant_dashboard(contest: Contest, participant: ContestParticipan
         "can_open_grading": contest.contest_type == "paper_exam",
     }
 
+    event_feed = _serialize_event_feed(contest, participant)
+
     payload = {
         "contest_type": contest.contest_type,
         "participant": _serialize_participant(participant),
         "timeline": timeline,
+        "event_feed": event_feed,
         "actions": actions,
         "overview": {},
         "report": {},

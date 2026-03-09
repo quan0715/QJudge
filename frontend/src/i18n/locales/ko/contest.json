@@ -665,6 +665,58 @@
     "totalCount": "총 {{total}} 건의 이벤트",
     "eventRecords": "이벤트 기록",
     "noDataToVisualize": "시각화할 이벤트 데이터가 없습니다",
+    "tabs": {
+      "abnormal": "이상 이벤트",
+      "system": "시스템/관리 이벤트"
+    },
+    "priorityGroups": {
+      "critical": "P0 심각",
+      "violation": "P1 위반",
+      "info": "P2 정보",
+      "system": "P3 시스템"
+    },
+    "kpi": {
+      "critical": "고위험 이벤트",
+      "violation": "감점 대상 위반",
+      "heartbeatTimeout": "하트비트 타임아웃",
+      "degraded": "증거 업로드 이상"
+    },
+    "filterCategory": "우선순위 필터",
+    "penalized": "감점 대상",
+    "evidenceCount": "증거 {{count}}",
+    "detail": {
+      "user": "사용자",
+      "time": "시간",
+      "type": "이벤트 유형",
+      "reason": "사유",
+      "priority": "우선순위",
+      "count": "횟수",
+      "penalized": "감점 대상",
+      "evidence": "증거 캡처",
+      "timeRange": "시간 범위",
+      "captureStatus": "캡처 상태",
+      "loadingScreenshots": "스크린샷 로딩 중…",
+      "screenshotLoadFailed": "스크린샷 로딩 실패",
+      "noScreenshots": "원본 스크린샷이 삭제되었거나 영상으로 변환됨"
+    },
+    "meta": {
+      "existingDeviceId": "기존 디바이스 ID",
+      "incomingDeviceId": "신규 로그인 디바이스 ID",
+      "approvedBy": "승인자",
+      "lockedAt": "잠금 시간",
+      "lockReason": "잠금 사유",
+      "retryCount": "재시도 횟수"
+    },
+    "capture": {
+      "uploaded": "업로드 완료",
+      "capturedNotUploaded": "캡처됨 (업로드 안 됨)",
+      "skipped": "건너뜀",
+      "skipDisabled": "기능 비활성화",
+      "skipCooldown": "쿨다운 중",
+      "skipStreamUnavailable": "스트림 사용 불가",
+      "skipCaptureUnavailable": "캡처 사용 불가",
+      "failed": "실패"
+    },
     "eventTypes": {
       "join": "참가",
       "register": "등록",
@@ -699,6 +751,18 @@
       "update_problem": "문제 업데이트",
       "update_participant": "참가자 업데이트",
       "publish_problem_to_practice": "연습에 공개",
+      "warning_timeout": "경고 시간 초과",
+      "screen_share_stopped": "화면 공유 중단",
+      "heartbeat_timeout": "하트비트 타임아웃",
+      "listener_tampered": "모니터링 리스너 변조",
+      "capture_upload_degraded": "캡처 업로드 이상",
+      "screen_share_invalid_surface": "화면 공유 소스 이상",
+      "exam_entered": "시험 화면 진입",
+      "exam_submit_initiated": "제출 시작",
+      "takeover_locked": "기기 takeover 잠금",
+      "takeover_approved": "기기 takeover 승인",
+      "force_submit_locked": "잠금 상태 강제 제출",
+      "concurrent_login_detected": "동시 로그인 감지",
       "other": "기타"
     }
   },

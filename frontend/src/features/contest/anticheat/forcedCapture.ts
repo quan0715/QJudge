@@ -27,12 +27,12 @@ export interface ForcedCaptureResult {
 
 export interface RecordExamEventWithCaptureOptions extends RecordExamEventOptions {
   forceCaptureReason?: string;
-  captureOptions?: ForcedCaptureOptions;
+  captureOptions?: ForcedCaptureOptions & { eventType?: string };
 }
 
-type ForceCaptureHandler = (
+export type ForceCaptureHandler = (
   reason: string,
-  options?: ForcedCaptureOptions
+  options?: ForcedCaptureOptions & { eventType?: string }
 ) => Promise<ForcedCaptureResult>;
 
 const captureHandlers = new Map<string, ForceCaptureHandler>();
@@ -84,7 +84,7 @@ export const unregisterForcedCaptureHandler = (
 export const forceCaptureForContest = async (
   contestId: string,
   reason: string,
-  options?: ForcedCaptureOptions
+  options?: ForcedCaptureOptions & { eventType?: string }
 ): Promise<ForcedCaptureResult> => {
   const handler = captureHandlers.get(contestId);
   if (!handler) {

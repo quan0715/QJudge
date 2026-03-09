@@ -32,7 +32,6 @@ interface ParticipantsListPaneProps {
   onPageChange: (page: number, pageSize: number) => void;
   onSelect: (userId: string) => void;
   onAddParticipant: () => void;
-  getRecentActivity: (userId: string) => string | null;
 }
 
 const toTagType = (status: ContestParticipant["examStatus"]) => {
@@ -50,14 +49,6 @@ const toTagType = (status: ContestParticipant["examStatus"]) => {
       return "cool-gray";
   }
 };
-
-const formatRecentActivity = (timestamp: string) =>
-  new Date(timestamp).toLocaleString(undefined, {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
 const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   participants,
@@ -77,9 +68,9 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   onPageChange,
   onSelect,
   onAddParticipant,
-  getRecentActivity,
 }) => {
   const { t } = useTranslation("contest");
+  type Option = { id: string; label: string };
 
   return (
     <ContainerCard
@@ -113,18 +104,22 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           titleText={t("participants.selectStatus", "狀態")}
           label={t("participants.selectStatus", "狀態")}
           items={statusOptions}
-          itemToString={(item) => item?.label ?? ""}
+          itemToString={(item) => (item as Option | null)?.label ?? ""}
           selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
-          onChange={({ selectedItem }) => onStatusFilterChange(selectedItem?.id ?? "all")}
+          onChange={({ selectedItem }) =>
+            onStatusFilterChange((selectedItem as Option | null)?.id ?? "all")
+          }
         />
         <FluidDropdown
           id="participants-dashboard-sort"
           titleText={t("participantsDashboard.sortLabel", "排序")}
           label={t("participantsDashboard.sortLabel", "排序")}
           items={sortOptions}
-          itemToString={(item) => item?.label ?? ""}
+          itemToString={(item) => (item as Option | null)?.label ?? ""}
           selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
-          onChange={({ selectedItem }) => onSortChange(selectedItem?.id ?? "score_desc")}
+          onChange={({ selectedItem }) =>
+            onSortChange((selectedItem as Option | null)?.id ?? "score_desc")
+          }
         />
       </div>
 
