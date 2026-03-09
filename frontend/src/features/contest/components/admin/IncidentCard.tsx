@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tag, InlineLoading } from "@carbon/react";
 import { ChevronDown, ChevronUp } from "@carbon/icons-react";
-import { useTranslation } from "react-i18next";
+import { useTranslation, type TFunction } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import { PRIORITY_LABELS, PRIORITY_TAG_COLOR } from "@/features/contest/constants/eventTaxonomy";
 import { fetchScreenshots, type ScreenshotFrame } from "@/infrastructure/api/repositories/exam.repository";
 import styles from "./IncidentCard.module.scss";
+
+type TFn = TFunction<"contest", undefined>;
 
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
@@ -264,7 +266,7 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
 }
 
 /** Render capture result as a colored tag */
-function CaptureStatusTag({ info, t }: { info: CaptureInfo; t: (key: string, fallback?: string) => string }) {
+function CaptureStatusTag({ info, t }: { info: CaptureInfo; t: TFn }) {
   if (info.result === "uploaded") {
     return <Tag type="green" size="sm">{t("logs.capture.uploaded", "Uploaded")}{info.seq != null ? ` #${info.seq}` : ""}</Tag>;
   }
@@ -288,7 +290,7 @@ function CaptureStatusTag({ info, t }: { info: CaptureInfo; t: (key: string, fal
   return <Tag type="cool-gray" size="sm">{info.result}</Tag>;
 }
 
-function formatMetaValue(key: string, value: unknown, t: (key: string, fallback?: string) => string): string {
+function formatMetaValue(key: string, value: unknown, t: TFn): string {
   if (key === "locked_at" && typeof value === "string") {
     try { return new Date(value).toLocaleString(); } catch { /* fall through */ }
   }
