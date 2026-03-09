@@ -46,6 +46,40 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     ...overrides,
   }) as ContestDetail;
 
+const createMonitoredInProgressExam = (overrides: Partial<ContestDetail> = {}) =>
+  createContest({
+    contestType: "paper_exam",
+    examStatus: "in_progress",
+    cheatDetectionEnabled: true,
+    isExamMonitored: true,
+    requiresFullscreen: true,
+    canSubmitExam: true,
+    ...overrides,
+  });
+
+const createMonitoredLockedExam = (overrides: Partial<ContestDetail> = {}) =>
+  createMonitoredInProgressExam({
+    examStatus: "locked",
+    ...overrides,
+  });
+
+const createSubmittedExam = (overrides: Partial<ContestDetail> = {}) =>
+  createMonitoredInProgressExam({
+    examStatus: "submitted",
+    ...overrides,
+  });
+
+const createUnmonitoredExam = (overrides: Partial<ContestDetail> = {}) =>
+  createContest({
+    contestType: "paper_exam",
+    examStatus: "in_progress",
+    cheatDetectionEnabled: false,
+    isExamMonitored: false,
+    requiresFullscreen: false,
+    canSubmitExam: true,
+    ...overrides,
+  });
+
 describe("contestRuntimePolicy", () => {
   it("recognizes contest participation", () => {
     expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: false }))).toBe(false);
@@ -84,30 +118,16 @@ describe("contestRuntimePolicy", () => {
   });
 
   it("computes monitoring and exit warning flags", () => {
-    const inProgress = createContest({
-      examStatus: "in_progress",
-      cheatDetectionEnabled: true,
-      isExamMonitored: true,
-    });
+    const inProgress = createMonitoredInProgressExam();
     expect(isExamMonitoringActive(inProgress)).toBe(true);
-    expect(
-      isExamMonitoringActive(
-        createContest({ examStatus: "paused", cheatDetectionEnabled: true, isExamMonitored: true }),
-      ),
-    ).toBe(true);
-    expect(
-      isExamMonitoringActive(
-        createContest({ examStatus: "locked", cheatDetectionEnabled: true, isExamMonitored: true }),
-      ),
-    ).toBe(true);
+    expect(isExamMonitoringActive(createMonitoredInProgressExam({ examStatus: "paused" }))).toBe(true);
+    expect(isExamMonitoringActive(createMonitoredLockedExam())).toBe(true);
     expect(shouldWarnOnExit(inProgress, false)).toBe(true);
     expect(shouldForceEndExamOnExit(inProgress, false)).toBe(true);
 
-    expect(shouldWarnOnExit(createContest({ examStatus: "submitted" }), false)).toBe(false);
-    expect(
-      shouldWarnOnExit(createContest({ examStatus: "in_progress", isExamMonitored: false }), false),
-    ).toBe(false);
-    expect(shouldWarnOnExit(createContest({ examStatus: "in_progress", status: "draft" }), false)).toBe(false);
+    expect(shouldWarnOnExit(createSubmittedExam(), false)).toBe(false);
+    expect(shouldWarnOnExit(createUnmonitoredExam(), false)).toBe(false);
+    expect(shouldWarnOnExit(createMonitoredInProgressExam({ status: "draft" }), false)).toBe(false);
     expect(shouldWarnOnExit(createContest({ examStatus: "in_progress" }), true)).toBe(false);
   });
 });

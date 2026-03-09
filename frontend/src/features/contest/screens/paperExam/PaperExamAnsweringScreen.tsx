@@ -53,6 +53,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     usePaperExamQuestions(contestId);
 
   const isInProgress = contest?.examStatus === "in_progress";
+  const isSubmitted = contest?.examStatus === "submitted";
   const countdown = useCountdownTo(contest?.endTime);
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const {
@@ -124,7 +125,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!contestId || contest?.contestType !== "paper_exam") return;
+    if (!contestId || !contest || contest.contestType !== "paper_exam") return;
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
     if (
@@ -140,21 +141,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
     if (contest.examStatus === "submitted") {
       clearExamCaptureSessionId(contestId);
       forceStopCapture();
-      setAutoSubmitted(true);
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
-  }, [contest?.contestType, contest?.examStatus, contestId, navigate, forceStopCapture]);
+  }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
 
   const requestedQuestionId = searchParams.get("q");
-  const initialReviewOpen = searchParams.get("review") === "1";
-  const [showSubmitReview, setShowSubmitReview] = useState(initialReviewOpen);
+  const reviewRequested = searchParams.get("review") === "1";
+  const [showSubmitReview, setShowSubmitReview] = useState(reviewRequested);
   const [isSubmittingExam, setIsSubmittingExam] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("review") === "1") {
-      setShowSubmitReview(true);
-    }
-  }, [searchParams]);
   const syncIndex = useMemo(() => {
     if (!requestedQuestionId || items.length === 0) return null;
     const index = items.findIndex(
@@ -211,11 +205,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
     submitExam,
   ]);
 
-  if (autoSubmitted) {
+  if (autoSubmitted || isSubmitted) {
     return (
       <div className={styles.centered}>
         <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
-        <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>考試已結束，系統已自動交卷</span>
+        <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
+          {autoSubmitted ? "考試已結束，系統已自動交卷" : "考試已結束，試卷已送出"}
+        </span>
         <Button
           kind="primary"
           onClick={() => contestId && navigate(getContestDashboardPath(contestId))}

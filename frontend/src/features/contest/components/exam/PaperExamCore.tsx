@@ -73,44 +73,46 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   const questionAreaRef = useRef<HTMLDivElement>(null);
   const allContentRef = useRef<HTMLDivElement>(null);
   const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const maxIndex = items.length > 0 ? items.length - 1 : 0;
+  const isSyncIndexActive = syncIndex != null && syncIndex >= 0 && syncIndex < items.length;
+  const effectiveViewMode = isSyncIndexActive ? "single" : viewMode;
+  const effectiveActiveIndex = isSyncIndexActive ? syncIndex : Math.min(activeIndex, maxIndex);
+  const effectiveAllModeActiveIndex = Math.min(allModeActiveIndex, maxIndex);
+
+  const clampIndex = useCallback(
+    (index: number) => {
+      if (items.length === 0) return 0;
+      return Math.min(Math.max(index, 0), items.length - 1);
+    },
+    [items.length],
+  );
 
   const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
     setActiveIndex((prev) => {
-      const next = typeof newIndex === "function" ? newIndex(prev) : newIndex;
-      if (next !== prev) {
-        setSlideDir(next > prev ? "right" : "left");
+      const current = clampIndex(prev);
+      const requested = typeof newIndex === "function" ? newIndex(current) : newIndex;
+      const next = clampIndex(requested);
+      if (next !== current) {
+        setSlideDir(next > current ? "right" : "left");
         setAnimating(true);
-        onActiveIndexChange?.(prev, next);
+        onActiveIndexChange?.(current, next);
       }
       return next;
     });
-  }, [onActiveIndexChange]);
-
-  useEffect(() => {
-    if (items.length === 0) return;
-    setActiveIndex((prev) => Math.min(prev, items.length - 1));
-    setAllModeActiveIndex((prev) => Math.min(prev, items.length - 1));
-  }, [items.length]);
-
-  useEffect(() => {
-    if (syncIndex == null) return;
-    if (syncIndex < 0 || syncIndex >= items.length) return;
-    setViewMode("single");
-    handleSetActiveIndex(syncIndex);
-  }, [syncIndex, items.length, handleSetActiveIndex]);
+  }, [clampIndex, onActiveIndexChange]);
 
   useEffect(() => {
     if (!animating) return;
     const t = setTimeout(() => setAnimating(false), 300);
     return () => clearTimeout(t);
-  }, [animating, activeIndex]);
+  }, [animating, effectiveActiveIndex]);
 
   useEffect(() => {
     questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [activeIndex]);
+  }, [effectiveActiveIndex]);
 
   useEffect(() => {
-    if (viewMode !== "all") return;
+    if (effectiveViewMode !== "all") return;
     const container = allContentRef.current;
     if (!container) return;
 
@@ -135,11 +137,11 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     container.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => container.removeEventListener("scroll", onScroll);
-  }, [viewMode, items.length]);
+  }, [effectiveViewMode, items.length]);
 
   const singleScrollVisible = useScrollDirection(questionAreaRef);
   const allScrollVisible = useScrollDirection(allContentRef);
-  const toolbarVisible = viewMode === "single" ? singleScrollVisible : allScrollVisible;
+  const toolbarVisible = effectiveViewMode === "single" ? singleScrollVisible : allScrollVisible;
 
   const handleScrollToItem = useCallback((index: number) => {
     const el = allItemRefs.current.get(index);
@@ -149,9 +151,9 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   }, []);
 
   const renderSingleMode = () => {
-    const item = items[activeIndex];
+    const item = items[effectiveActiveIndex];
     if (!item) return null;
-    const isLast = activeIndex === items.length - 1;
+    const isLast = effectiveActiveIndex === items.length - 1;
     const slideClass = animating
       ? slideDir === "right"
         ? styles.slideInRight
@@ -161,8 +163,8 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     return (
       <div className={styles.singleContent}>
         <div className={styles.questionArea} ref={questionAreaRef}>
-          <div className={`${styles.questionInner} ${slideClass}`} key={activeIndex}>
-            {renderItem(item, activeIndex, "single")}
+          <div className={`${styles.questionInner} ${slideClass}`} key={effectiveActiveIndex}>
+            {renderItem(item, effectiveActiveIndex, "single")}
           </div>
         </div>
         <div className={styles.navButtons}>
@@ -170,13 +172,13 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
             kind="ghost"
             size="sm"
             renderIcon={ArrowLeft}
-            disabled={activeIndex === 0}
+            disabled={effectiveActiveIndex === 0}
             onClick={() => handleSetActiveIndex((i) => i - 1)}
           >
             上一題
           </Button>
           <span className={styles.navInfo}>
-            {activeIndex + 1} / {items.length}
+            {effectiveActiveIndex + 1} / {items.length}
           </span>
           <Button
             kind="ghost"
@@ -196,7 +198,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     <div className={styles.allContent} ref={allContentRef}>
       <div className={styles.allSpacer} />
       {items.map((item, index) => {
-        const dimClass = index !== allModeActiveIndex ? styles.allItemDimmed : "";
+        const dimClass = index !== effectiveAllModeActiveIndex ? styles.allItemDimmed : "";
         return (
           <div
             key={item.data.id}
@@ -226,7 +228,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
         {VIEW_MODES.map((m) => (
           <Tooltip key={m.key} label={m.label} align="left" autoAlign>
             <button
-              className={`${styles.modeBtn} ${viewMode === m.key ? styles.modeBtnActive : ""}`}
+              className={`${styles.modeBtn} ${effectiveViewMode === m.key ? styles.modeBtnActive : ""}`}
               onClick={() => setViewMode(m.key)}
               aria-label={m.label}
             >
@@ -241,9 +243,9 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
           {navVisible && (
             <ExamNavigator
               items={items}
-              activeIndex={viewMode === "single" ? activeIndex : allModeActiveIndex}
+              activeIndex={effectiveViewMode === "single" ? effectiveActiveIndex : effectiveAllModeActiveIndex}
               answeredIds={answeredIds}
-              onSelect={viewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
+              onSelect={effectiveViewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
             />
           )}
           <button
@@ -255,7 +257,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
           </button>
         </div>
 
-        {viewMode === "single" ? renderSingleMode() : renderAllMode()}
+        {effectiveViewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>
     </div>
   );

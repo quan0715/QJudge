@@ -2,18 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "frontend/**"
       - "backend/**"
       - "docker-compose.test.yml"
       - ".github/workflows/ci.yml"
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "frontend/**"
       - "backend/**"
       - "docker-compose.test.yml"
+      - ".github/workflows/ci.yml"
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -4,6 +4,7 @@ import { useExamState } from "./useExamState";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
 import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn(),
@@ -14,15 +15,19 @@ vi.mock("@/features/contest/screens/paperExam/hooks/examCaptureSession", () => (
 }));
 
 describe("useExamState", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     resetAnticheatOrchestrator("123");
     vi.mocked(getExamCaptureSessionId).mockReturnValue("session-123");
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.useRealTimers();
     resetAnticheatOrchestrator("123");
+    consoleErrorSpy.mockRestore();
   });
 
   const defaultProps = {
@@ -125,7 +130,7 @@ describe("useExamState", () => {
   it("retries recording when repository returns null response", async () => {
     vi.useFakeTimers();
     vi.mocked(recordExamEvent)
-      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         violation_count: 1,
         max_cheat_warnings: 3,
@@ -239,12 +244,13 @@ describe("useExamState", () => {
   });
 
   it("records violations in locked state without opening warning modal", async () => {
-    vi.mocked(recordExamEvent).mockResolvedValue({
+    const lockedResponse: ExamEventResponse = {
       violation_count: 4,
       max_cheat_warnings: 3,
       bypass: false,
       exam_status: "submitted",
-    } as any);
+    };
+    vi.mocked(recordExamEvent).mockResolvedValue(lockedResponse);
 
     const { result } = renderHook(() =>
       useExamState({ ...defaultProps, examStatus: "locked" })
