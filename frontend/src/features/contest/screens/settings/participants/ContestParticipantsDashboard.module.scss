@@ -14,9 +14,6 @@
 
 .pane {
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
 }
 
 /* Inner wrapper: flex column, no padding — toolbar rows sit flush to card edges */
@@ -156,6 +153,40 @@
 
 .tabPanel {
   padding: 0;
+  overflow-y: auto;
+}
+
+.overviewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.profileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summaryValue {
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
 }
 
 /* Section title — matches PDF report .section-title aesthetic */

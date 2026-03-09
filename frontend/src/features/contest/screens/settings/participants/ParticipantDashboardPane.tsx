@@ -357,115 +357,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
       ) : null}
 
       <div className={styles.dashboardGrid}>
-        <div className={styles.dashboardHeader}>
-          <div className={styles.listItemName}>
-            <span className={styles.primaryText}>
-              {participant.displayName || participant.nickname || participant.username}
-            </span>
-            <span className={styles.secondaryText}>
-              @{participant.username}
-              {participant.email ? ` • ${participant.email}` : ""}
-            </span>
-            <div className={styles.inlineMeta}>
-              <Tag type="blue">{t(`examStatus.${participant.examStatus}`, participant.examStatus)}</Tag>
-              {participant.submitReason ? <Tag>{participant.submitReason}</Tag> : null}
-              {participant.lockReason ? <Tag type="red">{participant.lockReason}</Tag> : null}
-            </div>
-          </div>
-
-          <div className={styles.actionsRow}>
-            {primaryAction ? (
-              <Button
-                kind="secondary"
-                size="sm"
-                renderIcon={primaryAction.icon}
-                onClick={primaryAction.onClick}
-              >
-                {primaryAction.label}
-              </Button>
-            ) : null}
-            <MenuButton
-              kind="tertiary"
-              size="sm"
-              label={t("participantsDashboard.moreActions", "更多操作")}
-              menuAlignment="bottom-end"
-            >
-              <MenuItem
-                label={t("participants.actions.edit", "編輯狀態")}
-                renderIcon={Edit}
-                onClick={onEditStatus}
-              />
-              <MenuItemDivider />
-              <MenuItem
-                label={t("participants.actions.download", "下載報告")}
-                renderIcon={Download}
-                onClick={onDownloadReport}
-              />
-              {dashboard.actions.canViewEvidence ? (
-                <MenuItem
-                  label={t("participantsDashboard.openEvidence", "查看監控影片")}
-                  renderIcon={View}
-                  onClick={() => {
-                    if (activeDetail !== "evidence") {
-                      onDetailChange("evidence");
-                    }
-                  }}
-                />
-              ) : null}
-              {dashboard.actions.canOpenGrading ? (
-                <MenuItem
-                  label={t("participantsDashboard.openGrading", "前往批改")}
-                  renderIcon={Launch}
-                  onClick={onOpenGrading}
-                />
-              ) : null}
-              {dashboard.actions.canUnlock && !primaryAction ? (
-                <MenuItem
-                  label={t("participants.actions.unlock", "解除鎖定")}
-                  renderIcon={Locked}
-                  onClick={onUnlock}
-                />
-              ) : null}
-              {dashboard.actions.canApproveTakeover ? (
-                <MenuItem
-                  label={t("participantsDashboard.approveTakeover", "核可裝置接管")}
-                  renderIcon={View}
-                  onClick={onApproveTakeover}
-                />
-              ) : null}
-              {dashboard.actions.canReopenExam && !primaryAction ? (
-                <MenuItem
-                  label={t("participants.actions.reopen", "重新開放考試")}
-                  renderIcon={DocumentTasks}
-                  onClick={onReopenExam}
-                />
-              ) : null}
-              <MenuItemDivider />
-              <MenuItem
-                kind="danger"
-                label={t("participants.actions.remove", "移除參賽者")}
-                renderIcon={TrashCan}
-                onClick={onRemoveParticipant}
-              />
-            </MenuButton>
-          </div>
-        </div>
-
-        <OverviewDataCards
-          items={overviewItems.map((item) => ({
-            ...item,
-            tone: item.key === "violations" && participant.violationCount > 0 ? "warning" : "default",
-          }))}
-          mode="compact"
-        />
-
         <Tabs
           className={styles.tabs}
           selectedIndex={selectedIndex}
           onChange={({ selectedIndex: nextIndex }) => {
             const safeIndex = typeof nextIndex === "number" ? nextIndex : 0;
             const nextDetail = availableDetails[safeIndex] ?? "overview";
-            if (nextDetail === activeDetail) return;
             if (nextDetail === "submissions") {
               setSubmissionsPage(1);
               setSubmissionsPageSize(10);
@@ -484,28 +381,121 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             {availableDetails.map((detail) => (
               <TabPanel key={detail} className={styles.tabPanel}>
                 {detail === "overview" ? (
-                  <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
+                  <div className={styles.overviewPanel}>
+                    {/* Profile header */}
+                    <div className={styles.profileHeader}>
+                      <div className={styles.listItemName}>
+                        <span className={styles.primaryText}>{participant.displayName || participant.nickname || participant.username}</span>
+                        <span className={styles.secondaryText}>@{participant.username}{participant.email ? ` • ${participant.email}` : ""}</span>
+                        <div className={styles.inlineMeta}>
+                          <Tag type="blue">{t(`examStatus.${participant.examStatus}`, participant.examStatus)}</Tag>
+                          {participant.submitReason ? <Tag>{participant.submitReason}</Tag> : null}
+                          {participant.lockReason ? <Tag type="red">{participant.lockReason}</Tag> : null}
+                        </div>
+                      </div>
+                      <div className={styles.actionsRow}>
+                        {primaryAction ? (
+                          <Button
+                            kind="secondary"
+                            size="sm"
+                            renderIcon={primaryAction.icon}
+                            onClick={primaryAction.onClick}
+                          >
+                            {primaryAction.label}
+                          </Button>
+                        ) : null}
+                        <MenuButton
+                          kind="tertiary"
+                          size="sm"
+                          label={t("participantsDashboard.moreActions", "更多操作")}
+                          menuAlignment="bottom-end"
+                        >
+                          <MenuItem
+                            label={t("participants.actions.edit", "編輯狀態")}
+                            renderIcon={Edit}
+                            onClick={onEditStatus}
+                          />
+                          <MenuItemDivider />
+                          <MenuItem
+                            label={t("participants.actions.download", "下載報告")}
+                            renderIcon={Download}
+                            onClick={onDownloadReport}
+                          />
+                          {dashboard.actions.canViewEvidence ? (
+                            <MenuItem
+                              label={t("participantsDashboard.openEvidence", "查看監控影片")}
+                              renderIcon={View}
+                              onClick={() => {
+                                if (activeDetail !== "evidence") {
+                                  onDetailChange("evidence");
+                                }
+                              }}
+                            />
+                          ) : null}
+                          {dashboard.actions.canOpenGrading ? (
+                            <MenuItem
+                              label={t("participantsDashboard.openGrading", "前往批改")}
+                              renderIcon={Launch}
+                              onClick={onOpenGrading}
+                            />
+                          ) : null}
+                          {dashboard.actions.canUnlock && !primaryAction ? (
+                            <MenuItem
+                              label={t("participants.actions.unlock", "解除鎖定")}
+                              renderIcon={Locked}
+                              onClick={onUnlock}
+                            />
+                          ) : null}
+                          {dashboard.actions.canApproveTakeover ? (
+                            <MenuItem
+                              label={t("participantsDashboard.approveTakeover", "核可裝置接管")}
+                              renderIcon={View}
+                              onClick={onApproveTakeover}
+                            />
+                          ) : null}
+                          {dashboard.actions.canReopenExam && !primaryAction ? (
+                            <MenuItem
+                              label={t("participants.actions.reopen", "重新開放考試")}
+                              renderIcon={DocumentTasks}
+                              onClick={onReopenExam}
+                            />
+                          ) : null}
+                          <MenuItemDivider />
+                          <MenuItem
+                            kind="danger"
+                            label={t("participants.actions.remove", "移除參賽者")}
+                            renderIcon={TrashCan}
+                            onClick={onRemoveParticipant}
+                          />
+                        </MenuButton>
+                      </div>
+                    </div>
+
+                    {/* Metric cards */}
+                    <OverviewDataCards
+                      items={overviewItems.map((item) => ({
+                        ...item,
+                        tone: item.key === "violations" && participant.violationCount > 0 ? "warning" : "default",
+                      }))}
+                      mode="compact"
+                    />
+
+                    {/* Summary details */}
                     <div className={styles.sectionStack}>
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{t("participants.headers.joinedAt", "加入時間")}</span>
-                        <span>{participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-"}</span>
-                      </div>
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{t("participantsDashboard.startedAt", "開始作答")}</span>
-                        <span>{participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-"}</span>
-                      </div>
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{t("participantsDashboard.leftAt", "最後離開")}</span>
-                        <span>{participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-"}</span>
-                      </div>
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{t("participantsDashboard.submitReason", "交卷原因")}</span>
-                        <span>{participant.submitReason || "-"}</span>
-                      </div>
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{t("participants.headers.lockReason", "鎖定原因")}</span>
-                        <span>{participant.lockReason || "-"}</span>
+                      <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
+                      <div className={styles.summaryGrid}>
+                        {[
+                          { label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
+                          { label: t("participantsDashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
+                          { label: t("participantsDashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
+                          { label: t("participantsDashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
+                          { label: t("participants.headers.lockReason", "鎖定原因"), value: participant.lockReason || "-" },
+                        ].map(({ label, value }) => (
+                          <div key={label} className={styles.summaryItem}>
+                            <span className={styles.summaryLabel}>{label}</span>
+                            <span className={styles.summaryValue}>{value}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
