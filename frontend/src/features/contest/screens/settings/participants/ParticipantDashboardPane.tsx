@@ -238,7 +238,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (!dashboard && !loading && !error) {
     return (
-      <ContainerCard title={t("participantsDashboard.detailTitle", "Participant Dashboard")} className={styles.pane}>
+      <ContainerCard className={styles.pane}>
         <div className={styles.detailEmpty}>
           {t("participantsDashboard.selectPrompt", "選擇一位參賽者以查看個人作答、報告、事件與監控資訊")}
         </div>
@@ -248,7 +248,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (loading) {
     return (
-      <ContainerCard title={t("participantsDashboard.detailTitle", "Participant Dashboard")} className={styles.pane}>
+      <ContainerCard className={styles.pane}>
         <div className={styles.skeletonStack}>
           <SkeletonText heading width="40%" />
           <SkeletonText width="65%" />
@@ -268,7 +268,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (!dashboard) {
     return (
-      <ContainerCard title={t("participantsDashboard.detailTitle", "Participant Dashboard")} className={styles.pane}>
+      <ContainerCard className={styles.pane}>
         <InlineNotification
           kind="error"
           lowContrast
@@ -347,8 +347,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   return (
     <ContainerCard
-      title={t("participantsDashboard.detailTitle", "Participant Dashboard")}
-      subtitle={t("participantsDashboard.detailSubtitle", "以 student report 為藍本的互動式檢視")}
       className={styles.pane}
     >
       {error ? (
