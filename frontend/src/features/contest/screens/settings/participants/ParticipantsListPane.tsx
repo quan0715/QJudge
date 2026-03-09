@@ -51,6 +51,14 @@ const toTagType = (status: ContestParticipant["examStatus"]) => {
   }
 };
 
+const formatRecentActivity = (timestamp: string) =>
+  new Date(timestamp).toLocaleString(undefined, {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
 const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   participants,
   selectedUserId,
@@ -77,11 +85,6 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
     <ContainerCard
       title={t("participants.title", "參賽者列表")}
       subtitle={t("participantsDashboard.listSubtitle", "選擇一位參賽者查看個人作答、事件與報告資訊")}
-      action={
-        <Button kind="primary" size="sm" renderIcon={Add} onClick={onAddParticipant}>
-          {t("participants.add", "新增")}
-        </Button>
-      }
       className={styles.pane}
     >
       <div className={styles.toolbar}>
@@ -116,6 +119,15 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           onChange={({ selectedItem }) => onSortChange(selectedItem?.id ?? "score_desc")}
           size="sm"
         />
+        <Button
+          kind="primary"
+          size="sm"
+          renderIcon={Add}
+          onClick={onAddParticipant}
+          className={styles.toolbarAction}
+        >
+          {t("participants.add", "新增")}
+        </Button>
       </div>
 
       <div className={styles.toolbarMeta}>
@@ -173,21 +185,20 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
                 </div>
 
                 <div className={styles.listItemMeta}>
-                  <span>{t("participants.headers.score", "分數")} {participant.score}</span>
-                  <span>{t("participantsDashboard.violations", "違規")} {participant.violationCount}</span>
-                  {recentActivity ? (
-                    <span>
-                      {t("participantsDashboard.lastActivity", "最近活動")} {new Date(recentActivity).toLocaleString()}
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className={styles.listItemFooter}>
-                  {participant.lockReason ? (
-                    <span className={styles.secondaryText}>{participant.lockReason}</span>
-                  ) : participant.submitReason ? (
-                    <span className={styles.secondaryText}>{participant.submitReason}</span>
-                  ) : null}
+                  <div className={styles.listItemStats}>
+                    <span>{t("participants.headers.score", "分數")} <strong>{participant.score ?? 0}</strong></span>
+                    <span>{t("participantsDashboard.violations", "違規")} {participant.violationCount}</span>
+                    {recentActivity && (
+                      <span className={styles.listItemTimestamp}>
+                        {formatRecentActivity(recentActivity)}
+                      </span>
+                    )}
+                  </div>
+                  {(participant.lockReason || participant.submitReason) && (
+                    <div className={`${styles.listItemTimestamp} ${styles.secondaryText}`} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {participant.lockReason || participant.submitReason}
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -34,6 +34,10 @@
   width: 12rem;
 }
 
+.toolbarAction {
+  flex: 0 0 auto;
+}
+
 .toolbarMeta {
   display: flex;
   justify-content: space-between;
@@ -46,13 +50,13 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .listItem {
   border: 1px solid var(--cds-border-subtle);
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
   background: var(--cds-layer);
   cursor: pointer;
   transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
@@ -89,11 +93,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .primaryText {
   color: var(--cds-text-primary);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .secondaryText {
@@ -102,50 +108,38 @@
 }
 
 .listItemMeta {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
   color: var(--cds-text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--cds-border-subtle-00);
+}
+
+.listItemStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.listItemTimestamp {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .listItemFooter {
   flex-wrap: wrap;
   align-items: center;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
 }
 
 .dashboardGrid {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.overviewGrid {
-  flex-wrap: wrap;
-}
-
-.metricCard {
-  flex: 1 1 12rem;
-  min-width: 12rem;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  background: var(--cds-layer-01);
-}
-
-.metricLabel {
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.metricValue {
-  color: var(--cds-text-primary);
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.metricSubtext {
-  color: var(--cds-text-secondary);
-  font-size: 0.8125rem;
-  margin-top: 0.25rem;
 }
 
 .tabs {
@@ -264,6 +258,11 @@
 
 .paginationWrap {
   margin-top: auto;
+  overflow-x: auto;
+}
+
+.paginationWrap :global(.cds--pagination) {
+  min-width: 40rem;
 }
 
 @media (max-width: 1056px) {
@@ -274,5 +273,55 @@
   .pane,
   .scrollPane {
     overflow: visible;
+  }
+}
+
+@media (max-width: 672px) {
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbarSearch,
+  .toolbarFilter,
+  .toolbarAction {
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .listItemHeader,
+  .dashboardHeader,
+  .questionHeader,
+  .problemHeader,
+  .submissionHeader,
+  .evidenceHeader {
+    flex-wrap: wrap;
+  }
+
+  .listItemMeta {
+    gap: 0.4rem;
+  }
+
+  .toolbarMeta {
+    align-items: flex-start;
+  }
+
+  .paginationWrap :global(.cds--pagination) {
+    min-width: 34rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .toolbarAction {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .listItemHeader {
+    flex-wrap: wrap;
+  }
+
+  .listItemHeader :global(.cds--tag) {
+    margin-top: 0.125rem;
   }
 }

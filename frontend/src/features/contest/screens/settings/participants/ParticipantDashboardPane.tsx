@@ -18,7 +18,19 @@ import {
   Tabs,
   Tag,
 } from "@carbon/react";
-import { Download, Edit, Locked, DocumentTasks, TrashCan, View, Launch } from "@carbon/icons-react";
+import {
+  ChartBar,
+  DocumentTasks,
+  Download,
+  Edit,
+  Launch,
+  Locked,
+  TrashCan,
+  Trophy,
+  UserMultiple,
+  View,
+  WarningAlt,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -29,8 +41,11 @@ import type {
   ParticipantDashboardStatus,
   ParticipantPaperQuestionDetail,
 } from "@/core/entities/contest.entity";
+import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
+import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
+import { OverviewDataCards } from "@/shared/ui/dataCard";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -202,19 +217,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
     ]);
   }, [dashboard, t]);
 
-  const getEvidenceStatusLabel = (hasVideo: boolean, jobStatus: string) => {
-    if (hasVideo || jobStatus === "success") {
-      return t("examVideoReview.status.ready", "可播放");
-    }
-    if (jobStatus === "running") {
-      return t("examVideoReview.status.running", "轉檔中");
-    }
-    if (jobStatus === "failed") {
-      return t("examVideoReview.status.failed", "轉檔失敗");
-    }
-    return t("examVideoReview.status.pending", "待轉檔");
-  };
-
   if (!dashboard && !loading && !error) {
     return (
       <ContainerCard title={t("participantsDashboard.detailTitle", "Participant Dashboard")} className={styles.pane}>
@@ -266,21 +268,29 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             key: "score",
             label: t("participantsDashboard.totalScore", "總分"),
             value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
+            unit: t("participantsDashboard.pointsUnit", "分"),
+            icon: ChartBar,
           },
           {
             key: "correctRate",
             label: t("participantsDashboard.correctRate", "正確率"),
-            value: `${dashboard.overview.correctRate ?? 0}%`,
+            value: String(dashboard.overview.correctRate ?? 0),
+            unit: "%",
+            icon: UserMultiple,
           },
           {
             key: "gradedCount",
             label: t("participantsDashboard.gradedQuestions", "已批改題數"),
             value: `${dashboard.overview.gradedCount ?? 0} / ${dashboard.overview.totalQuestions ?? 0}`,
+            unit: t("participantsDashboard.questionUnit", "題"),
+            icon: DocumentTasks,
           },
           {
             key: "violations",
             label: t("participantsDashboard.violations", "違規"),
             value: String(participant.violationCount),
+            unit: t("participantsDashboard.countUnit", "次"),
+            icon: WarningAlt,
           },
         ]
       : [
@@ -288,11 +298,15 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             key: "score",
             label: t("participantsDashboard.totalScore", "總分"),
             value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
+            unit: t("participantsDashboard.pointsUnit", "分"),
+            icon: ChartBar,
           },
           {
             key: "solved",
             label: t("participantsDashboard.solved", "解題"),
             value: `${dashboard.overview.solved ?? 0} / ${dashboard.overview.totalProblems ?? 0}`,
+            unit: t("participantsDashboard.questionUnit", "題"),
+            icon: DocumentTasks,
           },
           {
             key: "rank",
@@ -301,12 +315,14 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
               dashboard.overview.rank != null
                 ? `#${dashboard.overview.rank} / ${dashboard.overview.totalParticipants ?? "-"}`
                 : "-",
+            icon: Trophy,
           },
           {
             key: "submissionRate",
             label: t("participantsDashboard.acceptedRate", "AC 比率"),
             value: `${dashboard.overview.acceptedSubmissions ?? 0} / ${dashboard.overview.effectiveSubmissions ?? 0}`,
             subtext: `${dashboard.overview.acceptedRate ?? 0}%`,
+            icon: UserMultiple,
           },
         ];
 
@@ -380,17 +396,13 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           </div>
         </div>
 
-        <div className={styles.overviewGrid}>
-          {overviewItems.map((item) => (
-            <div key={item.key} className={styles.metricCard}>
-              <div className={styles.metricLabel}>{item.label}</div>
-              <div className={styles.metricValue}>{item.value}</div>
-              {"subtext" in item && item.subtext ? (
-                <div className={styles.metricSubtext}>{item.subtext}</div>
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <OverviewDataCards
+          items={overviewItems.map((item) => ({
+            ...item,
+            tone: item.key === "violations" && participant.violationCount > 0 ? "warning" : "default",
+          }))}
+          mode="compact"
+        />
 
         <Tabs
           className={styles.tabs}
@@ -446,21 +458,27 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                 {detail === "report" && dashboard.contestType === "paper_exam" ? (
                   <div className={styles.sectionStack}>
                     <ContainerCard title={t("participantsDashboard.questionOverview", "題目總覽")} withLayer={false}>
-                      <div className={styles.questionList}>
-                        {dashboard.report.overviewRows.map((row) => (
-                          <div key={row.questionId} className={styles.questionItem}>
-                            <div className={styles.questionHeader}>
-                              <span className={styles.primaryText}>
-                                Q{row.index} · {t(`questionTypes.${row.questionType}`, questionTypeLabel[row.questionType])}
-                              </span>
-                              <div className={styles.inlineMeta}>
-                                <Tag type={toTagType(row.status)}>{row.status.label}</Tag>
-                                <span>{row.score ?? "-"} / {row.maxScore}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <PaperQuestionOverviewTable
+                        rows={dashboard.report.overviewRows.map((row) => {
+                          const questionDetail = dashboard.report.questionDetails.find(
+                            (detailRow) => detailRow.questionId === row.questionId,
+                          );
+                          return {
+                            id: row.questionId,
+                            index: row.index,
+                            prompt: questionDetail?.prompt || `Q${row.index}`,
+                            typeLabel: t(
+                              `questionTypes.${row.questionType}`,
+                              questionTypeLabel[row.questionType],
+                            ),
+                            maxScore: row.maxScore,
+                            scoreDisplay: row.score != null ? String(row.score) : "-",
+                            statusLabel: row.status.label,
+                            statusTone: toTagType(row.status),
+                          };
+                        })}
+                        showScore
+                      />
                     </ContainerCard>
 
                     <ContainerCard title={t("participantsDashboard.questionDetails", "逐題詳情")} withLayer={false}>
@@ -621,44 +639,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                 ) : null}
 
                 {detail === "events" ? (
-                  <ContainerCard title={t("participantsDashboard.eventTimeline", "事件時間線")} withLayer={false}>
-                    <div className={styles.timelineList}>
-                      {dashboard.timeline.length === 0 ? (
-                        <div className={styles.emptyState}>
-                          {t("participantsDashboard.noTimeline", "尚無事件紀錄")}
-                        </div>
-                      ) : (
-                        dashboard.timeline.map((item) => (
-                          <div key={item.id} className={styles.timelineItem}>
-                            <div className={styles.questionHeader}>
-                              <div>
-                                <div className={styles.primaryText}>
-                                  {t(`logs.eventTypes.${item.eventType}`, item.eventType)}
-                                </div>
-                                <div className={styles.secondaryText}>
-                                  {new Date(item.timestamp).toLocaleString()} • {item.source}
-                                </div>
-                              </div>
-                            </div>
-                            {item.message ? (
-                              <div className={styles.problemBody}>
-                                <span>{item.message}</span>
-                              </div>
-                            ) : null}
-                            {item.metadata && Object.keys(item.metadata).length > 0 ? (
-                              <div className={styles.problemBody}>
-                                <div className={styles.inlineMeta}>
-                                  {Object.entries(item.metadata).map(([key, value]) => (
-                                    <span key={key}>{key}: {String(value)}</span>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </ContainerCard>
+                  <ContestLogsScreen embedded userIdFilter={participant.userId} />
                 ) : null}
 
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
@@ -671,48 +652,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                     }
                     withLayer={false}
                   >
-                    <div className={styles.evidenceList}>
-                      {(dashboard.evidence || []).length === 0 ? (
-                        <div className={styles.emptyState}>
-                          {t("participantsDashboard.noEvidence", "目前沒有監控影片或待轉檔項目")}
-                        </div>
-                      ) : (
-                        (dashboard.evidence || []).map((row) => (
-                          <div key={`${row.uploadSessionId}-${row.id}`} className={styles.evidenceItem}>
-                            <div className={styles.evidenceHeader}>
-                              <div>
-                                <div className={styles.primaryText}>
-                                  {t("participantsDashboard.session", "Session")} {row.uploadSessionId}
-                                </div>
-                                <div className={styles.secondaryText}>
-                                  {new Date(row.updatedAt).toLocaleString()}
-                                </div>
-                              </div>
-                              <div className={styles.inlineMeta}>
-                                <Tag type={row.hasVideo ? "green" : "cool-gray"}>
-                                  {getEvidenceStatusLabel(row.hasVideo, row.jobStatus)}
-                                </Tag>
-                                {row.isSuspected ? <Tag type="red">{t("participantsDashboard.flagged", "已標記")}</Tag> : null}
-                              </div>
-                            </div>
-                            <div className={styles.problemBody}>
-                              <div className={styles.inlineMeta}>
-                                <span>{t("participantsDashboard.duration", "長度")} {row.durationSeconds}s</span>
-                                <span>{t("participantsDashboard.frames", "影格")} {row.frameCount}</span>
-                                <span>{t("participantsDashboard.size", "大小")} {(row.sizeBytes / 1024 / 1024).toFixed(1)} MB</span>
-                              </div>
-                              {row.jobErrorMessage ? (
-                                <InlineNotification
-                                  kind="warning"
-                                  lowContrast
-                                  title={t("participantsDashboard.transcodeIssue", "轉檔訊息")}
-                                  subtitle={row.jobErrorMessage}
-                                />
-                              ) : null}
-                            </div>
-                          </div>
-                        ))
-                      )}
+                    <div className={styles.emptyState}>
+                      {t("participantsDashboard.monitoringUseExistingUi", "此分頁沿用既有影片管理 UI，請點擊上方按鈕開啟。")}
                     </div>
                   </ContainerCard>
                 ) : null}
