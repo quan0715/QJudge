@@ -1,8 +1,8 @@
 import {
   Button,
-  Dropdown,
+  FluidDropdown,
+  FluidSearch,
   Pagination,
-  Search,
   SkeletonText,
   Tag,
 } from "@carbon/react";
@@ -99,34 +99,29 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
     >
       <div className={styles.paneInner}>
       <div className={styles.toolbar}>
-        <Search
+        <FluidSearch
           id="participants-dashboard-search"
-          className={styles.toolbarSearch}
           labelText={t("participants.searchLabel", "搜尋參賽者")}
           placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          size="sm"
         />
-        <Dropdown
+        <FluidDropdown
           id="participants-dashboard-status"
-          className={styles.toolbarFilter}
-          titleText=""
-          label={t("participants.selectStatus", "選擇狀態")}
+          titleText={t("participants.selectStatus", "狀態")}
+          label={t("participants.selectStatus", "狀態")}
           items={statusOptions}
           itemToString={(item) => item?.label ?? ""}
-          selectedItem={statusOptions.find((item) => item.id === statusFilter)}
+          selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
           onChange={({ selectedItem }) => onStatusFilterChange(selectedItem?.id ?? "all")}
-          size="sm"
         />
-        <Dropdown
+        <FluidDropdown
           id="participants-dashboard-sort"
-          className={styles.toolbarFilter}
-          titleText=""
-          label={t("participantsDashboard.sortLabel", "排序方式")}
+          titleText={t("participantsDashboard.sortLabel", "排序")}
+          label={t("participantsDashboard.sortLabel", "排序")}
           items={sortOptions}
           itemToString={(item) => item?.label ?? ""}
-          selectedItem={sortOptions.find((item) => item.id === sortKey)}
+          selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
           onChange={({ selectedItem }) => onSortChange(selectedItem?.id ?? "score_desc")}
           size="sm"
         />

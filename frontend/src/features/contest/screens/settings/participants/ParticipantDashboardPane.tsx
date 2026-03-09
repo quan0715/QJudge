@@ -8,6 +8,9 @@ import "@carbon/charts-react/styles.css";
 import {
   Button,
   InlineNotification,
+  MenuButton,
+  MenuItem,
+  MenuItemDivider,
   Pagination,
   SkeletonPlaceholder,
   SkeletonText,
@@ -360,49 +363,67 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           </div>
 
           <div className={styles.actionsRow}>
-            <Button kind="ghost" size="sm" renderIcon={Download} onClick={onDownloadReport}>
-              {t("participants.actions.download", "下載報告")}
-            </Button>
             <Button kind="ghost" size="sm" renderIcon={Edit} onClick={onEditStatus}>
               {t("participants.actions.edit", "編輯狀態")}
             </Button>
-            {dashboard.actions.canUnlock ? (
-              <Button kind="ghost" size="sm" renderIcon={Locked} onClick={onUnlock}>
-                {t("participants.actions.unlock", "解除鎖定")}
-              </Button>
-            ) : null}
-            {dashboard.actions.canApproveTakeover ? (
-              <Button kind="ghost" size="sm" renderIcon={View} onClick={onApproveTakeover}>
-                {t("participantsDashboard.approveTakeover", "核可裝置接管")}
-              </Button>
-            ) : null}
-            {dashboard.actions.canReopenExam ? (
-              <Button kind="ghost" size="sm" renderIcon={DocumentTasks} onClick={onReopenExam}>
-                {t("participants.actions.reopen", "重新開放考試")}
-              </Button>
-            ) : null}
-            {dashboard.actions.canViewEvidence ? (
-              <Button
-                kind="ghost"
-                size="sm"
-                renderIcon={View}
-                onClick={() => {
-                  if (activeDetail !== "evidence") {
-                    onDetailChange("evidence");
-                  }
-                }}
-              >
-                {t("participantsDashboard.openEvidence", "查看監控影片")}
-              </Button>
-            ) : null}
-            {dashboard.actions.canOpenGrading ? (
-              <Button kind="ghost" size="sm" renderIcon={Launch} onClick={onOpenGrading}>
-                {t("participantsDashboard.openGrading", "前往批改")}
-              </Button>
-            ) : null}
-            <Button kind="danger--ghost" size="sm" renderIcon={TrashCan} onClick={onRemoveParticipant}>
-              {t("participants.actions.remove", "移除參賽者")}
-            </Button>
+            <MenuButton
+              kind="tertiary"
+              size="sm"
+              label={t("participantsDashboard.moreActions", "更多操作")}
+              menuAlignment="bottom-end"
+            >
+              <MenuItem
+                label={t("participants.actions.download", "下載報告")}
+                renderIcon={Download}
+                onClick={onDownloadReport}
+              />
+              {dashboard.actions.canViewEvidence ? (
+                <MenuItem
+                  label={t("participantsDashboard.openEvidence", "查看監控影片")}
+                  renderIcon={View}
+                  onClick={() => {
+                    if (activeDetail !== "evidence") {
+                      onDetailChange("evidence");
+                    }
+                  }}
+                />
+              ) : null}
+              {dashboard.actions.canOpenGrading ? (
+                <MenuItem
+                  label={t("participantsDashboard.openGrading", "前往批改")}
+                  renderIcon={Launch}
+                  onClick={onOpenGrading}
+                />
+              ) : null}
+              {dashboard.actions.canUnlock ? (
+                <MenuItem
+                  label={t("participants.actions.unlock", "解除鎖定")}
+                  renderIcon={Locked}
+                  onClick={onUnlock}
+                />
+              ) : null}
+              {dashboard.actions.canApproveTakeover ? (
+                <MenuItem
+                  label={t("participantsDashboard.approveTakeover", "核可裝置接管")}
+                  renderIcon={View}
+                  onClick={onApproveTakeover}
+                />
+              ) : null}
+              {dashboard.actions.canReopenExam ? (
+                <MenuItem
+                  label={t("participants.actions.reopen", "重新開放考試")}
+                  renderIcon={DocumentTasks}
+                  onClick={onReopenExam}
+                />
+              ) : null}
+              <MenuItemDivider />
+              <MenuItem
+                kind="danger"
+                label={t("participants.actions.remove", "移除參賽者")}
+                renderIcon={TrashCan}
+                onClick={onRemoveParticipant}
+              />
+            </MenuButton>
           </div>
         </div>
 
