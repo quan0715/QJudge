@@ -47,15 +47,7 @@
   width: 12rem;
 }
 
-/* --- Row max-height --- */
-.table :global(tr) {
-  max-height: 3rem;
-}
-
-.table :global(td) {
-  max-height: 3rem;
-  overflow: hidden;
-}
+/* --- Row max-height — use line-clamp on cells, not max-height on tr/td --- */
 
 /* --- Cell styles --- */
 
