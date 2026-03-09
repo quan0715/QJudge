@@ -1,5 +1,3 @@
-# Exam Pre-check と不正防止シーケンス
-
 > 状態: 2026-03-08  
 > 対象: `frontend/src/features/contest/screens/paperExam/ExamPrecheckScreen.tsx`
 

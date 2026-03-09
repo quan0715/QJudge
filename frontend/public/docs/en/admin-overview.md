@@ -1,5 +1,3 @@
-# Admin Features
-
 This document provides an overview of administrator features in QJudge.
 
 ## User Management

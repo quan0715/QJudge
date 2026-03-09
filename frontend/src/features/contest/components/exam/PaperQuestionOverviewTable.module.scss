@@ -1,0 +1,96 @@
+/* PaperQuestionOverviewTable — Carbon DataTable overrides */
+
+.container {
+  max-width: none;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+}
+
+/* Compact columns: shrink to fit content */
+.colCompact {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Score header/cell: compact + right-aligned */
+.colScore {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Prompt cell: fill remaining space */
+.cellPrompt {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Inner span handles line-clamp without overriding td display */
+.cellPromptText {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+/* Type cell */
+.cellType {
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
+}
+
+/* Score value */
+.cellScoreValue {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Feedback cell */
+.cellFeedback {
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cellFeedbackText {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rowClickable {
+  cursor: pointer;
+}
+
+/* Status label styles */
+.statusCorrect {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-support-success, #24a148);
+}
+
+.statusPartial {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #eb6200;
+}
+
+.statusIncorrect {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-support-error, #da1e28);
+}
+
+.statusPending,
+.statusMissing {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-helper, #8d8d8d);
+}

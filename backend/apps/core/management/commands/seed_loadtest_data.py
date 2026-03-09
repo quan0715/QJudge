@@ -162,7 +162,6 @@ class Command(BaseCommand):
                 "max_cheat_warnings": 10,
                 "allow_auto_unlock": False,
                 "scoreboard_visible_during_contest": True,
-                "allow_view_results": True,
             },
         )
 

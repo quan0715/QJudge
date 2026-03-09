@@ -1,5 +1,3 @@
-# Exam Pre-check and Anti-Cheat Sequence
-
 > Status: 2026-03-08  
 > Scope: `frontend/src/features/contest/screens/paperExam/ExamPrecheckScreen.tsx`
 

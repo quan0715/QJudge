@@ -1,5 +1,3 @@
-# 플랫폼 개요
-
 **QJudge** - NYCU Online Judge 시스템에 오신 것을 환영합니다!
 
 ## 목표 선택하기

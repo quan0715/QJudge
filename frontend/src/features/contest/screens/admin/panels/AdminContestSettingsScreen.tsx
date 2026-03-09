@@ -13,7 +13,6 @@ import {
   TimePicker,
   TimePickerSelect,
   Modal,
-  Layer,
   DataTable,
   Table,
   TableHead,
@@ -31,7 +30,6 @@ import {
   useExamAutoSave,
   type FieldSaveState,
 } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import { FieldSaveIndicator } from "@/shared/ui/autoSave/FieldSaveIndicator";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
@@ -47,88 +45,13 @@ import {
 } from "@/infrastructure/api/repositories";
 import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
 import type { ContestStatus } from "@/core/entities/contest.entity";
+import { TITLE_STYLE, DESC_STYLE, Section, ActionRow, FieldRow } from "./layout";
 import s from "./AdminContestSettingsPanel.module.scss";
 
 interface Admin {
   id: string;
   username: string;
 }
-
-// ── Shared text styles ──────────────────────────────────────────
-
-const TITLE_STYLE: React.CSSProperties = {
-  fontSize: "var(--cds-body-short-01-font-size, 0.875rem)",
-  fontWeight: 400,
-  lineHeight: "1.125rem",
-  color: "var(--cds-text-primary)",
-};
-
-const DESC_STYLE: React.CSSProperties = {
-  fontSize: "var(--cds-helper-text-01-font-size, 0.75rem)",
-  fontWeight: 400,
-  lineHeight: "1rem",
-  color: "var(--cds-text-helper)",
-  marginTop: "0.25rem",
-};
-
-// ── Layout primitives ───────────────────────────────────────────
-
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <div className={s.section}>
-    <h4 className={s.sectionTitle} style={{
-      fontSize: "var(--cds-heading-compact-01-font-size, 0.875rem)",
-      fontWeight: 600,
-      lineHeight: "1.125rem",
-      color: "var(--cds-text-primary)",
-    }}>
-      {title}
-    </h4>
-    <Layer>
-      <div className={s.sectionCard}>{children}</div>
-    </Layer>
-  </div>
-);
-
-interface RowProps {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-  saveState?: FieldSaveState;
-  onRetry?: () => void;
-}
-
-const ActionRow: React.FC<RowProps> = ({
-  label, description, children, saveState, onRetry,
-}) => (
-  <div className={s.actionRow}>
-    <div className={s.actionRowContent}>
-      <div style={TITLE_STYLE}>{label}</div>
-      {description && <div style={DESC_STYLE}>{description}</div>}
-    </div>
-    <div className={s.actionRowControl}>{children}</div>
-    {saveState && saveState.status !== "idle" && (
-      <FieldSaveIndicator status={saveState.status} error={saveState.error} onRetry={onRetry} />
-    )}
-  </div>
-);
-
-const FieldRow: React.FC<RowProps> = ({
-  label, description, children, saveState, onRetry,
-}) => (
-  <div className={s.fieldRow}>
-    <div className={s.fieldRowHeader} style={{ marginBottom: description ? 0 : "0.5rem" }}>
-      <div style={TITLE_STYLE}>{label}</div>
-      {saveState && saveState.status !== "idle" && (
-        <FieldSaveIndicator status={saveState.status} error={saveState.error} onRetry={onRetry} />
-      )}
-    </div>
-    {description && <div style={{ ...DESC_STYLE, marginBottom: "0.5rem" }}>{description}</div>}
-    <div>{children}</div>
-  </div>
-);
 
 interface DangerActionProps {
   title: string;

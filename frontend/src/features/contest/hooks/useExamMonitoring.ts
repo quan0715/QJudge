@@ -84,6 +84,30 @@ export function useExamMonitoring({
     ];
 
     detectors.forEach((d) => d.start(handleViolation));
-    return () => detectors.forEach((d) => d.stop());
+
+    // --- Listener integrity verification (every 10s) ---
+    const VERIFY_INTERVAL_MS = 10_000;
+    const verifyTimer = setInterval(() => {
+      const token = typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15);
+      const failed: string[] = [];
+      for (const d of detectors) {
+        if (d.verifyIntegrity && !d.verifyIntegrity(token)) {
+          failed.push(d.id);
+        }
+      }
+      if (failed.length > 0) {
+        emitViolation(
+          "listener_tampered",
+          `Listener integrity check failed: ${failed.join(", ")}`
+        );
+      }
+    }, VERIFY_INTERVAL_MS);
+
+    return () => {
+      detectors.forEach((d) => d.stop());
+      clearInterval(verifyTimer);
+    };
   }, [enabled]);
 }

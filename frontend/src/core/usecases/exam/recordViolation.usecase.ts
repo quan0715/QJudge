@@ -2,10 +2,12 @@
  * Record Violation Use Case
  *
  * Handles recording exam violations:
- * 1. Send violation event to API
+ * 1. Send violation event to API with priority-based capture strategy
  * 2. Return updated violation state
  */
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 
 // ============================================================================
 // Types
@@ -47,15 +49,28 @@ export async function recordViolationUseCase(
   const { contestId, eventType, reason } = input;
 
   try {
-    const response = await recordExamEventWithForcedCapture(
-      contestId,
-      eventType,
-      {
+    const priority = getEventPriority(eventType);
+
+    let response;
+    if (priority <= 1) {
+      // P0 + P1: record with forced capture (cooldown handled in capture hook)
+      response = await recordExamEventWithForcedCapture(
+        contestId,
+        eventType,
+        {
+          reason: reason || eventType,
+          source: "recordViolation.usecase",
+          forceCaptureReason: `${eventType}:${reason || eventType}`,
+          captureOptions: { eventType },
+        }
+      );
+    } else {
+      // P2 + P3: record without forced capture
+      response = await recordExamEvent(contestId, eventType, {
         reason: reason || eventType,
         source: "recordViolation.usecase",
-        forceCaptureReason: `${eventType}:${reason || eventType}`,
-      }
-    );
+      });
+    }
 
     if (response && typeof response === "object") {
       const {

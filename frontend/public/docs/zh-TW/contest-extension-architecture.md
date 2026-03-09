@@ -1,5 +1,3 @@
-# Contest 頁面擴充架構指南（前端）
-
 > 文件狀態：2026-03-04  
 > 適用範圍：`frontend/src/features/contest`
 

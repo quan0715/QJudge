@@ -31,6 +31,7 @@ from ..services.export_service import (
     ExportValidationError,
     build_contest_download_response,
     build_student_report_response,
+    build_contest_results_csv_response,
     parse_scale,
 )
 from ..services.participant_state import (
@@ -39,6 +40,7 @@ from ..services.participant_state import (
     reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
+from ..services.participant_dashboard import build_participant_dashboard
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
@@ -288,11 +290,72 @@ class ContestViewSet(viewsets.ModelViewSet):
     def participants(self, request, pk=None):
         """
         Get all participants for this contest (Teacher view).
+        Includes total_score_annotated to avoid N+1 queries.
         """
+        from django.db.models import Max, Sum
+        from apps.submissions.models import Submission
+
         contest = self.get_object()
-        participants = ContestParticipant.objects.filter(contest=contest).select_related('user')
+
+        # Query 1: All participants
+        participants = list(
+            ContestParticipant.objects.filter(contest=contest)
+            .select_related('user')
+        )
+
+        if contest.contest_type == 'paper_exam':
+            # Paper exam: sum ExamAnswer scores per participant
+            from apps.contests.models import ExamAnswer
+            answer_totals = (
+                ExamAnswer.objects
+                .filter(participant__contest=contest, score__isnull=False)
+                .values('participant__user_id')
+                .annotate(total=Sum('score'))
+            )
+            user_totals: dict = {
+                row['participant__user_id']: float(row['total'] or 0)
+                for row in answer_totals
+            }
+        else:
+            # Coding contest: best submission score per (user, problem)
+            best_scores = Submission.objects.filter(
+                contest=contest,
+                source_type='contest',
+                is_test=False,
+            ).values('user_id', 'problem_id').annotate(best=Max('score'))
+
+            user_totals = {}
+            for row in best_scores:
+                uid = row['user_id']
+                user_totals[uid] = user_totals.get(uid, 0) + (row['best'] or 0)
+
+        for p in participants:
+            p.total_score_annotated = user_totals.get(p.user_id, 0)
+
         serializer = ContestParticipantSerializer(participants, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[IsContestOwnerOrAdmin],
+        url_path=r'participants/(?P<user_id>\d+)/dashboard',
+    )
+    def participant_dashboard(self, request, pk=None, user_id=None):
+        """Return the admin dashboard payload for a single participant."""
+        contest = self.get_object()
+        try:
+            participant = ContestParticipant.objects.select_related(
+                'user',
+                'contest',
+            ).get(contest=contest, user_id=user_id)
+        except ContestParticipant.DoesNotExist:
+            return Response(
+                {'error': 'Participant not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(build_participant_dashboard(contest, participant))
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='unlock_participant')
     def unlock_participant(self, request, pk=None):
@@ -824,56 +887,13 @@ class ContestViewSet(viewsets.ModelViewSet):
         Export contest results as CSV file.
         Only accessible by admins and teachers.
         """
-        from django.http import HttpResponse
-
         contest = self.get_object()
         result = ScoreboardService.calculate(
             contest,
             ScoreboardScope(viewer=request.user, mode="export"),
         )
 
-        # Create CSV response
-        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-        response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
-
-        writer = csv.writer(response)
-
-        # Header row
-        header = ['排名', '帳號', '顯示名稱', 'Email', '解題數', '總分', '罰時']
-        for problem in result.problems:
-            label = problem.get('label') or chr(65 + problem['order'])
-            title = problem.get('title') or ''
-            header.append(f'{label} ({title})')
-        writer.writerow(header)
-
-        # Data rows
-        for item in result.standings:
-            row = [
-                item['rank'],
-                item['user'].get('username'),
-                item['display_name'],
-                item['user'].get('email'),
-                item['solved'],
-                item['total_score'],
-                item['time']
-            ]
-            for problem in result.problems:
-                p_stat = item['problems'].get(problem['id'], {})
-                status_str = p_stat.get('status', '-')
-                tries = p_stat.get('tries', 0)
-                time_val = p_stat.get('time', 0)
-
-                if status_str == 'AC':
-                    cell = f'AC ({tries} tries, {time_val}m)'
-                elif tries > 0:
-                    cell = f'{status_str} ({tries} tries)'
-                else:
-                    cell = '-'
-                row.append(cell)
-
-            writer.writerow(row)
-
-        return response
+        return build_contest_results_csv_response(contest, result)
 
     @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
     def download(self, request, pk=None):

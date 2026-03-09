@@ -121,6 +121,9 @@ const mapActivityToExamEvent = (item: ContestActivityDto): ExamEvent => ({
   eventType: (item.action_type as ExamEvent["eventType"]) || "other",
   timestamp: item.created_at || "",
   reason: item.details || "",
+  metadata: {
+    source: "activity",
+  },
 });
 
 /**
@@ -147,6 +150,12 @@ export const getContestActivities = async (
 export interface AnticheatUploadItem {
   seq: number;
   object_key: string;
+  put_url: string;
+  required_headers?: Record<string, string>;
+}
+
+export interface AnticheatUploadBatchItem {
+  blob: Blob;
   put_url: string;
   required_headers?: Record<string, string>;
 }
@@ -209,6 +218,29 @@ export const getAnticheatUrls = async (
   }
 
   return (await response.json()) as AnticheatUrlsResponse;
+};
+
+export const uploadAnticheatBatch = async (
+  items: AnticheatUploadBatchItem[]
+): Promise<void> => {
+  if (!items.length) return;
+
+  await Promise.all(
+    items.map(async (item) => {
+      const response = await fetch(item.put_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": item.blob.type || "image/webp",
+          ...(item.required_headers || {}),
+        },
+        body: item.blob,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload anticheat frame (${response.status})`);
+      }
+    })
+  );
 };
 
 export interface ExamVideoDto {
@@ -311,5 +343,34 @@ export const flagExamVideo = async (
   return requestJson<ExamVideoDto>(
     httpClient.patch(`/api/v1/contests/${contestId}/exam/videos/${videoId}/flag/`, payload),
     "Failed to update video flag"
+  );
+};
+
+export interface ScreenshotFrame {
+  url: string;
+  ts_ms: number;
+  seq: number;
+  expires_in: number;
+}
+
+export const fetchScreenshots = async (
+  contestId: string,
+  params: {
+    user_id: string;
+    ts_from?: number;
+    ts_to?: number;
+    upload_session_id?: string;
+    limit?: number;
+  }
+): Promise<{ items: ScreenshotFrame[]; total_raw_count: number }> => {
+  const search = new URLSearchParams();
+  search.set("user_id", params.user_id);
+  if (params.ts_from != null) search.set("ts_from", String(params.ts_from));
+  if (params.ts_to != null) search.set("ts_to", String(params.ts_to));
+  if (params.upload_session_id) search.set("upload_session_id", params.upload_session_id);
+  if (params.limit != null) search.set("limit", String(params.limit));
+  return requestJson<{ items: ScreenshotFrame[]; total_raw_count: number }>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam/screenshots/?${search.toString()}`),
+    "Failed to fetch screenshots"
   );
 };

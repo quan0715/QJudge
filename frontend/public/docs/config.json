@@ -14,7 +14,15 @@
     },
     {
       "id": "teacher-guide",
-      "items": ["teacher-overview", "create-exam", "problem-import"]
+      "items": [
+        "teacher-overview",
+        "create-exam",
+        "exam-grading",
+        "exam-statistics",
+        "exam-proctoring",
+        "exam-json-import-export",
+        "problem-import"
+      ]
     },
     {
       "id": "admin-guide",

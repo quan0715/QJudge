@@ -131,19 +131,18 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
         # pk 可以是現存 session_id 或新會話的 backend_session_id
         # 嘗試查詢現存會話
-        if pk != 'new':  # 特殊值 'new' 表示新會話
-            try:
-                session = AISession.objects.get(session_id=pk, user=request.user)
-                logger.debug(f"Found existing session {pk} for user {request.user.id}")
-            except AISession.DoesNotExist:
-                if AISession.objects.filter(session_id=pk).exists():
-                    return Response(
-                        {"error": "Session not found"},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
-                # pk 不存在於資料庫，可能是新會話的 backend_session_id
-                logger.debug(f"Session {pk} not found - will create new session for user {request.user.id}")
-                session = None
+        try:
+            session = AISession.objects.get(session_id=pk, user=request.user)
+            logger.debug(f"Found existing session {pk} for user {request.user.id}")
+        except AISession.DoesNotExist:
+            if AISession.objects.filter(session_id=pk).exists():
+                return Response(
+                    {"error": "Session not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            # pk 不存在於資料庫，可能是新會話的 backend_session_id
+            logger.debug(f"Session {pk} not found - will create new session for user {request.user.id}")
+            session = None
 
         serializer = SendMessageStreamSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -1,5 +1,3 @@
-# Problem Import (YAML)
-
 > Document Status: 2026-03-03
 
 This page explains how to import problems using YAML, suitable for teachers to bulk create problem sets or migrate problems between different environments.

@@ -18,7 +18,8 @@ export class FullscreenDetector implements ExamDetector {
   private recoveryInterval: ReturnType<typeof setInterval> | null = null;
   private recoveryActive = false;
   private graceStartedAt = 0;
-  private handleFullscreenChange: (() => void) | null = null;
+  private handleFullscreenChange: ((event: Event) => void) | null = null;
+  private lastVerifyResponse: string | null = null;
 
   constructor(t: TFunction, options: FullscreenDetectorOptions = {}) {
     this.t = t;
@@ -28,7 +29,12 @@ export class FullscreenDetector implements ExamDetector {
   start(onViolation: (e: ViolationEvent) => void): void {
     this.onViolation = onViolation;
 
-    this.handleFullscreenChange = () => {
+    this.handleFullscreenChange = ((event: Event) => {
+      const verifyToken = (event as Event & { __examVerify?: string }).__examVerify;
+      if (verifyToken) {
+        this.lastVerifyResponse = verifyToken;
+        return;
+      }
       // Wait 100ms for browser to settle fullscreen state
       setTimeout(() => {
         if (isFullscreen()) {
@@ -37,14 +43,14 @@ export class FullscreenDetector implements ExamDetector {
         }
         this.startRecovery();
       }, 100);
-    };
+    });
 
-    document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+    document.addEventListener("fullscreenchange", this.handleFullscreenChange as EventListener);
   }
 
   stop(): void {
     if (this.handleFullscreenChange) {
-      document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
+      document.removeEventListener("fullscreenchange", this.handleFullscreenChange as EventListener);
       this.handleFullscreenChange = null;
     }
     this.clearRecovery();
@@ -53,6 +59,14 @@ export class FullscreenDetector implements ExamDetector {
 
   async runCheck(): Promise<CheckResult> {
     return { passed: isFullscreen(), detail: isFullscreen() ? undefined : "Not in fullscreen" };
+  }
+
+  verifyIntegrity(token: string): boolean {
+    this.lastVerifyResponse = null;
+    const synthetic = new Event("fullscreenchange");
+    (synthetic as any).__examVerify = token;
+    document.dispatchEvent(synthetic);
+    return this.lastVerifyResponse === token;
   }
 
   private startRecovery(): void {

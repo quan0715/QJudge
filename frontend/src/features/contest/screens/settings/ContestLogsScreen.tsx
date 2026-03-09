@@ -1,234 +1,253 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Button,
-  Tag,
   MultiSelect,
   SkeletonText,
-  SkeletonPlaceholder,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
 } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
-import { StackedBarChart } from "@carbon/charts-react";
-import { ScaleTypes } from "@carbon/charts";
-import "@carbon/charts-react/styles.css";
+import {
+  Renew,
+  WarningAlt,
+  Policy,
+  WatsonHealthAiStatusFailed,
+  ImageSearch,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ExamEvent } from "@/core/entities/contest.entity";
+import type { EventFeedItem } from "@/core/entities/contest.entity";
+import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { useContestAdmin } from "@/features/contest/contexts";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
-import { useTheme } from "@/shared/ui/theme/ThemeContext";
+import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
+import {
+  getEventPriority,
+  getEventCategory,
+} from "@/features/contest/constants/eventTaxonomy";
+import IncidentCard from "@/features/contest/components/admin/IncidentCard";
 import styles from "./ContestLogsScreen.module.scss";
 
-// --- Event type config ---
-type Severity = "violation" | "lifecycle" | "submission" | "admin";
-
-// Tag color follows severity category:
-// violation=red, lifecycle=green, submission=blue, admin=purple
-const SEVERITY_TAG: Record<Severity, "red" | "green" | "blue" | "purple"> = {
-  violation: "red",
-  lifecycle: "green",
-  submission: "blue",
-  admin: "purple",
-};
-
-const EVENT_MAP: Record<string, { labelKey: string; severity: Severity }> = {
-  join: { labelKey: "join", severity: "lifecycle" },
-  register: { labelKey: "register", severity: "lifecycle" },
-  unregister: { labelKey: "unregister", severity: "admin" },
-  enter_contest: { labelKey: "enter_contest", severity: "lifecycle" },
-  leave: { labelKey: "leave", severity: "lifecycle" },
-  start_exam: { labelKey: "start_exam", severity: "lifecycle" },
-  end_exam: { labelKey: "end_exam", severity: "lifecycle" },
-  auto_submit: { labelKey: "auto_submit", severity: "lifecycle" },
-  resume_exam: { labelKey: "resume_exam", severity: "lifecycle" },
-  reopen_exam: { labelKey: "reopen_exam", severity: "lifecycle" },
-  pause_exam: { labelKey: "pause_exam", severity: "lifecycle" },
-  submit: { labelKey: "submit", severity: "submission" },
-  submit_code: { labelKey: "submit_code", severity: "submission" },
-  tab_switch: { labelKey: "tab_switch", severity: "violation" },
-  tab_hidden: { labelKey: "tab_hidden", severity: "violation" },
-  window_blur: { labelKey: "window_blur", severity: "violation" },
-  exit_fullscreen: { labelKey: "exit_fullscreen", severity: "violation" },
-  forbidden_focus_event: { labelKey: "forbidden_focus_event", severity: "violation" },
-  forbidden_action: { labelKey: "forbidden_action", severity: "violation" },
-  multiple_displays: { labelKey: "multiple_displays", severity: "violation" },
-  cheat_warning: { labelKey: "cheat_warning", severity: "violation" },
-  lock: { labelKey: "lock", severity: "violation" },
-  lock_user: { labelKey: "lock_user", severity: "violation" },
-  unlock: { labelKey: "unlock", severity: "admin" },
-  unlock_user: { labelKey: "unlock_user", severity: "admin" },
-  ask_question: { labelKey: "ask_question", severity: "lifecycle" },
-  reply_question: { labelKey: "reply_question", severity: "admin" },
-  announce: { labelKey: "announce", severity: "admin" },
-  update_contest: { labelKey: "update_contest", severity: "admin" },
-  update_problem: { labelKey: "update_problem", severity: "admin" },
-  update_participant: { labelKey: "update_participant", severity: "admin" },
-  publish_problem_to_practice: { labelKey: "publish_problem_to_practice", severity: "admin" },
-  other: { labelKey: "other", severity: "admin" },
-};
-
-const getEventConfig = (type: string) => {
-  const entry = EVENT_MAP[type] || { labelKey: type, severity: "admin" as Severity };
-  return { ...entry, tagType: SEVERITY_TAG[entry.severity] };
-};
-
-const SEVERITY_CLASS: Record<Severity, string> = {
-  violation: styles.severityViolation,
-  lifecycle: styles.severityLifecycle,
-  submission: styles.severitySubmission,
-  admin: styles.severityAdmin,
-};
-
-// --- Log group definitions (single source of truth for id / label / color) ---
-const LOG_GROUPS = [
-  { id: "violation" as const, label: "違規事件", color: "#da1e28", types: ["tab_hidden", "window_blur", "exit_fullscreen", "forbidden_focus_event", "forbidden_action", "multiple_displays", "lock_user", "cheat_warning", "lock", "tab_switch"] },
-  { id: "submission" as const, label: "程式提交", color: "#0f62fe", types: ["submit", "submit_code"] },
-  { id: "lifecycle" as const, label: "考試狀態", color: "#24a148", types: ["register", "enter_contest", "start_exam", "end_exam", "auto_submit", "resume_exam", "reopen_exam", "pause_exam", "leave", "join", "ask_question"] },
-  { id: "admin" as const, label: "管理操作", color: "#8a3ffc", types: ["unregister", "unlock_user", "unlock", "update_participant", "update_contest", "update_problem", "announce", "reply_question", "publish_problem_to_practice", "other"] },
+const CATEGORY_FILTER_OPTIONS = [
+  { id: "critical", label: "P0 嚴重" },
+  { id: "violation", label: "P1 違規" },
+  { id: "info", label: "P2 資訊" },
+  { id: "system", label: "P3 系統" },
 ];
 
-const EVENT_FILTER_OPTIONS = LOG_GROUPS;
-
-const EVENT_CATEGORIES = {
-  violation: EVENT_FILTER_OPTIONS[0].types,
-  submission: EVENT_FILTER_OPTIONS[1].types,
-  lifecycle: EVENT_FILTER_OPTIONS[2].types,
-  admin: EVENT_FILTER_OPTIONS[3].types,
-};
-
 const PAGE_SIZE = 50;
-const SLOT_MS = 15 * 60 * 1000;
-const HOUR_MS = 60 * 60 * 1000;
-
-const parseMs = (value?: string | null): number | null => {
-  if (!value) return null;
-  const ms = new Date(value).getTime();
-  return Number.isFinite(ms) ? ms : null;
+const TAB_DEFAULT_CATEGORIES: Record<number, string[]> = {
+  0: ["critical", "violation"],
+  1: ["info", "system"],
 };
 
-// --- Helpers ---
-function formatSlotLabel(ts: string) {
-  const d = new Date(ts);
-  const slotMs = Math.floor(d.getTime() / SLOT_MS) * SLOT_MS;
-  const slot = new Date(slotMs);
-  const mm = (slot.getMonth() + 1).toString().padStart(2, "0");
-  const dd = slot.getDate().toString().padStart(2, "0");
-  const hh = slot.getHours().toString().padStart(2, "0");
-  const mi = slot.getMinutes().toString().padStart(2, "0");
-  return { key: slotMs, label: `${mm}/${dd} ${hh}:${mi}` };
-}
+const buildActorAggregationKey = (event: { eventType: string; userId?: string; userName?: string }) => {
+  const actorKey = event.userId || event.userName || "unknown";
+  return `${event.eventType}:${actorKey}`;
+};
 
-function groupByTimeSlot(events: ExamEvent[]) {
-  const groups: { key: number; label: string; events: ExamEvent[] }[] = [];
-  let currentKey = -1;
-  for (const ev of events) {
-    const { key, label } = formatSlotLabel(ev.timestamp);
-    if (key !== currentKey) {
-      currentKey = key;
-      groups.push({ key, label, events: [] });
+/**
+ * External feeds may already be aggregated upstream.
+ * Enforce UI contract: activity rows are always shown as single records.
+ */
+const normalizeExternalEventFeed = (feed: EventFeedItem[]): EventFeedItem[] => {
+  const normalized = feed.flatMap((item) => {
+    if (item.source !== "activity") return [item];
+    const expandedCount = Number.isFinite(item.count) ? Math.max(1, item.count) : 1;
+    return Array.from({ length: expandedCount }, (_, idx) => ({
+      ...item,
+      incidentKey: expandedCount > 1 ? `${item.incidentKey}:${idx + 1}` : item.incidentKey,
+      count: 1,
+      penalized: false,
+      evidenceCount: 0,
+      source: "activity" as const,
+    }));
+  });
+  normalized.sort((a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime());
+  return normalized;
+};
+
+/** Group incidents by date label (e.g. "03/09") */
+function groupByDate(items: EventFeedItem[]): { dateLabel: string; items: EventFeedItem[] }[] {
+  const groups: { dateLabel: string; items: EventFeedItem[] }[] = [];
+  let currentLabel = "";
+  for (const item of items) {
+    const d = new Date(item.firstAt);
+    const label = `${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")}`;
+    if (label !== currentLabel) {
+      currentLabel = label;
+      groups.push({ dateLabel: label, items: [] });
     }
-    groups[groups.length - 1].events.push(ev);
+    groups[groups.length - 1].items.push(item);
   }
   return groups;
 }
 
-// --- Skeleton placeholder ---
+// --- Skeleton ---
 const LogsSkeleton = () => (
-  <div className={styles.twoColumn}>
-    <div className={styles.chartsCol}>
-      <ContainerCard title={<SkeletonText width="80px" />}>
-        <div className={styles.summaryGrid}>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className={styles.summaryItem}>
-              <SkeletonText width="100%" />
-            </div>
-          ))}
+  <div className={styles.root}>
+    <div className={styles.kpiStrip}>
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className={styles.kpiSkeletonCard}>
+          <SkeletonText width="100%" />
         </div>
-      </ContainerCard>
-      <ContainerCard title={<SkeletonText width="100px" />}>
-        <SkeletonPlaceholder style={{ width: "100%", height: "280px" }} />
-      </ContainerCard>
+      ))}
     </div>
-    <div className={styles.timelineCol}>
-      <ContainerCard title={<SkeletonText width="80px" />}>
-        <div style={{ marginBottom: "1rem" }}>
-          <SkeletonText paragraph lineCount={3} />
-        </div>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} style={{ marginBottom: "0.5rem" }}>
-            <SkeletonText width="30%" />
-            <SkeletonText paragraph lineCount={2} />
-          </div>
-        ))}
-      </ContainerCard>
-    </div>
+    <SkeletonText paragraph lineCount={10} />
   </div>
 );
 
-// --- Component ---
-const ContestLogsScreen = () => {
+interface ContestLogsScreenProps extends Partial<AdminPanelProps> {
+  userIdFilter?: string;
+  embedded?: boolean;
+  eventFeed?: EventFeedItem[];
+  onRefresh?: () => Promise<void> | void;
+}
+
+const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
+  userIdFilter,
+  embedded = false,
+  eventFeed: externalEventFeed,
+  onRefresh,
+}) => {
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
-  const { theme } = useTheme();
   const { t } = useTranslation("contest");
 
-  const logGroupLabels = LOG_GROUPS.map((g) => ({
-    ...g,
-    label: t(`logs.groups.${g.id}`, g.label),
-  }));
+  const sourceEvents = useMemo(() => {
+    if (!userIdFilter) return examEvents;
+    return examEvents.filter((event) => String(event.userId) === userIdFilter);
+  }, [examEvents, userIdFilter]);
+
+  // Build event feed from examEvents if not provided externally
+  const eventFeed = useMemo(() => {
+    if (externalEventFeed) return normalizeExternalEventFeed(externalEventFeed);
+    const isActivityEvent = (event: { metadata?: Record<string, unknown> }) =>
+      event.metadata?.source === "activity";
+
+    const examEventSorted = [...sourceEvents]
+      .filter((e) => !isActivityEvent(e) && e.eventType !== "heartbeat")
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const activityEventSorted = [...sourceEvents]
+      .filter((e) => isActivityEvent(e))
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const incidents: EventFeedItem[] = [];
+    const openIncidents = new Map<string, number>();
+
+    for (const event of examEventSorted) {
+      const et = event.eventType;
+      const ts = new Date(event.timestamp).getTime();
+      const aggregateKey = buildActorAggregationKey(event);
+      const idx = openIncidents.get(aggregateKey);
+
+      if (idx !== undefined) {
+        const inc = incidents[idx];
+        const lastTs = new Date(inc.lastAt).getTime();
+        if (ts - lastTs <= 60_000) {
+          inc.count += 1;
+          inc.lastAt = event.timestamp;
+          if (event.metadata?.forced_capture_uploaded) inc.evidenceCount += 1;
+          if (event.reason) inc.summary = event.reason;
+          continue;
+        }
+      }
+
+      const priority = getEventPriority(et);
+      incidents.push({
+        incidentKey: `${aggregateKey}:${event.timestamp}`,
+        eventType: et,
+        priority,
+        category: getEventCategory(et),
+        penalized: priority <= 1 && priority >= 0,
+        firstAt: event.timestamp,
+        lastAt: event.timestamp,
+        count: 1,
+        evidenceCount: event.metadata?.forced_capture_uploaded ? 1 : 0,
+        summary: event.reason || "",
+        source: "exam_event",
+        userName: event.userName,
+        userId: event.userId,
+        metadata: event.metadata,
+      });
+      openIncidents.set(aggregateKey, incidents.length - 1);
+    }
+
+    for (const event of activityEventSorted) {
+      const priority = getEventPriority(event.eventType);
+      incidents.push({
+        incidentKey: `activity:${event.id || `${event.userId}:${event.timestamp}:${event.eventType}`}`,
+        eventType: event.eventType,
+        priority,
+        category: getEventCategory(event.eventType),
+        penalized: false,
+        firstAt: event.timestamp,
+        lastAt: event.timestamp,
+        count: 1,
+        evidenceCount: 0,
+        summary: event.reason || "",
+        source: "activity",
+        userName: event.userName,
+        userId: event.userId,
+        metadata: event.metadata,
+      });
+    }
+
+    incidents.sort((a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime());
+    return incidents;
+  }, [sourceEvents, externalEventFeed]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(TAB_DEFAULT_CATEGORIES[0]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [indicatorTime, setIndicatorTime] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [isRefreshPending, setIsRefreshPending] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const chartScrollRef = useRef<HTMLDivElement>(null);
 
-  // --- Sorting & Filtering ---
-  const sortedEvents = useMemo(
-    () =>
-      [...examEvents].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      ),
-    [examEvents],
-  );
+  // --- KPI ---
+  const kpiCounts = useMemo(() => {
+    const counts = { critical: 0, violation: 0, heartbeatTimeout: 0, degraded: 0 };
+    for (const inc of eventFeed) {
+      if (inc.priority === 0) counts.critical++;
+      if (inc.priority === 1) counts.violation++;
+      if (inc.eventType === "heartbeat_timeout") counts.heartbeatTimeout++;
+      if (inc.eventType === "capture_upload_degraded") counts.degraded++;
+    }
+    return counts;
+  }, [eventFeed]);
 
-  const selectedTypes = useMemo(() => {
-    if (selectedEventTypes.length === 0) return null;
-    const types: string[] = [];
-    selectedEventTypes.forEach((catId) => {
-      const cat = EVENT_FILTER_OPTIONS.find((o) => o.id === catId);
-      if (cat) types.push(...cat.types);
-    });
-    return types;
-  }, [selectedEventTypes]);
+  // --- Filter ---
+  const tabFilteredFeed = useMemo(() => {
+    if (activeTab === 0) return eventFeed.filter((inc) => inc.priority <= 1);
+    return eventFeed.filter((inc) => inc.priority >= 2);
+  }, [eventFeed, activeTab]);
 
-  const filteredEvents = useMemo(() => {
-    let result = sortedEvents;
-    if (selectedTypes && selectedTypes.length > 0) {
-      result = result.filter((e) => selectedTypes.includes(e.eventType));
+  const filteredFeed = useMemo(() => {
+    let result = tabFilteredFeed;
+    if (selectedCategories.length > 0) {
+      result = result.filter((inc) => selectedCategories.includes(inc.category));
     }
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       result = result.filter(
-        (e) =>
-          e.userName?.toLowerCase().includes(q) ||
-          e.eventType?.toLowerCase().includes(q) ||
-          e.reason?.toLowerCase().includes(q),
+        (inc) =>
+          inc.eventType.toLowerCase().includes(q) ||
+          inc.summary.toLowerCase().includes(q) ||
+          (inc.userName?.toLowerCase().includes(q) ?? false),
       );
     }
     return result;
-  }, [sortedEvents, selectedTypes, searchTerm]);
+  }, [tabFilteredFeed, selectedCategories, searchTerm]);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [selectedEventTypes, searchTerm]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [selectedCategories, searchTerm, activeTab]);
+  useEffect(() => { setSelectedCategories(TAB_DEFAULT_CATEGORIES[activeTab] || []); }, [activeTab]);
 
-  const visibleEvents = filteredEvents.slice(0, visibleCount);
-  const timeSlotGroups = useMemo(() => groupByTimeSlot(visibleEvents), [visibleEvents]);
-  const hasMore = visibleCount < filteredEvents.length;
+  const visibleFeed = filteredFeed.slice(0, visibleCount);
+  const dateGroups = useMemo(() => groupByDate(visibleFeed), [visibleFeed]);
+  const hasMore = visibleCount < filteredFeed.length;
 
-  // --- Infinite scroll ---
   const handleLoadMore = useCallback(() => {
     setVisibleCount((prev) => prev + PAGE_SIZE);
   }, []);
@@ -238,327 +257,163 @@ const ContestLogsScreen = () => {
     const container = scrollContainerRef.current;
     if (!sentinel || !container || !hasMore) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) handleLoadMore();
-      },
+      (entries) => { if (entries[0].isIntersecting) handleLoadMore(); },
       { root: container, rootMargin: "200px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, handleLoadMore]);
 
-  // --- Time indicator: track topmost visible event on scroll ---
-  const handleTimelineScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const cards = container.querySelectorAll("[data-timestamp]");
-    if (!cards.length) return;
+  const loading = sourceEvents.length === 0 && isRefreshing;
 
-    const containerTop = container.getBoundingClientRect().top;
-    let closest: string | null = null;
-    for (const card of cards) {
-      const rect = (card as HTMLElement).getBoundingClientRect();
-      if (rect.top >= containerTop - 4) {
-        closest = (card as HTMLElement).dataset.timestamp || null;
-        break;
-      }
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing || isRefreshPending) return;
+    setIsRefreshPending(true);
+    const tasks: Promise<unknown>[] = [];
+    try {
+      if (!externalEventFeed) tasks.push(Promise.resolve(refreshAdminData()));
+      if (onRefresh) tasks.push(Promise.resolve(onRefresh()));
+      if (tasks.length === 0) tasks.push(Promise.resolve(refreshAdminData()));
+      await Promise.allSettled(tasks);
+    } finally {
+      setIsRefreshPending(false);
     }
-    // If scrolled past all cards, use the last one
-    if (!closest && cards.length > 0) {
-      closest = (cards[cards.length - 1] as HTMLElement).dataset.timestamp || null;
-    }
-    setIndicatorTime(closest);
-  }, []);
+  }, [externalEventFeed, isRefreshPending, isRefreshing, onRefresh, refreshAdminData]);
 
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    container.addEventListener("scroll", handleTimelineScroll, { passive: true });
-    // Set initial indicator
-    handleTimelineScroll();
-    return () => container.removeEventListener("scroll", handleTimelineScroll);
-  }, [handleTimelineScroll, filteredEvents]);
+  const handleKpiClick = (category: string) => {
+    if (activeTab !== 0) return;
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
+    );
+  };
 
-  // --- Summary counts ---
-  const summaryCounts = useMemo(() => {
-    const counts = { violation: 0, submission: 0, lifecycle: 0, admin: 0 };
-    examEvents.forEach((e) => {
-      if (EVENT_CATEGORIES.violation.includes(e.eventType)) counts.violation++;
-      else if (EVENT_CATEGORIES.submission.includes(e.eventType)) counts.submission++;
-      else if (EVENT_CATEGORIES.lifecycle.includes(e.eventType)) counts.lifecycle++;
-      else counts.admin++;
-    });
-    return counts;
-  }, [examEvents]);
+  // ========== RENDER ==========
 
-  const chartWindow = useMemo(() => {
-    const eventTimes = examEvents
-      .map((event) => parseMs(event.timestamp))
-      .filter((ms): ms is number => ms !== null)
-      .sort((a, b) => a - b);
+  if (loading) {
+    if (embedded) return <div className={styles.embeddedRoot}><LogsSkeleton /></div>;
+    return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}><LogsSkeleton /></SurfaceSection>;
+  }
 
-    if (eventTimes.length === 0) return null;
+  const kpiItems = [
+    { key: "critical", icon: WarningAlt, color: "#da1e28", label: t("logs.kpi.critical", "高風險事件"), count: kpiCounts.critical, filterable: true },
+    { key: "violation", icon: Policy, color: "#ff832b", label: t("logs.kpi.violation", "計罰違規"), count: kpiCounts.violation, filterable: true },
+    { key: "heartbeatTimeout", icon: WatsonHealthAiStatusFailed, color: "#0f62fe", label: t("logs.kpi.heartbeatTimeout", "心跳逾時"), count: kpiCounts.heartbeatTimeout, filterable: false },
+    { key: "degraded", icon: ImageSearch, color: "#8a3ffc", label: t("logs.kpi.degraded", "證據異常"), count: kpiCounts.degraded, filterable: false },
+  ] as const;
 
-    const startMs = eventTimes[0];
-    const endMs = eventTimes[eventTimes.length - 1];
-
-    return { startMs, endMs };
-  }, [examEvents]);
-
-  // --- Chart data ---
-  const chartData = useMemo(() => {
-    if (!chartWindow) return [];
-    const { startMs, endMs } = chartWindow;
-
-    // Hour-based buckets anchored to natural hour boundaries.
-    const bucketStartMs = Math.floor(startMs / HOUR_MS) * HOUR_MS;
-    const bucketEndMs = Math.floor(endMs / HOUR_MS) * HOUR_MS;
-    const intervals = new Map<number, { violation: number; submission: number; lifecycle: number; admin: number }>();
-
-    let t = bucketStartMs;
-    while (t <= bucketEndMs) {
-      intervals.set(t, { violation: 0, submission: 0, lifecycle: 0, admin: 0 });
-      t += HOUR_MS;
-    }
-
-    examEvents.forEach((event) => {
-      const et = parseMs(event.timestamp);
-      if (et === null || et < startMs || et > endMs) return;
-      const slot =
-        Math.floor(et / HOUR_MS) * HOUR_MS;
-      if (!intervals.has(slot))
-        intervals.set(slot, { violation: 0, submission: 0, lifecycle: 0, admin: 0 });
-      const c = intervals.get(slot)!;
-      if (EVENT_CATEGORIES.violation.includes(event.eventType)) c.violation++;
-      else if (EVENT_CATEGORIES.submission.includes(event.eventType)) c.submission++;
-      else if (EVENT_CATEGORIES.lifecycle.includes(event.eventType)) c.lifecycle++;
-      else c.admin++;
-    });
-
-    const data: { group: string; key: string; value: number }[] = [];
-    Array.from(intervals.entries())
-      .sort((a, b) => a[0] - b[0])
-      .forEach(([ts, counts]) => {
-        const d = new Date(ts);
-        const month = (d.getMonth() + 1).toString().padStart(2, "0");
-        const day = d.getDate().toString().padStart(2, "0");
-        const hh = d.getHours().toString().padStart(2, "0");
-        const label = `${month}/${day} ${hh}:00`;
-        for (const g of logGroupLabels) {
-          data.push({ group: g.label, key: label, value: counts[g.id] });
-        }
-      });
-    return data;
-  }, [examEvents, chartWindow, logGroupLabels]);
-
-  // --- Compute time indicator Y position on chart ---
-  const indicatorPosition = useMemo(() => {
-    if (!indicatorTime || !chartWindow) return null;
-    const { startMs, endMs } = chartWindow;
-    const range = endMs - startMs;
-    if (range <= 0) return null;
-
-    const eventMs = parseMs(indicatorTime);
-    if (eventMs === null) return null;
-    const ratio = Math.max(0, Math.min(1, (eventMs - startMs) / range));
-
-    const d = new Date(indicatorTime);
-    const hh = d.getHours().toString().padStart(2, "0");
-    const mm = d.getMinutes().toString().padStart(2, "0");
-    const ss = d.getSeconds().toString().padStart(2, "0");
-
-    return { ratio, label: `${hh}:${mm}:${ss}` };
-  }, [indicatorTime, chartWindow]);
-
-  const chartBarCount = useMemo(() => {
-    const keys = new Set(chartData.map((d) => d.key));
-    return keys.size;
-  }, [chartData]);
-
-  const chartOptions = useMemo(
-    () => ({
-      title: "",
-      axes: {
-        left: { mapsTo: "key", scaleType: ScaleTypes.LABELS },
-        bottom: { mapsTo: "value", title: t("logs.eventCount", "事件數量"), scaleType: ScaleTypes.LINEAR, stacked: true },
-      },
-      height: `${Math.max(280, chartBarCount * 18)}px`,
-      theme,
-      color: {
-        scale: Object.fromEntries(logGroupLabels.map((g) => [g.label, g.color])),
-      },
-      legend: { alignment: "center" as const, position: "bottom" as const },
-      toolbar: { enabled: false },
-      tooltip: { showTotal: true },
-      bars: { maxWidth: 16 },
-    }),
-    [theme, chartBarCount, logGroupLabels, t],
+  const kpiStrip = (
+    <div className={styles.kpiStrip}>
+      {kpiItems.map(({ key, icon: Icon, color, label, count, filterable }) => (
+        <KpiCard
+          key={key}
+          icon={<Icon size={20} style={{ color }} />}
+          value={<span style={{ color }}>{count}</span>}
+          label={label}
+          showBorder={false}
+          active={filterable && selectedCategories.includes(key)}
+          onClick={filterable ? () => handleKpiClick(key) : undefined}
+        />
+      ))}
+    </div>
   );
 
-  const loading = examEvents.length === 0 && isRefreshing;
+  const feedPanel = (panelIndex: number) => (
+    <>
+      <div className={styles.toolbar}>
+        <div className={styles.searchWrapper}>
+          <input
+            className={styles.searchInput}
+            type="text"
+            placeholder={t("logs.searchPlaceholder", "搜尋使用者、事件類型、原因…")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className={styles.filterWrapper}>
+          <MultiSelect
+            id={`event-category-filter-${panelIndex}`}
+            titleText=""
+            label={t("logs.filterCategory", "篩選優先級")}
+            items={CATEGORY_FILTER_OPTIONS}
+            itemToString={(item: { label: string } | null) => item?.label || ""}
+            selectedItems={CATEGORY_FILTER_OPTIONS.filter((opt) => selectedCategories.includes(opt.id))}
+            onChange={(data) => {
+              const items = (data.selectedItems ?? []).filter(
+                (item): item is { id: string; label: string } => item != null,
+              );
+              setSelectedCategories(items.map((item) => item.id));
+            }}
+            size="md"
+          />
+        </div>
+      </div>
 
-  // --- Render ---
-  return (
-    <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>
-      {loading ? (
-        <LogsSkeleton />
+      {filteredFeed.length === 0 ? (
+        <div className={styles.feedEmpty}>
+          {eventFeed.length === 0
+            ? t("logs.noEvents", "暫無事件紀錄")
+            : t("logs.noMatchingEvents", "無符合篩選條件的事件")}
+        </div>
       ) : (
-        <div className={styles.twoColumn}>
-          {/* Left Column: Charts */}
-          <div className={styles.chartsCol}>
-            <ContainerCard title={t("logs.eventSummary", "事件摘要")}>
-              <div className={styles.summaryGrid}>
-                {logGroupLabels.map(({ id: key, label, color }) => (
-                  <div key={key} className={styles.summaryItem} style={{ borderLeftColor: color }}>
-                    <span className={styles.summaryDot} style={{ background: color }} />
-                    <span className={styles.summaryLabel}>{label}</span>
-                    <span className={styles.summaryCount}>{summaryCounts[key]}</span>
-                  </div>
+        <>
+          <div className={styles.feedScroll} ref={scrollContainerRef}>
+            {dateGroups.map((group) => (
+              <div key={group.dateLabel}>
+                <div className={styles.dateSeparator}>
+                  <span>{group.dateLabel}</span>
+                </div>
+                {group.items.map((incident) => (
+                  <IncidentCard key={incident.incidentKey} incident={incident} />
                 ))}
               </div>
-            </ContainerCard>
-
-            <ContainerCard title={t("logs.eventTimeline", "事件時序圖")}>
-              {chartData.length > 0 ? (
-                <div className={styles.chartBody}>
-                  <div className={styles.chartWrapper}>
-                    <div className={styles.chartScroll} ref={chartScrollRef}>
-                      <StackedBarChart data={chartData} options={chartOptions} />
-                    </div>
-                    {indicatorPosition && (
-                      <div
-                        className={styles.timeIndicator}
-                        style={{ top: `${indicatorPosition.ratio * 100}%` }}
-                      >
-                        <div className={styles.timeIndicatorLine} />
-                        <span className={styles.timeIndicatorLabel}>
-                          {indicatorPosition.label}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.chartMeta}>
-                    <span>{t("logs.hourlyStats", "每 1 小時統計")}</span>
-                    {chartWindow ? (
-                      <span>{t("logs.start", "開始：")}{new Date(chartWindow.startMs).toLocaleString()}</span>
-                    ) : null}
-                    {chartWindow ? (
-                      <span>{t("logs.end", "結束：")}{new Date(chartWindow.endMs).toLocaleString()}</span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.chartEmpty}>
-                  {t("logs.noDataToVisualize", "暫無事件資料可供視覺化")}
-                </div>
-              )}
-            </ContainerCard>
+            ))}
+            <div ref={sentinelRef} className={styles.scrollSentinel} />
           </div>
-
-          {/* Right Column: Timeline */}
-          <div className={styles.timelineCol}>
-            <ContainerCard
-              title={t("logs.eventRecords", "事件紀錄")}
-              action={
-                <Button
-                  kind="ghost"
-                  renderIcon={Renew}
-                  onClick={refreshAdminData}
-                  hasIconOnly
-                  iconDescription={t("common.refresh", "重新整理")}
-                  disabled={isRefreshing}
-                />
-              }
-            >
-              <div className={styles.toolbar}>
-                <div className={styles.searchWrapper}>
-                  <input
-                    className={styles.searchInput}
-                    type="text"
-                    placeholder={t("logs.searchPlaceholder", "搜尋使用者、事件類型、原因…")}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className={styles.filterWrapper}>
-                  <MultiSelect
-                    id="event-type-filter-timeline"
-                    titleText=""
-                    label={t("logs.filterEventType", "篩選事件類型")}
-                    items={EVENT_FILTER_OPTIONS}
-                    itemToString={(item: { label: string } | null) => item?.label || ""}
-                    selectedItems={EVENT_FILTER_OPTIONS.filter((opt) =>
-                      selectedEventTypes.includes(opt.id),
-                    )}
-                    onChange={(data) => {
-                      const items = (data.selectedItems ?? []).filter(
-                        (item): item is { id: string; label: string } => item != null,
-                      );
-                      setSelectedEventTypes(items.map((item) => item.id));
-                    }}
-                    size="md"
-                  />
-                </div>
-              </div>
-
-              {filteredEvents.length === 0 ? (
-                <div className={styles.timelineEmpty}>
-                  {examEvents.length === 0 ? t("logs.noEvents", "暫無事件紀錄") : t("logs.noMatchingEvents", "無符合篩選條件的事件")}
-                </div>
-              ) : (
-                <>
-                  <div className={styles.timelineScroll} ref={scrollContainerRef}>
-                    <div className={styles.timelineInner}>
-                      {timeSlotGroups.map((group) => (
-                        <div key={group.key} className={styles.dateGroup}>
-                          <div className={styles.dateLabel}>{group.label}</div>
-                          {group.events.map((event) => {
-                            const config = getEventConfig(event.eventType);
-                            return (
-                              <div
-                                key={event.id || event.timestamp + event.userId}
-                                className={`${styles.eventCard} ${SEVERITY_CLASS[config.severity]}`}
-                                data-timestamp={event.timestamp}
-                              >
-                                <div className={styles.cardHeader}>
-                                  <div className={styles.cardLeft}>
-                                    <Tag type={config.tagType} size="sm">
-                                      {t(`logs.eventTypes.${config.labelKey}`, config.labelKey)}
-                                    </Tag>
-                                    <span className={styles.cardUser}>
-                                      {event.userName || "Unknown"}
-                                    </span>
-                                  </div>
-                                  <span className={styles.cardTime}>
-                                    {new Date(event.timestamp).toLocaleTimeString()}
-                                  </span>
-                                </div>
-                                {event.reason && (
-                                  <div className={styles.cardReason}>
-                                    {event.reason}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                      <div ref={sentinelRef} className={styles.scrollSentinel} />
-                    </div>
-                  </div>
-                  <div className={styles.statusFooter}>
-                    {hasMore
-                      ? t("logs.loadedCount", { loaded: visibleEvents.length, total: filteredEvents.length })
-                      : t("logs.totalCount", { total: filteredEvents.length })}
-                  </div>
-                </>
-              )}
-            </ContainerCard>
+          <div className={styles.statusFooter}>
+            {hasMore
+              ? t("logs.loadedCount", { loaded: visibleFeed.length, total: filteredFeed.length })
+              : t("logs.totalCount", { total: filteredFeed.length })}
           </div>
-        </div>
+        </>
       )}
-    </SurfaceSection>
+    </>
   );
+
+  const content = (
+    <div className={styles.root}>
+      {kpiStrip}
+
+      <div className={styles.feedSection}>
+        <div className={styles.feedHeader}>
+          <h4 className={styles.feedTitle}>{t("logs.eventRecords", "事件紀錄")}</h4>
+          <Button
+            kind="ghost"
+            renderIcon={Renew}
+            onClick={() => { void handleRefresh(); }}
+            hasIconOnly
+            iconDescription={t("common.refresh", "重新整理")}
+            disabled={isRefreshing || isRefreshPending}
+            size="sm"
+          />
+        </div>
+        <Tabs selectedIndex={activeTab} onChange={({ selectedIndex }) => setActiveTab(selectedIndex)}>
+          <TabList aria-label="Event feed tabs">
+            <Tab>{t("logs.tabs.abnormal", "異常事件")}</Tab>
+            <Tab>{t("logs.tabs.system", "系統/管理事件")}</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel>{feedPanel(0)}</TabPanel>
+            <TabPanel>{feedPanel(1)}</TabPanel>
+          </TabPanels>
+        </Tabs>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return <div className={styles.embeddedRoot}>{content}</div>;
+  }
+  return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>{content}</SurfaceSection>;
 };
 
 export default ContestLogsScreen;

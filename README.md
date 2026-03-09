@@ -2,7 +2,7 @@
 
 QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測系統。
 
-## 目前專案現狀（2026-02-25）
+## 目前專案現狀（2026-03-09）
 
 - Production domain：`q-judge.com`
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
@@ -99,10 +99,9 @@ GitHub (push to main)
 
 ## 文件導覽
 
-- 整體實作摘要：`IMPLEMENTATION_SUMMARY.md`
-- SSE 設計與現況：`SSE_IMPLEMENTATION_NOTES.md`
-- 驗證清單：`VERIFICATION_CHECKLIST.md`
 - 後端測試指南：`backend/RUN_TESTS.md`
+- 壓力測試說明：`docs/loadtest.md`
+- 監控部署說明：`docs/monitoring.md`
 
 ## 授權
 

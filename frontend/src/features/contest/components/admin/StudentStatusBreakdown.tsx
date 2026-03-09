@@ -54,7 +54,7 @@ export default function StudentStatusBreakdown({
           const count = kpi[key];
           const percent = Math.round((count / total) * 100);
           return (
-            <Layer key={key} level={2}>
+            <Layer key={key} level={2} className={styles.tileWrap}>
               <Tile className={styles.tile}>
                 <div className={styles.tileBadge} style={{ color }}>
                   <Icon size={16} />

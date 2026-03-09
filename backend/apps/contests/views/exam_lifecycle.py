@@ -12,7 +12,7 @@ from ..models import (
 )
 from ..serializers import ExamEventCreateSerializer
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import get_device_id, set_active_session
+from ..services.anti_cheat_session import get_device_id, set_active_session, touch_heartbeat, clear_heartbeat
 from ..services.exam_submission import finalize_submission
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
@@ -82,6 +82,7 @@ class ExamLifecycleMixin:
                 'resume_exam',
                 "Resumed exam"
             )
+            touch_heartbeat(contest.id, request.user.id)
             return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
 
         # Start exam for user if not already started
@@ -99,6 +100,7 @@ class ExamLifecycleMixin:
             )
 
         set_active_session(contest, participant, request, get_device_id(request))
+        touch_heartbeat(contest.id, request.user.id)
         return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
 
     @action(detail=False, methods=['post'], url_path='end')
@@ -154,6 +156,7 @@ class ExamLifecycleMixin:
             activity_action_type="end_exam",
             activity_details=submit_reason,
         )
+        clear_heartbeat(contest.id, request.user.id)
 
         return Response({
             'status': 'finished',
@@ -182,6 +185,13 @@ class ExamViewSet(
         'screen_share_stopped',
         'warning_timeout',
         'forbidden_focus_event',
+        'heartbeat_timeout',
+        'listener_tampered',
     }
-    IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout', 'screen_share_stopped'}
+    IMMEDIATE_LOCK_EVENT_TYPES = {
+        'warning_timeout',
+        'screen_share_stopped',
+        'heartbeat_timeout',
+        'listener_tampered',
+    }
     MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER}

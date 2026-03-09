@@ -1,5 +1,3 @@
-# 開發環境設定（Docker Compose Dev）
-
 > 文件狀態：2026-02-24，建議僅使用 `docker-compose.dev.yml`
 
 ## 1. 前置需求

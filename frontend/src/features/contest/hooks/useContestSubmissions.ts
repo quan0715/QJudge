@@ -9,6 +9,7 @@ export interface ContestSubmissionsParams {
   statusFilter?: string;
   problemFilter?: string;
   userId?: number | string; // Filter by user ID (for "only mine" filter)
+  enabled?: boolean;
 }
 
 export interface ContestSubmissionsResult {
@@ -27,6 +28,7 @@ export const useContestSubmissions = ({
   statusFilter = "all",
   problemFilter = "all",
   userId,
+  enabled = true,
 }: ContestSubmissionsParams) => {
   return useQuery<ContestSubmissionsResult>({
     queryKey: [
@@ -61,7 +63,7 @@ export const useContestSubmissions = ({
       const data = await getSubmissions(params);
       return data;
     },
-    enabled: !!contestId, // Only fetch when contestId is available
+    enabled: enabled && !!contestId, // Only fetch when contestId is available
     staleTime: 30 * 1000, // Consider data fresh for 30 seconds
   });
 };

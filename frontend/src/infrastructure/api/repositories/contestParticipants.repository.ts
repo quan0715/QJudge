@@ -1,6 +1,6 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import type { ContestParticipant } from "@/core/entities/contest.entity";
-import { mapContestParticipantDto } from "@/infrastructure/mappers";
+import type { ContestParticipant, ParticipantDashboard } from "@/core/entities/contest.entity";
+import { mapContestParticipantDto, mapParticipantDashboardDto } from "@/infrastructure/mappers";
 
 export const getContestParticipants = async (
   contestId: string
@@ -10,6 +10,17 @@ export const getContestParticipants = async (
     "Failed to fetch participants"
   );
   return Array.isArray(data) ? data.map(mapContestParticipantDto) : [];
+};
+
+export const getParticipantDashboard = async (
+  contestId: string,
+  userId: string | number,
+): Promise<ParticipantDashboard> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/contests/${contestId}/participants/${userId}/dashboard/`),
+    "Failed to fetch participant dashboard",
+  );
+  return mapParticipantDashboardDto(data);
 };
 
 export const unlockParticipant = async (
@@ -132,18 +143,19 @@ export const downloadParticipantReport = async (
   );
 
   if (!res.ok) {
+    let message = `Download failed: ${res.status} ${res.statusText}`;
     try {
       const errorData = await res.json();
-      const message =
+      message =
         errorData.error?.message ||
         errorData.error ||
         errorData.message ||
         errorData.detail ||
-        "Failed to download report";
-      throw new Error(message);
+        message;
     } catch {
-      throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+      // response body not JSON — use default message
     }
+    throw new Error(message);
   }
 
   // Download the file

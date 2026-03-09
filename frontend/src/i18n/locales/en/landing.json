@@ -1,34 +1,132 @@
 {
   "hero": {
-    "title": "Code, test, and compete instantly",
-    "subtitle": "A Carbon-powered online judge for courses and contests with realtime feedback and clear results.",
+    "title": "QJudge - The Most Secure and Stable Online Exam Platform",
+    "subtitle": "A high-quality testing environment built for academic settings. Integrating AI proctoring, paper-based questions, and real-time evaluation, ensuring every exam is fair, efficient, and in-depth.",
     "signIn": "Sign in",
     "register": "Create account",
-    "badges": {
-      "qjudge": "QJudge",
-      "oj": "Online Judge",
-      "carbon": "Carbon UI"
+    "badge": {
+      "product": "QJudge",
+      "tagline": "Professional Programming Assessment Platform"
+    },
+    "signal": {
+      "realtime": "Real-time Judge",
+      "sandbox": "Sandbox Execution",
+      "report": "Detailed Report"
+    },
+    "visual": {
+      "title": "Programming Assessment Flow",
+      "desc": "Code -> Judge -> Verdict",
+      "proctoring": "Proctoring Status",
+      "fullscreen": "Full Screen Mode",
+      "detection": "Tab Detection",
+      "violations": "Violations",
+      "ai_monitoring": "AI Monitoring",
+      "proctoring_video": "Video Proctoring",
+      "remaining": "Time Remaining"
+    }
+  },
+  "modes": {
+    "eyebrow": "Diverse Modes",
+    "title": "Supports Multiple Contest and Learning Modes",
+    "items": {
+      "coding": {
+        "label": "Coding Test",
+        "desc": "Professional coding assessment"
+      },
+      "paper": {
+        "label": "Paper-like Exam",
+        "desc": "Integrated digital testing system"
+      },
+      "lab": {
+        "label": "Lab Practice",
+        "desc": "Guided learning environment"
+      },
+      "takehome": {
+        "label": "Take-home Project",
+        "desc": "Long-term assignment mode",
+        "comingSoon": "Coming Soon"
+      },
+      "hackathon": {
+        "label": "Group Hackathon",
+        "desc": "Collaborative competition",
+        "comingSoon": "Coming Soon"
+      },
+      "adaptive": {
+        "label": "AI Adaptive Learning",
+        "desc": "Personalized study path",
+        "comingSoon": "Coming Soon"
+      }
+    }
+  },
+  "interactive": {
+    "eyebrow": "Solution Showcase",
+    "title": "Deeply Rooted in Every Detail of the Teaching Process",
+    "items": {
+      "editor": {
+        "label": "Supreme Editing Experience",
+        "desc": "Support for Markdown and LaTeX ensures complex formulas and technical documents are as beautiful as print."
+      },
+      "proctor": {
+        "label": "Comprehensive Proctoring",
+        "desc": "Multi-dimensional violation detection and video evidence establish an unshakeable line of fairness for online exams."
+      },
+      "grading": {
+        "label": "Digital High-Efficiency Grading",
+        "desc": "An intuitive three-column interface and auto-scoring make the tedious work of grading effortless and precise."
+      },
+      "stats": {
+        "label": "Intelligent Results Analysis",
+        "desc": "Instantly grasp class score distributions and question difficulty to provide the most valuable teaching feedback."
+      }
+    }
+  },
+  "sections": {
+    "paper": {
+      "eyebrow": "Paper-like Exam",
+      "title": "More than just code, a complete online testing system",
+      "description": "Support for single choice, multiple choice, true/false, and short answer questions. Built-in Markdown and LaTeX editors accurately render complex mathematical formulas and technical documents, meeting diverse needs from general education to science and programming."
+    },
+    "antiCheat": {
+      "eyebrow": "Strict Proctoring",
+      "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology",
+      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test."
+    },
+    "teacher": {
+      "eyebrow": "Teacher Friendly",
+      "title": "Let teachers focus on teaching, leave the rest to QJudge",
+      "description": "We have redefined the digital grading experience. An intuitive three-column grading panel, real-time proctoring dashboard, and automated results statistical analysis can save over 70% of management and grading time."
+    }
+  },
+  "feature": {
+    "judge": {
+      "title": "Excellent Evaluation Experience",
+      "description": "Supports 20+ programming languages, returns execution time and memory info in seconds, and provides precise Diff comparison and error tracking."
+    },
+    "paper": {
+      "title": "Paper Question Integration (Online Exam)",
+      "description": "More than just code. Integrates multiple-choice, true/false, and short answer questions, supports LaTeX formulas and Markdown, for one-stop diverse assessment."
+    },
+    "antiCheat": {
+      "title": "Strict Anti-Cheat Monitoring",
+      "description": "Full-screen lock, tab switch detection, video evidence, and AI violation analysis ensure absolute fairness in online exams."
+    },
+    "teacher": {
+      "title": "Friendlier Teacher System",
+      "description": "Intuitive grading panel, real-time proctoring dashboard, and detailed grade statistics allow teachers to focus on teaching rather than administration."
     }
   },
   "features": {
-    "eyebrow": "Core features",
-    "title": "Built for modern programming workflows",
-    "multiLanguage": {
-      "title": "Multi-language",
-      "description": "Python, C++, Java, JavaScript and more with syntax highlighting and autocomplete."
-    },
-    "analytics": {
-      "title": "Realtime analytics",
-      "description": "Detailed results with runtime and memory insights to help you optimize."
-    },
-    "contest": {
-      "title": "Contest ready",
-      "description": "Host contests with live rankings and flexible scoring rules."
-    },
-    "lab": {
-      "title": "Lab mode",
-      "description": "Teachers manage sets and track class progress with ease."
-    }
+    "eyebrow": "Core Value",
+    "title": "Powerful Features Designed for Education"
+  },
+  "exam": {
+    "eyebrow": "Online Exam",
+    "title": "Comprehensive Assessment Experience",
+    "description": "From programming to general theory, QJudge provides full support. Built-in LaTeX and Markdown editors make creating and answering questions equally smooth.",
+    "tag1": "LaTeX Support",
+    "tag2": "Diverse Question Types",
+    "tag3": "Auto Grading",
+    "preview_text": "Please calculate the following integral:"
   },
   "miniJudge": {
     "eyebrow": "Interactive Demo",
@@ -53,10 +151,22 @@
   "steps": {
     "eyebrow": "How it works",
     "title": "Start in four steps",
-    "browse": { "title": "Browse problems", "description": "Filter by difficulty and tags; review statements and samples." },
-    "code": { "title": "Write code", "description": "Use the built-in editor with Markdown guidance and hints." },
-    "submit": { "title": "Submit & test", "description": "One-click submission with instant results and detailed report." },
-    "improve": { "title": "Keep improving", "description": "Discuss, compare solutions, and join contests or labs." }
+    "browse": {
+      "title": "Browse problems",
+      "description": "Filter by difficulty and tags; review statements and samples."
+    },
+    "code": {
+      "title": "Write code",
+      "description": "Use the built-in editor with syntax highlighting and autocomplete."
+    },
+    "submit": {
+      "title": "Submit & test",
+      "description": "One-click submission with instant results and detailed report."
+    },
+    "improve": {
+      "title": "Keep improving",
+      "description": "Discuss, compare solutions, and join contests or labs."
+    }
   },
   "highlights": {
     "eyebrow": "Why QJudge",
@@ -86,9 +196,16 @@
     "eyebrow": "Contact",
     "title": "Questions or ideas?",
     "description": "We welcome feedback, bug reports, and collaboration proposals.",
-    "email": { "title": "Email" },
-    "github": { "title": "GitHub" },
-    "university": { "title": "Partner", "value": "National Yang Ming Chiao Tung University" }
+    "email": {
+      "title": "Email"
+    },
+    "github": {
+      "title": "GitHub"
+    },
+    "university": {
+      "title": "Partner",
+      "value": "National Yang Ming Chiao Tung University"
+    }
   },
   "stats": {
     "problems": "Problems",

@@ -1,5 +1,3 @@
-# Judge System
-
 Understand how QJudge evaluates your code.
 
 ## Judging Process

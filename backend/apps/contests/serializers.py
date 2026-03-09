@@ -819,7 +819,13 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         ]
     
     def get_total_score(self, obj):
-        """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）"""
+        """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）
+        優先使用 ViewSet 注入的 total_score_annotated 以避免 N+1。
+        """
+        if hasattr(obj, 'total_score_annotated'):
+            return obj.total_score_annotated or 0
+
+        # Fallback (Slow path)
         from apps.submissions.models import Submission
         from django.db.models import Max
         
@@ -834,7 +840,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
                 problem=cp.problem,
                 user=obj.user,
                 source_type='contest',
-                is_test=False  # Exclude test submissions
+                is_test=False
             ).aggregate(max_score=Max('score'))
             
             if best_submission['max_score']:

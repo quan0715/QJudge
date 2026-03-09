@@ -1,7 +1,6 @@
-import { Tag, Tile } from "@carbon/react";
+import { Tag } from "@carbon/react";
 import {
   UserMultiple,
-  Trophy,
   ChartBar,
   WarningAlt,
 } from "@carbon/icons-react";
@@ -12,6 +11,7 @@ import {
   getContestStateLabel,
   getContestStateColor,
 } from "@/core/entities/contest.entity";
+import { KpiCard } from "@/shared/ui/dataCard";
 import styles from "./KpiCards.module.scss";
 
 interface KpiCardsProps {
@@ -46,39 +46,31 @@ export default function KpiCards({ kpi, contest }: KpiCardsProps) {
           )}
         </div>
 
-        {/* Right Column — 2×2 KPI Grid */}
+        {/* Right Column — Hero-style KPI strip */}
         <div className={styles.kpiGrid}>
-          <Tile className={styles.miniCard}>
-            <UserMultiple size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Participants</span>
-            <span className={styles.miniValue}>{kpi.totalParticipants}</span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <ChartBar size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Avg Score</span>
-            <span className={styles.miniValue}>
-              {kpi.averageScore.toFixed(1)}
-            </span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <Trophy size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Highest Score</span>
-            <span className={styles.miniValue}>
-              {kpi.highestScore.toFixed(1)}
-            </span>
-          </Tile>
-
-          <Tile className={styles.miniCard}>
-            <WarningAlt size={20} className={styles.icon} />
-            <span className={styles.miniLabel}>Violations</span>
-            <span
-              className={`${styles.miniValue} ${kpi.totalViolations > 0 ? styles.warningValue : ""}`}
-            >
-              {kpi.totalViolations}
-            </span>
-          </Tile>
+          <div className={styles.kpiStrip}>
+            <KpiCard
+              icon={UserMultiple}
+              value={String(kpi.totalParticipants)}
+              label="Participants"
+            />
+            <KpiCard
+              icon={ChartBar}
+              value={kpi.averageScore.toFixed(1)}
+              label="Avg Score"
+            />
+            <KpiCard
+              icon={WarningAlt}
+              value={
+                kpi.totalViolations > 0 ? (
+                  <span className={styles.warningValue}>{kpi.totalViolations}</span>
+                ) : (
+                  String(kpi.totalViolations)
+                )
+              }
+              label="Violations"
+            />
+          </div>
         </div>
       </div>
       </div>

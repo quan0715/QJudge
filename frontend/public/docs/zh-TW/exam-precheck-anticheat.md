@@ -1,5 +1,3 @@
-# Exam Pre-check 與防弊時序（前端）
-
 > 文件狀態：2026-03-08  
 > 適用範圍：`frontend/src/features/contest/screens/paperExam/ExamPrecheckScreen.tsx`
 

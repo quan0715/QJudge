@@ -1,5 +1,3 @@
-# Code Submission
-
 This document explains how to submit code in the QJudge system.
 
 ## Submission Process

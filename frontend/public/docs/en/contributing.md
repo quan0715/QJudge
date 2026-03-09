@@ -1,5 +1,3 @@
-# Contributing
-
 Thank you for your interest in contributing to QJudge! We welcome all forms of contributions.
 
 ## Ways to Contribute

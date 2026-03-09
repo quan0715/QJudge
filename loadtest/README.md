@@ -10,10 +10,9 @@
 
 ```bash
 # 停 dev → 啟動壓測環境 → 種子資料 → 跑測試
-docker compose -f docker-compose.dev.yml stop
 docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
 docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml \
   exec backend-test python manage.py seed_loadtest_data
 pip install -r loadtest/requirements.txt
-cd loadtest && locust -f locustfile.py --users 5 --spawn-rate 5 --run-time 2m --headless --host http://localhost:8001
+cd loadtest && locust -f locustfile.py --users 5 --spawn-rate 5 --run-time 2m --headless --host http://localhost:8002
 ```

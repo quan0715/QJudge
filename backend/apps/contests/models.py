@@ -63,8 +63,6 @@ class Contest(models.Model):
         help_text='draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀'
     )
     
-    # Legacy settings - kept for backward compatibility
-    allow_view_results = models.BooleanField(default=True, verbose_name='允許查看結果')
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
     max_cheat_warnings = models.IntegerField(default=3)
     
@@ -169,23 +167,15 @@ class Contest(models.Model):
         self.password = make_password(raw_password)
 
     def verify_contest_password(self, raw_password: str | None) -> bool:
-        """Verify contest password and upgrade legacy plaintext values."""
+        """Verify contest password using Django hashers."""
         if not raw_password or not self.password:
             return False
 
         stored_password = self.password
         try:
-            if check_password(raw_password, stored_password):
-                return True
+            return check_password(raw_password, stored_password)
         except ValueError:
-            pass
-
-        # Backward compatibility for legacy plaintext passwords.
-        if raw_password == stored_password:
-            self.password = make_password(raw_password)
-            self.save(update_fields=["password"])
-            return True
-        return False
+            return False
 
     def has_hashed_password(self) -> bool:
         """Return True when contest password is stored using Django hashers."""
@@ -208,27 +198,6 @@ class Contest(models.Model):
             return self.results_published
         return True
 
-    @property
-    def computed_status(self):
-        """
-        Calculate dynamic status based on time (for backward compatibility).
-        Use the 'status' field for primary state management.
-        """
-        if self.status in ['draft', 'archived']:
-            return self.status
-
-        if self.status != 'published':
-            return self.status
-
-        if not self.start_time or not self.end_time:
-            return 'published'
-
-        now = timezone.now()
-        if now < self.start_time:
-            return 'upcoming'
-        if now <= self.end_time:
-            return 'ongoing'
-        return 'ended'
 
 
 class ContestProblem(models.Model):
@@ -527,6 +496,9 @@ class ExamEvent(models.Model):
         ('concurrent_login_detected', 'Concurrent Login Detected'),
         ('takeover_locked', 'Takeover Locked'),
         ('takeover_approved', 'Takeover Approved'),
+        ('heartbeat', 'Heartbeat'),
+        ('heartbeat_timeout', 'Heartbeat Timeout'),
+        ('listener_tampered', 'Listener Tampered'),
     ]
     event_type = models.CharField(
         max_length=50,

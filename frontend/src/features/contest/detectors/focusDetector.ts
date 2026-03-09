@@ -23,7 +23,8 @@ export class FocusDetector implements ExamDetector {
   private blurCheckTimeout: ReturnType<typeof setTimeout> | undefined;
   private blurConfirmTimeout: ReturnType<typeof setTimeout> | undefined;
   private handleInteraction: (() => void) | null = null;
-  private handleVisibilityChange: (() => void) | null = null;
+  private handleVisibilityChange: ((event: Event) => void) | null = null;
+  private lastVerifyResponse: string | null = null;
   private handleBlur: (() => void) | null = null;
   private onInteractionCallbacks: Array<() => void> = [];
 
@@ -44,12 +45,17 @@ export class FocusDetector implements ExamDetector {
       this.onInteractionCallbacks.forEach((cb) => cb());
     };
 
-    this.handleVisibilityChange = () => {
+    this.handleVisibilityChange = ((event: Event) => {
+      const verifyToken = (event as Event & { __examVerify?: string }).__examVerify;
+      if (verifyToken) {
+        this.lastVerifyResponse = verifyToken;
+        return;
+      }
       if (document.visibilityState === "hidden") {
         this.lastVisibilityHiddenAt = Date.now();
         this.emitViolation("tab_hidden", this.t("exam.tabHidden"));
       }
-    };
+    });
 
     this.handleBlur = () => {
       const timeSinceInteraction = Date.now() - this.lastInteractionTime;
@@ -87,7 +93,7 @@ export class FocusDetector implements ExamDetector {
     INTERACTION_EVENTS.forEach((ev) =>
       document.addEventListener(ev, this.handleInteraction!, true)
     );
-    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange as EventListener);
     window.addEventListener("blur", this.handleBlur);
   }
 
@@ -98,7 +104,7 @@ export class FocusDetector implements ExamDetector {
       );
     }
     if (this.handleVisibilityChange) {
-      document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+      document.removeEventListener("visibilitychange", this.handleVisibilityChange as EventListener);
     }
     if (this.handleBlur) {
       window.removeEventListener("blur", this.handleBlur);
@@ -118,6 +124,14 @@ export class FocusDetector implements ExamDetector {
   /** Expose lastInteractionTime for MultiDisplayDetector interaction-triggered checks. */
   getLastInteractionTime(): number {
     return this.lastInteractionTime;
+  }
+
+  verifyIntegrity(token: string): boolean {
+    this.lastVerifyResponse = null;
+    const synthetic = new Event("visibilitychange");
+    (synthetic as any).__examVerify = token;
+    document.dispatchEvent(synthetic);
+    return this.lastVerifyResponse === token;
   }
 
   private emitViolation(eventType: string, message: string): void {

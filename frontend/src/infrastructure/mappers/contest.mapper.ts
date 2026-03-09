@@ -8,6 +8,17 @@ import type {
   ExamEventStats,
   ExamQuestion,
   ContestParticipant,
+  EventFeedItem,
+  ParticipantCodingProblemDetail,
+  ParticipantCodingProblemRow,
+  ParticipantCodingTrendPoint,
+  ParticipantDashboard,
+  ParticipantDashboardStatus,
+  ParticipantDashboardTimelineItem,
+  ParticipantEvidenceRow,
+  ParticipantOverviewSummary,
+  ParticipantPaperQuestionDetail,
+  ParticipantPaperReportOverviewRow,
   Clarification,
   ContestAnnouncement,
 } from "@/core/entities/contest.entity";
@@ -122,6 +133,198 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
   };
 }
 
+const mapParticipantDashboardStatusDto = (dto: any): ParticipantDashboardStatus => ({
+  code: dto?.code || "",
+  label: dto?.label || "",
+  color: dto?.color || "gray",
+});
+
+const mapParticipantTimelineDto = (dto: any): ParticipantDashboardTimelineItem => ({
+  id: dto?.id?.toString() || "",
+  source: dto?.source === "exam_event" ? "exam_event" : "activity",
+  eventType: dto?.event_type || "",
+  timestamp: dto?.timestamp || "",
+  message: dto?.message || "",
+  metadata: dto?.metadata || {},
+});
+
+const mapParticipantOverviewDto = (dto: any): ParticipantOverviewSummary => ({
+  totalScore: Number(dto?.total_score ?? 0),
+  maxScore: Number(dto?.max_score ?? 0),
+  solved: dto?.solved != null ? Number(dto.solved) : undefined,
+  totalProblems: dto?.total_problems != null ? Number(dto.total_problems) : undefined,
+  rank: dto?.rank != null ? Number(dto.rank) : null,
+  totalParticipants:
+    dto?.total_participants != null ? Number(dto.total_participants) : undefined,
+  effectiveSubmissions:
+    dto?.effective_submissions != null ? Number(dto.effective_submissions) : undefined,
+  acceptedSubmissions:
+    dto?.accepted_submissions != null ? Number(dto.accepted_submissions) : undefined,
+  acceptedRate: dto?.accepted_rate != null ? Number(dto.accepted_rate) : undefined,
+  correctRate: dto?.correct_rate != null ? Number(dto.correct_rate) : undefined,
+  gradedCount: dto?.graded_count != null ? Number(dto.graded_count) : undefined,
+  totalQuestions: dto?.total_questions != null ? Number(dto.total_questions) : undefined,
+});
+
+const mapPaperOverviewRowDto = (dto: any): ParticipantPaperReportOverviewRow => ({
+  questionId: dto?.question_id?.toString() || "",
+  index: Number(dto?.index ?? 0),
+  questionType: dto?.question_type || "essay",
+  status: mapParticipantDashboardStatusDto(dto?.status),
+  score: dto?.score != null ? Number(dto.score) : null,
+  maxScore: Number(dto?.max_score ?? 0),
+});
+
+const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => ({
+  questionId: dto?.question_id?.toString() || "",
+  index: Number(dto?.index ?? 0),
+  questionType: dto?.question_type || "essay",
+  prompt: dto?.prompt || "",
+  options: Array.isArray(dto?.options) ? dto.options.map((item: unknown) => String(item)) : [],
+  correctAnswer: dto?.correct_answer,
+  answer: dto?.answer || {},
+  score: dto?.score != null ? Number(dto.score) : null,
+  maxScore: Number(dto?.max_score ?? 0),
+  feedback: dto?.feedback || "",
+  gradedByUsername: dto?.graded_by_username || null,
+  gradedAt: dto?.graded_at || null,
+  isCorrect: dto?.is_correct ?? null,
+  status: mapParticipantDashboardStatusDto(dto?.status),
+});
+
+const mapCodingProblemRowDto = (dto: any): ParticipantCodingProblemRow => ({
+  problemId: dto?.problem_id?.toString() || "",
+  label: dto?.label || "",
+  title: dto?.title || "",
+  difficulty: dto?.difficulty || null,
+  status: dto?.status || null,
+  score: Number(dto?.score ?? 0),
+  maxScore: Number(dto?.max_score ?? 0),
+  tries: Number(dto?.tries ?? 0),
+  time: dto?.time != null ? Number(dto.time) : null,
+});
+
+const mapCodingProblemDetailDto = (dto: any): ParticipantCodingProblemDetail => ({
+  ...mapCodingProblemRowDto(dto),
+  bestSubmission: dto?.best_submission
+    ? {
+        id: dto.best_submission.id?.toString() || "",
+        status: dto.best_submission.status,
+        score: Number(dto.best_submission.score ?? 0),
+        language: dto.best_submission.language || "",
+        createdAt: dto.best_submission.created_at || "",
+      }
+    : null,
+});
+
+const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
+  submissionId: dto?.submission_id != null ? dto.submission_id.toString() : undefined,
+  createdAt: dto?.created_at || "",
+  minutesFromStart: Number(dto?.minutes_from_start ?? 0),
+  score: Number(dto?.score ?? 0),
+  solved: dto?.solved != null ? Number(dto.solved) : undefined,
+  status: dto?.status,
+  language: dto?.language,
+  problemId: dto?.problem_id != null ? dto.problem_id.toString() : undefined,
+  problemLabel: dto?.problem_label,
+  problemTitle: dto?.problem_title,
+});
+
+const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
+  id: Number(dto?.id ?? 0),
+  uploadSessionId: dto?.upload_session_id || "default",
+  hasVideo: !!dto?.has_video,
+  jobStatus: dto?.job_status || "pending",
+  jobErrorMessage: dto?.job_error_message || "",
+  durationSeconds: Number(dto?.duration_seconds ?? 0),
+  frameCount: Number(dto?.frame_count ?? 0),
+  sizeBytes: Number(dto?.size_bytes ?? 0),
+  isSuspected: !!dto?.is_suspected,
+  suspectedNote: dto?.suspected_note || "",
+  suspectedByUsername: dto?.suspected_by_username || null,
+  updatedAt: dto?.updated_at || "",
+  createdAt: dto?.created_at || "",
+  videoId: dto?.video_id != null ? Number(dto.video_id) : null,
+});
+
+const mapEventFeedItemDto = (dto: any): EventFeedItem => ({
+  incidentKey: dto?.incident_key || "",
+  eventType: dto?.event_type || "",
+  priority: Number(dto?.priority ?? 3),
+  category: dto?.category || "system",
+  penalized: !!dto?.penalized,
+  firstAt: dto?.first_at || "",
+  lastAt: dto?.last_at || "",
+  count: Number(dto?.count ?? 1),
+  evidenceCount: Number(dto?.evidence_count ?? 0),
+  summary: dto?.summary || "",
+  source: dto?.source === "exam_event" ? "exam_event" : "activity",
+  userName: dto?.user_name || "",
+  userId: dto?.user_id?.toString() || "",
+  metadata: dto?.metadata || {},
+});
+
+export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
+  const participant = mapContestParticipantDto(dto?.participant || {});
+  const baseParticipant = {
+    ...participant,
+    startedAt: dto?.participant?.started_at,
+    leftAt: dto?.participant?.left_at,
+    lockedAt: dto?.participant?.locked_at,
+  };
+
+  const contestType = dto?.contest_type === "paper_exam" ? "paper_exam" : "coding";
+  const report =
+    contestType === "paper_exam"
+      ? {
+          overviewRows: Array.isArray(dto?.report?.overview_rows)
+            ? dto.report.overview_rows.map(mapPaperOverviewRowDto)
+            : [],
+          questionDetails: Array.isArray(dto?.report?.question_details)
+            ? dto.report.question_details.map(mapPaperQuestionDetailDto)
+            : [],
+        }
+      : {
+          problemGrid: Array.isArray(dto?.report?.problem_grid)
+            ? dto.report.problem_grid.map(mapCodingProblemRowDto)
+            : [],
+          problemDetails: Array.isArray(dto?.report?.problem_details)
+            ? dto.report.problem_details.map(mapCodingProblemDetailDto)
+            : [],
+          trend: {
+            submissionTimeline: Array.isArray(dto?.report?.trend?.submission_timeline)
+              ? dto.report.trend.submission_timeline.map(mapCodingTrendPointDto)
+              : [],
+            cumulativeProgress: Array.isArray(dto?.report?.trend?.cumulative_progress)
+              ? dto.report.trend.cumulative_progress.map(mapCodingTrendPointDto)
+              : [],
+            statusCounts: dto?.report?.trend?.status_counts || {},
+          },
+        };
+
+  return {
+    contestType,
+    participant: baseParticipant,
+    overview: mapParticipantOverviewDto(dto?.overview || {}),
+    report,
+    timeline: Array.isArray(dto?.timeline) ? dto.timeline.map(mapParticipantTimelineDto) : [],
+    eventFeed: Array.isArray(dto?.event_feed) ? dto.event_feed.map(mapEventFeedItemDto) : [],
+    actions: {
+      canDownloadReport: !!dto?.actions?.can_download_report,
+      canEditStatus: !!dto?.actions?.can_edit_status,
+      canRemoveParticipant: !!dto?.actions?.can_remove_participant,
+      canUnlock: !!dto?.actions?.can_unlock,
+      canReopenExam: !!dto?.actions?.can_reopen_exam,
+      canApproveTakeover: !!dto?.actions?.can_approve_takeover,
+      canViewEvidence: !!dto?.actions?.can_view_evidence,
+      canOpenGrading: !!dto?.actions?.can_open_grading,
+    },
+    evidence: Array.isArray(dto?.evidence)
+      ? dto.evidence.map(mapParticipantEvidenceRowDto)
+      : undefined,
+  };
+}
+
 export function mapScoreboardRowDto(dto: any): ScoreboardRow {
   return {
     userId: dto.user_id?.toString() || "",
@@ -172,17 +375,21 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
 }
 
 export function mapExamEventDto(dto: any): ExamEvent {
+  const meta: Record<string, unknown> | undefined =
+    dto.metadata
+      ? typeof dto.metadata === "string"
+        ? (() => { try { return JSON.parse(dto.metadata); } catch { return { raw: dto.metadata }; } })()
+        : dto.metadata
+      : undefined;
+
   return {
     id: dto.id?.toString() || "",
     userId: (dto.user_id || dto.user)?.toString() || "",
     userName: dto.user_username || dto.user?.username || "Unknown",
     eventType: dto.event_type,
     timestamp: dto.created_at || "",
-    reason: dto.metadata
-      ? typeof dto.metadata === "string"
-        ? dto.metadata
-        : JSON.stringify(dto.metadata)
-      : undefined,
+    reason: typeof meta?.reason === "string" ? meta.reason : undefined,
+    metadata: meta,
   };
 }
 

@@ -9,6 +9,7 @@ import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
+import { useExamHeartbeat } from "@/features/contest/hooks/useExamHeartbeat";
 import { getContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
@@ -18,6 +19,7 @@ import { useRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtim
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -72,10 +74,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
-  const captureEnabled = isExamMonitored && precheckPassed;
+  const captureEnabled = isExamMonitored && precheckPassed && examStatus !== "submitted";
+  const hasSentDegradedRef = useRef(false);
+  const reportDegraded = useCallback((isDegraded: boolean) => {
+    if (!isDegraded) {
+      hasSentDegradedRef.current = false;
+      return;
+    }
+    if (hasSentDegradedRef.current) return;
+    hasSentDegradedRef.current = true;
+    recordExamEvent(contestId, "capture_upload_degraded", {
+      reason: "Upload retries exhausted",
+      source: "exam_mode:capture_degraded",
+      metadata: { upload_session_id: getExamCaptureSessionId(contestId) || undefined },
+    }).catch(() => {});
+  }, [contestId]);
   const capture = useAnticheatScreenCapture({
     contestId,
     enabled: captureEnabled,
+    reportDegraded,
   });
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();
@@ -107,6 +124,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     },
   });
 
+  useExamHeartbeat(contestId, isExamMonitored && examStatus !== "submitted");
+
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {
     if (contestId) {
@@ -135,6 +154,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
+      capture.forceStopCapture();
       if (fullscreenAdapterRef.current.isActive()) {
         void fullscreenAdapterRef.current.exit();
       }
@@ -194,6 +214,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       await serviceEndExam(contestId, {
         upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
+      capture.forceStopCapture();
       if (onRefresh) await onRefresh();
       setShowFullscreenExitConfirm(false);
     } catch {

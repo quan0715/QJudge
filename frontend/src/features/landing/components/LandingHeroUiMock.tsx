@@ -1,13 +1,15 @@
 import {
   Checkmark,
-  Chat,
   Code,
-  MagicWand,
-  Time,
   UserMultiple,
+  View,
+  Locked,
 } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 
 const LandingHeroUiMock = () => {
+  const { t } = useTranslation();
+  
   return (
     <div className="landing-hero-ui" aria-hidden="true">
       <div className="landing-hero-ui__window">
@@ -15,7 +17,7 @@ const LandingHeroUiMock = () => {
           <span className="landing-hero-ui__dot landing-hero-ui__dot--red" />
           <span className="landing-hero-ui__dot landing-hero-ui__dot--yellow" />
           <span className="landing-hero-ui__dot landing-hero-ui__dot--green" />
-          <span className="landing-hero-ui__window-title">Exam Session #A102</span>
+          <span className="landing-hero-ui__window-title">Exam Session #A102 - Midterm</span>
         </div>
 
         <div className="landing-hero-ui__content">
@@ -26,41 +28,42 @@ const LandingHeroUiMock = () => {
             </header>
 
             <div className="landing-hero-ui__code-lines">
-              <span style={{ width: "78%" }} />
-              <span style={{ width: "66%" }} />
-              <span style={{ width: "84%" }} />
-              <span style={{ width: "58%" }} />
-              <span style={{ width: "73%" }} />
-              <span style={{ width: "52%" }} />
+              <span className="w-78" />
+              <span className="w-66" />
+              <span className="w-84" />
+              <span className="w-58" />
+              <span className="w-73" />
+              <span className="w-52" />
+              <span className="w-40" />
             </div>
           </section>
 
           <section className="landing-hero-ui__status">
             <header className="landing-hero-ui__panel-header">
-              <Checkmark size={16} />
-              <span>Judge Result</span>
+              <View size={16} />
+              <span>{t("landing.hero.visual.proctoring", { defaultValue: "監考狀態" })}</span>
             </header>
 
             <div className="landing-hero-ui__status-list">
               <div className="landing-hero-ui__status-item">
-                <Time size={16} />
-                <span>Runtime 48ms</span>
-                <em>Passed</em>
+                <Checkmark size={16} />
+                <span>{t("landing.hero.visual.fullscreen", { defaultValue: "全螢幕模式" })}</span>
+                <em>ON</em>
               </div>
               <div className="landing-hero-ui__status-item">
                 <UserMultiple size={16} />
-                <span>Proctoring On</span>
-                <em>Stable</em>
+                <span>{t("landing.hero.visual.ai_monitoring", { defaultValue: "AI 違規偵測" })}</span>
+                <em>Active</em>
               </div>
               <div className="landing-hero-ui__status-item">
-                <MagicWand size={16} />
-                <span>AI Hint Ready</span>
-                <em>Assist</em>
+                <View size={16} />
+                <span>{t("landing.hero.visual.proctoring_video", { defaultValue: "視訊監控" })}</span>
+                <em>Recording</em>
               </div>
               <div className="landing-hero-ui__status-item">
-                <Chat size={16} />
-                <span>Feedback Queue</span>
-                <em>Live</em>
+                <Locked size={16} />
+                <span>{t("landing.hero.visual.violations", { defaultValue: "違規次數" })}</span>
+                <em className="landing-hero-ui__violation-count">0</em>
               </div>
             </div>
           </section>

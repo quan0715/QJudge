@@ -8,7 +8,7 @@ const processEnv =
 const DEFAULT_BASE_URL =
   processEnv.API_BASE_URL ||
   processEnv.VITE_API_TARGET ||
-  "http://localhost:8001";
+  "http://localhost:8002";
 
 const createLocalStorage = (): Storage => {
   const store = new Map<string, string>();

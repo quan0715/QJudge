@@ -1,5 +1,6 @@
 """ExamEvidenceMixin — video evidence management."""
 import logging
+import re
 
 from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
@@ -27,6 +28,15 @@ from ..services.exam_submission import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_int_param(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class ExamEvidenceMixin:
@@ -308,6 +318,85 @@ class ExamEvidenceMixin:
             )
 
         return Response({"deleted": deleted, "blocked": blocked})
+
+    @action(detail=False, methods=["get"], url_path="screenshots")
+    def screenshots(self, request, contest_pk=None):
+        """Return presigned GET URLs for raw screenshot frames matching filters.
+
+        Query params:
+          - user_id (required): participant user id
+          - ts_from: lower bound timestamp in ms (inclusive)
+          - ts_to: upper bound timestamp in ms (inclusive)
+          - upload_session_id: specific session (default: all sessions)
+          - limit: max frames to return (default 20, max 50)
+        """
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return Response({"error": "invalid user_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        participant = ContestParticipant.objects.filter(contest=contest, user_id=user_id).first()
+        if not participant:
+            return Response({"error": "participant not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        upload_session_id = (request.query_params.get("upload_session_id") or "").strip()
+        ts_from = _parse_int_param(request.query_params.get("ts_from"))
+        ts_to = _parse_int_param(request.query_params.get("ts_to"))
+        limit = min(_parse_int_param(request.query_params.get("limit")) or 20, 50)
+
+        # Build S3 prefix
+        if upload_session_id:
+            prefix = f"contest_{contest.id}/user_{user_id}/session_{upload_session_id}/"
+        else:
+            prefix = f"contest_{contest.id}/user_{user_id}/"
+
+        try:
+            client = get_s3_client()
+            raw_keys = self._safe_list_raw_evidence_keys(client, settings.ANTICHEAT_RAW_BUCKET, prefix)
+        except (BotoCoreError, ClientError) as exc:
+            logger.warning("screenshots: failed to list S3 keys", extra={"error": str(exc)})
+            return Response({"error": "storage unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        ts_re = re.compile(r"/ts_(\d+)_seq_(\d+)\.webp$")
+        frames = []
+        for key in raw_keys:
+            m = ts_re.search(key)
+            if not m:
+                continue
+            ts_ms = int(m.group(1))
+            seq = int(m.group(2))
+            if ts_from is not None and ts_ms < ts_from:
+                continue
+            if ts_to is not None and ts_ms > ts_to:
+                continue
+            frames.append({"key": key, "ts_ms": ts_ms, "seq": seq})
+
+        # Sort newest first, then apply limit
+        frames.sort(key=lambda f: f["ts_ms"], reverse=True)
+        frames = frames[:limit]
+
+        # Generate presigned GET URLs
+        items = []
+        for frame in frames:
+            url = generate_get_url(settings.ANTICHEAT_RAW_BUCKET, frame["key"], expires_seconds=120)
+            items.append({
+                "url": url,
+                "ts_ms": frame["ts_ms"],
+                "seq": frame["seq"],
+                "expires_in": 120,
+            })
+
+        return Response({"items": items, "total_raw_count": len(raw_keys)})
 
     @action(detail=False, methods=["post"], url_path=r"videos/compile")
     def video_compile(self, request, contest_pk=None):

@@ -1,5 +1,3 @@
-# Quick Start
-
 This guide will help you complete your first submission in **5 minutes**.
 
 ## Quick Start Checklist

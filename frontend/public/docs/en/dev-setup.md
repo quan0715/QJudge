@@ -1,5 +1,3 @@
-# Development Setup
-
 This guide explains how to set up the QJudge local development environment.
 
 ## System Requirements
