@@ -206,6 +206,34 @@ class ExamAntiCheatTests(APITestCase):
             ).exists()
         )
 
+    def test_exam_lifecycle_events_accept_forced_capture_metadata(self):
+        self.client.force_authenticate(user=self.student)
+        payload = {
+            "event_type": "exam_entered",
+            "metadata": {
+                "forced_capture_requested": True,
+                "forced_capture_reason": "exam_entered:paper_exam_answering",
+                "forced_capture_result": "uploaded",
+                "forced_capture_uploaded": True,
+                "forced_capture_seq": 9,
+                "upload_session_id": "session-entered-1",
+            },
+        }
+
+        response = self.client.post(self.events_url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        event = ExamEvent.objects.get(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+        )
+        self.assertEqual(event.metadata["forced_capture_result"], "uploaded")
+        self.assertEqual(event.metadata["upload_session_id"], "session-entered-1")
+
     def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
         self.client.force_authenticate(user=self.student)
 

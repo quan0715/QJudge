@@ -1,4 +1,7 @@
 """ExamEvidenceMixin — video evidence management."""
+import logging
+
+from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
@@ -22,6 +25,8 @@ from ..services.exam_submission import (
     enqueue_compile_video,
     ensure_evidence_job,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ExamEvidenceMixin:
@@ -53,6 +58,27 @@ class ExamEvidenceMixin:
                     "Objects": [{"Key": key} for key in chunk],
                     "Quiet": True,
                 },
+            )
+
+    @classmethod
+    def _safe_list_raw_evidence_keys(cls, client, bucket: str, prefix: str) -> list[str]:
+        try:
+            return cls._list_raw_evidence_keys(client, bucket, prefix)
+        except (BotoCoreError, ClientError) as exc:
+            logger.warning(
+                "Failed to list raw evidence objects for deletion",
+                extra={"bucket": bucket, "prefix": prefix, "error": str(exc)},
+            )
+            return []
+
+    @staticmethod
+    def _safe_delete_s3_object(client, bucket: str, key: str) -> None:
+        try:
+            client.delete_object(Bucket=bucket, Key=key)
+        except (BotoCoreError, ClientError) as exc:
+            logger.warning(
+                "Failed to delete S3 evidence object",
+                extra={"bucket": bucket, "key": key, "error": str(exc)},
             )
 
     @action(detail=False, methods=["get"], url_path="videos")
@@ -261,12 +287,16 @@ class ExamEvidenceMixin:
                 raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/session_{upload_session_id}/"
             else:
                 raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
-            raw_keys = self._list_raw_evidence_keys(client, settings.ANTICHEAT_RAW_BUCKET, raw_prefix)
+            raw_keys = self._safe_list_raw_evidence_keys(
+                client,
+                settings.ANTICHEAT_RAW_BUCKET,
+                raw_prefix,
+            )
             self._delete_s3_keys(client, settings.ANTICHEAT_RAW_BUCKET, raw_keys)
 
             for video in videos_qs:
                 if video.bucket and video.object_key:
-                    client.delete_object(Bucket=video.bucket, Key=video.object_key)
+                    self._safe_delete_s3_object(client, video.bucket, video.object_key)
             videos_qs.delete()
             jobs_qs.delete()
 

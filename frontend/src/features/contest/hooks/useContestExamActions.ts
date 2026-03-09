@@ -13,6 +13,8 @@ import {
   leaveContestUseCase,
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
+import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   clearExamCaptureSessionId,
@@ -119,13 +121,22 @@ export const useContestExamActions = ({
 
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
-    beginAnticheatTermination(contest.id);
     try {
       const uploadSessionId = getExamCaptureSessionId(contest.id);
-      if (uploadSessionId) {
-        await endExam(contest.id, { upload_session_id: uploadSessionId });
-      } else {
-        await endExam(contest.id);
+      await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
+        reason: "Student initiated exam submission from contest dashboard",
+        source: "contest_dashboard:end_exam",
+        forceCaptureReason: "exam_submit_initiated:dashboard_submit",
+        metadata: {
+          upload_session_id: uploadSessionId || undefined,
+        },
+      }).catch(() => null);
+      beginAnticheatTermination(contest.id);
+      const response = uploadSessionId
+        ? await endExam(contest.id, { upload_session_id: uploadSessionId })
+        : await endExam(contest.id);
+      if (!isSubmittedExamSessionResponse(response)) {
+        throw new Error("Exam submission did not complete");
       }
     } catch {
       syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
@@ -143,7 +154,16 @@ export const useContestExamActions = ({
 
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
+      const uploadSessionId = getExamCaptureSessionId(contest.id);
       if (shouldEndExam) {
+        await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
+          reason: "Exam auto-submitted because student exited the monitored exam flow",
+          source: "contest_dashboard:exit_exam",
+          forceCaptureReason: "exam_submit_initiated:exit_exam",
+          metadata: {
+            upload_session_id: uploadSessionId || undefined,
+          },
+        }).catch(() => null);
         beginAnticheatTermination(contest.id);
       }
 

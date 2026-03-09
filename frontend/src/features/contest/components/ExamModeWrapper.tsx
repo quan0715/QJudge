@@ -13,6 +13,7 @@ import { getContestDashboardPath } from "@/features/contest/domain/contestRouteP
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
 import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { useRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
@@ -182,6 +183,14 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleFullscreenExitConfirm = async () => {
     setIsSubmittingFromFullscreenExit(true);
     try {
+      await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
+        reason: "Exam submitted after fullscreen exit confirmation",
+        source: "exam_mode:fullscreen_exit_confirm",
+        forceCaptureReason: "exam_submit_initiated:fullscreen_exit_confirm",
+        metadata: {
+          upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+        },
+      }).catch(() => null);
       await serviceEndExam(contestId, {
         upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });

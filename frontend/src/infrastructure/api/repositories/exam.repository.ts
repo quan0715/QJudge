@@ -5,13 +5,17 @@ import type {
 } from "@/core/entities/contest.entity";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
 
-interface ExamSessionResponse {
+export interface ExamSessionResponse {
   status: string;
   exam_status?: ExamStatusType;
   submit_reason?: string;
   already_submitted?: boolean;
   error?: string;
 }
+
+export const isSubmittedExamSessionResponse = (
+  response: ExamSessionResponse | null | undefined
+): boolean => response?.exam_status === "submitted";
 
 export interface ExamEventResponse {
   status?: string;

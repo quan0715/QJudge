@@ -159,6 +159,7 @@ class ExamLifecycleMixin:
             'status': 'finished',
             'exam_status': ExamStatus.SUBMITTED,
             'submit_reason': submit_reason,
+            'already_submitted': False,
         })
 
 

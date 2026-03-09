@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { recordViolationUseCase } from "./recordViolation.usecase";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
-vi.mock("@/infrastructure/api/repositories", () => ({
-  recordExamEvent: vi.fn(),
+vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
+  recordExamEventWithForcedCapture: vi.fn(),
 }));
-
-import { recordExamEvent } from "@/infrastructure/api/repositories";
 
 describe("recordViolation.usecase", () => {
   beforeEach(() => {
@@ -14,7 +13,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("maps violation response payload", async () => {
-    vi.mocked(recordExamEvent).mockResolvedValue({
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
       violation_count: 2,
       max_cheat_warnings: 3,
       auto_unlock_at: "2026-02-24T10:00:00Z",
@@ -28,10 +27,12 @@ describe("recordViolation.usecase", () => {
       reason: "left window",
     });
 
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "window_blur",
-      "left window"
+      expect.objectContaining({
+        reason: "left window",
+      })
     );
     expect(result).toEqual({
       success: true,
@@ -44,7 +45,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("returns default success payload when response is not object", async () => {
-    vi.mocked(recordExamEvent).mockResolvedValue(null as any);
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(null as any);
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",
@@ -61,7 +62,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("returns error payload when repository throws", async () => {
-    vi.mocked(recordExamEvent).mockRejectedValue(new Error("network down"));
+    vi.mocked(recordExamEventWithForcedCapture).mockRejectedValue(new Error("network down"));
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",

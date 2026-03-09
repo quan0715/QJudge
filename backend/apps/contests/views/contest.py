@@ -34,7 +34,9 @@ from ..services.export_service import (
     parse_scale,
 )
 from ..services.participant_state import (
+    admin_update_participant,
     reconcile_participant_on_contest_access,
+    reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
@@ -323,20 +325,12 @@ class ContestViewSet(viewsets.ModelViewSet):
         try:
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
 
-            if 'exam_status' in request.data:
-                participant.exam_status = request.data['exam_status']
-
-            if 'lock_reason' in request.data:
-                participant.lock_reason = request.data['lock_reason']
-
-            participant.save()
-
-            # Log activity
-            ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                'update_participant',
-                f"Updated participant {participant.user.username}: {request.data}"
+            admin_update_participant(
+                participant,
+                exam_status=request.data.get('exam_status'),
+                lock_reason=request.data.get('lock_reason'),
+                activity_user=request.user,
+                activity_details=f"Updated participant {participant.user.username}: {request.data}",
             )
 
             return Response({'status': 'updated', 'exam_status': participant.exam_status})
@@ -357,16 +351,10 @@ class ContestViewSet(viewsets.ModelViewSet):
             if participant.exam_status != ExamStatus.SUBMITTED:
                 return Response({'error': 'Warning: User has not finished the exam.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Reopen to PAUSED state
-            participant.exam_status = ExamStatus.PAUSED  # Require student to click "Continue"
-            participant.save()
-
-            # Log activity
-            ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                'reopen_exam',
-                f"Reopened exam for {participant.user.username}"
+            reopen_participant_exam(
+                participant,
+                activity_user=request.user,
+                activity_details=f"Reopened exam for {participant.user.username}",
             )
 
             return Response({'status': 'reopened', 'exam_status': ExamStatus.PAUSED})

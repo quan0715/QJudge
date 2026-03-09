@@ -5,8 +5,7 @@
  * 1. Send violation event to API
  * 2. Return updated violation state
  */
-
-import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
 // ============================================================================
 // Types
@@ -48,10 +47,14 @@ export async function recordViolationUseCase(
   const { contestId, eventType, reason } = input;
 
   try {
-    const response = await recordExamEvent(
+    const response = await recordExamEventWithForcedCapture(
       contestId,
       eventType,
-      reason || eventType
+      {
+        reason: reason || eventType,
+        source: "recordViolation.usecase",
+        forceCaptureReason: `${eventType}:${reason || eventType}`,
+      }
     );
 
     if (response && typeof response === "object") {

@@ -41,23 +41,36 @@ const PaperExamSubmitReviewScreen: React.FC = () => {
   // Fetch questions + answers
   useEffect(() => {
     if (!contestId) return;
-    setLoadingAnswers(true);
-    Promise.all([
+    let cancelled = false;
+
+    void Promise.all([
       getExamQuestions(contestId).catch(() => []),
       getMyExamAnswers(contestId).catch(() => []),
-    ]).then(([questions, answers]) => {
-      setExamQuestions(questions);
-      const ids = new Set<string>();
-      for (const a of answers) {
-        const val = a.answer;
-        const hasContent =
-          val &&
-          (("selected" in val && val.selected) ||
-            ("text" in val && val.text));
-        if (hasContent) ids.add(a.questionId);
-      }
-      setAnsweredIds(ids);
-    }).finally(() => setLoadingAnswers(false));
+    ])
+      .then(([questions, answers]) => {
+        if (cancelled) return;
+
+        setExamQuestions(questions);
+        const ids = new Set<string>();
+        for (const a of answers) {
+          const val = a.answer;
+          const hasContent =
+            val &&
+            (("selected" in val && val.selected) ||
+              ("text" in val && val.text));
+          if (hasContent) ids.add(a.questionId);
+        }
+        setAnsweredIds(ids);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingAnswers(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [contestId]);
 
   // Exit fullscreen after submission

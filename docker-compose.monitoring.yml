@@ -1,0 +1,86 @@
+# Monitoring overlay — works with dev or production compose
+#
+# Dev usage:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
+#
+# Production usage:
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Then add a Cloudflare Tunnel route:
+#   grafana-dev.quan.wtf → http://grafana:3000
+#   (protect with Cloudflare Access policy)
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: oj_prometheus
+    # No host port — only accessible within Docker network (by Grafana)
+    # Uncomment to access locally for debugging:
+    # ports:
+    #   - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - oj_network_dev
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: oj_grafana
+    # Expose locally for direct access; tunnel handles remote access
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      # When behind Cloudflare Access, anonymous read is safe
+      # Disable anonymous if NOT using Cloudflare Access
+      GF_AUTH_ANONYMOUS_ENABLED: "${GRAFANA_ANON_ENABLED:-true}"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Allow embedding in iframes (useful for dashboards)
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - oj_network_dev
+    restart: unless-stopped
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: oj_pg_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}?sslmode=disable"
+    networks:
+      - oj_network_dev
+    restart: unless-stopped
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: oj_redis_exporter
+    environment:
+      REDIS_ADDR: "redis:6379"
+    networks:
+      - oj_network_dev
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: oj_cadvisor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - oj_network_dev
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

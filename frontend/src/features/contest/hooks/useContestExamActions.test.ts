@@ -2,12 +2,17 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useContestExamActions } from "./useContestExamActions";
 import * as examUseCases from "@/core/usecases/exam";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   startExam: vi.fn(),
   leaveContest: vi.fn(),
   registerContest: vi.fn(),
   endExam: vi.fn(),
+}));
+
+vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
+  recordExamEventWithForcedCapture: vi.fn(),
 }));
 
 import {
@@ -50,6 +55,7 @@ describe("useContestExamActions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     window.sessionStorage.clear();
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(null);
     vi.spyOn(examUseCases, "leaveExamUseCase").mockResolvedValue({
       success: true,
       navigateTo: "/contests",
@@ -163,6 +169,48 @@ describe("useContestExamActions", () => {
       contestId: contest.id,
       shouldEndExam: true,
     });
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      contest.id,
+      "exam_submit_initiated",
+      expect.objectContaining({
+        source: "contest_dashboard:exit_exam",
+      })
+    );
     expect(navigate).toHaveBeenCalledWith("/contests");
+  });
+
+  it("records submit event before ending exam from dashboard", async () => {
+    const contest = { ...baseContest, examStatus: "in_progress", canSubmitExam: true };
+    vi.mocked(endExam).mockResolvedValue({
+      status: "finished",
+      exam_status: "submitted",
+      already_submitted: false,
+    });
+
+    const { result } = renderHook(() =>
+      useContestExamActions({
+        contest,
+        contestId: contest.id,
+        hasEnded: false,
+        refreshContest,
+        confirmLeave: undefined,
+        navigate,
+        messages,
+        onError,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEndExam();
+    });
+
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      contest.id,
+      "exam_submit_initiated",
+      expect.objectContaining({
+        source: "contest_dashboard:end_exam",
+      })
+    );
+    expect(endExam).toHaveBeenCalled();
   });
 });

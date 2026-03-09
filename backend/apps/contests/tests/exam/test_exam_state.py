@@ -49,6 +49,8 @@ class ExamStateTests(APITestCase):
         url = reverse('contests:contest-exam-end-exam', args=[self.contest.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["exam_status"], ExamStatus.SUBMITTED)
+        self.assertFalse(response.data["already_submitted"])
         
         p.refresh_from_db()
         self.assertEqual(p.exam_status, ExamStatus.SUBMITTED)

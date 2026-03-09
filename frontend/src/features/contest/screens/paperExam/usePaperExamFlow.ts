@@ -5,6 +5,7 @@ import {
   registerContest,
   startExam,
   endExam,
+  isSubmittedExamSessionResponse,
 } from "@/infrastructure/api/repositories";
 import {
   clearExamCaptureSessionId,
@@ -16,6 +17,7 @@ import {
   resetAnticheatOrchestrator,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -78,11 +80,22 @@ export const usePaperExamFlow = () => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
-    beginAnticheatTermination(id);
     try {
-      await endExam(id, {
+      await recordExamEventWithForcedCapture(id, "exam_submit_initiated", {
+        reason: "Student submitted paper exam from answering screen",
+        source: "paper_exam:submit",
+        forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
+        metadata: {
+          upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+        },
+      }).catch(() => null);
+      beginAnticheatTermination(id);
+      const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
       });
+      if (!isSubmittedExamSessionResponse(response)) {
+        throw new Error("Exam submission did not complete");
+      }
     } catch (err: unknown) {
       syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
       setError(getErrorMessage(err, "交卷失敗"));

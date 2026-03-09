@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: postgres
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+
+  - job_name: redis
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ['minio-test:9000']
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']

@@ -34,6 +34,7 @@ import {
   shouldRouteToPrecheck,
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "./hooks/examCaptureSession";
 
@@ -53,6 +54,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     usePaperExamQuestions(contestId);
 
   const isInProgress = contest?.examStatus === "in_progress";
+  const isSubmitted = contest?.examStatus === "submitted";
   const countdown = useCountdownTo(contest?.endTime);
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const {
@@ -97,6 +99,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, isInProgress ? 30000 : null);
 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [hasLoggedExamEntry, setHasLoggedExamEntry] = useState(false);
 
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
@@ -124,7 +127,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!contestId || contest?.contestType !== "paper_exam") return;
+    if (!contestId || !contest || contest.contestType !== "paper_exam") return;
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
     if (
@@ -140,21 +143,43 @@ const PaperExamAnsweringScreen: React.FC = () => {
     if (contest.examStatus === "submitted") {
       clearExamCaptureSessionId(contestId);
       forceStopCapture();
-      setAutoSubmitted(true);
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
-  }, [contest?.contestType, contest?.examStatus, contestId, navigate, forceStopCapture]);
-
-  const requestedQuestionId = searchParams.get("q");
-  const initialReviewOpen = searchParams.get("review") === "1";
-  const [showSubmitReview, setShowSubmitReview] = useState(initialReviewOpen);
-  const [isSubmittingExam, setIsSubmittingExam] = useState(false);
+  }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
 
   useEffect(() => {
-    if (searchParams.get("review") === "1") {
-      setShowSubmitReview(true);
+    if (
+      !contestId ||
+      !contest ||
+      contest.contestType !== "paper_exam" ||
+      contest.examStatus !== "in_progress" ||
+      !precheckPassed ||
+      hasLoggedExamEntry
+    ) {
+      return;
     }
-  }, [searchParams]);
+
+    setHasLoggedExamEntry(true);
+    void recordExamEventWithForcedCapture(contestId, "exam_entered", {
+      reason: "Student entered paper exam answering screen",
+      source: "paper_exam:answering_screen",
+      forceCaptureReason: "exam_entered:paper_exam_answering",
+      metadata: {
+        upload_session_id: anticheatUploadSessionId || undefined,
+      },
+    }).catch(() => null);
+  }, [
+    anticheatUploadSessionId,
+    contest,
+    contestId,
+    hasLoggedExamEntry,
+    precheckPassed,
+  ]);
+
+  const requestedQuestionId = searchParams.get("q");
+  const reviewRequested = searchParams.get("review") === "1";
+  const [showSubmitReview, setShowSubmitReview] = useState(reviewRequested);
+  const [isSubmittingExam, setIsSubmittingExam] = useState(false);
   const syncIndex = useMemo(() => {
     if (!requestedQuestionId || items.length === 0) return null;
     const index = items.findIndex(
@@ -211,11 +236,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
     submitExam,
   ]);
 
-  if (autoSubmitted) {
+  if (autoSubmitted || isSubmitted) {
     return (
       <div className={styles.centered}>
         <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
-        <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>考試已結束，系統已自動交卷</span>
+        <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
+          {autoSubmitted ? "考試已結束，系統已自動交卷" : "考試已結束，試卷已送出"}
+        </span>
         <Button
           kind="primary"
           onClick={() => contestId && navigate(getContestDashboardPath(contestId))}

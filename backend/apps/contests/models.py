@@ -522,6 +522,8 @@ class ExamEvent(models.Model):
         ('screen_share_stopped', 'Screen Share Stopped'),
         ('screen_share_invalid_surface', 'Screen Share Invalid Surface'),
         ('capture_upload_degraded', 'Capture Upload Degraded'),
+        ('exam_entered', 'Exam Entered'),
+        ('exam_submit_initiated', 'Exam Submit Initiated'),
         ('concurrent_login_detected', 'Concurrent Login Detected'),
         ('takeover_locked', 'Takeover Locked'),
         ('takeover_approved', 'Takeover Approved'),
