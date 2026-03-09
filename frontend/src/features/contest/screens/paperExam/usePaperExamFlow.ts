@@ -5,6 +5,7 @@ import {
   registerContest,
   startExam,
   endExam,
+  isSubmittedExamSessionResponse,
 } from "@/infrastructure/api/repositories";
 import {
   clearExamCaptureSessionId,
@@ -80,9 +81,12 @@ export const usePaperExamFlow = () => {
     setError(null);
     beginAnticheatTermination(id);
     try {
-      await endExam(id, {
+      const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
       });
+      if (!isSubmittedExamSessionResponse(response)) {
+        throw new Error("Exam submission did not complete");
+      }
     } catch (err: unknown) {
       syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
       setError(getErrorMessage(err, "交卷失敗"));

@@ -13,6 +13,7 @@ import {
   leaveContestUseCase,
 } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
+import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   clearExamCaptureSessionId,
@@ -122,10 +123,11 @@ export const useContestExamActions = ({
     beginAnticheatTermination(contest.id);
     try {
       const uploadSessionId = getExamCaptureSessionId(contest.id);
-      if (uploadSessionId) {
-        await endExam(contest.id, { upload_session_id: uploadSessionId });
-      } else {
-        await endExam(contest.id);
+      const response = uploadSessionId
+        ? await endExam(contest.id, { upload_session_id: uploadSessionId })
+        : await endExam(contest.id);
+      if (!isSubmittedExamSessionResponse(response)) {
+        throw new Error("Exam submission did not complete");
       }
     } catch {
       syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
