@@ -60,6 +60,9 @@ const STATUS_CLASS: Record<string, string> = {
   "cool-gray": styles.statusMissing,
 };
 
+/** Column keys that should use compact (shrink-to-content) sizing */
+const COMPACT_KEYS = new Set(["index", "type", "status"]);
+
 const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
   rows,
   showScore = true,
@@ -98,6 +101,12 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
     [rows],
   );
 
+  const getHeaderClass = (key: string) => {
+    if (key === "score") return styles.colScore;
+    if (COMPACT_KEYS.has(key)) return styles.colCompact;
+    return undefined;
+  };
+
   return (
     <DataTable rows={tableRows} headers={headers}>
       {({
@@ -113,12 +122,11 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
               <TableRow>
                 {dtHeaders.map((header) => {
                   const { key, ...headerProps } = getHeaderProps({ header });
-                  const isScore = header.key === "score";
                   return (
                     <TableHeader
                       key={key}
                       {...headerProps}
-                      className={isScore ? styles.headerScore : undefined}
+                      className={getHeaderClass(header.key)}
                     >
                       {header.header}
                     </TableHeader>
@@ -130,7 +138,8 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
               {dtRows.map((row) => {
                 const { key, ...rowProps } = getRowProps({ row });
                 const clickable = typeof onRowClick === "function";
-                const sourceRow = rows.find((r) => String(r.id) === String(row.id));
+                const src = rows.find((r) => String(r.id) === String(row.id));
+
                 return (
                   <TableRow
                     key={key}
@@ -139,61 +148,69 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
                     className={clickable ? styles.rowClickable : undefined}
                   >
                     {row.cells.map((cell) => {
-                      if (cell.info.header === "index") {
+                      const h = cell.info.header;
+
+                      if (h === "index") {
                         return (
-                          <TableCell key={cell.id} className={styles.cellIndex}>
+                          <TableCell key={cell.id} className={styles.colCompact}>
                             Q{cell.value}
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "prompt") {
+
+                      if (h === "prompt") {
                         return (
                           <TableCell key={cell.id} className={styles.cellPrompt}>
-                            {String(cell.value || "-")}
+                            <span className={styles.cellPromptText}>
+                              {String(cell.value || "-")}
+                            </span>
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "type") {
+
+                      if (h === "type") {
                         return (
-                          <TableCell key={cell.id} className={styles.cellType}>
+                          <TableCell key={cell.id} className={`${styles.colCompact} ${styles.cellType}`}>
                             {cell.value}
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "status") {
-                        const tone = sourceRow?.statusTone || "cool-gray";
+
+                      if (h === "status") {
+                        const tone = src?.statusTone || "cool-gray";
                         const icon = STATUS_ICON[tone] ?? "";
                         const cls = STATUS_CLASS[tone] ?? styles.statusMissing;
                         return (
-                          <TableCell key={cell.id} className={styles.cellStatus}>
-                            {sourceRow?.statusLabel ? (
-                              <span className={cls}>{icon} {sourceRow.statusLabel}</span>
+                          <TableCell key={cell.id} className={styles.colCompact}>
+                            {src?.statusLabel ? (
+                              <span className={cls}>{icon} {src.statusLabel}</span>
                             ) : (
                               <span className={styles.statusMissing}>—</span>
                             )}
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "score") {
-                        const tone = sourceRow?.statusTone || "cool-gray";
-                        const icon = STATUS_ICON[tone] ?? "";
-                        const cls = STATUS_CLASS[tone] ?? styles.statusMissing;
 
+                      if (h === "score") {
                         return (
-                          <TableCell key={cell.id} className={styles.cellScore}>
-                            <span className={styles.scoreValue}>
-                              {String(cell.value || "-")} / {sourceRow?.maxScore ?? "?"}
+                          <TableCell key={cell.id} className={styles.colScore}>
+                            <span className={styles.cellScoreValue}>
+                              {String(cell.value || "-")} / {src?.maxScore ?? "?"}
                             </span>
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "feedback") {
+
+                      if (h === "feedback") {
                         return (
                           <TableCell key={cell.id} className={styles.cellFeedback}>
-                            {cell.value}
+                            <span className={styles.cellFeedbackText}>
+                              {cell.value}
+                            </span>
                           </TableCell>
                         );
                       }
+
                       return <TableCell key={cell.id}>{cell.value}</TableCell>;
                     })}
                   </TableRow>

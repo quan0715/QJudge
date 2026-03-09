@@ -2,45 +2,10 @@ import { useState, useEffect } from "react";
 import { Button, NumberInput, TextArea, Tag } from "@carbon/react";
 import { ArrowRight, UserFollow, Checkmark } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
+import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import type { GradingAnswerRow } from "./gradingTypes";
-import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
 import styles from "./GradingPanel.module.scss";
-
-/** Check whether a given option index is selected by the student. */
-function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
-  const selected = answerContent.selected;
-  if (Array.isArray(selected)) return selected.includes(idx);
-  return selected === idx;
-}
-
-/** Check whether a given option index is a correct answer. */
-function isCorrect(correctAnswer: unknown, idx: number): boolean {
-  if (correctAnswer == null) return false;
-  if (Array.isArray(correctAnswer)) return correctAnswer.includes(idx);
-  return correctAnswer === idx;
-}
-
-/** Format correct answer as label text. */
-function formatCorrectLabel(
-  correctAnswer: unknown,
-  options: string[],
-): string {
-  if (correctAnswer == null) return "";
-  if (Array.isArray(correctAnswer)) {
-    return correctAnswer
-      .map((i) => `${String.fromCharCode(65 + Number(i))}. ${options[Number(i)] ?? ""}`)
-      .join("、");
-  }
-  const i = Number(correctAnswer);
-  return `${String.fromCharCode(65 + i)}. ${options[i] ?? ""}`;
-}
-
-/** Get text content from answer for subjective questions. */
-function getTextAnswer(row: GradingAnswerRow): string {
-  const text = (row.answerContent as Record<string, unknown>).text;
-  return typeof text === "string" ? text : JSON.stringify(row.answerContent, null, 2);
-}
 
 interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
@@ -92,9 +57,6 @@ export default function GradingSplitPanelScreen({
     }
   };
 
-  const isObjective = !isSubjectiveType(answer.questionType);
-  const hasOptions = answer.questionOptions.length > 0;
-
   return (
     <div className={styles.panel}>
       {/* Header bar */}
@@ -136,64 +98,13 @@ export default function GradingSplitPanelScreen({
           </div>
         </div>
 
-        {/* Answer section — merged options + answer for objective; text for subjective */}
-        <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>{t("grading.answerContent", "作答內容")}</span>
-
-          {isObjective && hasOptions ? (
-            <>
-              {/* Option list with selection + correct highlighting */}
-              <div className={styles.optionsList}>
-                {answer.questionOptions.map((opt, i) => {
-                  const selected = isSelected(answer.answerContent as Record<string, unknown>, i);
-                  const correct = isCorrect(answer.correctAnswer, i);
-                  const classNames = [
-                    styles.optionItem,
-                    selected && correct ? styles.optionSelectedCorrect : "",
-                    selected && !correct ? styles.optionSelectedWrong : "",
-                    !selected && correct ? styles.optionCorrect : "",
-                  ].filter(Boolean).join(" ");
-
-                  return (
-                    <div key={i} className={classNames}>
-                      <span>
-                        {String.fromCharCode(65 + i)}. {opt}
-                      </span>
-                      {correct && (
-                        <Checkmark size={16} className={styles.correctIcon} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Correct answer summary */}
-              {answer.correctAnswer != null && (
-                <div className={styles.correctAnswerLine}>
-                  <span className={styles.correctAnswerLabel}>{t("grading.correctAnswer", "正確答案")}：</span>
-                  <span className={styles.correctAnswerText}>
-                    {formatCorrectLabel(answer.correctAnswer, answer.questionOptions)}
-                  </span>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Subjective — Markdown rendered text */
-            <div className={styles.panelAnswer}>
-              <MarkdownContent.Simple>{getTextAnswer(answer)}</MarkdownContent.Simple>
-            </div>
-          )}
-        </div>
-
-        {/* Reference answer for subjective questions */}
-        {!isObjective && answer.correctAnswer != null && typeof answer.correctAnswer === "string" && (
-          <div className={styles.panelSection}>
-            <span className={styles.panelLabel}>{t("grading.referenceAnswer", "參考答案")}</span>
-            <div className={styles.panelReference}>
-              <MarkdownContent.Simple>{answer.correctAnswer}</MarkdownContent.Simple>
-            </div>
-          </div>
-        )}
+        {/* Answer + correct answer — shared component */}
+        <AnswerDisplay
+          questionType={answer.questionType}
+          answerContent={answer.answerContent}
+          options={answer.questionOptions}
+          correctAnswer={answer.correctAnswer}
+        />
 
         {/* Score */}
         <div className={styles.panelSection}>

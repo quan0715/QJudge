@@ -46,8 +46,8 @@ import type {
   ParticipantDashboard,
   ParticipantDashboardDetail,
   ParticipantDashboardStatus,
-  ParticipantPaperQuestionDetail,
 } from "@/core/entities/contest.entity";
+import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
@@ -92,79 +92,6 @@ const toTagType = (status: ParticipantDashboardStatus | null | undefined) => {
   }
 };
 
-const renderAnswerSummary = (
-  detail: ParticipantPaperQuestionDetail,
-  t: (key: string, defaultValue?: string) => string,
-) => {
-  const { questionType, answer, options, correctAnswer } = detail;
-  if (questionType === "essay" || questionType === "short_answer") {
-    return (
-      <div className={styles.sectionStack}>
-        <div>
-          <div className={styles.secondaryText}>{t("participantsDashboard.answerLabel", "作答")}</div>
-          <div className={styles.markdownBlock}>
-            <MarkdownRenderer enableMath enableHighlight>
-              {String(answer?.text || t("participantsDashboard.noAnswer", "未作答"))}
-            </MarkdownRenderer>
-          </div>
-        </div>
-        {correctAnswer ? (
-          <div>
-            <div className={styles.secondaryText}>
-              {t("participantsDashboard.referenceAnswer", "參考答案")}
-            </div>
-            <div className={styles.markdownBlock}>
-              <MarkdownRenderer enableMath enableHighlight>
-                {String(correctAnswer)}
-              </MarkdownRenderer>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  const selectedValues = Array.isArray(answer?.selected)
-    ? answer.selected.map((item) => String(item))
-    : answer?.selected != null
-      ? [String(answer.selected)]
-      : [];
-  const correctValues = Array.isArray(correctAnswer)
-    ? correctAnswer.map((item) => String(item))
-    : correctAnswer != null
-      ? [String(correctAnswer)]
-      : [];
-
-  return (
-    <div className={styles.twoColGrid}>
-      <div>
-        <div className={styles.secondaryText}>{t("participantsDashboard.answerLabel", "作答")}</div>
-        <div className={styles.inlineMeta}>
-          {selectedValues.length > 0
-            ? selectedValues.map((value) => <Tag key={value}>{value}</Tag>)
-            : t("participantsDashboard.noAnswer", "未作答")}
-        </div>
-      </div>
-      <div>
-        <div className={styles.secondaryText}>{t("participantsDashboard.correctAnswer", "正確答案")}</div>
-        <div className={styles.inlineMeta}>
-          {correctValues.length > 0
-            ? correctValues.map((value) => {
-                const optionIndex = /^[A-Z]$/.test(value)
-                  ? value.charCodeAt(0) - 65
-                  : -1;
-                const optionText =
-                  optionIndex >= 0 && optionIndex < options.length
-                    ? `${value}. ${options[optionIndex]}`
-                    : value;
-                return <Tag key={value} type="green">{optionText}</Tag>;
-              })
-            : "-"}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   contestId,
@@ -350,7 +277,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         ];
 
   return (
-    <ContainerCard className={styles.pane}>
+    <ContainerCard className={styles.pane} noPadding>
       {error ? (
         <InlineNotification
           kind="warning"
@@ -360,9 +287,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         />
       ) : null}
 
-      <div className={styles.dashboardGrid}>
+      <div className={styles.tabsWrapper}>
         <Tabs
-          className={styles.tabs}
           selectedIndex={selectedIndex}
           onChange={({ selectedIndex: nextIndex }) => {
             const safeIndex = typeof nextIndex === "number" ? nextIndex : 0;
@@ -375,13 +301,13 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           }}
         >
           <TabList contained aria-label={t("participantsDashboard.detailTabs", "參賽者資料分頁")}>
-            {availableDetails.map((detail) => (
-              <Tab key={detail}>
-                {t(`participantsDashboard.tabs.${detail}`, detail)}
-              </Tab>
-            ))}
-          </TabList>
-          <TabPanels>
+          {availableDetails.map((detail) => (
+            <Tab key={detail}>
+              {t(`participantsDashboard.tabs.${detail}`, detail)}
+            </Tab>
+          ))}
+        </TabList>
+        <TabPanels>
             {availableDetails.map((detail) => (
               <TabPanel key={detail} className={styles.tabPanel}>
                 {detail === "overview" ? (
@@ -555,7 +481,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                                 {row.prompt}
                               </MarkdownRenderer>
                             </div>
-                            {renderAnswerSummary(row, t)}
+                            <AnswerDisplay
+                              questionType={row.questionType}
+                              answerContent={row.answer}
+                              options={row.options}
+                              correctAnswer={row.correctAnswer}
+                            />
                             {row.feedback ? (
                               <div>
                                 <div className={styles.secondaryText}>

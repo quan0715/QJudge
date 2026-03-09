@@ -4,8 +4,10 @@ import {
   Dropdown,
   InlineNotification,
   Modal,
+  Tag,
   TextArea,
 } from "@carbon/react";
+import { ChevronDown, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -49,6 +51,14 @@ const DETAIL_OPTIONS_BY_TYPE: Record<"coding" | "paper_exam", ParticipantDashboa
 
 type SortKey = "score_desc" | "joined_desc" | "violations_desc" | "name_asc";
 
+const STATUS_TAG_TYPE: Record<string, string> = {
+  submitted: "green",
+  in_progress: "blue",
+  paused: "purple",
+  locked: "red",
+  locked_takeover: "red",
+};
+
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
@@ -70,6 +80,7 @@ const ContestParticipantsScreen = () => {
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
@@ -164,6 +175,12 @@ const ContestParticipantsScreen = () => {
     return processedParticipants.slice(start, start + pageSize);
   }, [page, pageSize, processedParticipants]);
 
+  /** The currently selected participant object (from unfiltered list) */
+  const selectedParticipant = useMemo(
+    () => participants.find((p) => p.userId === selectedUserId),
+    [participants, selectedUserId],
+  );
+
   const updateParams = useCallback((updates: Record<string, string | null>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -193,9 +210,13 @@ const ContestParticipantsScreen = () => {
     setPage(1);
   }, [searchQuery, statusFilter, sortKey]);
 
+  // Auto-select first participant + validate selected user / detail
   useEffect(() => {
     if (!selectedUserId) {
-      if (searchParams.has("detail")) {
+      // Auto-select the first participant when data is ready
+      if (processedParticipants.length > 0 && !isRefreshing) {
+        updateParams({ user: processedParticipants[0].userId, detail: "overview" });
+      } else if (searchParams.has("detail")) {
         updateParams({ detail: null });
       }
       return;
@@ -219,7 +240,9 @@ const ContestParticipantsScreen = () => {
     dashboard?.contestType,
     dashboardLoading,
     detail,
+    isRefreshing,
     participants,
+    processedParticipants,
     searchParams,
     selectedUserId,
     updateParams,
@@ -367,32 +390,70 @@ const ContestParticipantsScreen = () => {
     }
   };
 
+  const listPaneProps = {
+    participants: pagedParticipants,
+    selectedUserId,
+    loading: isRefreshing,
+    searchQuery,
+    statusFilter,
+    statusOptions,
+    sortKey,
+    sortOptions,
+    page,
+    pageSize,
+    totalItems: processedParticipants.length,
+    onSearchChange: (value: string) => updateParams({ q: value || null }),
+    onStatusFilterChange: (value: string) => updateParams({ status: value === "all" ? null : value }),
+    onSortChange: (value: string) => updateParams({ sort: value === "score_desc" ? null : value }),
+    onPageChange: (nextPage: number, nextPageSize: number) => {
+      setPage(nextPage);
+      setPageSize(nextPageSize);
+    },
+    onAddParticipant: () => setAddModalOpen(true),
+    getRecentActivity: (userId: string) => recentActivityByUser.get(userId) || null,
+  };
+
+  const selectedDisplayName = selectedParticipant
+    ? (selectedParticipant.displayName || selectedParticipant.nickname || selectedParticipant.username)
+    : null;
+
+  const selectedStatusTag = selectedParticipant?.examStatus
+    ? (STATUS_TAG_TYPE[selectedParticipant.examStatus] || "cool-gray")
+    : null;
+
   return (
     <>
       <div className={styles.root}>
-        <ParticipantsListPane
-          participants={pagedParticipants}
-          selectedUserId={selectedUserId}
-          loading={isRefreshing}
-          searchQuery={searchQuery}
-          statusFilter={statusFilter}
-          statusOptions={statusOptions}
-          sortKey={sortKey}
-          sortOptions={sortOptions}
-          page={page}
-          pageSize={pageSize}
-          totalItems={processedParticipants.length}
-          onSearchChange={(value) => updateParams({ q: value || null })}
-          onStatusFilterChange={(value) => updateParams({ status: value === "all" ? null : value })}
-          onSortChange={(value) => updateParams({ sort: value === "score_desc" ? null : value })}
-          onPageChange={(nextPage, nextPageSize) => {
-            setPage(nextPage);
-            setPageSize(nextPageSize);
-          }}
-          onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
-          onAddParticipant={() => setAddModalOpen(true)}
-          getRecentActivity={(userId) => recentActivityByUser.get(userId) || null}
-        />
+        {/* Mobile trigger — select participant */}
+        <button
+          type="button"
+          className={styles.mobileTrigger}
+          onClick={() => setDrawerOpen(true)}
+        >
+          <UserMultiple size={16} />
+          <span className={styles.mobileTriggerLabel}>
+            {selectedDisplayName || t("participants.selectParticipant", "選擇參賽者")}
+            {selectedParticipant ? (
+              <span className={styles.mobileTriggerSub}>
+                {" "}@{selectedParticipant.username}
+              </span>
+            ) : null}
+          </span>
+          {selectedStatusTag ? (
+            <Tag type={selectedStatusTag as never} size="sm">
+              {t(`examStatus.${selectedParticipant!.examStatus}`, selectedParticipant!.examStatus)}
+            </Tag>
+          ) : null}
+          <ChevronDown size={16} />
+        </button>
+
+        {/* Desktop list pane */}
+        <div className={styles.listCol}>
+          <ParticipantsListPane
+            {...listPaneProps}
+            onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
+          />
+        </div>
 
         <ParticipantDashboardPane
           contestId={contestId}
@@ -411,6 +472,23 @@ const ContestParticipantsScreen = () => {
           onOpenGrading={() => updateParams({ panel: "grading" })}
         />
       </div>
+
+      {/* Mobile drawer backdrop */}
+      <div
+        className={`${styles.drawerBackdrop} ${drawerOpen ? styles.drawerBackdropOpen : ""}`}
+        onClick={() => setDrawerOpen(false)}
+      />
+
+      {/* Mobile drawer */}
+      <aside className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ""}`}>
+        <ParticipantsListPane
+          {...listPaneProps}
+          onSelect={(userId) => {
+            updateParams({ user: userId, detail: detail || "overview" });
+            setDrawerOpen(false);
+          }}
+        />
+      </aside>
 
       {notification ? (
         <InlineNotification

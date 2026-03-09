@@ -27,6 +27,7 @@
   flex-direction: column;
   gap: 0;
   min-height: 0;
+  min-width: 0;
   height: 100%;
 }
 
@@ -152,6 +153,7 @@
 .tabsWrapper {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -160,7 +162,7 @@
 .tabsWrapper :global(.cds--tab-content:not([hidden])) {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .tabPanel {
@@ -395,11 +397,12 @@
   .root {
     grid-template-columns: 1fr;
     height: auto;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .root > * {
-    overflow: visible;
+    min-width: 0;
+    overflow: hidden;
   }
 
   /* Hide desktop list column */
@@ -477,7 +480,8 @@
 
   .pane,
   .scrollPane {
-    overflow: visible;
+    min-width: 0;
+    overflow: hidden;
   }
 }
 

@@ -1,0 +1,104 @@
+/* AnswerDisplay — shared between grading panel & dashboard */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fieldBase {
+  background: var(--cds-field);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--cds-text-primary);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.reference {
+  composes: fieldBase;
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+}
+
+.noAnswer {
+  color: var(--cds-text-helper, #8d8d8d);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Options list (objective questions) */
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-field);
+  color: var(--cds-text-primary);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.optionSelectedCorrect {
+  background: color-mix(in srgb, var(--cds-support-success) 10%, transparent);
+  border-color: var(--cds-support-success);
+  font-weight: 500;
+}
+
+.optionSelectedWrong {
+  background: color-mix(in srgb, var(--cds-support-error) 8%, transparent);
+  border-color: var(--cds-support-error);
+  font-weight: 500;
+}
+
+.optionCorrect {
+  border-color: var(--cds-support-success);
+}
+
+.correctIcon {
+  color: var(--cds-support-success);
+  flex-shrink: 0;
+}
+
+.correctAnswerLine {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.correctAnswerLabel {
+  color: var(--cds-text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.correctAnswerText {
+  color: var(--cds-support-success);
+  font-weight: 500;
+}

@@ -1,104 +1,64 @@
-/* Override Carbon DataTable defaults for balanced column widths */
+/* PaperQuestionOverviewTable — Carbon DataTable overrides */
 
 .container {
   max-width: none;
+  overflow-x: auto;
 }
 
 .table {
-  table-layout: fixed;
   width: 100%;
 }
 
-/* --- Column widths --- */
-
-/* "#" column — narrow fixed */
-.table :global(th):nth-child(1),
-.table :global(td):nth-child(1) {
-  width: 3.5rem;
-}
-
-/* "題目" column — fills remaining space */
-.table :global(th):nth-child(2),
-.table :global(td):nth-child(2) {
-  width: auto;
-}
-
-/* "題型" column */
-.table :global(th):nth-child(3),
-.table :global(td):nth-child(3) {
-  width: 5.5rem;
-}
-
-/* "狀態" column */
-.table :global(th):nth-child(4),
-.table :global(td):nth-child(4) {
-  width: 6rem;
-}
-
-/* "分數" column */
-.table :global(th):nth-child(5),
-.table :global(td):nth-child(5) {
-  width: 6rem;
-}
-
-/* "回饋" column */
-.table :global(th):nth-child(6),
-.table :global(td):nth-child(6) {
-  width: 12rem;
-}
-
-/* --- Row max-height — use line-clamp on cells, not max-height on tr/td --- */
-
-/* --- Cell styles --- */
-
-.cellIndex {
+/* Compact columns: shrink to fit content */
+.colCompact {
+  width: 1%;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
+/* Score header/cell: compact + right-aligned */
+.colScore {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Prompt cell: fill remaining space */
 .cellPrompt {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
-  line-height: 1.4;
-  /* truncate if overflows max-height */
+}
+
+/* Inner span handles line-clamp without overriding td display */
+.cellPromptText {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.4;
 }
 
+/* Type cell */
 .cellType {
-  white-space: nowrap;
   color: var(--cds-text-secondary);
   font-size: 0.8125rem;
 }
 
-.cellStatus {
-  white-space: nowrap;
-  font-size: 0.8125rem;
-}
-
-.headerScore {
-  text-align: right;
-}
-
-.cellScore {
-  text-align: right;
-  white-space: nowrap;
+/* Score value */
+.cellScoreValue {
   font-variant-numeric: tabular-nums;
 }
 
-.scoreValue {
-  font-variant-numeric: tabular-nums;
-}
-
+/* Feedback cell */
 .cellFeedback {
   color: var(--cds-text-secondary);
   font-size: 0.8125rem;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.cellFeedbackText {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -109,8 +69,7 @@
   cursor: pointer;
 }
 
-/* --- Status text --- */
-
+/* Status label styles */
 .statusCorrect {
   font-size: 0.75rem;
   font-weight: 600;
@@ -129,12 +88,7 @@
   color: var(--cds-support-error, #da1e28);
 }
 
-.statusPending {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--cds-text-helper, #8d8d8d);
-}
-
+.statusPending,
 .statusMissing {
   font-size: 0.75rem;
   font-weight: 600;
