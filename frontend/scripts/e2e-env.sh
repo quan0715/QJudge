@@ -56,7 +56,7 @@ start_env() {
     ATTEMPT=0
     
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-        if curl -f http://localhost:8001/api/v1/ >/dev/null 2>&1; then
+        if curl -f http://localhost:8002/api/v1/ >/dev/null 2>&1; then
             echo ""
             print_success "後端已就緒"
             break
@@ -99,7 +99,7 @@ start_env() {
     echo ""
     print_info "服務地址："
     echo "  前端: http://localhost:5174"
-    echo "  後端: http://localhost:8001"
+    echo "  後端: http://localhost:8002"
     echo ""
 }
 

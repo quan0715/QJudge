@@ -327,7 +327,6 @@ int main() {
                 'status': 'published',
                 'cheat_detection_enabled': False,
                 'scoreboard_visible_during_contest': True,
-                'allow_view_results': True,
             }
         )
         

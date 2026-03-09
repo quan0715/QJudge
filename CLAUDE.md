@@ -4,10 +4,9 @@
 
 ## 目前狀態摘要
 
-- 主要工作分支：`ta-agent`
-- 進行中 PR（Draft）：[https://github.com/quan0715/QJudge/pull/51](https://github.com/quan0715/QJudge/pull/51)
-- AI 助教流程：已切換為 DeepAgent（LangGraph）架構
-- 後端與 AI service 間：新增 HMAC 保護內部端點
+- 主要工作分支：`dev`
+- ta-agent PR（#51）：已於 2026-02-24 merge 至 main
+- AI 助教流程：已切換為 DeepAgent（LangGraph）架構，HMAC 保護內部端點已上線
 - SSE 串流：前後端事件流已可完整傳遞與保存 metadata
 
 ## 常用命令

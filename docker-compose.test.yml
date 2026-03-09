@@ -67,7 +67,7 @@ services:
       - DEBUG=True
       - ALLOWED_HOSTS=*
     ports:
-      - "8001:8000"
+      - "8002:8000"
     depends_on:
       judge-image-test:
         condition: service_started

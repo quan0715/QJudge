@@ -1,5 +1,6 @@
 """Contest export/report service helpers."""
 
+import csv
 from django.http import HttpResponse
 
 from ..exporters import (
@@ -102,4 +103,49 @@ def build_paper_exam_sheet_response(
 
     response = HttpResponse(pdf_file.read(), content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def build_contest_results_csv_response(contest, scoreboard_result):
+    """Generate CSV response for contest scoreboard results."""
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
+
+    writer = csv.writer(response)
+
+    # Header row
+    header = ['排名', '帳號', '顯示名稱', 'Email', '解題數', '總分', '罰時']
+    for problem in scoreboard_result.problems:
+        label = problem.get('label') or chr(65 + problem['order'])
+        title = problem.get('title') or ''
+        header.append(f'{label} ({title})')
+    writer.writerow(header)
+
+    # Data rows
+    for item in scoreboard_result.standings:
+        row = [
+            item['rank'],
+            item['user'].get('username'),
+            item['display_name'],
+            item['user'].get('email'),
+            item['solved'],
+            item['total_score'],
+            item['time']
+        ]
+        for problem in scoreboard_result.problems:
+            p_stat = item['problems'].get(problem['id'], {})
+            status_str = p_stat.get('status', '-')
+            tries = p_stat.get('tries', 0)
+            time_val = p_stat.get('time', 0)
+
+            if status_str == 'AC':
+                cell = f'AC ({tries} tries, {time_val}m)'
+            elif tries > 0:
+                cell = f'{status_str} ({tries} tries)'
+            else:
+                cell = '-'
+            row.append(cell)
+
+        writer.writerow(row)
+
     return response

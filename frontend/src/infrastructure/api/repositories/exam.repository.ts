@@ -151,6 +151,12 @@ export interface AnticheatUploadItem {
   required_headers?: Record<string, string>;
 }
 
+export interface AnticheatUploadBatchItem {
+  blob: Blob;
+  put_url: string;
+  required_headers?: Record<string, string>;
+}
+
 export interface AnticheatUrlsResponse {
   upload_session_id: string;
   expires_at: string;
@@ -209,6 +215,29 @@ export const getAnticheatUrls = async (
   }
 
   return (await response.json()) as AnticheatUrlsResponse;
+};
+
+export const uploadAnticheatBatch = async (
+  items: AnticheatUploadBatchItem[]
+): Promise<void> => {
+  if (!items.length) return;
+
+  await Promise.all(
+    items.map(async (item) => {
+      const response = await fetch(item.put_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": item.blob.type || "image/webp",
+          ...(item.required_headers || {}),
+        },
+        body: item.blob,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload anticheat frame (${response.status})`);
+      }
+    })
+  );
 };
 
 export interface ExamVideoDto {

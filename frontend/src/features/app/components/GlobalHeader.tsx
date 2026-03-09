@@ -86,6 +86,12 @@ export const GlobalHeader = () => {
               >
                 {t("nav.classrooms", "教室")}
               </HeaderMenuItem>
+              <HeaderMenuItem
+                isCurrentPage={location.pathname.startsWith("/docs")}
+                onClick={() => navigate("/docs")}
+              >
+                {t("nav.documentation")}
+              </HeaderMenuItem>
               {isTeacherOrAdmin && (
                 <HeaderMenuItem
                   isCurrentPage={location.pathname.startsWith("/teacher")}

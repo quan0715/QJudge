@@ -9,7 +9,6 @@ import type {
   ChatContext,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
-import { buildBackgroundInfoPrefix } from "../utils/backgroundInfo";
 
 interface UseChatbotReturn {
   sessions: ChatSession[];
@@ -41,8 +40,6 @@ interface UseChatbotReturn {
 interface UseChatbotOptions {
   /** 是否啟用（延遲初始化用） */
   enabled?: boolean;
-  /** 背景資訊（在第一則訊息時附加） - DEPRECATED，改用 context */
-  backgroundInfo?: BackgroundInformation | null;
   /** 背景上下文（統一的背景資訊結構） */
   context?: ChatContext | null;
   /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
@@ -56,7 +53,7 @@ interface UseChatbotOptions {
 const LAST_SESSION_KEY = "chatbot_last_session_id";
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
-  const { enabled = true, backgroundInfo = null, context = null, onProblemUpdated } = options;
+  const { enabled = true, context = null, onProblemUpdated } = options;
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -304,12 +301,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setError("無法建立對話，請稍後再試");
           return;
         }
-      }
-
-      // 如果是第一則訊息且有背景資訊，加上背景資訊前綴
-      if (isFirstMessage && backgroundInfo) {
-        const bgPrefix = buildBackgroundInfoPrefix(backgroundInfo);
-        trimmedContent = bgPrefix + "\n" + trimmedContent;
       }
 
       // 1. 新增臨時用戶訊息
@@ -604,62 +595,30 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     async (requestId: string, answers: Record<string, string>) => {
       if (!currentSessionId) return;
 
+      setPendingUserInput(null); // 立刻關閉彈窗
+      setError(null);
+
       try {
         await chatbotRepository.submitAnswer(
           currentSessionId,
           requestId,
           answers,
         );
-        setPendingUserInput(null);
-
-        // 記錄提交前的消息數量
-        const currentMessageCount = currentSession?.messages.length || 0;
-
-        // 使用輪詢機制重新載入 session，確保獲取 AI 的後續回應
-        const pollSession = async (attempt = 0, maxAttempts = 10) => {
-          if (attempt >= maxAttempts) {
-            console.warn(
-              "Max polling attempts reached, AI may not have responded yet"
-            );
-            return;
-          }
-
-          try {
-            const freshSession =
-              await chatbotRepository.getSession(currentSessionId);
-
-            // 檢查是否有新消息
-            if (freshSession.messages.length > currentMessageCount) {
-              // 有新消息，更新 session
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId ? freshSession : session
-                )
-              );
-            } else {
-              // 沒有新消息，繼續輪詢
-              setTimeout(() => pollSession(attempt + 1, maxAttempts), 500);
-            }
-          } catch (err) {
-            console.warn(
-              `Failed to refresh session (attempt ${attempt + 1}):`,
-              err
-            );
-            // 發生錯誤也繼續輪詢
-            if (attempt < maxAttempts - 1) {
-              setTimeout(() => pollSession(attempt + 1, maxAttempts), 500);
-            }
-          }
-        };
-
-        // 開始輪詢（延遲 300ms 後開始）
-        setTimeout(() => pollSession(), 300);
       } catch (err) {
-        console.error("Failed to submit user input:", err);
+        console.error("Failed to submit answer:", err);
         setError("無法提交回答");
+        return;
+      }
+
+      try {
+        // 提交成功後，使用 resumeAgent 恢復串流獲取 AI 回應
+        await resumeAgent("approve");
+      } catch (err) {
+        console.error("Failed to resume agent after answer submission:", err);
+        setError("回答已送出，但恢復串流失敗，請重新整理頁面");
       }
     },
-    [currentSessionId, currentSession],
+    [currentSessionId, resumeAgent],
   );
 
   /**

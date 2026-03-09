@@ -410,7 +410,6 @@ class Command(BaseCommand):
                 "max_cheat_warnings": 3,
                 "allow_multiple_joins": False,
                 "scoreboard_visible_during_contest": False,
-                "allow_view_results": False,
             },
         )
 

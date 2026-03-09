@@ -30,7 +30,7 @@ function getHealthUrls(
 
 function getBackendHealthUrls(): string[] {
   return getHealthUrls("E2E_BACKEND_HEALTH_URLS", [
-    "http://localhost:8001/api/v1/auth/me",
+    "http://localhost:8002/api/v1/auth/me",
     "http://backend-test:8000/api/v1/auth/me",
   ]);
 }
