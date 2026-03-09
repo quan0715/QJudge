@@ -89,7 +89,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
       action={
         <Button
           kind="primary"
-          size="sm"
+          size="md"
           renderIcon={Add}
           iconDescription={t("participants.add", "新增")}
           hasIconOnly
