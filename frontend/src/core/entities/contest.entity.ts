@@ -362,6 +362,7 @@ export interface ExamEvent {
   eventType: ExamEventType;
   timestamp: string;
   reason?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ExamEventStats {

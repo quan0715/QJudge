@@ -243,6 +243,14 @@ $tl-pad: 28px;
   }
 }
 
+.eventCardClickable {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cds-layer-selected-hover-01, var(--cds-layer-hover-01));
+  }
+}
+
 /* Severity color variants — using Carbon semantic tokens */
 .severityViolation {
   border-left-color: var(--cds-support-error);

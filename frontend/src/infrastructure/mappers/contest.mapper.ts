@@ -356,17 +356,21 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
 }
 
 export function mapExamEventDto(dto: any): ExamEvent {
+  const meta: Record<string, unknown> | undefined =
+    dto.metadata
+      ? typeof dto.metadata === "string"
+        ? (() => { try { return JSON.parse(dto.metadata); } catch { return { raw: dto.metadata }; } })()
+        : dto.metadata
+      : undefined;
+
   return {
     id: dto.id?.toString() || "",
     userId: (dto.user_id || dto.user)?.toString() || "",
     userName: dto.user_username || dto.user?.username || "Unknown",
     eventType: dto.event_type,
     timestamp: dto.created_at || "",
-    reason: dto.metadata
-      ? typeof dto.metadata === "string"
-        ? dto.metadata
-        : JSON.stringify(dto.metadata)
-      : undefined,
+    reason: typeof meta?.reason === "string" ? meta.reason : undefined,
+    metadata: meta,
   };
 }
 

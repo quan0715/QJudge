@@ -3,6 +3,7 @@ import {
   Button,
   Tag,
   MultiSelect,
+  Modal,
   SkeletonText,
   SkeletonPlaceholder,
 } from "@carbon/react";
@@ -192,17 +193,22 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [indicatorTime, setIndicatorTime] = useState<string | null>(null);
+  const [detailEvent, setDetailEvent] = useState<ExamEvent | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chartScrollRef = useRef<HTMLDivElement>(null);
 
   // --- Sorting & Filtering ---
+  const HIDDEN_EVENT_TYPES = new Set(["heartbeat"]);
+
   const sortedEvents = useMemo(
     () =>
-      [...sourceEvents].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      ),
+      [...sourceEvents]
+        .filter((e) => !HIDDEN_EVENT_TYPES.has(e.eventType))
+        .sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        ),
     [sourceEvents],
   );
 
@@ -526,11 +532,13 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
                           <div className={styles.dateLabel}>{group.label}</div>
                           {group.events.map((event) => {
                             const config = getEventConfig(event.eventType);
+                            const hasDetails = !!(event.metadata && Object.keys(event.metadata).length > 0);
                             return (
                               <div
                                 key={event.id || event.timestamp + event.userId}
-                                className={`${styles.eventCard} ${SEVERITY_CLASS[config.severity]}`}
+                                className={`${styles.eventCard} ${SEVERITY_CLASS[config.severity]}${hasDetails ? ` ${styles.eventCardClickable}` : ""}`}
                                 data-timestamp={event.timestamp}
+                                onClick={hasDetails ? () => setDetailEvent(event) : undefined}
                               >
                                 <div className={styles.cardHeader}>
                                   <div className={styles.cardLeft}>
@@ -572,10 +580,38 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     </>
   );
 
+  const detailModal = detailEvent ? (
+    <Modal
+      open
+      passiveModal
+      modalHeading={t(`logs.eventTypes.${getEventConfig(detailEvent.eventType).labelKey}`, detailEvent.eventType)}
+      onRequestClose={() => setDetailEvent(null)}
+    >
+      <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
+        {detailEvent.userName} · {new Date(detailEvent.timestamp).toLocaleString()}
+      </p>
+      {detailEvent.reason && (
+        <p style={{ marginBottom: "1rem" }}>{detailEvent.reason}</p>
+      )}
+      {detailEvent.metadata && Object.keys(detailEvent.metadata).filter(k => k !== "reason").length > 0 && (
+        <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.25rem 1rem", fontSize: "0.8125rem" }}>
+          {Object.entries(detailEvent.metadata)
+            .filter(([k]) => k !== "reason")
+            .map(([k, v]) => (
+              <>
+                <dt key={`k-${k}`} style={{ color: "var(--cds-text-secondary)", whiteSpace: "nowrap" }}>{k}</dt>
+                <dd key={`v-${k}`} style={{ margin: 0, wordBreak: "break-all" }}>{String(v)}</dd>
+              </>
+            ))}
+        </dl>
+      )}
+    </Modal>
+  ) : null;
+
   if (embedded) {
-    return <div className={styles.embeddedRoot}>{logsContent}</div>;
+    return <>{detailModal}<div className={styles.embeddedRoot}>{logsContent}</div></>;
   }
-  return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>{logsContent}</SurfaceSection>;
+  return <><SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>{logsContent}</SurfaceSection>{detailModal}</>;
 };
 
 export default ContestLogsScreen;
