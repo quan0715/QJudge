@@ -189,6 +189,45 @@
   color: var(--cds-text-primary);
 }
 
+.summaryList {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryDataRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.summaryDataLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.summaryDataIcon {
+  flex-shrink: 0;
+  color: var(--cds-icon-secondary);
+}
+
+.summaryDataValue {
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
+  text-align: right;
+  word-break: break-word;
+}
+
 /* Section title — matches PDF report .section-title aesthetic */
 .sectionTitle {
   font-size: 0.875rem;

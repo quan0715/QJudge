@@ -23,11 +23,15 @@ import {
 } from "@carbon/react";
 import {
   ChartBar,
+  Calendar,
   DocumentTasks,
   Download,
   Edit,
   Launch,
   Locked,
+  Login,
+  Logout,
+  SendAlt,
   TrashCan,
   Trophy,
   UserMultiple,
@@ -483,17 +487,20 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                     {/* Summary details */}
                     <div className={styles.sectionStack}>
                       <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
-                      <div className={styles.summaryGrid}>
+                      <div className={styles.summaryList}>
                         {[
-                          { label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
-                          { label: t("participantsDashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
-                          { label: t("participantsDashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
-                          { label: t("participantsDashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
-                          { label: t("participants.headers.lockReason", "鎖定原因"), value: participant.lockReason || "-" },
-                        ].map(({ label, value }) => (
-                          <div key={label} className={styles.summaryItem}>
-                            <span className={styles.summaryLabel}>{label}</span>
-                            <span className={styles.summaryValue}>{value}</span>
+                          { icon: Calendar, label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
+                          { icon: Login, label: t("participantsDashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
+                          { icon: Logout, label: t("participantsDashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
+                          { icon: SendAlt, label: t("participantsDashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
+                          { icon: Locked, label: t("participants.headers.lockReason", "鎖定原因"), value: participant.lockReason || "-" },
+                        ].map(({ icon: Icon, label, value }) => (
+                          <div key={label} className={styles.summaryDataRow}>
+                            <div className={styles.summaryDataLabel}>
+                              <Icon size={16} className={styles.summaryDataIcon} />
+                              <span>{label}</span>
+                            </div>
+                            <span className={styles.summaryDataValue}>{value}</span>
                           </div>
                         ))}
                       </div>
