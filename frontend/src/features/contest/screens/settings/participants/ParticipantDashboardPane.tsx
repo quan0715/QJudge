@@ -41,6 +41,7 @@ import type {
   ParticipantDashboardStatus,
   ParticipantPaperQuestionDetail,
 } from "@/core/entities/contest.entity";
+import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
@@ -65,7 +66,7 @@ interface ParticipantDashboardPaneProps {
   onApproveTakeover: () => void;
   onReopenExam: () => void;
   onRemoveParticipant: () => void;
-  onOpenEvidenceModal: () => void;
+  canDeleteExamVideos: boolean;
   onOpenGrading: () => void;
 }
 
@@ -171,7 +172,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   onApproveTakeover,
   onReopenExam,
   onRemoveParticipant,
-  onOpenEvidenceModal,
+  canDeleteExamVideos,
   onOpenGrading,
 }) => {
   const { t } = useTranslation("contest");
@@ -381,7 +382,16 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
               </Button>
             ) : null}
             {dashboard.actions.canViewEvidence ? (
-              <Button kind="ghost" size="sm" renderIcon={View} onClick={onOpenEvidenceModal}>
+              <Button
+                kind="ghost"
+                size="sm"
+                renderIcon={View}
+                onClick={() => {
+                  if (activeDetail !== "evidence") {
+                    onDetailChange("evidence");
+                  }
+                }}
+              >
                 {t("participantsDashboard.openEvidence", "查看監控影片")}
               </Button>
             ) : null}
@@ -408,7 +418,9 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           className={styles.tabs}
           selectedIndex={selectedIndex}
           onChange={({ selectedIndex: nextIndex }) => {
-            const nextDetail = availableDetails[nextIndex] ?? "overview";
+            const safeIndex = typeof nextIndex === "number" ? nextIndex : 0;
+            const nextDetail = availableDetails[safeIndex] ?? "overview";
+            if (nextDetail === activeDetail) return;
             if (nextDetail === "submissions") {
               setSubmissionsPage(1);
               setSubmissionsPageSize(10);
@@ -645,16 +657,14 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
                   <ContainerCard
                     title={t("participantsDashboard.evidenceSessions", "監控影片與轉檔狀態")}
-                    action={
-                      <Button kind="ghost" size="sm" renderIcon={View} onClick={onOpenEvidenceModal}>
-                        {t("participantsDashboard.manageEvidence", "開啟影片管理")}
-                      </Button>
-                    }
                     withLayer={false}
                   >
-                    <div className={styles.emptyState}>
-                      {t("participantsDashboard.monitoringUseExistingUi", "此分頁沿用既有影片管理 UI，請點擊上方按鈕開啟。")}
-                    </div>
+                    <ExamVideoReviewModal
+                      contestId={contestId}
+                      open={activeDetail === "evidence"}
+                      userIdFilter={participant.userId}
+                      canDelete={canDeleteExamVideos}
+                    />
                   </ContainerCard>
                 ) : null}
 

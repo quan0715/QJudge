@@ -87,6 +87,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
       subtitle={t("participantsDashboard.listSubtitle", "選擇一位參賽者查看個人作答、事件與報告資訊")}
       className={styles.pane}
     >
+      <div className={styles.paneInner}>
       <div className={styles.toolbar}>
         <Search
           id="participants-dashboard-search"
@@ -219,6 +220,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
             onPageChange(nextPage, nextPageSize)
           }
         />
+      </div>
       </div>
     </ContainerCard>
   );
