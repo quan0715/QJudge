@@ -27,16 +27,14 @@
   overflow-y: auto;
 }
 
-/* Full-width fluid search row — no border, flush to card edges */
+/* Full-width fluid search row */
 .toolbarSearch {
-  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
-/* 2-col dropdown row — flush, bottom border separates from meta */
+/* 2-col dropdown row */
 .toolbar {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .toolbarMeta {
