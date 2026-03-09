@@ -9,13 +9,8 @@ import {
   Code,
   UserAvatar,
   UserMultiple,
-  MagicWand,
   DocumentMultiple_01,
-  View,
-  Locked,
-  Checkmark,
   Time,
-  Rocket,
   Security,
   Education,
   ChartLine,
@@ -28,7 +23,6 @@ import {
   Copy,
   Paste,
   CheckmarkFilled,
-  WarningFilled,
   Activity,
   UserFilled,
   Camera,
@@ -38,6 +32,8 @@ import {
   Home,
   Group,
   WatsonxAi,
+  WarningFilled,
+  Folder,
 } from "@carbon/icons-react";
 import MatrixBackground from "@/features/auth/components/MatrixBackground";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -161,12 +157,135 @@ const LandingScreen = () => {
   ];
 
   const contestModes = [
-    { id: "coding", icon: <Code size={32} />, label: t("modes.items.coding.label"), desc: t("modes.items.coding.desc") },
-    { id: "paper", icon: <DocumentMultiple_01 size={32} />, label: t("modes.items.paper.label"), desc: t("modes.items.paper.desc") },
-    { id: "lab", icon: <Microscope size={32} />, label: t("modes.items.lab.label"), desc: t("modes.items.lab.desc") },
-    { id: "takehome", icon: <Home size={32} />, label: t("modes.items.takehome.label"), desc: t("modes.items.takehome.desc"), comingSoon: true },
-    { id: "hackathon", icon: <Group size={32} />, label: t("modes.items.hackathon.label"), desc: t("modes.items.hackathon.desc"), comingSoon: true },
-    { id: "adaptive", icon: <WatsonxAi size={32} />, label: t("modes.items.adaptive.label"), desc: t("modes.items.adaptive.desc"), comingSoon: true },
+    { 
+      id: "coding", 
+      icon: <Code size={32} />, 
+      label: t("modes.items.coding.label"), 
+      desc: t("modes.items.coding.desc"),
+      visual: (
+        <div className="landing__mode-visual-box coding-test">
+          <div className="editor-side">
+            <div className="code-line w-90" />
+            <div className="code-line w-70" />
+            <div className="code-line indent code-line--highlight w-80" />
+            <div className="code-line indent w-50" />
+          </div>
+          <div className="testcase-side">
+            <header><CheckmarkFilled size={12}/> Testcase #1</header>
+            <div className="tc-row">Input: 5</div>
+            <div className="tc-row success">Output: 8</div>
+          </div>
+        </div>
+      )
+    },
+    { 
+      id: "paper", 
+      icon: <DocumentMultiple_01 size={32} />, 
+      label: t("modes.items.paper.label"), 
+      desc: t("modes.items.paper.desc"),
+      visual: (
+        <div className="landing__mode-visual-box paper">
+          <div className="paper-header-mock">
+            <div className="info">Name: Student #102</div>
+            <div className="timer"><Time size={12}/> 45:00</div>
+          </div>
+          <div className="paper-question-mock">
+            <div className="q-label">Q1. LaTeX Rendering</div>
+            <div className="q-math">
+              <MarkdownRenderer enableMath>{"$$\\int_a^b f(x) dx$$"}</MarkdownRenderer>
+            </div>
+            <div className="q-options">
+              <div className="opt active" />
+              <div className="opt" />
+              <div className="opt" />
+            </div>
+          </div>
+        </div>
+      )
+    },
+    { 
+      id: "lab", 
+      icon: <Microscope size={32} />, 
+      label: t("modes.items.lab.label"), 
+      desc: t("modes.items.lab.desc"),
+      visual: (
+        <div className="landing__mode-visual-box lab-practice">
+          <div className="topic-header"><Folder size={14}/> Problem Topics</div>
+          <div className="topic-list">
+            <div className="topic-item">
+              <span className="dot dot--green"/>
+              <span className="name">Array & Strings</span>
+              <span className="stat">12/15</span>
+            </div>
+            <div className="topic-item">
+              <span className="dot dot--blue"/>
+              <span className="name">Dynamic Programming</span>
+              <span className="stat">4/20</span>
+            </div>
+          </div>
+          <div className="practice-cta">Continue Practice</div>
+        </div>
+      )
+    },
+    { 
+      id: "takehome", 
+      icon: <Home size={32} />, 
+      label: t("modes.items.takehome.label"), 
+      desc: t("modes.items.takehome.desc"), 
+      comingSoon: true,
+      visual: (
+        <div className="landing__mode-visual-box take-home">
+          <div className="file-tree-mock">
+            <div className="tree-item"><Folder size={14}/> src</div>
+            <div className="tree-item indent"><Code size={14}/> main.py</div>
+            <div className="tree-item"><Folder size={14}/> tests</div>
+            <div className="tree-item"><DocumentMultiple_01 size={14}/> README.md</div>
+          </div>
+          <div className="project-badge">Project Mode</div>
+        </div>
+      )
+    },
+    { 
+      id: "hackathon", 
+      icon: <Group size={32} />, 
+      label: t("modes.items.hackathon.label"), 
+      desc: t("modes.items.hackathon.desc"), 
+      comingSoon: true,
+      visual: (
+        <div className="landing__mode-visual-box hackathon">
+          <div className="hack-teams">
+            <div className="team-row">
+              <span className="rank">1</span>
+              <div className="team-progress"><div className="fill w-85"/></div>
+            </div>
+            <div className="team-row">
+              <span className="rank">2</span>
+              <div className="team-progress"><div className="fill w-70"/></div>
+            </div>
+          </div>
+          <div className="live-tag">LIVE</div>
+        </div>
+      )
+    },
+    { 
+      id: "adaptive", 
+      icon: <WatsonxAi size={32} />, 
+      label: t("modes.items.adaptive.label"), 
+      desc: t("modes.items.adaptive.desc"), 
+      comingSoon: true,
+      visual: (
+        <div className="landing__mode-visual-box adaptive">
+          <div className="ai-path-nodes">
+            <div className="node active"><WatsonxAi size={20}/></div>
+            <div className="path-line" />
+            <div className="node"><Code size={16}/></div>
+            <div className="path-line" />
+            <div className="node"><ChartLine size={16}/></div>
+          </div>
+          <div className="ai-status">Personalized Path</div>
+        </div>
+      )
+    },
   ];
 
   const testimonials = [
@@ -299,7 +418,7 @@ const LandingScreen = () => {
             <Column sm={4} md={4} lg={6}>
               <div className="landing__interactive-content">
                 <p className="landing__eyebrow">{t("interactive.eyebrow")}</p>
-                <h2 className="landing__section-title" style={{ textAlign: "left", marginBottom: "3rem" }}>
+                <h2 className="landing__section-title landing__section-title--left-spaced">
                   {t("interactive.title")}
                 </h2>
                 
@@ -329,7 +448,7 @@ const LandingScreen = () => {
                 
                 <div className="landing__interactive-visual-content">
                   {activeInteractive === "editor" && (
-                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
                       <div className="landing-hero-ui__titlebar">
                         <MacDots />
                         <span className="landing-hero-ui__window-title">Supreme Editor - Markdown + LaTeX</span>
@@ -354,16 +473,16 @@ const LandingScreen = () => {
                   )}
                   
                   {activeInteractive === "proctor" && (
-                    <div className="landing-hero-ui__window landing__precise-mock landing__mock-proctor-container" style={{ width: "100%", animation: "fade-in 0.4s ease", position: "relative" }}>
+                    <div className="landing-hero-ui__window landing__precise-mock landing__mock-proctor-container landing__precise-mock--fade-in">
                       <div className="landing-hero-ui__titlebar">
                         <MacDots />
                         <span className="landing-hero-ui__window-title">Strict Proctoring Environment</span>
                       </div>
                       <div className="landing-hero-ui__content landing__mock-proctor-env">
                         <div className="landing__mock-proctor-editor-bg">
-                          <div className="line" style={{ width: "40%" }} />
-                          <div className="line" style={{ width: "60%" }} />
-                          <div className="line" style={{ width: "30%" }} />
+                          <div className="line w-40" />
+                          <div className="line w-60" />
+                          <div className="line w-30" />
                         </div>
 
                         <div className="landing__proctor-warning-overlay">
@@ -380,22 +499,22 @@ const LandingScreen = () => {
                         </div>
 
                         <div className="landing__forbidden-icons">
-                          <div className="forbidden-item" style={{ top: "8%", left: "8%" }}>
+                          <div className="forbidden-item forbidden-item--top-left">
                             <Screen size={32} />
                             <div className="slash" />
                             <span className="label">多螢幕偵測</span>
                           </div>
-                          <div className="forbidden-item" style={{ top: "8%", right: "8%" }}>
+                          <div className="forbidden-item forbidden-item--top-right">
                             <Switcher size={32} />
                             <div className="slash" />
                             <span className="label">分頁切換</span>
                           </div>
-                          <div className="forbidden-item" style={{ bottom: "8%", left: "8%" }}>
+                          <div className="forbidden-item forbidden-item--bottom-left">
                             <Cursor_1 size={32} />
                             <div className="slash" />
                             <span className="label">滑鼠離開</span>
                           </div>
-                          <div className="forbidden-item" style={{ bottom: "8%", right: "8%" }}>
+                          <div className="forbidden-item forbidden-item--bottom-right">
                             <div className="copy-paste-group">
                               <Copy size={24} />
                               <Paste size={24} />
@@ -409,7 +528,7 @@ const LandingScreen = () => {
                   )}
                   
                   {activeInteractive === "grading" && (
-                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
                       <div className="landing-hero-ui__titlebar">
                         <MacDots />
                         <span className="landing-hero-ui__window-title">High-Efficiency Grading Panel</span>
@@ -434,15 +553,15 @@ const LandingScreen = () => {
                             <TextInput id="score" labelText="Score" defaultValue="9" size="sm" />
                             <span className="max">/ 10</span>
                           </div>
-                          <TextArea id="feedback" labelText="Feedback" defaultValue="非常完整的分析，優缺點並陳且邏輯清晰。" size="sm" rows={3} />
-                          <Button size="sm" kind="primary" style={{ marginTop: "1rem" }}>Next Student</Button>
+                          <TextArea id="feedback" labelText="Feedback" defaultValue="非常完整的分析，優缺點並陳且邏輯清晰。" rows={3} />
+                          <Button size="sm" kind="primary" className="landing__grading-next-btn">Next Student</Button>
                         </div>
                       </div>
                     </div>
                   )}
                   
                   {activeInteractive === "stats" && (
-                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
                       <div className="landing-hero-ui__titlebar">
                         <MacDots />
                         <span className="landing-hero-ui__window-title">Intelligent Results Analysis</span>
@@ -526,19 +645,10 @@ const LandingScreen = () => {
                   <MacDots />
                   <span className="landing-hero-ui__window-title">Mathematics Rendering</span>
                 </div>
-                <div className="landing-hero-ui__content" style={{ padding: "1.5rem" }}>
-                  <div style={{ color: "var(--cds-text-primary)", fontSize: "0.9rem" }}>
-                    <p style={{ marginBottom: "1rem" }}>{t("exam.preview_text")}</p>
-                    <div style={{ 
-                      padding: "1.5rem", 
-                      background: "var(--cds-layer-02)", 
-                      borderRadius: "8px", 
-                      textAlign: "center",
-                      marginBottom: "1.5rem",
-                      border: "1px solid var(--cds-border-subtle-01)",
-                      display: "flex",
-                      justifyContent: "center"
-                    }}>
+                <div className="landing-hero-ui__content landing__math-preview-content">
+                  <div className="landing__math-preview-body">
+                    <p className="landing__math-preview-text">{t("exam.preview_text")}</p>
+                    <div className="landing__math-block">
                       <MarkdownRenderer enableMath>
                         {"$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$"}
                       </MarkdownRenderer>
@@ -578,10 +688,10 @@ const LandingScreen = () => {
         </section>
       </div>
 
-      {/* New Section: Support Multiple Contest Modes (Kuse style card grid) */}
+      {/* Contest Modes Section */}
       <section className="landing__section landing__section--modes">
         <div className="landing__section-inner">
-          <div className="landing__section-header" style={{ textAlign: "left" }}>
+          <div className="landing__section-header landing__section-header--left">
             <p className="landing__eyebrow">{t("modes.eyebrow")}</p>
             <h2 className="landing__section-title">{t("modes.title")}</h2>
           </div>
@@ -589,10 +699,10 @@ const LandingScreen = () => {
           <div className="landing__modes-grid">
             {contestModes.map((mode) => (
               <div key={mode.id} className={`landing__mode-card ${mode.comingSoon ? "landing__mode-card--soon" : ""}`}>
+                <div className="landing__mode-card-visual">
+                  {mode.visual}
+                </div>
                 <div className="landing__mode-card-inner">
-                  <div className="landing__mode-icon-box">
-                    {mode.icon}
-                  </div>
                   <div className="landing__mode-info">
                     <div className="landing__mode-header">
                       <h3>{mode.label}</h3>
