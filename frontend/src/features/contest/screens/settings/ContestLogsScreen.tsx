@@ -7,7 +7,7 @@ import {
   SkeletonText,
   SkeletonPlaceholder,
 } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
+import { Renew, User, Time, InformationFilled, Tag as TagIcon } from "@carbon/icons-react";
 import { StackedBarChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
@@ -580,33 +580,54 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     </>
   );
 
-  const detailModal = detailEvent ? (
-    <Modal
-      open
-      passiveModal
-      modalHeading={t(`logs.eventTypes.${getEventConfig(detailEvent.eventType).labelKey}`, detailEvent.eventType)}
-      onRequestClose={() => setDetailEvent(null)}
-    >
-      <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-        {detailEvent.userName} · {new Date(detailEvent.timestamp).toLocaleString()}
-      </p>
-      {detailEvent.reason && (
-        <p style={{ marginBottom: "1rem" }}>{detailEvent.reason}</p>
-      )}
-      {detailEvent.metadata && Object.keys(detailEvent.metadata).filter(k => k !== "reason").length > 0 && (
-        <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.25rem 1rem", fontSize: "0.8125rem" }}>
-          {Object.entries(detailEvent.metadata)
-            .filter(([k]) => k !== "reason")
-            .map(([k, v]) => (
-              <>
-                <dt key={`k-${k}`} style={{ color: "var(--cds-text-secondary)", whiteSpace: "nowrap" }}>{k}</dt>
-                <dd key={`v-${k}`} style={{ margin: 0, wordBreak: "break-all" }}>{String(v)}</dd>
-              </>
-            ))}
-        </dl>
-      )}
-    </Modal>
-  ) : null;
+  const detailModal = detailEvent ? (() => {
+    const config = getEventConfig(detailEvent.eventType);
+    const metaEntries = detailEvent.metadata
+      ? Object.entries(detailEvent.metadata).filter(([k]) => k !== "reason")
+      : [];
+    return (
+      <Modal
+        open
+        passiveModal
+        modalHeading={t(`logs.eventTypes.${config.labelKey}`, detailEvent.eventType)}
+        onRequestClose={() => setDetailEvent(null)}
+      >
+        <div className={styles.eventDetailBody}>
+          {/* Fixed meta rows */}
+          <div className={styles.eventDetailRow}>
+            <div className={styles.eventDetailLabel}><User size={16} className={styles.eventDetailIcon} /><span>{t("logs.detail.user", "使用者")}</span></div>
+            <span className={styles.eventDetailValue}>{detailEvent.userName}</span>
+          </div>
+          <div className={styles.eventDetailRow}>
+            <div className={styles.eventDetailLabel}><Time size={16} className={styles.eventDetailIcon} /><span>{t("logs.detail.time", "時間")}</span></div>
+            <span className={styles.eventDetailValue}>{new Date(detailEvent.timestamp).toLocaleString()}</span>
+          </div>
+          <div className={styles.eventDetailRow}>
+            <div className={styles.eventDetailLabel}><TagIcon size={16} className={styles.eventDetailIcon} /><span>{t("logs.detail.type", "事件類型")}</span></div>
+            <Tag type={config.tagType} size="sm">{t(`logs.eventTypes.${config.labelKey}`, config.labelKey)}</Tag>
+          </div>
+          {detailEvent.reason && (
+            <div className={styles.eventDetailRow}>
+              <div className={styles.eventDetailLabel}><InformationFilled size={16} className={styles.eventDetailIcon} /><span>{t("logs.detail.reason", "原因")}</span></div>
+              <span className={styles.eventDetailValue}>{detailEvent.reason}</span>
+            </div>
+          )}
+          {/* Extra metadata entries */}
+          {metaEntries.length > 0 && (
+            <>
+              <div className={styles.eventDetailDivider} />
+              {metaEntries.map(([k, v]) => (
+                <div key={k} className={styles.eventDetailRow}>
+                  <div className={styles.eventDetailLabel}><span className={styles.eventDetailKey}>{k}</span></div>
+                  <span className={styles.eventDetailValue}>{String(v)}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </Modal>
+    );
+  })() : null;
 
   if (embedded) {
     return <>{detailModal}<div className={styles.embeddedRoot}>{logsContent}</div></>;
