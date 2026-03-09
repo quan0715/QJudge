@@ -17,6 +17,7 @@ import {
   resetAnticheatOrchestrator,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -79,8 +80,16 @@ export const usePaperExamFlow = () => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
-    beginAnticheatTermination(id);
     try {
+      await recordExamEventWithForcedCapture(id, "exam_submit_initiated", {
+        reason: "Student submitted paper exam from answering screen",
+        source: "paper_exam:submit",
+        forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
+        metadata: {
+          upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+        },
+      }).catch(() => null);
+      beginAnticheatTermination(id);
       const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
       });

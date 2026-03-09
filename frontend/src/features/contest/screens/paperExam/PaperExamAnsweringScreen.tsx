@@ -34,6 +34,7 @@ import {
   shouldRouteToPrecheck,
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "./hooks/examCaptureSession";
 
@@ -98,6 +99,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, isInProgress ? 30000 : null);
 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [hasLoggedExamEntry, setHasLoggedExamEntry] = useState(false);
 
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
@@ -144,6 +146,35 @@ const PaperExamAnsweringScreen: React.FC = () => {
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
   }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
+
+  useEffect(() => {
+    if (
+      !contestId ||
+      !contest ||
+      contest.contestType !== "paper_exam" ||
+      contest.examStatus !== "in_progress" ||
+      !precheckPassed ||
+      hasLoggedExamEntry
+    ) {
+      return;
+    }
+
+    setHasLoggedExamEntry(true);
+    void recordExamEventWithForcedCapture(contestId, "exam_entered", {
+      reason: "Student entered paper exam answering screen",
+      source: "paper_exam:answering_screen",
+      forceCaptureReason: "exam_entered:paper_exam_answering",
+      metadata: {
+        upload_session_id: anticheatUploadSessionId || undefined,
+      },
+    }).catch(() => null);
+  }, [
+    anticheatUploadSessionId,
+    contest,
+    contestId,
+    hasLoggedExamEntry,
+    precheckPassed,
+  ]);
 
   const requestedQuestionId = searchParams.get("q");
   const reviewRequested = searchParams.get("review") === "1";

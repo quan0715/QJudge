@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getAnticheatUrls,
-  recordExamEvent,
   type AnticheatUrlsRequestError,
   type AnticheatUploadItem,
 } from "@/infrastructure/api/repositories/exam.repository";
@@ -24,6 +23,13 @@ import {
   decideAnticheatSignal,
   getAnticheatPhase,
 } from "@/features/contest/anticheat/orchestrator";
+import {
+  recordExamEventWithForcedCapture,
+  registerForcedCaptureHandler,
+  unregisterForcedCaptureHandler,
+  type ForcedCaptureOptions,
+  type ForcedCaptureResult,
+} from "@/features/contest/anticheat/forcedCapture";
 import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter";
 import {
   beginRuntimeScreenShareReauth,
@@ -39,6 +45,7 @@ const URL_BATCH_COUNT = 120;
 const DEGRADE_REPORT_COOLDOWN_MS = 60_000;
 const URL_FETCH_BASE_BACKOFF_MS = 2_000;
 const URL_FETCH_MAX_BACKOFF_MS = 30_000;
+const FORCED_CAPTURE_COOLDOWN_MS = 1_000;
 
 const IDB_DB_NAME = "qjudge_anticheat_capture";
 const IDB_DB_VERSION = 1;
@@ -52,7 +59,7 @@ type PendingFrame = {
 
 type QueueStore = {
   mode: "indexeddb" | "memory";
-  enqueue: (blob: Blob) => Promise<void>;
+  enqueue: (blob: Blob) => Promise<number>;
   peek: (limit: number) => Promise<PendingFrame[]>;
   remove: (ids: number[]) => Promise<void>;
   count: () => Promise<number>;
@@ -66,7 +73,9 @@ const createMemoryQueueStore = (): QueueStore => {
     mode: "memory",
     enqueue: async (blob) => {
       if (queue.length >= MAX_MEMORY_QUEUE) queue.shift();
-      queue.push({ id: nextId++, createdAt: Date.now(), blob });
+      const id = nextId++;
+      queue.push({ id, createdAt: Date.now(), blob });
+      return id;
     },
     peek: async (limit) => queue.slice(0, limit),
     remove: async (ids) => {
@@ -127,10 +136,10 @@ const createIndexedDbQueueStore = async (): Promise<QueueStore> => {
       await deleteOldest();
     }
 
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       const tx = db.transaction(IDB_STORE_NAME, "readwrite");
-      tx.objectStore(IDB_STORE_NAME).add({ createdAt: Date.now(), blob });
-      tx.oncomplete = () => resolve();
+      const request = tx.objectStore(IDB_STORE_NAME).add({ createdAt: Date.now(), blob });
+      tx.oncomplete = () => resolve(Number(request.result));
       tx.onerror = () => reject(tx.error || new Error("Failed to enqueue frame"));
     });
   };
@@ -281,6 +290,7 @@ export const useAnticheatScreenCapture = ({
   const captureIntervalMsRef = useRef(DEFAULT_CAPTURE_INTERVAL_MS);
   const urlFetchFailureCountRef = useRef(0);
   const nextUrlFetchAllowedAtRef = useRef(0);
+  const lastForcedCaptureAtRef = useRef(0);
 
   const [uploadSessionId, setUploadSessionIdState] = useState<string | null>(null);
 
@@ -304,11 +314,13 @@ export const useAnticheatScreenCapture = ({
         severity: "info",
       });
       if (!decision.accepted) return;
-      await recordExamEvent(contestId, "capture_upload_degraded", {
+      await recordExamEventWithForcedCapture(contestId, "capture_upload_degraded", {
         reason,
         source: "upload_manager",
         phase: decision.phase,
         eventIdempotencyKey: decision.eventIdempotencyKey,
+        forceCaptureReason: `capture_upload_degraded:${reason}`,
+        captureOptions: { allowStreamRecovery: false },
         metadata: buildAnticheatMetadata(decision, {
           source: "upload_manager",
           severity: "info",
@@ -427,11 +439,13 @@ export const useAnticheatScreenCapture = ({
       if (!decision.accepted && getAnticheatPhase(contestId) !== "TERMINATING" && getAnticheatPhase(contestId) !== "TERMINAL") {
         return;
       }
-      await recordExamEvent(contestId, "screen_share_stopped", {
+      await recordExamEventWithForcedCapture(contestId, "screen_share_stopped", {
         reason,
         source: "stream_adapter",
         phase: decision.phase,
         eventIdempotencyKey: decision.eventIdempotencyKey,
+        forceCaptureReason: `screen_share_stopped:${reason}`,
+        captureOptions: { allowStreamRecovery: false },
         metadata: buildAnticheatMetadata(decision, {
           source: "stream_adapter",
           severity: "violation",
@@ -479,10 +493,15 @@ export const useAnticheatScreenCapture = ({
     [reportScreenShareStopped]
   );
 
-  const requestRuntimeMonitorStream = useCallback(async (): Promise<MediaStream | null> => {
+  const requestRuntimeMonitorStream = useCallback(async (
+    options?: { reportFailure?: boolean }
+  ): Promise<MediaStream | null> => {
+    const reportFailure = options?.reportFailure ?? true;
     if (!navigator.mediaDevices?.getDisplayMedia) {
       await reportDegraded("Browser does not support runtime getDisplayMedia");
-      await reportScreenShareStopped("Browser does not support runtime screen-share");
+      if (reportFailure) {
+        await reportScreenShareStopped("Browser does not support runtime screen-share");
+      }
       return null;
     }
 
@@ -495,7 +514,11 @@ export const useAnticheatScreenCapture = ({
       try {
         const stream = await streamAdapterRef.current.acquireMonitorStream();
         if (!stream) {
-          await reportScreenShareStopped("Runtime screen-share re-authorization denied or non-monitor source");
+          if (reportFailure) {
+            await reportScreenShareStopped(
+              "Runtime screen-share re-authorization denied or non-monitor source"
+            );
+          }
           return null;
         }
         return stream;
@@ -509,9 +532,13 @@ export const useAnticheatScreenCapture = ({
     return pending;
   }, [reportDegraded, reportScreenShareStopped]);
 
-  const ensureScreenStream = useCallback(async (): Promise<boolean> => {
+  const ensureScreenStream = useCallback(async (
+    options?: { allowRuntimeRecovery?: boolean; reportFailure?: boolean }
+  ): Promise<boolean> => {
     if (!enabled || !contestId) return false;
     if (streamAuthFailedRef.current) return false;
+    const allowRuntimeRecovery = options?.allowRuntimeRecovery ?? true;
+    const reportFailure = options?.reportFailure ?? true;
 
     const current = streamRef.current;
     if (streamAdapterRef.current.isLive(current)) return true;
@@ -520,7 +547,9 @@ export const useAnticheatScreenCapture = ({
     if (runtimeHandoff) {
       const attached = await attachStream(runtimeHandoff);
       if (attached) return true;
-      await reportScreenShareStopped("Preserved screen-share stream is no longer live");
+      if (reportFailure) {
+        await reportScreenShareStopped("Preserved screen-share stream is no longer live");
+      }
     }
 
     const handoffStream = consumePrecheckScreenShareHandoff();
@@ -529,7 +558,9 @@ export const useAnticheatScreenCapture = ({
       if (attached) return true;
     }
 
-    const runtimeStream = await requestRuntimeMonitorStream();
+    if (!allowRuntimeRecovery) return false;
+
+    const runtimeStream = await requestRuntimeMonitorStream({ reportFailure });
     if (!runtimeStream) return false;
     return attachStream(runtimeStream);
   }, [attachStream, contestId, enabled, reportScreenShareStopped, requestRuntimeMonitorStream]);
@@ -672,29 +703,75 @@ export const useAnticheatScreenCapture = ({
     }
   }, [contestId, enabled, ensureQueue, ensureUploadUrls, refreshPendingCount, reportDegraded, resetUploadSession]);
 
-  const captureAndQueue = useCallback(async () => {
-    if (!enabledRef.current || !contestId) return;
+  const uploadBlobNow = useCallback(async (
+    blob: Blob
+  ): Promise<{ uploaded: boolean; seq: number | null; errorCode?: string }> => {
+    await ensureUploadUrls(1);
+    const uploadItem = urlsRef.current.shift();
+    if (!uploadItem) {
+      return { uploaded: false, seq: null, errorCode: "upload_url_unavailable" };
+    }
 
-    const queue = await ensureQueue();
+    const headers = new Headers({ "Content-Type": "image/webp" });
+    if (uploadItem.required_headers) {
+      for (const [key, value] of Object.entries(uploadItem.required_headers)) {
+        headers.set(key, value);
+      }
+    }
 
-    // Check existing stream first — avoid consuming handoff repeatedly
+    try {
+      const response = await fetch(uploadItem.put_url, {
+        method: "PUT",
+        headers,
+        body: blob,
+      });
+
+      if (!response.ok) {
+        if (response.status === 429 || response.status >= 500) {
+          urlsRef.current.unshift(uploadItem);
+        } else {
+          resetUploadSession();
+        }
+        return {
+          uploaded: false,
+          seq: uploadItem.seq,
+          errorCode: `upload_http_${response.status}`,
+        };
+      }
+
+      return { uploaded: true, seq: uploadItem.seq };
+    } catch {
+      urlsRef.current.unshift(uploadItem);
+      return {
+        uploaded: false,
+        seq: uploadItem.seq,
+        errorCode: "upload_network_error",
+      };
+    }
+  }, [ensureUploadUrls, resetUploadSession]);
+
+  const captureFrameBlob = useCallback(async (
+    options?: { allowStreamRecovery?: boolean }
+  ): Promise<Blob | null> => {
+    if (!enabledRef.current || !contestId) return null;
+
     const streamAlive = streamAdapterRef.current.isLive(streamRef.current);
-
     if (!streamAlive) {
-      // Try to recover missing stream; ensureScreenStream fails-closed on denial/non-monitor.
-      const acquired = await ensureScreenStream();
+      const acquired = await ensureScreenStream({
+        allowRuntimeRecovery: options?.allowStreamRecovery ?? true,
+        reportFailure: false,
+      });
       if (!acquired || !videoRef.current) {
-        // Stop capturing when stream is unavailable; backend lock should be triggered by screen_share_stopped.
-        return;
+        return null;
       }
     }
 
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) return null;
 
     const width = video.videoWidth;
     const height = video.videoHeight;
-    if (!width || !height) return;
+    if (!width || !height) return null;
 
     const canvas = canvasRef.current ?? document.createElement("canvas");
     canvasRef.current = canvas;
@@ -702,10 +779,18 @@ export const useAnticheatScreenCapture = ({
     canvas.height = height;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return null;
 
     ctx.drawImage(video, 0, 0, width, height);
-    const blob = await encodeUnderBudget(canvas);
+    return encodeUnderBudget(canvas);
+  }, [contestId, ensureScreenStream]);
+
+  const captureAndQueue = useCallback(async () => {
+    if (!enabledRef.current || !contestId) return;
+
+    const queue = await ensureQueue();
+    const blob = await captureFrameBlob({ allowStreamRecovery: true });
+    if (!blob) return;
 
     await queue.enqueue(blob);
     await refreshPendingCount();
@@ -716,12 +801,92 @@ export const useAnticheatScreenCapture = ({
     }
 
     await flushPendingUploads();
-  }, [contestId, ensureQueue, ensureScreenStream, flushPendingUploads, refreshPendingCount, reportDegraded]);
+  }, [captureFrameBlob, contestId, ensureQueue, flushPendingUploads, refreshPendingCount, reportDegraded]);
+
+  const forceCaptureNow = useCallback(async (
+    _reason: string,
+    options?: ForcedCaptureOptions
+  ): Promise<ForcedCaptureResult> => {
+    const currentUploadSessionId =
+      uploadSessionIdRef.current || (contestId ? getExamCaptureSessionId(contestId) : null);
+
+    if (!contestId || !enabledRef.current) {
+      return {
+        attempted: false,
+        captured: false,
+        uploaded: false,
+        skipped: "disabled",
+        errorCode: "capture_disabled",
+        uploadSessionId: currentUploadSessionId,
+        seq: null,
+      };
+    }
+
+    const now = Date.now();
+    if (now - lastForcedCaptureAtRef.current < FORCED_CAPTURE_COOLDOWN_MS) {
+      return {
+        attempted: false,
+        captured: false,
+        uploaded: false,
+        skipped: "cooldown",
+        errorCode: "capture_cooldown",
+        uploadSessionId: currentUploadSessionId,
+        seq: null,
+      };
+    }
+    lastForcedCaptureAtRef.current = now;
+
+    const blob = await captureFrameBlob({
+      allowStreamRecovery: options?.allowStreamRecovery ?? true,
+    });
+    if (!blob) {
+      return {
+        attempted: true,
+        captured: false,
+        uploaded: false,
+        skipped: "stream_unavailable",
+        errorCode: "stream_unavailable",
+        uploadSessionId:
+          uploadSessionIdRef.current || (contestId ? getExamCaptureSessionId(contestId) : null),
+        seq: null,
+      };
+    }
+
+    const queue = await ensureQueue();
+    const frameId = await queue.enqueue(blob);
+    await refreshPendingCount();
+
+    const uploadResult = await uploadBlobNow(blob);
+    if (uploadResult.uploaded) {
+      await queue.remove([frameId]);
+      await refreshPendingCount();
+    } else {
+      void flushPendingUploads();
+    }
+
+    return {
+      attempted: true,
+      captured: true,
+      uploaded: uploadResult.uploaded,
+      errorCode: uploadResult.errorCode,
+      uploadSessionId:
+        uploadSessionIdRef.current || (contestId ? getExamCaptureSessionId(contestId) : null),
+      seq: uploadResult.seq,
+    };
+  }, [captureFrameBlob, contestId, ensureQueue, flushPendingUploads, refreshPendingCount, uploadBlobNow]);
 
   // Keep enabledRef in sync for the unmount-only cleanup below
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
+
+  useEffect(() => {
+    if (!contestId) return;
+    registerForcedCaptureHandler(contestId, forceCaptureNow);
+    return () => {
+      unregisterForcedCaptureHandler(contestId, forceCaptureNow);
+    };
+  }, [contestId, forceCaptureNow]);
 
   // Stream lifecycle — stop stream when disabled
   useEffect(() => {
@@ -800,6 +965,7 @@ export const useAnticheatScreenCapture = ({
     uploadSessionId,
     flushPendingUploads,
     forceStopCapture,
+    forceCaptureNow,
   };
 };
 

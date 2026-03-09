@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ExamModeState, ExamStatusType } from "@/core/entities/contest.entity";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
 import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 import { isFullscreen } from "@/core/usecases/exam";
 import {
@@ -8,6 +7,7 @@ import {
   decideAnticheatSignal,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 
@@ -122,11 +122,12 @@ export function useExamState({
         return { skipped: true as const };
       }
 
-      const response = await recordExamEvent(contestId, eventType, {
+      const response = await recordExamEventWithForcedCapture(contestId, eventType, {
         reason,
         source,
         phase: decision.phase,
         eventIdempotencyKey: decision.eventIdempotencyKey,
+        forceCaptureReason: `${eventType}:${reason}`,
         metadata: buildAnticheatMetadata(decision, {
           source,
           severity,

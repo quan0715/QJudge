@@ -19,6 +19,8 @@ export type ExamViolationType =
   | "screen_share_stopped"
   | "screen_share_invalid_surface"
   | "capture_upload_degraded"
+  | "exam_entered"
+  | "exam_submit_initiated"
   | "concurrent_login_detected"
   | "takeover_locked"
   | "takeover_approved";

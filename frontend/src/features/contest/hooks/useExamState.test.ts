@@ -1,13 +1,13 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useExamState } from "./useExamState";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 
-vi.mock("@/infrastructure/api/repositories", () => ({
-  recordExamEvent: vi.fn(),
+vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
+  recordExamEventWithForcedCapture: vi.fn(),
 }));
 
 vi.mock("@/features/contest/screens/paperExam/hooks/examCaptureSession", () => ({
@@ -51,7 +51,7 @@ describe("useExamState", () => {
       auto_unlock_at: undefined,
       bypass: false,
     };
-    vi.mocked(recordExamEvent).mockResolvedValue(mockResponse);
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useExamState(defaultProps));
 
@@ -59,7 +59,7 @@ describe("useExamState", () => {
       await result.current.handleViolation("window_blur", "Left window");
     });
 
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "123",
       "window_blur",
       expect.objectContaining({
@@ -77,7 +77,7 @@ describe("useExamState", () => {
 
   it("refreshes contest after recording a violation", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(recordExamEvent).mockResolvedValue({
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
       violation_count: 1,
       max_cheat_warnings: 3,
       bypass: false,
@@ -94,7 +94,7 @@ describe("useExamState", () => {
   });
 
   it("does not drop rapid consecutive violations", async () => {
-    vi.mocked(recordExamEvent)
+    vi.mocked(recordExamEventWithForcedCapture)
       .mockResolvedValueOnce({
         violation_count: 1,
         max_cheat_warnings: 3,
@@ -118,8 +118,8 @@ describe("useExamState", () => {
       await result.current.handleViolation("tab_hidden", "Second event");
     });
 
-    expect(recordExamEvent).toHaveBeenCalledTimes(2);
-    expect(recordExamEvent).toHaveBeenNthCalledWith(
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(2);
+    expect(recordExamEventWithForcedCapture).toHaveBeenNthCalledWith(
       2,
       "123",
       "tab_hidden",
@@ -129,7 +129,7 @@ describe("useExamState", () => {
 
   it("retries recording when repository returns null response", async () => {
     vi.useFakeTimers();
-    vi.mocked(recordExamEvent)
+    vi.mocked(recordExamEventWithForcedCapture)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         violation_count: 1,
@@ -141,7 +141,7 @@ describe("useExamState", () => {
     await act(async () => {
       await result.current.handleViolation("window_blur", "Retry me");
     });
-    expect(recordExamEvent).toHaveBeenCalledTimes(1);
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       vi.advanceTimersByTime(1500);
@@ -149,12 +149,12 @@ describe("useExamState", () => {
       await Promise.resolve();
     });
 
-    expect(recordExamEvent).toHaveBeenCalledTimes(2);
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(2);
   });
 
   it("auto-locks by warning_timeout after 30 seconds without acknowledgement", async () => {
     vi.useFakeTimers();
-    vi.mocked(recordExamEvent)
+    vi.mocked(recordExamEventWithForcedCapture)
       .mockResolvedValueOnce({
         violation_count: 1,
         max_cheat_warnings: 3,
@@ -184,7 +184,7 @@ describe("useExamState", () => {
       await Promise.resolve();
     });
 
-    expect(recordExamEvent).toHaveBeenNthCalledWith(
+    expect(recordExamEventWithForcedCapture).toHaveBeenNthCalledWith(
       2,
       "123",
       "warning_timeout",
@@ -201,7 +201,7 @@ describe("useExamState", () => {
 
   it("stops timeout countdown when user acknowledges warning", async () => {
     vi.useFakeTimers();
-    vi.mocked(recordExamEvent).mockResolvedValue({
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
       violation_count: 1,
       max_cheat_warnings: 3,
       bypass: false,
@@ -228,7 +228,7 @@ describe("useExamState", () => {
       await Promise.resolve();
     });
 
-    expect(recordExamEvent).toHaveBeenCalledTimes(1);
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(1);
     expect(result.current.warningCountdown).toBe(null);
   });
 
@@ -239,7 +239,7 @@ describe("useExamState", () => {
       await result.current.handleViolation("window_blur", "Left window");
     });
 
-    expect(recordExamEvent).not.toHaveBeenCalled();
+    expect(recordExamEventWithForcedCapture).not.toHaveBeenCalled();
     expect(result.current.showWarning).toBe(false);
   });
 
@@ -250,7 +250,7 @@ describe("useExamState", () => {
       bypass: false,
       exam_status: "submitted",
     };
-    vi.mocked(recordExamEvent).mockResolvedValue(lockedResponse);
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(lockedResponse);
 
     const { result } = renderHook(() =>
       useExamState({ ...defaultProps, examStatus: "locked" })
@@ -260,7 +260,7 @@ describe("useExamState", () => {
       await result.current.handleViolation("tab_hidden", "locked state event");
     });
 
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "123",
       "tab_hidden",
       expect.objectContaining({ reason: "locked state event" })
