@@ -6,7 +6,7 @@ import {
 import type { AnticheatUploadBatchItem } from "@/infrastructure/api/repositories/exam.repository";
 
 export const useAnticheatUploader = (contestId: string) => {
-  const uploadBatchWithRetry = useCallback(
+  const uploadBatch = useCallback(
     async (
       items: { id: number; createdAt: number; blob: Blob }[],
       sessionId: string,
@@ -39,5 +39,5 @@ export const useAnticheatUploader = (contestId: string) => {
     [contestId]
   );
 
-  return { uploadBatchWithRetry };
+  return { uploadBatch };
 };

@@ -53,7 +53,7 @@ export const useAnticheatScreenCapture = ({
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
-  const { uploadBatchWithRetry } = useAnticheatUploader(contestId);
+  const { uploadBatch } = useAnticheatUploader(contestId);
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -130,7 +130,7 @@ export const useAnticheatScreenCapture = ({
       const count = await q.count();
       if (count === 0) return;
       const items = await q.peek(10);
-      const uploadedIds = await uploadBatchWithRetry(items, uploadSessionId, onUploadProgress);
+      const uploadedIds = await uploadBatch(items, uploadSessionId, onUploadProgress);
       await q.remove(uploadedIds);
       retryCountRef.current = 0;
       reportDegraded?.(false);
@@ -142,7 +142,7 @@ export const useAnticheatScreenCapture = ({
     } finally {
       isUploadingRef.current = false;
     }
-  }, [enabled, ensureQueue, uploadBatchWithRetry, uploadSessionId, onUploadProgress, reportDegraded, maxRetries]);
+  }, [enabled, ensureQueue, uploadBatch, uploadSessionId, onUploadProgress, reportDegraded, maxRetries]);
 
   const forceStopCapture = useCallback(() => {
     if (captureIntervalRef.current) {
@@ -213,7 +213,7 @@ export const useAnticheatScreenCapture = ({
     const frameId = await q.enqueue(blob);
 
     try {
-      const uploadedIds = await uploadBatchWithRetry(
+      const uploadedIds = await uploadBatch(
         [{ id: frameId, createdAt: Date.now(), blob }],
         uploadSessionId,
       );
@@ -238,7 +238,7 @@ export const useAnticheatScreenCapture = ({
       uploadSessionId: currentUploadSessionId,
       seq: frameId,
     };
-  }, [enabled, contestId, uploadSessionId, captureFrameBlob, ensureQueue, uploadBatchWithRetry, flushPendingUploads]);
+  }, [enabled, contestId, uploadSessionId, captureFrameBlob, ensureQueue, uploadBatch, flushPendingUploads]);
 
   // Register forced capture handler for use by recordExamEventWithForcedCapture
   useEffect(() => {

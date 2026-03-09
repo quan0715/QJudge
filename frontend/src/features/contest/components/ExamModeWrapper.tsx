@@ -124,7 +124,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     },
   });
 
-  useExamHeartbeat(contestId, isExamMonitored);
+  useExamHeartbeat(contestId, isExamMonitored && examStatus !== "submitted");
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {

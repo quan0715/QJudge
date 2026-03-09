@@ -88,7 +88,9 @@ export function useExamMonitoring({
     // --- Listener integrity verification (every 10s) ---
     const VERIFY_INTERVAL_MS = 10_000;
     const verifyTimer = setInterval(() => {
-      const token = crypto.randomUUID();
+      const token = typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15);
       const failed: string[] = [];
       for (const d of detectors) {
         if (d.verifyIntegrity && !d.verifyIntegrity(token)) {
