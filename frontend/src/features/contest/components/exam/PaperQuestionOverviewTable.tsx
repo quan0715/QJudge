@@ -8,7 +8,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tag,
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
@@ -45,6 +44,22 @@ interface PaperQuestionOverviewTableProps {
   onRowClick?: (questionId: string) => void;
 }
 
+const STATUS_ICON: Record<string, string> = {
+  green: "✔",
+  cyan: "△",
+  red: "✖",
+  "warm-gray": "…",
+  "cool-gray": "⚠",
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  green: styles.statusCorrect,
+  cyan: styles.statusPartial,
+  red: styles.statusIncorrect,
+  "warm-gray": styles.statusPending,
+  "cool-gray": styles.statusMissing,
+};
+
 const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
   rows,
   showScore = true,
@@ -58,7 +73,7 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
       { key: "index", header: "#" },
       { key: "prompt", header: t("paperExamProblems.headers.prompt") },
       { key: "type", header: t("paperExamProblems.headers.type") },
-      { key: "maxScore", header: t("paperExamProblems.headers.maxScore") },
+      { key: "status", header: t("paperExamProblems.headers.status", "狀態") },
     ];
     if (showScore) {
       base.push({ key: "score", header: t("paperExamProblems.headers.score") });
@@ -76,11 +91,9 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
         index: row.index,
         prompt: row.prompt,
         type: row.typeLabel,
-        maxScore: row.maxScore,
+        status: row.statusLabel || "-",
         score: row.scoreDisplay || "-",
         feedback: row.feedbackDisplay || "-",
-        statusLabel: row.statusLabel,
-        statusTone: row.statusTone || "cool-gray",
       })),
     [rows],
   );
@@ -94,14 +107,19 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
         getRowProps,
         getTableProps,
       }) => (
-        <TableContainer>
-          <Table {...getTableProps()}>
+        <TableContainer className={styles.container}>
+          <Table {...getTableProps()} className={styles.table}>
             <TableHead>
               <TableRow>
                 {dtHeaders.map((header) => {
                   const { key, ...headerProps } = getHeaderProps({ header });
+                  const isScore = header.key === "score";
                   return (
-                    <TableHeader key={key} {...headerProps}>
+                    <TableHeader
+                      key={key}
+                      {...headerProps}
+                      className={isScore ? styles.headerScore : undefined}
+                    >
                       {header.header}
                     </TableHeader>
                   );
@@ -112,46 +130,69 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
               {dtRows.map((row) => {
                 const { key, ...rowProps } = getRowProps({ row });
                 const clickable = typeof onRowClick === "function";
+                const sourceRow = rows.find((r) => String(r.id) === String(row.id));
                 return (
                   <TableRow
                     key={key}
                     {...rowProps}
                     onClick={clickable ? () => onRowClick(row.id) : undefined}
-                    style={clickable ? { cursor: "pointer" } : undefined}
+                    className={clickable ? styles.rowClickable : undefined}
                   >
                     {row.cells.map((cell) => {
+                      if (cell.info.header === "index") {
+                        return (
+                          <TableCell key={cell.id} className={styles.cellIndex}>
+                            Q{cell.value}
+                          </TableCell>
+                        );
+                      }
                       if (cell.info.header === "prompt") {
                         return (
-                          <TableCell key={cell.id}>
-                            <span className={styles.promptCell}>{String(cell.value || "-")}</span>
+                          <TableCell key={cell.id} className={styles.cellPrompt}>
+                            {String(cell.value || "-")}
+                          </TableCell>
+                        );
+                      }
+                      if (cell.info.header === "type") {
+                        return (
+                          <TableCell key={cell.id} className={styles.cellType}>
+                            {cell.value}
+                          </TableCell>
+                        );
+                      }
+                      if (cell.info.header === "status") {
+                        const tone = sourceRow?.statusTone || "cool-gray";
+                        const icon = STATUS_ICON[tone] ?? "";
+                        const cls = STATUS_CLASS[tone] ?? styles.statusMissing;
+                        return (
+                          <TableCell key={cell.id} className={styles.cellStatus}>
+                            {sourceRow?.statusLabel ? (
+                              <span className={cls}>{icon} {sourceRow.statusLabel}</span>
+                            ) : (
+                              <span className={styles.statusMissing}>—</span>
+                            )}
                           </TableCell>
                         );
                       }
                       if (cell.info.header === "score") {
-                        const statusLabel = row.cells.find(
-                          (candidate) => candidate.info.header === "statusLabel",
-                        )?.value;
-                        const statusTone = row.cells.find(
-                          (candidate) => candidate.info.header === "statusTone",
-                        )?.value;
+                        const tone = sourceRow?.statusTone || "cool-gray";
+                        const icon = STATUS_ICON[tone] ?? "";
+                        const cls = STATUS_CLASS[tone] ?? styles.statusMissing;
+
                         return (
-                          <TableCell key={cell.id}>
-                            <span className={styles.scoreCell}>
-                              <span>{String(cell.value || "-")}</span>
-                              {statusLabel ? (
-                                <Tag
-                                  type={String(statusTone || "cool-gray") as "cool-gray"}
-                                  className={styles.statusTag}
-                                >
-                                  {String(statusLabel)}
-                                </Tag>
-                              ) : null}
+                          <TableCell key={cell.id} className={styles.cellScore}>
+                            <span className={styles.scoreValue}>
+                              {String(cell.value || "-")} / {sourceRow?.maxScore ?? "?"}
                             </span>
                           </TableCell>
                         );
                       }
-                      if (cell.info.header === "statusLabel" || cell.info.header === "statusTone") {
-                        return null;
+                      if (cell.info.header === "feedback") {
+                        return (
+                          <TableCell key={cell.id} className={styles.cellFeedback}>
+                            {cell.value}
+                          </TableCell>
+                        );
                       }
                       return <TableCell key={cell.id}>{cell.value}</TableCell>;
                     })}
