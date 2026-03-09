@@ -21,6 +21,8 @@ export const useParticipantDashboard = (
 
     setLoading(true);
     setError("");
+    // Clear stale data when switching to a different user
+    setData((prev) => (prev && String(prev.participant.userId) !== String(userId) ? null : prev));
     try {
       const next = await getParticipantDashboard(contestId, userId);
       setData(next);

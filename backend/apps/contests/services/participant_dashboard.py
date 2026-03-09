@@ -77,13 +77,16 @@ def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
     }
 
 
+TIMELINE_LIMIT = 500
+
+
 def _serialize_timeline(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
 
     exam_events = ExamEvent.objects.filter(
         contest=contest,
         user_id=participant.user_id,
-    ).order_by("-created_at")
+    ).exclude(event_type="heartbeat").order_by("-created_at")[:TIMELINE_LIMIT]
     for event in exam_events:
         items.append(
             {
@@ -99,7 +102,7 @@ def _serialize_timeline(contest: Contest, participant: ContestParticipant) -> li
     activities = ContestActivity.objects.filter(
         contest=contest,
         user_id=participant.user_id,
-    ).order_by("-created_at")
+    ).order_by("-created_at")[:TIMELINE_LIMIT]
     for activity in activities:
         items.append(
             {
@@ -334,11 +337,25 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
             }
         )
 
+    # Pre-compute best submission per problem from already-fetched submissions (avoids N+1)
+    best_by_problem: dict[int, Any] = {}
+    for sub in submissions:
+        pid = sub.problem_id
+        prev = best_by_problem.get(pid)
+        if prev is None:
+            best_by_problem[pid] = sub
+        elif sub.status == "AC" and prev.status != "AC":
+            best_by_problem[pid] = sub
+        elif sub.status == "AC" and prev.status == "AC":
+            best_by_problem[pid] = sub  # last AC
+        elif prev.status != "AC" and (sub.score, sub.created_at) > (prev.score, prev.created_at):
+            best_by_problem[pid] = sub
+
     grid_rows: list[dict[str, Any]] = []
     detail_rows: list[dict[str, Any]] = []
     for cp in contest_problems:
         stat = problem_stats.get(cp.problem_id) if user_stats else None
-        best_submission = data_service.get_user_best_submission(participant.user_id, cp.problem_id)
+        best_submission = best_by_problem.get(cp.problem_id)
         row = {
             "problem_id": cp.problem_id,
             "label": cp.label,

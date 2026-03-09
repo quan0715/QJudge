@@ -1,57 +1,53 @@
 {
   "hero": {
-    "title": "QJudge - 程式測驗平台",
-    "subtitle": "即時評測、考場防作弊、AI 助教輔助，讓教學與學習流程更順暢。",
+    "title": "專業程式測驗，從 QJudge 開始",
+    "subtitle": "整合即時評測、紙筆題型與嚴格防作弊監控，為課程與競賽打造最友善的教學環境。",
     "signIn": "立即登入",
     "register": "免費註冊",
     "badge": {
       "product": "QJudge",
-      "tagline": "程式評測平台"
-    },
-    "badges": {
-      "qjudge": "QJudge",
-      "oj": "Online Judge",
-      "carbon": "Carbon UI"
+      "tagline": "專業程式測驗平台"
     },
     "signal": {
       "realtime": "即時評測",
       "sandbox": "沙盒執行",
       "report": "詳細報告"
+    },
+    "visual": {
+      "title": "程式測驗流程",
+      "desc": "Code -> Judge -> Verdict"
     }
   },
   "feature": {
     "judge": {
-      "title": "良好的測驗體驗",
-      "description": "提交後即時回傳測資結果、執行時間與記憶體資訊，並提供清楚的除錯脈絡。"
+      "title": "卓越的評測體驗",
+      "description": "支援 20+ 種程式語言，秒級回傳執行時間與記憶體資訊，並提供精確的 Diff 比對與錯誤追蹤。"
+    },
+    "paper": {
+      "title": "紙筆題型整合 (Exam V2)",
+      "description": "不只是程式碼。整合選擇、是非、問答等紙筆題型，支援 LaTeX 數學公式與 Markdown 排版，一站式完成多元評量。"
     },
     "antiCheat": {
-      "title": "防作弊系統",
-      "description": "考場模式支援違規事件記錄、狀態鎖定與管理端追蹤，維持公平的程式測驗流程。"
+      "title": "嚴格的防作弊監控",
+      "description": "全螢幕強制鎖定、分頁切換偵測、視訊存證與 AI 違規分析，確保線上考試的絕對公平性。"
     },
-    "ai": {
-      "title": "AI 助教出題輔助",
-      "description": "協助教師整理題意、產生題目草稿與教學內容，讓課程準備更快且品質一致。"
+    "teacher": {
+      "title": "更友善的教師系統",
+      "description": "直觀的批改面板、即時監考儀表板與詳細的成績統計，讓教師能將時間花在教學，而非瑣碎的管理工作。"
     }
   },
   "features": {
-    "eyebrow": "核心功能",
-    "title": "為程式學習打造的完整平台",
-    "multiLanguage": {
-      "title": "多語言支援",
-      "description": "Python、C++、Java、JavaScript 等主流程式語言即時編譯執行。"
-    },
-    "analytics": {
-      "title": "即時分析",
-      "description": "詳細的測試結果、執行時間與記憶體統計，協助優化程式效能。"
-    },
-    "contest": {
-      "title": "競賽系統",
-      "description": "舉辦程式競賽，排行榜即時更新，支援多種計分模式。"
-    },
-    "lab": {
-      "title": "實驗室模式",
-      "description": "教師管理題目集、追蹤學生進度，輕鬆掌握學習成效。"
-    }
+    "eyebrow": "核心價值",
+    "title": "專為教學現場設計的強大功能"
+  },
+  "exam": {
+    "eyebrow": "Exam V2",
+    "title": "全方位的測驗體驗",
+    "description": "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
+    "tag1": "LaTeX 支援",
+    "tag2": "多樣題型",
+    "tag3": "自動批改",
+    "preview_text": "請計算下列積分："
   },
   "miniJudge": {
     "eyebrow": "互動示範",

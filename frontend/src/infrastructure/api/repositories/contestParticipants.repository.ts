@@ -143,18 +143,19 @@ export const downloadParticipantReport = async (
   );
 
   if (!res.ok) {
+    let message = `Download failed: ${res.status} ${res.statusText}`;
     try {
       const errorData = await res.json();
-      const message =
+      message =
         errorData.error?.message ||
         errorData.error ||
         errorData.message ||
         errorData.detail ||
-        "Failed to download report";
-      throw new Error(message);
+        message;
     } catch {
-      throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+      // response body not JSON — use default message
     }
+    throw new Error(message);
   }
 
   // Download the file

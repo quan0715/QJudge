@@ -1,57 +1,58 @@
 {
   "hero": {
-    "title": "QJudge - 프로그래밍 시험 플랫폼",
-    "subtitle": "실시간 평가, 시험 부정행위 방지, AI 조교 지원으로 교수 및 학습 프로세스를 더욱 원활하게 만듭니다.",
+    "title": "전문적인 프로그래밍 테스트, QJudge와 함께 시작하세요",
+    "subtitle": "실시간 평가, 지필 고사 형식, 엄격한 부정행위 방지 모니터링을 통합하여 강의와 대회에 최적화된 교육 환경을 제공합니다.",
     "signIn": "로그인",
     "register": "회원가입",
     "badge": {
       "product": "QJudge",
-      "tagline": "프로그래밍 평가 플랫폼"
-    },
-    "badges": {
-      "qjudge": "QJudge",
-      "oj": "Online Judge",
-      "carbon": "Carbon UI"
+      "tagline": "전문 프로그래밍 테스트 플랫폼"
     },
     "signal": {
       "realtime": "실시간 평가",
       "sandbox": "샌드박스 실행",
       "report": "상세 보고서"
+    },
+    "visual": {
+      "title": "프로그래밍 테스트 프로세스",
+      "desc": "Code -> Judge -> Verdict",
+      "proctoring": "감독 상태",
+      "fullscreen": "전체 화면 모드",
+      "detection": "탭 감지",
+      "violations": "위반 횟수",
+      "remaining": "남은 시간"
     }
   },
   "feature": {
     "judge": {
-      "title": "우수한 시험 경험",
-      "description": "제출 후 테스트 케이스 결과, 실행 시간 및 메모리 정보를 즉시 반환하며 명확한 디버깅 맥락을 제공합니다."
+      "title": "탁월한 평가 경험",
+      "description": "20가지 이상의 프로그래밍 언어를 지원하며, 실행 시간과 메모리 정보를 즉시 반환합니다. 정확한 Diff 비교와 오류 추적 기능을 제공합니다."
+    },
+    "paper": {
+      "title": "지필 고사 형식 통합 (Exam V2)",
+      "description": "코드 그 이상을 담았습니다. 객관식, OX 문제, 주관식 등 다양한 지필 형식을 통합하고 LaTeX 수식과 Markdown을 지원하여 다각도 평가가 가능합니다."
     },
     "antiCheat": {
-      "title": "부정행위 방지 시스템",
-      "description": "시험 모드는 위반 이벤트 기록, 상태 잠금 및 관리자 추적을 지원하여 공정한 프로그래밍 시험 프로세스를 유지합니다."
+      "title": "엄격한 부정행위 방지 모니터링",
+      "description": "전체 화면 강제 잠금, 탭 전환 감지, 녹화 증거 및 AI 위반 분석을 통해 온라인 시험의 절대적인 공정성을 보장합니다."
     },
-    "ai": {
-      "title": "AI 조교 출제 보조",
-      "description": "교사가 문제 의도를 정리하고 문제 초안 및 교육 콘텐츠를 생성하는 것을 도와 강의 준비를 빠르고 일관된 품질로 만들어 줍니다."
+    "teacher": {
+      "title": "더욱 편리한 교사 시스템",
+      "description": "직관적인 채점 패널, 실시간 감독 대시보드 및 상세 성적 통계를 통해 교사가 행정 업무 대신 교육에 집중할 수 있도록 돕습니다."
     }
   },
   "features": {
-    "eyebrow": "핵심 기능",
-    "title": "현대적인 프로그래밍 워크플로우 지원",
-    "multiLanguage": {
-      "title": "다중 언어",
-      "description": "Python, C++, Java, JavaScript 등 주요 언어를 즉시 컴파일/실행."
-    },
-    "analytics": {
-      "title": "실시간 분석",
-      "description": "실행 시간, 메모리 통계와 함께 상세 결과 제공."
-    },
-    "contest": {
-      "title": "대회 시스템",
-      "description": "라이브 랭킹과 다양한 점수 모드로 대회를 개최."
-    },
-    "lab": {
-      "title": "랩 모드",
-      "description": "교수자가 문제 세트와 학생 진행 상황을 관리."
-    }
+    "eyebrow": "핵심 가치",
+    "title": "교육 현장을 위해 설계된 강력한 기능"
+  },
+  "exam": {
+    "eyebrow": "Exam V2",
+    "title": "포괄적인 시험 경험",
+    "description": "프로그래밍부터 일반 이론까지 QJudge가 완벽히 지원합니다. 내장된 LaTeX 수식과 Markdown 에디터로 문제 출제와 풀이 모두 매끄럽게 진행됩니다.",
+    "tag1": "LaTeX 지원",
+    "tag2": "다양한 문제 유형",
+    "tag3": "자동 채점",
+    "preview_text": "다음 적분을 계산하세요:"
   },
   "miniJudge": {
     "eyebrow": "인터랙티브 데모",
@@ -82,7 +83,7 @@
     },
     "code": {
       "title": "코드 작성",
-      "description": "내장 에디터로 Markdown 가이드와 함께 작성."
+      "description": "구문 강조와 자동 완성을 지원하는 내장 에디터를 사용하세요."
     },
     "submit": {
       "title": "제출 및 채점",

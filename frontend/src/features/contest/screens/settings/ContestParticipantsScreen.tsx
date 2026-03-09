@@ -171,7 +171,7 @@ const ContestParticipantsScreen = () => {
 
       Object.entries(updates).forEach(([key, value]) => {
         const current = next.get(key);
-        if (!value) {
+        if (value === null || value === undefined) {
           if (current !== null) {
             next.delete(key);
             hasChanges = true;
@@ -353,7 +353,7 @@ const ContestParticipantsScreen = () => {
       setSaving(true);
       await updateParticipant(contestId, Number(editingParticipant.userId), {
         exam_status: editExamStatus,
-        lock_reason: editExamStatus === "locked" ? editLockReason : "",
+        lock_reason: editExamStatus === "locked" || editExamStatus === "locked_takeover" ? editLockReason : "",
       });
       setEditModalOpen(false);
       await refreshBoth();
@@ -423,9 +423,9 @@ const ContestParticipantsScreen = () => {
       ) : null}
 
       <AddParticipantModal
-        open={addModalOpen}
+        isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        onAdd={handleAddParticipant}
+        onSubmit={handleAddParticipant}
       />
 
       <Modal

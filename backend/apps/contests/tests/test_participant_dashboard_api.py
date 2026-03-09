@@ -3,7 +3,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connection
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -25,26 +24,6 @@ User = get_user_model()
 
 
 class ParticipantDashboardApiTests(APITestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'contests'
-                  AND column_name = 'allow_view_results'
-                """
-            )
-            if cursor.fetchone():
-                cursor.execute(
-                    "ALTER TABLE contests ALTER COLUMN allow_view_results SET DEFAULT FALSE"
-                )
-                cursor.execute(
-                    "UPDATE contests SET allow_view_results = FALSE WHERE allow_view_results IS NULL"
-                )
-
     def setUp(self):
         self.owner = User.objects.create_user(
             username="dashboard-owner",

@@ -14,7 +14,9 @@
 
 /* Top row: info + kpi grid */
 .topRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(26rem, 42rem);
+  align-items: start;
   gap: 2rem;
 }
 
@@ -59,19 +61,60 @@
   max-width: 600px;
 }
 
-/* Right 35 % — 2×2 grid */
+/* Right side KPI strip */
 .kpiGrid {
-  flex: 0 0 35%;
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  justify-self: end;
+}
+
+.kpiStrip {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 0;
   min-width: 0;
 }
 
-/* Responsive: stack on ≤ 672px */
-@media (max-width: 672px) {
+.warningValue {
+  color: var(--cds-support-error);
+}
+
+/* Responsive: stack on narrower screens */
+@media (max-width: 1200px) {
+  .kpiStrip {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
   .topRow {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .kpiGrid {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .kpiStrip {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .kpiStrip :global(.card) {
+    flex: 1 1 12rem;
+  }
+}
+
+@media (max-width: 672px) {
+  .kpiStrip {
+    justify-content: stretch;
+  }
+
+  .kpiStrip :global(.card) {
     flex: 1 1 100%;
   }
 }

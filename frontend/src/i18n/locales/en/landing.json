@@ -1,57 +1,58 @@
 {
   "hero": {
-    "title": "QJudge - Programming Assessment Platform",
-    "subtitle": "Real-time evaluation, anti-cheat exam mode, and AI teaching assistant to streamline teaching and learning.",
+    "title": "Professional Programming Assessment starts with QJudge",
+    "subtitle": "Integrating real-time evaluation, paper-based questions, and strict anti-cheat monitoring to create the most friendly teaching environment for courses and competitions.",
     "signIn": "Sign in",
     "register": "Create account",
     "badge": {
       "product": "QJudge",
-      "tagline": "Programming Assessment"
-    },
-    "badges": {
-      "qjudge": "QJudge",
-      "oj": "Online Judge",
-      "carbon": "Carbon UI"
+      "tagline": "Professional Programming Assessment Platform"
     },
     "signal": {
       "realtime": "Real-time Judge",
       "sandbox": "Sandbox Execution",
       "report": "Detailed Report"
+    },
+    "visual": {
+      "title": "Programming Assessment Flow",
+      "desc": "Code -> Judge -> Verdict",
+      "proctoring": "Proctoring Status",
+      "fullscreen": "Full Screen Mode",
+      "detection": "Tab Detection",
+      "violations": "Violations",
+      "remaining": "Time Remaining"
     }
   },
   "feature": {
     "judge": {
-      "title": "Great Testing Experience",
-      "description": "Get instant feedback on test cases, execution time, and memory usage after submission, with clear debugging context."
+      "title": "Excellent Evaluation Experience",
+      "description": "Supports 20+ programming languages, returns execution time and memory info in seconds, and provides precise Diff comparison and error tracking."
+    },
+    "paper": {
+      "title": "Paper Question Integration (Exam V2)",
+      "description": "More than just code. Integrates multiple-choice, true/false, and short answer questions, supports LaTeX formulas and Markdown, for one-stop diverse assessment."
     },
     "antiCheat": {
-      "title": "Anti-Cheat System",
-      "description": "Exam mode supports violation logging, state locking, and admin tracking to maintain a fair assessment process."
+      "title": "Strict Anti-Cheat Monitoring",
+      "description": "Full-screen lock, tab switch detection, video evidence, and AI violation analysis ensure absolute fairness in online exams."
     },
-    "ai": {
-      "title": "AI Teaching Assistant",
-      "description": "Help teachers organize problem statements, generate drafts, and create educational content faster with consistent quality."
+    "teacher": {
+      "title": "Friendlier Teacher System",
+      "description": "Intuitive grading panel, real-time proctoring dashboard, and detailed grade statistics allow teachers to focus on teaching rather than administration."
     }
   },
   "features": {
-    "eyebrow": "Core features",
-    "title": "Built for modern programming workflows",
-    "multiLanguage": {
-      "title": "Multi-language",
-      "description": "Python, C++, Java, JavaScript and more with syntax highlighting and autocomplete."
-    },
-    "analytics": {
-      "title": "Realtime analytics",
-      "description": "Detailed results with runtime and memory insights to help you optimize."
-    },
-    "contest": {
-      "title": "Contest ready",
-      "description": "Host contests with live rankings and flexible scoring rules."
-    },
-    "lab": {
-      "title": "Lab mode",
-      "description": "Teachers manage sets and track class progress with ease."
-    }
+    "eyebrow": "Core Value",
+    "title": "Powerful Features Designed for Education"
+  },
+  "exam": {
+    "eyebrow": "Exam V2",
+    "title": "Comprehensive Assessment Experience",
+    "description": "From programming to general theory, QJudge provides full support. Built-in LaTeX and Markdown editors make creating and answering questions equally smooth.",
+    "tag1": "LaTeX Support",
+    "tag2": "Diverse Question Types",
+    "tag3": "Auto Grading",
+    "preview_text": "Please calculate the following integral:"
   },
   "miniJudge": {
     "eyebrow": "Interactive Demo",
@@ -82,7 +83,7 @@
     },
     "code": {
       "title": "Write code",
-      "description": "Use the built-in editor with Markdown guidance and hints."
+      "description": "Use the built-in editor with syntax highlighting and autocomplete."
     },
     "submit": {
       "title": "Submit & test",

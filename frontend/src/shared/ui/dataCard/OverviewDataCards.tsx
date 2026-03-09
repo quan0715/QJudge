@@ -15,26 +15,38 @@ export interface OverviewDataCardItem {
 
 interface OverviewDataCardsProps {
   items: OverviewDataCardItem[];
-  mode?: "grid" | "compact";
+  mode?: "grid" | "compact" | "raw";
+  className?: string;
 }
 
 export default function OverviewDataCards({
   items,
   mode = "grid",
+  className,
 }: OverviewDataCardsProps) {
-  const gridModeClass = mode === "compact" ? styles.gridCompact : styles.gridRegular;
+  const gridModeClass =
+    mode === "compact"
+      ? styles.gridCompact
+      : mode === "raw"
+        ? styles.gridRaw
+        : styles.gridRegular;
+  const cardModeClass =
+    mode === "compact"
+      ? styles.cardCompact
+      : mode === "raw"
+        ? styles.cardRaw
+        : styles.cardGrid;
 
   return (
-    <div className={`${styles.grid} ${gridModeClass}`}>
+    <div className={`${styles.grid} ${gridModeClass} ${className || ""}`}>
       {items.map((item) => {
         const Icon = item.icon;
         return (
-          <Tile
-            key={item.key}
-            className={`${styles.card} ${mode === "compact" ? styles.cardCompact : styles.cardGrid}`}
-          >
-            {Icon ? <Icon size={20} className={styles.icon} /> : null}
-            <span className={styles.label}>{item.label}</span>
+          <Tile key={item.key} className={`${styles.card} ${cardModeClass}`}>
+            <div className={styles.headerRow}>
+              {Icon ? <Icon size={16} className={styles.icon} /> : null}
+              <span className={styles.label}>{item.label}</span>
+            </div>
             <div className={styles.valueRow}>
               <span
                 className={`${styles.value} ${item.tone === "warning" ? styles.warningValue : ""}`}

@@ -346,9 +346,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         ];
 
   return (
-    <ContainerCard
-      className={styles.pane}
-    >
+    <ContainerCard className={styles.pane}>
       {error ? (
         <InlineNotification
           kind="warning"
@@ -487,213 +485,207 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
               <TabPanel key={detail} className={styles.tabPanel}>
                 {detail === "overview" ? (
                   <div className={styles.sectionStack}>
-                    <ContainerCard title={t("participantsDashboard.participantSummary", "參賽者摘要")} withLayer={false}>
-                      <div className={styles.sectionStack}>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{t("participants.headers.joinedAt", "加入時間")}</span>
-                          <span>{participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-"}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{t("participantsDashboard.startedAt", "開始作答")}</span>
-                          <span>{participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-"}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{t("participantsDashboard.leftAt", "最後離開")}</span>
-                          <span>{participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-"}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{t("participantsDashboard.submitReason", "交卷原因")}</span>
-                          <span>{participant.submitReason || "-"}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{t("participants.headers.lockReason", "鎖定原因")}</span>
-                          <span>{participant.lockReason || "-"}</span>
-                        </div>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
+                    <div className={styles.sectionStack}>
+                      <div className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{t("participants.headers.joinedAt", "加入時間")}</span>
+                        <span>{participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-"}</span>
                       </div>
-                    </ContainerCard>
+                      <div className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{t("participantsDashboard.startedAt", "開始作答")}</span>
+                        <span>{participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-"}</span>
+                      </div>
+                      <div className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{t("participantsDashboard.leftAt", "最後離開")}</span>
+                        <span>{participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-"}</span>
+                      </div>
+                      <div className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{t("participantsDashboard.submitReason", "交卷原因")}</span>
+                        <span>{participant.submitReason || "-"}</span>
+                      </div>
+                      <div className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{t("participants.headers.lockReason", "鎖定原因")}</span>
+                        <span>{participant.lockReason || "-"}</span>
+                      </div>
+                    </div>
                   </div>
                 ) : null}
 
                 {detail === "report" && dashboard.contestType === "paper_exam" ? (
                   <div className={styles.sectionStack}>
-                    <ContainerCard title={t("participantsDashboard.questionOverview", "題目總覽")} withLayer={false}>
-                      <PaperQuestionOverviewTable
-                        rows={dashboard.report.overviewRows.map((row) => {
-                          const questionDetail = dashboard.report.questionDetails.find(
-                            (detailRow) => detailRow.questionId === row.questionId,
-                          );
-                          return {
-                            id: row.questionId,
-                            index: row.index,
-                            prompt: questionDetail?.prompt || `Q${row.index}`,
-                            typeLabel: t(
-                              `questionTypes.${row.questionType}`,
-                              questionTypeLabel[row.questionType],
-                            ),
-                            maxScore: row.maxScore,
-                            scoreDisplay: row.score != null ? String(row.score) : "-",
-                            statusLabel: row.status.label,
-                            statusTone: toTagType(row.status),
-                          };
-                        })}
-                        showScore
-                      />
-                    </ContainerCard>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionOverview", "題目總覽")}</h5>
+                    <PaperQuestionOverviewTable
+                      rows={dashboard.report.overviewRows.map((row) => {
+                        const questionDetail = dashboard.report.questionDetails.find(
+                          (detailRow) => detailRow.questionId === row.questionId,
+                        );
+                        return {
+                          id: row.questionId,
+                          index: row.index,
+                          prompt: questionDetail?.prompt || `Q${row.index}`,
+                          typeLabel: t(
+                            `questionTypes.${row.questionType}`,
+                            questionTypeLabel[row.questionType],
+                          ),
+                          maxScore: row.maxScore,
+                          scoreDisplay: row.score != null ? String(row.score) : "-",
+                          statusLabel: row.status.label,
+                          statusTone: toTagType(row.status),
+                        };
+                      })}
+                      showScore
+                    />
 
-                    <ContainerCard title={t("participantsDashboard.questionDetails", "逐題詳情")} withLayer={false}>
-                      <div className={styles.questionList}>
-                        {dashboard.report.questionDetails.map((row) => (
-                          <div key={row.questionId} className={styles.questionItem}>
-                            <div className={styles.questionHeader}>
-                              <div>
-                                <div className={styles.primaryText}>
-                                  Q{row.index} · {t(`questionTypes.${row.questionType}`, questionTypeLabel[row.questionType])}
-                                </div>
-                                <div className={styles.secondaryText}>
-                                  {row.score ?? "-"} / {row.maxScore}
-                                  {row.gradedByUsername ? ` • ${row.gradedByUsername}` : ""}
-                                </div>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionDetails", "逐題詳情")}</h5>
+                    <div className={styles.questionList}>
+                      {dashboard.report.questionDetails.map((row) => (
+                        <div key={row.questionId} className={styles.questionItem}>
+                          <div className={styles.questionHeader}>
+                            <div>
+                              <div className={styles.primaryText}>
+                                Q{row.index} · {t(`questionTypes.${row.questionType}`, questionTypeLabel[row.questionType])}
                               </div>
-                              <Tag type={toTagType(row.status)}>{row.status.label}</Tag>
-                            </div>
-                            <div className={styles.questionBody}>
-                              <div className={styles.markdownBlock}>
-                                <MarkdownRenderer enableMath enableHighlight>
-                                  {row.prompt}
-                                </MarkdownRenderer>
+                              <div className={styles.secondaryText}>
+                                {row.score ?? "-"} / {row.maxScore}
+                                {row.gradedByUsername ? ` • ${row.gradedByUsername}` : ""}
                               </div>
-                              {renderAnswerSummary(row, t)}
-                              {row.feedback ? (
-                                <div>
-                                  <div className={styles.secondaryText}>
-                                    {t("participantsDashboard.feedback", "批改評語")}
-                                  </div>
-                                  <div className={styles.markdownBlock}>
-                                    <MarkdownRenderer enableMath enableHighlight>
-                                      {row.feedback}
-                                    </MarkdownRenderer>
-                                  </div>
-                                </div>
-                              ) : null}
                             </div>
+                            <Tag type={toTagType(row.status)}>{row.status.label}</Tag>
                           </div>
-                        ))}
-                      </div>
-                    </ContainerCard>
+                          <div className={styles.questionBody}>
+                            <div className={styles.markdownBlock}>
+                              <MarkdownRenderer enableMath enableHighlight>
+                                {row.prompt}
+                              </MarkdownRenderer>
+                            </div>
+                            {renderAnswerSummary(row, t)}
+                            {row.feedback ? (
+                              <div>
+                                <div className={styles.secondaryText}>
+                                  {t("participantsDashboard.feedback", "批改評語")}
+                                </div>
+                                <div className={styles.markdownBlock}>
+                                  <MarkdownRenderer enableMath enableHighlight>
+                                    {row.feedback}
+                                  </MarkdownRenderer>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
                 {detail === "report" && dashboard.contestType === "coding" ? (
                   <div className={styles.sectionStack}>
-                    <ContainerCard title={t("participantsDashboard.problemGrid", "題目成績摘要")} withLayer={false}>
-                      <div className={styles.problemList}>
-                        {dashboard.report.problemGrid.map((row: ParticipantCodingProblemRow) => (
-                          <div key={row.problemId} className={styles.problemItem}>
-                            <div className={styles.problemHeader}>
-                              <div>
-                                <div className={styles.primaryText}>{row.label} · {row.title}</div>
-                                <div className={styles.secondaryText}>
-                                  {row.difficulty || "-"} • {t("participantsDashboard.tries", "提交次數")} {row.tries}
-                                </div>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemGrid", "題目成績摘要")}</h5>
+                    <div className={styles.problemList}>
+                      {dashboard.report.problemGrid.map((row: ParticipantCodingProblemRow) => (
+                        <div key={row.problemId} className={styles.problemItem}>
+                          <div className={styles.problemHeader}>
+                            <div>
+                              <div className={styles.primaryText}>{row.label} · {row.title}</div>
+                              <div className={styles.secondaryText}>
+                                {row.difficulty || "-"} • {t("participantsDashboard.tries", "提交次數")} {row.tries}
                               </div>
-                              <div className={styles.inlineMeta}>
-                                {row.status ? <Tag>{row.status}</Tag> : null}
-                                <span>{row.score} / {row.maxScore}</span>
-                              </div>
+                            </div>
+                            <div className={styles.inlineMeta}>
+                              {row.status ? <Tag>{row.status}</Tag> : null}
+                              <span>{row.score} / {row.maxScore}</span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </ContainerCard>
+                        </div>
+                      ))}
+                    </div>
 
-                    <ContainerCard title={t("participantsDashboard.problemDetails", "題目詳情")} withLayer={false}>
-                      <div className={styles.problemList}>
-                        {dashboard.report.problemDetails.map((row: ParticipantCodingProblemDetail) => (
-                          <div key={row.problemId} className={styles.problemItem}>
-                            <div className={styles.problemHeader}>
-                              <div>
-                                <div className={styles.primaryText}>{row.label} · {row.title}</div>
-                                <div className={styles.secondaryText}>
-                                  {t("participantsDashboard.tries", "提交次數")} {row.tries}
-                                  {row.time != null ? ` • ${t("participantsDashboard.solveTime", "通過時間")} ${row.time}m` : ""}
-                                </div>
-                              </div>
-                              <div className={styles.inlineMeta}>
-                                {row.status ? <Tag>{row.status}</Tag> : null}
-                                <span>{row.score} / {row.maxScore}</span>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemDetails", "題目詳情")}</h5>
+                    <div className={styles.problemList}>
+                      {dashboard.report.problemDetails.map((row: ParticipantCodingProblemDetail) => (
+                        <div key={row.problemId} className={styles.problemItem}>
+                          <div className={styles.problemHeader}>
+                            <div>
+                              <div className={styles.primaryText}>{row.label} · {row.title}</div>
+                              <div className={styles.secondaryText}>
+                                {t("participantsDashboard.tries", "提交次數")} {row.tries}
+                                {row.time != null ? ` • ${t("participantsDashboard.solveTime", "通過時間")} ${row.time}m` : ""}
                               </div>
                             </div>
-                            {row.bestSubmission ? (
-                              <div className={styles.problemBody}>
-                                <div className={styles.inlineMeta}>
-                                  <span>
-                                    {t("participantsDashboard.bestSubmission", "最佳提交")} #{row.bestSubmission.id}
-                                  </span>
-                                  <Tag type="green">{row.bestSubmission.status}</Tag>
-                                  <span>{row.bestSubmission.language}</span>
-                                  <span>{new Date(row.bestSubmission.createdAt).toLocaleString()}</span>
-                                </div>
-                              </div>
-                            ) : null}
+                            <div className={styles.inlineMeta}>
+                              {row.status ? <Tag>{row.status}</Tag> : null}
+                              <span>{row.score} / {row.maxScore}</span>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </ContainerCard>
+                          {row.bestSubmission ? (
+                            <div className={styles.problemBody}>
+                              <div className={styles.inlineMeta}>
+                                <span>
+                                  {t("participantsDashboard.bestSubmission", "最佳提交")} #{row.bestSubmission.id}
+                                </span>
+                                <Tag type="green">{row.bestSubmission.status}</Tag>
+                                <span>{row.bestSubmission.language}</span>
+                                <span>{new Date(row.bestSubmission.createdAt).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
 
-                    <ContainerCard title={t("participantsDashboard.trendCharts", "提交趨勢")} withLayer={false}>
-                      <div className={styles.chartGrid}>
-                        <div className={styles.chartWrap}>
-                          {donutData.length > 0 ? (
-                            <DonutChart
-                              data={donutData}
-                              options={{
-                                title: "",
-                                donut: {
-                                  center: {
-                                    label: t("participantsDashboard.statusDistribution", "結果分佈"),
-                                  },
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.trendCharts", "提交趨勢")}</h5>
+                    <div className={styles.chartGrid}>
+                      <div className={styles.chartWrap}>
+                        {donutData.length > 0 ? (
+                          <DonutChart
+                            data={donutData}
+                            options={{
+                              title: "",
+                              donut: {
+                                center: {
+                                  label: t("participantsDashboard.statusDistribution", "結果分佈"),
                                 },
-                                height: "320px",
-                                theme: chartTheme,
-                                toolbar: { enabled: false },
-                              }}
-                            />
-                          ) : (
-                            <div className={styles.emptyState}>
-                              {t("participantsDashboard.noSubmissionData", "尚無提交資料")}
-                            </div>
-                          )}
-                        </div>
-                        <div className={styles.chartWrap}>
-                          {cumulativeData.length > 0 ? (
-                            <AreaChart
-                              data={cumulativeData}
-                              options={{
-                                title: "",
-                                axes: {
-                                  bottom: {
-                                    mapsTo: "date",
-                                    scaleType: ScaleTypes.TIME,
-                                  },
-                                  left: {
-                                    mapsTo: "value",
-                                    scaleType: ScaleTypes.LINEAR,
-                                  },
-                                },
-                                curve: "curveMonotoneX",
-                                height: "320px",
-                                theme: chartTheme,
-                                toolbar: { enabled: false },
-                              }}
-                            />
-                          ) : (
-                            <div className={styles.emptyState}>
-                              {t("participantsDashboard.noTrendData", "尚無可視化趨勢資料")}
-                            </div>
-                          )}
-                        </div>
+                              },
+                              height: "320px",
+                              theme: chartTheme,
+                              toolbar: { enabled: false },
+                            }}
+                          />
+                        ) : (
+                          <div className={styles.emptyState}>
+                            {t("participantsDashboard.noSubmissionData", "尚無提交資料")}
+                          </div>
+                        )}
                       </div>
-                    </ContainerCard>
+                      <div className={styles.chartWrap}>
+                        {cumulativeData.length > 0 ? (
+                          <AreaChart
+                            data={cumulativeData}
+                            options={{
+                              title: "",
+                              axes: {
+                                bottom: {
+                                  mapsTo: "date",
+                                  scaleType: ScaleTypes.TIME,
+                                },
+                                left: {
+                                  mapsTo: "value",
+                                  scaleType: ScaleTypes.LINEAR,
+                                },
+                              },
+                              curve: "curveMonotoneX",
+                              height: "320px",
+                              theme: chartTheme,
+                              toolbar: { enabled: false },
+                            }}
+                          />
+                        ) : (
+                          <div className={styles.emptyState}>
+                            {t("participantsDashboard.noTrendData", "尚無可視化趨勢資料")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : null}
 
@@ -702,21 +694,20 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                 ) : null}
 
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
-                  <ContainerCard
-                    title={t("participantsDashboard.evidenceSessions", "監控影片與轉檔狀態")}
-                    withLayer={false}
-                  >
+                  <div className={styles.sectionStack}>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.evidenceSessions", "監控影片與轉檔狀態")}</h5>
                     <ExamVideoReviewModal
                       contestId={contestId}
                       open={activeDetail === "evidence"}
                       userIdFilter={participant.userId}
                       canDelete={canDeleteExamVideos}
                     />
-                  </ContainerCard>
+                  </div>
                 ) : null}
 
                 {detail === "submissions" && dashboard.contestType === "coding" ? (
-                  <ContainerCard title={t("participantsDashboard.submissionRecords", "提交紀錄")} withLayer={false}>
+                  <div className={styles.sectionStack}>
+                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.submissionRecords", "提交紀錄")}</h5>
                     <div className={styles.submissionList}>
                       {codingSubmissions.isLoading ? (
                         <div className={styles.skeletonStack}>
@@ -778,7 +769,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         />
                       </div>
                     ) : null}
-                  </ContainerCard>
+                  </div>
                 ) : null}
               </TabPanel>
             ))}

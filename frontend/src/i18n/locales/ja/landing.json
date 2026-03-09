@@ -1,57 +1,58 @@
 {
   "hero": {
-    "title": "QJudge - プログラミング試験プラットフォーム",
-    "subtitle": "リアルタイム評価、試験不正防止、AI ティーチングアシスタントにより、教育と学習のプロセスをよりスムーズに。",
+    "title": "プロフェッショナルなプログラミングテストは QJudge から",
+    "subtitle": "リアルタイム評価、筆記試験形式、厳格な不正防止監視を統合し、講義や競技に最適な教育環境を提供します。",
     "signIn": "ログイン",
     "register": "登録",
     "badge": {
       "product": "QJudge",
-      "tagline": "プログラミング評価プラットフォーム"
-    },
-    "badges": {
-      "qjudge": "QJudge",
-      "oj": "Online Judge",
-      "carbon": "Carbon UI"
+      "tagline": "プロフェッショナルなプログラミングテストプラットフォーム"
     },
     "signal": {
       "realtime": "リアルタイム評価",
       "sandbox": "サンドボックス実行",
       "report": "詳細レポート"
+    },
+    "visual": {
+      "title": "プログラミングテストの流れ",
+      "desc": "Code -> Judge -> Verdict",
+      "proctoring": "監視状態",
+      "fullscreen": "フルスクリーンモード",
+      "detection": "タブ検知",
+      "violations": "違反回数",
+      "remaining": "残り時間"
     }
   },
   "feature": {
     "judge": {
-      "title": "優れた試験体験",
-      "description": "提出後、テストケースの結果、実行時間、メモリ情報を即座に返し、明確なデバッグコンテキストを提供します。"
+      "title": "卓越した評価体験",
+      "description": "20種類以上のプログラミング言語に対応し、実行時間やメモリ情報を即座に返却。正確なDiff比較とエラー追跡を提供します。"
+    },
+    "paper": {
+      "title": "筆記試験形式の統合 (Exam V2)",
+      "description": "コードだけではありません。選択式、正誤式、記述式などの筆記問題を統合し、LaTeX数式やMarkdownにも対応。一元的な多角的評価を可能にします。"
     },
     "antiCheat": {
-      "title": "不正防止システム",
-      "description": "試験モードは、違反イベントの記録、ステータスロック、管理者追跡をサポートし、公平なプログラミング試験プロセスを維持します。"
+      "title": "厳格な不正防止監視",
+      "description": "フルスクリーン強制ロック、タブ切り替え検知、録画証拠、AIによる違反分析で、オンライン試験の絶対的な公平性を確保します。"
     },
-    "ai": {
-      "title": "AI ティーチングアシスタント出題補助",
-      "description": "教師が問題の意図を整理し、問題のドラフトや教育コンテンツを作成するのを支援し、コースの準備を迅速かつ一貫した品質にします。"
+    "teacher": {
+      "title": "より使いやすい教員システム",
+      "description": "直感的な採点パネル、リアルタイム監視ダッシュボード、詳細な成績統計により、教員は事務作業ではなく教育に専念できます。"
     }
   },
   "features": {
-    "eyebrow": "主な機能",
-    "title": "モダンな開発フローに対応",
-    "multiLanguage": {
-      "title": "多言語対応",
-      "description": "Python、C++、Java、JavaScript などを即時コンパイル。"
-    },
-    "analytics": {
-      "title": "リアルタイム分析",
-      "description": "詳細な結果と実行時間・メモリ統計で最適化を支援。"
-    },
-    "contest": {
-      "title": "コンテスト",
-      "description": "ライブランキング付きのコンテストを開催可能。"
-    },
-    "lab": {
-      "title": "ラボモード",
-      "description": "課題セット管理と進捗トラッキングをサポート。"
-    }
+    "eyebrow": "核心的価値",
+    "title": "教育現場のために設計された強力な機能"
+  },
+  "exam": {
+    "eyebrow": "Exam V2",
+    "title": "あらゆる試験に対応する体験",
+    "description": "プログラミングから一般教養まで、QJudgeがフルサポート。内蔵のLaTeX数式とMarkdownエディタにより、出題も解答もスムーズに行えます。",
+    "tag1": "LaTeX 対応",
+    "tag2": "多様な問題形式",
+    "tag3": "自動採点",
+    "preview_text": "次の積分を計算してください："
   },
   "miniJudge": {
     "eyebrow": "インタラクティブデモ",
@@ -82,7 +83,7 @@
     },
     "code": {
       "title": "コードを書く",
-      "description": "組み込みエディタで Markdown ガイド付き。"
+      "description": "組み込みエディタで構文ハイライトと自動補完をサポート。"
     },
     "submit": {
       "title": "提出・採点",
@@ -129,7 +130,7 @@
     },
     "university": {
       "title": "パートナー",
-      "value": "国立陽明交通大學"
+      "value": "国立陽明交通大学"
     }
   },
   "stats": {

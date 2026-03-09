@@ -19,6 +19,9 @@
 
   min-height: 100vh;
   background: var(--landing-page-bg);
+  background-image: 
+    radial-gradient(circle at 2px 2px, var(--cds-border-subtle-01) 1px, transparent 0);
+  background-size: 40px 40px;
   color: var(--cds-text-primary);
   position: relative;
   overflow-x: hidden;
@@ -159,6 +162,16 @@
 
 .landing__hero-visual {
   display: flex;
+  animation: landing-float 6s ease-in-out infinite;
+}
+
+@keyframes landing-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 .landing__hero-visual-panel {

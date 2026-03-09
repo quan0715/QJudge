@@ -38,28 +38,37 @@ const LandingScreen = () => {
   const features = [
     {
       icon: <Code size={24} />,
-      title: t("landing.feature.judge.title", { defaultValue: "良好的測驗體驗" }),
+      title: t("landing.feature.judge.title", { defaultValue: "卓越的評測體驗" }),
       description: t("landing.feature.judge.description", {
         defaultValue:
-          "提交後即時回傳測資結果、執行時間與記憶體資訊，並提供清楚的除錯脈絡。",
+          "支援 20+ 種程式語言，秒級回傳執行時間與記憶體資訊，並提供精確的 Diff 比對與錯誤追蹤。",
       }),
       color: "primary" as const,
     },
     {
+      icon: <DocumentMultiple_01 size={24} />,
+      title: t("landing.feature.paper.title", { defaultValue: "紙筆題型整合" }),
+      description: t("landing.feature.paper.description", {
+        defaultValue:
+          "整合選擇、是非、問答等紙筆題型，支援 LaTeX 數學公式與 Markdown 排版，一站式完成多元評量。",
+      }),
+      color: "magenta" as const,
+    },
+    {
       icon: <UserMultiple size={24} />,
-      title: t("landing.feature.antiCheat.title", { defaultValue: "防作弊系統" }),
+      title: t("landing.feature.antiCheat.title", { defaultValue: "嚴格的防作弊監控" }),
       description: t("landing.feature.antiCheat.description", {
         defaultValue:
-          "考場模式支援違規事件記錄、狀態鎖定與管理端追蹤，維持公平的程式測驗流程。",
+          "全螢幕強制鎖定、分頁切換偵測、視訊存證與 AI 違規分析，確保線上考試的絕對公平性。",
       }),
       color: "teal" as const,
     },
     {
       icon: <MagicWand size={24} />,
-      title: t("landing.feature.ai.title", { defaultValue: "AI 助教出題輔助" }),
-      description: t("landing.feature.ai.description", {
+      title: t("landing.feature.teacher.title", { defaultValue: "更友善的教師系統" }),
+      description: t("landing.feature.teacher.description", {
         defaultValue:
-          "協助教師整理題意、產生題目草稿與教學內容，讓課程準備更快且品質一致。",
+          "直觀的批改面板、即時監考儀表板與詳細的成績統計，讓教師能將時間花在教學而非管理。",
       }),
       color: "purple" as const,
     },
@@ -169,16 +178,16 @@ const LandingScreen = () => {
         <div className="landing__section-inner">
           <div className="landing__section-header">
             <p className="landing__eyebrow">
-              {t("landing.features.eyebrow", { defaultValue: "核心功能" })}
+              {t("landing.features.eyebrow", { defaultValue: "核心價值" })}
             </p>
             <h2 className="landing__section-title">
-              {t("landing.features.title", { defaultValue: "讓程式測驗與教學更順暢" })}
+              {t("landing.features.title", { defaultValue: "專為教學現場設計的強大功能" })}
             </h2>
           </div>
 
           <Grid fullWidth className="landing__features-grid">
             {features.map((feature) => (
-              <Column key={feature.title} sm={4} md={4} lg={5}>
+              <Column key={feature.title} sm={4} md={4} lg={4}>
                 <LandingFeatureCard
                   icon={feature.icon}
                   title={feature.title}
@@ -187,6 +196,72 @@ const LandingScreen = () => {
                 />
               </Column>
             ))}
+          </Grid>
+        </div>
+      </section>
+
+      <section className="landing__section landing__section--ai">
+        <div className="landing__section-inner">
+          <Grid fullWidth>
+            <Column sm={4} md={4} lg={6}>
+              <div className="landing__ai-content">
+                <p className="landing__eyebrow">
+                  {t("landing.exam.eyebrow", { defaultValue: "Exam V2" })}
+                </p>
+                <h2 className="landing__section-title">
+                  {t("landing.exam.title", { defaultValue: "全方位的測驗體驗" })}
+                </h2>
+                <p className="landing__ai-desc">
+                  {t("landing.exam.description", {
+                    defaultValue:
+                      "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
+                  })}
+                </p>
+                <div className="landing__cta-row">
+                  <Tag type="cyan" size="md">{t("landing.exam.tag1", { defaultValue: "LaTeX 支援" })}</Tag>
+                  <Tag type="purple" size="md">{t("landing.exam.tag2", { defaultValue: "多樣題型" })}</Tag>
+                  <Tag type="green" size="md">{t("landing.exam.tag3", { defaultValue: "自動批改" })}</Tag>
+                </div>
+              </div>
+            </Column>
+            <Column sm={4} md={4} lg={10}>
+              <div className="landing-hero-ui__window" style={{ marginTop: "2rem" }}>
+                <div className="landing-hero-ui__titlebar">
+                  <span className="landing-hero-ui__window-title">Question Editor - Math Quiz</span>
+                </div>
+                <div className="landing-hero-ui__content" style={{ padding: "1.5rem" }}>
+                  <div style={{ color: "var(--cds-text-primary)", fontSize: "0.9rem" }}>
+                    <p style={{ marginBottom: "1rem" }}>{t("landing.exam.preview_text", { defaultValue: "請計算下列積分：" })}</p>
+                    <div style={{ 
+                      padding: "1rem", 
+                      background: "var(--cds-layer-02)", 
+                      borderRadius: "4px", 
+                      textAlign: "center",
+                      fontSize: "1.2rem",
+                      marginBottom: "1rem",
+                      border: "1px solid var(--cds-border-subtle-01)"
+                    }}>
+                      $$\int_{0}^{\infty} e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} style={{ 
+                          padding: "0.5rem 1rem", 
+                          border: "1px solid var(--cds-border-subtle-01)",
+                          borderRadius: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem"
+                        }}>
+                          <div style={{ width: "12px", height: "12px", borderRadius: "50%", border: "1px solid var(--cds-text-secondary)" }} />
+                          <div style={{ width: "40%", height: "8px", background: "var(--cds-border-subtle-01)", borderRadius: "4px" }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Column>
           </Grid>
         </div>
       </section>
