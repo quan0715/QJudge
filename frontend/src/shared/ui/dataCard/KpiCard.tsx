@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import styles from "./DataCard.module.scss";
 
 export interface KpiCardProps {
@@ -32,7 +32,7 @@ export const KpiCard = ({
   value,
   label,
   showBorder = true,
-  active = false,
+  active,
   onClick,
   className,
   style,
@@ -40,11 +40,11 @@ export const KpiCard = ({
   return (
     <div
       className={`${styles.card} ${styles.kpi} ${showBorder ? styles.kpiBorder : ""} ${active ? styles.kpiActive : ""} ${className || ""}`}
-      style={style}
+      style={{ ...style, cursor: onClick ? "pointer" : undefined }}
       onClick={onClick}
-      onKeyDown={onClick ? (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       aria-pressed={onClick ? active : undefined}
     >
       <div className={styles.kpiIcon}>{renderIconNode(icon)}</div>

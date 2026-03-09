@@ -525,7 +525,6 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
                 "size_bytes": size_bytes,
             },
         )
-        _delete_raw_keys(client, raw_bucket, raw_keys)
         job.status = EvidenceJobStatus.SUCCESS
         job.video_bucket = video_bucket
         job.video_key = video_key

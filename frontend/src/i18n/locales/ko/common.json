@@ -2,12 +2,11 @@
   "nav": {
     "dashboard": "대시보드",
     "problems": "문제",
-    "labs": "랩",
     "contests": "대회",
+    "classrooms": "교실",
     "submissions": "제출 기록",
     "ranking": "랭킹",
     "documentation": "문서",
-    "docs": "문서",
     "backToProblemList": "문제 목록으로 돌아가기",
     "problemList": "문제 목록",
     "back": "뒤로"
@@ -22,14 +21,11 @@
     "login": "로그인",
     "register": "회원가입",
     "userManagement": "사용자 관리",
-    "problemManagement": "문제 관리",
-    "contestManagement": "대회 관리",
     "announcements": "공지 관리",
     "environment": "환경 설정",
     "createContest": "대회 생성",
     "createProblem": "문제 생성",
-    "editProblem": "문제 편집",
-    "teacherDashboard": "교사 대시보드"
+    "editProblem": "문제 편집"
   },
   "tab": {
     "overview": "개요",
@@ -38,31 +34,26 @@
     "standings": "순위",
     "clarifications": "질문",
     "settings": "설정",
-    "participants": "참가자",
-    "logs": "로그",
-    "manageProblems": "문제 관리",
     "description": "문제 설명",
-    "solver": "풀이",
-    "history": "기록",
-    "stats": "통계"
+    "solver": "풀이"
   },
   "header": {
-    "appSwitcher": "기능 메뉴",
+    "platform": "QJudge 플랫폼",
+    "prefix": "양명교통대학",
+    "menu": "메뉴",
+    "sideNav": "사이드 탐색",
     "userMenu": "사용자 메뉴",
-    "management": "관리",
-    "system": "시스템",
-    "navigation": "빠른 탐색",
-    "account": "계정",
     "problemManagement": "문제 관리",
     "createContest": "대회 생성",
-    "createLab": "랩 생성",
     "userManagement": "사용자 관리",
     "announcements": "공지 관리",
     "environmentSettings": "환경 설정",
     "teacherDashboard": "교사 대시보드",
     "systemSettings": "시스템 설정",
     "contestManagement": "대회 관리",
-    "labManagement": "문제집 관리"
+    "mainNavigation": "메인 탐색",
+    "contestNavigation": "대회 탐색",
+    "adminNavigation": "관리 탐색"
   },
   "dashboard": {
     "welcomeBack": "환영합니다, {{name}}",
@@ -70,6 +61,7 @@
     "stats": {
       "title": "풀이 통계",
       "problems": "문제",
+      "solvedCount": "/ {{total}} 해결됨",
       "noStats": "통계 데이터를 불러올 수 없습니다"
     },
     "difficulty": {
@@ -77,16 +69,21 @@
       "medium": "보통",
       "hard": "어려움"
     },
+    "classrooms": {
+      "title": "내 교실",
+      "subtitle": "가입된 교실"
+    },
     "contests": {
       "title": "예정된 대회",
       "noContests": "예정된 대회가 없습니다",
       "upcoming": "예정",
-      "ongoing": "진행 중",
+      "ongoing": "진행 중인 대회만 표시",
       "ended": "종료",
       "participated": "참가함"
     },
     "announcements": {
       "title": "공지사항",
+      "subtitle": "최신 공지사항",
       "noAnnouncements": "공지사항이 없습니다"
     }
   },
@@ -157,6 +154,9 @@
     "wrongPassword": "현재 비밀번호가 올바르지 않습니다",
     "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다"
   },
+  "settings": {
+    "title": "설정"
+  },
   "table": {
     "title": "제목",
     "status": "상태",
@@ -226,7 +226,8 @@
     "connected": "연결됨",
     "disconnected": "연결 안 됨",
     "enabled": "활성화됨",
-    "disabled": "비활성화됨"
+    "disabled": "비활성화됨",
+    "solved": "해결됨"
   },
   "action": {
     "adding": "추가 중...",
@@ -239,7 +240,8 @@
     "processing": "처리 중...",
     "pleaseWait": "잠시만 기다려주세요",
     "refreshing": "새로고침 중...",
-    "refresh": "새로고침"
+    "refresh": "새로고침",
+    "viewProblem": "문제 보기"
   },
   "difficulty": {
     "easy": "쉬움",
@@ -275,5 +277,24 @@
     "hide": "숨기기",
     "allow": "허용",
     "forbid": "금지"
+  },
+  "classroom": {
+    "members": "명"
+  },
+  "questionType": {
+    "label": {
+      "true_false": "O/X 문제",
+      "single_choice": "단일 선택",
+      "multiple_choice": "다중 선택",
+      "short_answer": "단답형",
+      "essay": "서술형"
+    },
+    "description": {
+      "true_false": "문장이 맞는지 틀린지 판단",
+      "single_choice": "여러 옵션에서 하나의 정답을 선택",
+      "multiple_choice": "여러 옵션에서 여러 정답을 선택",
+      "short_answer": "짧은 텍스트로 답변 입력",
+      "essay": "긴 텍스트로 답변 (참고 답안 지원)"
+    }
   }
 }

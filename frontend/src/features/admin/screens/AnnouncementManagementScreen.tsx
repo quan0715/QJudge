@@ -152,7 +152,6 @@ const AnnouncementManagementScreen = () => {
           >
             <TableToolbar>
               <TableToolbarContent>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <TableToolbarSearch
                   onChange={(e: any) =>
                     setSearchTerm(e.target ? e.target.value : "")

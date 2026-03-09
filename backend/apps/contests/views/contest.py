@@ -14,6 +14,7 @@ from ..models import (
     Contest,
     ContestParticipant,
     ContestProblem,
+    ExamEvidenceJob,
     ExamStatus,
 )
 from ..serializers import (
@@ -474,6 +475,21 @@ class ContestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
 
         username = participant.user.username
+
+        # Block removal if participant has evidence data (screenshots/videos)
+        has_evidence = ExamEvidenceJob.objects.filter(participant=participant).exists()
+        if has_evidence:
+            return Response(
+                {
+                    'error': (
+                        f'Cannot remove participant {username}: '
+                        'exam evidence data exists. '
+                        'Delete evidence first or use the evidence management API.'
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         participant.delete()
 
         # Log activity

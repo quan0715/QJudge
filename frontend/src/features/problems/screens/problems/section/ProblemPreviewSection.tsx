@@ -1,6 +1,7 @@
 import React from "react";
 import { ClickableTile, SkeletonText, Layer, Stack } from "@carbon/react";
 import { CheckmarkFilled, ArrowRight } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { Problem } from "@/core/entities/problem.entity";
 import { DifficultyBadge, CategoryTag, AcrBadge } from "@/shared/ui/tag";
 import "./ProblemPreviewSection.scss";
@@ -14,6 +15,7 @@ export const ProblemPreviewSection: React.FC<ProblemPreviewSectionProps> = ({
   problem,
   onSelect,
 }) => {
+  const { t: tc } = useTranslation("common");
   const tagNames = Array.isArray(problem.tags)
     ? problem.tags.map((t) => t.name).filter(Boolean)
     : [];
@@ -42,13 +44,13 @@ export const ProblemPreviewSection: React.FC<ProblemPreviewSectionProps> = ({
             <CheckmarkFilled
               className="problem-preview-card__status-icon problem-preview-card__status-icon--success"
               size={20}
-              aria-label="Solved"
+              aria-label={tc("status.solved")}
             />
           ) : (
             <ArrowRight
               className="problem-preview-card__status-icon"
               size={20}
-              aria-label="View problem"
+              aria-label={tc("action.viewProblem")}
             />
           )}
         </div>

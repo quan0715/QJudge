@@ -34,7 +34,7 @@ export default function QuestionSidebarScreen({
                   marginTop: "2px",
                 }}
               >
-                {t(`questionTypes.${q.questionType}`, q.questionType)}
+                {t(`common:questionType.label.${q.questionType}`, q.questionType)}
               </div>
             </div>
             <span

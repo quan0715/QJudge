@@ -2,12 +2,11 @@
   "nav": {
     "dashboard": "ダッシュボード",
     "problems": "問題",
-    "labs": "ラボ",
     "contests": "コンテスト",
+    "classrooms": "教室",
     "submissions": "提出履歴",
     "ranking": "ランキング",
     "documentation": "ドキュメント",
-    "docs": "ドキュメント",
     "backToProblemList": "問題一覧に戻る",
     "problemList": "問題一覧",
     "back": "戻る"
@@ -22,14 +21,11 @@
     "login": "ログイン",
     "register": "登録",
     "userManagement": "ユーザー管理",
-    "problemManagement": "問題管理",
-    "contestManagement": "コンテスト管理",
     "announcements": "お知らせ管理",
     "environment": "環境設定",
     "createContest": "コンテスト作成",
     "createProblem": "問題作成",
-    "editProblem": "問題編集",
-    "teacherDashboard": "教師ダッシュボード"
+    "editProblem": "問題編集"
   },
   "tab": {
     "overview": "概要",
@@ -38,31 +34,26 @@
     "standings": "順位表",
     "clarifications": "質問",
     "settings": "設定",
-    "participants": "参加者",
-    "logs": "ログ",
-    "manageProblems": "問題管理",
     "description": "問題文",
-    "solver": "解答",
-    "history": "履歴",
-    "stats": "統計"
+    "solver": "解答"
   },
   "header": {
-    "appSwitcher": "機能メニュー",
+    "platform": "QJudge プラットフォーム",
+    "prefix": "陽明交通大学",
+    "menu": "メニュー",
+    "sideNav": "サイドナビゲーション",
     "userMenu": "ユーザーメニュー",
-    "management": "管理",
-    "system": "システム",
-    "navigation": "クイックナビ",
-    "account": "アカウント",
     "problemManagement": "問題管理",
     "createContest": "コンテスト作成",
-    "createLab": "ラボ作成",
     "userManagement": "ユーザー管理",
     "announcements": "お知らせ管理",
     "environmentSettings": "環境設定",
     "teacherDashboard": "教師ダッシュボード",
     "systemSettings": "システム設定",
     "contestManagement": "コンテスト管理",
-    "labManagement": "問題集管理"
+    "mainNavigation": "メインナビゲーション",
+    "contestNavigation": "コンテストナビゲーション",
+    "adminNavigation": "管理ナビゲーション"
   },
   "dashboard": {
     "welcomeBack": "おかえりなさい、{{name}}",
@@ -70,6 +61,7 @@
     "stats": {
       "title": "解答統計",
       "problems": "問",
+      "solvedCount": "/ {{total}} 解決済み",
       "noStats": "統計データを読み込めません"
     },
     "difficulty": {
@@ -77,16 +69,21 @@
       "medium": "普通",
       "hard": "難しい"
     },
+    "classrooms": {
+      "title": "私の教室",
+      "subtitle": "参加している教室"
+    },
     "contests": {
       "title": "近日のコンテスト",
       "noContests": "近日のコンテストはありません",
       "upcoming": "開催予定",
-      "ongoing": "開催中",
+      "ongoing": "開催中のコンテストのみ表示",
       "ended": "終了",
       "participated": "参加済み"
     },
     "announcements": {
       "title": "お知らせ",
+      "subtitle": "最新のお知らせ",
       "noAnnouncements": "お知らせはありません"
     }
   },
@@ -157,6 +154,9 @@
     "wrongPassword": "現在のパスワードが間違っています",
     "oauthUser": "OAuthユーザーはパスワードを変更できません"
   },
+  "settings": {
+    "title": "設定"
+  },
   "table": {
     "title": "タイトル",
     "status": "状態",
@@ -226,7 +226,8 @@
     "connected": "接続済み",
     "disconnected": "未接続",
     "enabled": "有効",
-    "disabled": "無効"
+    "disabled": "無効",
+    "solved": "解決済み"
   },
   "action": {
     "adding": "追加中...",
@@ -239,7 +240,8 @@
     "processing": "処理中...",
     "pleaseWait": "お待ちください",
     "refreshing": "更新中...",
-    "refresh": "更新"
+    "refresh": "更新",
+    "viewProblem": "問題を見る"
   },
   "difficulty": {
     "easy": "簡単",
@@ -275,5 +277,24 @@
     "hide": "非表示",
     "allow": "許可",
     "forbid": "禁止"
+  },
+  "classroom": {
+    "members": "メンバー"
+  },
+  "questionType": {
+    "label": {
+      "true_false": "○×問題",
+      "single_choice": "単一選択",
+      "multiple_choice": "複数選択",
+      "short_answer": "短答",
+      "essay": "記述"
+    },
+    "description": {
+      "true_false": "文が正しいか正しくないか判断",
+      "single_choice": "複数の選択肢から1つの正解を選択",
+      "multiple_choice": "複数の選択肢から複数の正解を選択",
+      "short_answer": "短いテキストを入力して回答",
+      "essay": "長文テキストで回答（参考解答あり）"
+    }
   }
 }

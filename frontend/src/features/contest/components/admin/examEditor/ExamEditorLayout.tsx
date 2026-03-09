@@ -26,6 +26,7 @@ import {
 } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import WorkTree from "./WorkTree";
 import ExamQuestionEditCard from "./ExamQuestionEditCard";
 import { useTranslation } from "react-i18next";
@@ -466,31 +467,33 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     [contestId, questions, selectedId, confirm, loadQuestions, showToast],
   );
 
+  const sidebarContent = (
+    <WorkTree
+      questions={questions}
+      selectedId={selectedId}
+      frozen={frozen}
+      loading={loading && questions.length === 0}
+      onSelect={handleSelect}
+      onAdd={() => openTypePicker()}
+      onDelete={handleDelete}
+      onReorder={handleReorder}
+    />
+  );
+
   return (
     <>
-      <div className={styles.editorLayout}>
-        {/* Left: WorkTree */}
-        <div className={styles.workTreePane}>
-          <WorkTree
-            questions={questions}
-            selectedId={selectedId}
-            frozen={frozen}
-            loading={loading && questions.length === 0}
-            onSelect={handleSelect}
-            onAdd={() => openTypePicker()}
-            onDelete={handleDelete}
-            onReorder={handleReorder}
-          />
-        </div>
-
-        {/* Right: card list with drag-to-reorder */}
+      <AdminSplitLayout
+        sidebar={sidebarContent}
+        contentMaxWidth={720}
+        contentClassName={styles.editorPane}
+        ref={editorPaneRef}
+      >
         <Reorder.Group
           axis="y"
           values={questions}
           onReorder={handleReorder}
           as="div"
-          className={styles.editorPane}
-          ref={editorPaneRef}
+          className={styles.reorderGroup}
         >
           {questions.map((q, i) => (
             <CardReorderItem
@@ -521,7 +524,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
             </div>
           )}
         </Reorder.Group>
-      </div>
+      </AdminSplitLayout>
 
       {/* Type picker dialog */}
       <Modal
@@ -544,10 +547,10 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                 <Icon size={24} />
                 <div className={styles.typePickerInfo}>
                   <span className={styles.typePickerLabel}>
-                    {t(`questionTypes.${type}`, type)}
+                    {t(`common:questionType.label.${type}`, type)}
                   </span>
                   <span className={styles.typePickerDesc}>
-                    {t(`questionTypeDescriptions.${type}`, "")}
+                    {t(`common:questionType.description.${type}`, "")}
                   </span>
                 </div>
               </button>

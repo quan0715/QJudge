@@ -18,6 +18,7 @@ EVENT_PRIORITY: dict[str, int] = {
     'forbidden_action': 2,
     'capture_upload_degraded': 2,
     'screen_share_invalid_surface': 2,
+    'screen_share_restored': 2,
     # P3: Lifecycle / management
     'exam_entered': 3,
     'exam_submit_initiated': 3,

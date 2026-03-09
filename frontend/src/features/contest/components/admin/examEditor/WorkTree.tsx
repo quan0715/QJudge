@@ -73,7 +73,7 @@ const TreeItem: React.FC<{
               type={(TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
               size="sm"
             >
-              {t(`questionTypes.${question.questionType}`, question.questionType)}
+              {t(`common:questionType.label.${question.questionType}`, question.questionType)}
             </Tag>
             <span className={styles.itemScore}>{question.score}pt</span>
           </div>

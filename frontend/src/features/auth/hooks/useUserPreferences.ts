@@ -100,7 +100,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       setLoading(false);
       globalIsLoading = false;
     }
-  }, [user, setPreference]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, setPreference]);  
 
   // Load preferences on mount or when user changes
   useEffect(() => {

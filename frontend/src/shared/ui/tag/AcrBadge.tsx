@@ -1,5 +1,6 @@
 import React from "react";
 import { Tag } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import "./TagStyle.scss";
 
 export interface AcrBadgeProps {
@@ -26,9 +27,11 @@ export const AcrBadge: React.FC<AcrBadgeProps> = ({
   value,
   size = "md",
   className,
-  label = "AC Rate",
+  label: propLabel,
 }) => {
+  const { t } = useTranslation("problem");
   const rate = formatRate(value);
+  const label = propLabel || t("list.acrRate", "AC Rate");
   const display = `${label}: ${rate.toFixed(1).replace(/\.0$/, "")}%`;
   const tagClass = className
     ? `${className} tag-line acr-badge`

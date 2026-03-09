@@ -7,7 +7,7 @@ describe("Difficulty Config", () => {
     it("should have config for easy difficulty", () => {
       expect(DIFFICULTY_CONFIG["easy"]).toEqual({
         color: "green",
-        label: "簡單",
+        labelKey: "difficulty.easy",
         type: "green",
       });
     });
@@ -15,7 +15,7 @@ describe("Difficulty Config", () => {
     it("should have config for medium difficulty", () => {
       expect(DIFFICULTY_CONFIG["medium"]).toEqual({
         color: "cyan",
-        label: "中等",
+        labelKey: "difficulty.medium",
         type: "cyan",
       });
     });
@@ -23,7 +23,7 @@ describe("Difficulty Config", () => {
     it("should have config for hard difficulty", () => {
       expect(DIFFICULTY_CONFIG["hard"]).toEqual({
         color: "red",
-        label: "困難",
+        labelKey: "difficulty.hard",
         type: "red",
       });
     });
@@ -34,7 +34,7 @@ describe("Difficulty Config", () => {
       const config = getDifficultyConfig("easy");
 
       expect(config.color).toBe("green");
-      expect(config.label).toBe("簡單");
+      expect(config.labelKey).toBe("difficulty.easy");
       expect(config.type).toBe("green");
     });
 
@@ -42,7 +42,7 @@ describe("Difficulty Config", () => {
       const config = getDifficultyConfig("medium");
 
       expect(config.color).toBe("cyan");
-      expect(config.label).toBe("中等");
+      expect(config.labelKey).toBe("difficulty.medium");
       expect(config.type).toBe("cyan");
     });
 
@@ -50,7 +50,7 @@ describe("Difficulty Config", () => {
       const config = getDifficultyConfig("hard");
 
       expect(config.color).toBe("red");
-      expect(config.label).toBe("困難");
+      expect(config.labelKey).toBe("difficulty.hard");
       expect(config.type).toBe("red");
     });
 
@@ -60,7 +60,7 @@ describe("Difficulty Config", () => {
 
       expect(config).toEqual({
         color: "gray",
-        label: "expert",
+        labelKey: "expert",
         type: "gray",
       });
     });
@@ -71,7 +71,7 @@ describe("Difficulty Config", () => {
       difficulties.forEach((diff) => {
         const config = getDifficultyConfig(diff);
         expect(config).toHaveProperty("color");
-        expect(config).toHaveProperty("label");
+        expect(config).toHaveProperty("labelKey");
         expect(config).toHaveProperty("type");
       });
     });

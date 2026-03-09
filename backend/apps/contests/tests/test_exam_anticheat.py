@@ -612,3 +612,103 @@ class ExamAntiCheatTests(APITestCase):
                 upload_session_id="session-delete-blocked",
             ).exists()
         )
+
+
+class ScreenShareEventTests(APITestCase):
+    """Tests for screen share stop/restore event lifecycle."""
+
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            username="ss_teacher", email="ss_teacher@test.com", password="pw", role="teacher"
+        )
+        self.student = User.objects.create_user(
+            username="ss_student", email="ss_student@test.com", password="pw", role="student"
+        )
+        now = timezone.now()
+        self.contest = Contest.objects.create(
+            name="Screen Share Test",
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            owner=self.teacher,
+            status="published",
+            cheat_detection_enabled=True,
+            max_cheat_warnings=3,
+        )
+        self.participant = ContestParticipant.objects.create(
+            contest=self.contest,
+            user=self.student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=now,
+        )
+        self.events_url = reverse("contests:contest-exam-events", args=[self.contest.id])
+
+    # ------------------------------------------------------------------
+    # screen_share_stopped immediately locks (P0 event)
+    # ------------------------------------------------------------------
+    def test_screen_share_stopped_immediately_locks(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(
+            self.events_url,
+            {"event_type": "screen_share_stopped", "metadata": {"reason": "user_stopped_sharing"}},
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+
+        # Event is recorded
+        self.assertTrue(
+            ExamEvent.objects.filter(
+                contest=self.contest, user=self.student, event_type="screen_share_stopped"
+            ).exists()
+        )
+
+    # ------------------------------------------------------------------
+    # screen_share_restored is accepted as a valid event (no penalty)
+    # ------------------------------------------------------------------
+    def test_screen_share_restored_is_valid_and_no_penalty(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(
+            self.events_url,
+            {"event_type": "screen_share_restored", "metadata": {"reason": "user_reshared"}},
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(resp.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+
+        self.assertTrue(
+            ExamEvent.objects.filter(
+                contest=self.contest, user=self.student, event_type="screen_share_restored"
+            ).exists()
+        )
+
+    # ------------------------------------------------------------------
+    # screen_share_stopped on already-submitted exam does not re-lock
+    # ------------------------------------------------------------------
+    def test_screen_share_stopped_after_submit_no_lock(self):
+        self.participant.exam_status = ExamStatus.SUBMITTED
+        self.participant.save(update_fields=["exam_status"])
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(
+            self.events_url,
+            {
+                "event_type": "screen_share_stopped",
+                "metadata": {"phase": "TERMINAL", "event_idempotency_key": "post-submit-1"},
+            },
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(resp.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)

@@ -26,7 +26,7 @@ export const EXAM_STATUS_LABELS: Record<ExamStatusType, string> = {
 };
 
 export function getQuestionTypeLabel(type: ExamQuestionType): string {
-  return i18n.t(`contest:questionTypes.${type}`, QUESTION_TYPE_LABELS[type]);
+  return i18n.t(`common:questionType.label.${type}`, QUESTION_TYPE_LABELS[type]);
 }
 
 export function getExamStatusLabel(status: ExamStatusType): string {

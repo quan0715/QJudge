@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Pagination, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
 import styles from "./GradingByStudent.module.scss";
@@ -107,103 +108,110 @@ export default function GradingByStudentTabScreen({
     setSelectedAnswerIdx(0);
   }, [filtered, currentStudentFilteredIdx, hasNextStudent]);
 
-  return (
-    <div className={styles.threeColStudent}>
-      {/* Left: Student card list */}
-      <div className={styles.twoColLeft}>
-        <div className={styles.cardList}>
-          {paginated.length === 0 ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyStateDesc}>
-                {searchQuery.trim()
-                  ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
-                  : t("grading.noStudents", "尚無學生資料")}
-              </span>
-            </div>
-          ) : (
-            paginated.map((s) => {
-              const isSelected = s.studentId === selectedStudentId;
-              return (
-                <div
-                  key={s.studentId}
-                  className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
-                  onClick={() => handleStudentSelect(s.studentId)}
-                >
-                  <div className={styles.cardPrimary}>
-                    <span>{s.nickname}</span>
-                    <span>
-                      <span style={{ fontWeight: 600 }}>{s.totalScore}</span>
-                      <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.8125rem" }}>
-                        {" "}/ {s.maxPossible}
-                      </span>
+  const sidebarContent = (
+    <>
+      <div className={styles.cardList}>
+        {paginated.length === 0 ? (
+          <div className={styles.emptyState}>
+            <span className={styles.emptyStateDesc}>
+              {searchQuery.trim()
+                ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
+                : t("grading.noStudents", "尚無學生資料")}
+            </span>
+          </div>
+        ) : (
+          paginated.map((s) => {
+            const isSelected = s.studentId === selectedStudentId;
+            return (
+              <div
+                key={s.studentId}
+                className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
+                onClick={() => handleStudentSelect(s.studentId)}
+              >
+                <div className={styles.cardPrimary}>
+                  <span>{s.nickname}</span>
+                  <span>
+                    <span style={{ fontWeight: 600 }}>{s.totalScore}</span>
+                    <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.8125rem" }}>
+                      {" "}/ {s.maxPossible}
                     </span>
-                  </div>
-                  <div className={styles.cardSecondary}>
-                    <span>{s.username}</span>
-                    {s.totalCount === 0 ? (
-                      <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
-                    ) : s.gradedCount === s.totalCount ? (
-                      <Tag type="green" size="sm">{t("grading.complete", "完成")}</Tag>
-                    ) : (
-                      <span>{s.gradedCount}/{s.totalCount} {t("grading.complete", "完成")}</span>
-                    )}
-                  </div>
+                  </span>
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        <Pagination
-          totalItems={filtered.length}
-          backwardText={t("common.prevPage", "上一頁")}
-          forwardText={t("common.nextPage", "下一頁")}
-          itemsPerPageText={t("common.itemsPerPage", "每頁")}
-          page={page}
-          pageSize={pageSize}
-          pageSizes={[25, 50, 100]}
-          onChange={({
-            page: p,
-            pageSize: ps,
-          }: {
-            page: number;
-            pageSize: number;
-          }) => {
-            setPage(p);
-            setPageSize(ps);
-          }}
-        />
-      </div>
-
-      {/* Middle: Question sidebar */}
-      <div className={styles.questionSidebar}>
-        {selectedStudentId && currentStudentAnswers.length > 0 ? (
-          <>
-            <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
-            {currentStudentAnswers.map((a, i) => {
-              const isActive = i === selectedAnswerIdx;
-              return (
-                <div
-                  key={a.id}
-                  className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ""}`}
-                  onClick={() => setSelectedAnswerIdx(i)}
-                >
-                  <span className={styles.sidebarLabel}>Q{a.questionIndex}</span>
-                  {a.score !== null ? (
-                    <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+                <div className={styles.cardSecondary}>
+                  <span>{s.username}</span>
+                  {s.totalCount === 0 ? (
+                    <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
+                  ) : s.gradedCount === s.totalCount ? (
+                    <Tag type="green" size="sm">{t("grading.complete", "完成")}</Tag>
                   ) : (
-                    <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
+                    <span>{s.gradedCount}/{s.totalCount} {t("grading.complete", "完成")}</span>
                   )}
                 </div>
-              );
-            })}
-          </>
-        ) : (
-          <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* Right: Grading panel */}
+      <Pagination
+        totalItems={filtered.length}
+        backwardText={t("common.prevPage", "上一頁")}
+        forwardText={t("common.nextPage", "下一頁")}
+        itemsPerPageText={t("common.itemsPerPage", "每頁")}
+        page={page}
+        pageSize={pageSize}
+        pageSizes={[25, 50, 100]}
+        onChange={({
+          page: p,
+          pageSize: ps,
+        }: {
+          page: number;
+          pageSize: number;
+        }) => {
+          setPage(p);
+          setPageSize(ps);
+        }}
+      />
+    </>
+  );
+
+  const middlePaneContent = (
+    <>
+      {selectedStudentId && currentStudentAnswers.length > 0 ? (
+        <>
+          <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
+          {currentStudentAnswers.map((a, i) => {
+            const isActive = i === selectedAnswerIdx;
+            return (
+              <div
+                key={a.id}
+                className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ""}`}
+                onClick={() => setSelectedAnswerIdx(i)}
+              >
+                <span className={styles.sidebarLabel}>Q{a.questionIndex}</span>
+                {a.score !== null ? (
+                  <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+                ) : (
+                  <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
+                )}
+              </div>
+            );
+          })}
+        </>
+      ) : (
+        <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
+      )}
+    </>
+  );
+
+  return (
+    <AdminSplitLayout
+      sidebar={sidebarContent}
+      sidebarWidth={220}
+      middlePane={middlePaneContent}
+      middlePaneWidth={160}
+      contentClassName={styles.gradingContent}
+    >
       <div className={styles.panel}>
         {selectedStudentId && currentStudentAnswers.length > 0 ? (
           <GradingSplitPanelScreen
@@ -222,6 +230,6 @@ export default function GradingByStudentTabScreen({
           </div>
         )}
       </div>
-    </div>
+    </AdminSplitLayout>
   );
 }

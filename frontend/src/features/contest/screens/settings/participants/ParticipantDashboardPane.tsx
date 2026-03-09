@@ -460,7 +460,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           index: row.index,
                           prompt: questionDetail?.prompt || `Q${row.index}`,
                           typeLabel: t(
-                            `questionTypes.${row.questionType}`,
+                            `common:questionType.label.${row.questionType}`,
                             questionTypeLabel[row.questionType],
                           ),
                           maxScore: row.maxScore,
@@ -479,7 +479,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           <div className={styles.questionHeader}>
                             <div>
                               <div className={styles.primaryText}>
-                                Q{row.index} · {t(`questionTypes.${row.questionType}`, questionTypeLabel[row.questionType])}
+                                Q{row.index} · {t(`common:questionType.label.${row.questionType}`, questionTypeLabel[row.questionType])}
                               </div>
                               <div className={styles.secondaryText}>
                                 {row.score ?? "-"} / {row.maxScore}

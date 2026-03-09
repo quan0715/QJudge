@@ -1,4 +1,7 @@
 {
+  "header": {
+    "contestPlatform": "コンテストプラットフォーム"
+  },
   "management": {
     "description": "コンテストを管理",
     "contestCount": "全 {{count}} 件のコンテスト"
@@ -14,11 +17,17 @@
     "endBeforeStart": "終了時間は開始時間より後にしてください"
   },
   "error": {
-    "createFailed": "コンテストの作成に失敗しました"
+    "createFailed": "コンテストの作成に失敗しました",
+    "joinFailed": "コンテストに参加できませんでした。パスワードを確認するか、後でもう一度お試しください",
+    "leaveFailed": "コンテストを退出できませんでした。後でもう一度お試しください",
+    "startExamFailed": "試験を開始できませんでした。後でもう一度お試しください",
+    "endExamFailed": "試験を提出できませんでした。後でもう一度お試しください",
+    "exitFailed": "コンテストを終了できませんでした。後でもう一度お試しください"
   },
   "modal": {
     "confirmDelete": "削除の確認",
-    "deleteConfirmMessage": "コンテスト「{{name}}」を削除してもよろしいですか？この操作は取り消せません。"
+    "deleteConfirmMessage": "コンテスト「{{name}}」を削除してもよろしいですか？この操作は取り消せません。",
+    "confirmLeaveTitle": "このコンテストを退出してもよろしいですか？"
   },
   "mode": "コンテストモード",
   "timeToStart": "開始まで {{time}}",
@@ -112,9 +121,14 @@
     "examModel": "筆記試験",
     "examQuestions": "Exam 問題"
   },
+  "list": {
+    "duration": "期間",
+    "organizer": "主催"
+  },
   "hero": {
     "examEnded": "試験終了",
-    "register": "参加登録",
+    "registered": "参加済み",
+    "register": "登録",
     "contestInactive": "コンテスト未公開",
     "examLocked": "試験ロック中",
     "restartExam": "試験を再開",
@@ -174,6 +188,7 @@
     "problemColumn": "問題",
     "topicColumn": "トピック",
     "scoreColumn": "配点",
+    "scoreLabel": "得点：",
     "total": "合計",
     "myScore": "マイスコア",
     "noRankData": "ランキングデータがありません",
@@ -419,7 +434,14 @@
     "mouseLeaveRecoveryTitle": "マウスがウィンドウ外に出ました",
     "mouseLeaveRecoveryDesc": "{{seconds}} 秒以内にマウスを試験ウィンドウ内に戻さない場合、違反として1回記録されます。",
     "forceSubmitCountdown": "ロックから3分経過後に自動提出されます",
-    "forceSubmittedReason": "ロックが3分以上続いたため、システムが自動的に提出しました"
+    "forceSubmittedReason": "ロックが3分以上続いたため、システムが自動的に提出しました",
+    "screenShareLostTitle": "画面共有が中断されました",
+    "screenShareLostHeading": "画面共有が停止されました",
+    "screenShareLostDesc": "試験監視には画面共有が必要です。直ちに画面全体を再共有してください。再共有しない場合、システムが自動的に提出します。",
+    "screenShareForceSubmitIn": "{{seconds}} 秒後に自動提出",
+    "screenShareTimeoutWarning": "時間内に再共有しない場合、自動的に提出されます。この操作は取り消せません！",
+    "reshareScreen": "画面を再共有",
+    "requestingScreenShare": "共有をリクエスト中..."
   },
   "settings": {
     "title": "コンテスト設定",
@@ -474,20 +496,6 @@
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
     "joinPassword": "参加パスワード"
-  },
-  "questionTypes": {
-    "true_false": "○×問題",
-    "single_choice": "単一選択",
-    "multiple_choice": "複数選択",
-    "short_answer": "短答",
-    "essay": "記述"
-  },
-  "questionTypeDescriptions": {
-    "single_choice": "複数の選択肢から1つの正解を選択",
-    "multiple_choice": "複数の選択肢から複数の正解を選択",
-    "true_false": "文が正しいか正しくないか判断",
-    "short_answer": "短いテキストを入力して回答",
-    "essay": "長文テキストで回答（参考解答あり）"
   },
   "examStatus": {
     "not_started": "未開始",
@@ -917,5 +925,26 @@
     "noData": "問題データがありません",
     "title": "問題統計",
     "questionCount": "{{count}} 問"
+  },
+  "adminLayout": {
+    "title": "管理ダッシュボード",
+    "nav": {
+      "overview": "概要",
+      "clarifications": "Q&A",
+      "logs": "イベントログ",
+      "participants": "参加者",
+      "problemManagement": "問題管理",
+      "examManagement": "試験管理",
+      "grading": "採点",
+      "examGrading": "試験採点",
+      "statistics": "統計",
+      "examStatistics": "試験統計",
+      "settings": "設定"
+    },
+    "header": {
+      "exportFiles": "ファイルをエクスポート",
+      "previewAnswer": "解答画面をプレビュー",
+      "backToHome": "コンテストホームに戻る"
+    }
   }
 }

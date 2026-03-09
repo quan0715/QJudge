@@ -1,4 +1,7 @@
 {
+  "header": {
+    "contestPlatform": "Contest Platform"
+  },
   "management": {
     "description": "Manage your contests",
     "contestCount": "{{count}} contests in total"
@@ -14,11 +17,17 @@
     "endBeforeStart": "End time must be after start time"
   },
   "error": {
-    "createFailed": "Failed to create contest"
+    "createFailed": "Failed to create contest",
+    "joinFailed": "Failed to join contest, please check password or try again later",
+    "leaveFailed": "Failed to leave contest, please try again later",
+    "startExamFailed": "Failed to start exam, please try again later",
+    "endExamFailed": "Failed to submit exam, please try again later",
+    "exitFailed": "Failed to exit contest, please try again later"
   },
   "modal": {
     "confirmDelete": "Confirm Delete",
-    "deleteConfirmMessage": "Are you sure you want to delete contest \"{{name}}\"? This action cannot be undone."
+    "deleteConfirmMessage": "Are you sure you want to delete contest \"{{name}}\"? This action cannot be undone.",
+    "confirmLeaveTitle": "Are you sure you want to leave this contest?"
   },
   "mode": "Contest Mode",
   "timeToStart": "Starts in {{time}}",
@@ -112,8 +121,13 @@
     "examModel": "Paper Exam",
     "examQuestions": "Exam Questions"
   },
+  "list": {
+    "duration": "Duration",
+    "organizer": "Host"
+  },
   "hero": {
     "examEnded": "Exam Ended",
+    "registered": "Participated",
     "register": "Register",
     "contestInactive": "Contest Not Published",
     "examLocked": "Exam Locked",
@@ -174,6 +188,7 @@
     "problemColumn": "Problem",
     "topicColumn": "Topic",
     "scoreColumn": "Score",
+    "scoreLabel": "Score:",
     "total": "Total",
     "myScore": "My Score",
     "noRankData": "No ranking data available",
@@ -419,7 +434,14 @@
     "mouseLeaveRecoveryTitle": "Mouse left the window",
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
     "forceSubmitCountdown": "Auto-submit after 3 minutes of being locked",
-    "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted"
+    "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted",
+    "screenShareLostTitle": "Screen Share Interrupted",
+    "screenShareLostHeading": "Screen share has been stopped",
+    "screenShareLostDesc": "Screen sharing is required for exam monitoring. Please reshare your entire screen immediately, or the system will auto-submit your exam.",
+    "screenShareForceSubmitIn": "Auto-submit in {{seconds}} seconds",
+    "screenShareTimeoutWarning": "Failing to reshare in time will auto-submit your exam. This cannot be undone!",
+    "reshareScreen": "Reshare Screen",
+    "requestingScreenShare": "Requesting share..."
   },
   "settings": {
     "title": "Contest Settings",
@@ -474,20 +496,6 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "joinPassword": "Join Password"
-  },
-  "questionTypes": {
-    "true_false": "True/False",
-    "single_choice": "Single Choice",
-    "multiple_choice": "Multiple Choice",
-    "short_answer": "Short Answer",
-    "essay": "Essay"
-  },
-  "questionTypeDescriptions": {
-    "single_choice": "Choose one correct answer from multiple options",
-    "multiple_choice": "Choose multiple correct answers from options",
-    "true_false": "Judge a statement as true or false",
-    "short_answer": "Enter a short text answer",
-    "essay": "Long-form text answer with optional reference answer"
   },
   "examStatus": {
     "not_started": "Not Started",
@@ -917,5 +925,26 @@
     "noData": "No question data",
     "title": "Question Statistics",
     "questionCount": "{{count}} questions"
+  },
+  "adminLayout": {
+    "title": "Admin Dashboard",
+    "nav": {
+      "overview": "Overview",
+      "clarifications": "Q&A",
+      "logs": "Event Logs",
+      "participants": "Participants",
+      "problemManagement": "Problem Management",
+      "examManagement": "Exam Management",
+      "grading": "Grading",
+      "examGrading": "Exam Grading",
+      "statistics": "Statistics",
+      "examStatistics": "Exam Statistics",
+      "settings": "Settings"
+    },
+    "header": {
+      "exportFiles": "Export Files",
+      "previewAnswer": "Preview Answer Screen",
+      "backToHome": "Back to Contest Home"
+    }
   }
 }

@@ -29,8 +29,21 @@
     "empty": "(비어있음)"
   },
   "list": {
-    "title": "문제 목록",
-    "subtitle": "다양한 난이도의 프로그래밍 문제에 도전하여 알고리즘 능력을 향상시키세요."
+    "title": "문제 해결 / Problem Solving",
+    "subtitle": "다양한 난이도의 알고리즘 도전에 참여하여 프로그래밍 능력을 향상시키세요.",
+    "searchPlaceholder": "문제 검색...",
+    "noResults": "조건에 맞는 문제를 찾을 수 없습니다",
+    "tryAdjustFilters": "필터를 조정해 보세요",
+    "totalLoaded": "총 {{count}}개의 문제를 모두 불러왔습니다",
+    "acrRate": "정답률"
+  },
+  "filter": {
+    "status": "상태",
+    "solved": "해결됨",
+    "unsolved": "미해결",
+    "difficulty": "난이도",
+    "tags": "태그",
+    "noTags": "사용 가능한 태그가 없습니다"
   },
   "tabs": {
     "description": "문제 설명",
@@ -80,5 +93,10 @@
     "cases": "개",
     "samples": "샘플",
     "languages": "개 언어"
+  },
+  "difficulty": {
+    "easy": "쉬움",
+    "medium": "보통",
+    "hard": "어려움"
   }
 }

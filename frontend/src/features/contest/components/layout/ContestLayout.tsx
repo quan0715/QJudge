@@ -96,18 +96,18 @@ const ContestLayout = () => {
     refreshContest,
     confirmLeave: () =>
       confirm({
-        title: "確定要退出此競賽嗎？",
+        title: t("modal.confirmLeaveTitle"),
         confirmLabel: tc("button.confirm"),
         cancelLabel: tc("button.cancel"),
         danger: true,
       }),
     navigate,
     messages: {
-      joinError: "無法加入競賽，請檢查密碼或稍後再試",
-      leaveError: "無法退出競賽，請稍後再試",
-      startError: "無法開始考試，請稍後再試",
-      endError: "無法交卷，請稍後再試",
-      exitError: "無法離開競賽，請稍後再試",
+      joinError: t("error.joinFailed"),
+      leaveError: t("error.leaveFailed"),
+      startError: t("error.startExamFailed"),
+      endError: t("error.endExamFailed"),
+      exitError: t("error.exitFailed"),
     },
     onError: showError,
   });
@@ -251,10 +251,10 @@ const ContestLayout = () => {
 
   return (
     <div className={styles.root}>
-      <Header aria-label="Contest Platform">
+      <Header aria-label={t("header.contestPlatform")}>
         <HeaderName
           href={`/contests/${contestId}`}
-          prefix="QJudge"
+          prefix={tc("header.prefix")}
           onClick={(e) => {
             e.preventDefault();
             navigate(`/contests/${contestId}`);
@@ -263,7 +263,7 @@ const ContestLayout = () => {
           {contest?.name || t("mode")}
         </HeaderName>
 
-        <HeaderNavigation aria-label="Contest Navigation">
+        <HeaderNavigation aria-label={tc("header.contestNavigation")}>
           {showContestTimer && (
             <div className={styles.headerTimerDisplay}>
               <Time size={16} />
@@ -277,7 +277,7 @@ const ContestLayout = () => {
 
           {showScoreDisplay && (
             <div className={styles.headerScoreDisplay}>
-              <span className={styles.scoreLabel}>分數：</span>
+              <span className={styles.scoreLabel}>{t("overview.scoreLabel")}</span>
               <span
                 className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
               >

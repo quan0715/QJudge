@@ -60,34 +60,34 @@ export const ProblemFilterSidebarSection: React.FC<ProblemFilterSidebarSectionPr
 
   return (
     <div className="problem-filter-sidebar">
-      <FilterSection title={t('filter.status', '狀態')}>
+      <FilterSection title={t('filter.status')}>
         <Checkbox
           id="status-solved"
-          labelText={t('filter.solved', '已解決')}
+          labelText={t('filter.solved')}
           checked={filters.status.includes('solved')}
           onChange={() => handleStatusToggle('solved')}
         />
         <Checkbox
           id="status-unsolved"
-          labelText={t('filter.unsolved', '未解決')}
+          labelText={t('filter.unsolved')}
           checked={filters.status.includes('unsolved')}
           onChange={() => handleStatusToggle('unsolved')}
         />
       </FilterSection>
 
-      <FilterSection title={t('filter.difficulty', '難度')}>
+      <FilterSection title={t('filter.difficulty')}>
         {(Object.keys(DIFFICULTY_CONFIG) as Difficulty[]).map((difficulty) => (
           <Checkbox
             key={difficulty}
             id={`difficulty-${difficulty}`}
-            labelText={DIFFICULTY_CONFIG[difficulty].label}
+            labelText={t(`difficulty.${difficulty}`)}
             checked={filters.difficulties.includes(difficulty)}
             onChange={() => handleDifficultyToggle(difficulty)}
           />
         ))}
       </FilterSection>
 
-      <FilterSection title={t('filter.tags', '標籤')}>
+      <FilterSection title={t('filter.tags')}>
         {tagsLoading ? (
           <>
             <SkeletonText width="80%" />
@@ -107,7 +107,7 @@ export const ProblemFilterSidebarSection: React.FC<ProblemFilterSidebarSectionPr
           ))
         ) : (
           <p className="problem-filter__empty">
-            {t('filter.noTags', '沒有可用標籤')}
+            {t('filter.noTags')}
           </p>
         )}
       </FilterSection>

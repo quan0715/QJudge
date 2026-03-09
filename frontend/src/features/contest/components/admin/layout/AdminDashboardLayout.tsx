@@ -41,20 +41,28 @@ interface AdminDashboardLayoutProps {
 
 const NAV_ITEMS: Record<
   AdminPanelId,
-  { label: string; examLabel?: string; icon: typeof Dashboard }
+  { labelKey: string; examLabelKey?: string; icon: typeof Dashboard }
 > = {
-  overview: { label: "Overview", icon: Dashboard },
-  clarifications: { label: "Q&A", icon: Chat },
-  logs: { label: "Event Logs", icon: Activity },
-  participants: { label: "Participants", icon: UserMultiple },
+  overview: { labelKey: "overview", icon: Dashboard },
+  clarifications: { labelKey: "clarifications", icon: Chat },
+  logs: { labelKey: "logs", icon: Activity },
+  participants: { labelKey: "participants", icon: UserMultiple },
   problem_editor: {
-    label: "Problem Management",
-    examLabel: "Exam Management",
+    labelKey: "problemManagement",
+    examLabelKey: "examManagement",
     icon: Education,
   },
-  grading: { label: "Grading", examLabel: "Exam Grading", icon: TaskComplete },
-  statistics: { label: "Statistics", examLabel: "Exam Statistics", icon: ChartColumn },
-  settings: { label: "Settings", icon: Settings },
+  grading: {
+    labelKey: "grading",
+    examLabelKey: "examGrading",
+    icon: TaskComplete,
+  },
+  statistics: {
+    labelKey: "statistics",
+    examLabelKey: "examStatistics",
+    icon: ChartColumn,
+  },
+  settings: { labelKey: "settings", icon: Settings },
 };
 
 export default function AdminDashboardLayout({
@@ -74,8 +82,8 @@ export default function AdminDashboardLayout({
 
   return (
     <div className={styles.layout}>
-      <Header aria-label="Admin Dashboard" className={styles.header}>
-        <HeaderName href="#" prefix="QJudge">
+      <Header aria-label={t("adminLayout.title")} className={styles.header}>
+        <HeaderName href="#" prefix={t("common:header.prefix", "QJudge")}>
           {contestName}
         </HeaderName>
         <HeaderGlobalBar>
@@ -90,7 +98,7 @@ export default function AdminDashboardLayout({
           )}
           {onExport && (
             <HeaderGlobalAction
-              aria-label="匯出檔案"
+              aria-label={t("adminLayout.header.exportFiles")}
               tooltipAlignment="end"
               onClick={onExport}
             >
@@ -99,7 +107,7 @@ export default function AdminDashboardLayout({
           )}
           {onPreview && (
             <HeaderGlobalAction
-              aria-label="預覽作答畫面"
+              aria-label={t("adminLayout.header.previewAnswer")}
               tooltipAlignment="end"
               onClick={onPreview}
             >
@@ -107,7 +115,7 @@ export default function AdminDashboardLayout({
             </HeaderGlobalAction>
           )}
           <HeaderGlobalAction
-            aria-label="前往競賽主頁"
+            aria-label={t("adminLayout.header.backToHome")}
             tooltipAlignment="end"
             onClick={onBack}
           >
@@ -117,7 +125,7 @@ export default function AdminDashboardLayout({
       </Header>
 
       <SideNav
-        aria-label="Admin navigation"
+        aria-label={t("common:header.adminNavigation")}
         isRail
         className={styles.sidenav}
       >
@@ -125,7 +133,11 @@ export default function AdminDashboardLayout({
           {availablePanels.map((id) => {
             const item = NAV_ITEMS[id];
             if (!item) return null;
-            const { label, examLabel, icon: Icon } = item;
+            const { labelKey, examLabelKey, icon: Icon } = item;
+            const label =
+              examMode && examLabelKey
+                ? t(`adminLayout.nav.${examLabelKey}`)
+                : t(`adminLayout.nav.${labelKey}`);
             return (
               <SideNavLink
                 key={id}
@@ -133,7 +145,7 @@ export default function AdminDashboardLayout({
                 isActive={activePanel === id}
                 onClick={() => onPanelChange(id)}
               >
-                {examMode && examLabel ? examLabel : label}
+                {label}
               </SideNavLink>
             );
           })}

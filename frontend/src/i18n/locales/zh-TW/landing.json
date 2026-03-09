@@ -31,29 +31,29 @@
     "items": {
       "coding": {
         "label": "程式開發測驗",
-        "desc": "Coding Test"
+        "desc": "針對演算法與邏輯實作的專業評測。"
       },
       "paper": {
         "label": "紙筆題考試",
-        "desc": "Paper-like Exam"
+        "desc": "整合 Markdown 與 LaTeX 的數位化傳統考卷。"
       },
       "lab": {
         "label": "實驗室練習模式",
-        "desc": "Lab Practice"
+        "desc": "純練習使用。按主題分類的題庫，讓學生無壓力自主精進。"
       },
       "takehome": {
         "label": "帶回家專案",
-        "desc": "Take-home Project",
+        "desc": "長週期、深度的開發專案測驗模式。",
         "comingSoon": "即將推出"
       },
       "hackathon": {
         "label": "團隊黑客松",
-        "desc": "Group Hackathon",
+        "desc": "多人協作與即時排行的團隊競賽模式。",
         "comingSoon": "即將推出"
       },
       "adaptive": {
         "label": "AI 自適應學習",
-        "desc": "Adaptive Learning",
+        "desc": "根據弱點自動推薦題目的個人化路徑。",
         "comingSoon": "即將推出"
       }
     }
@@ -83,7 +83,7 @@
   "sections": {
     "paper": {
       "eyebrow": "Paper-like Exam",
-      "title": "不之後程式，更是一套完整的線上測驗系統",
+      "title": "不只是程式，更是一套完整的線上測驗系統",
       "description": "支援單選、多選、是非與簡答題型。內建 Markdown 與 LaTeX 編輯器，能精確渲染複雜的數學公式與技術文件，滿足通識、理科到程式開發的多元需求。"
     },
     "antiCheat": {
