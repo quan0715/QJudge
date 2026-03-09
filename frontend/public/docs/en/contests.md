@@ -1,5 +1,3 @@
-# Joining Contests
-
 Learn how to participate in programming contests on QJudge.
 
 ## Contest Types

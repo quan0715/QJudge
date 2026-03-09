@@ -1,5 +1,3 @@
-# Common Errors
-
 This document covers common errors encountered when using QJudge and how to fix them.
 
 ## Compilation Error (CE)

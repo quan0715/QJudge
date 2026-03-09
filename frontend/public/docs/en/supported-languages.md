@@ -1,5 +1,3 @@
-# Supported Languages
-
 QJudge supports multiple mainstream programming languages. Here's the complete list and related information.
 
 ## Language List

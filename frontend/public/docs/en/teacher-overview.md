@@ -1,5 +1,3 @@
-# Teacher Features
-
 This document provides an overview of teacher-specific features in QJudge.
 
 ## Contest Management

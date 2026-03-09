@@ -1,5 +1,3 @@
-# Exam Pre-check 및 부정행위 방지 시퀀스
-
 > 상태: 2026-03-08  
 > 범위: `frontend/src/features/contest/screens/paperExam/ExamPrecheckScreen.tsx`
 

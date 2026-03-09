@@ -1,5 +1,3 @@
-# Creating Exams and Questions
-
 > Document updated: 2026-03-03
 
 QJudge supports two contest types: **Coding Test** (programming problems) and **Paper Exam** (written questions), with cheat detection and diverse question types.

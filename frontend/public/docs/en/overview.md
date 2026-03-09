@@ -1,5 +1,3 @@
-# Platform Overview
-
 Welcome to **QJudge** - NYCU Online Judge System!
 
 ## Choose Your Goal

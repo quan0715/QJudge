@@ -1,5 +1,3 @@
-# E2E 測試指南（前端）
-
 > 文件狀態：2026-02-24
 
 本專案使用 Playwright 做端到端測試，建議搭配 `docker-compose.test.yml`。

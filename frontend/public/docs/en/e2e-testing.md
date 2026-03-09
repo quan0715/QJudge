@@ -1,5 +1,3 @@
-# E2E Testing Guide
-
 This document explains how to set up and run frontend E2E tests.
 
 ## Overview
