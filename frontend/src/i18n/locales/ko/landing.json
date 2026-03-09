@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "전문적인 프로그래밍 테스트, QJudge와 함께 시작하세요",
+    "title": "QJudge - 가장 안전하고 안정적인 온라인 시험 플랫폼",
     "subtitle": "실시간 평가, 지필 고사 형식, 엄격한 부정행위 방지 모니터링을 통합하여 강의와 대회에 최적화된 교육 환경을 제공합니다.",
     "signIn": "로그인",
     "register": "회원가입",
@@ -20,6 +20,8 @@
       "fullscreen": "전체 화면 모드",
       "detection": "탭 감지",
       "violations": "위반 횟수",
+      "ai_monitoring": "AI 모니터링",
+      "proctoring_video": "화상 감독",
       "remaining": "남은 시간"
     }
   },
@@ -29,7 +31,7 @@
       "description": "20가지 이상의 프로그래밍 언어를 지원하며, 실행 시간과 메모리 정보를 즉시 반환합니다. 정확한 Diff 비교와 오류 추적 기능을 제공합니다."
     },
     "paper": {
-      "title": "지필 고사 형식 통합 (Exam V2)",
+      "title": "지필 고사 형식 통합 (온라인 시험)",
       "description": "코드 그 이상을 담았습니다. 객관식, OX 문제, 주관식 등 다양한 지필 형식을 통합하고 LaTeX 수식과 Markdown을 지원하여 다각도 평가가 가능합니다."
     },
     "antiCheat": {
@@ -46,7 +48,7 @@
     "title": "교육 현장을 위해 설계된 강력한 기능"
   },
   "exam": {
-    "eyebrow": "Exam V2",
+    "eyebrow": "온라인 시험",
     "title": "포괄적인 시험 경험",
     "description": "프로그래밍부터 일반 이론까지 QJudge가 완벽히 지원합니다. 내장된 LaTeX 수식과 Markdown 에디터로 문제 출제와 풀이 모두 매끄럽게 진행됩니다.",
     "tag1": "LaTeX 지원",

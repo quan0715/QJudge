@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "Professional Programming Assessment starts with QJudge",
+    "title": "QJudge - The Most Secure and Stable Online Exam Platform",
     "subtitle": "Integrating real-time evaluation, paper-based questions, and strict anti-cheat monitoring to create the most friendly teaching environment for courses and competitions.",
     "signIn": "Sign in",
     "register": "Create account",
@@ -20,6 +20,8 @@
       "fullscreen": "Full Screen Mode",
       "detection": "Tab Detection",
       "violations": "Violations",
+      "ai_monitoring": "AI Monitoring",
+      "proctoring_video": "Video Proctoring",
       "remaining": "Time Remaining"
     }
   },
@@ -29,7 +31,7 @@
       "description": "Supports 20+ programming languages, returns execution time and memory info in seconds, and provides precise Diff comparison and error tracking."
     },
     "paper": {
-      "title": "Paper Question Integration (Exam V2)",
+      "title": "Paper Question Integration (Online Exam)",
       "description": "More than just code. Integrates multiple-choice, true/false, and short answer questions, supports LaTeX formulas and Markdown, for one-stop diverse assessment."
     },
     "antiCheat": {
@@ -46,7 +48,7 @@
     "title": "Powerful Features Designed for Education"
   },
   "exam": {
-    "eyebrow": "Exam V2",
+    "eyebrow": "Online Exam",
     "title": "Comprehensive Assessment Experience",
     "description": "From programming to general theory, QJudge provides full support. Built-in LaTeX and Markdown editors make creating and answering questions equally smooth.",
     "tag1": "LaTeX Support",

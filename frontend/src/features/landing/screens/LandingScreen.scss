@@ -27,6 +27,62 @@
   overflow-x: hidden;
 }
 
+// ============================================
+// Header
+// ============================================
+
+.landing__header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 3rem;
+  background: color-mix(in srgb, var(--cds-background) 80%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.landing__header-inner {
+  max-width: 1400px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 layout.$spacing-07;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (max-width: 672px) {
+    padding: 0 layout.$spacing-05;
+  }
+}
+
+.landing__header-logo {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.landing__header-logo-text {
+  @include type.type-style("heading-02");
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.landing__header-actions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+
+  :global(.cds--dropdown__wrapper) {
+    width: 140px;
+    
+    @media (max-width: 672px) {
+      width: 100px;
+    }
+  }
+}
+
 .landing--dark {
   --landing-page-bg: #161616;
   --landing-section-dark: #161616;
@@ -50,13 +106,11 @@
   min-height: 100vh;
   display: flex;
   align-items: center;
-  padding: layout.$spacing-09 layout.$spacing-07;
+  padding: 6rem layout.$spacing-07 layout.$spacing-09 layout.$spacing-07;
 
   @media (max-width: 672px) {
-    padding: layout.$spacing-07 layout.$spacing-05;
+    padding: 5rem layout.$spacing-05 layout.$spacing-07 layout.$spacing-05;
     min-height: auto;
-    padding-top: layout.$spacing-09;
-    padding-bottom: layout.$spacing-09;
   }
 }
 

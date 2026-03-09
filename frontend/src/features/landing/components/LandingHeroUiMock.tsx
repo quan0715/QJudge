@@ -53,18 +53,18 @@ const LandingHeroUiMock = () => {
               </div>
               <div className="landing-hero-ui__status-item">
                 <UserMultiple size={16} />
-                <span>{t("landing.hero.visual.detection", { defaultValue: "分頁偵測" })}</span>
+                <span>{t("landing.hero.visual.ai_monitoring", { defaultValue: "AI 違規偵測" })}</span>
                 <em>Active</em>
+              </div>
+              <div className="landing-hero-ui__status-item">
+                <View size={16} />
+                <span>{t("landing.hero.visual.proctoring_video", { defaultValue: "視訊監控" })}</span>
+                <em>Recording</em>
               </div>
               <div className="landing-hero-ui__status-item">
                 <Locked size={16} />
                 <span>{t("landing.hero.visual.violations", { defaultValue: "違規次數" })}</span>
                 <em style={{ color: "#fa4d56" }}>0</em>
-              </div>
-              <div className="landing-hero-ui__status-item">
-                <Time size={16} />
-                <span>{t("landing.hero.visual.remaining", { defaultValue: "剩餘時間" })}</span>
-                <em style={{ color: "#f1c21b" }}>58:20</em>
               </div>
             </div>
           </section>

@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "專業程式測驗，從 QJudge 開始",
+    "title": "QJudge，最安全穩定的線上考試平台",
     "subtitle": "整合即時評測、紙筆題型與嚴格防作弊監控，為課程與競賽打造最友善的教學環境。",
     "signIn": "立即登入",
     "register": "免費註冊",
@@ -15,7 +15,14 @@
     },
     "visual": {
       "title": "程式測驗流程",
-      "desc": "Code -> Judge -> Verdict"
+      "desc": "Code -> Judge -> Verdict",
+      "proctoring": "監考狀態",
+      "fullscreen": "全螢幕模式",
+      "detection": "分頁切換偵測",
+      "violations": "違規次數",
+      "ai_monitoring": "AI 違規偵測",
+      "proctoring_video": "視訊監控",
+      "remaining": "剩餘時間"
     }
   },
   "feature": {
@@ -24,7 +31,7 @@
       "description": "支援 20+ 種程式語言，秒級回傳執行時間與記憶體資訊，並提供精確的 Diff 比對與錯誤追蹤。"
     },
     "paper": {
-      "title": "紙筆題型整合 (Exam V2)",
+      "title": "紙筆題型整合 (線上測驗)",
       "description": "不只是程式碼。整合選擇、是非、問答等紙筆題型，支援 LaTeX 數學公式與 Markdown 排版，一站式完成多元評量。"
     },
     "antiCheat": {
@@ -41,7 +48,7 @@
     "title": "專為教學現場設計的強大功能"
   },
   "exam": {
-    "eyebrow": "Exam V2",
+    "eyebrow": "線上測驗",
     "title": "全方位的測驗體驗",
     "description": "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
     "tag1": "LaTeX 支援",

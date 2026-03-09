@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "プロフェッショナルなプログラミングテストは QJudge から",
+    "title": "QJudge - 最も安全で安定したオンライン試験プラットフォーム",
     "subtitle": "リアルタイム評価、筆記試験形式、厳格な不正防止監視を統合し、講義や競技に最適な教育環境を提供します。",
     "signIn": "ログイン",
     "register": "登録",
@@ -20,6 +20,8 @@
       "fullscreen": "フルスクリーンモード",
       "detection": "タブ検知",
       "violations": "違反回数",
+      "ai_monitoring": "AI監視",
+      "proctoring_video": "ビデオ監視",
       "remaining": "残り時間"
     }
   },
@@ -29,7 +31,7 @@
       "description": "20種類以上のプログラミング言語に対応し、実行時間やメモリ情報を即座に返却。正確なDiff比較とエラー追跡を提供します。"
     },
     "paper": {
-      "title": "筆記試験形式の統合 (Exam V2)",
+      "title": "筆記試験形式の統合 (オンライン試験)",
       "description": "コードだけではありません。選択式、正誤式、記述式などの筆記問題を統合し、LaTeX数式やMarkdownにも対応。一元的な多角的評価を可能にします。"
     },
     "antiCheat": {
@@ -46,7 +48,7 @@
     "title": "教育現場のために設計された強力な機能"
   },
   "exam": {
-    "eyebrow": "Exam V2",
+    "eyebrow": "オンライン試験",
     "title": "あらゆる試験に対応する体験",
     "description": "プログラミングから一般教養まで、QJudgeがフルサポート。内蔵のLaTeX数式とMarkdownエディタにより、出題も解答もスムーズに行えます。",
     "tag1": "LaTeX 対応",
