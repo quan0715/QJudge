@@ -285,7 +285,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     async (content: string, modelId?: ChatModel) => {
       if (!content.trim() || !currentSessionId) return;
 
-      let trimmedContent = content.trim();
+      const trimmedContent = content.trim();
 
       // 檢查是否為第一則訊息（session 中沒有訊息）
       const isFirstMessage = currentSession?.messages.length === 0;
