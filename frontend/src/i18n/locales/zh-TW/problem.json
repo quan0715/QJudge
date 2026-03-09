@@ -29,8 +29,21 @@
     "empty": "(空)"
   },
   "list": {
-    "title": "題目列表",
-    "subtitle": "挑戰各種難度的程式設計問題，提升你的演算法能力。"
+    "title": "解題 / Problem Solving",
+    "subtitle": "探索各種難度的演算法挑戰，提升你的程式設計能力。",
+    "searchPlaceholder": "搜尋題目...",
+    "noResults": "找不到符合條件的題目",
+    "tryAdjustFilters": "請嘗試調整篩選條件",
+    "totalLoaded": "已載入全部 {{count}} 題",
+    "acrRate": "通過率"
+  },
+  "filter": {
+    "status": "狀態",
+    "solved": "已解決",
+    "unsolved": "未解決",
+    "difficulty": "難度",
+    "tags": "標籤",
+    "noTags": "沒有可用標籤"
   },
   "tabs": {
     "description": "題目描述",
@@ -80,5 +93,10 @@
     "cases": "個",
     "samples": "範例",
     "languages": "個語言"
+  },
+  "difficulty": {
+    "easy": "簡單",
+    "medium": "中等",
+    "hard": "困難"
   }
 }

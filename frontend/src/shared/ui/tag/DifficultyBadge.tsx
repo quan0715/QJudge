@@ -1,5 +1,6 @@
 import React from "react";
 import { Tag } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { getDifficultyConfig } from "@/core/config/difficulty.config";
 import type { Difficulty } from "@/core/entities/problem.entity";
 import "./TagStyle.scss";
@@ -23,15 +24,18 @@ export const DifficultyBadge: React.FC<Props> = ({
   className,
   variant = "tag",
 }) => {
+  const { t } = useTranslation("problem");
   const config = getDifficultyConfig(difficulty as Difficulty);
   const color = textColorMap[config.type] || "var(--cds-text-secondary)";
   // Stronger contrast: increase color ratio for mix
   const background = `color-mix(in srgb, ${color} 26%, var(--cds-layer) 74%)`;
 
+  const label = t(`difficulty.${difficulty}`, { defaultValue: config.label });
+
   if (variant === "text") {
     return (
       <span className={className} style={{ color, fontWeight: 500 }}>
-        {config.label}
+        {label}
       </span>
     );
   }
@@ -47,9 +51,9 @@ export const DifficultyBadge: React.FC<Props> = ({
         color,
         fontWeight: 600,
       }}
-      title={config.label}
+      title={label}
     >
-      {config.label}
+      {label}
     </Tag>
   );
 };

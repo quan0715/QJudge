@@ -1,4 +1,7 @@
 {
+  "header": {
+    "contestPlatform": "대회 플랫폼"
+  },
   "management": {
     "description": "대회를 관리합니다",
     "contestCount": "총 {{count}}개의 대회"
@@ -14,11 +17,17 @@
     "endBeforeStart": "종료 시간은 시작 시간 이후여야 합니다"
   },
   "error": {
-    "createFailed": "대회 생성에 실패했습니다"
+    "createFailed": "대회 생성에 실패했습니다",
+    "joinFailed": "대회에 참여할 수 없습니다. 비밀번호를 확인하거나 나중에 다시 시도해 주세요",
+    "leaveFailed": "대회에서 나갈 수 없습니다. 나중에 다시 시도해 주세요",
+    "startExamFailed": "시험을 시작할 수 없습니다. 나중에 다시 시도해 주세요",
+    "endExamFailed": "시험을 제출할 수 없습니다. 나중에 다시 시도해 주세요",
+    "exitFailed": "대회를 종료할 수 없습니다. 나중에 다시 시도해 주세요"
   },
   "modal": {
     "confirmDelete": "삭제 확인",
-    "deleteConfirmMessage": "대회 \"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
+    "deleteConfirmMessage": "대회 \"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "confirmLeaveTitle": "이 대회를 나가시겠습니까?"
   },
   "mode": "대회 모드",
   "timeToStart": "시작까지 {{time}}",
@@ -112,9 +121,14 @@
     "examModel": "필기시험",
     "examQuestions": "Exam 문항"
   },
+  "list": {
+    "duration": "기간",
+    "organizer": "주최"
+  },
   "hero": {
     "examEnded": "시험 종료",
-    "register": "참가 등록",
+    "registered": "참가함",
+    "register": "등록",
     "contestInactive": "대회 미게시",
     "examLocked": "시험 잠금",
     "restartExam": "시험 재시작",
@@ -174,6 +188,7 @@
     "problemColumn": "문제",
     "topicColumn": "주제",
     "scoreColumn": "배점",
+    "scoreLabel": "점수:",
     "total": "총점",
     "myScore": "내 점수",
     "noRankData": "랭킹 데이터가 없습니다",
@@ -419,7 +434,14 @@
     "mouseLeaveRecoveryTitle": "마우스가 창 밖으로 나갔습니다",
     "mouseLeaveRecoveryDesc": "{{seconds}}초 이내에 마우스를 시험 창으로 되돌리지 않으면 위반 1회로 기록됩니다.",
     "forceSubmitCountdown": "잠금 3분 후 자동 제출됩니다",
-    "forceSubmittedReason": "3분 이상 잠금 상태로 인해 시스템이 자동 제출했습니다"
+    "forceSubmittedReason": "3분 이상 잠금 상태로 인해 시스템이 자동 제출했습니다",
+    "screenShareLostTitle": "화면 공유가 중단되었습니다",
+    "screenShareLostHeading": "화면 공유가 중지되었습니다",
+    "screenShareLostDesc": "시험 감시를 위해 화면 공유가 필요합니다. 즉시 전체 화면을 다시 공유해 주세요. 그렇지 않으면 시스템이 자동으로 제출합니다.",
+    "screenShareForceSubmitIn": "{{seconds}}초 후 자동 제출",
+    "screenShareTimeoutWarning": "시간 내에 다시 공유하지 않으면 자동 제출됩니다. 이 작업은 되돌릴 수 없습니다!",
+    "reshareScreen": "화면 다시 공유",
+    "requestingScreenShare": "공유 요청 중..."
   },
   "settings": {
     "title": "대회 설정",
@@ -474,20 +496,6 @@
     "deleteContest": "대회 삭제",
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
     "joinPassword": "참가 비밀번호"
-  },
-  "questionTypes": {
-    "true_false": "O/X 문제",
-    "single_choice": "단일 선택",
-    "multiple_choice": "다중 선택",
-    "short_answer": "단답형",
-    "essay": "서술형"
-  },
-  "questionTypeDescriptions": {
-    "single_choice": "여러 옵션에서 하나의 정답을 선택",
-    "multiple_choice": "여러 옵션에서 여러 정답을 선택",
-    "true_false": "문장이 맞는지 틀린지 판단",
-    "short_answer": "짧은 텍스트로 답변 입력",
-    "essay": "긴 텍스트로 답변 (참고 답안 지원)"
   },
   "examStatus": {
     "not_started": "미시작",
@@ -917,5 +925,26 @@
     "noData": "문제 데이터가 없습니다",
     "title": "문제 통계",
     "questionCount": "{{count}}문제"
+  },
+  "adminLayout": {
+    "title": "관리 대시보드",
+    "nav": {
+      "overview": "개요",
+      "clarifications": "Q&A",
+      "logs": "이벤트 로그",
+      "participants": "참가자",
+      "problemManagement": "문제 관리",
+      "examManagement": "시험 관리",
+      "grading": "채점",
+      "examGrading": "시험 채점",
+      "statistics": "통계",
+      "examStatistics": "시험 통계",
+      "settings": "설정"
+    },
+    "header": {
+      "exportFiles": "파일 내보내기",
+      "previewAnswer": "답안 화면 미리보기",
+      "backToHome": "대회 홈으로 돌아가기"
+    }
   }
 }

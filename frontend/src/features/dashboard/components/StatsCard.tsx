@@ -1,5 +1,6 @@
 import { Tile, SkeletonText, Stack } from "@carbon/react";
 import { CheckmarkOutline } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import "./StatsCard.scss";
 
@@ -21,12 +22,13 @@ interface StatsCardProps {
 }
 
 const difficultyMeta = [
-  { key: "easy", label: "Easy" },
-  { key: "medium", label: "Medium" },
-  { key: "hard", label: "Hard" },
+  { key: "easy" },
+  { key: "medium" },
+  { key: "hard" },
 ];
 
 export const StatsCard: FC<StatsCardProps> = ({ loading, stats, title, subtitle }) => {
+  const { t } = useTranslation("common");
   const totalProblems =
     (stats?.total_easy || 0) + (stats?.total_medium || 0) + (stats?.total_hard || 0);
 
@@ -47,7 +49,7 @@ export const StatsCard: FC<StatsCardProps> = ({ loading, stats, title, subtitle 
           <div className="stats-card__total">
             <span className="stats-card__total-number">{stats.total_solved}</span>
             <span className="stats-card__total-caption">
-              / {totalProblems} solved
+              {t("dashboard.stats.solvedCount", { total: totalProblems })}
             </span>
           </div>
           <div className="stats-card__segments">
@@ -58,7 +60,7 @@ export const StatsCard: FC<StatsCardProps> = ({ loading, stats, title, subtitle 
                 <div className="stats-card__segment" key={item.key}>
                   <div className="stats-card__segment-header">
                     <div className="stats-card__segment-label" data-variant={item.key}>
-                      {item.label}
+                      {t(`dashboard.difficulty.${item.key}`)}
                     </div>
                     <div className="stats-card__segment-value">
                       {solved} / {total}
@@ -79,7 +81,7 @@ export const StatsCard: FC<StatsCardProps> = ({ loading, stats, title, subtitle 
           </div>
         </Stack>
       ) : (
-        <p className="stats-card__empty">No statistics available</p>
+        <p className="stats-card__empty">{t("dashboard.stats.noStats")}</p>
       )}
     </Tile>
   );

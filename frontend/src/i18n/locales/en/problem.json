@@ -29,8 +29,21 @@
     "empty": "(empty)"
   },
   "list": {
-    "title": "Problem List",
-    "subtitle": "Challenge yourself with problems of various difficulty levels."
+    "title": "Problem Solving",
+    "subtitle": "Explore various algorithmic challenges across different difficulties.",
+    "searchPlaceholder": "Search problems...",
+    "noResults": "No problems found matching your criteria",
+    "tryAdjustFilters": "Please try adjusting your filters",
+    "totalLoaded": "Loaded all {{count}} problems",
+    "acrRate": "AC Rate"
+  },
+  "filter": {
+    "status": "Status",
+    "solved": "Solved",
+    "unsolved": "Unsolved",
+    "difficulty": "Difficulty",
+    "tags": "Tags",
+    "noTags": "No tags available"
   },
   "tabs": {
     "description": "Description",
@@ -80,5 +93,10 @@
     "cases": "",
     "samples": "samples",
     "languages": "languages"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
   }
 }

@@ -14,7 +14,7 @@ import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repos
 import type { Contest } from "@/core/entities/contest.entity";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
+import { formatDateTime } from "@/i18n/date.utils";
 import "./DashboardScreen.scss";
 
 interface UserStats {
@@ -31,7 +31,6 @@ const DashboardScreen = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { contentLanguage } = useContentLanguage();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
@@ -90,16 +89,6 @@ const DashboardScreen = () => {
     };
   }, []);
 
-  const formatDate = (dateStr: string) => {
-    const locale = contentLanguage === "zh-TW" ? "zh-TW" : "en-US";
-    return new Date(dateStr).toLocaleString(locale, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="dashboard-page">
       <Grid fullWidth className="dashboard-page__grid">
@@ -128,9 +117,7 @@ const DashboardScreen = () => {
                   {t("dashboard.contests.title")}
                 </h4>
                 <p className="dashboard-page__section-subtitle">
-                  {t("dashboard.contests.ongoing", {
-                    defaultValue: "僅顯示進行中競賽",
-                  })}
+                  {t("dashboard.contests.ongoing")}
                 </p>
               </div>
             </div>
@@ -151,9 +138,7 @@ const DashboardScreen = () => {
               </div>
             ) : (
               <p className="dashboard-page__empty">
-                {t("dashboard.contests.noContests", {
-                  defaultValue: "目前沒有新競賽",
-                })}
+                {t("dashboard.contests.noContests")}
               </p>
             )}
           </Tile>
@@ -166,10 +151,10 @@ const DashboardScreen = () => {
                 <Education size={24} />
                 <div>
                   <h4 className="dashboard-page__section-title">
-                    {t("dashboard.classrooms.title", { defaultValue: "我的教室" })}
+                    {t("dashboard.classrooms.title")}
                   </h4>
                   <p className="dashboard-page__section-subtitle">
-                    {t("dashboard.classrooms.subtitle", { defaultValue: "已加入的教室" })}
+                    {t("dashboard.classrooms.subtitle")}
                   </p>
                 </div>
               </div>
@@ -182,7 +167,7 @@ const DashboardScreen = () => {
                   >
                     <strong>{c.name}</strong>
                     <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
-                      {c.memberCount} {t("classroom.members", { defaultValue: "成員" })} · {c.ownerUsername}
+                      {c.memberCount} {t("classroom.members")} · {c.ownerUsername}
                     </p>
                   </Tile>
                 ))}
@@ -196,11 +181,9 @@ const DashboardScreen = () => {
             announcements={announcements}
             loading={loading}
             title={t("dashboard.announcements.title")}
-            subtitle={t("dashboard.announcements.subtitle", {
-              defaultValue: "最新公告",
-            })}
+            subtitle={t("dashboard.announcements.subtitle")}
             emptyMessage={t("dashboard.announcements.noAnnouncements")}
-            formatDate={formatDate}
+            formatDate={formatDateTime}
           />
         </Column>
       </Grid>

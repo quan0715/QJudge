@@ -29,8 +29,21 @@
     "empty": "（空）"
   },
   "list": {
-    "title": "問題一覧",
-    "subtitle": "様々な難易度のプログラミング問題に挑戦して、アルゴリズム能力を向上させましょう。"
+    "title": "問題解決 / Problem Solving",
+    "subtitle": "様々な難易度のアルゴリズム課題に挑戦し、プログラミング能力を向上させましょう。",
+    "searchPlaceholder": "問題を検索...",
+    "noResults": "条件に一致する問題が見つかりませんでした",
+    "tryAdjustFilters": "フィルターを調整してみてください",
+    "totalLoaded": "全 {{count}} 問を読み込みました",
+    "acrRate": "正解率"
+  },
+  "filter": {
+    "status": "ステータス",
+    "solved": "解決済み",
+    "unsolved": "未解決",
+    "difficulty": "難易度",
+    "tags": "タグ",
+    "noTags": "利用可能なタグはありません"
   },
   "tabs": {
     "description": "問題文",
@@ -80,5 +93,10 @@
     "cases": "個",
     "samples": "サンプル",
     "languages": "言語"
+  },
+  "difficulty": {
+    "easy": "簡単",
+    "medium": "普通",
+    "hard": "難しい"
   }
 }

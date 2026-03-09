@@ -1,4 +1,7 @@
 {
+  "header": {
+    "contestPlatform": "競賽平台"
+  },
   "management": {
     "description": "管理您建立的競賽",
     "contestCount": "共 {{count}} 場競賽"
@@ -14,11 +17,17 @@
     "endBeforeStart": "結束時間必須晚於開始時間"
   },
   "error": {
-    "createFailed": "建立競賽失敗"
+    "createFailed": "建立競賽失敗",
+    "joinFailed": "無法加入競賽，請檢查密碼或稍後再試",
+    "leaveFailed": "無法退出競賽，請稍後再試",
+    "startExamFailed": "無法開始考試，請稍後再試",
+    "endExamFailed": "無法交卷，請稍後再試",
+    "exitFailed": "無法離開競賽，請稍後再試"
   },
   "modal": {
     "confirmDelete": "確認刪除",
-    "deleteConfirmMessage": "確定要刪除競賽「{{name}}」嗎？此操作無法復原。"
+    "deleteConfirmMessage": "確定要刪除競賽「{{name}}」嗎？此操作無法復原。",
+    "confirmLeaveTitle": "確定要退出此競賽嗎？"
   },
   "mode": "競賽模式",
   "timeToStart": "距開始 {{time}}",
@@ -62,9 +71,14 @@
     "examModel": "紙筆題",
     "examQuestions": "Exam 題目"
   },
+  "list": {
+    "duration": "時長",
+    "organizer": "主辦單位"
+  },
   "hero": {
     "examEnded": "考試已結束",
-    "register": "立即報名",
+    "registered": "已參與",
+    "register": "報名",
     "contestInactive": "競賽未發布",
     "examLocked": "考試已鎖定",
     "restartExam": "重新開始考試",
@@ -124,6 +138,7 @@
     "problemColumn": "題目",
     "topicColumn": "主題",
     "scoreColumn": "配分",
+    "scoreLabel": "分數：",
     "total": "總計",
     "myScore": "我的成績",
     "noRankData": "暫無排名數據",
@@ -369,7 +384,14 @@
     "mouseLeaveRecoveryTitle": "滑鼠已離開視窗",
     "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
     "forceSubmitCountdown": "鎖定超過 3 分鐘後將自動交卷",
-    "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷"
+    "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷",
+    "screenShareLostTitle": "螢幕分享已中斷",
+    "screenShareLostHeading": "偵測到螢幕分享已停止",
+    "screenShareLostDesc": "考試監控需要螢幕分享才能繼續。請立即重新分享您的整個螢幕，否則系統將自動為您交卷。",
+    "screenShareForceSubmitIn": "{{seconds}} 秒後自動交卷",
+    "screenShareTimeoutWarning": "未在時限內重新分享螢幕將自動交卷，無法復原！",
+    "reshareScreen": "重新分享螢幕",
+    "requestingScreenShare": "請求分享中..."
   },
   "settings": {
     "title": "競賽設定",
@@ -424,20 +446,6 @@
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
     "joinPassword": "加入密碼"
-  },
-  "questionTypes": {
-    "true_false": "是非題",
-    "single_choice": "單選題",
-    "multiple_choice": "多選題",
-    "short_answer": "簡答題",
-    "essay": "問答題"
-  },
-  "questionTypeDescriptions": {
-    "single_choice": "從多個選項中選擇一個正確答案",
-    "multiple_choice": "從多個選項中選擇多個正確答案",
-    "true_false": "判斷敘述為「是」或「否」",
-    "short_answer": "輸入簡短文字作為答案",
-    "essay": "長篇文字作答，支援參考答案"
   },
   "examStatus": {
     "not_started": "未開始",
@@ -917,5 +925,26 @@
     "noData": "尚無題目資料",
     "title": "題目統計",
     "questionCount": "{{count}} 題"
+  },
+  "adminLayout": {
+    "title": "管理後台",
+    "nav": {
+      "overview": "總覽",
+      "clarifications": "問答",
+      "logs": "事件紀錄",
+      "participants": "參賽者",
+      "problemManagement": "題目管理",
+      "examManagement": "Exam 管理",
+      "grading": "批改",
+      "examGrading": "Exam 批改",
+      "statistics": "統計",
+      "examStatistics": "Exam 統計",
+      "settings": "設定"
+    },
+    "header": {
+      "exportFiles": "匯出檔案",
+      "previewAnswer": "預覽作答畫面",
+      "backToHome": "前往競賽主頁"
+    }
   }
 }

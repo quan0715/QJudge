@@ -39,7 +39,7 @@
       },
       "lab": {
         "label": "Lab Practice",
-        "desc": "Guided learning environment"
+        "desc": "Pure practice mode. Topic-based problem sets for students to improve at their own pace without pressure."
       },
       "takehome": {
         "label": "Take-home Project",

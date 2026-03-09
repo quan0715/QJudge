@@ -2,12 +2,11 @@
   "nav": {
     "dashboard": "儀表板",
     "problems": "題目",
-    "labs": "題目單",
     "contests": "競賽",
+    "classrooms": "教室",
     "submissions": "提交紀錄",
     "ranking": "排行榜",
     "documentation": "文件",
-    "docs": "文件",
     "backToProblemList": "返回題目列表",
     "problemList": "題目列表",
     "back": "返回"
@@ -22,14 +21,11 @@
     "login": "登入",
     "register": "註冊",
     "userManagement": "使用者管理",
-    "problemManagement": "題目管理",
-    "contestManagement": "競賽管理",
     "announcements": "公告管理",
     "environment": "環境設定",
     "createContest": "建立競賽",
     "createProblem": "新增題目",
-    "editProblem": "編輯題目",
-    "teacherDashboard": "教師後台"
+    "editProblem": "編輯題目"
   },
   "tab": {
     "overview": "總覽",
@@ -38,31 +34,26 @@
     "standings": "排名",
     "clarifications": "問答",
     "settings": "設定",
-    "participants": "參賽者",
-    "logs": "日誌",
-    "manageProblems": "管理題目",
     "description": "題目描述",
-    "solver": "解題",
-    "history": "歷史紀錄",
-    "stats": "統計"
+    "solver": "解題"
   },
   "header": {
-    "appSwitcher": "功能選單",
+    "platform": "QJudge 平台",
+    "prefix": "陽明交大",
+    "menu": "選單",
+    "sideNav": "側邊導航",
     "userMenu": "使用者選單",
-    "management": "管理",
-    "system": "系統",
-    "navigation": "快速導航",
-    "account": "帳戶",
     "problemManagement": "題目管理",
     "createContest": "建立競賽",
-    "createLab": "建立題目單",
     "userManagement": "使用者管理",
     "announcements": "公告管理",
     "environmentSettings": "環境設定",
     "teacherDashboard": "教師後台",
     "systemSettings": "系統設定",
     "contestManagement": "競賽管理",
-    "labManagement": "題目單管理"
+    "mainNavigation": "主要導覽",
+    "contestNavigation": "競賽導覽",
+    "adminNavigation": "管理導覽"
   },
   "dashboard": {
     "welcomeBack": "歡迎回來，{{name}}",
@@ -70,6 +61,7 @@
     "stats": {
       "title": "解題統計",
       "problems": "題",
+      "solvedCount": "/ {{total}} 已解決",
       "noStats": "無法載入統計資料"
     },
     "difficulty": {
@@ -77,16 +69,21 @@
       "medium": "中等",
       "hard": "困難"
     },
+    "classrooms": {
+      "title": "我的教室",
+      "subtitle": "已加入的教室"
+    },
     "contests": {
       "title": "近期比賽",
       "noContests": "目前沒有近期比賽",
       "upcoming": "即將開始",
-      "ongoing": "進行中",
+      "ongoing": "僅顯示進行中競賽",
       "ended": "已結束",
       "participated": "已參加"
     },
     "announcements": {
       "title": "公告",
+      "subtitle": "最新公告",
       "noAnnouncements": "目前沒有公告"
     }
   },
@@ -157,6 +154,9 @@
     "wrongPassword": "目前密碼錯誤",
     "oauthUser": "OAuth 使用者無法變更密碼"
   },
+  "settings": {
+    "title": "設定"
+  },
   "table": {
     "title": "標題",
     "status": "狀態",
@@ -226,7 +226,8 @@
     "connected": "已連線",
     "disconnected": "未連線",
     "enabled": "已啟用",
-    "disabled": "已停用"
+    "disabled": "已停用",
+    "solved": "已解決"
   },
   "action": {
     "adding": "新增中...",
@@ -239,7 +240,8 @@
     "processing": "處理中...",
     "pleaseWait": "請稍候",
     "refreshing": "更新中...",
-    "refresh": "重新整理"
+    "refresh": "重新整理",
+    "viewProblem": "查看題目"
   },
   "difficulty": {
     "easy": "簡單",
@@ -275,5 +277,24 @@
     "hide": "隱藏",
     "allow": "允許",
     "forbid": "禁止"
+  },
+  "classroom": {
+    "members": "成員"
+  },
+  "questionType": {
+    "label": {
+      "true_false": "是非題",
+      "single_choice": "單選題",
+      "multiple_choice": "多選題",
+      "short_answer": "簡答題",
+      "essay": "問答題"
+    },
+    "description": {
+      "true_false": "判斷敘述為「是」或「否」",
+      "single_choice": "從多個選項中選擇一個正確答案",
+      "multiple_choice": "從多個選項中選擇多個正確答案",
+      "short_answer": "輸入簡短文字作為答案",
+      "essay": "長篇文字作答，支援參考答案"
+    }
   }
 }

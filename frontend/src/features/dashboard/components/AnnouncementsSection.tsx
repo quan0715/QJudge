@@ -29,9 +29,9 @@ export interface AnnouncementsSectionProps {
 export const AnnouncementsSection = ({
   announcements,
   loading = false,
-  title = "公告",
-  subtitle = "最新公告",
-  emptyMessage = "目前沒有公告",
+  title = "",
+  subtitle = "",
+  emptyMessage = "",
   formatDate,
 }: AnnouncementsSectionProps) => {
   const [selectedAnnouncement, setSelectedAnnouncement] =

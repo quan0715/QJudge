@@ -114,7 +114,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
           index: index + 1,
           prompt: question.prompt,
           type: t(
-            `questionTypes.${(result?.questionType || question.questionType)?.toString()}`,
+            `common:questionType.label.${(result?.questionType || question.questionType)?.toString()}`,
             (result?.questionType || question.questionType || "-").toString()
           ),
           maxScore: question.score ?? 0,

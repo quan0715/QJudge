@@ -2,12 +2,11 @@
   "nav": {
     "dashboard": "Dashboard",
     "problems": "Problems",
-    "labs": "Labs",
     "contests": "Contests",
+    "classrooms": "Classrooms",
     "submissions": "Submissions",
     "ranking": "Ranking",
     "documentation": "Documentation",
-    "docs": "Docs",
     "backToProblemList": "Back to Problems",
     "problemList": "Problem List",
     "back": "Back"
@@ -22,14 +21,11 @@
     "login": "Login",
     "register": "Register",
     "userManagement": "User Management",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management",
     "announcements": "Announcements",
     "environment": "Environment",
     "createContest": "Create Contest",
     "createProblem": "Create Problem",
-    "editProblem": "Edit Problem",
-    "teacherDashboard": "Teacher Dashboard"
+    "editProblem": "Edit Problem"
   },
   "tab": {
     "overview": "Overview",
@@ -38,31 +34,26 @@
     "standings": "Standings",
     "clarifications": "Clarifications",
     "settings": "Settings",
-    "participants": "Participants",
-    "logs": "Logs",
-    "manageProblems": "Manage Problems",
     "description": "Description",
-    "solver": "Solve",
-    "history": "History",
-    "stats": "Statistics"
+    "solver": "Solve"
   },
   "header": {
-    "appSwitcher": "App Switcher",
+    "platform": "QJudge Platform",
+    "prefix": "NYCU",
+    "menu": "Menu",
+    "sideNav": "Side Navigation",
     "userMenu": "User Menu",
-    "management": "Management",
-    "system": "System",
-    "navigation": "Quick Navigation",
-    "account": "Account",
     "problemManagement": "Problem Management",
     "createContest": "Create Contest",
-    "createLab": "Create Lab",
     "userManagement": "User Management",
     "announcements": "Announcements",
     "environmentSettings": "Environment Settings",
     "teacherDashboard": "Teacher Dashboard",
     "systemSettings": "System Settings",
     "contestManagement": "Contest Management",
-    "labManagement": "Lab Management"
+    "mainNavigation": "Main Navigation",
+    "contestNavigation": "Contest Navigation",
+    "adminNavigation": "Admin Navigation"
   },
   "dashboard": {
     "welcomeBack": "Welcome back, {{name}}",
@@ -70,6 +61,7 @@
     "stats": {
       "title": "Problem Statistics",
       "problems": "problems",
+      "solvedCount": "/ {{total}} solved",
       "noStats": "Unable to load statistics"
     },
     "difficulty": {
@@ -77,16 +69,21 @@
       "medium": "Medium",
       "hard": "Hard"
     },
+    "classrooms": {
+      "title": "My Classrooms",
+      "subtitle": "Classrooms you have joined"
+    },
     "contests": {
       "title": "Upcoming Contests",
       "noContests": "No upcoming contests",
       "upcoming": "Upcoming",
-      "ongoing": "Ongoing",
+      "ongoing": "Ongoing contests only",
       "ended": "Ended",
       "participated": "Participated"
     },
     "announcements": {
       "title": "Announcements",
+      "subtitle": "Latest updates",
       "noAnnouncements": "No announcements"
     }
   },
@@ -157,6 +154,9 @@
     "wrongPassword": "Current password is incorrect",
     "oauthUser": "OAuth users cannot change password"
   },
+  "settings": {
+    "title": "Settings"
+  },
   "table": {
     "title": "Title",
     "status": "Status",
@@ -226,7 +226,8 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "enabled": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "solved": "Solved"
   },
   "action": {
     "adding": "Adding...",
@@ -239,7 +240,8 @@
     "processing": "Processing...",
     "pleaseWait": "Please wait",
     "refreshing": "Refreshing...",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "viewProblem": "View problem"
   },
   "difficulty": {
     "easy": "Easy",
@@ -275,5 +277,24 @@
     "hide": "Hide",
     "allow": "Allow",
     "forbid": "Forbid"
+  },
+  "classroom": {
+    "members": "members"
+  },
+  "questionType": {
+    "label": {
+      "true_false": "True/False",
+      "single_choice": "Single Choice",
+      "multiple_choice": "Multiple Choice",
+      "short_answer": "Short Answer",
+      "essay": "Essay"
+    },
+    "description": {
+      "true_false": "Judge a statement as true or false",
+      "single_choice": "Choose one correct answer from multiple options",
+      "multiple_choice": "Choose multiple correct answers from options",
+      "short_answer": "Enter a short text answer",
+      "essay": "Long-form text answer with optional reference answer"
+    }
   }
 }

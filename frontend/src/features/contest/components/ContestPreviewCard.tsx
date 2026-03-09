@@ -2,6 +2,7 @@ import React from "react";
 import { ClickableTile, Stack, Tag } from "@carbon/react";
 import { Calendar, Time, CheckmarkFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { formatDateTime, DATE_FORMATS } from "@/i18n/date.utils";
 import type { Contest } from "@/core/entities/contest.entity";
 import {
   getContestState,
@@ -45,17 +46,17 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
         <div className="contest-preview-card__meta">
           <span className="contest-preview-card__meta-item">
             <Calendar size={16} />
-            {new Date(contest.startTime).toLocaleDateString()} -{" "}
-            {new Date(contest.endTime).toLocaleDateString()}
+            {formatDateTime(contest.startTime, DATE_FORMATS.DATE_ONLY)} -{" "}
+            {formatDateTime(contest.endTime, DATE_FORMATS.DATE_ONLY)}
           </span>
           <span className="contest-preview-card__meta-item">
             <Time size={16} />
-            {t("list.duration", { defaultValue: "Duration" })}: {durationHours}h
+            {t("list.duration")}: {durationHours}h
           </span>
           {contest.organizer && (
             <span className="contest-preview-card__meta-item">
               <Tag type="cool-gray" size="sm">
-                {t("list.organizer", "Host")}: {contest.organizer}
+                {t("list.organizer")}: {contest.organizer}
               </Tag>
             </span>
           )}
@@ -65,8 +66,8 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
           <span className="contest-preview-card__meta-item">
             <Tag type={contest.isRegistered ? "green" : "gray"} size="sm">
               {contest.isRegistered
-                ? t("hero.registered", "已參與")
-                : t("hero.register", "未報名")}
+                ? t("hero.registered")
+                : t("hero.register")}
             </Tag>
           </span>
           {contest.isRegistered && (
@@ -74,7 +75,7 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
               <CheckmarkFilled
                 size={16}
                 className="contest-preview-card__status-icon--success"
-                aria-label={t("hero.registered", "已參與")}
+                aria-label={t("hero.registered")}
               />
             </span>
           )}

@@ -407,7 +407,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 <Tag size="sm" type={TYPE_TAG_COLOR[question.questionType] as never}>
                   <span className={styles.typeTagContent}>
                     {React.createElement(TYPE_ICON[question.questionType], { size: 12 })}
-                    {t(`questionTypes.${question.questionType}`, question.questionType)}
+                    {t(`common:questionType.label.${question.questionType}`, question.questionType)}
                   </span>
                 </Tag>
               </span>
@@ -543,11 +543,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 disabled={frozen}
                 inline
               >
-                <SelectItem value="single_choice" text={t("questionTypes.single_choice", "單選題")} />
-                <SelectItem value="multiple_choice" text={t("questionTypes.multiple_choice", "多選題")} />
-                <SelectItem value="true_false" text={t("questionTypes.true_false", "是非題")} />
-                <SelectItem value="short_answer" text={t("questionTypes.short_answer", "簡答題")} />
-                <SelectItem value="essay" text={t("questionTypes.essay", "問答題")} />
+                <SelectItem value="single_choice" text={t("common:questionType.label.single_choice", "單選題")} />
+                <SelectItem value="multiple_choice" text={t("common:questionType.label.multiple_choice", "多選題")} />
+                <SelectItem value="true_false" text={t("common:questionType.label.true_false", "是非題")} />
+                <SelectItem value="short_answer" text={t("common:questionType.label.short_answer", "簡答題")} />
+                <SelectItem value="essay" text={t("common:questionType.label.essay", "問答題")} />
               </Select>
             </div>
             <div className={styles.scoreInline}>

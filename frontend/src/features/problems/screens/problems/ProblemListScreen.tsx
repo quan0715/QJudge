@@ -105,7 +105,7 @@ const ProblemListScreen: React.FC = () => {
         loader={<LoadingIndicator />}
         endMessage={
           <div style={{ textAlign: "center", marginTop: "2rem", color: "gray" }}>
-            <p>已載入全部 {totalCount} 題</p>
+            <p>{t("list.totalLoaded", { count: totalCount })}</p>
           </div>
         }
         scrollThreshold={0.9}
@@ -123,10 +123,10 @@ const ProblemListScreen: React.FC = () => {
     ) : (
       <div className="problem-empty">
         <p className="problem-empty__title">
-          {t("list.noResults", "找不到符合條件的題目")}
+          {t("list.noResults")}
         </p>
         <p className="problem-empty__subtitle">
-          {t("list.tryAdjustFilters", "請嘗試調整篩選條件")}
+          {t("list.tryAdjustFilters")}
         </p>
       </div>
     );
@@ -139,8 +139,8 @@ const ProblemListScreen: React.FC = () => {
         <Column lg={16} md={8} sm={4}>
           <div className="problem-list-page__header">
             <PageHeader
-              title={t("list.title", "解題 / Problem Solving")}
-              subtitle={t("list.subtitle", "題目列表")}
+              title={t("list.title")}
+              subtitle={t("list.subtitle")}
               action={
                 <Button
                   kind="ghost"
@@ -149,7 +149,7 @@ const ProblemListScreen: React.FC = () => {
                   className="problem-list-page__mobile-toggle"
                   onClick={() => setDrawerOpen(true)}
                 >
-                  {tc("filter.title", "Filter")}
+                  {tc("filter.title")}
                   {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                 </Button>
               }
@@ -162,7 +162,7 @@ const ProblemListScreen: React.FC = () => {
             <Search
               id="problem-search"
               labelText=""
-              placeholder={t("list.searchPlaceholder", "搜尋題目...")}
+              placeholder={t("list.searchPlaceholder")}
               size="lg"
               value={filters.search}
               onChange={handleSearchChange}

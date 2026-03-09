@@ -45,17 +45,17 @@ export const GlobalHeader = () => {
     <>
       <HeaderContainer
         render={({ isSideNavExpanded, onClickSideNavExpand }) => (
-          <Header aria-label="QJudge Platform">
+          <Header aria-label={t("header.platform")}>
             <SkipToContent />
             <HeaderMenuButton
-              aria-label={t("header.menu", "選單")}
+              aria-label={t("header.menu")}
               onClick={onClickSideNavExpand}
               isActive={isSideNavExpanded}
             />
-            <HeaderName href="/" prefix="NYCU">
+            <HeaderName href="/" prefix={t("header.prefix")}>
               QJudge
             </HeaderName>
-            <HeaderNavigation aria-label="Main Navigation">
+            <HeaderNavigation aria-label={t("header.mainNavigation")}>
               <HeaderMenuItem
                 isCurrentPage={location.pathname.startsWith("/dashboard")}
                 onClick={() => navigate("/dashboard")}
@@ -84,7 +84,7 @@ export const GlobalHeader = () => {
                 isCurrentPage={location.pathname.startsWith("/classrooms")}
                 onClick={() => navigate("/classrooms")}
               >
-                {t("nav.classrooms", "教室")}
+                {t("nav.classrooms")}
               </HeaderMenuItem>
               <HeaderMenuItem
                 isCurrentPage={location.pathname.startsWith("/docs")}
@@ -107,7 +107,7 @@ export const GlobalHeader = () => {
 
             {/* Mobile Side Navigation */}
             <SideNav
-              aria-label={t("header.sideNav", "側邊導航")}
+              aria-label={t("header.sideNav")}
               expanded={isSideNavExpanded}
               isPersistent={false}
               onSideNavBlur={onClickSideNavExpand}
@@ -172,7 +172,7 @@ export const GlobalHeader = () => {
                   }}
                   isActive={location.pathname.startsWith("/classrooms")}
                 >
-                  {t("nav.classrooms", "教室")}
+                  {t("nav.classrooms")}
                 </SideNavLink>
                 <SideNavLink
                   renderIcon={Book}

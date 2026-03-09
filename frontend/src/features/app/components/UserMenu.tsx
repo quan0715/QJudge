@@ -210,7 +210,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             }}
           >
             <Settings size={16} />
-            {t("settings.title", "設定")}
+            {t("settings.title")}
           </button>
 
           {/* Dev Tools */}
