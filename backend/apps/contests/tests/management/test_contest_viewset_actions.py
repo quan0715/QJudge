@@ -916,3 +916,109 @@ def test_platform_admin_can_archive(
     assert response.status_code == status.HTTP_200_OK
     contest.refresh_from_db()
     assert contest.status == "archived"
+
+
+# ---------------------------------------------------------------------------
+# remove_participant: evidence-data protection
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_remove_participant_blocked_when_evidence_job_exists(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    student: User,
+) -> None:
+    """Removing a participant who has evidence jobs should return 409."""
+    from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
+
+    api_client.force_authenticate(user=owner)
+
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+        started_at=timezone.now() - timedelta(minutes=30),
+        left_at=timezone.now(),
+    )
+    ExamEvidenceJob.objects.create(
+        contest=contest,
+        participant=participant,
+        upload_session_id="sess-001",
+        status=EvidenceJobStatus.PENDING,
+    )
+
+    resp = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_participant/",
+        {"user_id": student.id},
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_409_CONFLICT
+    assert "evidence" in resp.data["error"].lower()
+    # Participant and evidence job must still exist
+    assert ContestParticipant.objects.filter(pk=participant.pk).exists()
+    assert ExamEvidenceJob.objects.filter(participant=participant).exists()
+
+
+@pytest.mark.django_db
+def test_remove_participant_allowed_without_evidence(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    student: User,
+) -> None:
+    """Removing a participant with no evidence jobs should succeed normally."""
+    api_client.force_authenticate(user=owner)
+
+    ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+        started_at=timezone.now() - timedelta(minutes=30),
+        left_at=timezone.now(),
+    )
+
+    resp = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_participant/",
+        {"user_id": student.id},
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    assert not ContestParticipant.objects.filter(contest=contest, user=student).exists()
+
+
+@pytest.mark.django_db
+def test_remove_participant_blocked_even_for_succeeded_evidence(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    student: User,
+) -> None:
+    """Even completed (success) evidence jobs must block participant removal."""
+    from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
+
+    api_client.force_authenticate(user=owner)
+
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+    )
+    ExamEvidenceJob.objects.create(
+        contest=contest,
+        participant=participant,
+        upload_session_id="sess-done",
+        status=EvidenceJobStatus.SUCCESS,
+        raw_count=10,
+    )
+
+    resp = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_participant/",
+        {"user_id": student.id},
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_409_CONFLICT
+    assert ContestParticipant.objects.filter(pk=participant.pk).exists()
