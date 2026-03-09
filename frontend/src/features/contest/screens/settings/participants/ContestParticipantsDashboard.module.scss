@@ -27,24 +27,15 @@
   overflow-y: auto;
 }
 
-.toolbar {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  /* Fluid components use their own borders — no gap needed */
+.toolbarSearch {
   border: 1px solid var(--cds-border-strong-01);
 }
 
-.toolbarSearch {
-  flex: 1 1 14rem;
-  min-width: 14rem;
-}
-
-.toolbarFilter {
-  width: 12rem;
-}
-
-.toolbarAction {
-  flex: 0 0 auto;
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--cds-border-strong-01);
+  border-top: none;
 }
 
 .toolbarMeta {
@@ -300,10 +291,6 @@
 }
 
 @media (max-width: 960px) {
-  .toolbar {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .listItemHeader {
     flex-wrap: wrap;
   }

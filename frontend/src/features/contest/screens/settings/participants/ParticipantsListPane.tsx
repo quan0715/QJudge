@@ -84,21 +84,20 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   return (
     <ContainerCard
       title={t("participants.title", "參賽者列表")}
-      subtitle={t("participantsDashboard.listSubtitle", "選擇一位參賽者查看個人作答、事件與報告資訊")}
       className={styles.pane}
       action={
         <Button
           kind="primary"
           size="sm"
           renderIcon={Add}
+          iconDescription={t("participants.add", "新增")}
+          hasIconOnly
           onClick={onAddParticipant}
-        >
-          {t("participants.add", "新增")}
-        </Button>
+        />
       }
     >
       <div className={styles.paneInner}>
-      <div className={styles.toolbar}>
+      <div className={styles.toolbarSearch}>
         <FluidSearch
           id="participants-dashboard-search"
           labelText={t("participants.searchLabel", "搜尋參賽者")}
@@ -106,6 +105,8 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
         />
+      </div>
+      <div className={styles.toolbar}>
         <FluidDropdown
           id="participants-dashboard-status"
           titleText={t("participants.selectStatus", "狀態")}
@@ -123,7 +124,6 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           itemToString={(item) => item?.label ?? ""}
           selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
           onChange={({ selectedItem }) => onSortChange(selectedItem?.id ?? "score_desc")}
-          size="sm"
         />
       </div>
 
