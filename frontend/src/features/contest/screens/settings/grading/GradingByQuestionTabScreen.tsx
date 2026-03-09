@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type {
@@ -128,91 +129,98 @@ export default function GradingByQuestionTabScreen({
 
   const hasNext = !!findNextUngraded();
 
-  return (
-    <div className={styles.threeCol}>
-      {/* Left: Question sidebar */}
-      <QuestionSidebarScreen
-        questions={questionProgress}
-        selectedQuestionId={selectedQuestionId}
-        onSelect={handleQuestionSelect}
-      />
+  const sidebarContent = (
+    <QuestionSidebarScreen
+      questions={questionProgress}
+      selectedQuestionId={selectedQuestionId}
+      onSelect={handleQuestionSelect}
+    />
+  );
 
-      {/* Middle: Answer card list */}
-      <div className={styles.tableCol}>
-        <div className={styles.cardList}>
-          {paginatedAnswers.length === 0 ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyStateDesc}>
-                {searchQuery.trim() || filter !== "all"
-                  ? "沒有符合條件的作答"
-                  : "此題目尚無學生作答"}
-              </span>
-            </div>
-          ) : (
-            paginatedAnswers.map((a) => {
-              const isSelected = a.id === selectedAnswerId;
-              const isAbsent = a.isAbsent === true;
-              return (
-                <div
-                  key={a.id}
-                  className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
-                  onClick={isAbsent ? undefined : () => setSelectedAnswerId(a.id)}
-                  style={isAbsent ? { cursor: "default", opacity: 0.7 } : undefined}
-                >
-                  <div className={styles.cardPrimary}>
-                    <span>{a.studentNickname}</span>
-                    {isAbsent ? (
-                      <Tag type="red" size="sm">缺交</Tag>
-                    ) : a.score !== null ? (
-                      <span style={{ fontWeight: 600, color: "var(--cds-support-success)" }}>
-                        {a.score}/{a.maxScore}
-                      </span>
-                    ) : (
-                      <Tag type="warm-gray" size="sm">未批改</Tag>
-                    )}
-                  </div>
-                  <div className={styles.cardSecondary}>
-                    <span>{a.studentUsername}</span>
-                    <span>
-                      {isAbsent ? "" : a.gradedBy === "system" ? (
-                        <Tag type="cyan" size="sm">自動</Tag>
-                      ) : a.gradedBy ?? ""}
+  const middlePaneContent = (
+    <div className={styles.tableCol}>
+      <div className={styles.cardList}>
+        {paginatedAnswers.length === 0 ? (
+          <div className={styles.emptyState}>
+            <span className={styles.emptyStateDesc}>
+              {searchQuery.trim() || filter !== "all"
+                ? "沒有符合條件的作答"
+                : "此題目尚無學生作答"}
+            </span>
+          </div>
+        ) : (
+          paginatedAnswers.map((a) => {
+            const isSelected = a.id === selectedAnswerId;
+            const isAbsent = a.isAbsent === true;
+            return (
+              <div
+                key={a.id}
+                className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
+                onClick={isAbsent ? undefined : () => setSelectedAnswerId(a.id)}
+                style={isAbsent ? { cursor: "default", opacity: 0.7 } : undefined}
+              >
+                <div className={styles.cardPrimary}>
+                  <span>{a.studentNickname}</span>
+                  {isAbsent ? (
+                    <Tag type="red" size="sm">缺交</Tag>
+                  ) : a.score !== null ? (
+                    <span style={{ fontWeight: 600, color: "var(--cds-support-success)" }}>
+                      {a.score}/{a.maxScore}
                     </span>
-                  </div>
+                  ) : (
+                    <Tag type="warm-gray" size="sm">未批改</Tag>
+                  )}
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        <Pagination
-          totalItems={currentAnswers.length}
-          backwardText="上一頁"
-          forwardText="下一頁"
-          itemsPerPageText="每頁"
-          page={page}
-          pageSize={pageSize}
-          pageSizes={[25, 50, 100]}
-          onChange={({
-            page: p,
-            pageSize: ps,
-          }: {
-            page: number;
-            pageSize: number;
-          }) => {
-            setPage(p);
-            setPageSize(ps);
-          }}
-        />
+                <div className={styles.cardSecondary}>
+                  <span>{a.studentUsername}</span>
+                  <span>
+                    {isAbsent ? "" : a.gradedBy === "system" ? (
+                      <Tag type="cyan" size="sm">自動</Tag>
+                    ) : a.gradedBy ?? ""}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* Right: Grading panel */}
+      <Pagination
+        totalItems={currentAnswers.length}
+        backwardText="上一頁"
+        forwardText="下一頁"
+        itemsPerPageText="每頁"
+        page={page}
+        pageSize={pageSize}
+        pageSizes={[25, 50, 100]}
+        onChange={({
+          page: p,
+          pageSize: ps,
+        }: {
+          page: number;
+          pageSize: number;
+        }) => {
+          setPage(p);
+          setPageSize(ps);
+        }}
+      />
+    </div>
+  );
+
+  return (
+    <AdminSplitLayout
+      sidebar={sidebarContent}
+      sidebarWidth={160}
+      middlePane={middlePaneContent}
+      middlePaneWidth={220}
+      contentClassName={styles.gradingContent}
+    >
       <GradingSplitPanelScreen
         answer={selectedAnswer}
         onGrade={onGrade}
         onNext={handleNext}
         hasNext={hasNext}
       />
-    </div>
+    </AdminSplitLayout>
   );
 }

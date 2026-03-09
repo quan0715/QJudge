@@ -1,0 +1,124 @@
+// ─── Shared Admin Panel Mixins ───
+// Extracted from Grading, Statistics, and Exam Editor panels
+// to unify sidebar items, card lists, and empty states.
+
+// ─── 1. Sidebar item mixins ───
+
+@mixin sidebar-header {
+  padding: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+@mixin sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  transition: background 0.1s;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+@mixin sidebar-item-active {
+  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  border-left: 3px solid var(--cds-interactive);
+  padding-left: calc(0.75rem - 3px);
+
+  &:hover {
+    background: var(--cds-layer-selected-hover-01);
+  }
+}
+
+@mixin sidebar-label {
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+@mixin sidebar-meta {
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+// ─── 2. Card list mixins ───
+
+@mixin card-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 0;
+  flex: 1;
+}
+
+@mixin card-item {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+@mixin card-item-active {
+  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  border-left: 3px solid var(--cds-interactive);
+  padding-left: calc(0.75rem - 3px);
+
+  &:hover {
+    background: var(--cds-layer-selected-hover-01);
+  }
+}
+
+@mixin card-primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  font-weight: 500;
+  color: var(--cds-text-primary);
+}
+
+@mixin card-secondary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+}
+
+// ─── 3. Panel empty state mixin ───
+
+@mixin panel-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--cds-text-secondary);
+}
+
+@mixin panel-empty-state-desc {
+  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  color: var(--cds-text-secondary);
+  max-width: 320px;
+  line-height: var(--cds-body-compact-01-line-height, 1.5);
+}

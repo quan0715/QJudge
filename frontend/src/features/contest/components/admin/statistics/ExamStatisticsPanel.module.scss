@@ -1,39 +1,6 @@
 @use "@carbon/layout";
 
-// ─── 2-column layout: left sidebar + right scrollable ───
-.statisticsLayout {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.workTreePane {
-  width: 260px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border-right: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
-}
-
-.scrollPane {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: layout.$spacing-06;
-  gap: layout.$spacing-04;
-  background: var(--cds-layer-01);
-}
-
+// ─── Content card ───
 .cardItem {
   width: 100%;
   max-width: 760px;

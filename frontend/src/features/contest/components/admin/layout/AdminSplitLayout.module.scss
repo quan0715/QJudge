@@ -1,0 +1,90 @@
+@use "@carbon/layout";
+
+.root {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) var(--middle-width, 0px) 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// When no middle pane, use 2-column layout
+.noMiddle {
+  grid-template-columns: var(--sidebar-width) 1fr;
+}
+
+.toolbar {
+  grid-column: 1 / -1;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.sidebar {
+  grid-row: 2;
+  grid-column: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.middle {
+  grid-row: 2;
+  grid-column: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.content {
+  grid-row: 2;
+  grid-column: -2 / -1;
+  overflow-y: auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: layout.$spacing-06;
+  gap: layout.$spacing-04;
+  background: var(--cds-layer-01);
+}
+
+@media (max-width: 900px) {
+  .root,
+  .noMiddle {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .sidebar {
+    grid-column: 1;
+    grid-row: 2;
+    max-height: 240px;
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .middle {
+    grid-column: 1;
+    grid-row: 3;
+    max-height: 240px;
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .content {
+    grid-column: 1;
+    grid-row: 4;
+  }
+}

@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect, useState } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import WorkTreeShell from "@/features/contest/components/admin/examEditor/WorkTreeShell";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionStatisticsDetail from "./QuestionStatisticsDetail";
 import { useExamStatistics } from "./useExamStatistics";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -36,7 +37,6 @@ export default function ExamStatisticsPanel() {
     const safeMargin = 12;
     let delta = 0;
 
-    // Minimal-scroll behavior: only move when card is outside current viewport.
     if (cardRect.top < paneRect.top + safeMargin) {
       delta = cardRect.top - (paneRect.top + safeMargin);
     } else if (cardRect.bottom > paneRect.bottom - safeMargin) {
@@ -63,55 +63,57 @@ export default function ExamStatisticsPanel() {
     return <EmptyState title={t("statistics.noData", "尚無題目資料")} />;
   }
 
-  return (
-    <div className={styles.statisticsLayout}>
-      <div className={styles.workTreePane}>
-        <WorkTreeShell
-          title={t("statistics.title", "題目統計")}
-          hasItems={safeStats.length > 0}
-          emptyState={t("statistics.noData", "尚無題目資料")}
-          footer={<span>{t("statistics.questionCount", { count: safeStats.length })}</span>}
-        >
-          <div className={styles.questionList}>
-            {safeStats.map((q) => (
-              <button
-                key={q.questionId}
-                type="button"
-                className={`${styles.questionItem} ${
-                  activeQuestionId === q.questionId ? styles.questionItemActive : ""
-                }`}
-                onClick={() => scrollToQuestion(q.questionId)}
-                aria-pressed={activeQuestionId === q.questionId}
-              >
-                <span className={styles.questionOrder}>Q{q.questionIndex}</span>
-                <div className={styles.questionInfo}>
-                  <span className={styles.questionTitle}>
-                    {q.prompt || `Question ${q.questionIndex}`}
-                  </span>
-                  <span className={styles.questionMeta}>
-                    Avg {q.averageScore.toFixed(1)}/{q.maxScore}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </WorkTreeShell>
-      </div>
-
-      <div className={styles.scrollPane} ref={scrollPaneRef}>
+  const sidebarContent = (
+    <WorkTreeShell
+      title={t("statistics.title", "題目統計")}
+      hasItems={safeStats.length > 0}
+      emptyState={t("statistics.noData", "尚無題目資料")}
+      footer={<span>{t("statistics.questionCount", { count: safeStats.length })}</span>}
+    >
+      <div className={styles.questionList}>
         {safeStats.map((q) => (
-          <div
+          <button
             key={q.questionId}
-            className={styles.cardItem}
-            ref={(el) => {
-              if (el) cardRefs.current.set(q.questionId, el);
-              else cardRefs.current.delete(q.questionId);
-            }}
+            type="button"
+            className={`${styles.questionItem} ${
+              activeQuestionId === q.questionId ? styles.questionItemActive : ""
+            }`}
+            onClick={() => scrollToQuestion(q.questionId)}
+            aria-pressed={activeQuestionId === q.questionId}
           >
-            <QuestionStatisticsDetail stat={q} />
-          </div>
+            <span className={styles.questionOrder}>Q{q.questionIndex}</span>
+            <div className={styles.questionInfo}>
+              <span className={styles.questionTitle}>
+                {q.prompt || `Question ${q.questionIndex}`}
+              </span>
+              <span className={styles.questionMeta}>
+                Avg {q.averageScore.toFixed(1)}/{q.maxScore}
+              </span>
+            </div>
+          </button>
         ))}
       </div>
-    </div>
+    </WorkTreeShell>
+  );
+
+  return (
+    <AdminSplitLayout
+      sidebar={sidebarContent}
+      contentMaxWidth={760}
+      ref={scrollPaneRef}
+    >
+      {safeStats.map((q) => (
+        <div
+          key={q.questionId}
+          className={styles.cardItem}
+          ref={(el) => {
+            if (el) cardRefs.current.set(q.questionId, el);
+            else cardRefs.current.delete(q.questionId);
+          }}
+        >
+          <QuestionStatisticsDetail stat={q} />
+        </div>
+      ))}
+    </AdminSplitLayout>
   );
 }
