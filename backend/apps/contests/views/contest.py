@@ -292,7 +292,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get all participants for this contest (Teacher view).
         Includes total_score_annotated to avoid N+1 queries.
         """
-        from django.db.models import Max
+        from django.db.models import Max, Sum
         from apps.submissions.models import Submission
 
         contest = self.get_object()
@@ -303,18 +303,31 @@ class ContestViewSet(viewsets.ModelViewSet):
             .select_related('user')
         )
 
-        # Query 2: Best score per (user, problem) — single aggregate across all participants
-        best_scores = Submission.objects.filter(
-            contest=contest,
-            source_type='contest',
-            is_test=False,
-        ).values('user_id', 'problem_id').annotate(best=Max('score'))
+        if contest.contest_type == 'paper_exam':
+            # Paper exam: sum ExamAnswer scores per participant
+            from apps.contests.models import ExamAnswer
+            answer_totals = (
+                ExamAnswer.objects
+                .filter(participant__contest=contest, score__isnull=False)
+                .values('participant__user_id')
+                .annotate(total=Sum('score'))
+            )
+            user_totals: dict = {
+                row['participant__user_id']: float(row['total'] or 0)
+                for row in answer_totals
+            }
+        else:
+            # Coding contest: best submission score per (user, problem)
+            best_scores = Submission.objects.filter(
+                contest=contest,
+                source_type='contest',
+                is_test=False,
+            ).values('user_id', 'problem_id').annotate(best=Max('score'))
 
-        # Sum best scores per user in Python
-        user_totals: dict = {}
-        for row in best_scores:
-            uid = row['user_id']
-            user_totals[uid] = user_totals.get(uid, 0) + (row['best'] or 0)
+            user_totals = {}
+            for row in best_scores:
+                uid = row['user_id']
+                user_totals[uid] = user_totals.get(uid, 0) + (row['best'] or 0)
 
         for p in participants:
             p.total_score_annotated = user_totals.get(p.user_id, 0)
