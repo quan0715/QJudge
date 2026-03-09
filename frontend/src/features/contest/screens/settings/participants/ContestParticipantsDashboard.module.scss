@@ -263,6 +263,7 @@
 .paginationWrap {
   margin-top: auto;
   overflow-x: auto;
+  border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .paginationWrap :global(.cds--pagination) {
