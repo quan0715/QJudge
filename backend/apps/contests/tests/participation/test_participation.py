@@ -44,9 +44,10 @@ class ContestParticipationTests(APITestCase):
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
             visibility='private',
-            password='secretpassword',
             status='published'
         )
+        self.private_contest.set_contest_password('secretpassword')
+        self.private_contest.save()
         
         self.client.force_authenticate(user=self.user)
 
