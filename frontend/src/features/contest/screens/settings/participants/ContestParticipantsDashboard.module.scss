@@ -260,12 +260,11 @@
 
 .paginationWrap {
   margin-top: auto;
-  overflow-x: auto;
   border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .paginationWrap :global(.cds--pagination) {
-  min-width: 40rem;
+  width: 100%;
 }
 
 @media (max-width: 1056px) {
