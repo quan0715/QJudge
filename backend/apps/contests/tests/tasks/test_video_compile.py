@@ -121,8 +121,8 @@ class CompileAnticheatVideoTests(TestCase):
         self.assertEqual(video.frame_count, 3)
         self.assertEqual(video.size_bytes, 12345)
 
-        # Raw keys deleted
-        mock_client.delete_objects.assert_called()
+        # Raw screenshots preserved (not deleted) for later access
+        mock_client.delete_objects.assert_not_called()
 
         # Temp dir cleaned up
         mock_rmtree.assert_called_once_with("/tmp/anticheat_fake", ignore_errors=True)

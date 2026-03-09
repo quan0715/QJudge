@@ -489,6 +489,7 @@ class ExamEvent(models.Model):
         ('warning_timeout', 'Warning Timeout'),
         ('force_submit_locked', 'Force Submit Locked'),
         ('screen_share_stopped', 'Screen Share Stopped'),
+        ('screen_share_restored', 'Screen Share Restored'),
         ('screen_share_invalid_surface', 'Screen Share Invalid Surface'),
         ('capture_upload_degraded', 'Capture Upload Degraded'),
         ('exam_entered', 'Exam Entered'),

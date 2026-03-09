@@ -12,6 +12,8 @@ import { getExamCaptureSessionId, setExamCaptureSessionId } from "./examCaptureS
 import {
   consumePrecheckScreenShareHandoff,
   consumeRuntimeScreenShareHandoff,
+  clearPrecheckScreenShareHandoff,
+  clearRuntimeScreenShareHandoff,
 } from "./examScreenShareHandoff";
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
@@ -26,6 +28,7 @@ interface Options {
   maxRetries?: number;
   reportDegraded?: (isDegraded: boolean) => void;
   onUploadProgress?: (count: number) => void;
+  onScreenShareLost?: () => void;
 }
 
 export const useAnticheatScreenCapture = ({
@@ -35,6 +38,7 @@ export const useAnticheatScreenCapture = ({
   maxRetries = 3,
   reportDegraded,
   onUploadProgress,
+  onScreenShareLost,
 }: Options) => {
   const [uploadSessionId] = useState(() => {
     // Reuse existing session ID if available (e.g. page reload during exam)
@@ -49,7 +53,10 @@ export const useAnticheatScreenCapture = ({
   const retryCountRef = useRef(0);
   const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const streamWasLiveRef = useRef(false);
   const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
+  const onScreenShareLostRef = useRef(onScreenShareLost);
+  onScreenShareLostRef.current = onScreenShareLost;
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
@@ -73,16 +80,19 @@ export const useAnticheatScreenCapture = ({
       consumeRuntimeScreenShareHandoff();
     if (handoff?.active) {
       handoff.getVideoTracks()[0]?.addEventListener("ended", () => {
-        if (streamRef.current === handoff) streamRef.current = null;
+        if (streamRef.current === handoff) {
+          streamRef.current = null;
+          streamWasLiveRef.current = false;
+          onScreenShareLostRef.current?.();
+        }
       });
       streamRef.current = handoff;
+      streamWasLiveRef.current = true;
       return handoff;
     }
 
     // No handoff available — stream died or was never shared.
     // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
-    // The capture loop will keep retrying and getting null, which is fine —
-    // the server-side heartbeat timeout will eventually lock the student.
     return null;
   }, [stopStream]);
 
@@ -112,7 +122,16 @@ export const useAnticheatScreenCapture = ({
     isCapturingRef.current = true;
     try {
       const blob = await captureFrameBlob();
-      if (!blob) return;
+      if (!blob) {
+        // Fallback: detect stream loss if the ended event didn't fire.
+        // If stream was previously live but now acquireStream returns null,
+        // the user has stopped sharing.
+        if (streamWasLiveRef.current && !streamRef.current?.active) {
+          streamWasLiveRef.current = false;
+          onScreenShareLostRef.current?.();
+        }
+        return;
+      }
       const q = await ensureQueue();
       await q.enqueue(blob);
     } catch (err) {
@@ -149,7 +168,11 @@ export const useAnticheatScreenCapture = ({
       clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
     }
+    streamWasLiveRef.current = false;
     stopStream();
+    // Also stop any streams waiting in handoff slots
+    clearPrecheckScreenShareHandoff(true);
+    clearRuntimeScreenShareHandoff(true);
   }, [stopStream]);
 
   const forceCaptureNow = useCallback(async (
@@ -198,6 +221,11 @@ export const useAnticheatScreenCapture = ({
 
     const blob = await captureFrameBlob();
     if (!blob) {
+      // Fallback: detect stream loss if the ended event didn't fire
+      if (streamWasLiveRef.current && !streamRef.current?.active) {
+        streamWasLiveRef.current = false;
+        onScreenShareLostRef.current?.();
+      }
       return {
         attempted: true,
         captured: false,

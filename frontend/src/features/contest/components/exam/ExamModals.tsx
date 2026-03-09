@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import { WarningAlt, CheckmarkFilled } from "@carbon/icons-react";
+import { WarningAlt, CheckmarkFilled, ScreenOff } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamModeState } from "@/core/entities/contest.entity";
 
@@ -21,6 +21,10 @@ interface ExamModalsProps {
   recoveryCountdown?: number | null;
   recoverySource?: "fullscreen" | "mouse-leave" | null;
   onRecoverFullscreen?: () => void;
+  screenShareRecoveryCountdown?: number | null;
+  isRequestingScreenShare?: boolean;
+  isSubmittingFromScreenShareLoss?: boolean;
+  onScreenShareReacquire?: () => void;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
@@ -40,6 +44,10 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   recoveryCountdown,
   recoverySource,
   onRecoverFullscreen,
+  screenShareRecoveryCountdown,
+  isRequestingScreenShare = false,
+  isSubmittingFromScreenShareLoss = false,
+  onScreenShareReacquire,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
@@ -353,6 +361,102 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               }}
             >
               {t("exam.followRulesReminder")}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Screen Share Recovery Modal */}
+      <Modal
+        open={screenShareRecoveryCountdown != null}
+        modalHeading={t("exam.screenShareLostTitle")}
+        primaryButtonText={
+          isSubmittingFromScreenShareLoss
+            ? t("exam.submittingExam")
+            : isRequestingScreenShare
+            ? t("exam.requestingScreenShare")
+            : t("exam.reshareScreen")
+        }
+        primaryButtonDisabled={isRequestingScreenShare || isSubmittingFromScreenShareLoss}
+        onRequestSubmit={onScreenShareReacquire}
+        preventCloseOnClickOutside
+        danger
+        size="sm"
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              padding: "1rem",
+              backgroundColor: "var(--cds-notification-background-error)",
+              borderRadius: "50%",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <ScreenOff
+              size={40}
+              style={{ color: "var(--cds-support-error)" }}
+            />
+          </div>
+
+          <p
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: 600,
+              marginBottom: "0.75rem",
+              color: "var(--cds-text-primary)",
+            }}
+          >
+            {t("exam.screenShareLostHeading")}
+          </p>
+
+          <p
+            style={{
+              marginBottom: "1.5rem",
+              fontSize: "0.875rem",
+              color: "var(--cds-text-secondary)",
+              lineHeight: 1.5,
+            }}
+          >
+            {t("exam.screenShareLostDesc")}
+          </p>
+
+          {screenShareRecoveryCountdown != null && screenShareRecoveryCountdown > 0 && (
+            <p
+              style={{
+                marginBottom: "1rem",
+                fontSize: "1.5rem",
+                fontWeight: 600,
+                color: "var(--cds-support-error)",
+              }}
+            >
+              {t("exam.screenShareForceSubmitIn", { seconds: screenShareRecoveryCountdown })}
+            </p>
+          )}
+
+          <div
+            style={{
+              width: "100%",
+              padding: "0.75rem 1rem",
+              backgroundColor: "var(--cds-notification-background-error)",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--cds-support-error)",
+                margin: 0,
+                fontWeight: 600,
+              }}
+            >
+              {t("exam.screenShareTimeoutWarning")}
             </p>
           </div>
         </div>

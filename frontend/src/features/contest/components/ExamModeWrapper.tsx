@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
-import { endExam as serviceEndExam } from "@/infrastructure/api/repositories";
+import { endExam as serviceEndExam, recordExamEvent } from "@/infrastructure/api/repositories";
 import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
@@ -15,11 +15,17 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
 import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
-import { useRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
+import {
+  useRuntimeScreenShareReauth,
+  beginRuntimeScreenShareReauth,
+  endRuntimeScreenShareReauth,
+} from "@/features/contest/anticheat/runtimeReauthState";
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter";
+import { setRuntimeScreenShareHandoff } from "@/features/contest/screens/paperExam/hooks/examScreenShareHandoff";
+import { SCREEN_SHARE_RECOVERY_GRACE_MS } from "@/features/contest/domain/examMonitoringPolicy";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -49,6 +55,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const fullscreenAdapterRef = useRef(createFullscreenAdapter());
   const runtimeReauthActive = useRuntimeScreenShareReauth();
   const { showToast } = useToast();
+  const streamAdapterRef = useRef(createStreamAdapter());
 
   // 1. Core State & API actions
   const {
@@ -76,6 +83,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const captureEnabled = isExamMonitored && precheckPassed && examStatus !== "submitted";
   const hasSentDegradedRef = useRef(false);
+  const onScreenShareLostRef = useRef<() => void>();
   const reportDegraded = useCallback((isDegraded: boolean) => {
     if (!isDegraded) {
       hasSentDegradedRef.current = false;
@@ -93,6 +101,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     contestId,
     enabled: captureEnabled,
     reportDegraded,
+    onScreenShareLost: () => onScreenShareLostRef.current?.(),
   });
   const handleBlockedAction = useCallback((message: string) => {
     const now = Date.now();
@@ -113,6 +122,97 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [recoveryCountdown, setRecoveryCountdown] = useState<number | null>(null);
   const [recoverySource, setRecoverySource] = useState<"fullscreen" | "mouse-leave" | null>(null);
   const initialFullscreenCheckDone = useRef(false);
+
+  // Screen share recovery state
+  const [screenShareRecoveryCountdown, setScreenShareRecoveryCountdown] = useState<number | null>(null);
+  const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
+  const [isSubmittingFromScreenShareLoss, setIsSubmittingFromScreenShareLoss] = useState(false);
+  const screenShareRecoveryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const screenShareRecoveryDeadlineRef = useRef<number>(0);
+
+  const clearScreenShareRecoveryTimer = useCallback(() => {
+    if (screenShareRecoveryTimerRef.current) {
+      clearInterval(screenShareRecoveryTimerRef.current);
+      screenShareRecoveryTimerRef.current = null;
+    }
+    screenShareRecoveryDeadlineRef.current = 0;
+  }, []);
+
+  const handleForceSubmitFromScreenShareLoss = useCallback(async () => {
+    clearScreenShareRecoveryTimer();
+    setScreenShareRecoveryCountdown(null);
+    setIsSubmittingFromScreenShareLoss(true);
+    try {
+      await recordExamEvent(contestId, "screen_share_stopped", {
+        source: "anticheat:screen_capture",
+        metadata: { reason: "recovery_timeout" },
+      }).catch(() => null);
+      await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
+        reason: "Force submit after screen share recovery timeout",
+        source: "exam_mode:screen_share_recovery_timeout",
+        forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
+        metadata: {
+          upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+        },
+      }).catch(() => null);
+      await serviceEndExam(contestId, {
+        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+      });
+      capture.forceStopCapture();
+      if (onRefresh) await onRefresh();
+    } catch {
+      // Best-effort submit
+    } finally {
+      setIsSubmittingFromScreenShareLoss(false);
+      endRuntimeScreenShareReauth(0);
+    }
+  }, [contestId, onRefresh, clearScreenShareRecoveryTimer]);
+
+  const startScreenShareRecoveryCountdown = useCallback(() => {
+    clearScreenShareRecoveryTimer();
+    const deadline = Date.now() + SCREEN_SHARE_RECOVERY_GRACE_MS;
+    screenShareRecoveryDeadlineRef.current = deadline;
+    setScreenShareRecoveryCountdown(Math.ceil(SCREEN_SHARE_RECOVERY_GRACE_MS / 1000));
+
+    screenShareRecoveryTimerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((screenShareRecoveryDeadlineRef.current - Date.now()) / 1000));
+      setScreenShareRecoveryCountdown(remaining);
+      if (remaining <= 0) {
+        clearScreenShareRecoveryTimer();
+        handleForceSubmitFromScreenShareLoss();
+      }
+    }, 500);
+  }, [clearScreenShareRecoveryTimer, handleForceSubmitFromScreenShareLoss]);
+
+  const handleScreenShareLost = useCallback(() => {
+    if (examStatus === "submitted") return;
+    beginRuntimeScreenShareReauth();
+    startScreenShareRecoveryCountdown();
+  }, [examStatus, startScreenShareRecoveryCountdown]);
+  onScreenShareLostRef.current = handleScreenShareLost;
+
+  const handleScreenShareReacquire = useCallback(async () => {
+    setIsRequestingScreenShare(true);
+    try {
+      const stream = await streamAdapterRef.current.acquireMonitorStream();
+      if (stream) {
+        setRuntimeScreenShareHandoff(stream);
+        clearScreenShareRecoveryTimer();
+        setScreenShareRecoveryCountdown(null);
+        endRuntimeScreenShareReauth();
+        recordExamEvent(contestId, "screen_share_restored", {
+          source: "anticheat:screen_capture",
+          metadata: { reason: "user_reshared" },
+        }).catch(() => null);
+        // Re-enter fullscreen after successful reshare
+        if (requiresFullscreen && !fullscreenAdapterRef.current.isActive()) {
+          void fullscreenAdapterRef.current.request();
+        }
+      }
+    } finally {
+      setIsRequestingScreenShare(false);
+    }
+  }, [contestId, clearScreenShareRecoveryTimer]);
 
   useExamMonitoring({
     enabled: isExamMonitored,
@@ -288,6 +388,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
           onFullscreenExitConfirm={handleFullscreenExitConfirm}
           onFullscreenExitCancel={handleFullscreenExitCancel}
+          screenShareRecoveryCountdown={screenShareRecoveryCountdown}
+          isRequestingScreenShare={isRequestingScreenShare}
+          isSubmittingFromScreenShareLoss={isSubmittingFromScreenShareLoss}
+          onScreenShareReacquire={handleScreenShareReacquire}
         />
       </div>
     </ExamCaptureProvider>

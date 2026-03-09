@@ -124,10 +124,3 @@
   color: var(--cds-text-secondary);
 }
 
-.kpi[role="button"] {
-  cursor: pointer;
-}
-
-.kpiActive {
-  background-color: var(--cds-layer-02, rgba(0, 0, 0, 0.04));
-}
