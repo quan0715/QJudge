@@ -33,6 +33,7 @@
       "exam-grading": "考試批改與成績發布",
       "exam-statistics": "考試作答統計與檢視",
       "exam-proctoring": "監考與人工介入處理",
+      "exam-json-import-export": "Exam 題目 JSON 匯入/匯出",
       "problem-import": "YAML 題目建立",
       "admin-overview": "管理員功能總覽",
       "contributing": "如何貢獻",

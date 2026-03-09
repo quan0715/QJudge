@@ -89,6 +89,159 @@ export interface ContestParticipant {
   displayName?: string;
 }
 
+export type ParticipantDashboardDetail =
+  | "overview"
+  | "report"
+  | "events"
+  | "evidence"
+  | "submissions";
+
+export interface ParticipantDashboardStatus {
+  code: string;
+  label: string;
+  color: string;
+}
+
+export interface ParticipantDashboardTimelineItem {
+  id: string;
+  source: "exam_event" | "activity";
+  eventType: string;
+  timestamp: string;
+  message: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface ParticipantDashboardActions {
+  canDownloadReport: boolean;
+  canEditStatus: boolean;
+  canRemoveParticipant: boolean;
+  canUnlock: boolean;
+  canReopenExam: boolean;
+  canApproveTakeover: boolean;
+  canViewEvidence: boolean;
+  canOpenGrading: boolean;
+}
+
+export interface ParticipantOverviewSummary {
+  totalScore: number;
+  maxScore: number;
+  solved?: number;
+  totalProblems?: number;
+  rank?: number | null;
+  totalParticipants?: number;
+  effectiveSubmissions?: number;
+  acceptedSubmissions?: number;
+  acceptedRate?: number;
+  correctRate?: number;
+  gradedCount?: number;
+  totalQuestions?: number;
+}
+
+export interface ParticipantPaperReportOverviewRow {
+  questionId: string;
+  index: number;
+  questionType: ExamQuestionType;
+  status: ParticipantDashboardStatus;
+  score: number | null;
+  maxScore: number;
+}
+
+export interface ParticipantPaperQuestionDetail {
+  questionId: string;
+  index: number;
+  questionType: ExamQuestionType;
+  prompt: string;
+  options: string[];
+  correctAnswer: unknown;
+  answer: Record<string, unknown>;
+  score: number | null;
+  maxScore: number;
+  feedback: string;
+  gradedByUsername: string | null;
+  gradedAt: string | null;
+  isCorrect: boolean | null;
+  status: ParticipantDashboardStatus;
+}
+
+export interface ParticipantCodingProblemRow {
+  problemId: string;
+  label: string;
+  title: string;
+  difficulty?: string | null;
+  status?: string | null;
+  score: number;
+  maxScore: number;
+  tries: number;
+  time?: number | null;
+}
+
+export interface ParticipantCodingProblemDetail extends ParticipantCodingProblemRow {
+  bestSubmission: {
+    id: string;
+    status: SubmissionStatus;
+    score: number;
+    language: string;
+    createdAt: string;
+  } | null;
+}
+
+export interface ParticipantCodingTrendPoint {
+  submissionId?: string;
+  createdAt: string;
+  minutesFromStart: number;
+  score: number;
+  solved?: number;
+  status?: SubmissionStatus;
+  language?: string;
+  problemId?: string;
+  problemLabel?: string;
+  problemTitle?: string;
+}
+
+export interface ParticipantEvidenceRow {
+  id: number;
+  uploadSessionId: string;
+  hasVideo: boolean;
+  jobStatus: "pending" | "running" | "success" | "failed";
+  jobErrorMessage: string;
+  durationSeconds: number;
+  frameCount: number;
+  sizeBytes: number;
+  isSuspected: boolean;
+  suspectedNote: string;
+  suspectedByUsername: string | null;
+  updatedAt: string;
+  createdAt: string;
+  videoId: number | null;
+}
+
+export interface ParticipantDashboard {
+  contestType: ContestType;
+  participant: ContestParticipant & {
+    startedAt?: string;
+    leftAt?: string;
+    lockedAt?: string;
+  };
+  overview: ParticipantOverviewSummary;
+  report:
+    | {
+        overviewRows: ParticipantPaperReportOverviewRow[];
+        questionDetails: ParticipantPaperQuestionDetail[];
+      }
+    | {
+        problemGrid: ParticipantCodingProblemRow[];
+        problemDetails: ParticipantCodingProblemDetail[];
+        trend: {
+          submissionTimeline: ParticipantCodingTrendPoint[];
+          cumulativeProgress: ParticipantCodingTrendPoint[];
+          statusCounts: Record<string, number>;
+        };
+      };
+  timeline: ParticipantDashboardTimelineItem[];
+  actions: ParticipantDashboardActions;
+  evidence?: ParticipantEvidenceRow[];
+}
+
 export interface Contest {
   id: string;
   name: string;

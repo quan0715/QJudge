@@ -10,9 +10,10 @@ import subprocess
 import tempfile
 
 from celery import shared_task
+from django.core.cache import cache
 from django.utils import timezone
 from django.db import transaction
-from datetime import timedelta
+from datetime import datetime as dt, timedelta
 from django.conf import settings
 from .models import (
     Contest,
@@ -23,6 +24,11 @@ from .models import (
     ExamEvidenceVideo,
     ExamStatus,
     EvidenceJobStatus,
+)
+from .services.anti_cheat_session import (
+    get_last_heartbeat,
+    touch_heartbeat,
+    HEARTBEAT_TIMEOUT_SECONDS,
 )
 from .services.anticheat_storage import get_s3_client, tag_object_retain
 from .services.exam_submission import finalize_submission, normalize_upload_session_id
@@ -36,6 +42,8 @@ PENALIZED_EVENT_TYPES = {
     'mouse_leave',
     'warning_timeout',
     'forbidden_focus_event',
+    'heartbeat_timeout',
+    'listener_tampered',
 }
 
 
@@ -58,10 +66,17 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
         if participant.exam_status == ExamStatus.SUBMITTED:
             return participant
 
+        # heartbeat_timeout and listener_tampered target is LOCKED, not submission.
+        # If already locked, the intended action is complete — do not escalate to finalize.
+        LOCK_TERMINAL_EVENT_TYPES = {'heartbeat_timeout', 'listener_tampered'}
+        if event_type in LOCK_TERMINAL_EVENT_TYPES and participant.exam_status == ExamStatus.LOCKED:
+            return participant
+
         participant.violation_count += 1
         update_fields = ['violation_count']
+        IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout', 'screen_share_stopped', 'heartbeat_timeout', 'listener_tampered'}
         should_escalate = (
-            event_type == 'warning_timeout'
+            event_type in IMMEDIATE_LOCK_EVENT_TYPES
             or participant.violation_count >= contest.max_cheat_warnings
         )
 
@@ -69,11 +84,14 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
             if participant.exam_status == ExamStatus.IN_PROGRESS:
                 participant.exam_status = ExamStatus.LOCKED
                 participant.locked_at = timezone.now()
-                participant.lock_reason = (
-                    "Warning timeout: student did not acknowledge warning within 30 seconds"
-                    if event_type == 'warning_timeout'
-                    else f"System lock: {event_type}"
-                )
+                if event_type == 'warning_timeout':
+                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                elif event_type == 'heartbeat_timeout':
+                    participant.lock_reason = "Heartbeat timeout: no client signal received for 60 seconds"
+                elif event_type == 'listener_tampered':
+                    participant.lock_reason = "Listener tampered: anti-cheat integrity check failed"
+                else:
+                    participant.lock_reason = f"System lock: {event_type}"
                 update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
                 participant.save(update_fields=update_fields)
                 ContestActivity.objects.create(
@@ -314,6 +332,70 @@ def force_submit_locked_participant(participant_id):
 
     except ContestParticipant.DoesNotExist:
         return f"Participant {participant_id} not found"
+
+
+
+
+@shared_task
+def check_heartbeat_timeout():
+    """
+    Periodic task: Lock students who haven't sent a heartbeat in 60 seconds.
+
+    Runs every 30 seconds via Celery Beat. Detects:
+    - Disabled event listeners (student tampered with anti-cheat)
+    - Network disconnection
+    - Browser crash / tab kill
+    """
+    now = timezone.now()
+    participants = ContestParticipant.objects.filter(
+        exam_status=ExamStatus.IN_PROGRESS,
+        contest__status='published',
+        contest__cheat_detection_enabled=True,
+        contest__end_time__gt=now,
+        started_at__isnull=False,
+    ).select_related('contest', 'user')
+
+    count = 0
+    for participant in participants:
+        last_hb = get_last_heartbeat(participant.contest_id, participant.user_id)
+        if last_hb is None:
+            # No heartbeat recorded yet — use started_at as baseline
+            elapsed = (now - participant.started_at).total_seconds()
+            if elapsed > HEARTBEAT_TIMEOUT_SECONDS:
+                _lock_for_heartbeat_timeout(participant)
+                count += 1
+            continue
+
+        try:
+            last_hb_time = dt.fromisoformat(last_hb)
+            if timezone.is_naive(last_hb_time):
+                last_hb_time = timezone.make_aware(last_hb_time)
+        except (ValueError, TypeError):
+            continue
+
+        if (now - last_hb_time).total_seconds() > HEARTBEAT_TIMEOUT_SECONDS:
+            _lock_for_heartbeat_timeout(participant)
+            count += 1
+
+    return f"Checked heartbeat timeouts: {count} locked"
+
+
+def _lock_for_heartbeat_timeout(participant: ContestParticipant):
+    """Create heartbeat_timeout event and apply penalty.
+
+    Uses cache.add() (Redis SETNX) as an idempotency guard so concurrent
+    Celery workers don't double-fire on the same participant.
+    """
+    lock_key = f"hb_lock:{participant.pk}"
+    if not cache.add(lock_key, 1, timeout=90):
+        return  # Another worker is already processing this participant
+    ExamEvent.objects.create(
+        contest=participant.contest,
+        user=participant.user,
+        event_type='heartbeat_timeout',
+        metadata={'source': 'celery_heartbeat_check'},
+    )
+    _apply_penalty_from_event(participant, 'heartbeat_timeout')
 
 
 def _extract_seq_from_key(key: str) -> int:

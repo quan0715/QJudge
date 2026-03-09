@@ -496,6 +496,9 @@ class ExamEvent(models.Model):
         ('concurrent_login_detected', 'Concurrent Login Detected'),
         ('takeover_locked', 'Takeover Locked'),
         ('takeover_approved', 'Takeover Approved'),
+        ('heartbeat', 'Heartbeat'),
+        ('heartbeat_timeout', 'Heartbeat Timeout'),
+        ('listener_tampered', 'Listener Tampered'),
     ]
     event_type = models.CharField(
         max_length=50,

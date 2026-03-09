@@ -9,6 +9,10 @@ import {
   type ForcedCaptureResult,
 } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "./examCaptureSession";
+import {
+  consumePrecheckScreenShareHandoff,
+  consumeRuntimeScreenShareHandoff,
+} from "./examScreenShareHandoff";
 
 const FORCED_CAPTURE_COOLDOWN_MS = 1_000;
 
@@ -35,7 +39,7 @@ export const useAnticheatScreenCapture = ({
   const isCapturingRef = useRef(false);
   const isUploadingRef = useRef(false);
   const retryCountRef = useRef(0);
-  const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const lastForcedCaptureAtRef = useRef<number>(0);
 
@@ -54,18 +58,24 @@ export const useAnticheatScreenCapture = ({
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
     if (streamRef.current?.active) return streamRef.current;
     stopStream();
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: 1 },
+
+    // Try to reuse the screen share stream from precheck or runtime reauth handoff.
+    const handoff =
+      consumePrecheckScreenShareHandoff() ??
+      consumeRuntimeScreenShareHandoff();
+    if (handoff?.active) {
+      handoff.getVideoTracks()[0]?.addEventListener("ended", () => {
+        if (streamRef.current === handoff) streamRef.current = null;
       });
-      stream.getVideoTracks()[0]?.addEventListener("ended", () => {
-        if (streamRef.current === stream) streamRef.current = null;
-      });
-      streamRef.current = stream;
-      return stream;
-    } catch {
-      return null;
+      streamRef.current = handoff;
+      return handoff;
     }
+
+    // No handoff available — stream died or was never shared.
+    // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
+    // The capture loop will keep retrying and getting null, which is fine —
+    // the server-side heartbeat timeout will eventually lock the student.
+    return null;
   }, [stopStream]);
 
   const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {

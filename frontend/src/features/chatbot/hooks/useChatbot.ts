@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   ApprovalRequest,
   BackgroundInformation,
@@ -40,6 +40,8 @@ interface UseChatbotReturn {
 interface UseChatbotOptions {
   /** 是否啟用（延遲初始化用） */
   enabled?: boolean;
+  /** 舊版背景資訊，會轉換為 ChatContext.custom */
+  backgroundInfo?: BackgroundInformation | null;
   /** 背景上下文（統一的背景資訊結構） */
   context?: ChatContext | null;
   /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
@@ -53,7 +55,12 @@ interface UseChatbotOptions {
 const LAST_SESSION_KEY = "chatbot_last_session_id";
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
-  const { enabled = true, context = null, onProblemUpdated } = options;
+  const {
+    enabled = true,
+    backgroundInfo = null,
+    context = null,
+    onProblemUpdated,
+  } = options;
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -80,6 +87,17 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
+
+  const effectiveContext = useMemo<ChatContext | null>(() => {
+    if (context) return context;
+    if (!backgroundInfo) return null;
+
+    return {
+      custom: {
+        backgroundInfo,
+      },
+    };
+  }, [backgroundInfo, context]);
 
   /**
    * 載入所有 sessions
@@ -422,7 +440,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setIsLoading(false);
             },
           },
-          { model: modelId, context: context ?? undefined, skill: undefined, signal: abortController.signal },
+          {
+            model: modelId,
+            context: effectiveContext ?? undefined,
+            skill: undefined,
+            signal: abortController.signal,
+          },
         );
       } catch (err) {
         // Ignore abort errors
@@ -458,7 +481,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setIsLoading(false);
       }
     },
-    [currentSessionId, currentSession, backgroundInfo, context],
+    [currentSessionId, currentSession, effectiveContext],
   );
 
 

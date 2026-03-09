@@ -25,6 +25,7 @@ from ..services.anti_cheat_session import (
     get_active_session,
     get_device_id,
     set_active_session,
+    touch_heartbeat,
 )
 from ..services.anticheat_storage import (
     build_raw_object_key,
@@ -94,6 +95,8 @@ class ExamAnticheatMixin:
         conflict_response = self._ensure_active_device_session(contest, participant, request)
         if conflict_response:
             return conflict_response
+
+        touch_heartbeat(contest.id, request.user.id)
 
         query_serializer = AnticheatUrlsQuerySerializer(data=request.query_params)
         query_serializer.is_valid(raise_exception=True)

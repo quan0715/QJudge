@@ -1,0 +1,278 @@
+.root {
+  display: grid;
+  grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
+  gap: 1rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.pane {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scrollPane {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.toolbarSearch {
+  flex: 1 1 14rem;
+  min-width: 14rem;
+}
+
+.toolbarFilter {
+  width: 12rem;
+}
+
+.toolbarMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.listItem {
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--cds-layer);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.listItem:hover {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-hover);
+}
+
+.listItemSelected {
+  border-color: var(--cds-border-interactive);
+  box-shadow: inset 0 0 0 1px var(--cds-border-interactive);
+}
+
+.listItemHeader,
+.listItemMeta,
+.listItemFooter,
+.dashboardHeader,
+.overviewGrid,
+.actionsRow,
+.summaryRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.listItemHeader,
+.dashboardHeader {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.listItemName {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.primaryText {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.secondaryText {
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.listItemMeta {
+  flex-wrap: wrap;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.listItemFooter {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dashboardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overviewGrid {
+  flex-wrap: wrap;
+}
+
+.metricCard {
+  flex: 1 1 12rem;
+  min-width: 12rem;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--cds-layer-01);
+}
+
+.metricLabel {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.metricValue {
+  color: var(--cds-text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.metricSubtext {
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+.tabs {
+  min-height: 0;
+}
+
+.tabPanel {
+  padding: 1rem 0 0;
+}
+
+.sectionStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timelineList,
+.questionList,
+.problemList,
+.submissionList,
+.evidenceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timelineItem,
+.questionItem,
+.problemItem,
+.submissionItem,
+.evidenceItem {
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 0.75rem;
+  background: var(--cds-layer-01);
+}
+
+.questionHeader,
+.problemHeader,
+.submissionHeader,
+.evidenceHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.questionBody,
+.problemBody,
+.submissionBody {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.markdownBlock {
+  border-left: 3px solid var(--cds-border-subtle);
+  padding-left: 0.75rem;
+}
+
+.twoColGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.inlineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.actionsRow {
+  flex-wrap: wrap;
+}
+
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.chartWrap {
+  min-height: 20rem;
+}
+
+.emptyState,
+.detailEmpty {
+  min-height: 14rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-text-secondary);
+  text-align: center;
+  padding: 1rem;
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.summaryRow {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.summaryLabel {
+  color: var(--cds-text-secondary);
+  min-width: 7rem;
+}
+
+.paginationWrap {
+  margin-top: auto;
+}
+
+@media (max-width: 1056px) {
+  .root {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pane,
+  .scrollPane {
+    overflow: visible;
+  }
+}

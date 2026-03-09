@@ -1,107 +1,99 @@
-# Exam 題目 JSON 匯入/匯出教學
+本文件說明 QJudge 「紙筆題考試 (Paper-like Test)」題目的 JSON 匯入與匯出格式規範。透過此格式，教師可以快速地進行跨考試的題目復用或大量題目建立。
 
-> 文件狀態：2026-03-02
+---
 
-本教學說明如何在競賽 Admin 後台匯入/匯出 Exam 題目 JSON。
+## 1. 核心 JSON 結構
 
-## 功能入口
+匯入與匯出的 JSON 檔案應為一個 **題目物件的陣列 (Array of Objects)**。每個題目物件包含以下欄位：
 
-1. 進入 `/contests/:contestId/admin`
-2. 切到 `Exam Management` 面板
-3. 右上角 Navbar：
-   - `匯入 JSON`
-   - `匯出檔案`
+| 欄位名稱 | 型別 | 必填 | 說明 |
+| :--- | :--- | :--- | :--- |
+| `question_type` | String | 是 | 題型代碼，詳見[題型代碼表](#2-題型代碼表) |
+| `prompt` | String | 是 | 題目內容，支援 Markdown 與 LaTeX |
+| `score` | Number | 是 | 該題配分（正整數） |
+| `options` | Array | 否 | 選擇題選項，為字串陣列。簡答/問答題應為 `[]` |
+| `correct_answer` | Mixed | 否 | 正確答案，格式依題型而定 |
+| `order` | Number | 否 | 顯示順序（由小到大） |
 
-## 匯出 JSON
+---
 
-1. 點擊 `匯出檔案`
-2. 在匯出內容選擇 `Exam JSON`
-3. 點擊 `匯出`
-4. 下載檔名格式：`{contest_name}_exam_questions.json`
+## 2. 題型代碼表 (Question Types)
 
-## 匯入 JSON（覆蓋模式）
+| 代碼 (`question_type`) | 說明 | `correct_answer` 格式 |
+| :--- | :--- | :--- |
+| `single_choice` | 單選題 | Number (選項索引，從 0 開始) |
+| `multiple_choice` | 多選題 | Array of Numbers (索引陣列，如 `[0, 2]`) |
+| `true_false` | 是非題 | Boolean (`true` 或 `false`) |
+| `short_answer` | 簡答題 | String (參考答案，可留空) |
+| `essay` | 問答題 | String (參考答案，可留空) |
 
-1. 點擊 `匯入 JSON`
-2. 選擇匯入類型（目前為 `Exam 題目 JSON`）
-3. 上傳 `.json` 檔
-4. 系統會先進行：
-   - 嚴格格式檢查
-   - 題目預覽（題數、總分、題型分布）
-5. 確認無誤後按 `確認覆蓋`
+---
 
-> 匯入是「整份覆蓋」：會以 JSON 內容取代目前題目。
+## 3. 各題型範例
 
-## 匯入失敗與回滾
-
-- 若覆蓋過程中任一步驟失敗，系統會自動回滾到匯入前題目。
-- 若回滾也失敗，請立即重新整理頁面並檢查題目資料。
-
-## JSON 格式（QJudge v1）
-
+### 單選題 (Single Choice)
 ```json
 {
-  "version": "qjudge.exam.v1",
-  "meta": {
-    "exported_at": "2026-03-02T12:34:56.000Z",
-    "contest_name": "Operating Systems Exam"
-  },
-  "questions": [
-    {
-      "question_type": "single_choice",
-      "prompt": "Which statement is correct?",
-      "score": 5,
-      "options": ["A", "B", "C", "D"],
-      "correct_answer": 1,
-      "order": 0
-    },
-    {
-      "question_type": "true_false",
-      "prompt": "Linux is a kernel.",
-      "score": 2,
-      "correct_answer": true,
-      "order": 1
-    },
-    {
-      "question_type": "multiple_choice",
-      "prompt": "Select all valid IPC methods.",
-      "score": 6,
-      "options": ["Pipe", "Signal", "Socket", "Mutex"],
-      "correct_answer": [0, 2],
-      "order": 2
-    },
-    {
-      "question_type": "short_answer",
-      "prompt": "Define race condition.",
-      "score": 4,
-      "correct_answer": "A situation where result depends on timing.",
-      "order": 3
-    },
-    {
-      "question_type": "essay",
-      "prompt": "Explain deadlock prevention strategies.",
-      "score": 10,
-      "correct_answer": "Break one of Coffman conditions...",
-      "order": 4
-    }
-  ]
+  "question_type": "single_choice",
+  "prompt": "下列哪一個是 Python 的保留字？",
+  "score": 5,
+  "options": ["var", "let", "def", "function"],
+  "correct_answer": 2,
+  "order": 1
 }
 ```
 
-## 嚴格格式檢查規則
+### 多選題 (Multiple Choice)
+```json
+{
+  "question_type": "multiple_choice",
+  "prompt": "以下哪些屬於編譯式語言？",
+  "score": 10,
+  "options": ["C++", "Python", "Rust", "JavaScript"],
+  "correct_answer": [0, 2],
+  "order": 2
+}
+```
 
-- `version` 必須是 `qjudge.exam.v1`
-- `questions` 必須為非空陣列
-- 不允許未知欄位（root 與 question 層）
-- `prompt` 不可空字串
-- `score` 必須是數字且大於 0
-- `single_choice/multiple_choice` 必須有 `options`
-- `single_choice` 的 `correct_answer` 必須是有效索引
-- `multiple_choice` 的 `correct_answer` 必須是非空整數陣列且索引有效
-- `true_false` 的 `correct_answer` 只接受 `0/1/true/false/"true"/"false"`
+### 是非題 (True/False)
+```json
+{
+  "question_type": "true_false",
+  "prompt": "HTML 是一種程式語言。",
+  "score": 5,
+  "options": ["True", "False"],
+  "correct_answer": false,
+  "order": 3
+}
+```
 
-## 常見錯誤
+### 問答題 (Essay)
+```json
+{
+  "question_type": "essay",
+  "prompt": "請簡述 RESTful API 的核心原則。",
+  "score": 20,
+  "options": [],
+  "correct_answer": "包含：無狀態 (Stateless)、統一介面 (Uniform Interface)...",
+  "order": 4
+}
+```
 
-- `questions[2].correct_answer`: 索引超出選項範圍
-- `root.unknown_field`: 出現未允許欄位
-- `version`: 非 `qjudge.exam.v1`
+---
 
+## 4. 匯入規則與注意事項
+
+1. **覆蓋機制**：匯入 JSON 時，系統通常會將檔案中的題目「追加」到現有的題目列表末端。
+2. **格式校驗**：
+   - 選擇題的 `correct_answer` 索引必須存在於 `options` 陣列中。
+   - 總配分會自動加總，請確認與您的考試設定一致。
+3. **媒體資源**：目前 JSON 僅支援純文字內容（含 Markdown 語法的圖片連結）。若有本地圖片需求，請先上傳至圖床再於 `prompt` 中引用。
+4. **凍結保護**：若考試已經開始且有學生作答，匯入功能可能會受限，建議在考試開始前完成所有題目匯入。
+
+---
+
+## 5. 常見錯誤處理
+
+- **`options must be an array`**：請檢查 `options` 是否使用了中括號 `[]`。
+- **`score must be greater than 0`**：配分不可為 0 或負數。
+- **`Invalid JSON format`**：請確保檔案符合標準 JSON 規範（例如：最後一個物件後不可有逗號）。

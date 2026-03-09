@@ -9,6 +9,7 @@ import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
+import { useExamHeartbeat } from "@/features/contest/hooks/useExamHeartbeat";
 import { getContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
@@ -106,6 +107,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       setRecoverySource(secondsLeft != null ? source : null);
     },
   });
+
+  useExamHeartbeat(contestId, isExamMonitored);
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {

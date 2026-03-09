@@ -19,7 +19,7 @@ from ..serializers import (
     ExamEventCreateSerializer,
 )
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import is_duplicate_exam_event
+from ..services.anti_cheat_session import is_duplicate_exam_event, touch_heartbeat
 from ..services.exam_submission import finalize_submission
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
@@ -164,6 +164,9 @@ class ExamEventsMixin:
 
         serializer = ExamEventCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Update heartbeat on every event received
+        touch_heartbeat(contest.id, request.user.id)
 
         event_type = serializer.validated_data['event_type']
         raw_metadata = serializer.validated_data.get('metadata')

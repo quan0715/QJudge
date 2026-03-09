@@ -40,6 +40,7 @@ from ..services.participant_state import (
     reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
+from ..services.participant_dashboard import build_participant_dashboard
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
@@ -320,6 +321,28 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         serializer = ContestParticipantSerializer(participants, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[IsContestOwnerOrAdmin],
+        url_path=r'participants/(?P<user_id>\d+)/dashboard',
+    )
+    def participant_dashboard(self, request, pk=None, user_id=None):
+        """Return the admin dashboard payload for a single participant."""
+        contest = self.get_object()
+        try:
+            participant = ContestParticipant.objects.select_related(
+                'user',
+                'contest',
+            ).get(contest=contest, user_id=user_id)
+        except ContestParticipant.DoesNotExist:
+            return Response(
+                {'error': 'Participant not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(build_participant_dashboard(contest, participant))
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='unlock_participant')
     def unlock_participant(self, request, pk=None):

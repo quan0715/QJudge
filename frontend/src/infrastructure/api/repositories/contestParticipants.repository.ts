@@ -1,6 +1,6 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import type { ContestParticipant } from "@/core/entities/contest.entity";
-import { mapContestParticipantDto } from "@/infrastructure/mappers";
+import type { ContestParticipant, ParticipantDashboard } from "@/core/entities/contest.entity";
+import { mapContestParticipantDto, mapParticipantDashboardDto } from "@/infrastructure/mappers";
 
 export const getContestParticipants = async (
   contestId: string
@@ -10,6 +10,17 @@ export const getContestParticipants = async (
     "Failed to fetch participants"
   );
   return Array.isArray(data) ? data.map(mapContestParticipantDto) : [];
+};
+
+export const getParticipantDashboard = async (
+  contestId: string,
+  userId: string | number,
+): Promise<ParticipantDashboard> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/contests/${contestId}/participants/${userId}/dashboard/`),
+    "Failed to fetch participant dashboard",
+  );
+  return mapParticipantDashboardDto(data);
 };
 
 export const unlockParticipant = async (

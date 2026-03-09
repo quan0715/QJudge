@@ -16,6 +16,10 @@ from apps.contests.models import Contest, ContestParticipant, ExamStatus
 ACTIVE_SESSION_KEY_PREFIX = "exam:active"
 CONFLICT_TOKEN_KEY_PREFIX = "exam:conflict"
 EVENT_IDEMPOTENCY_KEY_PREFIX = "exam:event:idempotency"
+HEARTBEAT_KEY_PREFIX = "exam:heartbeat"
+HEARTBEAT_TIMEOUT_SECONDS = 60
+# Key TTL must outlive the check interval to prevent false positives
+HEARTBEAT_KEY_TTL_SECONDS = HEARTBEAT_TIMEOUT_SECONDS * 2
 CONFLICT_TOKEN_TTL_SECONDS = 300
 DEFAULT_ACTIVE_TTL_SECONDS = 2 * 60 * 60
 DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 3
@@ -192,3 +196,21 @@ def is_duplicate_exam_event(
     key = exam_event_idempotency_key(contest_id, user_id, event_type, token)
     # cache.add returns False when key already exists.
     return not cache.add(key, timezone.now().isoformat(), timeout=max(1, ttl_seconds))
+
+
+def heartbeat_key(contest_id: int, user_id: int) -> str:
+    return f"{HEARTBEAT_KEY_PREFIX}:{contest_id}:{user_id}"
+
+
+def touch_heartbeat(contest_id: int, user_id: int) -> None:
+    """Update heartbeat timestamp in Redis. TTL auto-expires stale keys."""
+    cache.set(heartbeat_key(contest_id, user_id), timezone.now().isoformat(), timeout=HEARTBEAT_KEY_TTL_SECONDS)
+
+
+def get_last_heartbeat(contest_id: int, user_id: int) -> str | None:
+    value = cache.get(heartbeat_key(contest_id, user_id))
+    return value if isinstance(value, str) else None
+
+
+def clear_heartbeat(contest_id: int, user_id: int) -> None:
+    cache.delete(heartbeat_key(contest_id, user_id))
