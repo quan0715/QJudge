@@ -12,6 +12,11 @@
   overflow: hidden;
 }
 
+.listCol {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .pane {
   min-height: 0;
 }
@@ -53,28 +58,29 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1rem 0;
+  gap: 0;
+  padding: 0;
   flex: 1;
 }
 
 .listItem {
-  border: 1px solid var(--cds-border-subtle);
-  border-radius: 0.25rem;
+  border: none;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-radius: 0;
   padding: 0.75rem 1rem;
   background: var(--cds-layer);
   cursor: pointer;
-  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  transition: background-color 120ms ease;
 }
 
 .listItem:hover {
-  border-color: var(--cds-border-interactive);
   background: var(--cds-layer-hover);
 }
 
 .listItemSelected {
-  border-color: var(--cds-border-interactive);
-  box-shadow: inset 0 0 0 1px var(--cds-border-interactive);
+  background: var(--cds-layer-selected);
+  border-left: 3px solid var(--cds-border-interactive);
+  padding-left: calc(1rem - 2px);
 }
 
 .listItemHeader,
@@ -141,19 +147,24 @@
   font-size: 0.75rem;
 }
 
-.dashboardGrid {
+/* --- Tabs layout --- */
+
+.tabsWrapper {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
-.tabs {
+/* Make the visible Carbon TabPanel fill remaining space and scroll */
+.tabsWrapper :global(.cds--tab-content:not([hidden])) {
+  flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .tabPanel {
   padding: 0;
-  overflow-y: auto;
 }
 
 .overviewPanel {
@@ -242,6 +253,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 1rem;
 }
 
 .timelineList,
@@ -363,14 +375,104 @@
   width: 100%;
 }
 
+/* --- Mobile trigger & drawer (hidden on desktop) --- */
+
+.mobileTrigger {
+  display: none;
+}
+
+.drawerBackdrop {
+  display: none;
+}
+
+.drawer {
+  display: none;
+}
+
+/* --- Responsive: mobile / narrow --- */
+
 @media (max-width: 1056px) {
   .root {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
     height: auto;
+    overflow-x: auto;
   }
 
   .root > * {
     overflow: visible;
+  }
+
+  /* Hide desktop list column */
+  .listCol {
+    display: none;
+  }
+
+  /* Show mobile trigger */
+  .mobileTrigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--cds-layer);
+    border: 1px solid var(--cds-border-subtle-01);
+    color: var(--cds-text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+
+  .mobileTrigger:hover {
+    background: var(--cds-layer-hover);
+  }
+
+  .mobileTriggerLabel {
+    flex: 1;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileTriggerSub {
+    color: var(--cds-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  /* Drawer backdrop */
+  .drawerBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    z-index: 7999;
+    pointer-events: none;
+    transition: background 200ms ease;
+  }
+
+  .drawerBackdropOpen {
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+  }
+
+  /* Drawer panel — slides in from right */
+  .drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(24rem, 85vw);
+    z-index: 8000;
+    transform: translateX(100%);
+    transition: transform 200ms ease;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .drawerOpen {
+    transform: translateX(0);
   }
 
   .pane,
