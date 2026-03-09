@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Grid, Column, Tag } from "@carbon/react";
+import { useState, useMemo } from "react";
+import { Button, Grid, Column, Tag, TextInput, TextArea } from "@carbon/react";
 import {
   ArrowRight,
   Chat,
@@ -10,6 +11,33 @@ import {
   UserMultiple,
   MagicWand,
   DocumentMultiple_01,
+  View,
+  Locked,
+  Checkmark,
+  Time,
+  Rocket,
+  Security,
+  Education,
+  ChartLine,
+  Result,
+  WarningAlt,
+  Play,
+  Screen,
+  Switcher,
+  Cursor_1,
+  Copy,
+  Paste,
+  CheckmarkFilled,
+  WarningFilled,
+  Activity,
+  UserFilled,
+  Camera,
+  Microphone,
+  FaceActivated,
+  Microscope,
+  Home,
+  Group,
+  WatsonxAi,
 } from "@carbon/icons-react";
 import MatrixBackground from "@/features/auth/components/MatrixBackground";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -18,14 +46,28 @@ import LandingHeroUiMock from "@/features/landing/components/LandingHeroUiMock";
 import LandingMiniJudgeSection from "@/features/landing/components/LandingMiniJudgeSection";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
+import { AreaChart, DonutChart } from "@carbon/charts-react";
+import "@carbon/charts-react/styles.css";
 import "./LandingScreen.scss";
+
+// Reusable MacDots component
+const MacDots = () => (
+  <div className="landing-hero-ui__dots">
+    <span className="landing-hero-ui__dot landing-hero-ui__dot--red" />
+    <span className="landing-hero-ui__dot landing-hero-ui__dot--yellow" />
+    <span className="landing-hero-ui__dot landing-hero-ui__dot--green" />
+  </div>
+);
 
 const LandingScreen = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation(["landing", "common"]);
   const { theme, preference, setPreference } = useTheme();
+  const [activeInteractive, setActiveInteractive] = useState("editor");
+  
   const matrixVariant = theme === "g100" || theme === "g90" ? "dark" : "light";
   const landingThemeClass = matrixVariant === "light" ? "landing--light" : "landing--dark";
+  const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
 
   const handleSignIn = () => navigate("/login");
   const handleDocs = () => navigate("/docs");
@@ -65,7 +107,7 @@ const LandingScreen = () => {
       color: "magenta" as const,
     },
     {
-      icon: <UserMultiple size={24} />,
+      icon: <Security size={24} />,
       title: t("feature.antiCheat.title", { defaultValue: "嚴格的防作弊監控" }),
       description: t("feature.antiCheat.description", {
         defaultValue:
@@ -74,7 +116,7 @@ const LandingScreen = () => {
       color: "teal" as const,
     },
     {
-      icon: <MagicWand size={24} />,
+      icon: <Education size={24} />,
       title: t("feature.teacher.title", { defaultValue: "更友善的教師系統" }),
       description: t("feature.teacher.description", {
         defaultValue:
@@ -82,6 +124,49 @@ const LandingScreen = () => {
       }),
       color: "purple" as const,
     },
+  ];
+
+  const interactiveItems = [
+    { id: "editor", icon: <Code size={20} />, label: t("interactive.items.editor.label"), desc: t("interactive.items.editor.desc") },
+    { id: "proctor", icon: <Security size={20} />, label: t("interactive.items.proctor.label"), desc: t("interactive.items.proctor.desc") },
+    { id: "grading", icon: <Result size={20} />, label: t("interactive.items.grading.label"), desc: t("interactive.items.grading.desc") },
+    { id: "stats", icon: <ChartLine size={20} />, label: t("interactive.items.stats.label"), desc: t("interactive.items.stats.desc") },
+  ];
+
+  const donutData = useMemo(() => [
+    { group: "A (90-100)", value: 25 },
+    { group: "B (80-89)", value: 40 },
+    { group: "C (70-79)", value: 20 },
+    { group: "D (Below 70)", value: 15 },
+  ], []);
+
+  const areaData = useMemo(() => [
+    { group: "Avg Score", date: "2024-03-01T00:00:00.000Z", value: 62 },
+    { group: "Avg Score", date: "2024-03-02T00:00:00.000Z", value: 68 },
+    { group: "Avg Score", date: "2024-03-03T00:00:00.000Z", value: 65 },
+    { group: "Avg Score", date: "2024-03-04T00:00:00.000Z", value: 78 },
+    { group: "Avg Score", date: "2024-03-05T00:00:00.000Z", value: 82 },
+  ], []);
+
+  const proctorGrid = [
+    { icon: <Screen size={24} />, label: "全螢幕鎖定" },
+    { icon: <Switcher size={24} />, label: "分頁切換偵測" },
+    { icon: <UserMultiple size={24} />, label: "多螢幕封鎖" },
+    { icon: <Cursor_1 size={24} />, label: "滑鼠離開軌跡" },
+    { icon: <Copy size={24} />, label: "禁止複製貼上" },
+    { icon: <Camera size={24} />, label: "視訊存證錄影" },
+    { icon: <Microphone size={24} />, label: "音訊異常偵測" },
+    { icon: <FaceActivated size={24} />, label: "人臉身分驗證" },
+    { icon: <Security size={24} />, label: "AI 違規分析" },
+  ];
+
+  const contestModes = [
+    { id: "coding", icon: <Code size={32} />, label: t("modes.items.coding.label"), desc: t("modes.items.coding.desc") },
+    { id: "paper", icon: <DocumentMultiple_01 size={32} />, label: t("modes.items.paper.label"), desc: t("modes.items.paper.desc") },
+    { id: "lab", icon: <Microscope size={32} />, label: t("modes.items.lab.label"), desc: t("modes.items.lab.desc") },
+    { id: "takehome", icon: <Home size={32} />, label: t("modes.items.takehome.label"), desc: t("modes.items.takehome.desc"), comingSoon: true },
+    { id: "hackathon", icon: <Group size={32} />, label: t("modes.items.hackathon.label"), desc: t("modes.items.hackathon.desc"), comingSoon: true },
+    { id: "adaptive", icon: <WatsonxAi size={32} />, label: t("modes.items.adaptive.label"), desc: t("modes.items.adaptive.desc"), comingSoon: true },
   ];
 
   const testimonials = [
@@ -155,6 +240,7 @@ const LandingScreen = () => {
 
       <MatrixBackground variant={matrixVariant} />
 
+      {/* Hero Section */}
       <section className="landing__hero">
         <div className="landing__hero-content">
           <div className="landing__hero-text">
@@ -170,7 +256,7 @@ const LandingScreen = () => {
             <p className="landing__subtitle">
               {t("hero.subtitle", {
                 defaultValue:
-                  "整合即時評測、紙筆題型與嚴格防作弊監控，為課程與競賽打造最友善的教學環境。",
+                  "專為學術現場打造的高品質測驗環境。整合 AI 監考偵測、紙筆題型與即時評測，讓每一場考試都兼具公平、效率與深度。",
               })}
             </p>
 
@@ -206,15 +292,329 @@ const LandingScreen = () => {
         </div>
       </section>
 
+      {/* Interactive Showcase Section */}
+      <section className="landing__section landing__section--interactive">
+        <div className="landing__section-inner">
+          <Grid fullWidth>
+            <Column sm={4} md={4} lg={6}>
+              <div className="landing__interactive-content">
+                <p className="landing__eyebrow">{t("interactive.eyebrow")}</p>
+                <h2 className="landing__section-title" style={{ textAlign: "left", marginBottom: "3rem" }}>
+                  {t("interactive.title")}
+                </h2>
+                
+                <div className="landing__interactive-list">
+                  {interactiveItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className={`landing__interactive-item ${activeInteractive === item.id ? "landing__interactive-item--active" : ""}`}
+                      onClick={() => setActiveInteractive(item.id)}
+                    >
+                      <div className="landing__interactive-item-header">
+                        {item.icon}
+                        <h3>{item.label}</h3>
+                      </div>
+                      {activeInteractive === item.id && (
+                        <p className="landing__interactive-item-desc">{item.desc}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Column>
+            
+            <Column sm={4} md={4} lg={10}>
+              <div className="landing__interactive-visual-container">
+                <div className="landing__interactive-visual-bg" />
+                
+                <div className="landing__interactive-visual-content">
+                  {activeInteractive === "editor" && (
+                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                      <div className="landing-hero-ui__titlebar">
+                        <MacDots />
+                        <span className="landing-hero-ui__window-title">Supreme Editor - Markdown + LaTeX</span>
+                      </div>
+                      <div className="landing-hero-ui__content landing__mock-editor-grid">
+                        <div className="landing__mock-editor-sidebar">
+                          <header>Source Code</header>
+                          <code className="landing__mock-code-src">
+                            {"# Q1. Gaussian Integral\n\nCalculate the integral:\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$"}
+                          </code>
+                        </div>
+                        <div className="landing__mock-editor-main">
+                          <header className="landing__mock-preview-header">Live Preview (Printed Quality)</header>
+                          <div className="landing__mock-editor-preview">
+                            <MarkdownRenderer enableMath enableHighlight>
+                              {"### Q1. 高斯積分計算\n\n請詳細寫出下列積分的推導過程：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**提示：** 可考慮使用極座標轉換 ($r, \\theta$)。"}
+                            </MarkdownRenderer>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeInteractive === "proctor" && (
+                    <div className="landing-hero-ui__window landing__precise-mock landing__mock-proctor-container" style={{ width: "100%", animation: "fade-in 0.4s ease", position: "relative" }}>
+                      <div className="landing-hero-ui__titlebar">
+                        <MacDots />
+                        <span className="landing-hero-ui__window-title">Strict Proctoring Environment</span>
+                      </div>
+                      <div className="landing-hero-ui__content landing__mock-proctor-env">
+                        <div className="landing__mock-proctor-editor-bg">
+                          <div className="line" style={{ width: "40%" }} />
+                          <div className="line" style={{ width: "60%" }} />
+                          <div className="line" style={{ width: "30%" }} />
+                        </div>
+
+                        <div className="landing__proctor-warning-overlay">
+                          <div className="landing__proctor-warning-dialog">
+                            <WarningAlt size={48} className="warning-icon" />
+                            <h3>檢測到違規行為</h3>
+                            <p>系統偵測到您試圖離開考場環境，此行為已被記錄並即時通知監考老師。</p>
+                            <div className="warning-stats">
+                              <span>違規次數：1/3</span>
+                              <span>狀態：暫時鎖定</span>
+                            </div>
+                            <Button size="sm" kind="danger">重新進入全螢幕</Button>
+                          </div>
+                        </div>
+
+                        <div className="landing__forbidden-icons">
+                          <div className="forbidden-item" style={{ top: "8%", left: "8%" }}>
+                            <Screen size={32} />
+                            <div className="slash" />
+                            <span className="label">多螢幕偵測</span>
+                          </div>
+                          <div className="forbidden-item" style={{ top: "8%", right: "8%" }}>
+                            <Switcher size={32} />
+                            <div className="slash" />
+                            <span className="label">分頁切換</span>
+                          </div>
+                          <div className="forbidden-item" style={{ bottom: "8%", left: "8%" }}>
+                            <Cursor_1 size={32} />
+                            <div className="slash" />
+                            <span className="label">滑鼠離開</span>
+                          </div>
+                          <div className="forbidden-item" style={{ bottom: "8%", right: "8%" }}>
+                            <div className="copy-paste-group">
+                              <Copy size={24} />
+                              <Paste size={24} />
+                            </div>
+                            <div className="slash" />
+                            <span className="label">複製貼上</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeInteractive === "grading" && (
+                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                      <div className="landing-hero-ui__titlebar">
+                        <MacDots />
+                        <span className="landing-hero-ui__window-title">High-Efficiency Grading Panel</span>
+                      </div>
+                      <div className="landing-hero-ui__content landing__mock-grading-grid">
+                        <div className="landing__mock-grading-col landing__mock-grading-col--q">
+                          <div className="header">Questions</div>
+                          <div className="item success"><CheckmarkFilled size={14} /> Q1. Logic (Auto)</div>
+                          <div className="item active"><Play size={14} /> Q2. Architecture</div>
+                          <div className="item"><Play size={14} /> Q3. Analysis</div>
+                        </div>
+                        <div className="landing__mock-grading-col landing__mock-grading-col--ans">
+                          <div className="header">Student Response</div>
+                          <div className="ans-box">
+                            <p><strong>Question:</strong> 簡述微服務架構的優缺點。</p>
+                            <p><strong>Answer:</strong> 優點包含高擴充性、技術異質性與部署獨立性。缺點則是分散式系統帶來的複雜度...</p>
+                          </div>
+                        </div>
+                        <div className="landing__mock-grading-col landing__mock-grading-col--score">
+                          <div className="header">Grading Tool</div>
+                          <div className="score-input-mock">
+                            <TextInput id="score" labelText="Score" defaultValue="9" size="sm" />
+                            <span className="max">/ 10</span>
+                          </div>
+                          <TextArea id="feedback" labelText="Feedback" defaultValue="非常完整的分析，優缺點並陳且邏輯清晰。" size="sm" rows={3} />
+                          <Button size="sm" kind="primary" style={{ marginTop: "1rem" }}>Next Student</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeInteractive === "stats" && (
+                    <div className="landing-hero-ui__window landing__precise-mock" style={{ width: "100%", animation: "fade-in 0.4s ease" }}>
+                      <div className="landing-hero-ui__titlebar">
+                        <MacDots />
+                        <span className="landing-hero-ui__window-title">Intelligent Results Analysis</span>
+                      </div>
+                      <div className="landing-hero-ui__content landing__mock-stats-container">
+                        <div className="landing__mock-stats-kpis">
+                          <div className="kpi-card">
+                            <UserFilled size={20} />
+                            <div className="val">82.5</div>
+                            <div className="lab">Class Average</div>
+                          </div>
+                          <div className="kpi-card danger">
+                            <WarningFilled size={20} />
+                            <div className="val">Q4</div>
+                            <div className="lab">Hardest Question</div>
+                          </div>
+                          <div className="kpi-card success">
+                            <Activity size={20} />
+                            <div className="val">94%</div>
+                            <div className="lab">Passing Rate</div>
+                          </div>
+                        </div>
+                        <div className="landing__mock-stats-charts">
+                          <div className="chart-item">
+                            <DonutChart
+                              data={donutData}
+                              options={{
+                                title: "Grade Distribution",
+                                height: "180px",
+                                theme: chartTheme,
+                                donut: { center: { label: "Total" } },
+                                toolbar: { enabled: false }
+                              }}
+                            />
+                          </div>
+                          <div className="chart-item">
+                            <AreaChart
+                              data={areaData}
+                              options={{
+                                title: "Score Growth Trend",
+                                height: "180px",
+                                theme: chartTheme,
+                                axes: {
+                                  bottom: { mapsTo: "date", scaleType: "time" as any },
+                                  left: { mapsTo: "value", scaleType: "linear" as any }
+                                },
+                                toolbar: { enabled: false }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Column>
+          </Grid>
+        </div>
+      </section>
+
+      {/* Pillars Section */}
+      <div className="landing__pillars">
+        {/* Paper-like Exam */}
+        <section className="landing__pillar">
+          <Grid fullWidth className="landing__pillar-grid">
+            <Column sm={4} md={4} lg={6}>
+              <div className="landing__pillar-content">
+                <p className="landing__eyebrow">{t("sections.paper.eyebrow", { defaultValue: "Paper-like Exam" })}</p>
+                <h2 className="landing__pillar-title">{t("sections.paper.title")}</h2>
+                <p className="landing__pillar-desc">{t("sections.paper.description")}</p>
+                <div className="landing__pillar-tags">
+                  <Tag type="cyan" size="md">{t("exam.tag1", { defaultValue: "LaTeX 支援" })}</Tag>
+                  <Tag type="magenta" size="md">{t("exam.tag2", { defaultValue: "多樣題型" })}</Tag>
+                </div>
+              </div>
+            </Column>
+            <Column sm={4} md={4} lg={6}>
+              <div className="landing-hero-ui__window landing__pillar-visual">
+                <div className="landing-hero-ui__titlebar">
+                  <MacDots />
+                  <span className="landing-hero-ui__window-title">Mathematics Rendering</span>
+                </div>
+                <div className="landing-hero-ui__content" style={{ padding: "1.5rem" }}>
+                  <div style={{ color: "var(--cds-text-primary)", fontSize: "0.9rem" }}>
+                    <p style={{ marginBottom: "1rem" }}>{t("exam.preview_text")}</p>
+                    <div style={{ 
+                      padding: "1.5rem", 
+                      background: "var(--cds-layer-02)", 
+                      borderRadius: "8px", 
+                      textAlign: "center",
+                      marginBottom: "1.5rem",
+                      border: "1px solid var(--cds-border-subtle-01)",
+                      display: "flex",
+                      justifyContent: "center"
+                    }}>
+                      <MarkdownRenderer enableMath>
+                        {"$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$"}
+                      </MarkdownRenderer>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Column>
+          </Grid>
+        </section>
+
+        {/* Strict Proctoring */}
+        <section className="landing__pillar landing__pillar--alt">
+          <Grid fullWidth className="landing__pillar-grid">
+            <Column sm={4} md={4} lg={6} className="landing__pillar-visual-col">
+              <div className="landing__proctor-9grid">
+                {proctorGrid.map((item, i) => (
+                  <div key={i} className="landing__proctor-grid-item">
+                    <div className="icon-wrapper">{item.icon}</div>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </Column>
+            <Column sm={4} md={4} lg={6}>
+              <div className="landing__pillar-content">
+                <p className="landing__eyebrow">{t("sections.antiCheat.eyebrow", { defaultValue: "Strict Proctoring" })}</p>
+                <h2 className="landing__pillar-title">{t("sections.antiCheat.title")}</h2>
+                <p className="landing__pillar-desc">{t("sections.antiCheat.description")}</p>
+                <div className="landing__pillar-tags">
+                  <Tag type="teal" size="md">無需安裝軟體</Tag>
+                  <Tag type="blue" size="md">全瀏覽器支援</Tag>
+                </div>
+              </div>
+            </Column>
+          </Grid>
+        </section>
+      </div>
+
+      {/* New Section: Support Multiple Contest Modes (Kuse style card grid) */}
+      <section className="landing__section landing__section--modes">
+        <div className="landing__section-inner">
+          <div className="landing__section-header" style={{ textAlign: "left" }}>
+            <p className="landing__eyebrow">{t("modes.eyebrow")}</p>
+            <h2 className="landing__section-title">{t("modes.title")}</h2>
+          </div>
+
+          <div className="landing__modes-grid">
+            {contestModes.map((mode) => (
+              <div key={mode.id} className={`landing__mode-card ${mode.comingSoon ? "landing__mode-card--soon" : ""}`}>
+                <div className="landing__mode-card-inner">
+                  <div className="landing__mode-icon-box">
+                    {mode.icon}
+                  </div>
+                  <div className="landing__mode-info">
+                    <div className="landing__mode-header">
+                      <h3>{mode.label}</h3>
+                      {mode.comingSoon && <Tag size="sm" type="cool-gray">{t("modes.items." + mode.id + ".comingSoon", "Soon")}</Tag>}
+                    </div>
+                    <p>{mode.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <LandingMiniJudgeSection />
+
+      {/* Grid Features */}
       <section className="landing__section landing__section--features">
         <div className="landing__section-inner">
           <div className="landing__section-header">
-            <p className="landing__eyebrow">
-              {t("features.eyebrow", { defaultValue: "核心價值" })}
-            </p>
-            <h2 className="landing__section-title">
-              {t("features.title", { defaultValue: "專為教學現場設計的強大功能" })}
-            </h2>
+            <p className="landing__eyebrow">{t("features.eyebrow", { defaultValue: "核心價值" })}</p>
+            <h2 className="landing__section-title">{t("features.title", { defaultValue: "專為教學現場設計的強大功能" })}</h2>
           </div>
 
           <Grid fullWidth className="landing__features-grid">
@@ -232,87 +632,12 @@ const LandingScreen = () => {
         </div>
       </section>
 
-      <section className="landing__section landing__section--ai">
-        <div className="landing__section-inner">
-          <Grid fullWidth>
-            <Column sm={4} md={4} lg={6}>
-              <div className="landing__ai-content">
-                <p className="landing__eyebrow">
-                  {t("exam.eyebrow", { defaultValue: "線上測驗" })}
-                </p>
-                <h2 className="landing__section-title">
-                  {t("exam.title", { defaultValue: "全方位的測驗體驗" })}
-                </h2>
-                <p className="landing__ai-desc">
-                  {t("exam.description", {
-                    defaultValue:
-                      "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
-                  })}
-                </p>
-                <div className="landing__cta-row">
-                  <Tag type="cyan" size="md">{t("exam.tag1", { defaultValue: "LaTeX 支援" })}</Tag>
-                  <Tag type="purple" size="md">{t("exam.tag2", { defaultValue: "多樣題型" })}</Tag>
-                  <Tag type="green" size="md">{t("exam.tag3", { defaultValue: "自動批改" })}</Tag>
-                </div>
-              </div>
-            </Column>
-            <Column sm={4} md={4} lg={10}>
-              <div className="landing-hero-ui__window" style={{ marginTop: "2rem" }}>
-                <div className="landing-hero-ui__titlebar">
-                  <span className="landing-hero-ui__window-title">Question Editor - Math Quiz</span>
-                </div>
-                <div className="landing-hero-ui__content" style={{ padding: "1.5rem" }}>
-                  <div style={{ color: "var(--cds-text-primary)", fontSize: "0.9rem" }}>
-                    <p style={{ marginBottom: "1rem" }}>{t("exam.preview_text", { defaultValue: "請計算下列積分：" })}</p>
-                    <div style={{ 
-                      padding: "1.5rem", 
-                      background: "var(--cds-layer-02)", 
-                      borderRadius: "8px", 
-                      textAlign: "center",
-                      marginBottom: "1.5rem",
-                      border: "1px solid var(--cds-border-subtle-01)",
-                      display: "flex",
-                      justifyContent: "center",
-                      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
-                    }}>
-                      <MarkdownRenderer enableMath>
-                        {"$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$"}
-                      </MarkdownRenderer>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} style={{ 
-                          padding: "0.5rem 1rem", 
-                          border: "1px solid var(--cds-border-subtle-01)",
-                          borderRadius: "4px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem"
-                        }}>
-                          <div style={{ width: "12px", height: "12px", borderRadius: "50%", border: "1px solid var(--cds-text-secondary)" }} />
-                          <div style={{ width: "40%", height: "8px", background: "var(--cds-border-subtle-01)", borderRadius: "4px" }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Column>
-          </Grid>
-        </div>
-      </section>
-
-      <LandingMiniJudgeSection />
-
+      {/* Testimonials */}
       <section className="landing__section landing__section--testimonials">
         <div className="landing__section-inner">
           <div className="landing__section-header">
-            <p className="landing__eyebrow">
-              {t("testimonials.eyebrow", { defaultValue: "使用者推薦" })}
-            </p>
-            <h2 className="landing__section-title">
-              {t("testimonials.title", { defaultValue: "真實使用回饋" })}
-            </h2>
+            <p className="landing__eyebrow">{t("testimonials.eyebrow", { defaultValue: "使用者推薦" })}</p>
+            <h2 className="landing__section-title">{t("testimonials.title", { defaultValue: "真實使用回饋" })}</h2>
           </div>
 
           <Grid fullWidth className="landing__testimonials-grid">
@@ -347,23 +672,15 @@ const LandingScreen = () => {
         </div>
       </section>
 
+      {/* Contact */}
       <section className="landing__section landing__section--contact">
         <div className="landing__section-inner">
           <Grid fullWidth>
             <Column sm={4} md={4} lg={7}>
               <div className="landing__contact-content">
-                <p className="landing__eyebrow">
-                  {t("contact.eyebrow", { defaultValue: "聯絡我們" })}
-                </p>
-                <h2 className="landing__section-title">
-                  {t("contact.title", { defaultValue: "有任何問題或建議？" })}
-                </h2>
-                <p className="landing__contact-desc">
-                  {t("contact.description", {
-                    defaultValue:
-                      "歡迎回饋、Bug 回報或合作洽談，透過以下方式與我們聯繫。",
-                  })}
-                </p>
+                <p className="landing__eyebrow">{t("contact.eyebrow", { defaultValue: "聯絡我們" })}</p>
+                <h2 className="landing__section-title">{t("contact.title", { defaultValue: "有任何問題或建議？" })}</h2>
+                <p className="landing__contact-desc">{t("contact.description")}</p>
               </div>
             </Column>
             <Column sm={4} md={4} lg={9}>
@@ -374,14 +691,7 @@ const LandingScreen = () => {
                     <div className="landing__contact-card-content">
                       <h4>{card.title}</h4>
                       {card.href ? (
-                        <a
-                          className="landing__contact-link"
-                          href={card.href}
-                          target={card.href.startsWith("http") ? "_blank" : undefined}
-                          rel={card.href.startsWith("http") ? "noreferrer noopener" : undefined}
-                        >
-                          {card.value}
-                        </a>
+                        <a className="landing__contact-link" href={card.href}>{card.value}</a>
                       ) : (
                         <span className="landing__contact-text">{card.value}</span>
                       )}
@@ -394,6 +704,7 @@ const LandingScreen = () => {
         </div>
       </section>
 
+      {/* Final CTA */}
       <section className="landing__cta">
         <div className="landing__cta-inner">
           <h2 className="landing__cta-title">
@@ -401,7 +712,7 @@ const LandingScreen = () => {
           </h2>
           <p className="landing__cta-text">
             {t("cta.description", {
-              defaultValue: "立即加入 QJudge，開始你的程式學習之旅。完全免費，無需信用卡。",
+              defaultValue: "立即加入 QJudge，開始你的程式學習之旅. 完全免費，無需信用卡。",
             })}
           </p>
           <div className="landing__cta-actions">

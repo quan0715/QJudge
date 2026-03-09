@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "QJudge，最安全穩定的線上考試平台",
-    "subtitle": "整合即時評測、紙筆題型與嚴格防作弊監控，為課程與競賽打造最友善的教學環境。",
+    "subtitle": "專為學術現場打造的高品質測驗環境。整合 AI 監考偵測、紙筆題型與即時評測，讓每一場考試都兼具公平、效率與深度。",
     "signIn": "立即登入",
     "register": "免費註冊",
     "badge": {
@@ -23,6 +23,78 @@
       "ai_monitoring": "AI 違規偵測",
       "proctoring_video": "視訊監控",
       "remaining": "剩餘時間"
+    }
+  },
+  "modes": {
+    "eyebrow": "Diverse Modes",
+    "title": "支援多種競賽與學習模式",
+    "items": {
+      "coding": {
+        "label": "程式開發測驗",
+        "desc": "Coding Test"
+      },
+      "paper": {
+        "label": "紙筆題考試",
+        "desc": "Paper-like Exam"
+      },
+      "lab": {
+        "label": "實驗室練習模式",
+        "desc": "Lab Practice"
+      },
+      "takehome": {
+        "label": "帶回家專案",
+        "desc": "Take-home Project",
+        "comingSoon": "即將推出"
+      },
+      "hackathon": {
+        "label": "團隊黑客松",
+        "desc": "Group Hackathon",
+        "comingSoon": "即將推出"
+      },
+      "adaptive": {
+        "label": "AI 自適應學習",
+        "desc": "Adaptive Learning",
+        "comingSoon": "即將推出"
+      }
+    }
+  },
+  "interactive": {
+    "eyebrow": "Solution Showcase",
+    "title": "深植於教學流程的每一處細節",
+    "items": {
+      "editor": {
+        "label": "極致的編輯體驗",
+        "desc": "支援 Markdown 與 LaTeX，讓複雜公式與技術文件呈現如印刷般精美。"
+      },
+      "proctor": {
+        "label": "全方位監考防弊",
+        "desc": "多維度違規偵測與視訊存證，為線上考試建立不可撼動的公平防線。"
+      },
+      "grading": {
+        "label": "數位化高效批改",
+        "desc": "直觀的三欄式介面與自動計分，讓繁瑣的閱卷工作變得輕鬆且精確。"
+      },
+      "stats": {
+        "label": "智能成績分析",
+        "desc": "即時掌握班級得分分布與題目難度，提供最有價值的教學回饋。"
+      }
+    }
+  },
+  "sections": {
+    "paper": {
+      "eyebrow": "Paper-like Exam",
+      "title": "不之後程式，更是一套完整的線上測驗系統",
+      "description": "支援單選、多選、是非與簡答題型。內建 Markdown 與 LaTeX 編輯器，能精確渲染複雜的數學公式與技術文件，滿足通識、理科到程式開發的多元需求。"
+    },
+    "antiCheat": {
+      "eyebrow": "Strict Proctoring",
+      "title": "無需安裝，領先業界的防作弊技術",
+      "description": "基於瀏覽器的全方位偵測，考生無需安裝任何插件或軟體即可進入嚴格監考環境。我們捍衛每一份努力，確保測驗的絕對公平性。"
+    },
+    "teacher": {
+      "eyebrow": "Teacher Friendly",
+      "title": "讓老師專注於教學，剩下的交給 QJudge",
+      "description": "我們重新定義了數位批改體驗。直觀的三欄式批改面板、即時監考儀表板與自動化的成績統計分析，能節省 70% 以上的管理與閱卷時間。"
     }
   },
   "feature": {

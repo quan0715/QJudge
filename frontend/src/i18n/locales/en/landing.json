@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "QJudge - The Most Secure and Stable Online Exam Platform",
-    "subtitle": "Integrating real-time evaluation, paper-based questions, and strict anti-cheat monitoring to create the most friendly teaching environment for courses and competitions.",
+    "subtitle": "A high-quality testing environment built for academic settings. Integrating AI proctoring, paper-based questions, and real-time evaluation, ensuring every exam is fair, efficient, and in-depth.",
     "signIn": "Sign in",
     "register": "Create account",
     "badge": {
@@ -23,6 +23,78 @@
       "ai_monitoring": "AI Monitoring",
       "proctoring_video": "Video Proctoring",
       "remaining": "Time Remaining"
+    }
+  },
+  "modes": {
+    "eyebrow": "Diverse Modes",
+    "title": "Supports Multiple Contest and Learning Modes",
+    "items": {
+      "coding": {
+        "label": "Coding Test",
+        "desc": "Professional coding assessment"
+      },
+      "paper": {
+        "label": "Paper-like Exam",
+        "desc": "Integrated digital testing system"
+      },
+      "lab": {
+        "label": "Lab Practice",
+        "desc": "Guided learning environment"
+      },
+      "takehome": {
+        "label": "Take-home Project",
+        "desc": "Long-term assignment mode",
+        "comingSoon": "Coming Soon"
+      },
+      "hackathon": {
+        "label": "Group Hackathon",
+        "desc": "Collaborative competition",
+        "comingSoon": "Coming Soon"
+      },
+      "adaptive": {
+        "label": "AI Adaptive Learning",
+        "desc": "Personalized study path",
+        "comingSoon": "Coming Soon"
+      }
+    }
+  },
+  "interactive": {
+    "eyebrow": "Solution Showcase",
+    "title": "Deeply Rooted in Every Detail of the Teaching Process",
+    "items": {
+      "editor": {
+        "label": "Supreme Editing Experience",
+        "desc": "Support for Markdown and LaTeX ensures complex formulas and technical documents are as beautiful as print."
+      },
+      "proctor": {
+        "label": "Comprehensive Proctoring",
+        "desc": "Multi-dimensional violation detection and video evidence establish an unshakeable line of fairness for online exams."
+      },
+      "grading": {
+        "label": "Digital High-Efficiency Grading",
+        "desc": "An intuitive three-column interface and auto-scoring make the tedious work of grading effortless and precise."
+      },
+      "stats": {
+        "label": "Intelligent Results Analysis",
+        "desc": "Instantly grasp class score distributions and question difficulty to provide the most valuable teaching feedback."
+      }
+    }
+  },
+  "sections": {
+    "paper": {
+      "eyebrow": "Paper-like Exam",
+      "title": "More than just code, a complete online testing system",
+      "description": "Support for single choice, multiple choice, true/false, and short answer questions. Built-in Markdown and LaTeX editors accurately render complex mathematical formulas and technical documents, meeting diverse needs from general education to science and programming."
+    },
+    "antiCheat": {
+      "eyebrow": "Strict Proctoring",
+      "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology",
+      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test."
+    },
+    "teacher": {
+      "eyebrow": "Teacher Friendly",
+      "title": "Let teachers focus on teaching, leave the rest to QJudge",
+      "description": "We have redefined the digital grading experience. An intuitive three-column grading panel, real-time proctoring dashboard, and automated results statistical analysis can save over 70% of management and grading time."
     }
   },
   "feature": {
