@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Pagination, Tag } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
@@ -27,6 +28,7 @@ export default function GradingByQuestionTabScreen({
   searchQuery,
   filter,
 }: GradingByQuestionTabScreenProps) {
+  const { t } = useTranslation("contest");
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
     questionProgress[0]?.questionId ?? ""
   );
@@ -144,8 +146,8 @@ export default function GradingByQuestionTabScreen({
           <div className={styles.emptyState}>
             <span className={styles.emptyStateDesc}>
               {searchQuery.trim() || filter !== "all"
-                ? "沒有符合條件的作答"
-                : "此題目尚無學生作答"}
+                ? t("grading.noMatchingAnswers", "沒有符合條件的作答")
+                : t("grading.noAnswersForQuestion", "此題目尚無學生作答")}
             </span>
           </div>
         ) : (
@@ -162,20 +164,20 @@ export default function GradingByQuestionTabScreen({
                 <div className={styles.cardPrimary}>
                   <span>{a.studentNickname}</span>
                   {isAbsent ? (
-                    <Tag type="red" size="sm">缺交</Tag>
+                    <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
                   ) : a.score !== null ? (
                     <span style={{ fontWeight: 600, color: "var(--cds-support-success)" }}>
                       {a.score}/{a.maxScore}
                     </span>
                   ) : (
-                    <Tag type="warm-gray" size="sm">未批改</Tag>
+                    <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批改")}</Tag>
                   )}
                 </div>
                 <div className={styles.cardSecondary}>
                   <span>{a.studentUsername}</span>
                   <span>
                     {isAbsent ? "" : a.gradedBy === "system" ? (
-                      <Tag type="cyan" size="sm">自動</Tag>
+                      <Tag type="cyan" size="sm">{t("grading.autoGraded", "自動")}</Tag>
                     ) : a.gradedBy ?? ""}
                   </span>
                 </div>
@@ -187,9 +189,9 @@ export default function GradingByQuestionTabScreen({
 
       <Pagination
         totalItems={currentAnswers.length}
-        backwardText="上一頁"
-        forwardText="下一頁"
-        itemsPerPageText="每頁"
+        backwardText={t("common:pagination.previous", "上一頁")}
+        forwardText={t("common:pagination.next", "下一頁")}
+        itemsPerPageText={t("common:pagination.itemsPerPage", "每頁")}
         page={page}
         pageSize={pageSize}
         pageSizes={[25, 50, 100]}

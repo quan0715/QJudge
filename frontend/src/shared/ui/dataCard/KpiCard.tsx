@@ -44,7 +44,8 @@ export const KpiCard = ({
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      aria-pressed={onClick ? active : undefined}
     >
       <div className={styles.kpiIcon}>{renderIconNode(icon)}</div>
       <div className={styles.kpiValue}>{value}</div>

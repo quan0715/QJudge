@@ -184,6 +184,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }, 500);
   }, [clearScreenShareRecoveryTimer, handleForceSubmitFromScreenShareLoss]);
 
+  // Cleanup recovery timer on unmount or when exam is submitted
+  useEffect(() => {
+    if (examStatus === "submitted") {
+      clearScreenShareRecoveryTimer();
+      setScreenShareRecoveryCountdown(null);
+    }
+    return () => clearScreenShareRecoveryTimer();
+  }, [examStatus, clearScreenShareRecoveryTimer]);
+
   const handleScreenShareLost = useCallback(() => {
     if (examStatus === "submitted") return;
     beginRuntimeScreenShareReauth();

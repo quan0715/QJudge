@@ -152,7 +152,6 @@ const AnnouncementManagementScreen = () => {
           >
             <TableToolbar>
               <TableToolbarContent>
-                { }
                 <TableToolbarSearch
                   onChange={(e: any) =>
                     setSearchTerm(e.target ? e.target.value : "")

@@ -83,7 +83,7 @@ export default function AdminDashboardLayout({
   return (
     <div className={styles.layout}>
       <Header aria-label={t("adminLayout.title")} className={styles.header}>
-        <HeaderName href="#" prefix={t("header.prefix", "QJudge")}>
+        <HeaderName href="#" prefix={t("common:header.prefix", "QJudge")}>
           {contestName}
         </HeaderName>
         <HeaderGlobalBar>
@@ -125,7 +125,7 @@ export default function AdminDashboardLayout({
       </Header>
 
       <SideNav
-        aria-label={t("header.adminNavigation")}
+        aria-label={t("common:header.adminNavigation")}
         isRail
         className={styles.sidenav}
       >
