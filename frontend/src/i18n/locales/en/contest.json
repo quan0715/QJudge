@@ -7,7 +7,8 @@
     "contestCount": "{{count}} contests in total"
   },
   "button": {
-    "createContest": "Create Contest"
+    "createContest": "Create Contest",
+    "backToLobby": "Back to Contest Lobby"
   },
   "placeholder": {
     "contestName": "Enter contest name"
@@ -22,7 +23,10 @@
     "leaveFailed": "Failed to leave contest, please try again later",
     "startExamFailed": "Failed to start exam, please try again later",
     "endExamFailed": "Failed to submit exam, please try again later",
-    "exitFailed": "Failed to exit contest, please try again later"
+    "exitFailed": "Failed to exit contest, please try again later",
+    "cannotViewProblem": "Cannot View Problem",
+    "problemAccessDenied": "The contest has not started, has ended, or your access is locked.",
+    "loadProblemFailed": "Failed to load problem"
   },
   "modal": {
     "confirmDelete": "Confirm Delete",
@@ -98,6 +102,139 @@
   "duration": "Duration",
   "progress": "Progress",
   "notActive": "Not Running",
+  "precheck": {
+    "title": "Exam Pre-check",
+    "description": "To ensure fairness, please complete the environment and eligibility checks before entering the exam room. Failure to pass necessary checks will restrict your access.",
+    "backToDashboard": "Back to Dashboard",
+    "steps": {
+      "eligibility": "Eligibility",
+      "environment": "Environment",
+      "confirmation": "Confirmation"
+    },
+    "eligibility": {
+      "title": "Eligibility Confirmation",
+      "participation": "Participation Status",
+      "submission": "Submission Record",
+      "status": {
+        "passed": "Eligibility confirmed.",
+        "failed": "You do not have permission to participate.",
+        "submittedAllowed": "Submission record found, but multiple entries are allowed.",
+        "submittedDenied": "You have already submitted and cannot re-enter.",
+        "noSubmission": "No previous submission found."
+      },
+      "nextStep": "Next: Environment Check"
+    },
+    "environment": {
+      "title": "Environment Check",
+      "requirements": {
+        "title": "Strict environment restrictions apply:",
+        "browser": "Use only the latest version of Google Chrome or Microsoft Edge.",
+        "permission": "Click [Allow] when the browser requests window and display management permissions.",
+        "display": "A single physical monitor is required (please disconnect external displays).",
+        "sharing": "You must share your [Entire Screen] when prompted."
+      },
+      "checks": {
+        "monitor": "Display Count",
+        "sharing": "Screen Sharing",
+        "fullscreen": "Fullscreen Mode",
+        "interaction": "Interaction Check"
+      },
+      "status": {
+        "checking": "Checking...",
+        "start": "Start Test",
+        "retry": "Retry Test",
+        "next": "Next: Confirmation"
+      },
+      "errors": {
+        "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
+        "noScreenDetails": "Unable to confirm display count. Please retry the environment check.",
+        "multiMonitor": "Detected multiple displays ({{count}}). Please disconnect external monitors.",
+        "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
+        "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
+        "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
+        "fullscreenFailed": "Unable to enter fullscreen. Please grant permission and try again.",
+        "fullscreenTimeout": "Fullscreen check timed out. Please try again.",
+        "interactionFailed": "No recent interaction detected. Click the page or press any key.",
+        "focusFailed": "Please switch back to this page and try again.",
+        "dependencyPrefix": "Requires passing \"{{name}}\"."
+      }
+    },
+    "instruction": {
+      "title": "Exam Instructions",
+      "noSwitch": "Do not switch windows or tabs. All exits will be recorded.",
+      "keepFullscreen": "Maintain fullscreen mode. Exiting will trigger a system warning.",
+      "autoSave": "Your responses are automatically saved every 2 seconds.",
+      "autoSubmit": "The system will automatically submit your work when time expires.",
+      "deadline": "Deadline: {{time}}",
+      "confirmStart": "I understand and I'm ready to start"
+    },
+    "countdown": {
+      "starting": "Exam starting soon",
+      "entering": "Entering exam room..."
+    }
+  },
+  "answering": {
+    "status": {
+      "saving": "Saving...",
+      "saved": "Saved",
+      "error": "Save failed",
+      "monitoring": "Monitoring",
+      "monitoringTooltip": "The system is monitoring focus, fullscreen, and tab switch behaviors.",
+      "notStarted": "Exam Not Started"
+    },
+    "finish": {
+      "autoSubmitted": "Exam ended, system has auto-submitted.",
+      "submitted": "Exam ended, work submitted successfully.",
+      "backToDashboard": "Back to Dashboard"
+    },
+    "loading": "Loading questions...",
+    "noQuestions": "No questions set for this exam.",
+    "submit": {
+      "button": "Submit",
+      "confirmTitle": "Submit Confirmation",
+      "confirmButton": "Confirm Submit",
+      "submitting": "Submitting...",
+      "backToExam": "Back to Exam",
+      "stats": "Answered {{answered}} / {{total}} questions",
+      "deadline": "Deadline: {{time}}",
+      "noDeadline": "No deadline set",
+      "unansweredWarning": "{{count}} questions left unanswered",
+      "unansweredSubtitle": "It is recommended to complete all questions before submitting.",
+      "questionPreview": "Question {{index}}"
+    },
+    "error": {
+      "loadQuestionsFailed": "Failed to load exam questions",
+      "loadQuestionsSubtitle": "Please check your network connection and try again.",
+      "loadAnswersFailed": "Failed to load your responses",
+      "loadAnswersSubtitle": "To avoid overwriting existing data, please refresh the page."
+    }
+  },
+  "scoreboard": {
+    "table": {
+      "rank": "Rank",
+      "user": "Participant",
+      "solved": "Solved",
+      "totalScore": "Score",
+      "penalty": "Penalty"
+    },
+    "status": {
+      "tries": "tries",
+      "try": "try",
+      "pending": "Pending",
+      "partial": "partial",
+      "pts": "pts"
+    }
+  },
+  "report": {
+    "title": "Performance Report",
+    "generating": "Generating report...",
+    "downloaded": "Report downloaded",
+    "failed": "Failed to download report",
+    "descriptionPaper": "Download PDF report including questions, your responses, scores, and proctor comments.",
+    "descriptionCoding": "Download PDF report including stats, source code, and performance trends.",
+    "download": "Download Report",
+    "preparing": "Generating..."
+  },
   "delete": {
     "title": "Delete Contest",
     "confirm": "Are you sure you want to delete this contest? This action cannot be undone.",
@@ -217,6 +354,7 @@
       "prompt": "Question",
       "type": "Type",
       "maxScore": "Max",
+      "status": "Status",
       "score": "Score",
       "feedback": "Feedback"
     }
@@ -441,7 +579,12 @@
     "screenShareForceSubmitIn": "Auto-submit in {{seconds}} seconds",
     "screenShareTimeoutWarning": "Failing to reshare in time will auto-submit your exam. This cannot be undone!",
     "reshareScreen": "Reshare Screen",
-    "requestingScreenShare": "Requesting share..."
+    "requestingScreenShare": "Requesting share...",
+    "autoSubmittedTitle": "Exam Auto-Submitted",
+    "autoSubmittedHeading": "Your exam has been automatically submitted",
+    "autoSubmittedDesc": "Screen sharing was interrupted and could not be restored within the time limit. Your exam has been automatically submitted.",
+    "autoSubmittedHint": "If you believe this was an error, please contact your proctor.",
+    "returnToDashboard": "Return to Dashboard"
   },
   "settings": {
     "title": "Contest Settings",
@@ -705,7 +848,8 @@
       "captureStatus": "Capture Status",
       "loadingScreenshots": "Loading screenshots…",
       "screenshotLoadFailed": "Failed to load screenshots",
-      "noScreenshots": "Raw screenshots cleared or compiled into video"
+      "noScreenshots": "Raw screenshots cleared or compiled into video",
+      "noScreenshotsInRange": "No screenshots in this time range. This user has {{count}} raw screenshot(s) total."
     },
     "meta": {
       "existingDeviceId": "Existing Device ID",

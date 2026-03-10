@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useContestNavigationGuard } from "@/features/contest/hooks/useContestNavigationGuard";
 import { Loading, Button } from "@carbon/react";
 import { useAuth } from "@/shared/hooks";
@@ -14,6 +15,7 @@ import ContestProblemSubmissions from "@/features/contest/components/solver/subm
 import "./ContestProblemScreen.scss";
 
 const ContestProblemScreen = () => {
+  const { t } = useTranslation("contest");
   const { contestId, problemId } = useParams<{
     contestId: string;
     problemId: string;
@@ -71,13 +73,13 @@ const ContestProblemScreen = () => {
   if (!canView) {
     return (
       <div className="contest-problem-page contest-problem-page--error">
-        <h3>無法查看題目</h3>
-        <p>比賽尚未開始、已結束，或您已被鎖定。</p>
+        <h3>{t("error.cannotViewProblem")}</h3>
+        <p>{t("error.problemAccessDenied")}</p>
         <Button
           kind="secondary"
           onClick={() => navigate(`/contests/${contestId}`)}
         >
-          返回競賽大廳
+          {t("button.backToLobby")}
         </Button>
       </div>
     );
@@ -96,13 +98,13 @@ const ContestProblemScreen = () => {
   if (problemSelection.error) {
     return (
       <div className="contest-problem-page contest-problem-page--error">
-        <h3>載入題目失敗</h3>
+        <h3>{t("error.loadProblemFailed")}</h3>
         <p>{problemSelection.error}</p>
         <Button
           kind="secondary"
           onClick={() => navigate(`/contests/${contestId}`)}
         >
-          返回競賽大廳
+          {t("button.backToLobby")}
         </Button>
       </div>
     );

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   DataTable,
   Table,
@@ -59,6 +60,8 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   className,
   contestId,
 }) => {
+  const { t } = useTranslation("contest");
+
   const getCellColor = (stats: ProblemStats) => {
     if (stats.status === "AC") return "rgba(36, 161, 72, 0.2)"; // Green 20%
     if (stats.status === "WA") {
@@ -73,11 +76,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
 
   // Prepare headers for DataTable
   const headers = [
-    { key: "rank", header: "排名" },
-    { key: "user", header: "參與者" },
-    { key: "solved", header: "解題數" },
-    { key: "total_score", header: "總分" },
-    { key: "time", header: "罰時" },
+    { key: "rank", header: t("scoreboard.table.rank") },
+    { key: "user", header: t("scoreboard.table.user") },
+    { key: "solved", header: t("scoreboard.table.solved") },
+    { key: "total_score", header: t("scoreboard.table.totalScore") },
+    { key: "time", header: t("scoreboard.table.penalty") },
     ...problems.map((p) => ({
       key: `problem_${p.id}`,
       header: p.label,
@@ -129,12 +132,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
 
       const bgColor = getCellColor(stats);
       // Use Carbon text colors
-      const textColor =
-        stats.status === "AC"
-          ? "var(--cds-text-primary)"
-          : stats.pending
-          ? "var(--cds-text-primary)"
-          : "var(--cds-text-primary)";
+      const textColor = "var(--cds-text-primary)";
 
       const statusColor =
         stats.status === "AC"
@@ -180,7 +178,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 AC
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {stats.score || problemScore || 0} pts
+                {`${stats.score || problemScore || 0} ${t("scoreboard.status.pts")}`}
               </div>
             </>
           )}
@@ -197,26 +195,24 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
                 {stats.score && stats.score > 0
-                  ? "partial"
-                  : stats.tries === 1
-                  ? "1 try"
-                  : `${stats.tries} tries`}
+                  ? t("scoreboard.status.partial")
+                  : `${stats.tries} ${stats.tries === 1 ? t("scoreboard.status.try") : t("scoreboard.status.tries")}`}
               </div>
             </>
           )}
           {stats.pending && (
             <>
               <div style={{ fontWeight: "bold", color: statusColor }}>
-                Pending
+                {t("scoreboard.status.pending")}
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {stats.tries} tries
+                {`${stats.tries} ${stats.tries === 1 ? t("scoreboard.status.try") : t("scoreboard.status.tries")}`}
               </div>
             </>
           )}
           {!stats.status && !stats.pending && stats.tries > 0 && (
             <div style={{ fontSize: "0.8em", color: textColor }}>
-              {stats.tries === 1 ? "1 try" : `${stats.tries} tries`}
+              {`${stats.tries} ${stats.tries === 1 ? t("scoreboard.status.try") : t("scoreboard.status.tries")}`}
             </div>
           )}
         </div>
@@ -224,35 +220,35 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     }
 
     // Default rendering for other columns
-    if (cell.info.header === "rank") {
+    if (cell.info.header === t("scoreboard.table.rank")) {
       return (
         <div style={{ fontWeight: "bold", textAlign: "left", width: "40px" }}>
           {cell.value}
         </div>
       );
     }
-    if (cell.info.header === "solved") {
+    if (cell.info.header === t("scoreboard.table.solved")) {
       return (
         <div style={{ fontWeight: "bold", textAlign: "left", width: "60px" }}>
           {cell.value}
         </div>
       );
     }
-    if (cell.info.header === "total_score") {
+    if (cell.info.header === t("scoreboard.table.totalScore")) {
       return (
         <div style={{ fontWeight: "bold", textAlign: "left", width: "60px" }}>
           {cell.value}
         </div>
       );
     }
-    if (cell.info.header === "time") {
+    if (cell.info.header === t("scoreboard.table.penalty")) {
       return (
         <div style={{ fontWeight: "bold", textAlign: "left", width: "80px" }}>
           {cell.value}
         </div>
       );
     }
-    if (cell.info.header === "user") {
+    if (cell.info.header === t("scoreboard.table.user")) {
       return (
         <div style={{ fontWeight: 600, textAlign: "left" }}>{cell.value}</div>
       );

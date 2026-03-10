@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   InlineNotification,
@@ -93,52 +94,8 @@ const sleep = (ms: number) =>
 
 const displayService = new DisplayCheckService();
 
-const requestMonitorScreenShare = async (): Promise<{
-  granted: boolean;
-  displaySurface: string | null;
-  detail: string;
-}> => {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    return {
-      granted: false,
-      displaySurface: null,
-      detail: "瀏覽器不支援螢幕分享 API，請改用最新版 Chrome / Edge。",
-    };
-  }
-  try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: false,
-    });
-    const track = stream.getVideoTracks()[0];
-    const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
-      displaySurface?: string;
-    };
-    const displaySurface = settings.displaySurface;
-
-    setPrecheckScreenShareHandoff(stream);
-
-    return {
-      granted: true,
-      displaySurface: displaySurface ?? null,
-      detail:
-        displaySurface === "monitor"
-          ? "已確認分享來源為整個螢幕。"
-          : displaySurface
-            ? "已完成螢幕分享授權（目前來源非整個螢幕，將依多螢幕規則檢核）。"
-            : "已完成螢幕分享授權（瀏覽器未回報 displaySurface，將以規則持續監控）。",
-    };
-  } catch {
-    clearPrecheckScreenShareHandoff(true);
-    return {
-      granted: false,
-      displaySurface: null,
-      detail: "未完成螢幕分享授權，請允許分享整個螢幕後重試。",
-    };
-  }
-};
-
 const ExamPrecheckScreen: React.FC = () => {
+  const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
@@ -147,6 +104,7 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!contestId) return "";
     return getPostPrecheckPath(contestId, contest);
   }, [contest, contestId]);
+
   const handleBackToDashboard = useCallback(() => {
     if (!contestId) return;
     navigate(getContestDashboardPath(contestId));
@@ -154,14 +112,14 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>([
-    { id: "participation", label: "參賽狀態檢查", status: "pending" },
-    { id: "submitted", label: "交卷記錄檢查", status: "pending" },
+    { id: "participation", label: t("precheck.eligibility.participation"), status: "pending" },
+    { id: "submitted", label: t("precheck.eligibility.submission"), status: "pending" },
   ]);
   const [envChecks, setEnvChecks] = useState<CheckItem[]>([
-    { id: "singleMonitor", label: "單螢幕檢查", status: "pending" },
-    { id: "shareScreen", label: "分享螢幕", status: "pending" },
-    { id: "fullscreen", label: "全螢幕測試", status: "pending" },
-    { id: "interaction", label: "互動輸入檢查", status: "pending" },
+    { id: "singleMonitor", label: t("precheck.environment.checks.monitor"), status: "pending" },
+    { id: "shareScreen", label: t("precheck.environment.checks.sharing"), status: "pending" },
+    { id: "fullscreen", label: t("precheck.environment.checks.fullscreen"), status: "pending" },
+    { id: "interaction", label: t("precheck.environment.checks.interaction"), status: "pending" },
   ]);
   const [envTestDone, setEnvTestDone] = useState(false);
   const [envTestRunning, setEnvTestRunning] = useState(false);
@@ -186,31 +144,74 @@ const ExamPrecheckScreen: React.FC = () => {
     { label: string; color: string; Icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }> }
   > = {
     pending: {
-      label: "等待執行",
+      label: t("common:status.pending"),
       color: "var(--cds-text-secondary)",
       Icon: Time,
     },
     running: {
-      label: "測試中",
+      label: t("precheck.environment.status.checking"),
       color: "var(--cds-support-info)",
       Icon: InProgress,
     },
     pass: {
-      label: "成功",
+      label: t("common:status.success"),
       color: "var(--cds-support-success)",
       Icon: CheckmarkFilled,
     },
     fail: {
-      label: "失敗",
+      label: t("common:status.failed"),
       color: "var(--cds-support-error)",
       Icon: ErrorFilled,
     },
     blocked: {
-      label: "未通過",
+      label: t("common:status.notPassed"),
       color: "var(--cds-support-warning)",
       Icon: WarningAlt,
     },
   };
+
+  const requestMonitorScreenShare = useCallback(async (): Promise<{
+    granted: boolean;
+    displaySurface: string | null;
+    detail: string;
+  }> => {
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      return {
+        granted: false,
+        displaySurface: null,
+        detail: t("precheck.environment.errors.browserNotSupported"),
+      };
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      const track = stream.getVideoTracks()[0];
+      const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
+        displaySurface?: string;
+      };
+      const displaySurface = settings.displaySurface;
+
+      setPrecheckScreenShareHandoff(stream);
+
+      return {
+        granted: true,
+        displaySurface: displaySurface ?? null,
+        detail:
+          displaySurface === "monitor"
+            ? t("precheck.environment.checks.sharing")
+            : t("precheck.environment.errors.notMonitor"),
+      };
+    } catch {
+      clearPrecheckScreenShareHandoff(true);
+      return {
+        granted: false,
+        displaySurface: null,
+        detail: t("precheck.environment.errors.sharingFailed"),
+      };
+    }
+  }, [t]);
 
   // Keep precheck-gate in sync with server status.
   useEffect(() => {
@@ -225,24 +226,24 @@ const ExamPrecheckScreen: React.FC = () => {
   useEffect(() => {
     if (currentStep !== 0 || !contest) return;
 
-    // 參賽狀態檢查（取代原本的 NYCU OAuth 驗證）
+    // 參賽狀態檢查
     if (contest.examStatus) {
-      updateCheck(setChecks, "participation", "pass", "已確認參賽資格");
+      updateCheck(setChecks, "participation", "pass", t("precheck.eligibility.status.passed"));
     } else {
-      updateCheck(setChecks, "participation", "fail", "尚未取得參賽資格");
+      updateCheck(setChecks, "participation", "fail", t("precheck.eligibility.status.failed"));
     }
 
-    // 交卷記錄檢查：依據 contest 是否允許重複入場
+    // 交卷記錄檢查
     if (contest.examStatus === "submitted") {
       if (contest.allowMultipleJoins) {
-        updateCheck(setChecks, "submitted", "pass", "已有交卷記錄，但本場考試允許重複入場");
+        updateCheck(setChecks, "submitted", "pass", t("precheck.eligibility.status.submittedAllowed"));
       } else {
-        updateCheck(setChecks, "submitted", "fail", "已有交卷記錄，無法重複考試");
+        updateCheck(setChecks, "submitted", "fail", t("precheck.eligibility.status.submittedDenied"));
       }
     } else {
-      updateCheck(setChecks, "submitted", "pass", "無交卷記錄");
+      updateCheck(setChecks, "submitted", "pass", t("precheck.eligibility.status.noSubmission"));
     }
-  }, [currentStep, contest]);
+  }, [currentStep, contest, t]);
 
   const step1AllPass = checks.every((c) => c.status === "pass");
 
@@ -264,10 +265,10 @@ const ExamPrecheckScreen: React.FC = () => {
     setStartGuardError(null);
     setEnvTestRunning(true);
     setEnvChecks([
-      { id: "singleMonitor", label: "單螢幕檢查", status: "pending" },
-      { id: "shareScreen", label: "分享螢幕", status: "pending" },
-      { id: "fullscreen", label: "全螢幕測試", status: "pending" },
-      { id: "interaction", label: "互動輸入檢查", status: "pending" },
+      { id: "singleMonitor", label: t("precheck.environment.checks.monitor"), status: "pending" },
+      { id: "shareScreen", label: t("precheck.environment.checks.sharing"), status: "pending" },
+      { id: "fullscreen", label: t("precheck.environment.checks.fullscreen"), status: "pending" },
+      { id: "interaction", label: t("precheck.environment.checks.interaction"), status: "pending" },
     ]);
     setEnvTestDone(false);
 
@@ -295,28 +296,30 @@ const ExamPrecheckScreen: React.FC = () => {
     };
     const failShareAndBlock = async (detail: string) => {
       await finalizeCheck("shareScreen", "fail", detail);
-      markBlocked("fullscreen", "需先通過分享螢幕檢查。");
-      markBlocked("interaction", "需先通過分享螢幕檢查。");
+      const depMsg = t("precheck.environment.errors.dependencyPrefix", { name: t("precheck.environment.checks.sharing") });
+      markBlocked("fullscreen", depMsg);
+      markBlocked("interaction", depMsg);
       clearPrecheckScreenShareHandoff(true);
     };
-    const blockRemainingAfterSingleMonitor = (detail: string) => {
-      markBlocked("shareScreen", detail);
-      markBlocked("fullscreen", detail);
-      markBlocked("interaction", detail);
+    const blockRemainingAfterSingleMonitor = () => {
+      const depMsg = t("precheck.environment.errors.dependencyPrefix", { name: t("precheck.environment.checks.monitor") });
+      markBlocked("shareScreen", depMsg);
+      markBlocked("fullscreen", depMsg);
+      markBlocked("interaction", depMsg);
       clearPrecheckScreenShareHandoff(true);
     };
 
     try {
-      markRunning("singleMonitor", "檢測中...");
+      markRunning("singleMonitor", t("precheck.environment.status.checking"));
       const diagnostics = await displayService.check();
 
       if (!diagnostics.supportsScreenDetails) {
         await finalizeCheck(
           "singleMonitor",
           "fail",
-          "[阻擋] 你的瀏覽器不支援考場要求的監控技術。請改用最新版的 Google Chrome 或 Microsoft Edge。"
+          t("precheck.environment.errors.browserNotSupported")
         );
-        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        blockRemainingAfterSingleMonitor();
         return;
       }
 
@@ -324,9 +327,9 @@ const ExamPrecheckScreen: React.FC = () => {
         await finalizeCheck(
           "singleMonitor",
           "fail",
-          "[阻擋] 系統無法取得螢幕數量。請確認你在彈出的視窗中選擇了「允許」，並關閉阻擋追蹤的外掛後重試。"
+          t("precheck.environment.errors.noScreenDetails")
         );
-        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        blockRemainingAfterSingleMonitor();
         return;
       }
 
@@ -334,22 +337,22 @@ const ExamPrecheckScreen: React.FC = () => {
         await finalizeCheck(
           "singleMonitor",
           "fail",
-          `[阻擋] 偵測到多個實體顯示器 (${diagnostics.screenCount} 個)。為確保公平，請拔除或關閉外接螢幕後重試。`
+          t("precheck.environment.errors.multiMonitor", { count: diagnostics.screenCount })
         );
-        blockRemainingAfterSingleMonitor("需先通過單螢幕檢查。");
+        blockRemainingAfterSingleMonitor();
         return;
       }
 
       await finalizeCheck(
         "singleMonitor",
         "pass",
-        "已確認為單一螢幕環境。"
+        t("precheck.eligibility.status.passed")
       );
 
-      markRunning("shareScreen", "請於彈窗選擇整個螢幕。");
+      markRunning("shareScreen", t("precheck.environment.requirements.sharing"));
       const shareResult = await requestMonitorScreenShare();
       if (!shareResult.granted) {
-        await failShareAndBlock(`[阻擋] ${shareResult.detail}`);
+        await failShareAndBlock(shareResult.detail);
         return;
       }
 
@@ -357,31 +360,29 @@ const ExamPrecheckScreen: React.FC = () => {
       await sleep(PRECHECK_SHARE_RECHECK_DELAY_MS);
       const diagnosticsAfterShare = await displayService.check();
       if (diagnosticsAfterShare.screenCount === null) {
-        await failShareAndBlock("[阻擋] 分享後無法確認螢幕數量。請關閉 Sidecar/外接螢幕並重試。");
+        await failShareAndBlock(t("precheck.environment.errors.noScreenDetails"));
         return;
       }
       if (diagnosticsAfterShare.isExtended || diagnosticsAfterShare.screenCount > 1) {
         await failShareAndBlock(
-          `[阻擋] 分享後仍偵測到多螢幕 (${diagnosticsAfterShare.screenCount} 個)。請先關閉 Sidecar/外接螢幕。`
+          t("precheck.environment.errors.multiMonitor", { count: diagnosticsAfterShare.screenCount })
         );
         return;
       }
 
       const isMonitorSurface = shareResult.displaySurface === "monitor";
       if (!isMonitorSurface) {
-        await failShareAndBlock(
-          "[阻擋] 必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗、分頁或未知來源。"
-        );
+        await failShareAndBlock(t("precheck.environment.errors.notMonitor"));
         return;
       } else {
         await finalizeCheck(
           "shareScreen",
           "pass",
-          "已成功分享整個螢幕畫面。"
+          t("precheck.environment.checks.sharing")
         );
       }
 
-      markRunning("fullscreen", "啟用全螢幕中...");
+      markRunning("fullscreen", t("precheck.environment.status.checking"));
       try {
         const enteredFullscreen = await withTimeout(
           requestFullscreen(),
@@ -389,42 +390,44 @@ const ExamPrecheckScreen: React.FC = () => {
           "requestFullscreen timeout"
         );
         if (enteredFullscreen && isFullscreen()) {
-          await finalizeCheck("fullscreen", "pass", "全螢幕啟用成功。");
+          await finalizeCheck("fullscreen", "pass", t("common:status.success"));
         } else {
           await finalizeCheck(
             "fullscreen",
             "fail",
-            "無法啟用全螢幕，請允許瀏覽器全螢幕後重試。"
+            t("precheck.environment.errors.fullscreenFailed")
           );
-          markBlocked("interaction", "需先通過全螢幕測試。");
+          const depMsg = t("precheck.environment.errors.dependencyPrefix", { name: t("precheck.environment.checks.fullscreen") });
+          markBlocked("interaction", depMsg);
           return;
         }
       } catch {
-        await finalizeCheck("fullscreen", "fail", "全螢幕檢查逾時，請重試。");
-        markBlocked("interaction", "需先通過全螢幕測試。");
+        await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenTimeout"));
+        const depMsg = t("precheck.environment.errors.dependencyPrefix", { name: t("precheck.environment.checks.fullscreen") });
+        markBlocked("interaction", depMsg);
         return;
       }
 
-      markRunning("interaction", "檢查頁面焦點與近期輸入...");
+      markRunning("interaction", t("precheck.environment.status.checking"));
       const hasRecentInput =
         Date.now() - lastInteractionAtRef.current <= PRECHECK_RECENT_INTERACTION_WINDOW_MS;
       if (!document.hasFocus()) {
-        await finalizeCheck("interaction", "fail", "請先切回此頁面後重試。");
+        await finalizeCheck("interaction", "fail", t("precheck.environment.errors.focusFailed"));
       } else if (!hasRecentInput) {
         await finalizeCheck(
           "interaction",
           "fail",
-          "未偵測到近期輸入，請先點擊頁面或按下任意鍵後重試。"
+          t("precheck.environment.errors.interactionFailed")
         );
       } else {
-        await finalizeCheck("interaction", "pass", "已偵測到互動輸入。");
+        await finalizeCheck("interaction", "pass", t("common:status.success"));
       }
 
     } finally {
       setEnvTestDone(true);
       setEnvTestRunning(false);
     }
-  }, [envTestRunning]);
+  }, [envTestRunning, requestMonitorScreenShare, t]);
 
   const envAllPass = envChecks.every((c) => c.status === "pass");
 
@@ -445,10 +448,17 @@ const ExamPrecheckScreen: React.FC = () => {
             };
           }
           if (idx > failureIndex) {
+            const depName = failure.checkId === "singleMonitor"
+              ? t("precheck.environment.checks.monitor")
+              : failure.checkId === "shareScreen"
+                ? t("precheck.environment.checks.sharing")
+                : failure.checkId === "fullscreen"
+                  ? t("precheck.environment.checks.fullscreen")
+                  : t("precheck.environment.checks.interaction");
             return {
               ...item,
               status: "blocked" as const,
-              detail: `需先通過「${failure.checkId === "singleMonitor" ? "單螢幕檢查" : failure.checkId === "shareScreen" ? "分享螢幕" : failure.checkId === "fullscreen" ? "全螢幕測試" : "互動輸入檢查"}」。`,
+              detail: t("precheck.environment.errors.dependencyPrefix", { name: depName }),
             };
           }
           return item;
@@ -460,7 +470,7 @@ const ExamPrecheckScreen: React.FC = () => {
         clearPrecheckScreenShareHandoff(true);
       }
     },
-    []
+    [t]
   );
 
   const runStartPreflightValidation = useCallback(async (): Promise<PreflightValidationFailure | null> => {
@@ -468,21 +478,21 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!diagnostics.supportsScreenDetails) {
       return {
         checkId: "singleMonitor",
-        detail: "瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
+        detail: t("precheck.environment.errors.browserNotSupported"),
         clearShareHandoff: true,
       };
     }
     if (diagnostics.screenCount === null) {
       return {
         checkId: "singleMonitor",
-        detail: "無法確認螢幕數量，請重新執行環境檢查。",
+        detail: t("precheck.environment.errors.noScreenDetails"),
         clearShareHandoff: true,
       };
     }
     if (diagnostics.isExtended || diagnostics.screenCount > 1) {
       return {
         checkId: "singleMonitor",
-        detail: `目前偵測到多螢幕 (${diagnostics.screenCount} 個)，請先關閉外接螢幕後重試。`,
+        detail: t("precheck.environment.errors.multiMonitor", { count: diagnostics.screenCount }),
         clearShareHandoff: true,
       };
     }
@@ -491,7 +501,7 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!handoffStream) {
       return {
         checkId: "shareScreen",
-        detail: "螢幕分享已失效，請回到上一步重新完成分享螢幕檢查。",
+        detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
       };
     }
@@ -499,7 +509,7 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!track || track.readyState !== "live") {
       return {
         checkId: "shareScreen",
-        detail: "螢幕分享已中斷，請回到上一步重新完成分享螢幕檢查。",
+        detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
       };
     }
@@ -507,7 +517,7 @@ const ExamPrecheckScreen: React.FC = () => {
     if (settings.displaySurface !== "monitor") {
       return {
         checkId: "shareScreen",
-        detail: "目前分享來源不是整個螢幕 (monitor)，請回到上一步重新分享。",
+        detail: t("precheck.environment.errors.notMonitor"),
         clearShareHandoff: true,
       };
     }
@@ -515,12 +525,12 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!isFullscreen()) {
       return {
         checkId: "fullscreen",
-        detail: "目前不是全螢幕模式，請回到上一步重新完成全螢幕檢查。",
+        detail: t("precheck.environment.errors.fullscreenFailed"),
       };
     }
 
     return null;
-  }, []);
+  }, [t]);
 
   const handleStart = useCallback(async () => {
     setStartGuardError(null);
@@ -554,7 +564,7 @@ const ExamPrecheckScreen: React.FC = () => {
       if (!isFullscreen()) {
         const enteredFullscreen = await requestFullscreen();
         if (!enteredFullscreen || !isFullscreen()) {
-          setStartGuardError("無法進入全螢幕，請允許瀏覽器全螢幕後重新開始。");
+          setStartGuardError(t("precheck.environment.errors.fullscreenFailed"));
           setCountdown(null);
           return;
         }
@@ -570,6 +580,7 @@ const ExamPrecheckScreen: React.FC = () => {
     navigate,
     runStartPreflightValidation,
     startSession,
+    t,
   ]);
 
   const renderCheckList = (items: CheckItem[]) => (
@@ -603,7 +614,7 @@ const ExamPrecheckScreen: React.FC = () => {
       <ExamCountdownOverlay
         value={countdown}
         showGo
-        message={isStarting ? "考試即將開始" : "正在進入考場..."}
+        message={isStarting ? t("precheck.countdown.starting") : t("precheck.countdown.entering")}
       />
     );
   }
@@ -612,19 +623,24 @@ const ExamPrecheckScreen: React.FC = () => {
     <div className={styles.page}>
       <div className={styles.container}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
-          <h2 style={{ marginBottom: "0.5rem" }}>考前檢查</h2>
-          <Button kind="ghost" size="sm" onClick={handleBackToDashboard}>
-            返回競賽主頁
+          <h2 style={{ marginBottom: "0.5rem" }}>{t("precheck.title")}</h2>
+          <Button
+            kind="ghost"
+            size="sm"
+            data-testid="precheck-back-dashboard-btn"
+            onClick={handleBackToDashboard}
+          >
+            {t("precheck.backToDashboard")}
           </Button>
         </div>
         <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
-          正式作答前，請完成以下檢查。若未通過螢幕分享或全螢幕檢查，將無法開始考試。
+          {t("precheck.description")}
         </p>
 
         <ProgressIndicator currentIndex={currentStep} spaceEqually style={{ marginBottom: "2rem" }}>
-          <ProgressStep label="資格確認" />
-          <ProgressStep label="環境檢查" />
-          <ProgressStep label="確認開始" />
+          <ProgressStep label={t("precheck.steps.eligibility")} />
+          <ProgressStep label={t("precheck.steps.environment")} />
+          <ProgressStep label={t("precheck.steps.confirmation")} />
         </ProgressIndicator>
 
         {error && (
@@ -632,7 +648,7 @@ const ExamPrecheckScreen: React.FC = () => {
             kind="error"
             lowContrast
             hideCloseButton
-            title="錯誤"
+            title={t("common:error.title")}
             subtitle={error}
             onCloseButtonClick={clearError}
             style={{ marginBottom: "1rem" }}
@@ -643,7 +659,7 @@ const ExamPrecheckScreen: React.FC = () => {
             kind="error"
             lowContrast
             hideCloseButton
-            title="開始前檢查未通過"
+            title={t("common:error.validationFailed")}
             subtitle={startGuardError}
             style={{ marginBottom: "1rem" }}
           />
@@ -654,7 +670,7 @@ const ExamPrecheckScreen: React.FC = () => {
             <Stack gap={5}>
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <CursorIcon size={20} /> 參賽資格確認
+                  <CursorIcon size={20} /> {t("precheck.eligibility.title")}
                 </h4>
                 {renderCheckList(checks)}
               </Tile>
@@ -662,10 +678,11 @@ const ExamPrecheckScreen: React.FC = () => {
                 <Button
                   kind="primary"
                   renderIcon={ArrowRight}
+                  data-testid="precheck-step1-next-btn"
                   disabled={!step1AllPass}
                   onClick={() => setCurrentStep(1)}
                 >
-                  下一步：環境檢查
+                  {t("precheck.eligibility.nextStep")}
                 </Button>
               </div>
             </Stack>
@@ -677,32 +694,53 @@ const ExamPrecheckScreen: React.FC = () => {
             <Stack gap={5}>
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <Screen size={20} /> 環境檢查
+                  <Screen size={20} /> {t("precheck.environment.title")}
                 </h4>
-                <p style={{ marginTop: 0, marginBottom: "1rem", color: "var(--cds-text-secondary)", lineHeight: 1.6 }}>
-                  <b>本考場採取嚴格環境限制：</b><br/>
-                  1. 僅允許使用最新版 Google Chrome 或 Microsoft Edge。<br/>
-                  2. 瀏覽器彈出「管理視窗與顯示器」權限時，必須點擊<b>【允許】</b>。<br/>
-                  3. 必須為<b>單一實體螢幕</b>（請拔除外接顯示器）。<br/>
-                  4. 畫面分享時必須選擇<b>【整個螢幕 (Entire Screen)】</b>。
-                </p>
+                <div style={{ marginTop: 0, marginBottom: "1rem", color: "var(--cds-text-secondary)", lineHeight: 1.6 }}>
+                  <b>{t("precheck.environment.requirements.title")}</b><br/>
+                  1. {t("precheck.environment.requirements.browser")}<br/>
+                  2. {t("precheck.environment.requirements.permission")}<br/>
+                  3. {t("precheck.environment.requirements.display")}<br/>
+                  4. {t("precheck.environment.requirements.sharing")}
+                </div>
                 {renderCheckList(envChecks)}
               </Tile>
               <div className={styles.navRow}>
-                <Button kind="secondary" onClick={() => setCurrentStep(0)}>
-                  上一步
+                <Button
+                  kind="secondary"
+                  data-testid="precheck-step2-prev-btn"
+                  onClick={() => setCurrentStep(0)}
+                >
+                  {t("common:button.previous")}
                 </Button>
                 {!envTestDone ? (
-                  <Button kind="primary" renderIcon={FitToScreen} onClick={runEnvChecks} disabled={envTestRunning}>
-                    {envTestRunning ? "檢測中..." : "開始環境測試"}
+                  <Button
+                    kind="primary"
+                    renderIcon={FitToScreen}
+                    data-testid="precheck-step2-primary-btn"
+                    onClick={runEnvChecks}
+                    disabled={envTestRunning}
+                  >
+                    {envTestRunning ? t("precheck.environment.status.checking") : t("precheck.environment.status.start")}
                   </Button>
                 ) : envAllPass ? (
-                  <Button kind="primary" renderIcon={ArrowRight} onClick={() => setCurrentStep(2)}>
-                    下一步：確認開始
+                  <Button
+                    kind="primary"
+                    renderIcon={ArrowRight}
+                    data-testid="precheck-step2-next-btn"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    {t("precheck.environment.status.next")}
                   </Button>
                 ) : (
-                  <Button kind="primary" renderIcon={FitToScreen} onClick={runEnvChecks} disabled={envTestRunning}>
-                    重新測試
+                  <Button
+                    kind="primary"
+                    renderIcon={FitToScreen}
+                    data-testid="precheck-step2-primary-btn"
+                    onClick={runEnvChecks}
+                    disabled={envTestRunning}
+                  >
+                    {t("precheck.environment.status.retry")}
                   </Button>
                 )}
               </div>
@@ -714,29 +752,34 @@ const ExamPrecheckScreen: React.FC = () => {
           <div className={styles.stepContent} key="step-2">
             <Stack gap={5}>
               <Tile>
-                <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>考試說明</h4>
+                <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>{t("precheck.instruction.title")}</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
-                  <li>考試期間請勿切換視窗或分頁，系統將記錄離開行為。</li>
-                  <li>請保持全螢幕模式，退出全螢幕將觸發警告。</li>
-                  <li>作答內容每 2 秒自動儲存，無需手動存檔。</li>
-                  <li>考試時間結束後系統將自動交卷。</li>
+                  <li>{t("precheck.instruction.noSwitch")}</li>
+                  <li>{t("precheck.instruction.keepFullscreen")}</li>
+                  <li>{t("precheck.instruction.autoSave")}</li>
+                  <li>{t("precheck.instruction.autoSubmit")}</li>
                   {contest?.endTime && (
                     <li>
-                      考試截止時間：{new Date(contest.endTime).toLocaleString("zh-TW")}
+                      {t("precheck.instruction.deadline", { time: new Date(contest.endTime).toLocaleString() })}
                     </li>
                   )}
                 </ul>
               </Tile>
               <div className={styles.navRow}>
-                <Button kind="secondary" onClick={() => setCurrentStep(1)}>
-                  上一步
+                <Button
+                  kind="secondary"
+                  data-testid="precheck-step3-prev-btn"
+                  onClick={() => setCurrentStep(1)}
+                >
+                  {t("common:button.previous")}
                 </Button>
                 <Button
                   kind="danger"
+                  data-testid="precheck-confirm-start-btn"
                   disabled={loading}
                   onClick={handleStart}
                 >
-                  確認開始考試
+                  {t("precheck.instruction.confirmStart")}
                 </Button>
               </div>
             </Stack>

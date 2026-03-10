@@ -104,7 +104,8 @@
     "updating": "Updating...",
     "search": "Search",
     "searching": "Searching...",
-    "clear": "Clear"
+    "clear": "Clear",
+    "previous": "Previous"
   },
   "message": {
     "loading": "Loading...",
@@ -115,6 +116,10 @@
     "comingSoon": "Coming Soon",
     "saveFailed": "Save failed",
     "deleteFailed": "Delete failed"
+  },
+  "error": {
+    "title": "Error",
+    "validationFailed": "Validation Failed"
   },
   "pagination": {
     "previous": "Previous",
@@ -140,6 +145,12 @@
     "title": "Preferences",
     "themeSection": "Theme",
     "languageSection": "Language",
+    "accountInfo": "Account Information",
+    "username": "Username",
+    "email": "Email",
+    "role": "Role",
+    "displayName": "Display Name",
+    "displayNameDescription": "Set your display name shown on the platform",
     "theme": "Theme",
     "language": "Language",
     "editor": "Editor Settings",
@@ -155,7 +166,9 @@
     "oauthUser": "OAuth users cannot change password"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "description": "Manage your preferences, API Key and usage statistics",
+    "descriptionStudent": "Manage your preferences"
   },
   "table": {
     "title": "Title",
@@ -227,7 +240,12 @@
     "disconnected": "Disconnected",
     "enabled": "Enabled",
     "disabled": "Disabled",
-    "solved": "Solved"
+    "solved": "Solved",
+    "pending": "Pending",
+    "success": "Success",
+    "failed": "Failed",
+    "notPassed": "Not Passed",
+    "missing": "Missing"
   },
   "action": {
     "adding": "Adding...",

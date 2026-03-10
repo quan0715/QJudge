@@ -104,9 +104,10 @@
     "updating": "업데이트 중...",
     "search": "검색",
     "searching": "검색 중...",
-    "clear": "초기화"
-  },
-  "message": {
+    "clear": "초기화",
+    "previous": "이전 단계"
+    },
+    "message": {
     "loading": "로딩 중...",
     "error": "오류가 발생했습니다",
     "success": "작업이 완료되었습니다",
@@ -115,8 +116,12 @@
     "comingSoon": "출시 예정",
     "saveFailed": "저장 실패",
     "deleteFailed": "삭제 실패"
-  },
-  "pagination": {
+    },
+    "error": {
+    "title": "오류",
+    "validationFailed": "검증 실패"
+    },
+    "pagination": {
     "previous": "이전",
     "next": "다음",
     "itemsPerPage": "페이지당 항목 수"
@@ -140,6 +145,12 @@
     "title": "환경설정",
     "themeSection": "테마",
     "languageSection": "언어",
+    "accountInfo": "계정 정보",
+    "username": "사용자 이름",
+    "email": "이메일",
+    "role": "역할",
+    "displayName": "표시 이름",
+    "displayNameDescription": "플랫폼에서 표시되는 이름을 설정합니다",
     "theme": "테마",
     "language": "언어",
     "editor": "에디터 설정",
@@ -155,7 +166,9 @@
     "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다"
   },
   "settings": {
-    "title": "설정"
+    "title": "설정",
+    "description": "환경설정, API Key 및 사용량 통계를 관리합니다",
+    "descriptionStudent": "환경설정을 관리합니다"
   },
   "table": {
     "title": "제목",
@@ -227,7 +240,12 @@
     "disconnected": "연결 안 됨",
     "enabled": "활성화됨",
     "disabled": "비활성화됨",
-    "solved": "해결됨"
+    "solved": "해결됨",
+    "pending": "대기 중",
+    "success": "성공",
+    "failed": "실패",
+    "notPassed": "통과하지 못함",
+    "missing": "누락됨"
   },
   "action": {
     "adding": "추가 중...",
