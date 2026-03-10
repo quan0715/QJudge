@@ -207,10 +207,37 @@
       "loadQuestionsSubtitle": "ネットワーク接続を確認して、もう一度お試しください。",
       "loadAnswersFailed": "解答記錄の読み込みに失敗しました",
       "loadAnswersSubtitle": "データの不整合を避けるため、ページを更新してください。"
+    },
+    "navigation": {
+      "prevQuestion": "前の問題",
+      "nextQuestion": "次の問題",
+      "questionList": "問題リスト",
+      "hideList": "問題リストを非表示",
+      "showList": "問題リストを表示",
+      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み"
+    },
+    "modes": {
+      "single": "1問ずつ表示",
+      "all": "全問表示"
+    },
+    "questionTypes": {
+      "true_false": "是非題",
+      "single_choice": "単一選択",
+      "multiple_choice": "複数選択",
+      "short_answer": "記述式",
+      "essay": "論述式",
+      "coding": "プログラミング"
+    },
+    "question": {
+      "trueOption": "はい (True)",
+      "falseOption": "いいえ (False)",
+      "shortAnswerPlaceholder": "答えを入力してください...",
+      "essayPlaceholder": "詳細に回答してください...",
+      "promptEmpty": "（問題文が未入力です）",
+      "answerLabel": "解答欄"
     }
     },
-    "scoreboard": {
-    "table": {
+    "scoreboard": {    "table": {
       "rank": "順位",
       "user": "参加者",
       "solved": "正解数",

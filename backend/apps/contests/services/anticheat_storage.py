@@ -103,9 +103,49 @@ def generate_get_url(bucket: str, object_key: str, expires_seconds: int = 120) -
 
 
 def tag_object_retain(bucket: str, object_key: str) -> None:
+    """Retain-tag a single object. Prefer tag_objects_retain() for batches."""
     client = get_s3_client()
-    client.put_object_tagging(
+    client.copy_object(
         Bucket=bucket,
         Key=object_key,
-        Tagging={"TagSet": [{"Key": "retain", "Value": "true"}]},
+        CopySource={"Bucket": bucket, "Key": object_key},
+        TaggingDirective="REPLACE",
+        Tagging="retain=true",
     )
+
+
+def tag_objects_retain(bucket: str, object_keys: list[str]) -> int:
+    """Batch-tag objects as retain=true using CopyObject (avoids MinIO PutObjectTagging bug)."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+    client = get_s3_client()
+    tagged = 0
+    for key in object_keys:
+        try:
+            client.copy_object(
+                Bucket=bucket,
+                Key=key,
+                CopySource={"Bucket": bucket, "Key": key},
+                TaggingDirective="REPLACE",
+                Tagging="retain=true",
+            )
+            tagged += 1
+        except Exception as exc:
+            logger.warning("Failed to retain-tag %s: %s", key, exc)
+    return tagged
+
+
+def list_raw_keys_for_user(contest_id: int, user_id: int) -> list[str]:
+    """List all raw screenshot keys for a user across all sessions."""
+    client = get_s3_client()
+    bucket = settings.ANTICHEAT_RAW_BUCKET
+    prefix = f"contest_{contest_id}/user_{user_id}/"
+    paginator = client.get_paginator("list_objects_v2")
+    keys: list[str] = []
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for item in page.get("Contents", []):
+            key = item.get("Key")
+            if key and key.endswith(".webp"):
+                keys.append(key)
+    return keys

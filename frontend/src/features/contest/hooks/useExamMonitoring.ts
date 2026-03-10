@@ -18,27 +18,34 @@ import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/r
 export type RecoverySource = "fullscreen" | "mouse-leave";
 
 interface UseExamMonitoringProps {
+  contestId?: string;
   enabled: boolean;
   onViolation: (eventType: string, reason: string) => Promise<void> | void;
   onBlockedAction?: (message: string) => void;
   onRecoveryCountdownChange?: (secondsLeft: number | null, source: RecoverySource) => void;
+  /** Fire-and-forget trace events (P2, no penalty, no modal). */
+  onTraceEvent?: (eventType: string, reason: string) => void;
 }
 
 export function useExamMonitoring({
+  contestId,
   enabled,
   onViolation,
   onBlockedAction,
   onRecoveryCountdownChange,
+  onTraceEvent,
 }: UseExamMonitoringProps) {
   const { t } = useTranslation("contest");
   const onViolationRef = useRef(onViolation);
   const onBlockedActionRef = useRef(onBlockedAction);
   const onRecoveryCountdownChangeRef = useRef(onRecoveryCountdownChange);
+  const onTraceEventRef = useRef(onTraceEvent);
   const tRef = useRef(t);
 
   useEffect(() => { onViolationRef.current = onViolation; }, [onViolation]);
   useEffect(() => { onBlockedActionRef.current = onBlockedAction; }, [onBlockedAction]);
   useEffect(() => { onRecoveryCountdownChangeRef.current = onRecoveryCountdownChange; }, [onRecoveryCountdownChange]);
+  useEffect(() => { onTraceEventRef.current = onTraceEvent; }, [onTraceEvent]);
   useEffect(() => { tRef.current = t; }, [t]);
 
   useEffect(() => {
@@ -48,10 +55,15 @@ export function useExamMonitoring({
       Promise.resolve(onViolationRef.current(eventType, message)).catch(() => undefined);
 
     const handleViolation = (event: ViolationEvent) => {
-      if (isRuntimeScreenShareReauthActive()) {
+      if (isRuntimeScreenShareReauthActive(contestId)) {
         return;
       }
       if (event.severity === "info") {
+        // Triggered events (grace-period start) → record silently as P2 trace
+        if (event.eventType.endsWith("_triggered")) {
+          onTraceEventRef.current?.(event.eventType, event.message);
+          return;
+        }
         onBlockedActionRef.current?.(event.message);
         return;
       }
@@ -109,5 +121,5 @@ export function useExamMonitoring({
       detectors.forEach((d) => d.stop());
       clearInterval(verifyTimer);
     };
-  }, [enabled]);
+  }, [contestId, enabled]);
 }

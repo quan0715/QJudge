@@ -42,6 +42,7 @@ from ..services.participant_state import (
     unlock_participant as unlock_contest_participant,
 )
 from ..services.participant_dashboard import build_participant_dashboard
+from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
@@ -138,6 +139,17 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[permissions.IsAuthenticated, ContestAccessPolicy],
+        url_path='anticheat-config',
+    )
+    def anticheat_config(self, request, pk=None):
+        """Return frontend anti-cheat runtime config for this contest."""
+        contest = self.get_object()
+        return Response(build_contest_anticheat_config(contest))
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
     def toggle_status(self, request, pk=None):

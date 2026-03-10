@@ -207,6 +207,34 @@
       "loadQuestionsSubtitle": "네트워크 연결을 확인하고 다시 시도해 주세요.",
       "loadAnswersFailed": "작성 기록을 불러오지 못했습니다",
       "loadAnswersSubtitle": "데이터 덮어쓰기를 방지하기 위해 페이지를 새로고침해 주세요."
+    },
+    "navigation": {
+      "prevQuestion": "이전 문제",
+      "nextQuestion": "다음 문제",
+      "questionList": "문항 목록",
+      "hideList": "문항 목록 숨기기",
+      "showList": "문항 목록 표시",
+      "answeredProgress": "총 {{total}}문항 중 {{answered}}문항 응답함"
+    },
+    "modes": {
+      "single": "한 문항씩 보기",
+      "all": "전체 보기"
+    },
+    "questionTypes": {
+      "true_false": "O/X 문제",
+      "single_choice": "객관식",
+      "multiple_choice": "다지선다",
+      "short_answer": "단답형",
+      "essay": "서술형",
+      "coding": "프로그래밍"
+    },
+    "question": {
+      "trueOption": "예 (True)",
+      "falseOption": "아니오 (False)",
+      "shortAnswerPlaceholder": "답변을 입력하세요...",
+      "essayPlaceholder": "상세히 답변해 주세요...",
+      "promptEmpty": "(문항 내용이 입력되지 않았습니다)",
+      "answerLabel": "답안 작성 영역"
     }
   },
   "scoreboard": {

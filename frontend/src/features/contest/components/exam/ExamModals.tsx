@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import { WarningAlt, CheckmarkFilled, ScreenOff } from "@carbon/icons-react";
+import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamModeState } from "@/core/entities/contest.entity";
 
@@ -25,6 +25,8 @@ interface ExamModalsProps {
   isRequestingScreenShare?: boolean;
   isSubmittingFromScreenShareLoss?: boolean;
   onScreenShareReacquire?: () => void;
+  showAutoSubmitNotice?: boolean;
+  onAutoSubmitReturnToDashboard?: () => void;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
@@ -48,24 +50,31 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   isRequestingScreenShare = false,
   isSubmittingFromScreenShareLoss = false,
   onScreenShareReacquire,
+  showAutoSubmitNotice = false,
+  onAutoSubmitReturnToDashboard,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const isLocked = !!(lastApiResponse?.locked || lastApiResponse?.isLocked);
+  const withButtonTestId = (testId: string, label: React.ReactNode) => (
+    <span data-testid={testId}>{label}</span>
+  );
 
   return (
     <>
       {/* Warning Modal - blocks until API responds */}
       <Modal
+        data-testid="exam-warning-modal"
         open={showWarning}
         modalHeading={t("exam.violationWarning")}
-        primaryButtonText={
+        primaryButtonText={withButtonTestId(
+          "exam-warning-confirm-btn",
           pendingApiResponse
             ? t("exam.processing")
             : isLocked
             ? tc("button.confirm")
             : t("exam.iUnderstand")
-        }
+        )}
         primaryButtonDisabled={pendingApiResponse}
         onRequestSubmit={onWarningClose}
         onRequestClose={onWarningClose}
@@ -251,17 +260,19 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 
       {/* Recovery warning (grace window before counting a violation — fullscreen or mouse-leave) */}
       <Modal
+        data-testid="exam-recovery-modal"
         open={recoveryCountdown != null}
         modalHeading={
           recoverySource === "mouse-leave"
             ? t("exam.mouseLeaveRecoveryTitle")
             : t("exam.fullscreenRecoveryTitle")
         }
-        primaryButtonText={
+        primaryButtonText={withButtonTestId(
+          "exam-recovery-confirm-btn",
           recoverySource === "mouse-leave"
             ? t("exam.iUnderstand")
             : t("exam.returnToFullscreen")
-        }
+        )}
         onRequestSubmit={recoverySource === "mouse-leave" ? undefined : onRecoverFullscreen}
         onRequestClose={recoverySource === "mouse-leave" ? undefined : onRecoverFullscreen}
         preventCloseOnClickOutside
@@ -288,9 +299,13 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 
       {/* Unlock Notification Modal */}
       <Modal
+        data-testid="exam-unlock-modal"
         open={showUnlockNotification}
         modalHeading={t("exam.unlocked")}
-        primaryButtonText={t("exam.continueExam")}
+        primaryButtonText={withButtonTestId(
+          "exam-unlock-continue-btn",
+          t("exam.continueExam")
+        )}
         onRequestSubmit={onUnlockContinue}
         onRequestClose={onUnlockContinue}
         preventCloseOnClickOutside
@@ -368,15 +383,17 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 
       {/* Screen Share Recovery Modal */}
       <Modal
+        data-testid="exam-screen-share-modal"
         open={screenShareRecoveryCountdown != null}
         modalHeading={t("exam.screenShareLostTitle")}
-        primaryButtonText={
+        primaryButtonText={withButtonTestId(
+          "exam-screen-share-reshare-btn",
           isSubmittingFromScreenShareLoss
             ? t("exam.submittingExam")
             : isRequestingScreenShare
             ? t("exam.requestingScreenShare")
             : t("exam.reshareScreen")
-        }
+        )}
         primaryButtonDisabled={isRequestingScreenShare || isSubmittingFromScreenShareLoss}
         onRequestSubmit={onScreenShareReacquire}
         preventCloseOnClickOutside
@@ -462,16 +479,101 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         </div>
       </Modal>
 
+      {/* Auto-Submit Notification (after screen share loss force submit) */}
+      <Modal
+        data-testid="exam-auto-submit-modal"
+        open={showAutoSubmitNotice}
+        modalHeading={t("exam.autoSubmittedTitle")}
+        primaryButtonText={withButtonTestId(
+          "exam-auto-submit-return-btn",
+          t("exam.returnToDashboard")
+        )}
+        onRequestSubmit={onAutoSubmitReturnToDashboard}
+        onRequestClose={onAutoSubmitReturnToDashboard}
+        preventCloseOnClickOutside
+        size="sm"
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              padding: "1rem",
+              backgroundColor: "var(--cds-notification-background-error)",
+              borderRadius: "50%",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <DocumentExport
+              size={40}
+              style={{ color: "var(--cds-support-error)" }}
+            />
+          </div>
+
+          <p
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: 600,
+              marginBottom: "0.75rem",
+              color: "var(--cds-text-primary)",
+            }}
+          >
+            {t("exam.autoSubmittedHeading")}
+          </p>
+
+          <p
+            style={{
+              marginBottom: "1.5rem",
+              fontSize: "0.875rem",
+              color: "var(--cds-text-secondary)",
+              lineHeight: 1.5,
+            }}
+          >
+            {t("exam.autoSubmittedDesc")}
+          </p>
+
+          <div
+            style={{
+              width: "100%",
+              padding: "0.75rem 1rem",
+              backgroundColor: "var(--cds-layer-01)",
+              border: "1px solid var(--cds-border-subtle)",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--cds-text-secondary)",
+                margin: 0,
+              }}
+            >
+              {t("exam.autoSubmittedHint")}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
       {/* Fullscreen Exit Confirmation Modal (for locked/paused states) */}
       <Modal
+        data-testid="exam-fullscreen-exit-modal"
         open={showFullscreenExitConfirm}
         modalHeading={t("exam.confirmExitFullscreenAndSubmit")}
-        primaryButtonText={
+        primaryButtonText={withButtonTestId(
+          "exam-fullscreen-exit-confirm-btn",
           isSubmittingFromFullscreenExit
             ? t("exam.submittingExam")
             : t("exam.confirmSubmitExam")
-        }
-        secondaryButtonText={tc("button.cancel")}
+        )}
+        secondaryButtonText={withButtonTestId(
+          "exam-fullscreen-exit-cancel-btn",
+          tc("button.cancel")
+        )}
         primaryButtonDisabled={isSubmittingFromFullscreenExit}
         onRequestSubmit={onFullscreenExitConfirm}
         onRequestClose={onFullscreenExitCancel}

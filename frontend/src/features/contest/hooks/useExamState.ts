@@ -19,6 +19,7 @@ export interface UseExamStateProps {
   isBypassed: boolean;
   onRefresh?: () => Promise<void>;
   requestFullscreen: () => Promise<unknown>;
+  warningTimeoutSeconds?: number;
 }
 
 type SkippedDispatchResult = { skipped: true };
@@ -44,11 +45,12 @@ export function useExamState({
   isBypassed,
   onRefresh,
   requestFullscreen,
+  warningTimeoutSeconds = 30,
 }: UseExamStateProps) {
   const EVENT_RETRY_DELAY_MS = 1500;
-  const WARNING_TIMEOUT_SECONDS = 30;
+  const WARNING_TIMEOUT_SECONDS = Math.max(1, Math.floor(warningTimeoutSeconds));
   const WARNING_TIMEOUT_REASON =
-    "Warning timeout: student did not acknowledge warning within 30 seconds";
+    `Warning timeout: student did not acknowledge warning within ${WARNING_TIMEOUT_SECONDS} seconds`;
 
   type ViolationPayload = {
     eventType: string;
@@ -195,7 +197,7 @@ export function useExamState({
       setPendingApiResponse(false);
       warningTimeoutProcessingRef.current = false;
     }
-  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh]);
+  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh, WARNING_TIMEOUT_REASON]);
 
   const startWarningCountdown = useCallback(() => {
     stopWarningCountdown();
@@ -214,7 +216,7 @@ export function useExamState({
         return prev - 1;
       });
     }, 1000);
-  }, [handleWarningTimeout, stopWarningCountdown]);
+  }, [handleWarningTimeout, stopWarningCountdown, WARNING_TIMEOUT_SECONDS]);
 
   useEffect(() => {
     syncAnticheatPhaseWithExamStatus(contestId, examStatus);
@@ -360,7 +362,7 @@ export function useExamState({
       if (!(isExamMonitored ?? isMonitoredExamStatus(examStatus)) || isBypassed) {
         return;
       }
-      if (isRuntimeScreenShareReauthActive()) {
+      if (isRuntimeScreenShareReauthActive(contestId)) {
         return;
       }
       queuedViolationRef.current.push({
@@ -373,7 +375,7 @@ export function useExamState({
         await drainViolationQueue();
       }
     },
-    [drainViolationQueue, examStatus, isExamMonitored, isBypassed]
+    [contestId, drainViolationQueue, examStatus, isExamMonitored, isBypassed]
   );
 
   const handleWarningClose = useCallback(async () => {

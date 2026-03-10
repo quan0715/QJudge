@@ -157,10 +157,37 @@
       "loadQuestionsSubtitle": "請檢查網路連線或稍後再試",
       "loadAnswersFailed": "無法載入作答紀錄",
       "loadAnswersSubtitle": "網路異常或伺服器錯誤，為避免覆蓋現有答案，建議您重新整理頁面。"
+    },
+    "navigation": {
+      "prevQuestion": "上一題",
+      "nextQuestion": "下一題",
+      "questionList": "題目列表",
+      "hideList": "隱藏題目列表",
+      "showList": "顯示題目列表",
+      "answeredProgress": "已作答 {{answered}} / {{total}}"
+    },
+    "modes": {
+      "single": "逐題模式",
+      "all": "全題模式"
+    },
+    "questionTypes": {
+      "true_false": "是非題",
+      "single_choice": "單選題",
+      "multiple_choice": "多選題",
+      "short_answer": "簡答題",
+      "essay": "問答題",
+      "coding": "程式題"
+    },
+    "question": {
+      "trueOption": "是 (True)",
+      "falseOption": "否 (False)",
+      "shortAnswerPlaceholder": "輸入你的答案...",
+      "essayPlaceholder": "請詳細作答...",
+      "promptEmpty": "（尚未填寫題目敘述）",
+      "answerLabel": "作答區"
     }
     },
-    "scoreboard": {
-      "table": {
+    "scoreboard": {      "table": {
         "rank": "排名",
         "user": "參與者",
         "solved": "解題數",

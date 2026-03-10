@@ -301,18 +301,40 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
   // Make API request to login
-  const response = await page.request.post("/api/v1/auth/email/login", {
+  let response = await page.request.post("/api/v1/auth/email/login", {
     data: {
       email: user.email,
       password: user.password,
     },
   });
+  let data: Record<string, unknown> | null = null;
+
+  if (!response.ok()) {
+    data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    const conflictToken =
+      data && typeof data.conflict_token === "string" ? data.conflict_token : "";
+    const conflictCode = data && typeof data.code === "string" ? data.code : "";
+
+    if (
+      response.status() === 409 &&
+      conflictCode === "EXAM_CONFLICT_ACTIVE_SESSION" &&
+      conflictToken
+    ) {
+      response = await page.request.post("/api/v1/auth/resolve-conflict", {
+        data: {
+          conflict_token: conflictToken,
+          action: "takeover_lock",
+        },
+      });
+      data = null;
+    }
+  }
 
   expect(response.ok()).toBeTruthy();
-
-  const data = await response.json();
-  const token = data?.data?.access_token as string | undefined;
-  const userData = data?.data?.user;
+  const payload = data ?? ((await response.json()) as Record<string, unknown>);
+  const dataNode = (payload?.data ?? {}) as Record<string, unknown>;
+  const token = dataNode?.access_token as string | undefined;
+  const userData = dataNode?.user;
 
   // Set token in localStorage
   await page.goto("/");

@@ -320,7 +320,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         return (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             {onGoToAnswering && (
-              <Button kind="tertiary" renderIcon={Launch} onClick={onGoToAnswering}>
+              <Button
+                kind="tertiary"
+                data-testid="contest-hero-go-answering-btn"
+                renderIcon={Launch}
+                onClick={onGoToAnswering}
+              >
                 {t("hero.goToAnswering")}
               </Button>
             )}

@@ -222,23 +222,15 @@ const ContestLayout = () => {
     );
   };
 
-  const wrappedMainContent = (
-    <ExamModeWrapper
-      contestId={contestId || ""}
-      cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
-      isExamMonitored={!!contest?.isExamMonitored}
-      requiresFullscreen={!!contest?.requiresFullscreen}
-      lockReason={contest?.lockReason}
-      examStatus={contest?.examStatus}
-      onRefresh={refreshContest}
-    >
-      {renderMainContent()}
-    </ExamModeWrapper>
-  );
-
-  if (isPaperExamPage) {
-    return wrappedMainContent;
-  }
+  const examModeProps = {
+    contestId: contestId || "",
+    cheatDetectionEnabled: !!contest?.cheatDetectionEnabled,
+    isExamMonitored: !!contest?.isExamMonitored,
+    requiresFullscreen: !!contest?.requiresFullscreen,
+    lockReason: contest?.lockReason,
+    examStatus: contest?.examStatus,
+    onRefresh: refreshContest,
+  };
 
   const showContestTimer =
     contest &&
@@ -250,115 +242,121 @@ const ContestLayout = () => {
     isSolvePage && contest?.problems && contest.problems.length > 0;
 
   return (
-    <div className={styles.root}>
-      <Header aria-label={t("header.contestPlatform")}>
-        <HeaderName
-          href={`/contests/${contestId}`}
-          prefix={tc("header.prefix")}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate(`/contests/${contestId}`);
-          }}
-        >
-          {contest?.name || t("mode")}
-        </HeaderName>
-
-        <HeaderNavigation aria-label={tc("header.contestNavigation")}>
-          {showContestTimer && (
-            <div className={styles.headerTimerDisplay}>
-              <Time size={16} />
-              <span>
-                {isCountdownToStart
-                  ? t("timeToStart", { time: timeLeft })
-                  : timeLeft}
-              </span>
-            </div>
-          )}
-
-          {showScoreDisplay && (
-            <div className={styles.headerScoreDisplay}>
-              <span className={styles.scoreLabel}>{t("overview.scoreLabel")}</span>
-              <span
-                className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
-              >
-                {userScore}
-              </span>
-              <span className={styles.scoreDivider}>/</span>
-              <span className={styles.totalScore}>{totalMaxScore}</span>
-            </div>
-          )}
-        </HeaderNavigation>
-
-        <HeaderGlobalBar>
-          {renderExamStatus()}
-
-          {isAdmin && (
-            <HeaderGlobalAction
-              aria-label={t("admin")}
-              tooltipAlignment="center"
-              onClick={() => navigate(`/contests/${contestId}/admin`)}
+    <ExamModeWrapper {...examModeProps}>
+      {isPaperExamPage ? (
+        renderMainContent()
+      ) : (
+        <div className={styles.root}>
+          <Header aria-label={t("header.contestPlatform")}>
+            <HeaderName
+              href={`/contests/${contestId}`}
+              prefix={tc("header.prefix")}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/contests/${contestId}`);
+              }}
             >
-              <Settings size={20} />
-            </HeaderGlobalAction>
-          )}
+              {contest?.name || t("mode")}
+            </HeaderName>
 
-          <HeaderGlobalAction
-            aria-label={isRefreshing ? t("refreshing") : t("refresh")}
-            tooltipAlignment="center"
-            onClick={isRefreshing ? undefined : refreshContest}
+            <HeaderNavigation aria-label={tc("header.contestNavigation")}>
+              {showContestTimer && (
+                <div className={styles.headerTimerDisplay}>
+                  <Time size={16} />
+                  <span>
+                    {isCountdownToStart
+                      ? t("timeToStart", { time: timeLeft })
+                      : timeLeft}
+                  </span>
+                </div>
+              )}
+
+              {showScoreDisplay && (
+                <div className={styles.headerScoreDisplay}>
+                  <span className={styles.scoreLabel}>{t("overview.scoreLabel")}</span>
+                  <span
+                    className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
+                  >
+                    {userScore}
+                  </span>
+                  <span className={styles.scoreDivider}>/</span>
+                  <span className={styles.totalScore}>{totalMaxScore}</span>
+                </div>
+              )}
+            </HeaderNavigation>
+
+            <HeaderGlobalBar>
+              {renderExamStatus()}
+
+              {isAdmin && (
+                <HeaderGlobalAction
+                  aria-label={t("admin")}
+                  tooltipAlignment="center"
+                  onClick={() => navigate(`/contests/${contestId}/admin`)}
+                >
+                  <Settings size={20} />
+                </HeaderGlobalAction>
+              )}
+
+              <HeaderGlobalAction
+                aria-label={isRefreshing ? t("refreshing") : t("refresh")}
+                tooltipAlignment="center"
+                onClick={isRefreshing ? undefined : refreshContest}
+              >
+                <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
+              </HeaderGlobalAction>
+
+              <HeaderGlobalAction
+                aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
+                tooltipAlignment="center"
+                onClick={toggleFullscreen}
+              >
+                {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+              </HeaderGlobalAction>
+
+              <Button
+                kind="danger--ghost"
+                renderIcon={Logout}
+                onClick={() => setIsExitModalOpen(true)}
+                className={styles.exitButton}
+              >
+                {t("exit")}
+              </Button>
+            </HeaderGlobalBar>
+          </Header>
+
+          <ExamModeMonitorModal
+            open={monitoringModalOpen}
+            onRequestClose={() => setMonitoringModalOpen(false)}
+          />
+
+          <div className={styles.mainContent}>
+            <div className={styles.contentWrapper}>
+              {renderMainContent()}
+            </div>
+          </div>
+
+          <ContestExitModal
+            open={isExitModalOpen}
+            contest={contest}
+            shouldWarnOnExit={shouldWarnOnExit}
+            onClose={() => setIsExitModalOpen(false)}
+            onConfirm={handleExit}
+          />
+
+          <Modal
+            open={errorModalOpen}
+            modalHeading={tc("message.error")}
+            passiveModal
+            onRequestClose={() => setErrorModalOpen(false)}
           >
-            <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
-          </HeaderGlobalAction>
+            <p>{errorMessage}</p>
+          </Modal>
 
-          <HeaderGlobalAction
-            aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
-            tooltipAlignment="center"
-            onClick={toggleFullscreen}
-          >
-            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-          </HeaderGlobalAction>
-
-          <Button
-            kind="danger--ghost"
-            renderIcon={Logout}
-            onClick={() => setIsExitModalOpen(true)}
-            className={styles.exitButton}
-          >
-            {t("exit")}
-          </Button>
-        </HeaderGlobalBar>
-      </Header>
-
-      <ExamModeMonitorModal
-        open={monitoringModalOpen}
-        onRequestClose={() => setMonitoringModalOpen(false)}
-      />
-
-      <div className={styles.mainContent}>
-        <div className={styles.contentWrapper}>
-          {wrappedMainContent}
+          <ConfirmModal {...modalProps} />
         </div>
-      </div>
-
-      <ContestExitModal
-        open={isExitModalOpen}
-        contest={contest}
-        shouldWarnOnExit={shouldWarnOnExit}
-        onClose={() => setIsExitModalOpen(false)}
-        onConfirm={handleExit}
-      />
-
-      <Modal
-        open={errorModalOpen}
-        modalHeading={tc("message.error")}
-        passiveModal
-        onRequestClose={() => setErrorModalOpen(false)}
-      >
-        <p>{errorMessage}</p>
-      </Modal>
-
-      <ConfirmModal {...modalProps} />
-    </div>
+      )}
+    </ExamModeWrapper>
   );
 };
 

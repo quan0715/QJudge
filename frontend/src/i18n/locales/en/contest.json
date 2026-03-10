@@ -207,6 +207,34 @@
       "loadQuestionsSubtitle": "Please check your network connection and try again.",
       "loadAnswersFailed": "Failed to load your responses",
       "loadAnswersSubtitle": "To avoid overwriting existing data, please refresh the page."
+    },
+    "navigation": {
+      "prevQuestion": "Previous",
+      "nextQuestion": "Next",
+      "questionList": "Questions",
+      "hideList": "Hide question list",
+      "showList": "Show question list",
+      "answeredProgress": "{{answered}} / {{total}} answered"
+    },
+    "modes": {
+      "single": "Single Question",
+      "all": "All Questions"
+    },
+    "questionTypes": {
+      "true_false": "True/False",
+      "single_choice": "Single Choice",
+      "multiple_choice": "Multiple Choice",
+      "short_answer": "Short Answer",
+      "essay": "Essay",
+      "coding": "Coding"
+    },
+    "question": {
+      "trueOption": "True",
+      "falseOption": "False",
+      "shortAnswerPlaceholder": "Enter your answer...",
+      "essayPlaceholder": "Please provide a detailed answer...",
+      "promptEmpty": "(No question content provided)",
+      "answerLabel": "Answer Area"
     }
   },
   "scoreboard": {

@@ -340,6 +340,63 @@ export interface ContestDetail extends Contest {
   admins?: Array<{ id: string; username: string }>;
 }
 
+export interface AnticheatConfigSettingDescriptor {
+  key: string;
+  description: string;
+}
+
+export interface ContestAnticheatEffectiveConfig {
+  captureIntervalSeconds: number;
+  captureUploadMaxRetries: number;
+  warningTimeoutSeconds: number;
+  forcedCaptureCooldownMs: number;
+  forcedCaptureP1CooldownMs: number;
+  eventFeedAggregationWindowSeconds: number;
+  incidentScreenshotWindowBeforeMs: number;
+  incidentScreenshotWindowAfterMs: number;
+  incidentScreenshotPreviewLimit: number;
+  incidentScreenshotCategories: string[];
+  monitoringRecoveryGraceMs: number;
+  mouseLeaveCooldownMs: number;
+  screenShareRecoveryGraceMs: number;
+  multiDisplayCheckIntervalMs: number;
+  multiDisplayReportCooldownMs: number;
+  presignedUrlTtlSeconds: number;
+  cheatDetectionEnabled: boolean;
+  allowMultipleJoins: boolean;
+  maxCheatWarnings: number;
+  allowAutoUnlock: boolean;
+  autoUnlockMinutes: number;
+  contestType: ContestType;
+}
+
+export interface ContestAnticheatConfig {
+  version: number;
+  globalDefaults: Omit<
+    ContestAnticheatEffectiveConfig,
+    | "cheatDetectionEnabled"
+    | "allowMultipleJoins"
+    | "maxCheatWarnings"
+    | "allowAutoUnlock"
+    | "autoUnlockMinutes"
+    | "contestType"
+  >;
+  contestSettings: Pick<
+    ContestAnticheatEffectiveConfig,
+    | "cheatDetectionEnabled"
+    | "allowMultipleJoins"
+    | "maxCheatWarnings"
+    | "allowAutoUnlock"
+    | "autoUnlockMinutes"
+    | "contestType"
+  >;
+  effective: ContestAnticheatEffectiveConfig;
+  frontendControlledSettings: {
+    global: AnticheatConfigSettingDescriptor[];
+    contest: AnticheatConfigSettingDescriptor[];
+  };
+}
+
 // Scoreboard Types
 export interface ScoreboardProblemCell {
   status: SubmissionStatus | null;
