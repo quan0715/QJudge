@@ -41,6 +41,10 @@ export interface UseUserPreferencesReturn {
     tabSize?: 2 | 4;
   }) => Promise<void>;
 
+  // Display name
+  displayName: string;
+  updateDisplayName: (name: string) => Promise<void>;
+
   // Password
   changePassword: (data: ChangePasswordRequest) => Promise<void>;
 
@@ -195,6 +199,24 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     [user]
   );
 
+  // Update display name
+  const updateDisplayName = useCallback(
+    async (name: string) => {
+      if (user) {
+        try {
+          await updateUserPreferences({ display_name: name });
+          setPreferences((prev) =>
+            prev ? { ...prev, display_name: name } : null
+          );
+        } catch (err) {
+          console.error("Failed to update display name:", err);
+          throw err;
+        }
+      }
+    },
+    [user]
+  );
+
   // Change password
   const changePassword = useCallback(
     async (data: ChangePasswordRequest) => {
@@ -219,6 +241,8 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     editorFontSize: preferences?.editor_font_size ?? 12,
     editorTabSize: preferences?.editor_tab_size ?? 4,
     updateEditorSettings,
+    displayName: preferences?.display_name ?? '',
+    updateDisplayName,
     changePassword,
     refresh: loadPreferences,
   };

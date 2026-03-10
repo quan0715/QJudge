@@ -159,6 +159,14 @@ class UserProfile(models.Model):
         verbose_name='通過率'
     )
     
+    # Display name
+    display_name = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name='顯示名稱'
+    )
+
     # Preferences
     preferred_language = models.CharField(
         max_length=20,
