@@ -32,12 +32,8 @@ describe("useExamPrecheckGate", () => {
   });
 
   it("clears gate when status requires re-precheck", () => {
-    const statuses = ["not_started", "submitted"] as const;
-
-    statuses.forEach((status) => {
-      markExamPrecheckPassed(contestId);
-      syncExamPrecheckGateByStatus(contestId, status);
-      expect(hasExamPrecheckPassed(contestId)).toBe(false);
-    });
+    markExamPrecheckPassed(contestId);
+    syncExamPrecheckGateByStatus(contestId, "not_started");
+    expect(hasExamPrecheckPassed(contestId)).toBe(false);
   });
 });

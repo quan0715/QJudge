@@ -158,7 +158,7 @@ class CompileAnticheatVideoTests(TestCase):
     # FFmpeg failure → FAILED, raw keys tagged retain
     # ------------------------------------------------------------------
     @patch("apps.contests.tasks.shutil.rmtree")
-    @patch("apps.contests.tasks.tag_object_retain")
+    @patch("apps.contests.tasks.tag_objects_retain")
     @patch("apps.contests.tasks.subprocess.run", side_effect=Exception("ffmpeg crashed"))
     @patch("apps.contests.tasks.get_s3_client")
     @patch("apps.contests.tasks.tempfile.mkdtemp", return_value="/tmp/anticheat_fake")
