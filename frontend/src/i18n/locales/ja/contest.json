@@ -7,7 +7,8 @@
     "contestCount": "全 {{count}} 件のコンテスト"
   },
   "button": {
-    "createContest": "コンテスト作成"
+    "createContest": "コンテスト作成",
+    "backToLobby": "コンテストロビーに戻る"
   },
   "placeholder": {
     "contestName": "コンテスト名を入力"
@@ -20,9 +21,12 @@
     "createFailed": "コンテストの作成に失敗しました",
     "joinFailed": "コンテストに参加できませんでした。パスワードを確認するか、後でもう一度お試しください",
     "leaveFailed": "コンテストを退出できませんでした。後でもう一度お試しください",
-    "startExamFailed": "試験を開始できませんでした。後でもう一度お試しください",
-    "endExamFailed": "試験を提出できませんでした。後でもう一度お試しください",
-    "exitFailed": "コンテストを終了できませんでした。後でもう一度お試しください"
+    "startExamFailed": "試験を開始できませんでした。後でもう一度お試しくささい",
+    "endExamFailed": "試験を提出できませんでした。後でもう一度お試しくささい",
+    "exitFailed": "コンテストを終了できませんでした。後でもう一度お試しくささい",
+    "cannotViewProblem": "問題を閲覧できません",
+    "problemAccessDenied": "コンテストが開始前、終了済み、またはアクセスがロックされています。",
+    "loadProblemFailed": "問題の読み込みに失敗しました"
   },
   "modal": {
     "confirmDelete": "削除の確認",
@@ -98,8 +102,167 @@
   "duration": "期間",
   "progress": "進捗",
   "notActive": "進行なし",
-  "delete": {
-    "title": "コンテスト削除",
+  "precheck": {
+    "title": "事前チェック",
+    "description": "公平性を保つため、試験開始前に環境と資格のチェックを完了してください。必要なチェックに合格しない場合、試験へのアクセスが制限されます。",
+    "backToDashboard": "ダッシュボードに戻る",
+    "steps": {
+      "eligibility": "資格確認",
+      "environment": "環境テスト",
+      "confirmation": "開始確認"
+    },
+    "eligibility": {
+      "title": "参加資格の確認",
+      "participation": "参加権限の確認",
+      "submission": "提出記録の確認",
+      "status": {
+        "passed": "参加資格が確認されました。",
+        "failed": "参加権限がありません。",
+        "submittedAllowed": "提出記録がありますが、再入場が許可されています。",
+        "submittedDenied": "提出済みのため、再入場できません。",
+        "noSubmission": "提出記録はありません。"
+      },
+      "nextStep": "次へ：環境テスト"
+    },
+    "environment": {
+      "title": "環境テスト",
+      "requirements": {
+        "title": "本試験場では厳格な環境制限が適用されます：",
+        "browser": "最新版の Google Chrome または Microsoft Edge を使用してください。",
+        "permission": "ブラウザから「ウィンドウとディスプレイの管理」権限が要求されたら、【許可】をクリックしてください。",
+        "display": "単一の物理モニターが必要です（外部ディスプレイは取り外してください）。",
+        "sharing": "画面共有時には【画面全体 (Entire Screen)】を選択してください。"
+      },
+      "checks": {
+        "monitor": "モニター数確認",
+        "sharing": "画面共有の許可",
+        "fullscreen": "フルスクリーンテスト",
+        "interaction": "操作入力の確認"
+      },
+      "status": {
+        "checking": "チェック中...",
+        "start": "テスト開始",
+        "retry": "再テスト",
+        "next": "次へ：開始確認"
+      },
+      "errors": {
+        "browserNotSupported": "お使いのブラウザはディスプレイ管理に対応していません。Chrome または Edge を使用してください。",
+        "noScreenDetails": "モニター数を確認できません。環境テストをやり直してください。",
+        "multiMonitor": "複数のモニターが検出されました（{{count}} 台）。外部モニターを取り外してください。",
+        "sharingFailed": "画面共有の許可に失敗しました。「画面全体」の共有を許可してください。",
+        "sharingInterrupted": "画面共有が中断されました。再度チェックを完了してください。",
+        "notMonitor": "「画面全体 (monitor)」を共有する必要があります。ウィンドウやタブの共有は許可されていません。",
+        "fullscreenFailed": "フルスクリーンに切り替えられません。権限を許可して再試行してください。",
+        "fullscreenTimeout": "フルスクリーンチェックがタイムアウトしました。再試行してください。",
+        "interactionFailed": "最近の操作が検出されません。ページをクリックするかキーを押してください。",
+        "focusFailed": "このページに戻ってから再試行してください。",
+        "dependencyPrefix": "「{{name}}」を先に通過する必要があります。"
+      }
+    },
+    "instruction": {
+      "title": "試験に関する説明と規則",
+      "noSwitch": "試験中はウィンドウやタブを切り替えないでください。すべての離脱行為が記録されます。",
+      "keepFullscreen": "フルスクリーンモードを維持してください。解除するとシステム警告が表示されます。",
+      "autoSave": "解答内容は 2 秒ごとに自動保存されます。",
+      "autoSubmit": "試験時間が終了すると、システムが自動的に提出します。",
+      "deadline": "終了時刻：{{time}}",
+      "confirmStart": "理解しました。試験を開始します"
+    },
+    "countdown": {
+      "starting": "まもなく開始します",
+      "entering": "試験会場に入場しています..."
+    }
+  },
+  "answering": {
+    "status": {
+      "saving": "保存中...",
+      "saved": "保存済み",
+      "error": "保存失敗",
+      "monitoring": "監視中",
+      "monitoringTooltip": "システムはフォーカス、フルスクリーン、タブの切り替えを監視しています。",
+      "notStarted": "試験開始前"
+    },
+    "finish": {
+      "autoSubmitted": "試験時間が終了しました。自動的に提出されました。",
+      "submitted": "試験が終了し、答案が提出されました。",
+      "backToDashboard": "ダッシュボードに戻る"
+    },
+    "loading": "問題を読み込み中...",
+    "noQuestions": "この試験には問題が設定されていません。",
+    "submit": {
+      "button": "提出",
+      "confirmTitle": "提出前の確認",
+      "confirmButton": "提出を確定",
+      "submitting": "提出中...",
+      "backToExam": "解答に戻る",
+      "stats": "{{total}} 問中 {{answered}} 問 解答済み",
+      "deadline": "終了時刻：{{time}}",
+      "noDeadline": "終了時刻未設定",
+      "unansweredWarning": "未解答の問題が {{count}} 問あります",
+      "unansweredSubtitle": "すべての問題を解答してから提出することをお勧めします。",
+      "questionPreview": "第 {{index}} 問"
+    },
+    "error": {
+      "loadQuestionsFailed": "問題の読み込みに失敗しました",
+      "loadQuestionsSubtitle": "ネットワーク接続を確認して、もう一度お試しください。",
+      "loadAnswersFailed": "解答記錄の読み込みに失敗しました",
+      "loadAnswersSubtitle": "データの不整合を避けるため、ページを更新してください。"
+    },
+    "navigation": {
+      "prevQuestion": "前の問題",
+      "nextQuestion": "次の問題",
+      "questionList": "問題リスト",
+      "hideList": "問題リストを非表示",
+      "showList": "問題リストを表示",
+      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み"
+    },
+    "modes": {
+      "single": "1問ずつ表示",
+      "all": "全問表示"
+    },
+    "questionTypes": {
+      "true_false": "是非題",
+      "single_choice": "単一選択",
+      "multiple_choice": "複数選択",
+      "short_answer": "記述式",
+      "essay": "論述式",
+      "coding": "プログラミング"
+    },
+    "question": {
+      "trueOption": "はい (True)",
+      "falseOption": "いいえ (False)",
+      "shortAnswerPlaceholder": "答えを入力してください...",
+      "essayPlaceholder": "詳細に回答してください...",
+      "promptEmpty": "（問題文が未入力です）",
+      "answerLabel": "解答欄"
+    }
+    },
+    "scoreboard": {    "table": {
+      "rank": "順位",
+      "user": "参加者",
+      "solved": "正解数",
+      "totalScore": "合計点",
+      "penalty": "ペナルティ"
+    },
+    "status": {
+      "tries": "回の試行",
+      "try": "回の試行",
+      "pending": "判定中",
+      "partial": "部分点",
+      "pts": "點"
+    }
+    },
+    "report": {
+    "title": "個人成績レポート",
+    "generating": "レポートを生成中...",
+    "downloaded": "レポートをダウンロードしました",
+    "failed": "レポートのダウンロードに失敗しました",
+    "descriptionPaper": "各問題の解答、得点、およびTAのコメントを含むPDFレポートをダウンロードします",
+    "descriptionCoding": "解答統計、ソースコード、および傾向グラフを含むPDFレポートをダウンロードします",
+    "download": "レポートをダウンロード",
+    "preparing": "生成中..."
+    },
+    "delete": {    "title": "コンテスト削除",
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",
     "error": "削除に失敗しました"
   },
@@ -441,7 +604,12 @@
     "screenShareForceSubmitIn": "{{seconds}} 秒後に自動提出",
     "screenShareTimeoutWarning": "時間内に再共有しない場合、自動的に提出されます。この操作は取り消せません！",
     "reshareScreen": "画面を再共有",
-    "requestingScreenShare": "共有をリクエスト中..."
+    "requestingScreenShare": "共有をリクエスト中...",
+    "autoSubmittedTitle": "試験が自動提出されました",
+    "autoSubmittedHeading": "試験が自動的に提出されました",
+    "autoSubmittedDesc": "画面共有が中断され、制限時間内に再共有できなかったため、システムが自動的に提出しました。",
+    "autoSubmittedHint": "エラーだと思われる場合は、試験監督にお問い合わせください。",
+    "returnToDashboard": "ダッシュボードに戻る"
   },
   "settings": {
     "title": "コンテスト設定",
@@ -705,7 +873,8 @@
       "captureStatus": "キャプチャ状態",
       "loadingScreenshots": "スクリーンショット読み込み中…",
       "screenshotLoadFailed": "スクリーンショットの読み込みに失敗しました",
-      "noScreenshots": "元のスクリーンショットは削除済みまたは動画に変換済み"
+      "noScreenshots": "元のスクリーンショットは削除済みまたは動画に変換済み",
+      "noScreenshotsInRange": "この時間帯にスクリーンショットはありません。このユーザーには合計 {{count}} 枚の元スクリーンショットがあります。"
     },
     "meta": {
       "existingDeviceId": "既存デバイス ID",

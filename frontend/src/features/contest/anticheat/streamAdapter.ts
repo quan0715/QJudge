@@ -16,7 +16,9 @@ export const createStreamAdapter = (): StreamAdapter => {
       const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
         displaySurface?: string;
       };
-      if (settings.displaySurface !== "monitor") {
+      // Some browsers do not expose displaySurface on re-share.
+      // Treat explicit non-monitor as invalid; unknown falls back to allow.
+      if (settings.displaySurface && settings.displaySurface !== "monitor") {
         for (const t of stream.getTracks()) t.stop();
         return null;
       }

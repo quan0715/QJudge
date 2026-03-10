@@ -7,7 +7,8 @@
     "contestCount": "총 {{count}}개의 대회"
   },
   "button": {
-    "createContest": "대회 생성"
+    "createContest": "대회 생성",
+    "backToLobby": "대회 로비로 돌아가기"
   },
   "placeholder": {
     "contestName": "대회 이름 입력"
@@ -22,7 +23,10 @@
     "leaveFailed": "대회에서 나갈 수 없습니다. 나중에 다시 시도해 주세요",
     "startExamFailed": "시험을 시작할 수 없습니다. 나중에 다시 시도해 주세요",
     "endExamFailed": "시험을 제출할 수 없습니다. 나중에 다시 시도해 주세요",
-    "exitFailed": "대회를 종료할 수 없습니다. 나중에 다시 시도해 주세요"
+    "exitFailed": "대회를 종료할 수 없습니다. 나중에 다시 시도해 주세요",
+    "cannotViewProblem": "문제를 볼 수 없습니다",
+    "problemAccessDenied": "대회가 시작 전이거나 종료되었으며, 또는 접근이 잠겨 있습니다.",
+    "loadProblemFailed": "문제를 불러오는 데 실패했습니다"
   },
   "modal": {
     "confirmDelete": "삭제 확인",
@@ -98,6 +102,167 @@
   "duration": "기간",
   "progress": "진행률",
   "notActive": "진행 아님",
+  "precheck": {
+    "title": "사전 체크",
+    "description": "공정성을 유지하기 위해 시험 시작 전 환경 및 자격 체크를 완료해 주세요. 필요한 체크를 통과하지 못하면 시험에 대한 액세스가 제한될 수 있습니다.",
+    "backToDashboard": "대시보드로 돌아가기",
+    "steps": {
+      "eligibility": "자격 확인",
+      "environment": "환경 테스트",
+      "confirmation": "시작 확인"
+    },
+    "eligibility": {
+      "title": "참가 자격 확인",
+      "participation": "참가 권한 확인",
+      "submission": "제출 기록 확인",
+      "status": {
+        "passed": "참가 자격이 확인되었습니다.",
+        "failed": "참가 권한이 없습니다.",
+        "submittedAllowed": "제출 기록이 있으나, 재입장이 허용되어 있습니다.",
+        "submittedDenied": "이미 제출하여 재입장이 불가능합니다.",
+        "noSubmission": "이전 제출 기록이 없습니다."
+      },
+      "nextStep": "다음: 환경 테스트"
+    },
+    "environment": {
+      "title": "환경 테스트",
+      "requirements": {
+        "title": "본 시험장에서는 엄격한 환경 제한이 적용됩니다:",
+        "browser": "최신 버전의 Google Chrome 또는 Microsoft Edge를 사용해 주세요.",
+        "permission": "브라우저에서 '창 및 디스플레이 관리' 권한을 요청하면 [허용]을 클릭해 주세요.",
+        "display": "단일 물리 모니터가 필요합니다(외부 디스플레이는 분리해 주세요).",
+        "sharing": "화면 공유 시 [전체 화면 (Entire Screen)]을 선택해 주세요."
+      },
+      "checks": {
+        "monitor": "모니터 개수 확인",
+        "sharing": "화면 공유 허가",
+        "fullscreen": "전체 화면 테스트",
+        "interaction": "입력 상호작용 확인"
+      },
+      "status": {
+        "checking": "체크 중...",
+        "start": "테스트 시작",
+        "retry": "재테스트",
+        "next": "다음: 시작 확인"
+      },
+      "errors": {
+        "browserNotSupported": "사용 중인 브라우저가 디스플레이 관리를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.",
+        "noScreenDetails": "모니터 개수를 확인할 수 없습니다. 환경 테스트를 다시 실행해 주세요.",
+        "multiMonitor": "여러 대의 모니터가 감지되었습니다({{count}}대). 외부 모니터를 분리해 주세요.",
+        "sharingFailed": "화면 공유 허가에 실패했습니다. '전체 화면' 공유를 허용해 주세요.",
+        "sharingInterrupted": "화면 공유가 중단되었습니다. 다시 체크를 완료해 주세요.",
+        "notMonitor": "반드시 '전체 화면 (monitor)'을 공유해야 합니다. 창이나 탭 공유는 허용되지 않습니다.",
+        "fullscreenFailed": "전체 화면으로 전환할 수 없습니다. 권한을 허용하고 다시 시도해 주세요.",
+        "fullscreenTimeout": "전체 화면 체크가 제한 시간을 초과했습니다. 다시 시도해 주세요.",
+        "interactionFailed": "최근 상호작용이 감지되지 않았습니다. 페이지를 클릭하거나 아무 키나 눌러주세요.",
+        "focusFailed": "이 페이지로 돌아온 후 다시 시도해 주세요.",
+        "dependencyPrefix": "'{{name}}'을(를) 먼저 통과해야 합니다."
+      }
+    },
+    "instruction": {
+      "title": "시험 안내 및 규정",
+      "noSwitch": "시험 중 창이나 탭을 전환하지 마세요. 모든 이탈 행위가 기록됩니다.",
+      "keepFullscreen": "전체 화면 모드를 유지해 주세요. 해제 시 시스템 경고가 표시됩니다.",
+      "autoSave": "답안은 2초마다 자동으로 저장됩니다.",
+      "autoSubmit": "시험 시간이 종료되면 시스템에서 자동으로 제출합니다.",
+      "deadline": "시험 종료 시각: {{time}}",
+      "confirmStart": "이해했습니다. 시험을 시작합니다"
+    },
+    "countdown": {
+      "starting": "시험이 곧 시작됩니다",
+      "entering": "시험장에 입장하고 있습니다..."
+    }
+  },
+  "answering": {
+    "status": {
+      "saving": "저장 중...",
+      "saved": "저장됨",
+      "error": "저장 실패",
+      "monitoring": "모니터링 중",
+      "monitoringTooltip": "시스템에서 포커스, 전체 화면 및 탭 전환 동작을 모니터링하고 있습니다.",
+      "notStarted": "시험 시작 전"
+    },
+    "finish": {
+      "autoSubmitted": "시험 시간이 종료되어 자동으로 제출되었습니다.",
+      "submitted": "시험이 종료되어 답안이 성공적으로 제출되었습니다.",
+      "backToDashboard": "대회 메인으로 돌아가기"
+    },
+    "loading": "시험 문제를 불러오는 중...",
+    "noQuestions": "이 시험에는 설정된 문제가 없습니다.",
+    "submit": {
+      "button": "제출",
+      "confirmTitle": "제출 전 확인",
+      "confirmButton": "제출 확정",
+      "submitting": "제출 중...",
+      "backToExam": "답안 작성으로 돌아가기",
+      "stats": "총 {{total}}문제 중 {{answered}}문제 답함",
+      "deadline": "마감 시간: {{time}}",
+      "noDeadline": "마감 시간 설정 안 됨",
+      "unansweredWarning": "아직 답하지 않은 문제가 {{count}}개 있습니다",
+      "unansweredSubtitle": "제출하기 전에 모든 문제에 답할 것을 권장합니다.",
+      "questionPreview": "제 {{index}}번 문제"
+    },
+    "error": {
+      "loadQuestionsFailed": "시험 문제를 불러오지 못했습니다",
+      "loadQuestionsSubtitle": "네트워크 연결을 확인하고 다시 시도해 주세요.",
+      "loadAnswersFailed": "작성 기록을 불러오지 못했습니다",
+      "loadAnswersSubtitle": "데이터 덮어쓰기를 방지하기 위해 페이지를 새로고침해 주세요."
+    },
+    "navigation": {
+      "prevQuestion": "이전 문제",
+      "nextQuestion": "다음 문제",
+      "questionList": "문항 목록",
+      "hideList": "문항 목록 숨기기",
+      "showList": "문항 목록 표시",
+      "answeredProgress": "총 {{total}}문항 중 {{answered}}문항 응답함"
+    },
+    "modes": {
+      "single": "한 문항씩 보기",
+      "all": "전체 보기"
+    },
+    "questionTypes": {
+      "true_false": "O/X 문제",
+      "single_choice": "객관식",
+      "multiple_choice": "다지선다",
+      "short_answer": "단답형",
+      "essay": "서술형",
+      "coding": "프로그래밍"
+    },
+    "question": {
+      "trueOption": "예 (True)",
+      "falseOption": "아니오 (False)",
+      "shortAnswerPlaceholder": "답변을 입력하세요...",
+      "essayPlaceholder": "상세히 답변해 주세요...",
+      "promptEmpty": "(문항 내용이 입력되지 않았습니다)",
+      "answerLabel": "답안 작성 영역"
+    }
+  },
+  "scoreboard": {
+    "table": {
+      "rank": "순위",
+      "user": "참가자",
+      "solved": "해결 수",
+      "totalScore": "총점",
+      "penalty": "페널티"
+    },
+    "status": {
+      "tries": "회 시도",
+      "try": "회 시도",
+      "pending": "채점 중",
+      "partial": "부분 점수",
+      "pts": "점"
+    }
+  },
+  "report": {
+    "title": "개인 성적 보고서",
+    "generating": "보고서를 생성 중...",
+    "downloaded": "보고서가 다운로드되었습니다",
+    "failed": "보고서 다운로드에 실패했습니다",
+    "descriptionPaper": "문제별 답변, 점수 및 TA 의견이 포함된 PDF 보고서를 다운로드합니다",
+    "descriptionCoding": "풀이 통계, 소스 코드 및 추세 그래프가 포함된 PDF 보고서를 다운로드합니다",
+    "download": "보고서 다운로드",
+    "preparing": "생성 중..."
+  },
   "delete": {
     "title": "대회 삭제",
     "confirm": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -441,7 +606,12 @@
     "screenShareForceSubmitIn": "{{seconds}}초 후 자동 제출",
     "screenShareTimeoutWarning": "시간 내에 다시 공유하지 않으면 자동 제출됩니다. 이 작업은 되돌릴 수 없습니다!",
     "reshareScreen": "화면 다시 공유",
-    "requestingScreenShare": "공유 요청 중..."
+    "requestingScreenShare": "공유 요청 중...",
+    "autoSubmittedTitle": "시험 자동 제출됨",
+    "autoSubmittedHeading": "시험이 자동으로 제출되었습니다",
+    "autoSubmittedDesc": "화면 공유가 중단되었고 제한 시간 내에 복구되지 않아 시스템이 자동으로 제출했습니다.",
+    "autoSubmittedHint": "오류라고 생각되면 감독관에게 문의하세요.",
+    "returnToDashboard": "대시보드로 돌아가기"
   },
   "settings": {
     "title": "대회 설정",
@@ -705,7 +875,8 @@
       "captureStatus": "캡처 상태",
       "loadingScreenshots": "스크린샷 로딩 중…",
       "screenshotLoadFailed": "스크린샷 로딩 실패",
-      "noScreenshots": "원본 스크린샷이 삭제되었거나 영상으로 변환됨"
+      "noScreenshots": "원본 스크린샷이 삭제되었거나 영상으로 변환됨",
+      "noScreenshotsInRange": "이 시간대에 스크린샷이 없습니다. 이 사용자는 총 {{count}}장의 원본 스크린샷이 있습니다."
     },
     "meta": {
       "existingDeviceId": "기존 디바이스 ID",

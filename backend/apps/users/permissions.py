@@ -18,3 +18,18 @@ class IsSuperAdmin(BasePermission):
         )
     
     message = '只有超級管理員可以執行此操作'
+
+
+class IsTeacherOrAdmin(BasePermission):
+    """
+    Permission check for teacher or admin users.
+    Only users with role='teacher' or role='admin' can access.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            request.user.role in ('teacher', 'admin')
+        )
+
+    message = '只有教師或管理員可以執行此操作'

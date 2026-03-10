@@ -74,6 +74,14 @@ export class FullscreenDetector implements ExamDetector {
     this.recoveryActive = true;
     this.graceStartedAt = Date.now();
 
+    // Record trigger event immediately (P2 trace — no penalty, no modal)
+    this.onViolation?.({
+      detectorId: this.id,
+      eventType: "exit_fullscreen_triggered",
+      message: this.t("exam.exitedFullscreen"),
+      severity: "info",
+    });
+
     const graceSeconds = EXAM_MONITORING_RECOVERY_GRACE_MS / 1000;
     this.options.onCountdownChange?.(graceSeconds);
 

@@ -59,9 +59,19 @@ function formatMetaValue(key: string, value: unknown): string {
 
 interface IncidentCardProps {
   incident: EventFeedItem;
+  screenshotWindowBeforeMs?: number;
+  screenshotWindowAfterMs?: number;
+  screenshotPreviewLimit?: number;
+  screenshotCategories?: string[];
 }
 
-export default function IncidentCard({ incident }: IncidentCardProps) {
+export default function IncidentCard({
+  incident,
+  screenshotWindowBeforeMs = 15_000,
+  screenshotWindowAfterMs = 15_000,
+  screenshotPreviewLimit = 10,
+  screenshotCategories = ["critical", "violation"],
+}: IncidentCardProps) {
   const { t } = useTranslation("contest");
   const { contestId } = useParams<{ contestId: string }>();
   const [expanded, setExpanded] = useState(false);
@@ -88,11 +98,17 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
   }, [meta, t]);
 
   const hasEvidence = incident.evidenceCount > 0;
+  const suspiciousCategories = useMemo(
+    () => new Set(screenshotCategories.map((v) => v.toLowerCase())),
+    [screenshotCategories]
+  );
+  const shouldAttemptScreenshotPreview =
+    hasEvidence || suspiciousCategories.has(String(incident.category || "").toLowerCase());
   const hasDetail = !!(
     incident.summary ||
     meaningfulEntries.length > 0 ||
     captureInfo ||
-    hasEvidence ||
+    shouldAttemptScreenshotPreview ||
     incident.count > 1
   );
 
@@ -101,6 +117,8 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [screenshotError, setScreenshotError] = useState(false);
   const [screenshotLoaded, setScreenshotLoaded] = useState(false);
+  const [totalRawCount, setTotalRawCount] = useState(0);
+  const [didCrossSessionFallback, setDidCrossSessionFallback] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const loadScreenshots = useCallback(async () => {
@@ -108,30 +126,65 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
     setScreenshotLoading(true);
     setScreenshotError(false);
     try {
+      const sessionId = meta.upload_session_id as string | undefined;
+      const params: Parameters<typeof fetchScreenshots>[1] = {
+        user_id: String(incident.userId),
+        limit: screenshotPreviewLimit,
+      };
       const firstMs = new Date(incident.firstAt).getTime();
       const lastMs = new Date(incident.lastAt).getTime();
-      // Widen window by ±5s to catch nearby frames
-      const margin = 5_000;
-      const result = await fetchScreenshots(contestId, {
-        user_id: String(incident.userId),
-        ts_from: firstMs - margin,
-        ts_to: lastMs + margin,
-        limit: 10,
-      });
-      setScreenshots(result.items);
+      params.ts_from = firstMs - screenshotWindowBeforeMs;
+      params.ts_to = lastMs + screenshotWindowAfterMs;
+      if (sessionId) {
+        // Prefer the session attached to event metadata first.
+        params.upload_session_id = sessionId;
+      }
+      const result = await fetchScreenshots(contestId, params);
+
+      let finalItems = result.items;
+      let finalTotalCount = result.total_raw_count;
+      let hasFallbackAttempt = false;
+
+      // Session metadata may be stale after evidence migration/retention.
+      // Fallback to all sessions so available raw screenshots are still reachable.
+      if (sessionId && result.items.length === 0 && result.total_raw_count === 0) {
+        hasFallbackAttempt = true;
+        const fallback = await fetchScreenshots(contestId, {
+          user_id: String(incident.userId),
+          ts_from: params.ts_from,
+          ts_to: params.ts_to,
+          limit: screenshotPreviewLimit,
+        });
+        finalItems = fallback.items;
+        finalTotalCount = fallback.total_raw_count;
+      }
+
+      setScreenshots(finalItems);
+      setTotalRawCount(finalTotalCount);
+      setDidCrossSessionFallback(hasFallbackAttempt);
       setScreenshotLoaded(true);
     } catch {
       setScreenshotError(true);
     } finally {
       setScreenshotLoading(false);
     }
-  }, [contestId, incident.userId, incident.firstAt, incident.lastAt, screenshotLoaded]);
+  }, [
+    contestId,
+    incident.userId,
+    meta,
+    incident.firstAt,
+    incident.lastAt,
+    screenshotLoaded,
+    screenshotPreviewLimit,
+    screenshotWindowBeforeMs,
+    screenshotWindowAfterMs,
+  ]);
 
   useEffect(() => {
-    if (expanded && hasEvidence && !screenshotLoaded && !screenshotLoading) {
+    if (expanded && shouldAttemptScreenshotPreview && !screenshotLoaded && !screenshotLoading) {
       void loadScreenshots();
     }
-  }, [expanded, hasEvidence, screenshotLoaded, screenshotLoading, loadScreenshots]);
+  }, [expanded, shouldAttemptScreenshotPreview, screenshotLoaded, screenshotLoading, loadScreenshots]);
 
   return (
     <>
@@ -210,7 +263,7 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
             )}
 
             {/* Screenshot thumbnails */}
-            {hasEvidence && (
+            {shouldAttemptScreenshotPreview && (
               <div className={styles.screenshotSection}>
                 <span className={styles.detailLabel}>{t("logs.detail.evidence", "截圖證據")}</span>
                 {screenshotLoading && (
@@ -225,7 +278,7 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
                   <div className={styles.screenshotGrid}>
                     {screenshots.map((frame) => (
                       <button
-                        key={frame.seq}
+                        key={`${frame.ts_ms}_${frame.seq}`}
                         className={styles.screenshotThumb}
                         onClick={() => setLightboxUrl(frame.url)}
                         title={new Date(frame.ts_ms).toLocaleTimeString()}
@@ -240,7 +293,14 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
                 )}
                 {screenshotLoaded && screenshots.length === 0 && !screenshotError && (
                   <span className={styles.screenshotEmpty}>
-                    {t("logs.detail.noScreenshots", "原始截圖已清除或轉檔為影片")}
+                    {totalRawCount > 0
+                      ? t("logs.detail.noScreenshotsInRange", {
+                          defaultValue: "此事件前後時段無截圖，該使用者共有 {{count}} 張原始截圖",
+                          count: totalRawCount,
+                        })
+                      : didCrossSessionFallback
+                        ? t("logs.detail.noScreenshotsBySession", "此事件場次無可用截圖，已改用跨場次查詢")
+                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看影片證據")}
                   </span>
                 )}
               </div>

@@ -37,13 +37,13 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   const handleDownloadReport = async () => {
     try {
       setReportDownloading(true);
-      setReportNotification({ kind: "success", message: "正在產生報告..." });
+      setReportNotification({ kind: "success", message: t("report.generating") });
 
       await downloadMyReport(contest.id.toString());
 
-      setReportNotification({ kind: "success", message: "報告已下載" });
+      setReportNotification({ kind: "success", message: t("report.downloaded") });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "下載報告失敗";
+      const errorMessage = error instanceof Error ? error.message : t("report.failed");
       setReportNotification({
         kind: "error",
         message: errorMessage,
@@ -81,13 +81,13 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
       {/* Personal Report Download - Only after submission */}
       {canDownloadReport && (
         <ContainerCard
-          title="個人成績報告"
+          title={t("report.title")}
           style={{ marginBottom: "1.5rem" }}
         >
           {reportNotification && (
             <InlineNotification
               kind={reportNotification.kind}
-              title={reportNotification.kind === "success" ? "" : "錯誤"}
+              title={reportNotification.kind === "success" ? "" : t("common:error.title")}
               subtitle={reportNotification.message}
               onClose={() => setReportNotification(null)}
               lowContrast
@@ -108,8 +108,8 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
               }}
             >
               {isPaperExam
-                ? "下載包含逐題作答、得分與 TA 評語的 PDF 報告"
-                : "下載包含解題統計、程式碼和趨勢圖的 PDF 報告"}
+                ? t("report.descriptionPaper")
+                : t("report.descriptionCoding")}
             </div>
             <Button
               kind="tertiary"
@@ -118,7 +118,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
               onClick={handleDownloadReport}
               disabled={reportDownloading}
             >
-              {reportDownloading ? "產生中..." : "下載報告"}
+              {reportDownloading ? t("report.preparing") : t("report.download")}
             </Button>
           </div>
         </ContainerCard>

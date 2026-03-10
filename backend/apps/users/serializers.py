@@ -16,6 +16,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'solved_count',
             'submission_count',
             'accept_rate',
+            'display_name',
             'preferred_language',
             'preferred_theme',
             'editor_font_size',
@@ -178,6 +179,11 @@ class UserRoleUpdateSerializer(serializers.Serializer):
 
 class UserPreferencesUpdateSerializer(serializers.Serializer):
     """Serializer for updating user preferences."""
+    display_name = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True
+    )
     preferred_language = serializers.CharField(
         max_length=20,
         required=False

@@ -360,12 +360,14 @@ class ExamEvidenceMixin:
         else:
             prefix = f"contest_{contest.id}/user_{user_id}/"
 
+        storage_error = False
         try:
             client = get_s3_client()
-            raw_keys = self._safe_list_raw_evidence_keys(client, settings.ANTICHEAT_RAW_BUCKET, prefix)
+            raw_keys = self._list_raw_evidence_keys(client, settings.ANTICHEAT_RAW_BUCKET, prefix)
         except (BotoCoreError, ClientError) as exc:
             logger.warning("screenshots: failed to list S3 keys", extra={"error": str(exc)})
-            return Response({"error": "storage unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            raw_keys = []
+            storage_error = True
 
         ts_re = re.compile(r"/ts_(\d+)_seq_(\d+)\.webp$")
         frames = []
@@ -396,7 +398,7 @@ class ExamEvidenceMixin:
                 "expires_in": 120,
             })
 
-        return Response({"items": items, "total_raw_count": len(raw_keys)})
+        return Response({"items": items, "total_raw_count": len(raw_keys), "storage_error": storage_error})
 
     @action(detail=False, methods=["post"], url_path=r"videos/compile")
     def video_compile(self, request, contest_pk=None):

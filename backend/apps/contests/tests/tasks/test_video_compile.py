@@ -158,7 +158,7 @@ class CompileAnticheatVideoTests(TestCase):
     # FFmpeg failure → FAILED, raw keys tagged retain
     # ------------------------------------------------------------------
     @patch("apps.contests.tasks.shutil.rmtree")
-    @patch("apps.contests.tasks.tag_object_retain")
+    @patch("apps.contests.tasks.tag_objects_retain")
     @patch("apps.contests.tasks.subprocess.run", side_effect=Exception("ffmpeg crashed"))
     @patch("apps.contests.tasks.get_s3_client")
     @patch("apps.contests.tasks.tempfile.mkdtemp", return_value="/tmp/anticheat_fake")
@@ -251,3 +251,81 @@ class CompileAnticheatVideoTests(TestCase):
             contest=contest, participant=participant, upload_session_id="done-session"
         )
         self.assertEqual(job.status, EvidenceJobStatus.SUCCESS)
+
+    # ------------------------------------------------------------------
+    # default session must not mix frames from other session_* folders
+    # ------------------------------------------------------------------
+    @patch("apps.contests.tasks.shutil.rmtree")
+    @patch("apps.contests.tasks.subprocess.run")
+    @patch("apps.contests.tasks.get_s3_client")
+    @patch("apps.contests.tasks.tempfile.mkdtemp", return_value="/tmp/anticheat_fake")
+    @patch("apps.contests.tasks.os.path.getsize", return_value=4321)
+    def test_default_session_uses_scoped_prefix_only(
+        self, mock_getsize, mock_mkdtemp, mock_s3_factory, mock_subprocess, mock_rmtree
+    ):
+        from apps.contests.tasks import compile_anticheat_video
+
+        contest, participant = _make_contest_and_participant(self.owner, self.student)
+
+        default_keys = [
+            f"contest_{contest.id}/user_{self.student.id}/session_default/ts_100_seq_0001.webp",
+            f"contest_{contest.id}/user_{self.student.id}/session_default/ts_200_seq_0002.webp",
+        ]
+        other_session_keys = [
+            f"contest_{contest.id}/user_{self.student.id}/session_other/ts_300_seq_0001.webp",
+        ]
+
+        mock_client = MagicMock()
+        mock_s3_factory.return_value = mock_client
+        paginator = MagicMock()
+        mock_client.get_paginator.return_value = paginator
+
+        def _paginate_side_effect(*, Bucket, Prefix):
+            if Prefix.endswith("/session_default/"):
+                return [{"Contents": [{"Key": k} for k in default_keys]}]
+            if Prefix.endswith(f"/user_{self.student.id}/"):
+                return [{"Contents": [{"Key": k} for k in other_session_keys]}]
+            return [{}]
+
+        paginator.paginate.side_effect = _paginate_side_effect
+
+        result = compile_anticheat_video(participant.id, "default")
+        self.assertIn("2 frames", result)
+
+        # Ensure only session_default frames are counted.
+        job = ExamEvidenceJob.objects.get(
+            contest=contest, participant=participant, upload_session_id="default"
+        )
+        self.assertEqual(job.raw_count, 2)
+
+    # ------------------------------------------------------------------
+    # key ordering should follow timestamp first to avoid fragmented timeline
+    # ------------------------------------------------------------------
+    @patch("apps.contests.tasks.get_s3_client")
+    def test_raw_keys_sorted_by_timestamp_then_seq(self, mock_s3_factory):
+        from apps.contests.tasks import _list_raw_keys
+
+        mock_client = MagicMock()
+        mock_s3_factory.return_value = mock_client
+        paginator = MagicMock()
+        mock_client.get_paginator.return_value = paginator
+        paginator.paginate.return_value = [{
+            "Contents": [
+                {"Key": "contest_1/user_1/session_a/ts_300_seq_0001.webp"},
+                {"Key": "contest_1/user_1/session_a/ts_100_seq_0003.webp"},
+                {"Key": "contest_1/user_1/session_a/ts_100_seq_0001.webp"},
+                {"Key": "contest_1/user_1/session_a/ts_200_seq_0002.webp"},
+            ]
+        }]
+
+        keys = _list_raw_keys(mock_client, "bucket", "contest_1/user_1/session_a/")
+
+        self.assertEqual(
+            keys,
+            [
+                "contest_1/user_1/session_a/ts_100_seq_0001.webp",
+                "contest_1/user_1/session_a/ts_100_seq_0003.webp",
+                "contest_1/user_1/session_a/ts_200_seq_0002.webp",
+                "contest_1/user_1/session_a/ts_300_seq_0001.webp",
+            ],
+        )

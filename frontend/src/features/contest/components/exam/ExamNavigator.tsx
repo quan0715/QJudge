@@ -1,15 +1,7 @@
 import { type FC, memo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { ExamItem } from "../../types/exam.types";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./ExamNavigator.module.scss";
-
-const QUESTION_TYPE_SHORT: Record<ExamQuestionType, string> = {
-  true_false: "是非",
-  single_choice: "單選",
-  multiple_choice: "多選",
-  short_answer: "簡答",
-  essay: "問答",
-};
 
 interface ExamNavigatorProps {
   items: ExamItem[];
@@ -24,6 +16,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   answeredIds,
   onSelect,
 }) => {
+  const { t } = useTranslation("contest");
   const answeredCount = items.filter((item) => {
     const id = item.kind === "coding" ? item.data.id : item.data.id;
     return answeredIds.has(id);
@@ -42,7 +35,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   return (
     <nav className={styles.navigator}>
       <div className={styles.navHeader}>
-        <span>題目列表</span>
+        <span>{t("answering.navigation.questionList")}</span>
       </div>
 
       <div className={styles.list}>
@@ -53,8 +46,8 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
 
               const typeLabel =
                 item.kind === "coding"
-                  ? "程式題"
-                  : QUESTION_TYPE_SHORT[item.data.questionType];
+                  ? t("answering.questionTypes.coding")
+                  : t(`answering.questionTypes.${item.data.questionType}`);
 
               const fullTitle =
                 item.kind === "coding"
@@ -94,7 +87,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
           </div>
       <div className={styles.summary}>
         <span className={styles.summaryText}>
-          已作答 {answeredCount} / {items.length}
+          {t("answering.navigation.answeredProgress", { answered: answeredCount, total: items.length })}
         </span>
       </div>
     </nav>

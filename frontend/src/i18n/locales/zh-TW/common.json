@@ -104,7 +104,8 @@
     "updating": "更新中...",
     "search": "搜尋",
     "searching": "搜尋中...",
-    "clear": "清除"
+    "clear": "清除",
+    "previous": "上一步"
   },
   "message": {
     "loading": "載入中...",
@@ -115,6 +116,10 @@
     "comingSoon": "即將推出",
     "saveFailed": "儲存失敗",
     "deleteFailed": "刪除失敗"
+  },
+  "error": {
+    "title": "錯誤",
+    "validationFailed": "驗證未通過"
   },
   "pagination": {
     "previous": "上一頁",
@@ -140,6 +145,12 @@
     "title": "偏好設定",
     "themeSection": "主題",
     "languageSection": "語言",
+    "accountInfo": "帳號資訊",
+    "username": "使用者名稱",
+    "email": "電子郵件",
+    "role": "角色",
+    "displayName": "顯示名稱",
+    "displayNameDescription": "設定您在平台上顯示的暱稱",
     "theme": "主題",
     "language": "語言",
     "editor": "編輯器設定",
@@ -155,7 +166,9 @@
     "oauthUser": "OAuth 使用者無法變更密碼"
   },
   "settings": {
-    "title": "設定"
+    "title": "設定",
+    "description": "管理您的偏好設定、API Key 和用量統計",
+    "descriptionStudent": "管理您的偏好設定"
   },
   "table": {
     "title": "標題",
@@ -227,7 +240,12 @@
     "disconnected": "未連線",
     "enabled": "已啟用",
     "disabled": "已停用",
-    "solved": "已解決"
+    "solved": "已解決",
+    "pending": "等待執行",
+    "success": "成功",
+    "failed": "失敗",
+    "notPassed": "未通過",
+    "missing": "未完成"
   },
   "action": {
     "adding": "新增中...",

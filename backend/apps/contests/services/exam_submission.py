@@ -3,6 +3,7 @@ Submission finalization helpers for exam anti-cheat flows.
 """
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from django.utils import timezone
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from apps.contests.models import ContestParticipant
     from apps.users.models import User
 
+logger = logging.getLogger(__name__)
+
 
 def normalize_upload_session_id(upload_session_id: str | None) -> str:
     value = str(upload_session_id or "").strip()
@@ -33,6 +36,12 @@ def enqueue_compile_video(participant_id: int, upload_session_id: str | None) ->
         args=[participant_id, normalize_upload_session_id(upload_session_id)],
         queue="video_queue",
     )
+
+
+def enqueue_retain_raw_screenshots(contest_id: int, user_id: int) -> None:
+    from apps.contests.tasks import retain_raw_screenshots
+
+    retain_raw_screenshots.delay(contest_id, user_id)
 
 
 def ensure_evidence_job(
@@ -82,6 +91,14 @@ def finalize_submission(
 
     if participant.contest.cheat_detection_enabled:
         ensure_evidence_job(participant, session_id)
+        try:
+            enqueue_retain_raw_screenshots(participant.contest_id, participant.user_id)
+        except Exception:  # pragma: no cover - defensive guard for external storage/task backend failures
+            logger.exception(
+                "retain_raw_screenshots enqueue failed for contest=%s user=%s",
+                participant.contest_id,
+                participant.user_id,
+            )
 
     if activity_user and activity_action_type:
         ContestActivity.objects.create(

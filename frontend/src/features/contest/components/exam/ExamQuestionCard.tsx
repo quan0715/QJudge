@@ -1,4 +1,5 @@
 import { type FC, memo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   RadioButton,
   RadioButtonGroup,
@@ -10,14 +11,6 @@ import {
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./ExamQuestionCard.module.scss";
-
-const TYPE_LABELS: Record<ExamQuestionType, string> = {
-  true_false: "是非題",
-  single_choice: "單選題",
-  multiple_choice: "多選題",
-  short_answer: "簡答題",
-  essay: "問答題",
-};
 
 const TYPE_COLORS: Record<ExamQuestionType, string> = {
   true_false: "teal",
@@ -48,6 +41,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   onBlur,
   readOnly = false,
 }) => {
+  const { t } = useTranslation(["contest", "common"]);
+
   const handleChange = (value: unknown) => {
     onAnswerChange?.(question.id, value, question.questionType);
   };
@@ -73,8 +68,18 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               }
               disabled={readOnly}
             >
-              <RadioButton labelText="是 (True)" value="0" id={`${question.id}-true`} />
-              <RadioButton labelText="否 (False)" value="1" id={`${question.id}-false`} />
+              <RadioButton
+                labelText={t("answering.question.trueOption")}
+                value="0"
+                id={`${question.id}-true`}
+                data-testid={`exam-answer-option-${question.id}-true`}
+              />
+              <RadioButton
+                labelText={t("answering.question.falseOption")}
+                value="1"
+                id={`${question.id}-false`}
+                data-testid={`exam-answer-option-${question.id}-false`}
+              />
             </RadioButtonGroup>
           </div>
         );
@@ -100,6 +105,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
                   labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
                   value={String(i)}
                   id={`${question.id}-opt-${i}`}
+                  data-testid={`exam-answer-option-${question.id}-${i}`}
                 />
               ))}
             </RadioButtonGroup>
@@ -114,6 +120,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               <Checkbox
                 key={i}
                 id={`${question.id}-opt-${i}`}
+                data-testid={`exam-answer-option-${question.id}-${i}`}
                 labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
                 checked={selected.includes(i)}
                 disabled={readOnly}
@@ -134,8 +141,9 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
           <div className={styles.shortInput}>
             <TextInput
               id={`q-${question.id}`}
+              data-testid={`exam-answer-input-${question.id}`}
               labelText=""
-              placeholder="輸入你的答案..."
+              placeholder={t("answering.question.shortAnswerPlaceholder")}
               value={(answer as string) || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleChange(e.target.value)
@@ -151,8 +159,9 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
           <div className={styles.textArea}>
             <TextArea
               id={`q-${question.id}`}
+              data-testid={`exam-answer-input-${question.id}`}
               labelText=""
-              placeholder="請詳細作答..."
+              placeholder={t("answering.question.essayPlaceholder")}
               value={(answer as string) || ""}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 handleChange(e.target.value)
@@ -169,15 +178,15 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   };
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-testid={`exam-question-card-${question.id}`}>
       <div className={styles.header}>
         <span className={styles.label}>
-          第 {index + 1} 題
+          {t("answering.submit.questionPreview", { index: index + 1 })}
           <Tag size="sm" type={TYPE_COLORS[question.questionType] as never}>
-            {TYPE_LABELS[question.questionType]}
+            {t(`answering.questionTypes.${question.questionType}`)}
           </Tag>
         </span>
-        <span className={styles.score}>{question.score} 分</span>
+        <span className={styles.score}>{question.score} {t("scoreboard.status.pts")}</span>
       </div>
 
       {question.prompt ? (
@@ -185,11 +194,11 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
           <MarkdownRenderer enableHighlight enableCopy>{question.prompt}</MarkdownRenderer>
         </div>
       ) : (
-        <div className={styles.promptEmpty}>（尚未填寫題目敘述）</div>
+        <div className={styles.promptEmpty}>{t("answering.question.promptEmpty")}</div>
       )}
 
       <div className={styles.answerArea}>
-        <div className={styles.answerLabel}>作答區</div>
+        <div className={styles.answerLabel}>{t("answering.question.answerLabel")}</div>
         {renderAnswerInput()}
       </div>
     </div>

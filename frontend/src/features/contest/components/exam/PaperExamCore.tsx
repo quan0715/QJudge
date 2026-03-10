@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Tooltip } from "@carbon/react";
 import {
   ArrowLeft,
@@ -9,11 +10,6 @@ import {
 } from "@carbon/icons-react";
 import { ExamNavigator } from "./ExamNavigator";
 import type { ExamItem, ExamViewMode } from "../../types/exam.types";
-
-const VIEW_MODES: { key: ExamViewMode; label: string; icon: typeof CenterToFit }[] = [
-  { key: "single", label: "逐題模式", icon: CenterToFit },
-  { key: "all", label: "全題模式", icon: ListBulleted },
-];
 
 function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
   const [visible, setVisible] = useState(true);
@@ -63,6 +59,13 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   syncIndex,
   onActiveIndexChange,
 }) => {
+  const { t } = useTranslation("contest");
+
+  const VIEW_MODES: { key: ExamViewMode; label: string; icon: typeof CenterToFit }[] = useMemo(() => [
+    { key: "single", label: t("answering.modes.single"), icon: CenterToFit },
+    { key: "all", label: t("answering.modes.all"), icon: ListBulleted },
+  ], [t]);
+
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
   const [allModeActiveIndex, setAllModeActiveIndex] = useState(0);
@@ -175,7 +178,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
             disabled={effectiveActiveIndex === 0}
             onClick={() => handleSetActiveIndex((i) => i - 1)}
           >
-            上一題
+            {t("answering.navigation.prevQuestion")}
           </Button>
           <span className={styles.navInfo}>
             {effectiveActiveIndex + 1} / {items.length}
@@ -187,7 +190,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
             disabled={isLast}
             onClick={() => handleSetActiveIndex((i) => i + 1)}
           >
-            下一題
+            {t("answering.navigation.nextQuestion")}
           </Button>
         </div>
       </div>
@@ -251,7 +254,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
           <button
             className={styles.navToggle}
             onClick={() => setNavVisible((v) => !v)}
-            aria-label={navVisible ? "隱藏題目列表" : "顯示題目列表"}
+            aria-label={navVisible ? t("answering.navigation.hideList") : t("answering.navigation.showList")}
           >
             <List size={20} />
           </button>

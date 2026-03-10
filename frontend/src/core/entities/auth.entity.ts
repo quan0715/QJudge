@@ -1,6 +1,7 @@
 export type ThemePreference = "light" | "dark" | "system";
 
 export interface UserPreferences {
+  display_name?: string;
   preferred_language: string;
   preferred_theme: ThemePreference;
   editor_font_size: number;
@@ -57,6 +58,7 @@ export interface ChangePasswordRequest {
 }
 
 export interface UpdatePreferencesRequest {
+  display_name?: string;
   preferred_language?: string;
   preferred_theme?: ThemePreference;
   editor_font_size?: number;

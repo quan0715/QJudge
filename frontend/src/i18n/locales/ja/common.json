@@ -104,7 +104,8 @@
     "updating": "更新中...",
     "search": "検索",
     "searching": "検索中...",
-    "clear": "クリア"
+    "clear": "クリア",
+    "previous": "前へ"
   },
   "message": {
     "loading": "読み込み中...",
@@ -115,6 +116,10 @@
     "comingSoon": "近日公開",
     "saveFailed": "保存に失敗しました",
     "deleteFailed": "削除に失敗しました"
+  },
+  "error": {
+    "title": "エラー",
+    "validationFailed": "検証に失敗しました"
   },
   "pagination": {
     "previous": "前へ",
@@ -140,6 +145,12 @@
     "title": "設定",
     "themeSection": "テーマ",
     "languageSection": "言語",
+    "accountInfo": "アカウント情報",
+    "username": "ユーザー名",
+    "email": "メールアドレス",
+    "role": "権限",
+    "displayName": "表示名",
+    "displayNameDescription": "プラットフォームで表示される名前を設定します",
     "theme": "テーマ",
     "language": "言語",
     "editor": "エディター設定",
@@ -155,7 +166,9 @@
     "oauthUser": "OAuthユーザーはパスワードを変更できません"
   },
   "settings": {
-    "title": "設定"
+    "title": "設定",
+    "description": "設定、API Key、使用量統計を管理します",
+    "descriptionStudent": "設定を管理します"
   },
   "table": {
     "title": "タイトル",
@@ -227,7 +240,12 @@
     "disconnected": "未接続",
     "enabled": "有効",
     "disabled": "無効",
-    "solved": "解決済み"
+    "solved": "解決済み",
+    "pending": "実行待ち",
+    "success": "成功",
+    "failed": "失敗",
+    "notPassed": "未通過",
+    "missing": "未完了"
   },
   "action": {
     "adding": "追加中...",

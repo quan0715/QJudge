@@ -18,14 +18,17 @@ import {
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 
-const FORCED_CAPTURE_COOLDOWN_MS = 1_000;
-const P1_FORCED_CAPTURE_COOLDOWN_MS = 15_000;
-
 interface Options {
   contestId: string;
+  /** Controls capture interval + upload. When false, no screenshots are taken. */
   enabled?: boolean;
+  /** Controls stream lifecycle monitoring. Stream stays alive and loss is detected
+   *  as long as this is true, even if `enabled` is false (e.g. on dashboard). */
+  monitorStream?: boolean;
   intervalMs?: number;
   maxRetries?: number;
+  forcedCaptureCooldownMs?: number;
+  forcedCaptureP1CooldownMs?: number;
   reportDegraded?: (isDegraded: boolean) => void;
   onUploadProgress?: (count: number) => void;
   onScreenShareLost?: () => void;
@@ -34,8 +37,11 @@ interface Options {
 export const useAnticheatScreenCapture = ({
   contestId,
   enabled = false,
+  monitorStream = false,
   intervalMs = 5000,
   maxRetries = 3,
+  forcedCaptureCooldownMs = 1_000,
+  forcedCaptureP1CooldownMs = 15_000,
   reportDegraded,
   onUploadProgress,
   onScreenShareLost,
@@ -54,6 +60,8 @@ export const useAnticheatScreenCapture = ({
   const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const streamWasLiveRef = useRef(false);
+  // Reactive stream status — ExamModeWrapper watches this for stream loss detection
+  const [streamActive, setStreamActive] = useState(false);
   const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
   const onScreenShareLostRef = useRef(onScreenShareLost);
   onScreenShareLostRef.current = onScreenShareLost;
@@ -83,11 +91,13 @@ export const useAnticheatScreenCapture = ({
         if (streamRef.current === handoff) {
           streamRef.current = null;
           streamWasLiveRef.current = false;
+          setStreamActive(false);
           onScreenShareLostRef.current?.();
         }
       });
       streamRef.current = handoff;
       streamWasLiveRef.current = true;
+      setStreamActive(true);
       return handoff;
     }
 
@@ -128,6 +138,7 @@ export const useAnticheatScreenCapture = ({
         // the user has stopped sharing.
         if (streamWasLiveRef.current && !streamRef.current?.active) {
           streamWasLiveRef.current = false;
+          setStreamActive(false);
           onScreenShareLostRef.current?.();
         }
         return;
@@ -169,6 +180,7 @@ export const useAnticheatScreenCapture = ({
       captureIntervalRef.current = null;
     }
     streamWasLiveRef.current = false;
+    setStreamActive(false);
     stopStream();
     // Also stop any streams waiting in handoff slots
     clearPrecheckScreenShareHandoff(true);
@@ -202,7 +214,7 @@ export const useAnticheatScreenCapture = ({
     // P1: 15s per-type cooldown
     // P2/P3: should not reach here (handled by recordViolation.usecase)
     if (priority > 0) {
-      const cooldownMs = priority === 1 ? P1_FORCED_CAPTURE_COOLDOWN_MS : FORCED_CAPTURE_COOLDOWN_MS;
+      const cooldownMs = priority === 1 ? forcedCaptureP1CooldownMs : forcedCaptureCooldownMs;
       const cooldownKey = eventType || "_default";
       const lastCapture = lastForcedCaptureByTypeRef.current.get(cooldownKey) || 0;
       if (now - lastCapture < cooldownMs) {
@@ -224,6 +236,7 @@ export const useAnticheatScreenCapture = ({
       // Fallback: detect stream loss if the ended event didn't fire
       if (streamWasLiveRef.current && !streamRef.current?.active) {
         streamWasLiveRef.current = false;
+        setStreamActive(false);
         onScreenShareLostRef.current?.();
       }
       return {
@@ -266,7 +279,17 @@ export const useAnticheatScreenCapture = ({
       uploadSessionId: currentUploadSessionId,
       seq: frameId,
     };
-  }, [enabled, contestId, uploadSessionId, captureFrameBlob, ensureQueue, uploadBatch, flushPendingUploads]);
+  }, [
+    enabled,
+    contestId,
+    uploadSessionId,
+    captureFrameBlob,
+    ensureQueue,
+    uploadBatch,
+    flushPendingUploads,
+    forcedCaptureCooldownMs,
+    forcedCaptureP1CooldownMs,
+  ]);
 
   // Register forced capture handler for use by recordExamEventWithForcedCapture
   useEffect(() => {
@@ -277,11 +300,11 @@ export const useAnticheatScreenCapture = ({
     };
   }, [contestId, forceCaptureNow]);
 
-  // Interval-based capture + upload; stop stream when disabled
+  // Interval-based capture + upload (only when enabled)
   useEffect(() => {
     if (!enabled) {
       if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
-      stopStream();
+      captureIntervalRef.current = null;
       return;
     }
 
@@ -293,13 +316,43 @@ export const useAnticheatScreenCapture = ({
     return () => {
       if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
     };
-  }, [enabled, intervalMs, captureAndQueue, flushPendingUploads, stopStream]);
+  }, [enabled, intervalMs, captureAndQueue, flushPendingUploads]);
+
+  // Stream lifecycle — kill the stream only when monitorStream becomes false
+  // (e.g. exam submitted). When monitorStream is true but enabled is false
+  // (e.g. on dashboard), the stream stays alive so loss detection still works.
+  useEffect(() => {
+    if (!monitorStream) {
+      stopStream();
+      streamWasLiveRef.current = false;
+      setStreamActive(false);
+    }
+  }, [monitorStream, stopStream]);
+
+  // Lightweight stream health poll — detect loss even when capture interval is off.
+  // The "ended" event is the primary detection, but this catches edge cases
+  // (e.g. browser not firing "ended" reliably).
+  useEffect(() => {
+    if (!monitorStream || enabled) return; // skip if capture interval already handles this
+    const healthCheck = setInterval(() => {
+      const alive = streamRef.current?.active ?? false;
+      const wasLive = streamWasLiveRef.current;
+      if (wasLive && !alive) {
+        streamWasLiveRef.current = false;
+        setStreamActive(false);
+        onScreenShareLostRef.current?.();
+      }
+    }, 2000);
+    return () => clearInterval(healthCheck);
+  }, [monitorStream, enabled]);
 
   return {
     uploadSessionId,
     flushPendingUploads,
     forceStopCapture,
     forceCaptureNow,
+    /** Reactive flag — true when screen share stream is alive. */
+    streamActive,
   };
 };
 

@@ -17,6 +17,7 @@ import {
   ImageSearch,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { useContestAdmin } from "@/features/contest/contexts";
@@ -27,6 +28,7 @@ import {
   getEventCategory,
 } from "@/features/contest/constants/eventTaxonomy";
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
+import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import styles from "./ContestLogsScreen.module.scss";
 
 const CATEGORY_FILTER_OPTIONS = [
@@ -42,30 +44,97 @@ const TAB_DEFAULT_CATEGORIES: Record<number, string[]> = {
   1: ["info", "system"],
 };
 
-const buildActorAggregationKey = (event: { eventType: string; userId?: string; userName?: string }) => {
-  const actorKey = event.userId || event.userName || "unknown";
+const buildActorAggregationKey = (event: {
+  eventType: string;
+  userId?: string;
+  userName?: string;
+  id?: string;
+  timestamp?: string;
+}) => {
+  const actorKey = event.userId || event.userName || `${event.id || event.timestamp || "unknown"}`;
   return `${event.eventType}:${actorKey}`;
 };
 
 /**
- * External feeds may already be aggregated upstream.
- * Enforce UI contract: activity rows are always shown as single records.
+ * Enforce UI contract for external feeds:
+ * - activity: never aggregated (always single rows)
+ * - exam_event: always aggregated by actor+eventType within window
  */
-const normalizeExternalEventFeed = (feed: EventFeedItem[]): EventFeedItem[] => {
-  const normalized = feed.flatMap((item) => {
-    if (item.source !== "activity") return [item];
-    const expandedCount = Number.isFinite(item.count) ? Math.max(1, item.count) : 1;
-    return Array.from({ length: expandedCount }, (_, idx) => ({
-      ...item,
-      incidentKey: expandedCount > 1 ? `${item.incidentKey}:${idx + 1}` : item.incidentKey,
-      count: 1,
-      penalized: false,
-      evidenceCount: 0,
-      source: "activity" as const,
-    }));
-  });
-  normalized.sort((a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime());
-  return normalized;
+const normalizeExternalEventFeed = (
+  feed: EventFeedItem[],
+  aggregationWindowMs: number
+): EventFeedItem[] => {
+  const incidents: EventFeedItem[] = [];
+  const openIncidents = new Map<string, number>();
+
+  const examEventSorted = [...feed]
+    .filter((item) => item.source === "exam_event")
+    .sort((a, b) => new Date(a.firstAt).getTime() - new Date(b.firstAt).getTime());
+
+  for (const item of examEventSorted) {
+    const itemCount = Number.isFinite(item.count) ? Math.max(1, item.count) : 1;
+    const itemEvidenceCount = Number.isFinite(item.evidenceCount) ? Math.max(0, item.evidenceCount) : 0;
+    const aggregateKey = buildActorAggregationKey({
+      eventType: item.eventType,
+      userId: item.userId,
+      userName: item.userName,
+      id: item.incidentKey,
+      timestamp: item.firstAt,
+    });
+    const idx = openIncidents.get(aggregateKey);
+    const firstTs = new Date(item.firstAt).getTime();
+    const lastTs = new Date(item.lastAt || item.firstAt).getTime();
+
+    if (idx !== undefined) {
+      const incident = incidents[idx];
+      const incidentLastTs = new Date(incident.lastAt).getTime();
+      if (firstTs - incidentLastTs <= aggregationWindowMs) {
+        incident.count += itemCount;
+        incident.evidenceCount += itemEvidenceCount;
+        incident.lastAt =
+          incidentLastTs >= lastTs ? incident.lastAt : (item.lastAt || item.firstAt);
+        if (item.summary) incident.summary = item.summary;
+        continue;
+      }
+    }
+
+    const priority = Number.isFinite(item.priority) ? item.priority : getEventPriority(item.eventType);
+    incidents.push({
+      incidentKey: `${aggregateKey}:${item.firstAt}`,
+      eventType: item.eventType,
+      priority,
+      category: item.category || getEventCategory(item.eventType),
+      penalized: priority <= 1 && priority >= 0,
+      firstAt: item.firstAt,
+      lastAt: item.lastAt || item.firstAt,
+      count: itemCount,
+      evidenceCount: itemEvidenceCount,
+      summary: item.summary || "",
+      source: "exam_event",
+      userName: item.userName,
+      userId: item.userId,
+      metadata: item.metadata,
+    });
+    openIncidents.set(aggregateKey, incidents.length - 1);
+  }
+
+  const activityExpanded = feed
+    .filter((item) => item.source === "activity")
+    .flatMap((item) => {
+      const expandedCount = Number.isFinite(item.count) ? Math.max(1, item.count) : 1;
+      return Array.from({ length: expandedCount }, (_, idx) => ({
+        ...item,
+        incidentKey: expandedCount > 1 ? `${item.incidentKey}:${idx + 1}` : item.incidentKey,
+        count: 1,
+        penalized: false,
+        evidenceCount: 0,
+        source: "activity" as const,
+      }));
+    });
+
+  incidents.push(...activityExpanded);
+  incidents.sort((a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime());
+  return incidents;
 };
 
 /** Group incidents by date label (e.g. "03/09") */
@@ -111,17 +180,28 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   eventFeed: externalEventFeed,
   onRefresh,
 }) => {
+  const { contestId } = useParams<{ contestId: string }>();
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
   const { t } = useTranslation("contest");
+  const {
+    config: antiCheatConfig,
+    loading: antiCheatConfigLoading,
+    refresh: refreshAntiCheatConfig,
+  } = useContestAnticheatConfig(contestId);
 
   const sourceEvents = useMemo(() => {
     if (!userIdFilter) return examEvents;
     return examEvents.filter((event) => String(event.userId) === userIdFilter);
   }, [examEvents, userIdFilter]);
 
+  const aggregationWindowMs = antiCheatConfig
+    ? Math.max(1, antiCheatConfig.effective.eventFeedAggregationWindowSeconds) * 1000
+    : null;
+
   // Build event feed from examEvents if not provided externally
   const eventFeed = useMemo(() => {
-    if (externalEventFeed) return normalizeExternalEventFeed(externalEventFeed);
+    if (aggregationWindowMs == null) return [];
+    if (externalEventFeed) return normalizeExternalEventFeed(externalEventFeed, aggregationWindowMs);
     const isActivityEvent = (event: { metadata?: Record<string, unknown> }) =>
       event.metadata?.source === "activity";
 
@@ -144,7 +224,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       if (idx !== undefined) {
         const inc = incidents[idx];
         const lastTs = new Date(inc.lastAt).getTime();
-        if (ts - lastTs <= 60_000) {
+        if (ts - lastTs <= aggregationWindowMs) {
           inc.count += 1;
           inc.lastAt = event.timestamp;
           if (event.metadata?.forced_capture_uploaded) inc.evidenceCount += 1;
@@ -195,7 +275,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
     incidents.sort((a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime());
     return incidents;
-  }, [sourceEvents, externalEventFeed]);
+  }, [aggregationWindowMs, sourceEvents, externalEventFeed]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(TAB_DEFAULT_CATEGORIES[0]);
@@ -264,21 +344,31 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     return () => observer.disconnect();
   }, [hasMore, handleLoadMore]);
 
-  const loading = sourceEvents.length === 0 && isRefreshing;
+  const loading = antiCheatConfigLoading || (sourceEvents.length === 0 && isRefreshing);
+  const isConfigUnavailable = !antiCheatConfig && !antiCheatConfigLoading;
 
   const handleRefresh = useCallback(async () => {
-    if (isRefreshing || isRefreshPending) return;
+    if (isRefreshing || isRefreshPending || antiCheatConfigLoading) return;
     setIsRefreshPending(true);
     const tasks: Promise<unknown>[] = [];
     try {
       if (!externalEventFeed) tasks.push(Promise.resolve(refreshAdminData()));
       if (onRefresh) tasks.push(Promise.resolve(onRefresh()));
+      tasks.push(Promise.resolve(refreshAntiCheatConfig()));
       if (tasks.length === 0) tasks.push(Promise.resolve(refreshAdminData()));
       await Promise.allSettled(tasks);
     } finally {
       setIsRefreshPending(false);
     }
-  }, [externalEventFeed, isRefreshPending, isRefreshing, onRefresh, refreshAdminData]);
+  }, [
+    antiCheatConfigLoading,
+    externalEventFeed,
+    isRefreshPending,
+    isRefreshing,
+    onRefresh,
+    refreshAdminData,
+    refreshAntiCheatConfig,
+  ]);
 
   const handleKpiClick = (category: string) => {
     if (activeTab !== 0) return;
@@ -293,6 +383,38 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     if (embedded) return <div className={styles.embeddedRoot}><LogsSkeleton /></div>;
     return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}><LogsSkeleton /></SurfaceSection>;
   }
+
+  if (isConfigUnavailable) {
+    const errorContent = (
+      <div className={styles.root}>
+        <div className={styles.feedSection}>
+          <div className={styles.feedHeader}>
+            <h4 className={styles.feedTitle}>{t("logs.eventRecords", "事件紀錄")}</h4>
+            <Button
+              kind="ghost"
+              renderIcon={Renew}
+              onClick={() => { void handleRefresh(); }}
+              hasIconOnly
+              iconDescription={t("common.refresh", "重新整理")}
+              disabled={isRefreshPending}
+              size="sm"
+            />
+          </div>
+          <div className={styles.feedEmpty}>
+            {t("logs.anticheatConfigUnavailable", "無法載入防作弊策略設定，請稍後重新整理。")}
+          </div>
+        </div>
+      </div>
+    );
+
+    if (embedded) return <div className={styles.embeddedRoot}>{errorContent}</div>;
+    return (
+      <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}>
+        {errorContent}
+      </SurfaceSection>
+    );
+  }
+  const effectiveConfig = antiCheatConfig!.effective;
 
   const kpiItems = [
     { key: "critical", icon: WarningAlt, color: "#da1e28", label: t("logs.kpi.critical", "高風險事件"), count: kpiCounts.critical, filterable: true },
@@ -363,7 +485,14 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
                   <span>{group.dateLabel}</span>
                 </div>
                 {group.items.map((incident) => (
-                  <IncidentCard key={incident.incidentKey} incident={incident} />
+                  <IncidentCard
+                    key={incident.incidentKey}
+                    incident={incident}
+                    screenshotWindowBeforeMs={effectiveConfig.incidentScreenshotWindowBeforeMs}
+                    screenshotWindowAfterMs={effectiveConfig.incidentScreenshotWindowAfterMs}
+                    screenshotPreviewLimit={effectiveConfig.incidentScreenshotPreviewLimit}
+                    screenshotCategories={effectiveConfig.incidentScreenshotCategories}
+                  />
                 ))}
               </div>
             ))}
@@ -392,7 +521,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
             onClick={() => { void handleRefresh(); }}
             hasIconOnly
             iconDescription={t("common.refresh", "重新整理")}
-            disabled={isRefreshing || isRefreshPending}
+            disabled={isRefreshing || isRefreshPending || antiCheatConfigLoading}
             size="sm"
           />
         </div>

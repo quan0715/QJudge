@@ -37,10 +37,7 @@ export const syncExamPrecheckGateByStatus = (
   examStatus?: ExamStatusType | null,
 ): void => {
   if (!contestId) return;
-  if (
-    examStatus === "not_started" ||
-    examStatus === "submitted"
-  ) {
+  if (examStatus === "not_started") {
     clearExamPrecheckPassed(contestId);
   }
 };

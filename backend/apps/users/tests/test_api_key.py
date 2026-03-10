@@ -23,6 +23,7 @@ class APIKeyViewTestCase(TestCase):
             username="testuser",
             email="test@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.url = "/api/v1/users/me/api-key"
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useCallback, useState } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   Tag,
@@ -38,14 +39,8 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "./hooks/examCaptureSession";
 
-const SAVE_STATUS_LABEL: Record<string, string> = {
-  idle: "",
-  saving: "儲存中…",
-  saved: "已儲存",
-  error: "儲存失敗",
-};
-
 const PaperExamAnsweringScreen: React.FC = () => {
+  const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
@@ -68,6 +63,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
     answers,
     items,
   });
+
+  const saveStatusLabel = useMemo(() => {
+    if (saveStatus === "idle") return "";
+    return t(`answering.status.${saveStatus}`);
+  }, [saveStatus, t]);
+  const withButtonTestId = (testId: string, label: React.ReactNode) => (
+    <span data-testid={testId}>{label}</span>
+  );
 
   const handleAnswerChange = useCallback(
     (questionId: string, value: unknown) => {
@@ -99,7 +102,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, isInProgress ? 30000 : null);
 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
-  const [hasLoggedExamEntry, setHasLoggedExamEntry] = useState(false);
+  const hasLoggedExamEntryRef = useRef(false);
 
   useEffect(() => {
     if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
@@ -154,12 +157,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
       contest.contestType !== "paper_exam" ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
-      hasLoggedExamEntry
+      hasLoggedExamEntryRef.current
     ) {
       return;
     }
 
-    setHasLoggedExamEntry(true);
+    hasLoggedExamEntryRef.current = true;
     void recordExamEventWithForcedCapture(contestId, "exam_entered", {
       reason: "Student entered paper exam answering screen",
       source: "paper_exam:answering_screen",
@@ -172,7 +175,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
     anticheatUploadSessionId,
     contest,
     contestId,
-    hasLoggedExamEntry,
     precheckPassed,
   ]);
 
@@ -241,14 +243,15 @@ const PaperExamAnsweringScreen: React.FC = () => {
       <div className={styles.centered}>
         <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
         <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-          {autoSubmitted ? "考試已結束，系統已自動交卷" : "考試已結束，試卷已送出"}
+          {autoSubmitted ? t("answering.finish.autoSubmitted") : t("answering.finish.submitted")}
         </span>
         <Button
           kind="primary"
+          data-testid="paper-exam-finish-back-dashboard-btn"
           onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
           style={{ marginTop: "1rem" }}
         >
-          回到競賽主頁
+          {t("answering.finish.backToDashboard")}
         </Button>
       </div>
     );
@@ -258,7 +261,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     return (
       <div className={styles.centered}>
         <Loading withOverlay={false} small />
-        <span>載入考試題目中...</span>
+        <span>{t("answering.loading")}</span>
       </div>
     );
   }
@@ -266,7 +269,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   if (items.length === 0) {
     return (
       <div className={styles.centered}>
-        <span>此考試尚未設定任何題目</span>
+        <span>{t("answering.noQuestions")}</span>
       </div>
     );
   }
@@ -285,21 +288,22 @@ const PaperExamAnsweringScreen: React.FC = () => {
             <Button
               kind="ghost"
               size="sm"
+              data-testid="paper-exam-back-dashboard-btn"
               hasIconOnly
               renderIcon={ChevronLeft}
-              iconDescription="返回競賽主頁"
+              iconDescription={t("answering.finish.backToDashboard")}
               onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
             />
-            <span className={styles.title}>{contest?.name ?? "考試"}</span>
+            <span className={styles.title}>{contest?.name ?? t("common:page.contests")}</span>
             {contest?.cheatDetectionEnabled && (
-              <Tooltip label="系統正在監測焦點、全螢幕與分頁切換行為" align="bottom" autoAlign>
+              <Tooltip label={t("answering.status.monitoringTooltip")} align="bottom" autoAlign>
                 <Tag size="sm" type="red" renderIcon={Recording}>
-                  監測中
+                  {t("answering.status.monitoring")}
                 </Tag>
               </Tooltip>
             )}
             {!isInProgress && (
-              <Tag size="sm" type="red">考試未開始</Tag>
+              <Tag size="sm" type="red">{t("answering.status.notStarted")}</Tag>
             )}
           </>
         )}
@@ -307,7 +311,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
           <>
             {saveStatus !== "idle" && (
               <span className={`${styles.saveStatus} ${saveStatus === "error" ? styles.saveStatusError : ""}`}>
-                {SAVE_STATUS_LABEL[saveStatus]}
+                {saveStatusLabel}
               </span>
             )}
             <div className={styles.timer}>
@@ -317,19 +321,27 @@ const PaperExamAnsweringScreen: React.FC = () => {
             <Button
               kind="primary"
               size="sm"
+              data-testid="paper-exam-open-submit-review-btn"
               renderIcon={SendFilled}
               onClick={openSubmitReview}
             >
-              交卷
+              {t("answering.submit.button")}
             </Button>
           </>
         )}
       />
       <Modal
+        data-testid="paper-exam-submit-review-modal"
         open={showSubmitReview}
-        modalHeading="交卷前確認"
-        primaryButtonText={isSubmittingExam ? "交卷中..." : "確認交卷"}
-        secondaryButtonText="回作答頁"
+        modalHeading={t("answering.submit.confirmTitle")}
+        primaryButtonText={withButtonTestId(
+          "paper-exam-submit-confirm-btn",
+          isSubmittingExam ? t("answering.submit.submitting") : t("answering.submit.confirmButton")
+        )}
+        secondaryButtonText={withButtonTestId(
+          "paper-exam-submit-cancel-btn",
+          t("answering.submit.backToExam")
+        )}
         primaryButtonDisabled={isSubmittingExam || loading || !isInProgress}
         onRequestSubmit={() => {
           void handleSubmitExam();
@@ -341,12 +353,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <Tag type={unansweredCount === 0 ? "green" : "red"}>
-              {`已作答 ${answeredCount} / ${totalCount} 題`}
+              {t("answering.submit.stats", { answered: answeredCount, total: totalCount })}
             </Tag>
             <Tag type="teal">
               {contest?.endTime
-                ? `截止：${new Date(contest.endTime).toLocaleString("zh-TW")}`
-                : "未設定截止時間"}
+                ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString() })
+                : t("answering.submit.noDeadline")}
             </Tag>
           </div>
 
@@ -355,8 +367,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
               kind="warning"
               lowContrast
               hideCloseButton
-              title={`尚有 ${unansweredCount} 題未作答`}
-              subtitle="建議先返回作答頁補完答案，再進行交卷。"
+              title={t("answering.submit.unansweredWarning", { count: unansweredCount })}
+              subtitle={t("answering.submit.unansweredSubtitle")}
             />
           )}
 
@@ -382,7 +394,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
                     color: done ? "var(--cds-text-primary)" : "var(--cds-support-error)",
                   }}
                 >
-                  第 {index + 1} 題 {preview ? `— ${preview}` : ""}
+                  {t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}
                 </div>
               );
             })}

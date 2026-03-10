@@ -30,7 +30,7 @@ from .services.anti_cheat_session import (
     touch_heartbeat,
     HEARTBEAT_TIMEOUT_SECONDS,
 )
-from .services.anticheat_storage import get_s3_client, tag_object_retain
+from .services.anticheat_storage import get_s3_client, tag_objects_retain, list_raw_keys_for_user
 from .services.exam_submission import finalize_submission, normalize_upload_session_id
 from .constants import PENALIZED_EVENT_TYPES
 
@@ -388,8 +388,45 @@ def _lock_for_heartbeat_timeout(participant: ContestParticipant):
     _apply_penalty_from_event(participant, 'heartbeat_timeout')
 
 
+@shared_task
+def retain_raw_screenshots(contest_id: int, user_id: int):
+    """
+    Immediately tag all raw screenshots as retain=true upon submission.
+
+    Prevents the lifecycle policy (cleanup=true, 3 days) from deleting
+    screenshots before an admin triggers video compilation.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    try:
+        raw_keys = list_raw_keys_for_user(contest_id, user_id)
+        if not raw_keys:
+            return f"No raw keys for contest={contest_id} user={user_id}"
+        raw_bucket = settings.ANTICHEAT_RAW_BUCKET
+        tagged = tag_objects_retain(raw_bucket, raw_keys)
+        logger.info(
+            "retain_raw_screenshots: tagged %d/%d keys for contest=%d user=%d",
+            tagged, len(raw_keys), contest_id, user_id,
+        )
+        return f"Tagged {tagged}/{len(raw_keys)} raw screenshots"
+    except Exception as exc:
+        logger.error(
+            "retain_raw_screenshots failed for contest=%d user=%d: %s",
+            contest_id, user_id, exc,
+        )
+        raise
+
+
 def _extract_seq_from_key(key: str) -> int:
     match = re.search(r"_seq_(\d+)\.webp$", key)
+    if not match:
+        return 0
+    return int(match.group(1))
+
+
+def _extract_ts_from_key(key: str) -> int:
+    match = re.search(r"/ts_(\d+)_seq_\d+\.webp$", key)
     if not match:
         return 0
     return int(match.group(1))
@@ -403,7 +440,8 @@ def _list_raw_keys(client, bucket: str, prefix: str) -> list[str]:
             key = item.get("Key")
             if key and key.endswith(".webp"):
                 keys.append(key)
-    keys.sort(key=_extract_seq_from_key)
+    # Keep chronological order even if keys span multiple sessions.
+    keys.sort(key=lambda k: (_extract_ts_from_key(k), _extract_seq_from_key(k), k))
     return keys
 
 
@@ -447,15 +485,17 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
     client = get_s3_client()
     raw_bucket = settings.ANTICHEAT_RAW_BUCKET
     video_bucket = settings.ANTICHEAT_VIDEO_BUCKET
-    if upload_session_id and upload_session_id != "default":
-        raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/session_{upload_session_id}/"
-    else:
-        raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
+    user_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
+    raw_prefix = f"{user_prefix}session_{upload_session_id}/"
 
     temp_dir = tempfile.mkdtemp(prefix=f"anticheat_{contest.id}_{participant.user_id}_")
     raw_keys: list[str] = []
     try:
         raw_keys = _list_raw_keys(client, raw_bucket, raw_prefix)
+        if upload_session_id == "default" and not raw_keys:
+            # Legacy fallback: only include unscoped keys under user root, never mix session_* folders.
+            legacy_keys = _list_raw_keys(client, raw_bucket, user_prefix)
+            raw_keys = [key for key in legacy_keys if "/session_" not in key]
         if not raw_keys:
             if not created and job.status == EvidenceJobStatus.SUCCESS:
                 return (
@@ -525,6 +565,10 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
                 "size_bytes": size_bytes,
             },
         )
+
+        # Remove cleanup=true tag so lifecycle policy won't auto-delete raw screenshots.
+        tag_objects_retain(raw_bucket, raw_keys)
+
         job.status = EvidenceJobStatus.SUCCESS
         job.video_bucket = video_bucket
         job.video_key = video_key
@@ -532,11 +576,7 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         job.save(update_fields=["status", "video_bucket", "video_key", "finished_at", "updated_at"])
         return f"Compiled video for participant {participant_id} ({len(raw_keys)} frames)"
     except Exception as exc:
-        for key in raw_keys:
-            try:
-                tag_object_retain(raw_bucket, key)
-            except Exception:
-                pass
+        tag_objects_retain(raw_bucket, raw_keys)
         job.status = EvidenceJobStatus.FAILED
         job.error_message = str(exc)
         job.finished_at = timezone.now()

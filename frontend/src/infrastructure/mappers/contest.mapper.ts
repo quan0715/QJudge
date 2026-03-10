@@ -21,6 +21,7 @@ import type {
   ParticipantPaperReportOverviewRow,
   Clarification,
   ContestAnnouncement,
+  ContestAnticheatConfig,
 } from "@/core/entities/contest.entity";
 
 export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
@@ -112,6 +113,202 @@ export function mapContestDetailDto(dto: any): ContestDetail {
           username: a.username || "",
         }))
       : [],
+  };
+}
+
+export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
+  const ensureObject = (value: unknown, path: string): Record<string, unknown> => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`Invalid anti-cheat config payload: ${path} must be an object`);
+    }
+    return value as Record<string, unknown>;
+  };
+
+  const ensureNumber = (obj: Record<string, unknown>, key: string, path: string): number => {
+    const value = obj[key];
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a number`);
+    }
+    return value;
+  };
+
+  const ensureBoolean = (obj: Record<string, unknown>, key: string, path: string): boolean => {
+    const value = obj[key];
+    if (typeof value !== "boolean") {
+      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a boolean`);
+    }
+    return value;
+  };
+
+  const ensureString = (obj: Record<string, unknown>, key: string, path: string): string => {
+    const value = obj[key];
+    if (typeof value !== "string") {
+      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a string`);
+    }
+    return value;
+  };
+
+  const ensureStringArray = (obj: Record<string, unknown>, key: string, path: string): string[] => {
+    const value = obj[key];
+    if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be string[]`);
+    }
+    return value;
+  };
+
+  const mapSetting = (item: unknown) => {
+    const parsed = ensureObject(item, "frontend_controlled_settings item");
+    return {
+      key: ensureString(parsed, "key", "frontend_controlled_settings item"),
+      description: ensureString(parsed, "description", "frontend_controlled_settings item"),
+    };
+  };
+
+  const root = ensureObject(dto, "root");
+  const globalDefaults = ensureObject(root["global_defaults"], "global_defaults");
+  const contestSettings = ensureObject(root["contest_settings"], "contest_settings");
+  const effective = ensureObject(root["effective"], "effective");
+  const frontendControlledSettings = ensureObject(
+    root["frontend_controlled_settings"],
+    "frontend_controlled_settings"
+  );
+
+  const rawGlobalSettings = frontendControlledSettings["global"];
+  const rawContestSettings = frontendControlledSettings["contest"];
+  if (!Array.isArray(rawGlobalSettings) || !Array.isArray(rawContestSettings)) {
+    throw new Error(
+      "Invalid anti-cheat config payload: frontend_controlled_settings.global/contest must be arrays"
+    );
+  }
+
+  const version = root["version"];
+  if (typeof version !== "number" || !Number.isFinite(version)) {
+    throw new Error("Invalid anti-cheat config payload: version must be a number");
+  }
+
+  return {
+    version,
+    globalDefaults: {
+      captureIntervalSeconds: ensureNumber(globalDefaults, "capture_interval_seconds", "global_defaults"),
+      captureUploadMaxRetries: ensureNumber(globalDefaults, "capture_upload_max_retries", "global_defaults"),
+      warningTimeoutSeconds: ensureNumber(globalDefaults, "warning_timeout_seconds", "global_defaults"),
+      forcedCaptureCooldownMs: ensureNumber(globalDefaults, "forced_capture_cooldown_ms", "global_defaults"),
+      forcedCaptureP1CooldownMs: ensureNumber(globalDefaults, "forced_capture_p1_cooldown_ms", "global_defaults"),
+      eventFeedAggregationWindowSeconds: ensureNumber(
+        globalDefaults,
+        "event_feed_aggregation_window_seconds",
+        "global_defaults"
+      ),
+      incidentScreenshotWindowBeforeMs: ensureNumber(
+        globalDefaults,
+        "incident_screenshot_window_before_ms",
+        "global_defaults"
+      ),
+      incidentScreenshotWindowAfterMs: ensureNumber(
+        globalDefaults,
+        "incident_screenshot_window_after_ms",
+        "global_defaults"
+      ),
+      incidentScreenshotPreviewLimit: ensureNumber(
+        globalDefaults,
+        "incident_screenshot_preview_limit",
+        "global_defaults"
+      ),
+      incidentScreenshotCategories: ensureStringArray(
+        globalDefaults,
+        "incident_screenshot_categories",
+        "global_defaults"
+      ),
+      monitoringRecoveryGraceMs: ensureNumber(globalDefaults, "monitoring_recovery_grace_ms", "global_defaults"),
+      mouseLeaveCooldownMs: ensureNumber(globalDefaults, "mouse_leave_cooldown_ms", "global_defaults"),
+      screenShareRecoveryGraceMs: ensureNumber(
+        globalDefaults,
+        "screen_share_recovery_grace_ms",
+        "global_defaults"
+      ),
+      multiDisplayCheckIntervalMs: ensureNumber(
+        globalDefaults,
+        "multi_display_check_interval_ms",
+        "global_defaults"
+      ),
+      multiDisplayReportCooldownMs: ensureNumber(
+        globalDefaults,
+        "multi_display_report_cooldown_ms",
+        "global_defaults"
+      ),
+      presignedUrlTtlSeconds: ensureNumber(globalDefaults, "presigned_url_ttl_seconds", "global_defaults"),
+    },
+    contestSettings: {
+      cheatDetectionEnabled: ensureBoolean(contestSettings, "cheat_detection_enabled", "contest_settings"),
+      allowMultipleJoins: ensureBoolean(contestSettings, "allow_multiple_joins", "contest_settings"),
+      maxCheatWarnings: ensureNumber(contestSettings, "max_cheat_warnings", "contest_settings"),
+      allowAutoUnlock: ensureBoolean(contestSettings, "allow_auto_unlock", "contest_settings"),
+      autoUnlockMinutes: ensureNumber(contestSettings, "auto_unlock_minutes", "contest_settings"),
+      contestType:
+        ensureString(contestSettings, "contest_type", "contest_settings") === "paper_exam"
+          ? "paper_exam"
+          : "coding",
+    },
+    effective: {
+      captureIntervalSeconds: ensureNumber(effective, "capture_interval_seconds", "effective"),
+      captureUploadMaxRetries: ensureNumber(effective, "capture_upload_max_retries", "effective"),
+      warningTimeoutSeconds: ensureNumber(effective, "warning_timeout_seconds", "effective"),
+      forcedCaptureCooldownMs: ensureNumber(effective, "forced_capture_cooldown_ms", "effective"),
+      forcedCaptureP1CooldownMs: ensureNumber(effective, "forced_capture_p1_cooldown_ms", "effective"),
+      eventFeedAggregationWindowSeconds: ensureNumber(
+        effective,
+        "event_feed_aggregation_window_seconds",
+        "effective"
+      ),
+      incidentScreenshotWindowBeforeMs: ensureNumber(
+        effective,
+        "incident_screenshot_window_before_ms",
+        "effective"
+      ),
+      incidentScreenshotWindowAfterMs: ensureNumber(
+        effective,
+        "incident_screenshot_window_after_ms",
+        "effective"
+      ),
+      incidentScreenshotPreviewLimit: ensureNumber(
+        effective,
+        "incident_screenshot_preview_limit",
+        "effective"
+      ),
+      incidentScreenshotCategories: ensureStringArray(
+        effective,
+        "incident_screenshot_categories",
+        "effective"
+      ),
+      monitoringRecoveryGraceMs: ensureNumber(effective, "monitoring_recovery_grace_ms", "effective"),
+      mouseLeaveCooldownMs: ensureNumber(effective, "mouse_leave_cooldown_ms", "effective"),
+      screenShareRecoveryGraceMs: ensureNumber(
+        effective,
+        "screen_share_recovery_grace_ms",
+        "effective"
+      ),
+      multiDisplayCheckIntervalMs: ensureNumber(
+        effective,
+        "multi_display_check_interval_ms",
+        "effective"
+      ),
+      multiDisplayReportCooldownMs: ensureNumber(
+        effective,
+        "multi_display_report_cooldown_ms",
+        "effective"
+      ),
+      presignedUrlTtlSeconds: ensureNumber(effective, "presigned_url_ttl_seconds", "effective"),
+      cheatDetectionEnabled: ensureBoolean(effective, "cheat_detection_enabled", "effective"),
+      allowMultipleJoins: ensureBoolean(effective, "allow_multiple_joins", "effective"),
+      maxCheatWarnings: ensureNumber(effective, "max_cheat_warnings", "effective"),
+      allowAutoUnlock: ensureBoolean(effective, "allow_auto_unlock", "effective"),
+      autoUnlockMinutes: ensureNumber(effective, "auto_unlock_minutes", "effective"),
+      contestType: ensureString(effective, "contest_type", "effective") === "paper_exam" ? "paper_exam" : "coding",
+    },
+    frontendControlledSettings: {
+      global: rawGlobalSettings.map(mapSetting),
+      contest: rawContestSettings.map(mapSetting),
+    },
   };
 }
 

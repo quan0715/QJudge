@@ -40,7 +40,12 @@ const attachRuntimeKeeper = (stream: MediaStream) => {
     runtimeKeeperVideo.muted = true;
     runtimeKeeperVideo.playsInline = true;
   }
-  runtimeKeeperVideo.srcObject = stream;
+  try {
+    runtimeKeeperVideo.srcObject = stream;
+  } catch {
+    // Keep-alive is best effort only; never block recovery flow.
+    return;
+  }
   try {
     const playResult = runtimeKeeperVideo.play();
     if (playResult && typeof playResult.catch === "function") {

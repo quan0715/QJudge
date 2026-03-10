@@ -27,6 +27,7 @@ import {
   markAnticheatTerminal,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
+import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -96,6 +97,7 @@ export const useContestExamActions = ({
 
   const handleStartExam = useCallback(async () => {
     if (!contest || !contestId) return;
+    clearRuntimeScreenShareReauth(contest.id);
 
     if (contest.cheatDetectionEnabled) {
       // Force every new start/resume attempt from dashboard to pass precheck again.
@@ -145,6 +147,7 @@ export const useContestExamActions = ({
     }
     clearExamCaptureSessionId(contest.id);
     clearExamPrecheckPassed(contest.id);
+    clearRuntimeScreenShareReauth(contest.id);
     await refreshContest();
     markAnticheatTerminal(contest.id);
   }, [contest, messages.endError, onError, refreshContest]);
@@ -175,6 +178,8 @@ export const useContestExamActions = ({
       if (contest.cheatDetectionEnabled) {
         clearExamPrecheckPassed(contest.id);
       }
+      clearExamCaptureSessionId(contest.id);
+      clearRuntimeScreenShareReauth(contest.id);
       if (shouldEndExam) {
         markAnticheatTerminal(contest.id);
       }

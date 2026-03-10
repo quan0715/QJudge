@@ -25,7 +25,7 @@ from ..serializers import (
     ValidateAPIKeySerializer,
 )
 from ..services import APIKeyService
-from ..permissions import IsSuperAdmin
+from ..permissions import IsSuperAdmin, IsTeacherOrAdmin
 from ..models import UserAPIKey
 from .common import SchemaAPIView
 
@@ -276,6 +276,8 @@ class UserPreferencesView(SchemaAPIView):
         # Update profile fields
         validated_data = serializer.validated_data
         
+        if 'display_name' in validated_data:
+            profile.display_name = validated_data['display_name']
         if 'preferred_language' in validated_data:
             profile.preferred_language = validated_data['preferred_language']
         if 'preferred_theme' in validated_data:
@@ -364,7 +366,7 @@ class UserAPIKeyView(SchemaAPIView):
     GET /api/v1/users/me/api-key/usage - Get usage statistics
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     serializer_class = SetAPIKeySerializer
 
     def get(self, request):
@@ -465,7 +467,7 @@ class ValidateAPIKeyView(SchemaAPIView):
     POST /api/v1/users/me/api-key/validate
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     serializer_class = ValidateAPIKeySerializer
 
     @method_decorator(ratelimit(key='user', rate='10/h', method='POST', block=True))
@@ -504,7 +506,7 @@ class GetUsageStatsView(SchemaAPIView):
     GET /api/v1/users/me/api-key/usage?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&granularity=day
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     serializer_class = serializers.Serializer
 
     def get(self, request):

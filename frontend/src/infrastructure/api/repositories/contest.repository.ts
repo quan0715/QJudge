@@ -7,6 +7,7 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import type {
   Contest,
+  ContestAnticheatConfig,
   ContestDetail,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
@@ -20,6 +21,7 @@ import {
   mapContestDetailDto,
   mapScoreboardDto,
   mapContestUpdateRequestToDto,
+  mapContestAnticheatConfigDto,
 } from "@/infrastructure/mappers/contest.mapper";
 
 // ============================================================================
@@ -128,6 +130,16 @@ export const getContestStandings = async (
   return mapScoreboardDto(await res.json());
 };
 
+export const getContestAnticheatConfig = async (
+  id: string
+): Promise<ContestAnticheatConfig> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/contests/${id}/anticheat-config/`),
+    "Failed to fetch anti-cheat config"
+  );
+  return mapContestAnticheatConfigDto(data);
+};
+
 // ============================================================================
 // Repository Instance (implements IContestRepository)
 // ============================================================================
@@ -144,6 +156,7 @@ export const contestRepository: IContestRepository = {
   leaveContest,
   archiveContest,
   getContestStandings,
+  getContestAnticheatConfig,
 };
 
 export default contestRepository;

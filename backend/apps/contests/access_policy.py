@@ -178,6 +178,9 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         # Clarifications
         'reply': 'manage_clarifications',
+
+        # Anti-cheat runtime config
+        'anticheat_config': 'submit',
     }
 
     # Actions that should return 404 instead of 403 for unauthorized access

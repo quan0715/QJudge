@@ -489,6 +489,7 @@ class ExamEvent(models.Model):
         ('warning_timeout', 'Warning Timeout'),
         ('force_submit_locked', 'Force Submit Locked'),
         ('screen_share_stopped', 'Screen Share Stopped'),
+        ('screen_share_interrupted', 'Screen Share Interrupted'),
         ('screen_share_restored', 'Screen Share Restored'),
         ('screen_share_invalid_surface', 'Screen Share Invalid Surface'),
         ('capture_upload_degraded', 'Capture Upload Degraded'),
@@ -500,6 +501,8 @@ class ExamEvent(models.Model):
         ('heartbeat', 'Heartbeat'),
         ('heartbeat_timeout', 'Heartbeat Timeout'),
         ('listener_tampered', 'Listener Tampered'),
+        ('exit_fullscreen_triggered', 'Exit Fullscreen Triggered'),
+        ('mouse_leave_triggered', 'Mouse Leave Triggered'),
     ]
     event_type = models.CharField(
         max_length=50,
