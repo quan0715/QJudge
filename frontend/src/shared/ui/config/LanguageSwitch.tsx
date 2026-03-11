@@ -16,6 +16,8 @@ export interface LanguageSwitchProps {
   label?: string;
   /** 尺寸 */
   size?: "sm" | "md" | "lg";
+  /** E2E 測試識別 */
+  testId?: string;
 }
 
 export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
@@ -24,6 +26,7 @@ export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
   showLabel = true,
   label,
   size = "sm",
+  testId,
 }) => {
   const { t } = useTranslation();
 
@@ -38,6 +41,7 @@ export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
   return (
     <Dropdown
       id="language-dropdown"
+      data-testid={testId}
       titleText={showLabel ? (label || t("language.title")) : ""}
       label={t("language.select")}
       size={size}

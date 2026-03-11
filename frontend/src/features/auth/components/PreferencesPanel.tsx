@@ -462,6 +462,7 @@ export const PreferencesPanel: React.FC = () => {
             value={themePreference as ThemePreference}
             onChange={handleThemeChange}
             showLabel
+            testId="settings-theme-dropdown"
           />
         </FormGroup>
       </div>
@@ -478,6 +479,7 @@ export const PreferencesPanel: React.FC = () => {
             value={language}
             onChange={handleLanguageChange}
             showLabel
+            testId="settings-language-dropdown"
           />
         </FormGroup>
       </div>

@@ -15,6 +15,8 @@ export interface ThemeSwitchProps {
   label?: string;
   /** 尺寸 */
   size?: "sm" | "md" | "lg";
+  /** E2E 測試識別 */
+  testId?: string;
 }
 
 interface ThemeItem {
@@ -29,6 +31,7 @@ export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({
   showLabel = true,
   label,
   size = "sm",
+  testId,
 }) => {
   const { t } = useTranslation();
 
@@ -49,6 +52,7 @@ export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({
   return (
     <Dropdown
       id="theme-dropdown"
+      data-testid={testId}
       titleText={showLabel ? (label || t("theme.title")) : ""}
       label={t("theme.select")}
       size={size}
