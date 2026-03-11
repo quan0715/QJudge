@@ -1,0 +1,86 @@
+name: E2E Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Playwright spec path (empty = all e2e tests)"
+        required: false
+        default: ""
+        type: string
+      grep:
+        description: "Optional grep pattern"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: e2e-manual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Start test stack
+        run: docker compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for frontend/backend
+        run: |
+          set -euo pipefail
+          for i in {1..60}; do
+            FE_CODE="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5174 || true)"
+            BE_CODE="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/api/v1/auth/me || true)"
+            if [[ "$FE_CODE" != "000" && "$BE_CODE" != "000" ]]; then
+              echo "frontend=$FE_CODE backend=$BE_CODE"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timed out waiting for test stack readiness."
+          docker compose -f docker-compose.test.yml ps
+          exit 1
+
+      - name: Run Playwright E2E
+        run: |
+          set -euo pipefail
+          cmd=(npm run test:e2e --)
+          if [[ -n "${{ inputs.spec }}" ]]; then
+            cmd+=("${{ inputs.spec }}")
+          fi
+          if [[ -n "${{ inputs.grep }}" ]]; then
+            cmd+=("--grep" "${{ inputs.grep }}")
+          fi
+          printf 'Running in frontend-test: %q ' "${cmd[@]}"
+          echo
+          docker compose -f docker-compose.test.yml exec -T frontend-test "${cmd[@]}"
+
+      - name: Collect compose logs
+        if: always()
+        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-compose.log
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            frontend/playwright-report-e2e
+            frontend/test-results
+            e2e-compose.log
+          retention-days: 14
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
