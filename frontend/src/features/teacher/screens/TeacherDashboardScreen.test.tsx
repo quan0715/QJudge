@@ -41,6 +41,6 @@ describe("TeacherDashboardScreen", () => {
 
   it("renders the dashboard title", () => {
     render(<TeacherDashboardScreen />);
-    expect(screen.getByText("教師後台")).toBeInTheDocument();
+    expect(screen.getByText("page.teacherDashboard")).toBeInTheDocument();
   });
 });

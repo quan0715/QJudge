@@ -98,5 +98,48 @@
     "easy": "쉬움",
     "medium": "보통",
     "hard": "어려움"
+  },
+  "edit": {
+    "sections": {
+      "basicInfo": "기본 정보",
+      "content": "문제 내용",
+      "testCases": "테스트 케이스",
+      "languageSettings": "언어 설정"
+    },
+    "actions": {
+      "import": "가져오기",
+      "export": "내보내기",
+      "preview": "미리보기",
+      "save": "저장",
+      "delete": "삭제",
+      "back": "뒤로"
+    },
+    "messages": {
+      "importSuccess": "가져오기 성공",
+      "importSuccessDetail": "YAML 데이터를 가져와 저장했습니다",
+      "importSuccessSaveFailed": "가져오기는 성공했지만 자동 저장에 실패했습니다",
+      "deleteSuccess": "삭제 성공",
+      "deleteSuccessDetail": "리다이렉트 중...",
+      "deleteFailed": "삭제 실패",
+      "exportSuccess": "YAML 내보내기 성공",
+      "exportSuccessDetail": "파일이 다운로드되었습니다",
+      "loadFailed": "문제 데이터를 불러오는 데 실패했습니다",
+      "notFound": "문제를 찾을 수 없습니다",
+      "noPermission": "이 문제를 편집할 권한이 없습니다",
+      "noPermissionTitle": "권한 없음"
+    },
+    "status": {
+      "public": "문제가 공개되었습니다",
+      "private": "문제가 비공개로 설정되었습니다",
+      "hidden": "문제가 숨김 처리되었습니다"
+    },
+    "exportModal": {
+      "title": "문제 내보내기",
+      "submit": "내보내기",
+      "cancel": "취소",
+      "scaleLabel": "비율",
+      "scalePlaceholder": "비율 선택",
+      "description": "백업이나 다른 시스템으로 가져오기 위해 문제 데이터를 YAML 형식으로 내보냅니다."
+    }
   }
 }

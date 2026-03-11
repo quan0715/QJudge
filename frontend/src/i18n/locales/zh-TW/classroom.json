@@ -1,0 +1,53 @@
+{
+  "members": {
+    "headers": {
+      "username": "使用者名稱",
+      "email": "電子郵件",
+      "role": "角色",
+      "joinedAt": "加入時間"
+    },
+    "actions": {
+      "remove": "移除"
+    }
+  },
+  "announcement": {
+    "modal": {
+      "titleCreate": "發佈公告",
+      "titleEdit": "編輯公告",
+      "submitCreate": "發佈",
+      "submitEdit": "儲存",
+      "submittingCreate": "發佈中...",
+      "submittingEdit": "儲存中...",
+      "cancel": "取消",
+      "form": {
+        "title": "標題",
+        "titlePlaceholder": "公告標題",
+        "pinned": "置頂公告",
+        "content": "內容",
+        "contentPlaceholder": "輸入公告內容，支援 Markdown 語法...",
+        "yes": "是",
+        "no": "否"
+      }
+    }
+  },
+  "inviteCode": {
+    "label": "邀請碼",
+    "disabled": "已停用",
+    "copy": "複製",
+    "copied": "已複製",
+    "regenerate": "重新產生"
+  },
+  "bindContest": {
+    "modal": {
+      "title": "綁定競賽",
+      "submit": "綁定",
+      "submitting": "綁定中...",
+      "cancel": "取消",
+      "noContests": "沒有可綁定的競賽",
+      "table": {
+        "name": "競賽名稱",
+        "status": "狀態"
+      }
+    }
+  }
+}

@@ -25,7 +25,10 @@
     "environment": "환경 설정",
     "createContest": "대회 생성",
     "createProblem": "문제 생성",
-    "editProblem": "문제 편집"
+    "editProblem": "문제 편집",
+    "teacherDashboard": "Teacher Dashboard",
+    "problemManagement": "Problem Management",
+    "contestManagement": "Contest Management"
   },
   "tab": {
     "overview": "개요",

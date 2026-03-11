@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import i18n from "i18next";
 import type {
   ApprovalRequest,
   BackgroundInformation,
@@ -120,7 +121,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
-      setError("無法載入對話記錄");
+      setError(i18n.t("chatbot:errors.loadSessionsFailed"));
     }
   }, [setCurrentSessionId]);
 
@@ -187,7 +188,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         }
       } catch (err) {
         console.error("Failed to initialize chatbot:", err);
-        const errorMessage = err instanceof Error ? err.message : "未知錯誤";
+        const errorMessage = err instanceof Error ? err.message : i18n.t("chatbot:errors.unknownError");
         setError(errorMessage);
         setIsInitializing(false);
         return;
@@ -212,7 +213,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
-      setError("無法創建新對話");
+      setError(i18n.t("chatbot:errors.createSessionFailed"));
       return null;
     }
   }, [setCurrentSessionId]);
@@ -241,7 +242,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         });
       } catch (err) {
         console.error("Failed to delete session:", err);
-        setError("無法刪除對話");
+        setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
     [currentSessionId, createSession],
@@ -272,7 +273,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         );
       } catch (err) {
         console.error("Failed to rename session:", err);
-        setError("無法重新命名對話");
+        setError(i18n.t("chatbot:errors.renameSessionFailed"));
       }
     },
     [],
@@ -316,7 +317,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           );
         } catch (err) {
           console.error("Failed to create backend session:", err);
-          setError("無法建立對話，請稍後再試");
+          setError(i18n.t("chatbot:errors.createBackendSessionFailed"));
           return;
         }
       }
@@ -417,7 +418,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                           message.id === tempAssistantId
                             ? {
                                 ...message,
-                                content: "抱歉，AI 服務暫時無法使用，請稍後再試。",
+                                content: i18n.t("chatbot:errors.aiServiceUnavailable"),
                                 isThinking: false,
                               }
                             : message,
@@ -455,7 +456,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           return;
         }
         console.error("Stream error:", err);
-        setError("無法發送訊息");
+        setError(i18n.t("chatbot:errors.sendMessageFailed"));
 
         // 更新臨時 AI 訊息為錯誤訊息
         setSessions((prev) =>
@@ -467,7 +468,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                     message.id === tempAssistantId
                       ? {
                           ...message,
-                          content: "抱歉，AI 服務暫時無法使用，請稍後再試。",
+                          content: i18n.t("chatbot:errors.aiServiceUnavailable"),
                           isThinking: false,
                         }
                       : message,
@@ -559,7 +560,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         );
       } catch (err) {
         console.error("Resume stream error:", err);
-        setError("無法恢復 agent 執行");
+        setError(i18n.t("chatbot:errors.resumeAgentFailed"));
         setIsStreaming(false);
         setIsLoading(false);
       }
@@ -586,7 +587,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       onProblemUpdated?.();
     } catch (err) {
       console.error("Failed to confirm action:", err);
-      setError("確認操作失敗，請重試");
+      setError(i18n.t("chatbot:errors.confirmActionFailed"));
     }
   }, [currentSessionId, pendingApproval, resumeAgent, onProblemUpdated]);
 
@@ -607,7 +608,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       await resumeAgent("reject");
     } catch (err) {
       console.error("Failed to cancel action:", err);
-      setError("取消操作失敗");
+      setError(i18n.t("chatbot:errors.cancelActionFailed"));
     }
   }, [currentSessionId, pendingApproval, resumeAgent]);
 
@@ -629,7 +630,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         );
       } catch (err) {
         console.error("Failed to submit answer:", err);
-        setError("無法提交回答");
+        setError(i18n.t("chatbot:errors.submitAnswerFailed"));
         return;
       }
 
@@ -638,7 +639,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         await resumeAgent("approve");
       } catch (err) {
         console.error("Failed to resume agent after answer submission:", err);
-        setError("回答已送出，但恢復串流失敗，請重新整理頁面");
+        setError(i18n.t("chatbot:errors.resumeAfterAnswerFailed"));
       }
     },
     [currentSessionId, resumeAgent],

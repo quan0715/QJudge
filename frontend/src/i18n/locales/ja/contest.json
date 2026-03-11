@@ -102,6 +102,24 @@
   "duration": "期間",
   "progress": "進捗",
   "notActive": "進行なし",
+  "preRegistration": {
+    "state": {
+      "draft": "下書き",
+      "archived": "アーカイブ済み",
+      "upcoming": "開始前",
+      "running": "開催中",
+      "ended": "終了"
+    },
+    "noDescription": "説明はまだありません",
+    "registerNow": "今すぐ参加登録",
+    "registeredHint": "登録済みです。開始をお待ちください。",
+    "registrationClosed": "現在は登録できません",
+    "ended": "コンテストは終了しました",
+    "openAdminPanel": "管理画面へ",
+    "anonymousTitle": "匿名モード",
+    "countdownLabel": "開始まで",
+    "countdownValue": "{{days}}日 {{hours}}時間 {{minutes}}分 {{seconds}}秒"
+  },
   "precheck": {
     "title": "事前チェック",
     "description": "公平性を保つため、試験開始前に環境と資格のチェックを完了してください。必要なチェックに合格しない場合、試験へのアクセスが制限されます。",
@@ -610,6 +628,32 @@
     "autoSubmittedDesc": "画面共有が中断され、制限時間内に再共有できなかったため、システムが自動的に提出しました。",
     "autoSubmittedHint": "エラーだと思われる場合は、試験監督にお問い合わせください。",
     "returnToDashboard": "ダッシュボードに戻る"
+  },
+  "createModal": {
+    "titleCoding": "Create Coding Test",
+    "titleExam": "Create Paper Exam",
+    "typeCoding": "Coding Test",
+    "typeCodingDesc": "Coding problems with automatic submission and judging",
+    "typeExam": "Paper Exam",
+    "typeExamDesc": "Question types including True/False, Multiple Choice, and Essay",
+    "modeCoding": "Coding Test Mode",
+    "modeExam": "Paper Exam Mode",
+    "descCoding": "Students focus on coding problems with existing submission and ranking flow.",
+    "descExam": "Students answer on screen, essay questions can be graded by TAs.",
+    "nameCoding": "Contest Name",
+    "nameExam": "Paper Exam Name",
+    "duration": "Duration (minutes)",
+    "durationUnit": "min",
+    "endTime": "Estimated End Time",
+    "endTimePlaceholder": "Set start time and valid duration first",
+    "private": "Private Contest",
+    "public": "Public",
+    "privateShort": "Private",
+    "validation": {
+      "durationPositive": "Duration must be greater than 0 minutes",
+      "passwordRequired": "Password is required for private contests",
+      "cannotComputeEndTime": "Cannot compute end time, please check start time and duration"
+    }
   },
   "settings": {
     "title": "コンテスト設定",

@@ -1,0 +1,74 @@
+{
+  "errors": {
+    "loadSessionsFailed": "Failed to load chat history",
+    "createSessionFailed": "Failed to create new conversation",
+    "deleteSessionFailed": "Failed to delete conversation",
+    "renameSessionFailed": "Failed to rename conversation",
+    "sendMessageFailed": "Failed to send message",
+    "createBackendSessionFailed": "Failed to establish connection, please try again later",
+    "aiServiceUnavailable": "Sorry, AI service is temporarily unavailable. Please try again later.",
+    "resumeAgentFailed": "Failed to resume agent execution",
+    "confirmActionFailed": "Failed to confirm action, please try again",
+    "cancelActionFailed": "Failed to cancel action",
+    "submitAnswerFailed": "Failed to submit answer",
+    "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
+    "unknownError": "Unknown error"
+  },
+  "widget": {
+    "expandLabel": "Expand Qgent TA",
+    "chatbotTitle": "Qgent TA",
+    "newChat": "New Chat",
+    "inputPlaceholder": "Type a message...",
+    "thinking": "Thinking...",
+    "sessions": "Chat History",
+    "rename": "Rename",
+    "delete": "Delete",
+    "addChat": "New Chat",
+    "collapse": "Collapse Panel",
+    "newChatLabel": "New Chat",
+    "renameModal": {
+      "title": "Rename Chat",
+      "submit": "Save",
+      "cancel": "Cancel",
+      "label": "New Name",
+      "placeholder": "Enter new chat name"
+    },
+    "deleteModal": {
+      "title": "Confirm Delete",
+      "submit": "Delete",
+      "submitting": "Deleting...",
+      "cancel": "Cancel",
+      "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
+      "undoWarning": "This action cannot be undone."
+    }
+  },
+  "prompts": {
+    "designTestCases": "Help me design test cases",
+    "designTestCasesPrompt": "Please help me design test cases for this problem, including edge cases and special conditions.",
+    "generateDescription": "Generate description examples",
+    "generateDescriptionPrompt": "Please help me generate description examples for this problem to make it easier for students to understand.",
+    "checkCompleteness": "Check problem completeness",
+    "checkCompletenessPrompt": "Please check the completeness of this problem, including descriptions, test cases, and constraints.",
+    "optimizeDifficulty": "Optimize difficulty settings",
+    "optimizeDifficultyPrompt": "Please evaluate and suggest if the difficulty setting for this problem is appropriate.",
+    "howToDesign": "How to design a good problem?",
+    "howToDesignPrompt": "Please teach me how to design a good programming problem?",
+    "testCaseSkills": "Test case design skills",
+    "testCaseSkillsPrompt": "Please share techniques and best practices for test case design."
+  },
+  "welcome": {
+    "title": "How can I help you?",
+    "subtitle": "Assisting with: {{title}}"
+  },
+  "approval": {
+    "title": "Approval Required",
+    "confirm": "Confirm Action",
+    "cancel": "Cancel",
+    "preview": "Preview Changes"
+  },
+  "userInput": {
+    "title": "Question",
+    "submit": "Submit Answer",
+    "cancel": "Skip"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "errors": {
+    "loadSessionsFailed": "無法載入對話記錄",
+    "createSessionFailed": "無法創建新對話",
+    "deleteSessionFailed": "無法刪除對話",
+    "renameSessionFailed": "無法重新命名對話",
+    "sendMessageFailed": "無法發送訊息",
+    "createBackendSessionFailed": "無法建立對話，請稍後再試",
+    "aiServiceUnavailable": "抱歉，AI 服務暫時無法使用，請稍後再試。",
+    "resumeAgentFailed": "無法恢復 agent 執行",
+    "confirmActionFailed": "確認操作失敗，請重試",
+    "cancelActionFailed": "取消操作失敗",
+    "submitAnswerFailed": "無法提交回答",
+    "resumeAfterAnswerFailed": "回答已送出，但恢復串流失敗，請重新整理頁面",
+    "unknownError": "未知錯誤"
+  },
+  "widget": {
+    "expandLabel": "展開 Qgent TA",
+    "chatbotTitle": "Qgent TA",
+    "newChat": "新對話",
+    "inputPlaceholder": "輸入訊息...",
+    "thinking": "思考中...",
+    "sessions": "對話記錄",
+    "rename": "重命名",
+    "delete": "刪除",
+    "addChat": "新增對話",
+    "collapse": "收合面板",
+    "newChatLabel": "新對話",
+    "renameModal": {
+      "title": "重命名對話",
+      "submit": "儲存",
+      "cancel": "取消",
+      "label": "新名稱",
+      "placeholder": "輸入新的對話名稱"
+    },
+    "deleteModal": {
+      "title": "確認刪除",
+      "submit": "刪除",
+      "submitting": "刪除中...",
+      "cancel": "取消",
+      "confirmMessage": "確定要刪除對話「{{title}}」嗎？",
+      "undoWarning": "此操作無法復原。"
+    }
+  },
+  "prompts": {
+    "designTestCases": "幫我設計這題的測試案例",
+    "designTestCasesPrompt": "請幫我設計這題的測試案例，包含邊界條件和特殊情況。",
+    "generateDescription": "生成題目描述範例",
+    "generateDescriptionPrompt": "請幫我生成這題的題目描述範例，讓學生更容易理解。",
+    "checkCompleteness": "檢查題目完整性",
+    "checkCompletenessPrompt": "請檢查這題的完整性，包含題目描述、測試案例、限制條件等。",
+    "optimizeDifficulty": "優化題目難度設定",
+    "optimizeDifficultyPrompt": "請評估並建議這題的難度設定是否合適。",
+    "howToDesign": "如何設計一個好的題目？",
+    "howToDesignPrompt": "請教我如何設計一個好的程式題目？",
+    "testCaseSkills": "測試案例設計技巧",
+    "testCaseSkillsPrompt": "請分享測試案例設計的技巧和最佳實踐。"
+  },
+  "welcome": {
+    "title": "我能為您做什麼？",
+    "subtitle": "正在協助您編輯：{{title}}"
+  },
+  "approval": {
+    "title": "需要確認操作",
+    "confirm": "確認執行",
+    "cancel": "取消",
+    "preview": "預覽變更"
+  },
+  "userInput": {
+    "title": "請回答問題",
+    "submit": "送出回答",
+    "cancel": "跳過"
+  }
+}

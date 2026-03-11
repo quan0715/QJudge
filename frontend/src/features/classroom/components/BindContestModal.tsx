@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, StructuredListWrapper, StructuredListHead, StructuredListRow, StructuredListCell, StructuredListBody, RadioButton } from "@carbon/react";
 import { getContests } from "@/infrastructure/api/repositories/contest.repository";
 import { bindContest } from "@/infrastructure/api/repositories/classroom.repository";
@@ -19,6 +20,7 @@ export const BindContestModal: React.FC<BindContestModalProps> = ({
   onClose,
   onBound,
 }) => {
+  const { t } = useTranslation("classroom");
   const [contests, setContests] = useState<Contest[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -52,20 +54,20 @@ export const BindContestModal: React.FC<BindContestModalProps> = ({
       open={open}
       onRequestClose={() => { setSelected(null); onClose(); }}
       onRequestSubmit={handleSubmit}
-      modalHeading="綁定競賽"
-      primaryButtonText={submitting ? "綁定中..." : "綁定"}
+      modalHeading={t("bindContest.modal.title")}
+      primaryButtonText={submitting ? t("bindContest.modal.submitting") : t("bindContest.modal.submit")}
       primaryButtonDisabled={submitting || !selected}
-      secondaryButtonText="取消"
+      secondaryButtonText={t("bindContest.modal.cancel")}
     >
       {contests.length === 0 ? (
-        <p style={{ color: "var(--cds-text-secondary)" }}>沒有可綁定的競賽</p>
+        <p style={{ color: "var(--cds-text-secondary)" }}>{t("bindContest.modal.noContests")}</p>
       ) : (
         <StructuredListWrapper selection>
           <StructuredListHead>
             <StructuredListRow head>
               <StructuredListCell head />
-              <StructuredListCell head>競賽名稱</StructuredListCell>
-              <StructuredListCell head>狀態</StructuredListCell>
+              <StructuredListCell head>{t("bindContest.modal.table.name")}</StructuredListCell>
+              <StructuredListCell head>{t("bindContest.modal.table.status")}</StructuredListCell>
             </StructuredListRow>
           </StructuredListHead>
           <StructuredListBody>

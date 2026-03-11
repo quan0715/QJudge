@@ -140,7 +140,6 @@ const TeacherProblemsScreen = ({
         >
           {tp("management.problemCount", {
             count: totalCount,
-            defaultValue: `共 ${totalCount} 道題目`,
           })}
         </h2>
         <TableContainer>
@@ -262,7 +261,7 @@ const TeacherProblemsScreen = ({
 
       <Modal
         open={deleteModalOpen}
-        modalHeading={tp("modal.confirmDelete", "確認刪除")}
+        modalHeading={tp("modal.confirmDelete")}
         primaryButtonText={t("button.delete")}
         secondaryButtonText={t("button.cancel")}
         onRequestClose={() => {
@@ -276,7 +275,6 @@ const TeacherProblemsScreen = ({
         <p>
           {tp("modal.deleteConfirmMessage", {
             title: problemToDelete?.title,
-            defaultValue: `確定要刪除題目「${problemToDelete?.title}」嗎？此操作無法復原。`,
           })}
         </p>
       </Modal>
@@ -301,7 +299,7 @@ const TeacherProblemsScreen = ({
               color: "var(--cds-text-secondary)",
             }}
           >
-            {tp("management.description", "管理您建立的題目")}
+            {tp("management.description")}
           </p>
           <Button
             kind="primary"
@@ -357,7 +355,7 @@ const TeacherProblemsScreen = ({
                       color: "var(--cds-text-secondary)",
                     }}
                   >
-                    {tp("management.description", "管理您建立的題目")}
+                    {tp("management.description")}
                   </p>
                 </div>
                 <Button

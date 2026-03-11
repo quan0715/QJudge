@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,6 +74,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   onBack,
   onProblemUpdated,
 }) => {
+  const { t } = useTranslation("problem");
   const { user } = useAuth();
   const { autoSave } = useProblemEdit();
   const { exportFormat, setExportFormat, pdfScale, setPdfScale } =
@@ -89,7 +91,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   return (
     <div className="problem-edit-page">
       <ProblemEditHeader
-        title={problem.title || "載入中..."}
+        title={problem.title || t("edit.messages.loadFailed")}
         onBack={onBack}
         globalSaveStatus={<GlobalSaveStatus status={autoSave.globalStatus} />}
         actions={
@@ -97,7 +99,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
             <TriggerModal
               trigger={
                 <Button kind="ghost" renderIcon={Upload}>
-                  匯入
+                  {t("edit.actions.import")}
                 </Button>
               }
               renderModal={({ open, onClose }) => (
@@ -112,7 +114,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
             <TriggerModal
               trigger={
                 <Button kind="ghost" renderIcon={Download}>
-                  匯出
+                  {t("edit.actions.export")}
                 </Button>
               }
               renderModal={({ open, onClose }) => (
@@ -132,7 +134,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
               renderIcon={View}
               onClick={() => previewModalRef.current?.open()}
             >
-              預覽
+              {t("edit.actions.preview")}
             </Button>
           </>
         }
@@ -197,6 +199,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
 const ProblemEditPageInner: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("problem");
   const { user } = useAuth();
   const { showToast } = useToast();
   const { exportFormat, pdfScale } = useProblemEditUI();
@@ -262,14 +265,14 @@ const ProblemEditPageInner: React.FC = () => {
         await patchProblem(id, apiPayload);
         showToast({
           kind: "success",
-          title: "匯入成功",
-          subtitle: "YAML 資料已匯入並儲存",
+          title: t("edit.messages.importSuccess"),
+          subtitle: t("edit.messages.importSuccessDetail"),
         });
       } catch (err) {
         showToast({
           kind: "warning",
-          title: "匯入成功，但自動儲存失敗",
-          subtitle: err instanceof Error ? err.message : "請手動儲存",
+          title: t("edit.messages.importSuccessSaveFailed"),
+          subtitle: err instanceof Error ? err.message : t("button.save"),
         });
       }
     },
@@ -284,9 +287,9 @@ const ProblemEditPageInner: React.FC = () => {
       methods.setValue("visibility", newVisibility);
 
       const labels = {
-        public: "題目已公開",
-        private: "題目已設為私有",
-        hidden: "題目已隱藏"
+        public: t("edit.status.public"),
+        private: t("edit.status.private"),
+        hidden: t("edit.status.hidden")
       };
 
       showToast({
@@ -296,8 +299,8 @@ const ProblemEditPageInner: React.FC = () => {
     } catch (err) {
       showToast({
         kind: "error",
-        title: "操作失敗",
-        subtitle: err instanceof Error ? err.message : "請稍後再試",
+        title: tc("message.error"),
+        subtitle: err instanceof Error ? err.message : t("message.tryAdjustFilters"),
       });
       throw err;
     }
@@ -310,15 +313,15 @@ const ProblemEditPageInner: React.FC = () => {
       await deleteProblem(problem.id);
       showToast({
         kind: "success",
-        title: "刪除成功",
-        subtitle: "正在跳轉...",
+        title: t("edit.messages.deleteSuccess"),
+        subtitle: t("edit.messages.deleteSuccessDetail"),
       });
       setTimeout(() => navigate("/problems"), 1000);
     } catch (err) {
       showToast({
         kind: "error",
-        title: "刪除失敗",
-        subtitle: err instanceof Error ? err.message : "請稍後再試",
+        title: t("edit.messages.deleteFailed"),
+        subtitle: err instanceof Error ? err.message : tc("message.error"),
       });
       throw err;
     }
@@ -344,8 +347,8 @@ const ProblemEditPageInner: React.FC = () => {
         onClose();
         showToast({
           kind: "success",
-          title: "YAML 匯出成功",
-          subtitle: "檔案已下載",
+          title: t("edit.messages.exportSuccess"),
+          subtitle: t("edit.messages.exportSuccessDetail"),
         });
       } else {
         // PDF export
@@ -353,8 +356,8 @@ const ProblemEditPageInner: React.FC = () => {
         onClose();
         showToast({
           kind: "success",
-          title: "PDF 匯出",
-          subtitle: `PDF 匯出功能開發中... (縮放比例: ${pdfScale}%)`,
+          title: "PDF Export",
+          subtitle: `PDF export feature in development... (Scale: ${pdfScale}%)`,
         });
       }
     },
@@ -362,7 +365,7 @@ const ProblemEditPageInner: React.FC = () => {
   );
   const header = (
     <ProblemEditHeader
-      title={problem?.title || "載入中..."}
+      title={problem?.title || tc("message.loading")}
       onBack={() => navigate(-1)}
     />
   );
@@ -387,7 +390,7 @@ const ProblemEditPageInner: React.FC = () => {
     return (
       <ProblemEditError
         header={header}
-        message={error ? "無法載入題目資料" : "題目不存在"}
+        message={error ? t("edit.messages.loadFailed") : t("edit.messages.notFound")}
         onBack={() => navigate(-1)}
       />
     );

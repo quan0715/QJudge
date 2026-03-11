@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, TextInput, Toggle } from "@carbon/react";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import {
@@ -23,6 +24,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   onClose,
   onSaved,
 }) => {
+  const { t } = useTranslation("classroom");
   const isEdit = !!announcement;
 
   const [title, setTitle] = useState("");
@@ -72,30 +74,36 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       open={open}
       onRequestClose={onClose}
       onRequestSubmit={handleSubmit}
-      modalHeading={isEdit ? "編輯公告" : "發佈公告"}
+      modalHeading={
+        isEdit ? t("announcement.modal.titleEdit") : t("announcement.modal.titleCreate")
+      }
       primaryButtonText={
         submitting
-          ? isEdit ? "儲存中..." : "發佈中..."
-          : isEdit ? "儲存" : "發佈"
+          ? isEdit
+            ? t("announcement.modal.submittingEdit")
+            : t("announcement.modal.submittingCreate")
+          : isEdit
+          ? t("announcement.modal.submitEdit")
+          : t("announcement.modal.submitCreate")
       }
       primaryButtonDisabled={submitting || !title.trim()}
-      secondaryButtonText="取消"
+      secondaryButtonText={t("announcement.modal.cancel")}
       size="lg"
     >
       <div style={{ display: "grid", gap: "1rem" }}>
         <TextInput
           id="announcement-title"
-          labelText="標題"
-          placeholder="公告標題"
+          labelText={t("announcement.modal.form.title")}
+          placeholder={t("announcement.modal.form.titlePlaceholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
 
         <Toggle
           id="announcement-pinned"
-          labelText="置頂公告"
-          labelA="否"
-          labelB="是"
+          labelText={t("announcement.modal.form.pinned")}
+          labelA={t("announcement.modal.form.no")}
+          labelB={t("announcement.modal.form.yes")}
           toggled={isPinned}
           onToggle={(checked: boolean) => setIsPinned(checked)}
           size="sm"
@@ -103,10 +111,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
 
         <MarkdownField
           id="announcement-content"
-          labelText="內容"
+          labelText={t("announcement.modal.form.content")}
           value={content}
           onChange={setContent}
-          placeholder="輸入公告內容，支援 Markdown 語法..."
+          placeholder={t("announcement.modal.form.contentPlaceholder")}
           minHeight="250px"
         />
       </div>
