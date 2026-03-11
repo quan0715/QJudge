@@ -299,7 +299,10 @@ const ProblemEditPageInner: React.FC = () => {
     } catch (err) {
       showToast({
         kind: "error",
-        title: tc("message.error"),
+        title: t("message.error", {
+          ns: "common",
+          defaultValue: "錯誤",
+        }),
         subtitle: err instanceof Error ? err.message : t("message.tryAdjustFilters"),
       });
       throw err;
@@ -321,7 +324,13 @@ const ProblemEditPageInner: React.FC = () => {
       showToast({
         kind: "error",
         title: t("edit.messages.deleteFailed"),
-        subtitle: err instanceof Error ? err.message : tc("message.error"),
+        subtitle:
+          err instanceof Error
+            ? err.message
+            : t("message.error", {
+                ns: "common",
+                defaultValue: "錯誤",
+              }),
       });
       throw err;
     }
@@ -365,7 +374,13 @@ const ProblemEditPageInner: React.FC = () => {
   );
   const header = (
     <ProblemEditHeader
-      title={problem?.title || tc("message.loading")}
+      title={
+        problem?.title ||
+        t("message.loading", {
+          ns: "common",
+          defaultValue: "載入中...",
+        })
+      }
       onBack={() => navigate(-1)}
     />
   );
