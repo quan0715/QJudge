@@ -14,6 +14,8 @@ from .profile import (
     UserStatsView,
     UserPreferencesView,
     ChangePasswordView,
+    ForgotPasswordView,
+    ResetPasswordView,
 )
 from .admin import UserSearchView, UserRoleUpdateView
 from .api_key import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
@@ -34,6 +36,8 @@ __all__ = [
     "UserStatsView",
     "UserPreferencesView",
     "ChangePasswordView",
+    "ForgotPasswordView",
+    "ResetPasswordView",
     "UserAPIKeyView",
     "ValidateAPIKeyView",
     "GetUsageStatsView",

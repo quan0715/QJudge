@@ -6,17 +6,27 @@ import {
   getUserPreferences,
   updateUserPreferences,
   changePassword as changePasswordApi,
+  updateCurrentUserProfile,
+  requestPasswordReset as requestPasswordResetApi,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type {
   ThemePreference,
   UserPreferences,
   ChangePasswordRequest,
   UpdatePreferencesRequest,
+  UpdateAccountProfileRequest,
 } from "@/core/entities/auth.entity";
 
 // Module-level state to prevent multiple instances from loading simultaneously
 let globalLoadedForUserId: number | null = null;
-let globalIsLoading = false;
+let globalPreferencesCache: UserPreferences | null = null;
+let globalLoadPromise: Promise<UserPreferences | null> | null = null;
+
+export const __resetUserPreferencesCacheForTests = () => {
+  globalLoadedForUserId = null;
+  globalPreferencesCache = null;
+  globalLoadPromise = null;
+};
 
 export interface UseUserPreferencesReturn {
   // Current preferences
@@ -47,13 +57,17 @@ export interface UseUserPreferencesReturn {
 
   // Password
   changePassword: (data: ChangePasswordRequest) => Promise<void>;
+  requestPasswordReset: () => Promise<void>;
+
+  // Account profile
+  updateAccountProfile: (data: UpdateAccountProfileRequest) => Promise<void>;
 
   // Refresh
   refresh: () => Promise<void>;
 }
 
 export const useUserPreferences = (): UseUserPreferencesReturn => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { preference, setPreference, theme } = useTheme();
   const { setContentLanguage, contentLanguage } = useContentLanguage();
 
@@ -69,42 +83,75 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const setContentLanguageRef = useRef(setContentLanguage);
   setContentLanguageRef.current = setContentLanguage;
 
+  const applyPreferencesToState = useCallback(
+    (nextPreferences: UserPreferences) => {
+      setPreferences(nextPreferences);
+      // Sync backend preference into ThemeContext (single source of truth)
+      setPreference(nextPreferences.preferred_theme);
+      setContentLanguageRef.current(
+        nextPreferences.preferred_language as typeof contentLanguage
+      );
+    },
+    [setPreference]
+  );
+
   // Load preferences from backend when user is logged in
   const loadPreferences = useCallback(async () => {
     if (!user) {
       globalLoadedForUserId = null;
+      globalPreferencesCache = null;
+      globalLoadPromise = null;
+      setPreferences(null);
       return;
     }
 
-    // Skip if already loading or already loaded for this user (using global state)
-    if (globalIsLoading || globalLoadedForUserId === user.id) {
+    // User switched: clear stale cache from previous account.
+    if (globalLoadedForUserId !== null && globalLoadedForUserId !== user.id) {
+      globalLoadedForUserId = null;
+      globalPreferencesCache = null;
+      globalLoadPromise = null;
+    }
+
+    // Fast path: reuse cached preferences for this user.
+    if (globalLoadedForUserId === user.id && globalPreferencesCache) {
+      applyPreferencesToState(globalPreferencesCache);
+      setLoading(false);
+      setError(null);
       return;
     }
 
-    globalIsLoading = true;
     setLoading(true);
     setError(null);
 
+    if (!globalLoadPromise) {
+      globalLoadPromise = (async () => {
+        const response = await getUserPreferences();
+        if (response.success && response.data) {
+          return response.data;
+        }
+        return null;
+      })();
+    }
+
+    const pendingLoad = globalLoadPromise;
+
     try {
-      const response = await getUserPreferences();
-      if (response.success && response.data) {
-        setPreferences(response.data);
-        // Sync backend preference into ThemeContext (single source of truth)
-        setPreference(response.data.preferred_theme);
-        // Use ref to avoid dependency on setContentLanguage
-        setContentLanguageRef.current(
-          response.data.preferred_language as typeof contentLanguage
-        );
+      const loadedPreferences = await pendingLoad;
+      if (loadedPreferences) {
+        globalPreferencesCache = loadedPreferences;
         globalLoadedForUserId = user.id;
+        applyPreferencesToState(loadedPreferences);
       }
     } catch (err) {
       setError(err as Error);
       console.error("Failed to load preferences:", err);
     } finally {
       setLoading(false);
-      globalIsLoading = false;
+      if (globalLoadPromise === pendingLoad) {
+        globalLoadPromise = null;
+      }
     }
-  }, [user, setPreference]);  
+  }, [user, applyPreferencesToState]);
 
   // Load preferences on mount or when user changes
   useEffect(() => {
@@ -120,9 +167,13 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       if (user) {
         try {
           await updateUserPreferences({ preferred_theme: newPref });
-          setPreferences((prev) =>
-            prev ? { ...prev, preferred_theme: newPref } : null
-          );
+          setPreferences((prev) => {
+            const base = prev ?? globalPreferencesCache;
+            if (!base) return prev;
+            const next = { ...base, preferred_theme: newPref };
+            globalPreferencesCache = next;
+            return next;
+          });
         } catch (err) {
           console.error("Failed to update theme preference:", err);
           throw err;
@@ -140,9 +191,13 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       if (user) {
         try {
           await updateUserPreferences({ preferred_language: lang });
-          setPreferences((prev) =>
-            prev ? { ...prev, preferred_language: lang } : null
-          );
+          setPreferences((prev) => {
+            const base = prev ?? globalPreferencesCache;
+            if (!base) return prev;
+            const next = { ...base, preferred_language: lang };
+            globalPreferencesCache = next;
+            return next;
+          });
         } catch (err) {
           console.error("Failed to update language preference:", err);
           throw err;
@@ -173,19 +228,21 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       }
 
       // Update local state
-      setPreferences((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...(settings.fontSize !== undefined && {
-                editor_font_size: settings.fontSize,
-              }),
-              ...(settings.tabSize !== undefined && {
-                editor_tab_size: settings.tabSize,
-              }),
-            }
-          : null
-      );
+      setPreferences((prev) => {
+        const base = prev ?? globalPreferencesCache;
+        if (!base) return prev;
+        const next = {
+          ...base,
+          ...(settings.fontSize !== undefined && {
+            editor_font_size: settings.fontSize,
+          }),
+          ...(settings.tabSize !== undefined && {
+            editor_tab_size: settings.tabSize,
+          }),
+        };
+        globalPreferencesCache = next;
+        return next;
+      });
 
       if (user) {
         try {
@@ -205,16 +262,26 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       if (user) {
         try {
           await updateUserPreferences({ display_name: name });
-          setPreferences((prev) =>
-            prev ? { ...prev, display_name: name } : null
-          );
+          setPreferences((prev) => {
+            const base =
+              prev ??
+              globalPreferencesCache ?? {
+                preferred_language: contentLanguage,
+                preferred_theme: preference,
+                editor_font_size: 12,
+                editor_tab_size: 4 as 2 | 4,
+              };
+            const next = { ...base, display_name: name };
+            globalPreferencesCache = next;
+            return next;
+          });
         } catch (err) {
           console.error("Failed to update display name:", err);
           throw err;
         }
       }
     },
-    [user]
+    [user, contentLanguage, preference]
   );
 
   // Change password
@@ -229,6 +296,28 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     [user]
   );
 
+  const updateAccountProfile = useCallback(
+    async (data: UpdateAccountProfileRequest) => {
+      if (!user) {
+        throw new Error("Must be logged in to update profile");
+      }
+
+      const response = await updateCurrentUserProfile(data);
+      const nextUser = response.data;
+      setUser(nextUser);
+      localStorage.setItem("user", JSON.stringify(nextUser));
+      window.dispatchEvent(new Event("storage"));
+    },
+    [user, setUser]
+  );
+
+  const requestPasswordReset = useCallback(async () => {
+    if (!user?.email) {
+      throw new Error("Email is required for password reset");
+    }
+    await requestPasswordResetApi({ email: user.email });
+  }, [user?.email]);
+
   return {
     preferences,
     loading,
@@ -241,9 +330,11 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     editorFontSize: preferences?.editor_font_size ?? 12,
     editorTabSize: preferences?.editor_tab_size ?? 4,
     updateEditorSettings,
-    displayName: preferences?.display_name ?? '',
+    displayName: preferences?.display_name ?? user?.profile?.display_name ?? '',
     updateDisplayName,
     changePassword,
+    requestPasswordReset,
+    updateAccountProfile,
     refresh: loadPreferences,
   };
 };

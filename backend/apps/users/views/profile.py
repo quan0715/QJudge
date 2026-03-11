@@ -5,6 +5,8 @@ from ._impl import (
     UserStatsView,
     UserPreferencesView,
     ChangePasswordView,
+    ForgotPasswordView,
+    ResetPasswordView,
 )
 
 __all__ = [
@@ -12,4 +14,6 @@ __all__ = [
     "UserStatsView",
     "UserPreferencesView",
     "ChangePasswordView",
+    "ForgotPasswordView",
+    "ResetPasswordView",
 ]

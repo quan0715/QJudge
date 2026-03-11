@@ -78,6 +78,9 @@ export interface ContestParticipant {
   userId: string;
   username: string;
   email?: string;
+  userDisplayName?: string;
+  accountRole?: string;
+  authProvider?: string;
   score: number;
   rank?: number;
   joinedAt: string;

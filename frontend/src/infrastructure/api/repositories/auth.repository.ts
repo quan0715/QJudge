@@ -18,8 +18,12 @@ import type {
   UpdatePreferencesRequest,
   ChangePasswordRequest,
   ChangePasswordResponse,
+  CurrentUserResponse,
+  ForgotPasswordRequest,
   APIKeyResponse,
+  ResetPasswordRequest,
   SetAPIKeyRequest,
+  UpdateAccountProfileRequest,
   UsageStatsResponse,
 } from "@/core/entities/auth.entity";
 
@@ -176,6 +180,33 @@ export const changePassword = async (
   );
 };
 
+export const updateCurrentUserProfile = async (
+  data: UpdateAccountProfileRequest
+): Promise<CurrentUserResponse> => {
+  return requestJson<CurrentUserResponse>(
+    httpClient.patch(`${API_BASE}/me`, data),
+    "Failed to update profile"
+  );
+};
+
+export const requestPasswordReset = async (
+  data: ForgotPasswordRequest
+): Promise<{ success: boolean; message?: string }> => {
+  return requestJson<{ success: boolean; message?: string }>(
+    httpClient.post(`${API_BASE}/forgot-password`, data),
+    "Failed to request password reset"
+  );
+};
+
+export const resetPassword = async (
+  data: ResetPasswordRequest
+): Promise<{ success: boolean; message?: string }> => {
+  return requestJson<{ success: boolean; message?: string }>(
+    httpClient.post(`${API_BASE}/reset-password`, data),
+    "Failed to reset password"
+  );
+};
+
 // ============================================================================
 // API Key Management
 // ============================================================================
@@ -233,6 +264,9 @@ export default {
   getUserPreferences,
   updateUserPreferences,
   changePassword,
+  updateCurrentUserProfile,
+  requestPasswordReset,
+  resetPassword,
   getAPIKeyInfo,
   setAPIKey,
   deleteAPIKey,

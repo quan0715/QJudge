@@ -328,8 +328,13 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                     {/* Profile header */}
                     <div className={styles.profileHeader}>
                       <div className={styles.listItemName}>
-                        <span className={styles.primaryText}>{participant.displayName || participant.nickname || participant.username}</span>
-                        <span className={styles.secondaryText}>@{participant.username}{participant.email ? ` • ${participant.email}` : ""}</span>
+                        <span className={styles.primaryText}>
+                          {participant.userDisplayName || participant.displayName || participant.nickname || participant.username}
+                        </span>
+                        <span className={styles.secondaryText}>
+                          @{participant.username}
+                          {participant.email ? ` • ${participant.email}` : ""}
+                        </span>
                         <div className={styles.inlineMeta}>
                           <Tag type="blue">{t(`examStatus.${participant.examStatus}`, participant.examStatus)}</Tag>
                           {participant.submitReason ? <Tag>{participant.submitReason}</Tag> : null}
@@ -428,6 +433,17 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
                       <div className={styles.summaryList}>
                         {[
+                          { icon: UserMultiple, label: t("participantsDashboard.username", "使用者"), value: participant.username || "-" },
+                          { icon: UserMultiple, label: t("participantsDashboard.displayName", "顯示名稱"), value: participant.userDisplayName || "-" },
+                          { icon: UserMultiple, label: t("participantsDashboard.accountRole", "身份"), value: participant.accountRole ? t(`user.role.${participant.accountRole}`, participant.accountRole) : "-" },
+                          {
+                            icon: Login,
+                            label: t("participantsDashboard.registrationIdentity", "註冊身份"),
+                            value:
+                              participant.authProvider && participant.authProvider !== "email"
+                                ? t("participantsDashboard.registrationIdentitySso", "SSO")
+                                : t("participantsDashboard.registrationIdentityOther", "其他"),
+                          },
                           { icon: Calendar, label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
                           { icon: Login, label: t("participantsDashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
                           { icon: Logout, label: t("participantsDashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
