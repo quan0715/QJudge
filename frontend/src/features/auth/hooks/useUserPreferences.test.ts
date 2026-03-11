@@ -245,6 +245,60 @@ describe("useUserPreferences", () => {
     expect(setContentLanguage).toHaveBeenCalledWith("en");
   });
 
+  it("should keep optimistic language when stale load resolves later", async () => {
+    const setContentLanguage = vi.fn();
+    vi.mocked(useContentLanguage).mockReturnValue({
+      contentLanguage: "zh-TW",
+      setContentLanguage,
+      toggleLanguage: vi.fn(),
+      supportedLanguages: [] as any,
+      getCurrentLanguageLabel: vi.fn(),
+      getCurrentLanguageShortLabel: vi.fn(),
+    });
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser: vi.fn(),
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    vi.mocked(updateUserPreferences).mockResolvedValue({
+      success: true,
+      data: { ...mockPreferences, preferred_language: "en" },
+    });
+
+    let resolvePreferences: ((value: { success: true; data: typeof mockPreferences }) => void) | null = null;
+    const delayedPreferences = new Promise<{ success: true; data: typeof mockPreferences }>((resolve) => {
+      resolvePreferences = resolve;
+    });
+    vi.mocked(getUserPreferences).mockReturnValue(delayedPreferences as any);
+
+    const { result } = renderHook(() => useUserPreferences());
+
+    await act(async () => {
+      await result.current.updateLanguage("en");
+    });
+
+    await act(async () => {
+      resolvePreferences?.({ success: true, data: mockPreferences });
+      await delayedPreferences;
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(setContentLanguage).toHaveBeenCalledWith("en");
+    expect(setContentLanguage).not.toHaveBeenLastCalledWith("zh-TW");
+  });
+
   it("should update editor settings", async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {

@@ -2,7 +2,7 @@ import React from "react";
 import { ClickableTile, Stack, Tag } from "@carbon/react";
 import { Calendar, Time, CheckmarkFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { formatDateTime, DATE_FORMATS } from "@/i18n/date.utils";
+import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
 import type { Contest } from "@/core/entities/contest.entity";
 import {
   getContestState,

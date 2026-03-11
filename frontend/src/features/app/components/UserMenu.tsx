@@ -13,6 +13,7 @@ import {
   Password,
   Edit,
   Code,
+  Book,
   Settings,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
@@ -200,6 +201,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           )}
 
           {/* Settings Link */}
+          <button
+            type="button"
+            className="user-menu-link"
+            onClick={() => {
+              navigate("/docs");
+              setIsExpandedInternal(false);
+              onExpandedChange?.(false);
+            }}
+          >
+            <Book size={16} />
+            {t("nav.documentation")}
+          </button>
+
           <button
             type="button"
             className="user-menu-link"

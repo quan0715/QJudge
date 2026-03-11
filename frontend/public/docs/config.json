@@ -6,7 +6,7 @@
     },
     {
       "id": "user-guide",
-      "items": ["submission", "contests", "judge-system"]
+      "items": ["submission", "contests", "student-exam-guide", "judge-system"]
     },
     {
       "id": "reference",

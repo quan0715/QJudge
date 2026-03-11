@@ -36,8 +36,8 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
       )}
 
       {showLockScreen && (
-        <div className={styles.lockBackdrop}>
-          <div className={styles.lockPanel}>
+        <div className={styles.lockBackdrop} data-testid="exam-lock-overlay">
+          <div className={styles.lockPanel} data-testid="exam-lock-panel">
             <div className={styles.lockHeader}>
               <div className={styles.lockIconWrap}>
                 <Locked size={28} className={styles.lockIcon} />
@@ -65,7 +65,9 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
 
             <div className={styles.actionSection}>
               <Button kind="primary" onClick={onBackToContest}>
+                <span data-testid="exam-lock-back-dashboard-btn">
                 {t("exam.backToDashboard")}
+                </span>
               </Button>
               <p className={styles.actionHint}>{t("exam.canViewButNoAnswer")}</p>
             </div>

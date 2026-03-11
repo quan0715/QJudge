@@ -9,7 +9,6 @@
 
 import { endExam } from "@/infrastructure/api/repositories";
 import { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
 export { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 
 // ============================================================================
@@ -19,6 +18,7 @@ export { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
 export interface LeaveExamInput {
   contestId: string;
   shouldEndExam: boolean;
+  uploadSessionId?: string;
 }
 
 export interface LeaveExamOutput {
@@ -30,12 +30,11 @@ export interface LeaveExamOutput {
 export async function leaveExamUseCase(
   input: LeaveExamInput
 ): Promise<LeaveExamOutput> {
-  const { contestId, shouldEndExam } = input;
+  const { contestId, shouldEndExam, uploadSessionId } = input;
 
   try {
     // End exam if needed
     if (shouldEndExam) {
-      const uploadSessionId = getExamCaptureSessionId(contestId);
       if (uploadSessionId) {
         await endExam(contestId, { upload_session_id: uploadSessionId });
       } else {
@@ -50,14 +49,14 @@ export async function leaveExamUseCase(
       success: true,
       navigateTo: "/contests",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Still navigate even if there's an error
     await exitFullscreen();
 
     return {
       success: false,
       navigateTo: "/contests",
-      error: error?.message || "Failed to end exam",
+      error: error instanceof Error ? error.message : "Failed to end exam",
     };
   }
 }

@@ -10,6 +10,10 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import {
+  gotoExamAnsweringThroughPrecheck,
+  runPrecheckToAnswering,
+} from "../helpers/exam-precheck.helper";
+import {
   TEST_CONTESTS,
   API_ENDPOINTS,
 } from "../helpers/data.helper";
@@ -59,6 +63,20 @@ async function getMonitoringRecoveryGraceMs(page: Page, contestId: string): Prom
     return value;
   }
   return 3_000;
+}
+
+async function getWarningTimeoutSeconds(page: Page, contestId: string): Promise<number> {
+  const headers = await authHeaders(page);
+  const resp = await page.request.get(`/api/v1/contests/${contestId}/anticheat-config/`, {
+    headers,
+  });
+  expect(resp.ok()).toBeTruthy();
+  const payload = await resp.json();
+  const value = payload?.effective?.warning_timeout_seconds;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  return 30;
 }
 
 type ExamEventRow = {
@@ -217,24 +235,8 @@ async function postViolationEvent(
 
 /** Navigate to paper exam answering page directly. */
 async function gotoExamAnswering(page: Page, contestId: string) {
-  // Set precheck gate in sessionStorage so the answering page won't redirect back
-  await page.evaluate((cid) => {
-    window.sessionStorage.setItem(`qjudge.paper_exam.precheck_gate.v1:${cid}`, "1");
-  }, contestId);
-
-  // Stub fullscreen API so ExamModeWrapper's initial check sees us as "in fullscreen"
-  // and doesn't show the exit-fullscreen-and-submit confirmation modal.
-  await page.addInitScript(() => {
-    Object.defineProperty(document, "fullscreenElement", {
-      get: () => document.documentElement,
-      configurable: true,
-    });
-  });
-
-  // Navigate directly to answering page
-  await page.goto(`/contests/${contestId}/paper-exam/answering`);
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1000);
+  await gotoExamAnsweringThroughPrecheck(page, contestId);
+  await stabilizeScreenShare(page);
 }
 
 /** Trigger a visibilitychange hidden event. */
@@ -409,28 +411,6 @@ async function installHeadlessStubs(page: Page) {
       screenDetails.dispatchEvent(new Event("screenschange"));
     };
   });
-}
-
-async function runPrecheckToAnswering(page: Page) {
-  const step1Next = page.getByTestId("precheck-step1-next-btn");
-  await expect(step1Next).toBeEnabled({ timeout: 10000 });
-  await step1Next.click();
-
-  const step2Primary = page.getByTestId("precheck-step2-primary-btn");
-  await expect(step2Primary).toBeVisible({ timeout: 5000 });
-  await step2Primary.click();
-
-  const step2Next = page.getByTestId("precheck-step2-next-btn");
-  await expect(step2Next).toBeVisible({ timeout: 15000 });
-  await expect(step2Next).toBeEnabled({ timeout: 15000 });
-  await step2Next.click();
-
-  const startBtn = page.getByTestId("precheck-confirm-start-btn");
-  await expect(startBtn).toBeVisible({ timeout: 10000 });
-  await expect(startBtn).toBeEnabled({ timeout: 10000 });
-  await startBtn.click();
-
-  await page.waitForURL(/\/paper-exam\/answering/, { timeout: 20000 });
 }
 
 async function answerFirstQuestion(page: Page) {
@@ -995,8 +975,7 @@ test.describe("Paper Exam Precheck E2E", () => {
 // Tests — Anti-Cheat (skipped pending flow stabilisation)
 // ---------------------------------------------------------------------------
 
-// TODO: Re-enable after stabilising precheck gate + fullscreen init flow
-test.describe.skip("Exam Anti-Cheat E2E", () => {
+test.describe("Exam Anti-Cheat E2E", () => {
   test.describe.configure({ mode: "serial" });
 
   // Keep a teacher page open to avoid re-login overhead
@@ -1014,17 +993,34 @@ test.describe.skip("Exam Anti-Cheat E2E", () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    await installHeadlessStubs(page);
     await page.goto("/");
     await clearAuth(page);
   });
 
   // 1. Violation triggers warning modal
   test("violation triggers warning modal", async ({ page }) => {
+    test.setTimeout(90_000);
     const contestId = await ensureStudentReady(page, "student", teacherPage);
+    const studentUserId = await getMyUserId(page);
+    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
     await gotoExamAnswering(page, contestId);
+    const beforeEvents = await listContestExamEvents(teacherPage, contestId);
+    const baselineEventId = beforeEvents.length > 0 ? Math.max(...beforeEvents.map((event) => event.id)) : 0;
 
-    await triggerVisibilityHidden(page);
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
 
     // Wait for the warning modal
     const warningModal = page.getByTestId("exam-warning-modal");
@@ -1038,81 +1034,149 @@ test.describe.skip("Exam Anti-Cheat E2E", () => {
 
     // Modal should close
     await expect(warningModal).not.toBeVisible({ timeout: 5000 });
+    await triggerMouseEnter(page);
   });
 
   // 2. Accumulated violations lock exam (max_cheat_warnings=2)
   test("accumulated violations lock exam", async ({ page }) => {
+    test.setTimeout(90_000);
     const contestId = await ensureStudentReady(page, "student2", teacherPage);
-
-    // Post first violation via API (avoids React state closure issues)
-    const v1Resp = await postViolationEvent(page, contestId, "tab_hidden");
-    expect(v1Resp.ok()).toBeTruthy();
+    const studentUserId = await getMyUserId(page);
+    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
     await gotoExamAnswering(page, contestId);
+    const beforeEvents = await listContestExamEvents(teacherPage, contestId);
+    const firstBaselineEventId = beforeEvents.length > 0 ? Math.max(...beforeEvents.map((event) => event.id)) : 0;
 
-    // Trigger second violation via UI — should lock (max_cheat_warnings=2)
-    await triggerVisibilityHidden(page);
+    // First violation
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId: firstBaselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
+    const firstWarningModal = page.getByTestId("exam-warning-modal");
+    await expect(firstWarningModal).toBeVisible({ timeout: 10000 });
+    await clickVisibleButtonBySpanTestId(page, "exam-warning-confirm-btn");
+    await expect(firstWarningModal).not.toBeVisible({ timeout: 10000 });
 
-    // Warning modal should appear and indicate locked state
-    const warningModal = page.getByTestId("exam-warning-modal");
-    await expect(warningModal).toBeVisible({ timeout: 15000 });
+    const afterFirstEvents = await listContestExamEvents(teacherPage, contestId);
+    const secondBaselineEventId =
+      afterFirstEvents.length > 0 ? Math.max(...afterFirstEvents.map((event) => event.id)) : 0;
 
-    // Wait for API response to populate lastApiResponse.isLocked
-    await page.waitForTimeout(2000);
+    // Second violation should lock (max_cheat_warnings=2)
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId: secondBaselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
 
-    // Acknowledge the locked warning
-    const ackButton = page
-      .getByTestId("exam-warning-confirm-btn")
-      .locator("xpath=ancestor::button[1]");
-    await ackButton.click({ timeout: 5000 });
-
-    // After acknowledging locked warning, lock screen should appear
-    const lockIndicator = page.getByText(/作答已鎖定|Answer Locked/i);
-    await expect(lockIndicator.first()).toBeVisible({ timeout: 15000 });
+    // Locked state can appear immediately and take pointer priority over warning modal.
+    await expect(page.getByTestId("exam-lock-overlay")).toBeVisible({ timeout: 15000 });
+    await triggerMouseEnter(page);
   });
 
-  // 3. 15s warning timeout auto-locks
-  test("15s warning timeout auto-locks", async ({ page }) => {
-    test.setTimeout(45_000);
+  // 3. Warning timeout auto-locks
+  test("warning timeout auto-locks", async ({ page }) => {
+    test.setTimeout(120_000);
 
     const contestId = await ensureStudentReady(page, "student", teacherPage);
+    const studentUserId = await getMyUserId(page);
+    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
+    const warningTimeoutSeconds = await getWarningTimeoutSeconds(page, contestId);
 
     await gotoExamAnswering(page, contestId);
+    const beforeEvents = await listContestExamEvents(teacherPage, contestId);
+    const baselineEventId = beforeEvents.length > 0 ? Math.max(...beforeEvents.map((event) => event.id)) : 0;
 
-    await triggerVisibilityHidden(page);
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
 
     // Verify warning modal appears
     const warningModal = page.getByTestId("exam-warning-modal");
     await expect(warningModal).toBeVisible({ timeout: 15000 });
 
     // Check for countdown text
-    const countdownText = page.getByText(/秒後自動鎖定|auto-locking in/i);
-    await expect(countdownText.first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("exam-warning-countdown")).toBeVisible({ timeout: 5000 });
 
     // Do NOT click acknowledge — wait for auto-lock
-    await page.waitForTimeout(16000);
+    await page.waitForTimeout((warningTimeoutSeconds + 3) * 1000);
 
     // Should show lock screen
-    const lockIndicator = page.getByText(/作答已鎖定|Answer Locked/i);
-    await expect(lockIndicator.first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId("exam-lock-overlay")).toBeVisible({ timeout: 10000 });
+    await triggerMouseEnter(page);
   });
 
   // 4. Unlock notification after admin unlocks
   test("unlock notification after admin unlocks", async ({ page }) => {
+    test.setTimeout(120_000);
     const contestId = await ensureStudentReady(page, "student2", teacherPage);
     const studentUserId = await getMyUserId(page);
+    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
-    // Lock the student via warning_timeout
-    await postViolationEvent(page, contestId, "warning_timeout");
+    await gotoExamAnswering(page, contestId);
+    const beforeEvents = await listContestExamEvents(teacherPage, contestId);
+    const firstBaselineEventId = beforeEvents.length > 0 ? Math.max(...beforeEvents.map((event) => event.id)) : 0;
 
-    // Navigate directly to answering page (NOT via precheck, since precheck
-    // doesn't auto-redirect LOCKED students — only in_progress/paused)
-    await page.goto(`/contests/${contestId}/paper-exam/answering`);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(1500);
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId: firstBaselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
+    const firstWarningModal = page.getByTestId("exam-warning-modal");
+    await expect(firstWarningModal).toBeVisible({ timeout: 10000 });
+    await clickVisibleButtonBySpanTestId(page, "exam-warning-confirm-btn");
+    await expect(firstWarningModal).not.toBeVisible({ timeout: 10000 });
 
-    const lockIndicator = page.getByText(/作答已鎖定|Answer Locked/i);
-    await expect(lockIndicator.first()).toBeVisible({ timeout: 10000 });
+    const afterFirstEvents = await listContestExamEvents(teacherPage, contestId);
+    const secondBaselineEventId =
+      afterFirstEvents.length > 0 ? Math.max(...afterFirstEvents.map((event) => event.id)) : 0;
+
+    await waitForDetectorViolation({
+      page,
+      teacherPage,
+      contestId,
+      studentUserId,
+      baselineEventId: secondBaselineEventId,
+      triggeredEventType: "mouse_leave_triggered",
+      violationEventType: "mouse_leave",
+      graceMs: monitoringRecoveryGraceMs,
+      trigger: () => triggerMouseLeave(page),
+      reset: () => triggerMouseEnter(page),
+    });
+
+    const lockOverlay = page.getByTestId("exam-lock-overlay");
+    await expect(lockOverlay).toBeVisible({ timeout: 10000 });
 
     // Teacher unlocks the student
     const teacherHeaders = await authHeaders(teacherPage);
@@ -1129,25 +1193,25 @@ test.describe.skip("Exam Anti-Cheat E2E", () => {
     await page.waitForTimeout(1500);
 
     // Lock screen should no longer be visible
-    await expect(lockIndicator.first()).not.toBeVisible({ timeout: 10000 });
+    await expect(lockOverlay).not.toBeVisible({ timeout: 10000 });
   });
 
   // 5. Teacher bypass — no warning modal
   test("teacher bypass no warning", async ({ page }) => {
+    test.setTimeout(90_000);
     await loginViaAPI(page, "teacher");
     const contestId = await findExamContestId(page);
+    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
     await page.goto(`/contests/${contestId}`);
     await page.waitForLoadState("networkidle");
 
-    // Trigger blur event
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event("blur"));
-    });
-
-    await page.waitForTimeout(2000);
+    // Trigger mouse-leave style event; teacher should bypass monitoring warnings.
+    await triggerMouseLeave(page);
+    await page.waitForTimeout(monitoringRecoveryGraceMs + 1200);
 
     // No warning modal should appear
-    await expect(page.getByTestId("exam-warning-modal")).toHaveCount(0);
+    await expect(page.getByTestId("exam-warning-modal")).not.toBeVisible();
+    await triggerMouseEnter(page);
   });
 });

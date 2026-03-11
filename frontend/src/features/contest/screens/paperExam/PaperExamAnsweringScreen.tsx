@@ -37,7 +37,7 @@ import {
 } from "@/features/contest/domain/contestRoutePolicy";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
-import { clearExamCaptureSessionId } from "./hooks/examCaptureSession";
+import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);

@@ -4,14 +4,14 @@ import { useExamState } from "./useExamState";
 import { resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { endRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 
 vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
   recordExamEventWithForcedCapture: vi.fn(),
 }));
 
-vi.mock("@/features/contest/screens/paperExam/hooks/examCaptureSession", () => ({
+vi.mock("@/shared/state/examCaptureSessionStore", () => ({
   getExamCaptureSessionId: vi.fn(),
 }));
 

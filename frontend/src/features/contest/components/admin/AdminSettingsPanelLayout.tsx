@@ -2,7 +2,7 @@ import React from "react";
 import { Layer } from "@carbon/react";
 import { FieldSaveIndicator } from "@/shared/ui/autoSave/FieldSaveIndicator";
 import type { FieldSaveState } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import s from "./AdminContestSettingsPanel.module.scss";
+import s from "@/features/contest/screens/admin/panels/AdminContestSettingsPanel.module.scss";
 
 // ── Shared text styles ──────────────────────────────────────────
 

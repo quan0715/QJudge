@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { recordViolationUseCase } from "./recordViolation.usecase";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
 
-vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
-  recordExamEventWithForcedCapture: vi.fn(),
+vi.mock("@/infrastructure/api/repositories", () => ({
+  recordExamEvent: vi.fn(),
 }));
 
 describe("recordViolation.usecase", () => {
@@ -13,7 +13,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("maps violation response payload", async () => {
-    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
+    vi.mocked(recordExamEvent).mockResolvedValue({
       violation_count: 2,
       max_cheat_warnings: 3,
       auto_unlock_at: "2026-02-24T10:00:00Z",
@@ -27,7 +27,7 @@ describe("recordViolation.usecase", () => {
       reason: "left window",
     });
 
-    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
+    expect(recordExamEvent).toHaveBeenCalledWith(
       "contest-1",
       "window_blur",
       expect.objectContaining({
@@ -45,7 +45,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("returns default success payload when response is not object", async () => {
-    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(null as any);
+    vi.mocked(recordExamEvent).mockResolvedValue(null as any);
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",
@@ -62,7 +62,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("returns error payload when repository throws", async () => {
-    vi.mocked(recordExamEventWithForcedCapture).mockRejectedValue(new Error("network down"));
+    vi.mocked(recordExamEvent).mockRejectedValue(new Error("network down"));
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",

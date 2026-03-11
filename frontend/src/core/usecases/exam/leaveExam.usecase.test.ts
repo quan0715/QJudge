@@ -80,9 +80,12 @@ describe("leaveExam.usecase", () => {
     const result = await leaveExamUseCase({
       contestId: "contest-1",
       shouldEndExam: true,
+      uploadSessionId: "upload-session-1",
     });
 
-    expect(endExam).toHaveBeenCalledWith("contest-1");
+    expect(endExam).toHaveBeenCalledWith("contest-1", {
+      upload_session_id: "upload-session-1",
+    });
     expect(result).toEqual({
       success: true,
       navigateTo: "/contests",

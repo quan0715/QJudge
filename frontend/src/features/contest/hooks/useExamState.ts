@@ -9,7 +9,7 @@ import {
 } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 
 export interface UseExamStateProps {
   contestId: string;

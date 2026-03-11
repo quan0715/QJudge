@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
-  Dropdown,
   InlineNotification,
-  Modal,
-  Tag,
-  TextArea,
 } from "@carbon/react";
-import { ChevronDown, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -30,34 +25,19 @@ import {
 } from "@/infrastructure/api/repositories";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
-import ParticipantDashboardPane from "./participants/ParticipantDashboardPane";
-import ParticipantsListPane from "./participants/ParticipantsListPane";
+import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
+import ParticipantsListPane from "@/features/contest/components/participants/ParticipantsListPane";
+import ParticipantsMobileSelector from "@/features/contest/components/participants/ParticipantsMobileSelector";
+import ParticipantStatusEditModal from "@/features/contest/components/participants/ParticipantStatusEditModal";
 import useParticipantDashboard from "./participants/useParticipantDashboard";
-import styles from "./participants/ContestParticipantsDashboard.module.scss";
-
-const EXAM_STATUS_KEYS: ExamStatusType[] = [
-  "not_started",
-  "in_progress",
-  "paused",
-  "locked",
-  "locked_takeover",
-  "submitted",
-];
-
-const DETAIL_OPTIONS_BY_TYPE: Record<"coding" | "paper_exam", ParticipantDashboardDetail[]> = {
-  coding: ["overview", "report", "events", "submissions"],
-  paper_exam: ["overview", "report", "events", "evidence"],
-};
-
-type SortKey = "score_desc" | "joined_desc" | "violations_desc" | "name_asc";
-
-const STATUS_TAG_TYPE: Record<string, string> = {
-  submitted: "green",
-  in_progress: "blue",
-  paused: "purple",
-  locked: "red",
-  locked_takeover: "red",
-};
+import {
+  DETAIL_OPTIONS_BY_TYPE,
+  EXAM_STATUS_KEYS,
+  getParticipantDisplayName,
+  type SortKey,
+  STATUS_TAG_TYPE,
+} from "./participants/participantsScreen.config";
+import styles from "@/features/contest/components/participants/ContestParticipantsDashboard.module.scss";
 
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -429,14 +409,7 @@ const ContestParticipantsScreen = () => {
     isRefreshingParticipants: isManualRefreshing || isRefreshing,
   };
 
-  const selectedDisplayName = selectedParticipant
-    ? (
-        selectedParticipant.userDisplayName ||
-        selectedParticipant.displayName ||
-        selectedParticipant.nickname ||
-        selectedParticipant.username
-      )
-    : null;
+  const selectedDisplayName = getParticipantDisplayName(selectedParticipant);
 
   const selectedStatusTag = selectedParticipant?.examStatus
     ? (STATUS_TAG_TYPE[selectedParticipant.examStatus] || "cool-gray")
@@ -445,30 +418,23 @@ const ContestParticipantsScreen = () => {
   return (
     <>
       <div className={styles.root}>
-        {/* Mobile trigger — select participant */}
-        <button
-          type="button"
-          className={styles.mobileTrigger}
-          onClick={() => setDrawerOpen(true)}
-        >
-          <UserMultiple size={16} />
-          <span className={styles.mobileTriggerLabel}>
-            {selectedDisplayName || t("participants.selectParticipant", "選擇參賽者")}
-            {selectedParticipant ? (
-              <span className={styles.mobileTriggerSub}>
-                {" "}@{selectedParticipant.username}
-              </span>
-            ) : null}
-          </span>
-          {selectedStatusTag ? (
-            <Tag type={selectedStatusTag as never} size="sm">
-              {t(`examStatus.${selectedParticipant!.examStatus}`, selectedParticipant!.examStatus)}
-            </Tag>
-          ) : null}
-          <ChevronDown size={16} />
-        </button>
+        <ParticipantsMobileSelector
+          drawerOpen={drawerOpen}
+          selectedDisplayName={selectedDisplayName}
+          selectedParticipant={selectedParticipant}
+          selectedStatusTag={selectedStatusTag}
+          selectedStatusLabel={
+            selectedParticipant?.examStatus
+              ? t(`examStatus.${selectedParticipant.examStatus}`, selectedParticipant.examStatus)
+              : null
+          }
+          selectParticipantLabel={t("participants.selectParticipant", "選擇參賽者")}
+          listPaneProps={listPaneProps}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onCloseDrawer={() => setDrawerOpen(false)}
+          onSelectUser={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
+        />
 
-        {/* Desktop list pane */}
         <div className={styles.listCol}>
           <ParticipantsListPane
             {...listPaneProps}
@@ -495,23 +461,6 @@ const ContestParticipantsScreen = () => {
         />
       </div>
 
-      {/* Mobile drawer backdrop */}
-      <div
-        className={`${styles.drawerBackdrop} ${drawerOpen ? styles.drawerBackdropOpen : ""}`}
-        onClick={() => setDrawerOpen(false)}
-      />
-
-      {/* Mobile drawer */}
-      <aside className={`${styles.drawer} ${drawerOpen ? styles.drawerOpen : ""}`}>
-        <ParticipantsListPane
-          {...listPaneProps}
-          onSelect={(userId) => {
-            updateParams({ user: userId, detail: detail || "overview" });
-            setDrawerOpen(false);
-          }}
-        />
-      </aside>
-
       {notification ? (
         <InlineNotification
           lowContrast
@@ -528,46 +477,19 @@ const ContestParticipantsScreen = () => {
         onSubmit={handleAddParticipant}
       />
 
-      <Modal
+      <ParticipantStatusEditModal
         open={editModalOpen}
-        modalHeading={t("participants.editModal.heading", { name: editingParticipant?.username })}
-        primaryButtonText={saving ? t("common.saving", "儲存中...") : t("participants.editModal.save", "儲存變更")}
-        secondaryButtonText={t("common.cancel", "取消")}
-        onRequestClose={() => setEditModalOpen(false)}
-        onRequestSubmit={() => {
+        saving={saving}
+        participantUsername={editingParticipant?.username}
+        examStatus={editExamStatus}
+        lockReason={editLockReason}
+        onClose={() => setEditModalOpen(false)}
+        onSubmit={() => {
           void handleUpdateParticipant();
         }}
-        primaryButtonDisabled={saving}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", paddingTop: "0.5rem" }}>
-          <Dropdown
-            id="edit-participant-status"
-            titleText={t("participants.editModal.examStatus", "考試狀態")}
-            label={t("participants.editModal.selectStatus", "選擇狀態")}
-            items={EXAM_STATUS_KEYS.map((id) => ({
-              id,
-              label: t(`examStatus.${id}`, id),
-            }))}
-            selectedItem={{
-              id: editExamStatus,
-              label: t(`examStatus.${editExamStatus}`, editExamStatus),
-            }}
-            itemToString={(item) => item?.label || ""}
-            onChange={({ selectedItem }) =>
-              setEditExamStatus((selectedItem?.id as ExamStatusType) || "not_started")
-            }
-          />
-
-          {(editExamStatus === "locked" || editExamStatus === "locked_takeover") ? (
-            <TextArea
-              id="edit-participant-lock-reason"
-              labelText={t("participants.editModal.lockReason", "鎖定原因")}
-              value={editLockReason}
-              onChange={(event) => setEditLockReason(event.target.value)}
-            />
-          ) : null}
-        </div>
-      </Modal>
+        onExamStatusChange={setEditExamStatus}
+        onLockReasonChange={setEditLockReason}
+      />
 
       <ConfirmModal {...modalProps} />
     </>

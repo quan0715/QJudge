@@ -18,7 +18,7 @@ import {
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/shared/hooks";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
 import SurfaceSection from "@/shared/layout/SurfaceSection";

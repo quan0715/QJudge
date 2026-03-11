@@ -8,7 +8,10 @@ import {
   type ForcedCaptureOptions,
   type ForcedCaptureResult,
 } from "@/features/contest/anticheat/forcedCapture";
-import { getExamCaptureSessionId, setExamCaptureSessionId } from "./examCaptureSession";
+import {
+  getExamCaptureSessionId,
+  setExamCaptureSessionId,
+} from "@/shared/state/examCaptureSessionStore";
 import {
   consumePrecheckScreenShareHandoff,
   consumeRuntimeScreenShareHandoff,
@@ -17,7 +20,7 @@ import {
   peekRuntimeScreenShareHandoff,
   clearPrecheckScreenShareHandoff,
   clearRuntimeScreenShareHandoff,
-} from "./examScreenShareHandoff";
+} from "@/features/contest/anticheat/screenShareHandoffStore";
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 import type {
@@ -399,11 +402,11 @@ export const useAnticheatScreenCapture = ({
   // policy/config state is still hydrating.
   useEffect(() => {
     const wasMonitoring = prevMonitorStreamRef.current;
-    if (wasMonitoring && !monitorStream) {
+    if (wasMonitoring && !monitorStream && !preserveStreamOnUnmount) {
       forceStopCapture("monitor_disabled");
     }
     prevMonitorStreamRef.current = monitorStream;
-  }, [forceStopCapture, monitorStream]);
+  }, [forceStopCapture, monitorStream, preserveStreamOnUnmount]);
 
   // Last-resort cleanup for route transitions/unmount.
   useEffect(
