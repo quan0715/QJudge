@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   Dropdown,
@@ -62,7 +62,7 @@ const STATUS_TAG_TYPE: Record<string, string> = {
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
-  const { participants, examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
   const { contest } = useContest();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,6 +81,8 @@ const ContestParticipantsScreen = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const refreshInFlightRef = useRef(false);
 
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
@@ -118,16 +120,6 @@ const ContestParticipantsScreen = () => {
     [t],
   );
 
-  const recentActivityByUser = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const event of examEvents) {
-      if (!map.has(event.userId)) {
-        map.set(event.userId, event.timestamp);
-      }
-    }
-    return map;
-  }, [examEvents]);
-
   const processedParticipants = useMemo(() => {
     let rows = [...participants];
     if (statusFilter !== "all") {
@@ -139,6 +131,7 @@ const ContestParticipantsScreen = () => {
       rows = rows.filter((participant) => {
         const haystacks = [
           participant.username,
+          participant.userDisplayName,
           participant.nickname,
           participant.displayName,
           participant.email,
@@ -158,8 +151,16 @@ const ContestParticipantsScreen = () => {
         case "violations_desc":
           return right.violationCount - left.violationCount;
         case "name_asc":
-          return (left.displayName || left.nickname || left.username).localeCompare(
-            right.displayName || right.nickname || right.username,
+          return (
+            left.userDisplayName ||
+            left.displayName ||
+            left.nickname ||
+            left.username
+          ).localeCompare(
+            right.userDisplayName ||
+              right.displayName ||
+              right.nickname ||
+              right.username,
           );
         case "score_desc":
         default:
@@ -248,10 +249,15 @@ const ContestParticipantsScreen = () => {
     updateParams,
   ]);
 
-  const refreshBoth = async () => {
-    await refreshAdminData();
-    await refreshDashboard();
-  };
+  const refreshBoth = useCallback(async () => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    try {
+      await Promise.all([refreshAdminData(), refreshDashboard()]);
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }, [refreshAdminData, refreshDashboard]);
 
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
@@ -362,6 +368,15 @@ const ContestParticipantsScreen = () => {
     }
   };
 
+  const handleRefreshParticipants = async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refreshBoth();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  };
+
   const openEditModal = () => {
     if (!dashboard) return;
     setEditingParticipant(dashboard.participant);
@@ -410,11 +425,17 @@ const ContestParticipantsScreen = () => {
       setPageSize(nextPageSize);
     },
     onAddParticipant: () => setAddModalOpen(true),
-    getRecentActivity: (userId: string) => recentActivityByUser.get(userId) || null,
+    onRefreshParticipants: () => void handleRefreshParticipants(),
+    isRefreshingParticipants: isManualRefreshing || isRefreshing,
   };
 
   const selectedDisplayName = selectedParticipant
-    ? (selectedParticipant.displayName || selectedParticipant.nickname || selectedParticipant.username)
+    ? (
+        selectedParticipant.userDisplayName ||
+        selectedParticipant.displayName ||
+        selectedParticipant.nickname ||
+        selectedParticipant.username
+      )
     : null;
 
   const selectedStatusTag = selectedParticipant?.examStatus

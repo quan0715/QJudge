@@ -98,5 +98,48 @@
     "easy": "Easy",
     "medium": "Medium",
     "hard": "Hard"
+  },
+  "edit": {
+    "sections": {
+      "basicInfo": "Basic Information",
+      "content": "Problem Content",
+      "testCases": "Test Cases",
+      "languageSettings": "Language Settings"
+    },
+    "actions": {
+      "import": "Import",
+      "export": "Export",
+      "preview": "Preview",
+      "save": "Save",
+      "delete": "Delete",
+      "back": "Back"
+    },
+    "messages": {
+      "importSuccess": "Import Successful",
+      "importSuccessDetail": "YAML data imported and saved",
+      "importSuccessSaveFailed": "Import successful, but auto-save failed",
+      "deleteSuccess": "Delete Successful",
+      "deleteSuccessDetail": "Redirecting...",
+      "deleteFailed": "Delete Failed",
+      "exportSuccess": "YAML Export Successful",
+      "exportSuccessDetail": "File downloaded",
+      "loadFailed": "Failed to load problem data",
+      "notFound": "Problem not found",
+      "noPermission": "You do not have permission to edit this problem",
+      "noPermissionTitle": "Permission Denied"
+    },
+    "status": {
+      "public": "Problem is now public",
+      "private": "Problem set to private",
+      "hidden": "Problem hidden"
+    },
+    "exportModal": {
+      "title": "Export Problem",
+      "submit": "Export",
+      "cancel": "Cancel",
+      "scaleLabel": "Scale",
+      "scalePlaceholder": "Select scale",
+      "description": "Export problem data as YAML for backup or import to other systems."
+    }
   }
 }

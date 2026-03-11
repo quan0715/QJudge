@@ -8,6 +8,8 @@ import zhTWContest from "./locales/zh-TW/contest.json";
 import zhTWAdmin from "./locales/zh-TW/admin.json";
 import zhTWDocs from "./locales/zh-TW/docs.json";
 import zhTWLanding from "./locales/zh-TW/landing.json";
+import zhTWClassroom from "./locales/zh-TW/classroom.json";
+import zhTWChatbot from "./locales/zh-TW/chatbot.json";
 
 // English
 import enCommon from "./locales/en/common.json";
@@ -16,6 +18,8 @@ import enContest from "./locales/en/contest.json";
 import enAdmin from "./locales/en/admin.json";
 import enDocs from "./locales/en/docs.json";
 import enLanding from "./locales/en/landing.json";
+import enClassroom from "./locales/en/classroom.json";
+import enChatbot from "./locales/en/chatbot.json";
 
 // Japanese
 import jaCommon from "./locales/ja/common.json";
@@ -24,6 +28,8 @@ import jaContest from "./locales/ja/contest.json";
 import jaAdmin from "./locales/ja/admin.json";
 import jaDocs from "./locales/ja/docs.json";
 import jaLanding from "./locales/ja/landing.json";
+import jaClassroom from "./locales/ja/classroom.json";
+import jaChatbot from "./locales/ja/chatbot.json";
 
 // Korean
 import koCommon from "./locales/ko/common.json";
@@ -32,6 +38,8 @@ import koContest from "./locales/ko/contest.json";
 import koAdmin from "./locales/ko/admin.json";
 import koDocs from "./locales/ko/docs.json";
 import koLanding from "./locales/ko/landing.json";
+import koClassroom from "./locales/ko/classroom.json";
+import koChatbot from "./locales/ko/chatbot.json";
 
 const resources = {
   "zh-TW": {
@@ -41,6 +49,8 @@ const resources = {
     admin: zhTWAdmin,
     docs: zhTWDocs,
     landing: zhTWLanding,
+    classroom: zhTWClassroom,
+    chatbot: zhTWChatbot,
   },
   en: {
     common: enCommon,
@@ -49,6 +59,8 @@ const resources = {
     admin: enAdmin,
     docs: enDocs,
     landing: enLanding,
+    classroom: enClassroom,
+    chatbot: enChatbot,
   },
   ja: {
     common: jaCommon,
@@ -57,6 +69,8 @@ const resources = {
     admin: jaAdmin,
     docs: jaDocs,
     landing: jaLanding,
+    classroom: jaClassroom,
+    chatbot: jaChatbot,
   },
   ko: {
     common: koCommon,
@@ -65,6 +79,8 @@ const resources = {
     admin: koAdmin,
     docs: koDocs,
     landing: koLanding,
+    classroom: koClassroom,
+    chatbot: koChatbot,
   },
 };
 
@@ -82,7 +98,7 @@ i18n.use(initReactI18next).init({
   resources,
   lng: "zh-TW",
   fallbackLng: "zh-TW",
-  ns: ["common", "problem", "contest", "admin", "docs", "landing"],
+  ns: ["common", "problem", "contest", "admin", "docs", "landing", "classroom", "chatbot"],
   defaultNS: "common",
   interpolation: {
     escapeValue: false,

@@ -1,12 +1,17 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useUserPreferences } from "./useUserPreferences";
+import {
+  useUserPreferences,
+  __resetUserPreferencesCacheForTests,
+} from "./useUserPreferences";
 
 // Mock the auth service
 vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
   getUserPreferences: vi.fn(),
   updateUserPreferences: vi.fn(),
   changePassword: vi.fn(),
+  updateCurrentUserProfile: vi.fn(),
+  requestPasswordReset: vi.fn(),
 }));
 
 // Mock the auth context
@@ -39,6 +44,8 @@ import {
   getUserPreferences,
   updateUserPreferences,
   changePassword,
+  updateCurrentUserProfile,
+  requestPasswordReset,
 } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -55,6 +62,7 @@ describe("useUserPreferences", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
+    __resetUserPreferencesCacheForTests();
 
     // Mock window.matchMedia for system theme detection
     Object.defineProperty(window, "matchMedia", {
@@ -98,6 +106,11 @@ describe("useUserPreferences", () => {
       ] as any,
       getCurrentLanguageLabel: vi.fn(() => "繁體中文"),
       getCurrentLanguageShortLabel: vi.fn(() => "中"),
+    });
+
+    vi.mocked(getUserPreferences).mockResolvedValue({
+      success: true,
+      data: mockPreferences,
     });
   });
 
@@ -315,6 +328,81 @@ describe("useUserPreferences", () => {
     expect(changePassword).toHaveBeenCalledWith(passwordData);
   });
 
+  it("should update account profile and sync local user cache", async () => {
+    const setUser = vi.fn();
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser,
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    vi.mocked(updateCurrentUserProfile).mockResolvedValue({
+      success: true,
+      data: {
+        id: 1,
+        username: "next-user",
+        email: "next@test.com",
+        role: "student",
+      } as any,
+    });
+
+    const { result } = renderHook(() => useUserPreferences());
+
+    await act(async () => {
+      await result.current.updateAccountProfile({
+        username: "next-user",
+        email: "next@test.com",
+      });
+    });
+
+    expect(updateCurrentUserProfile).toHaveBeenCalledWith({
+      username: "next-user",
+      email: "next@test.com",
+    });
+    expect(setUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: "next-user",
+        email: "next@test.com",
+      })
+    );
+  });
+
+  it("should request password reset for logged-in user", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser: vi.fn(),
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    vi.mocked(requestPasswordReset).mockResolvedValue({
+      success: true,
+    });
+
+    const { result } = renderHook(() => useUserPreferences());
+
+    await act(async () => {
+      await result.current.requestPasswordReset();
+    });
+
+    expect(requestPasswordReset).toHaveBeenCalledWith({
+      email: "test@test.com",
+    });
+  });
+
   it("should throw error when changing password without being logged in", async () => {
     const { result } = renderHook(() => useUserPreferences());
 
@@ -382,5 +470,39 @@ describe("useUserPreferences", () => {
     // When themePreference is 'system', effectiveTheme should be based on system
     expect(result.current.themePreference).toBe("system");
     expect(result.current.effectiveTheme).toBe("dark");
+  });
+
+  it("should reuse cached preferences across hook instances", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser: vi.fn(),
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    vi.mocked(getUserPreferences).mockResolvedValue({
+      success: true,
+      data: { ...mockPreferences, display_name: "Cached Name" },
+    });
+
+    const first = renderHook(() => useUserPreferences());
+    await waitFor(() => {
+      expect(first.result.current.loading).toBe(false);
+      expect(first.result.current.displayName).toBe("Cached Name");
+    });
+
+    const second = renderHook(() => useUserPreferences());
+    await waitFor(() => {
+      expect(second.result.current.loading).toBe(false);
+      expect(second.result.current.displayName).toBe("Cached Name");
+    });
+
+    expect(getUserPreferences).toHaveBeenCalledTimes(1);
   });
 });

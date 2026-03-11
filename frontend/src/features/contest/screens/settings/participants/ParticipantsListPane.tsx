@@ -6,7 +6,7 @@ import {
   SkeletonText,
   Tag,
 } from "@carbon/react";
-import { Add } from "@carbon/icons-react";
+import { Add, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -32,6 +32,8 @@ interface ParticipantsListPaneProps {
   onPageChange: (page: number, pageSize: number) => void;
   onSelect: (userId: string) => void;
   onAddParticipant: () => void;
+  onRefreshParticipants: () => void;
+  isRefreshingParticipants?: boolean;
 }
 
 const toTagType = (status: ContestParticipant["examStatus"]) => {
@@ -68,6 +70,8 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   onPageChange,
   onSelect,
   onAddParticipant,
+  onRefreshParticipants,
+  isRefreshingParticipants = false,
 }) => {
   const { t } = useTranslation("contest");
   type Option = { id: string; label: string };
@@ -78,14 +82,28 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
       className={styles.pane}
       noPadding
       action={
-        <Button
-          kind="primary"
-          size="md"
-          renderIcon={Add}
-          iconDescription={t("participants.add", "新增")}
-          hasIconOnly
-          onClick={onAddParticipant}
-        />
+        <div className={styles.listActions}>
+          <Button
+            kind="ghost"
+            size="md"
+            data-testid="participants-list-refresh-btn"
+            renderIcon={Renew}
+            iconDescription={t("common.refresh", "重新整理")}
+            disabled={isRefreshingParticipants}
+            onClick={onRefreshParticipants}
+          >
+            {t("common.refresh", "重新整理")}
+          </Button>
+          <Button
+            kind="primary"
+            size="md"
+            data-testid="participants-list-add-btn"
+            renderIcon={Add}
+            iconDescription={t("participants.add", "新增")}
+            hasIconOnly
+            onClick={onAddParticipant}
+          />
+        </div>
       }
     >
       <div className={styles.paneInner}>
@@ -167,11 +185,11 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
                 <div className={styles.listItemHeader}>
                   <div className={styles.listItemName}>
                     <span className={styles.primaryText}>
-                      {participant.displayName || participant.nickname || participant.username}
+                      {participant.userDisplayName || participant.displayName || participant.nickname || participant.username}
                     </span>
                     <span className={styles.secondaryText}>@{participant.username}</span>
                   </div>
-                  <Tag type={toTagType(participant.examStatus)}>
+                  <Tag type={toTagType(participant.examStatus)} size="sm">
                     {t(`examStatus.${participant.examStatus}`, participant.examStatus)}
                   </Tag>
                 </div>

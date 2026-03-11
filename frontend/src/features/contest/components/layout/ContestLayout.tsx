@@ -184,12 +184,31 @@ const ContestLayout = () => {
       return outletContent;
     }
 
-    if (isUpcoming && contest && !isAdmin) {
+    if (isUpcoming && contest) {
       return (
         <div className={styles.scrollableContent}>
           <ContestPreRegistrationScreen
             contest={contest}
             onJoin={handleJoin}
+            isAdmin={isAdmin}
+            onOpenAdminPanel={
+              isAdmin ? () => navigate(`/contests/${contestId}/admin`) : undefined
+            }
+          />
+        </div>
+      );
+    }
+
+    if (contest && !contest.hasJoined) {
+      return (
+        <div className={styles.scrollableContent}>
+          <ContestPreRegistrationScreen
+            contest={contest}
+            onJoin={handleJoin}
+            isAdmin={isAdmin}
+            onOpenAdminPanel={
+              isAdmin ? () => navigate(`/contests/${contestId}/admin`) : undefined
+            }
           />
         </div>
       );
@@ -204,7 +223,6 @@ const ContestLayout = () => {
         hero={
           <ContestHero
             contest={contest}
-            onJoin={handleJoin}
             onLeave={handleLeave}
             onStartExam={handleStartExam}
             onEndExam={handleEndExam}
@@ -227,6 +245,7 @@ const ContestLayout = () => {
     cheatDetectionEnabled: !!contest?.cheatDetectionEnabled,
     isExamMonitored: !!contest?.isExamMonitored,
     requiresFullscreen: !!contest?.requiresFullscreen,
+    hasEnded,
     lockReason: contest?.lockReason,
     examStatus: contest?.examStatus,
     onRefresh: refreshContest,

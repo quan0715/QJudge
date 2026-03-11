@@ -317,6 +317,9 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     userId: dto.user_id?.toString() || "",
     username: dto.username || "",
     email: dto.user?.email,
+    userDisplayName: dto.user_display_name || dto.user?.profile?.display_name || "",
+    accountRole: dto.account_role || dto.user?.role || "",
+    authProvider: dto.auth_provider || dto.user?.auth_provider || "",
     // 優先使用動態計算的 total_score，否則使用靜態的 score
     score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,

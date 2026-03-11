@@ -38,7 +38,7 @@ const TeacherContestsScreen = ({
   embedded = false,
 }: TeacherContestsScreenProps) => {
   const navigate = useNavigate();
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const { t: tc } = useTranslation("contest");
 
   const { contests, isLoading, refetch, deleteContest, isDeleting } =
@@ -98,7 +98,7 @@ const TeacherContestsScreen = ({
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString("zh-TW", {
+    return date.toLocaleString(i18n.language, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -161,7 +161,6 @@ const TeacherContestsScreen = ({
           >
             {tc("management.contestCount", {
               count: filteredContests.length,
-              defaultValue: `共 ${filteredContests.length} 場競賽`,
             })}
           </h2>
           <Dropdown
@@ -284,7 +283,7 @@ const TeacherContestsScreen = ({
 
       <Modal
         open={deleteModalOpen}
-        modalHeading={tc("modal.confirmDelete", "確認刪除")}
+        modalHeading={tc("modal.confirmDelete")}
         primaryButtonText={t("button.delete")}
         secondaryButtonText={t("button.cancel")}
         onRequestClose={() => {
@@ -298,7 +297,6 @@ const TeacherContestsScreen = ({
         <p>
           {tc("modal.deleteConfirmMessage", {
             name: contestToDelete?.name,
-            defaultValue: `確定要刪除競賽「${contestToDelete?.name}」嗎？此操作無法復原。`,
           })}
         </p>
       </Modal>
@@ -323,14 +321,14 @@ const TeacherContestsScreen = ({
               color: "var(--cds-text-secondary)",
             }}
           >
-            {tc("management.description", "管理您建立的競賽")}
+            {tc("management.description")}
           </p>
           <Button
             kind="primary"
             renderIcon={Add}
             onClick={() => setIsCreateModalOpen(true)}
           >
-            {tc("button.createContest", "新增競賽")}
+            {tc("button.createContest")}
           </Button>
         </div>
         {tableContent}
@@ -379,7 +377,7 @@ const TeacherContestsScreen = ({
                       color: "var(--cds-text-secondary)",
                     }}
                   >
-                    {tc("management.description", "管理您建立的競賽")}
+                    {tc("management.description")}
                   </p>
                 </div>
                 <Button
@@ -387,7 +385,7 @@ const TeacherContestsScreen = ({
                   renderIcon={Add}
                   onClick={() => setIsCreateModalOpen(true)}
                 >
-                  {tc("button.createContest", "新增競賽")}
+                  {tc("button.createContest")}
                 </Button>
               </div>
             </div>

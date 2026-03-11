@@ -25,7 +25,10 @@
     "environment": "Environment",
     "createContest": "Create Contest",
     "createProblem": "Create Problem",
-    "editProblem": "Edit Problem"
+    "editProblem": "Edit Problem",
+    "teacherDashboard": "Teacher Dashboard",
+    "problemManagement": "Problem Management",
+    "contestManagement": "Contest Management"
   },
   "tab": {
     "overview": "Overview",

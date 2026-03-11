@@ -804,6 +804,9 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     nickname = serializers.CharField(read_only=True)
     display_name = serializers.SerializerMethodField()
+    user_display_name = serializers.SerializerMethodField()
+    account_role = serializers.CharField(source='user.role', read_only=True)
+    auth_provider = serializers.CharField(source='user.auth_provider', read_only=True)
     total_score = serializers.SerializerMethodField()
     
     auto_unlock_at = serializers.SerializerMethodField()
@@ -815,7 +818,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'user_id', 'username', 'user', 'score', 'total_score', 'rank', 
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
-            'nickname', 'display_name',
+            'nickname', 'display_name', 'user_display_name', 'account_role', 'auth_provider',
         ]
     
     def get_total_score(self, obj):
@@ -886,6 +889,12 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             return 0
             
         return int((unlock_at - now).total_seconds())
+
+    def get_user_display_name(self, obj):
+        profile = getattr(obj.user, 'profile', None)
+        if not profile:
+            return ""
+        return profile.display_name or ""
 
 
 # ============================================================================

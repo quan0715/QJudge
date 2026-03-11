@@ -113,7 +113,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         })
         .finally(() => {
           if (contestId) clearExamCaptureSessionId(contestId);
-          forceStopCapture();
+          forceStopCapture("submitted");
           setAutoSubmitted(true);
           if (isFullscreen()) exitFullscreen().catch(() => {});
         });
@@ -145,7 +145,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
     if (contest.examStatus === "submitted") {
       clearExamCaptureSessionId(contestId);
-      forceStopCapture();
+      forceStopCapture("submitted");
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
   }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
@@ -224,7 +224,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setIsSubmittingExam(false);
     if (!success) return;
     clearExamCaptureSessionId(contestId);
-    forceStopCapture();
+    forceStopCapture("submitted");
     setShowSubmitReview(false);
     navigate(getContestDashboardPath(contestId));
   }, [

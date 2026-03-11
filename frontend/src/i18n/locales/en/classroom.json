@@ -1,0 +1,53 @@
+{
+  "members": {
+    "headers": {
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "joinedAt": "Joined At"
+    },
+    "actions": {
+      "remove": "Remove"
+    }
+  },
+  "announcement": {
+    "modal": {
+      "titleCreate": "Post Announcement",
+      "titleEdit": "Edit Announcement",
+      "submitCreate": "Post",
+      "submitEdit": "Save",
+      "submittingCreate": "Posting...",
+      "submittingEdit": "Saving...",
+      "cancel": "Cancel",
+      "form": {
+        "title": "Title",
+        "titlePlaceholder": "Announcement Title",
+        "pinned": "Pinned",
+        "content": "Content",
+        "contentPlaceholder": "Enter announcement content, Markdown supported...",
+        "yes": "Yes",
+        "no": "No"
+      }
+    }
+  },
+  "inviteCode": {
+    "label": "Invite Code",
+    "disabled": "Disabled",
+    "copy": "Copy",
+    "copied": "Copied",
+    "regenerate": "Regenerate"
+  },
+  "bindContest": {
+    "modal": {
+      "title": "Bind Contest",
+      "submit": "Bind",
+      "submitting": "Binding...",
+      "cancel": "Cancel",
+      "noContests": "No contests available to bind",
+      "table": {
+        "name": "Contest Name",
+        "status": "Status"
+      }
+    }
+  }
+}

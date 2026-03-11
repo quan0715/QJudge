@@ -98,5 +98,48 @@
     "easy": "簡単",
     "medium": "普通",
     "hard": "難しい"
+  },
+  "edit": {
+    "sections": {
+      "basicInfo": "基本情報",
+      "content": "問題内容",
+      "testCases": "テストケース",
+      "languageSettings": "言語設定"
+    },
+    "actions": {
+      "import": "インポート",
+      "export": "エクスポート",
+      "preview": "プレビュー",
+      "save": "保存",
+      "delete": "削除",
+      "back": "戻る"
+    },
+    "messages": {
+      "importSuccess": "インポート成功",
+      "importSuccessDetail": "YAMLデータがインポートされ保存されました",
+      "importSuccessSaveFailed": "インポートには成功しましたが、自動保存に失敗しました",
+      "deleteSuccess": "削除成功",
+      "deleteSuccessDetail": "リダイレクト中...",
+      "deleteFailed": "削除失敗",
+      "exportSuccess": "YAMLエクスポート成功",
+      "exportSuccessDetail": "ファイルがダウンロードされました",
+      "loadFailed": "問題データの読み込みに失敗しました",
+      "notFound": "問題が見つかりません",
+      "noPermission": "この問題を編集する権限がありません",
+      "noPermissionTitle": "権限がありません"
+    },
+    "status": {
+      "public": "問題が公開されました",
+      "private": "問題が非公開に設定されました",
+      "hidden": "問題が非表示になりました"
+    },
+    "exportModal": {
+      "title": "問題をエクスポート",
+      "submit": "エクスポート",
+      "cancel": "キャンセル",
+      "scaleLabel": "スケール",
+      "scalePlaceholder": "スケールを選択",
+      "description": "バックアップや他のシステムへのインポート用に、問題データをYAML形式でエクスポートします。"
+    }
   }
 }

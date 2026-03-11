@@ -1,0 +1,104 @@
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.heroMetaItem {
+  min-width: 12rem;
+}
+
+.heroMetaLabel {
+  margin-bottom: 0.25rem;
+}
+
+.heroMetaValue {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.countdownTile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+}
+
+.countdownIcon {
+  color: var(--cds-icon-secondary);
+}
+
+.countdownText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.countdownLabel {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.countdownValue {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.actionsWrap {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.registeredState {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.registeredIcon {
+  color: var(--cds-support-success);
+}
+
+.registeredText {
+  color: var(--cds-text-primary);
+  font-weight: 500;
+}
+
+.surfaceContent {
+  min-height: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notificationsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rulesSection {
+  padding-top: 0.5rem;
+}
+
+.rulesTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}

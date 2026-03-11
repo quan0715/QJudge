@@ -17,6 +17,8 @@ from .views import (
     UserStatsView,
     UserPreferencesView,
     ChangePasswordView,
+    ForgotPasswordView,
+    ResetPasswordView,
     UserAPIKeyView,
     ValidateAPIKeyView,
     GetUsageStatsView,
@@ -48,6 +50,8 @@ urlpatterns = [
     
     # Password management
     path('change-password', ChangePasswordView.as_view(), name='change-password'),
+    path('forgot-password', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password', ResetPasswordView.as_view(), name='reset-password'),
 
     # API Key management
     path('me/api-key', UserAPIKeyView.as_view(), name='api-key'),

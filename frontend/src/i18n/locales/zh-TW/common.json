@@ -25,7 +25,10 @@
     "environment": "環境設定",
     "createContest": "建立競賽",
     "createProblem": "新增題目",
-    "editProblem": "編輯題目"
+    "editProblem": "編輯題目",
+    "teacherDashboard": "教師後台",
+    "problemManagement": "題目管理",
+    "contestManagement": "競賽管理"
   },
   "tab": {
     "overview": "總覽",

@@ -313,7 +313,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         # Query 1: All participants
         participants = list(
             ContestParticipant.objects.filter(contest=contest)
-            .select_related('user')
+            .select_related('user', 'user__profile')
         )
 
         if contest.contest_type == 'paper_exam':
@@ -360,6 +360,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         try:
             participant = ContestParticipant.objects.select_related(
                 'user',
+                'user__profile',
                 'contest',
             ).get(contest=contest, user_id=user_id)
         except ContestParticipant.DoesNotExist:

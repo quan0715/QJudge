@@ -4,6 +4,7 @@ const RUNTIME_HANDOFF_TTL_MS = 2 * 60_000;
 let handoffStream: MediaStream | null = null;
 let handoffExpireAt = 0;
 let handoffTimer: ReturnType<typeof setTimeout> | null = null;
+let precheckKeeperVideo: HTMLVideoElement | null = null;
 let runtimeHandoffStream: MediaStream | null = null;
 let runtimeHandoffExpireAt = 0;
 let runtimeHandoffTimer: ReturnType<typeof setTimeout> | null = null;
@@ -68,8 +69,44 @@ const detachRuntimeKeeper = () => {
   runtimeKeeperVideo.srcObject = null;
 };
 
+const attachPrecheckKeeper = (stream: MediaStream) => {
+  if (typeof document === "undefined") return;
+  if (!precheckKeeperVideo) {
+    precheckKeeperVideo = document.createElement("video");
+    precheckKeeperVideo.autoplay = true;
+    precheckKeeperVideo.muted = true;
+    precheckKeeperVideo.playsInline = true;
+  }
+  try {
+    precheckKeeperVideo.srcObject = stream;
+  } catch {
+    return;
+  }
+  try {
+    const playResult = precheckKeeperVideo.play();
+    if (playResult && typeof playResult.catch === "function") {
+      void playResult.catch(() => {
+        // Keep-alive best effort only.
+      });
+    }
+  } catch {
+    // Keep-alive best effort only.
+  }
+};
+
+const detachPrecheckKeeper = () => {
+  if (!precheckKeeperVideo) return;
+  try {
+    precheckKeeperVideo.pause();
+  } catch {
+    // ignore
+  }
+  precheckKeeperVideo.srcObject = null;
+};
+
 export const clearPrecheckScreenShareHandoff = (stopTracks = true): void => {
   clearTimer();
+  detachPrecheckKeeper();
   if (stopTracks) stopStreamTracks(handoffStream);
   handoffStream = null;
   handoffExpireAt = 0;
@@ -79,6 +116,7 @@ export const setPrecheckScreenShareHandoff = (stream: MediaStream): void => {
   clearPrecheckScreenShareHandoff(true);
   handoffStream = stream;
   handoffExpireAt = Date.now() + HANDOFF_TTL_MS;
+  attachPrecheckKeeper(stream);
   handoffTimer = setTimeout(() => {
     clearPrecheckScreenShareHandoff(true);
   }, HANDOFF_TTL_MS);
@@ -92,6 +130,7 @@ export const consumePrecheckScreenShareHandoff = (): MediaStream | null => {
   }
   const stream = handoffStream;
   clearTimer();
+  detachPrecheckKeeper();
   handoffStream = null;
   handoffExpireAt = 0;
   return stream;
@@ -136,4 +175,13 @@ export const consumeRuntimeScreenShareHandoff = (): MediaStream | null => {
   runtimeHandoffStream = null;
   runtimeHandoffExpireAt = 0;
   return stream;
+};
+
+export const peekRuntimeScreenShareHandoff = (): MediaStream | null => {
+  if (!runtimeHandoffStream) return null;
+  if (Date.now() > runtimeHandoffExpireAt) {
+    clearRuntimeScreenShareHandoff(true);
+    return null;
+  }
+  return runtimeHandoffStream;
 };

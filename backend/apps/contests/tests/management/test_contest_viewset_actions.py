@@ -13,7 +13,7 @@ from apps.contests.models import Contest, ContestParticipant, ContestActivity, E
 from apps.contests import views as contest_views
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import Problem
-from apps.users.models import User
+from apps.users.models import User, UserProfile
 
 
 def _create_problem(title: str, owner: User, **kwargs) -> Problem:
@@ -257,6 +257,10 @@ def test_owner_can_list_participants(
     student: User,
 ) -> None:
     ContestParticipant.objects.create(contest=contest, user=student)
+    UserProfile.objects.update_or_create(
+        user=student,
+        defaults={"display_name": "Student Display"},
+    )
     api_client.force_authenticate(user=owner)
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/participants/")
@@ -264,6 +268,9 @@ def test_owner_can_list_participants(
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 1
     assert response.data[0]["user"]["id"] == student.id
+    assert response.data[0]["user_display_name"] == "Student Display"
+    assert response.data[0]["account_role"] == student.role
+    assert response.data[0]["auth_provider"] == student.auth_provider
 
 
 @pytest.mark.django_db

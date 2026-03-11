@@ -7,6 +7,8 @@ import {
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 import type { TFunction } from "i18next";
 
+const IME_BLUR_GUARD_MS = 900;
+
 const INTERACTION_EVENTS = [
   "mousedown", "pointerdown", "click", "keydown", "keyup",
   "touchstart", "touchend", "focusin", "focusout", "input",
@@ -26,6 +28,10 @@ export class FocusDetector implements ExamDetector {
   private handleVisibilityChange: ((event: Event) => void) | null = null;
   private lastVerifyResponse: string | null = null;
   private handleBlur: (() => void) | null = null;
+  private handleCompositionStart: (() => void) | null = null;
+  private handleCompositionEnd: (() => void) | null = null;
+  private isComposing = false;
+  private lastCompositionEndAt = 0;
   private onInteractionCallbacks: Array<() => void> = [];
 
   constructor(t: TFunction) {
@@ -58,6 +64,9 @@ export class FocusDetector implements ExamDetector {
     });
 
     this.handleBlur = () => {
+      if (this.isComposing) return;
+      if (Date.now() - this.lastCompositionEndAt < IME_BLUR_GUARD_MS) return;
+
       const timeSinceInteraction = Date.now() - this.lastInteractionTime;
       if (timeSinceInteraction < EXAM_MONITORING_BLUR_DEBOUNCE_MS) return;
 
@@ -90,9 +99,20 @@ export class FocusDetector implements ExamDetector {
       }, EXAM_MONITORING_FOCUS_CHECK_DELAY_MS);
     };
 
+    this.handleCompositionStart = () => {
+      this.isComposing = true;
+    };
+
+    this.handleCompositionEnd = () => {
+      this.isComposing = false;
+      this.lastCompositionEndAt = Date.now();
+    };
+
     INTERACTION_EVENTS.forEach((ev) =>
       document.addEventListener(ev, this.handleInteraction!, true)
     );
+    document.addEventListener("compositionstart", this.handleCompositionStart, true);
+    document.addEventListener("compositionend", this.handleCompositionEnd, true);
     document.addEventListener("visibilitychange", this.handleVisibilityChange as EventListener);
     window.addEventListener("blur", this.handleBlur);
   }
@@ -106,6 +126,12 @@ export class FocusDetector implements ExamDetector {
     if (this.handleVisibilityChange) {
       document.removeEventListener("visibilitychange", this.handleVisibilityChange as EventListener);
     }
+    if (this.handleCompositionStart) {
+      document.removeEventListener("compositionstart", this.handleCompositionStart, true);
+    }
+    if (this.handleCompositionEnd) {
+      document.removeEventListener("compositionend", this.handleCompositionEnd, true);
+    }
     if (this.handleBlur) {
       window.removeEventListener("blur", this.handleBlur);
     }
@@ -114,6 +140,10 @@ export class FocusDetector implements ExamDetector {
     this.blurCheckTimeout = undefined;
     this.blurConfirmTimeout = undefined;
     this.onViolation = null;
+    this.handleCompositionStart = null;
+    this.handleCompositionEnd = null;
+    this.isComposing = false;
+    this.lastCompositionEndAt = 0;
     this.onInteractionCallbacks = [];
   }
 

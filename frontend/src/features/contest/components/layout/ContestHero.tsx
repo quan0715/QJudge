@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button, Modal, TextInput } from "@carbon/react";
 import {
   PlayFilled,
-  Login,
   Flag,
   WarningAltFilled,
   Launch,
@@ -65,7 +64,6 @@ const MinimalProgressBar = ({
 interface ContestHeroProps {
   contest: ContestDetail | null;
   loading?: boolean;
-  onJoin?: (data?: { nickname?: string; password?: string }) => void;
   onLeave?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
@@ -78,7 +76,6 @@ interface ContestHeroProps {
 const ContestHero: React.FC<ContestHeroProps> = ({
   contest,
   loading,
-  onJoin,
   onStartExam,
   onEndExam,
   onGoToAnswering,
@@ -89,9 +86,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const { t: tc } = useTranslation("common");
   const [progress, setProgress] = useState(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [registerNickname, setRegisterNickname] = useState("");
-  const [password, setPassword] = useState("");
 
   // Update Nickname States
   const [showUpdateNicknameModal, setShowUpdateNicknameModal] = useState(false);
@@ -233,31 +227,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const handleEndClick = () => {
     setShowEndConfirm(true);
   };
-
-
-
   const renderActions = () => {
     // Check if contest has ended (time-based)
     if (isEnded) {
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
           {t("hero.examEnded")}
-        </Button>
-      );
-    }
-
-    // Step 0: Not registered
-    if (!contest.hasJoined) {
-      const handleRegisterClick = () => {
-        if (contest.anonymousModeEnabled || contest.visibility === "private") {
-          setShowRegisterModal(true);
-        } else {
-          onJoin?.();
-        }
-      };
-      return (
-        <Button renderIcon={Login} onClick={handleRegisterClick}>
-          {t("hero.register")}
         </Button>
       );
     }
@@ -449,81 +424,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             value={newNickname}
             onChange={(e) => setNewNickname(e.target.value)}
           />
-        </div>
-      </Modal>
-
-      {/* Registration Modal */}
-      <Modal
-        open={showRegisterModal}
-        modalHeading={t("hero.contestRegister")}
-        primaryButtonText={t("hero.confirmRegister")}
-        secondaryButtonText={tc("button.cancel")}
-        onRequestSubmit={() => {
-          setShowRegisterModal(false);
-          onJoin?.({
-            nickname: registerNickname || undefined,
-            password: password || undefined,
-          });
-          setRegisterNickname("");
-          setPassword("");
-        }}
-        onRequestClose={() => {
-          setShowRegisterModal(false);
-          setRegisterNickname("");
-          setPassword("");
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-          >
-            {contest.visibility === "private" && (
-              <div>
-                <p style={{ marginBottom: "0.5rem" }}>
-                  {t("hero.privateContestHint")}
-                </p>
-                <TextInput
-                  id="password"
-                  labelText={t("hero.passwordLabel")}
-                  type="password"
-                  placeholder={t("hero.passwordPlaceholder")}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            )}
-
-            {contest.anonymousModeEnabled && (
-              <div>
-                <p style={{ marginBottom: "0.5rem" }}>
-                  {t("hero.anonymousModeHint")}
-                </p>
-                <TextInput
-                  id="nickname"
-                  labelText={t("hero.nicknameOptional")}
-                  placeholder={t("hero.leaveBlankForDefault")}
-                  value={registerNickname}
-                  onChange={(e) => setRegisterNickname(e.target.value)}
-                  maxLength={50}
-                />
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--cds-text-secondary)",
-                    marginTop: "0.5rem",
-                  }}
-                >
-                  {t("hero.canChangeNicknameLater")}
-                </p>
-              </div>
-            )}
-
-            {/* Confirmation if no special inputs required but modal opened for some reason? 
-              Logic above ensures modal only opens if private or anonymous. 
-          */}
-          </form>
         </div>
       </Modal>
 

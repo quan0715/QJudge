@@ -57,6 +57,21 @@ export interface ChangePasswordRequest {
   new_password_confirm: string;
 }
 
+export interface UpdateAccountProfileRequest {
+  username?: string;
+  email?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+  new_password_confirm: string;
+}
+
 export interface UpdatePreferencesRequest {
   display_name?: string;
   preferred_language?: string;
@@ -73,6 +88,12 @@ export interface PreferencesResponse {
 
 export interface ChangePasswordResponse {
   success: boolean;
+  message?: string;
+}
+
+export interface CurrentUserResponse {
+  success: boolean;
+  data: User;
   message?: string;
 }
 

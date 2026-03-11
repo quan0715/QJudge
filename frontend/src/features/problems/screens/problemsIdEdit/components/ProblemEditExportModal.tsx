@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, ContentSwitcher, Switch, Dropdown } from "@carbon/react";
 
 interface ProblemEditExportModalProps {
@@ -28,14 +29,15 @@ const ProblemEditExportModal: React.FC<ProblemEditExportModalProps> = ({
   pdfScale,
   onPdfScaleChange,
 }) => {
+  const { t } = useTranslation("problem");
   return (
     <Modal
       open={open}
       onRequestClose={onClose}
       onRequestSubmit={onConfirm}
-      modalHeading="匯出題目"
-      primaryButtonText="匯出"
-      secondaryButtonText="取消"
+      modalHeading={t("edit.exportModal.title")}
+      primaryButtonText={t("edit.exportModal.submit")}
+      secondaryButtonText={t("edit.exportModal.cancel")}
       size="sm"
       className="problem-edit-page__export-modal"
     >
@@ -54,8 +56,8 @@ const ProblemEditExportModal: React.FC<ProblemEditExportModalProps> = ({
           <div className="problem-edit-page__export-options">
             <Dropdown
               id="pdf-scale"
-              titleText="縮放比例"
-              label="選擇縮放比例"
+              titleText={t("edit.exportModal.scaleLabel")}
+              label={t("edit.exportModal.scalePlaceholder")}
               items={PDF_SCALE_OPTIONS}
               itemToString={(item) => (item ? item.text : "")}
               selectedItem={PDF_SCALE_OPTIONS.find(
@@ -72,7 +74,7 @@ const ProblemEditExportModal: React.FC<ProblemEditExportModalProps> = ({
 
         {exportFormat === "yaml" && (
           <p className="problem-edit-page__export-description">
-            將題目資料匯出為 YAML 格式，可用於備份或匯入至其他系統。
+            {t("edit.exportModal.description")}
           </p>
         )}
       </div>

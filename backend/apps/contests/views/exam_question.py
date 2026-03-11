@@ -1,6 +1,7 @@
 """ContestExamQuestionViewSet."""
 import logging
 
+from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max
 from rest_framework import viewsets, permissions, status
@@ -132,6 +133,54 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             'update_problem',
             f"Deleted exam question #{question_id}" + (" (force)" if force else "")
         )
+
+    @action(detail=False, methods=['post'], url_path='batch-import')
+    def batch_import(self, request, contest_pk=None):
+        """Delete all existing questions and create new ones in a single transaction."""
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        force = request.query_params.get('force', '').lower() == 'true'
+        frozen_response = self._ensure_not_frozen(contest, force)
+        if frozen_response:
+            return frozen_response
+
+        questions_data = request.data.get('questions', [])
+        if not isinstance(questions_data, list):
+            return Response(
+                {'error': 'questions must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate all questions before touching the DB
+        serializer = ExamQuestionSerializer(data=questions_data, many=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            ExamQuestion.objects.filter(contest=contest).delete()
+
+            new_questions = []
+            for idx, item_data in enumerate(serializer.validated_data):
+                item_data.pop('id', None)
+                new_questions.append(ExamQuestion(
+                    contest=contest,
+                    order=idx,
+                    **item_data,
+                ))
+            created = ExamQuestion.objects.bulk_create(new_questions)
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            f"Batch imported {len(created)} exam questions" + (" (force)" if force else ""),
+        )
+
+        result_serializer = self.get_serializer(
+            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            many=True,
+        )
+        return Response(result_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request, contest_pk=None):

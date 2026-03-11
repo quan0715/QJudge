@@ -56,6 +56,20 @@ export const deleteExamQuestion = async (
   );
 };
 
+export const batchImportExamQuestions = async (
+  contestId: string,
+  questions: ExamQuestionUpsertPayload[],
+): Promise<ExamQuestion[]> => {
+  const data = await requestJson<unknown>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam-questions/batch-import/`, {
+      questions,
+    }),
+    "Failed to batch import exam questions"
+  );
+
+  return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];
+};
+
 export const reorderExamQuestions = async (
   contestId: string,
   orders: Array<{ id: string; order: number }>

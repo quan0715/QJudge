@@ -8,7 +8,8 @@ Security:
 """
 from rest_framework import status, serializers
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
@@ -16,15 +17,18 @@ import logging
 
 from ..serializers import (
     UserSerializer,
+    CurrentUserUpdateSerializer,
     UserProfileSerializer,
     UserSearchSerializer,
     UserRoleUpdateSerializer,
     UserPreferencesUpdateSerializer,
     ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
     SetAPIKeySerializer,
     ValidateAPIKeySerializer,
 )
-from ..services import APIKeyService
+from ..services import APIKeyService, EmailAuthService
 from ..permissions import IsSuperAdmin, IsTeacherOrAdmin
 from ..models import UserAPIKey
 from .common import SchemaAPIView
@@ -52,7 +56,27 @@ class CurrentUserView(SchemaAPIView):
     def patch(self, request):
         """Update current user profile."""
         user = request.user
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        mutable_fields = {"username", "email"}
+        requested_mutable_fields = mutable_fields.intersection(request.data.keys())
+
+        if user.auth_provider != 'email' and requested_mutable_fields:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'ACCOUNT_FIELDS_LOCKED',
+                    'message': 'SSO/OAuth 帳號無法修改使用者名稱或電子郵件，僅可編輯顯示名稱'
+                }
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        if not requested_mutable_fields:
+            serializer = UserSerializer(user)
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'message': '無更新欄位'
+            })
+
+        serializer = CurrentUserUpdateSerializer(user, data=request.data, partial=True)
         
         if not serializer.is_valid():
             return Response({
@@ -65,10 +89,12 @@ class CurrentUserView(SchemaAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         serializer.save()
+        refreshed_user = User.objects.get(pk=user.pk)
+        response_serializer = UserSerializer(refreshed_user)
         
         return Response({
             'success': True,
-            'data': serializer.data,
+            'data': response_serializer.data,
             'message': '個人資料已更新'
         })
 
@@ -352,6 +378,94 @@ class ChangePasswordView(SchemaAPIView):
         return Response({
             'success': True,
             'message': '密碼已成功變更'
+        })
+
+
+@method_decorator(ratelimit(key='ip', rate='10/h', method='POST', block=True), name='post')
+class ForgotPasswordView(SchemaAPIView):
+    """
+    Request a password reset token.
+
+    POST /api/v1/auth/forgot-password
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = ForgotPasswordSerializer
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '密碼重設請求驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        user = User.objects.filter(
+            email=email,
+            auth_provider='email',
+            is_active=True,
+        ).first()
+
+        reset_url = None
+        if user:
+            reset_url = EmailAuthService.issue_password_reset(user)
+
+        response_data = {
+            'success': True,
+            'message': '若此帳號可重設密碼，已寄送重設說明至信箱'
+        }
+        if settings.DEBUG and reset_url:
+            response_data['data'] = {'reset_url': reset_url}
+        return Response(response_data)
+
+
+@method_decorator(ratelimit(key='ip', rate='20/h', method='POST', block=True), name='post')
+class ResetPasswordView(SchemaAPIView):
+    """
+    Reset password by token.
+
+    POST /api/v1/auth/reset-password
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '密碼重設驗證失敗',
+                    'details': serializer.errors
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        token = serializer.validated_data['token']
+        user = EmailAuthService.get_user_by_password_reset_token(token)
+        if not user:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_RESET_TOKEN',
+                    'message': '重設連結無效或已過期'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data['new_password'])
+        user.password_reset_token = None
+        user.password_reset_expires_at = None
+        user.save(update_fields=['password', 'password_reset_token', 'password_reset_expires_at'])
+
+        return Response({
+            'success': True,
+            'message': '密碼已重設完成'
         })
 
 

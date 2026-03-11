@@ -88,6 +88,11 @@ class EmailAuthService:
     def generate_verification_token():
         """Generate email verification token."""
         return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def generate_password_reset_token():
+        """Generate password reset token."""
+        return secrets.token_urlsafe(32)
     
     @staticmethod
     def send_verification_email(user):
@@ -116,6 +121,28 @@ class EmailAuthService:
             user.email_verification_expires_at = None
             user.save()
             return user
+        except User.DoesNotExist:
+            return None
+
+    @staticmethod
+    def issue_password_reset(user):
+        """Issue a password reset token for the given user."""
+        token = EmailAuthService.generate_password_reset_token()
+        user.password_reset_token = token
+        user.password_reset_expires_at = timezone.now() + timedelta(hours=1)
+        user.save(update_fields=['password_reset_token', 'password_reset_expires_at'])
+        return f"{settings.FRONTEND_URL}/reset-password?token={token}"
+
+    @staticmethod
+    def get_user_by_password_reset_token(token):
+        """Return active email-auth user by valid reset token."""
+        try:
+            return User.objects.get(
+                auth_provider='email',
+                is_active=True,
+                password_reset_token=token,
+                password_reset_expires_at__gt=timezone.now(),
+            )
         except User.DoesNotExist:
             return None
 

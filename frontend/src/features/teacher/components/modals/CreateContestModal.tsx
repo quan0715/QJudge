@@ -87,7 +87,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         minute: "2-digit",
         hour12: false,
       }).format(computedEndDate)
-    : "請先設定開始時間與有效的比賽長度";
+    : t("createModal.endTimePlaceholder");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,23 +97,23 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     const duration = Number.parseInt(durationMinutes, 10);
 
     if (!startDateTime) {
-      setError(t("validation.invalidDateTime", "請選擇有效的開始時間"));
+      setError(t("validation.invalidDateTime"));
       return;
     }
 
     if (Number.isNaN(duration) || duration <= 0) {
-      setError("比賽長度必須是大於 0 的分鐘數");
+      setError(t("createModal.validation.durationPositive"));
       return;
     }
 
     if (isPrivate && !password.trim()) {
-      setError("私人競賽必須設定密碼");
+      setError(t("createModal.validation.passwordRequired"));
       return;
     }
 
     const endDateTime = computedEndDate?.toISOString();
     if (!endDateTime) {
-      setError("無法計算結束時間，請檢查開始時間與比賽長度");
+      setError(t("createModal.validation.cannotComputeEndTime"));
       return;
     }
 
@@ -137,7 +137,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       const message =
         err instanceof Error
           ? err.message
-          : t("error.createFailed", "建立競賽失敗");
+          : t("error.createFailed");
       setError(message);
     } finally {
       setLoading(false);
@@ -156,8 +156,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       onRequestClose={handleClose}
       modalHeading={
         creationType === "exam"
-          ? "新增紙筆題考試"
-          : tc("page.createContest")
+          ? t("createModal.titleExam")
+          : t("createModal.titleCoding")
       }
       primaryButtonText={tc("button.create")}
       secondaryButtonText={tc("button.cancel")}
@@ -188,8 +188,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             aria-pressed={creationType === "coding_test"}
           >
             <Code size={24} />
-            <span className={styles.typeTitle}>Coding Test</span>
-            <span className={styles.typeSubtitle}>程式題為主，支援提交與判題</span>
+            <span className={styles.typeTitle}>{t("createModal.typeCoding")}</span>
+            <span className={styles.typeSubtitle}>{t("createModal.typeCodingDesc")}</span>
           </button>
           <button
             type="button"
@@ -200,26 +200,26 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             aria-pressed={creationType === "exam"}
           >
             <Education size={24} />
-            <span className={styles.typeTitle}>紙筆題考試</span>
-            <span className={styles.typeSubtitle}>考卷題型，是非/選擇/問答</span>
+            <span className={styles.typeTitle}>{t("createModal.typeExam")}</span>
+            <span className={styles.typeSubtitle}>{t("createModal.typeExamDesc")}</span>
           </button>
         </div>
 
         <div className={styles.modeDescription}>
-          <strong>{creationType === "exam" ? "紙筆題考試模式" : "Coding Test 模式"}</strong>
+          <strong>{creationType === "exam" ? t("createModal.modeExam") : t("createModal.modeCoding")}</strong>
           <p>
             {creationType === "exam"
-              ? "學生以卷面作答，問答題可由助教批改。"
-              : "學生以程式題為主，走既有提交與排名流程。"}
+              ? t("createModal.descExam")
+              : t("createModal.descCoding")}
           </p>
         </div>
 
         <TextInput
           id="contest-name"
           labelText={
-            creationType === "exam" ? "紙筆題考試名稱" : tc("form.name")
+            creationType === "exam" ? t("createModal.nameExam") : t("createModal.nameCoding")
           }
-          placeholder={t("placeholder.contestName", "輸入競賽名稱")}
+          placeholder={t("placeholder.contestName")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -245,7 +245,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             <div className={styles.fieldBlock}>
               <TimePicker
                 id="start-time"
-                labelText={tc("form.startTime", "開始時間")}
+                labelText={tc("form.startTime")}
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 className={styles.timeField}
@@ -254,7 +254,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             <div className={styles.fieldBlock}>
               <TextInput
                 id="duration-minutes"
-                labelText="比賽長度（分鐘）"
+                labelText={t("createModal.duration")}
                 type="number"
                 min={1}
                 value={durationMinutes}
@@ -274,7 +274,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                         : ""
                     }`}
                   >
-                    {minutes} 分
+                    {minutes} {t("createModal.durationUnit")}
                   </button>
                 ))}
               </div>
@@ -285,7 +285,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         <div className={styles.endTimeHint}>
           <div className={styles.endTimeHintTitle}>
             <Calendar size={16} />
-            <span>預計結束時間</span>
+            <span>{t("createModal.endTime")}</span>
           </div>
           <div className={styles.endTimeHintValue}>
             <Time size={16} />
@@ -296,17 +296,17 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         <div className={styles.privacySection}>
           <Toggle
             id="contest-private"
-            labelText="私人競賽"
+            labelText={t("createModal.private")}
             toggled={isPrivate}
             onToggle={(checked: boolean) => setIsPrivate(checked)}
-            labelA="公開"
-            labelB="私人"
+            labelA={t("createModal.public")}
+            labelB={t("createModal.privateShort")}
           />
           {isPrivate && (
             <TextInput
               id="contest-password"
-              labelText={t("hero.passwordLabel", "密碼")}
-              placeholder={t("hero.passwordPlaceholder", "請輸入競賽密碼")}
+              labelText={t("hero.passwordLabel")}
+              placeholder={t("hero.passwordPlaceholder")}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -314,6 +314,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             />
           )}
         </div>
+
       </Form>
     </Modal>
   );

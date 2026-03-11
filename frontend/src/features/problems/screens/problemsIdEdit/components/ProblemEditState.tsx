@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Loading, Button } from "@carbon/react";
 
 interface ProblemEditStateProps {
@@ -32,13 +33,14 @@ export const ProblemEditError: React.FC<ProblemEditErrorProps> = ({
   message,
   onBack,
 }) => {
+  const { t } = useTranslation("problem");
   return (
     <div className="problem-edit-page">
       {header}
       <div className="problem-edit-page__error">
         <h3>{message}</h3>
         <Button kind="secondary" onClick={onBack}>
-          返回
+          {t("edit.actions.back")}
         </Button>
       </div>
     </div>
@@ -48,14 +50,15 @@ export const ProblemEditError: React.FC<ProblemEditErrorProps> = ({
 export const ProblemEditPermissionDenied: React.FC<
   ProblemEditPermissionDeniedProps
 > = ({ header, onBack }) => {
+  const { t } = useTranslation("problem");
   return (
     <div className="problem-edit-page">
       {header}
       <div className="problem-edit-page__error">
-        <h3>權限不足</h3>
-        <p>您沒有編輯題目的權限</p>
+        <h3>{t("edit.messages.noPermissionTitle")}</h3>
+        <p>{t("edit.messages.noPermission")}</p>
         <Button kind="secondary" onClick={onBack}>
-          返回
+          {t("edit.actions.back")}
         </Button>
       </div>
     </div>

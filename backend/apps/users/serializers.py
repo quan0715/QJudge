@@ -52,6 +52,30 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
+class CurrentUserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating current user's account fields."""
+
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+
+    def validate_username(self, value):
+        user = self.instance
+        if user and user.username == value:
+            return value
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError('此使用者名稱已被使用')
+        return value
+
+    def validate_email(self, value):
+        user = self.instance
+        if user and user.email == value:
+            return value
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('此 Email 已被註冊')
+        return value
+
+
 class RegisterSerializer(serializers.Serializer):
     """Serializer for user registration with email/password."""
     username = serializers.CharField(
@@ -236,6 +260,43 @@ class ChangePasswordSerializer(serializers.Serializer):
             })
 
         # Validate new password strength
+        try:
+            validate_password(attrs['new_password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({
+                'new_password': list(e.messages)
+            })
+
+        return attrs
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    """Serializer for forgot-password request."""
+
+    email = serializers.EmailField(required=True)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """Serializer for resetting password by token."""
+
+    token = serializers.CharField(required=True, max_length=255)
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({
+                'new_password_confirm': '新密碼不一致'
+            })
+
         try:
             validate_password(attrs['new_password'])
         except ValidationError as e:

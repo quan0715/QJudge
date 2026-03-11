@@ -22,6 +22,7 @@ import {
   updateExamQuestion,
   deleteExamQuestion,
   reorderExamQuestions,
+  batchImportExamQuestions,
   type ExamQuestionUpsertPayload,
 } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
@@ -122,52 +123,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     [],
   );
 
-  const deleteQuestionsByList = useCallback(
-    async (items: ExamQuestion[]) => {
-      for (const question of items) {
-        await deleteExamQuestion(contestId, question.id);
-      }
-    },
-    [contestId],
-  );
-
-  const restoreSnapshot = useCallback(
-    async (snapshot: ExamQuestion[]) => {
-      const sorted = [...snapshot].sort((a, b) => a.order - b.order);
-      for (let index = 0; index < sorted.length; index += 1) {
-        const question = sorted[index];
-        const payload: ExamQuestionUpsertPayload = {
-          question_type: question.questionType,
-          prompt: question.prompt,
-          score: question.score,
-          order: index,
-        };
-
-        if (question.questionType === "single_choice" || question.questionType === "multiple_choice") {
-          payload.options = question.options;
-        }
-        if (question.questionType === "true_false") {
-          payload.options = ["True", "False"];
-        }
-        if (question.correctAnswer !== undefined && question.correctAnswer !== null) {
-          payload.correct_answer = question.correctAnswer;
-        }
-
-        await createExamQuestion(contestId, payload);
-      }
-
-      const restored = await getExamQuestions(contestId);
-      const orders = restored
-        .sort((a, b) => a.order - b.order)
-        .map((question, order) => ({ id: question.id, order }));
-
-      if (orders.length > 0) {
-        await reorderExamQuestions(contestId, orders);
-      }
-    },
-    [contestId],
-  );
-
   // --- Load questions ---
   const loadQuestions = useCallback(async () => {
     if (!contestId) return;
@@ -194,68 +149,20 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         throw new Error("目前題目已凍結，無法匯入。");
       }
 
-      const backup = (await getExamQuestions(contestId)).sort((a, b) => a.order - b.order);
+      const payloads = normalizedQuestions.map((q, index) =>
+        toUpsertPayload(q, index),
+      );
 
-      try {
-        await deleteQuestionsByList(backup);
-
-        for (let index = 0; index < normalizedQuestions.length; index += 1) {
-          await createExamQuestion(
-            contestId,
-            toUpsertPayload(normalizedQuestions[index], index),
-          );
-        }
-
-        const latest = await getExamQuestions(contestId);
-        const latestOrders = latest
-          .sort((a, b) => a.order - b.order)
-          .map((question, order) => ({ id: question.id, order }));
-
-        if (latestOrders.length > 0) {
-          await reorderExamQuestions(contestId, latestOrders);
-        }
-
-        await loadQuestions();
-        setSelectedId(null);
-        showToast({
-          kind: "success",
-          title: t("examEditor.importSuccess", "匯入成功"),
-          subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
-        });
-      } catch (importError) {
-        try {
-          const current = await getExamQuestions(contestId);
-          await deleteQuestionsByList(current);
-          await restoreSnapshot(backup);
-          await loadQuestions();
-          showToast({
-            kind: "warning",
-            title: t("examEditor.importRolledBack", "匯入失敗，已自動回滾"),
-          });
-        } catch (rollbackError) {
-          console.error("Rollback failed", rollbackError);
-          showToast({
-            kind: "error",
-            title: t("examEditor.importRollbackFailed", "匯入失敗且回滾失敗"),
-            subtitle: t("examEditor.importRollbackFailedDetail", "請重新整理頁面後檢查題目內容"),
-          });
-        }
-
-        if (importError instanceof Error) {
-          throw importError;
-        }
-        throw new Error("匯入失敗");
-      }
+      await batchImportExamQuestions(contestId, payloads);
+      await loadQuestions();
+      setSelectedId(null);
+      showToast({
+        kind: "success",
+        title: t("examEditor.importSuccess", "匯入成功"),
+        subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
+      });
     },
-    [
-      contestId,
-      deleteQuestionsByList,
-      frozen,
-      loadQuestions,
-      restoreSnapshot,
-      showToast,
-      toUpsertPayload,
-    ],
+    [contestId, frozen, loadQuestions, showToast, toUpsertPayload],
   );
 
   useImperativeHandle(

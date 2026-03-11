@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Stack, Tag } from "@carbon/react";
 import { Copy, Renew } from "@carbon/icons-react";
 
@@ -13,6 +14,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
   enabled,
   onRegenerate,
 }) => {
+  const { t } = useTranslation("classroom");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -33,7 +35,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
       }}
     >
       <span style={{ fontSize: "0.875rem", color: "var(--cds-text-secondary)" }}>
-        邀請碼
+        {t("inviteCode.label")}
       </span>
       <code
         style={{
@@ -47,7 +49,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
       </code>
       {!enabled && (
         <Tag type="red" size="sm">
-          已停用
+          {t("inviteCode.disabled")}
         </Tag>
       )}
       <Stack orientation="horizontal" gap={3}>
@@ -57,7 +59,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
           renderIcon={Copy}
           onClick={handleCopy}
         >
-          {copied ? "已複製" : "複製"}
+          {copied ? t("inviteCode.copied") : t("inviteCode.copy")}
         </Button>
         <Button
           kind="ghost"
@@ -65,7 +67,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
           renderIcon={Renew}
           onClick={onRegenerate}
         >
-          重新產生
+          {t("inviteCode.regenerate")}
         </Button>
       </Stack>
     </div>
