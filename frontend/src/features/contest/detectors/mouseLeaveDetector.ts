@@ -5,6 +5,8 @@ import {
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 import type { TFunction } from "i18next";
 
+const IME_COMPOSITION_GUARD_MS = 900;
+
 export interface MouseLeaveDetectorOptions {
   onCountdownChange?: (secondsLeft: number | null) => void;
 }
@@ -23,6 +25,10 @@ export class MouseLeaveDetector implements ExamDetector {
   private recoveryInterval: ReturnType<typeof setInterval> | null = null;
   private recoveryActive = false;
   private graceStartedAt = 0;
+  private isComposing = false;
+  private lastCompositionEndAt = 0;
+  private handleCompositionStart: (() => void) | null = null;
+  private handleCompositionEnd: (() => void) | null = null;
 
   constructor(t: TFunction, options: MouseLeaveDetectorOptions = {}) {
     this.t = t;
@@ -35,12 +41,23 @@ export class MouseLeaveDetector implements ExamDetector {
     this.handleMouseLeave = (e: MouseEvent) => {
       // relatedTarget === null means the mouse truly left the window
       if (e.relatedTarget !== null) return;
+      if (this.isComposing) return;
+      if (Date.now() - this.lastCompositionEndAt < IME_COMPOSITION_GUARD_MS) return;
       if (this.recoveryActive) return; // already in recovery
 
       const now = Date.now();
       if (now - this.lastReportAt < EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS) return;
 
       this.startRecovery();
+    };
+
+    this.handleCompositionStart = () => {
+      this.isComposing = true;
+    };
+
+    this.handleCompositionEnd = () => {
+      this.isComposing = false;
+      this.lastCompositionEndAt = Date.now();
     };
 
     this.handleMouseEnter = () => {
@@ -52,6 +69,8 @@ export class MouseLeaveDetector implements ExamDetector {
 
     document.documentElement.addEventListener("mouseleave", this.handleMouseLeave);
     document.documentElement.addEventListener("mouseenter", this.handleMouseEnter);
+    document.addEventListener("compositionstart", this.handleCompositionStart, true);
+    document.addEventListener("compositionend", this.handleCompositionEnd, true);
   }
 
   stop(): void {
@@ -63,7 +82,17 @@ export class MouseLeaveDetector implements ExamDetector {
       document.documentElement.removeEventListener("mouseenter", this.handleMouseEnter);
       this.handleMouseEnter = null;
     }
+    if (this.handleCompositionStart) {
+      document.removeEventListener("compositionstart", this.handleCompositionStart, true);
+      this.handleCompositionStart = null;
+    }
+    if (this.handleCompositionEnd) {
+      document.removeEventListener("compositionend", this.handleCompositionEnd, true);
+      this.handleCompositionEnd = null;
+    }
     this.clearRecovery();
+    this.isComposing = false;
+    this.lastCompositionEndAt = 0;
     this.onViolation = null;
   }
 
