@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useAnticheatScreenCapture } from "./useAnticheatScreenCapture";
 
 // ── Mocks ──────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ vi.mock("./examCaptureSession", () => ({
 
 const mockClearPrecheck = vi.fn();
 const mockClearRuntime = vi.fn();
+const mockSetRuntimeHandoff = vi.fn();
 
 // Track ended listeners — we fire them manually
 type TrackEndedListener = () => void;
@@ -51,8 +52,15 @@ const createMockHandoffStream = (opts?: { active?: boolean }) => {
 let mockHandoffStream: MediaStream | null = null;
 
 vi.mock("./examScreenShareHandoff", () => ({
-  consumePrecheckScreenShareHandoff: () => mockHandoffStream,
+  consumePrecheckScreenShareHandoff: () => {
+    const stream = mockHandoffStream;
+    mockHandoffStream = null;
+    return stream;
+  },
   consumeRuntimeScreenShareHandoff: () => null,
+  setRuntimeScreenShareHandoff: (...args: unknown[]) => mockSetRuntimeHandoff(...args),
+  peekPrecheckScreenShareHandoff: () => mockHandoffStream,
+  peekRuntimeScreenShareHandoff: () => null,
   clearPrecheckScreenShareHandoff: (...args: unknown[]) => mockClearPrecheck(...args),
   clearRuntimeScreenShareHandoff: (...args: unknown[]) => mockClearRuntime(...args),
 }));
@@ -73,6 +81,7 @@ async function setupWithLiveStream(opts?: { onScreenShareLost?: () => void }) {
     useAnticheatScreenCapture({
       contestId: CONTEST_ID,
       enabled: true,
+      monitorStream: true,
       intervalMs: 100_000,
       onScreenShareLost,
     })
@@ -92,6 +101,7 @@ describe("screen share loss detection", () => {
     vi.clearAllMocks();
     trackEndedListeners = [];
     mockHandoffStream = null;
+    mockSetRuntimeHandoff.mockReset();
   });
 
   afterEach(() => {
@@ -123,7 +133,12 @@ describe("screen share loss detection", () => {
     mockHandoffStream = createMockHandoffStream();
 
     const { result } = renderHook(() =>
-      useAnticheatScreenCapture({ contestId: CONTEST_ID, enabled: true, intervalMs: 100_000 })
+      useAnticheatScreenCapture({
+        contestId: CONTEST_ID,
+        enabled: true,
+        monitorStream: true,
+        intervalMs: 100_000,
+      })
     );
 
     await act(async () => {
@@ -147,6 +162,7 @@ describe("screen share loss detection", () => {
       useAnticheatScreenCapture({
         contestId: CONTEST_ID,
         enabled: true,
+        monitorStream: true,
         intervalMs: 100_000,
         onScreenShareLost,
       })
@@ -179,6 +195,7 @@ describe("screen share loss detection", () => {
       useAnticheatScreenCapture({
         contestId: CONTEST_ID,
         enabled: true,
+        monitorStream: true,
         intervalMs: 100_000,
         onScreenShareLost,
       })
@@ -202,6 +219,46 @@ describe("screen share loss detection", () => {
     expect(onScreenShareLost).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
+
+  it("triggers loss when initial handoff stream is already inactive", async () => {
+    mockHandoffStream = createMockHandoffStream({ active: false });
+    const onScreenShareLost = vi.fn();
+
+    renderHook(() =>
+      useAnticheatScreenCapture({
+        contestId: CONTEST_ID,
+        enabled: true,
+        monitorStream: true,
+        expectInitialStream: true,
+        intervalMs: 100_000,
+        onScreenShareLost,
+      })
+    );
+
+    await waitFor(() => {
+      expect(onScreenShareLost).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("triggers loss when initial handoff stream is missing but required", async () => {
+    mockHandoffStream = null;
+    const onScreenShareLost = vi.fn();
+
+    renderHook(() =>
+      useAnticheatScreenCapture({
+        contestId: CONTEST_ID,
+        enabled: true,
+        monitorStream: true,
+        expectInitialStream: true,
+        intervalMs: 100_000,
+        onScreenShareLost,
+      })
+    );
+
+    await waitFor(() => {
+      expect(onScreenShareLost).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("forceStopCapture cleans up all streams", () => {
@@ -209,6 +266,7 @@ describe("forceStopCapture cleans up all streams", () => {
     vi.clearAllMocks();
     trackEndedListeners = [];
     mockHandoffStream = null;
+    mockSetRuntimeHandoff.mockReset();
   });
 
   afterEach(() => {
@@ -227,7 +285,12 @@ describe("forceStopCapture cleans up all streams", () => {
   it("clears handoff slots even when no active stream exists", () => {
     // No handoff stream — hook starts with null streamRef
     const { result } = renderHook(() =>
-      useAnticheatScreenCapture({ contestId: CONTEST_ID, enabled: true, intervalMs: 100_000 })
+      useAnticheatScreenCapture({
+        contestId: CONTEST_ID,
+        enabled: true,
+        monitorStream: true,
+        intervalMs: 100_000,
+      })
     );
 
     act(() => result.current.forceStopCapture());
@@ -249,5 +312,40 @@ describe("forceStopCapture cleans up all streams", () => {
     act(() => trackEndedListeners.forEach((l) => l()));
 
     expect(onScreenShareLost).not.toHaveBeenCalled();
+  });
+
+  it("force-stops capture on unmount", async () => {
+    const { unmount } = await setupWithLiveStream();
+
+    act(() => {
+      unmount();
+    });
+
+    expect(mockClearPrecheck).toHaveBeenCalledWith(true);
+    expect(mockClearRuntime).toHaveBeenCalledWith(true);
+  });
+
+  it("preserves live stream to runtime handoff on unmount when enabled", async () => {
+    mockHandoffStream = createMockHandoffStream();
+    const { result, unmount } = renderHook(() =>
+      useAnticheatScreenCapture({
+        contestId: CONTEST_ID,
+        enabled: true,
+        monitorStream: true,
+        preserveStreamOnUnmount: true,
+        intervalMs: 100_000,
+      })
+    );
+
+    await act(async () => {
+      await result.current.forceCaptureNow("init", { eventType: "screen_share_stopped" });
+    });
+
+    act(() => {
+      unmount();
+    });
+
+    expect(mockSetRuntimeHandoff).toHaveBeenCalledTimes(1);
+    expect(mockClearPrecheck).toHaveBeenCalledWith(true);
   });
 });

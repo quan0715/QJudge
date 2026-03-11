@@ -12,11 +12,25 @@ import { getExamCaptureSessionId, setExamCaptureSessionId } from "./examCaptureS
 import {
   consumePrecheckScreenShareHandoff,
   consumeRuntimeScreenShareHandoff,
+  setRuntimeScreenShareHandoff,
+  peekPrecheckScreenShareHandoff,
+  peekRuntimeScreenShareHandoff,
   clearPrecheckScreenShareHandoff,
   clearRuntimeScreenShareHandoff,
 } from "./examScreenShareHandoff";
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
+import type {
+  CaptureStopReason,
+  CaptureStopResult,
+} from "@/features/contest/anticheat/captureLifecycle";
+
+interface CaptureLifecycleEvent {
+  contestId: string;
+  reason: CaptureStopReason;
+  status: CaptureStopResult["status"];
+  timestamp: string;
+}
 
 interface Options {
   contestId: string;
@@ -25,6 +39,9 @@ interface Options {
   /** Controls stream lifecycle monitoring. Stream stays alive and loss is detected
    *  as long as this is true, even if `enabled` is false (e.g. on dashboard). */
   monitorStream?: boolean;
+  /** Keep screen-share alive across route unmount/remount within monitored flow. */
+  preserveStreamOnUnmount?: boolean;
+  expectInitialStream?: boolean;
   intervalMs?: number;
   maxRetries?: number;
   forcedCaptureCooldownMs?: number;
@@ -32,12 +49,15 @@ interface Options {
   reportDegraded?: (isDegraded: boolean) => void;
   onUploadProgress?: (count: number) => void;
   onScreenShareLost?: () => void;
+  onCaptureLifecycleEvent?: (event: CaptureLifecycleEvent) => void;
 }
 
 export const useAnticheatScreenCapture = ({
   contestId,
   enabled = false,
   monitorStream = false,
+  preserveStreamOnUnmount = false,
+  expectInitialStream = false,
   intervalMs = 5000,
   maxRetries = 3,
   forcedCaptureCooldownMs = 1_000,
@@ -45,6 +65,7 @@ export const useAnticheatScreenCapture = ({
   reportDegraded,
   onUploadProgress,
   onScreenShareLost,
+  onCaptureLifecycleEvent,
 }: Options) => {
   const [uploadSessionId] = useState(() => {
     // Reuse existing session ID if available (e.g. page reload during exam)
@@ -60,11 +81,20 @@ export const useAnticheatScreenCapture = ({
   const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const streamWasLiveRef = useRef(false);
+  const prevMonitorStreamRef = useRef(monitorStream);
+  const initialStreamExpectationCheckedRef = useRef(false);
   // Reactive stream status — ExamModeWrapper watches this for stream loss detection
   const [streamActive, setStreamActive] = useState(false);
+  const hasCaptureSessionRef = useRef(false);
   const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
   const onScreenShareLostRef = useRef(onScreenShareLost);
   onScreenShareLostRef.current = onScreenShareLost;
+
+  const handleDetectedScreenShareLoss = useCallback(() => {
+    streamWasLiveRef.current = false;
+    setStreamActive(false);
+    onScreenShareLostRef.current?.();
+  }, []);
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
@@ -76,10 +106,25 @@ export const useAnticheatScreenCapture = ({
     if (stream) {
       stream.getTracks().forEach((t) => t.stop());
     }
+    return !!stream;
   }, []);
 
+  const emitCaptureLifecycleEvent = useCallback(
+    (event: CaptureLifecycleEvent) => {
+      if (onCaptureLifecycleEvent) {
+        onCaptureLifecycleEvent(event);
+        return;
+      }
+      console.info("[anticheat][capture] lifecycle", event);
+    },
+    [onCaptureLifecycleEvent],
+  );
+
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
-    if (streamRef.current?.active) return streamRef.current;
+    if (streamRef.current?.active) {
+      hasCaptureSessionRef.current = true;
+      return streamRef.current;
+    }
     stopStream();
 
     // Try to reuse the screen share stream from precheck or runtime reauth handoff.
@@ -90,21 +135,27 @@ export const useAnticheatScreenCapture = ({
       handoff.getVideoTracks()[0]?.addEventListener("ended", () => {
         if (streamRef.current === handoff) {
           streamRef.current = null;
-          streamWasLiveRef.current = false;
-          setStreamActive(false);
-          onScreenShareLostRef.current?.();
+          handleDetectedScreenShareLoss();
         }
       });
       streamRef.current = handoff;
       streamWasLiveRef.current = true;
       setStreamActive(true);
+      hasCaptureSessionRef.current = true;
       return handoff;
+    }
+
+    // A stale handoff stream means sharing was interrupted before first capture.
+    // Surface it as loss so runtime re-share flow can start immediately.
+    if (handoff) {
+      hasCaptureSessionRef.current = true;
+      handleDetectedScreenShareLoss();
     }
 
     // No handoff available — stream died or was never shared.
     // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
     return null;
-  }, [stopStream]);
+  }, [handleDetectedScreenShareLoss, stopStream]);
 
   const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
     const stream = await acquireStream();
@@ -137,9 +188,7 @@ export const useAnticheatScreenCapture = ({
         // If stream was previously live but now acquireStream returns null,
         // the user has stopped sharing.
         if (streamWasLiveRef.current && !streamRef.current?.active) {
-          streamWasLiveRef.current = false;
-          setStreamActive(false);
-          onScreenShareLostRef.current?.();
+          handleDetectedScreenShareLoss();
         }
         return;
       }
@@ -150,7 +199,7 @@ export const useAnticheatScreenCapture = ({
     } finally {
       isCapturingRef.current = false;
     }
-  }, [enabled, captureFrameBlob, ensureQueue]);
+  }, [enabled, captureFrameBlob, ensureQueue, handleDetectedScreenShareLoss]);
 
   const flushPendingUploads = useCallback(async () => {
     if (isUploadingRef.current || !enabled) return;
@@ -174,18 +223,45 @@ export const useAnticheatScreenCapture = ({
     }
   }, [enabled, ensureQueue, uploadBatch, uploadSessionId, onUploadProgress, reportDegraded, maxRetries]);
 
-  const forceStopCapture = useCallback(() => {
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-      captureIntervalRef.current = null;
-    }
-    streamWasLiveRef.current = false;
-    setStreamActive(false);
-    stopStream();
-    // Also stop any streams waiting in handoff slots
-    clearPrecheckScreenShareHandoff(true);
-    clearRuntimeScreenShareHandoff(true);
-  }, [stopStream]);
+  const forceStopCapture = useCallback(
+    (reason: CaptureStopReason = "manual"): CaptureStopResult => {
+      const hadInterval = captureIntervalRef.current != null;
+      const hadPrecheckHandoff = !!peekPrecheckScreenShareHandoff();
+      const hadRuntimeHandoff = !!peekRuntimeScreenShareHandoff();
+      const hadStream = stopStream();
+      const hadActiveSession = streamWasLiveRef.current || hasCaptureSessionRef.current;
+
+      const status: CaptureStopResult["status"] =
+        hadInterval || hadPrecheckHandoff || hadRuntimeHandoff || hadStream || hadActiveSession
+          ? "stopped"
+          : "already_stopped";
+      const result: CaptureStopResult = {
+        reason,
+        status,
+        timestamp: new Date().toISOString(),
+      };
+
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+        captureIntervalRef.current = null;
+      }
+      streamWasLiveRef.current = false;
+      hasCaptureSessionRef.current = false;
+      setStreamActive(false);
+      // Also stop any streams waiting in handoff slots.
+      clearPrecheckScreenShareHandoff(true);
+      clearRuntimeScreenShareHandoff(true);
+
+      emitCaptureLifecycleEvent({
+        contestId,
+        reason,
+        status: result.status,
+        timestamp: result.timestamp,
+      });
+      return result;
+    },
+    [contestId, emitCaptureLifecycleEvent, stopStream],
+  );
 
   const forceCaptureNow = useCallback(async (
     _reason: string,
@@ -235,9 +311,7 @@ export const useAnticheatScreenCapture = ({
     if (!blob) {
       // Fallback: detect stream loss if the ended event didn't fire
       if (streamWasLiveRef.current && !streamRef.current?.active) {
-        streamWasLiveRef.current = false;
-        setStreamActive(false);
-        onScreenShareLostRef.current?.();
+        handleDetectedScreenShareLoss();
       }
       return {
         attempted: true,
@@ -289,6 +363,7 @@ export const useAnticheatScreenCapture = ({
     flushPendingUploads,
     forcedCaptureCooldownMs,
     forcedCaptureP1CooldownMs,
+    handleDetectedScreenShareLoss,
   ]);
 
   // Register forced capture handler for use by recordExamEventWithForcedCapture
@@ -307,6 +382,7 @@ export const useAnticheatScreenCapture = ({
       captureIntervalRef.current = null;
       return;
     }
+    hasCaptureSessionRef.current = true;
 
     captureIntervalRef.current = setInterval(() => {
       captureAndQueue();
@@ -318,16 +394,39 @@ export const useAnticheatScreenCapture = ({
     };
   }, [enabled, intervalMs, captureAndQueue, flushPendingUploads]);
 
-  // Stream lifecycle — kill the stream only when monitorStream becomes false
-  // (e.g. exam submitted). When monitorStream is true but enabled is false
-  // (e.g. on dashboard), the stream stays alive so loss detection still works.
+  // Stream lifecycle — stop only on true -> false transition.
+  // This avoids killing precheck handoff stream during initial mount while
+  // policy/config state is still hydrating.
   useEffect(() => {
-    if (!monitorStream) {
-      stopStream();
-      streamWasLiveRef.current = false;
-      setStreamActive(false);
+    const wasMonitoring = prevMonitorStreamRef.current;
+    if (wasMonitoring && !monitorStream) {
+      forceStopCapture("monitor_disabled");
     }
-  }, [monitorStream, stopStream]);
+    prevMonitorStreamRef.current = monitorStream;
+  }, [forceStopCapture, monitorStream]);
+
+  // Last-resort cleanup for route transitions/unmount.
+  useEffect(
+    () => () => {
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+        captureIntervalRef.current = null;
+      }
+      if (preserveStreamOnUnmount) {
+        const stream = streamRef.current;
+        if (stream?.active) {
+          streamRef.current = null;
+          setStreamActive(false);
+          hasCaptureSessionRef.current = true;
+          setRuntimeScreenShareHandoff(stream);
+          clearPrecheckScreenShareHandoff(true);
+          return;
+        }
+      }
+      forceStopCapture("unmount");
+    },
+    [forceStopCapture, preserveStreamOnUnmount],
+  );
 
   // Lightweight stream health poll — detect loss even when capture interval is off.
   // The "ended" event is the primary detection, but this catches edge cases
@@ -338,13 +437,37 @@ export const useAnticheatScreenCapture = ({
       const alive = streamRef.current?.active ?? false;
       const wasLive = streamWasLiveRef.current;
       if (wasLive && !alive) {
-        streamWasLiveRef.current = false;
-        setStreamActive(false);
-        onScreenShareLostRef.current?.();
+        handleDetectedScreenShareLoss();
       }
     }, 2000);
     return () => clearInterval(healthCheck);
-  }, [monitorStream, enabled]);
+  }, [monitorStream, enabled, handleDetectedScreenShareLoss]);
+
+  // Bootstrap stream attachment as soon as monitoring starts.
+  // When expectInitialStream=true (precheck handoff path), a missing stream
+  // should immediately enter re-share recovery flow instead of silently waiting.
+  useEffect(() => {
+    if (!monitorStream) {
+      initialStreamExpectationCheckedRef.current = false;
+      return;
+    }
+    if (initialStreamExpectationCheckedRef.current) return;
+    initialStreamExpectationCheckedRef.current = true;
+
+    let active = true;
+    void (async () => {
+      const stream = await acquireStream();
+      if (!active) return;
+      if (!stream && expectInitialStream && !streamWasLiveRef.current) {
+        hasCaptureSessionRef.current = true;
+        handleDetectedScreenShareLoss();
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [acquireStream, expectInitialStream, handleDetectedScreenShareLoss, monitorStream]);
 
   return {
     uploadSessionId,

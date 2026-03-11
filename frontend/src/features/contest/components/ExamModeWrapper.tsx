@@ -29,6 +29,7 @@ import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter"
 import { setRuntimeScreenShareHandoff } from "@/features/contest/screens/paperExam/hooks/examScreenShareHandoff";
 import {
   applyExamMonitoringPolicyOverrides,
+  SCREEN_SHARE_RECOVERY_GRACE_MS,
 } from "@/features/contest/domain/examMonitoringPolicy";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import { useTranslation } from "react-i18next";
@@ -38,6 +39,7 @@ interface ExamModeWrapperProps {
   cheatDetectionEnabled: boolean;
   isExamMonitored: boolean;
   requiresFullscreen: boolean;
+  hasEnded?: boolean;
   lockReason?: string;
   examStatus?: ExamStatusType;
   onRefresh?: () => Promise<void>;
@@ -55,6 +57,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   cheatDetectionEnabled,
     isExamMonitored,
     requiresFullscreen,
+    hasEnded = false,
     lockReason,
     examStatus,
     onRefresh,
@@ -132,14 +135,17 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       metadata: { upload_session_id: getExamCaptureSessionId(contestId) || undefined },
     }).catch(() => {});
   }, [contestId]);
-  // monitorStream: keeps stream alive + detects loss on ALL pages (dashboard & answering).
+  // monitorStream should stay enabled while policy is required (including config loading),
+  // otherwise we may accidentally stop handoff stream before the first answering capture tick.
   // enabled (captureEnabled): additionally runs capture interval + upload on answering pages.
-  const streamMonitorEnabled = effectiveMonitoringEnabled;
+  const streamMonitorEnabled = policyRequired && !policyUnavailable;
 
   const capture = useAnticheatScreenCapture({
     contestId,
     enabled: captureEnabled,
     monitorStream: streamMonitorEnabled,
+    preserveStreamOnUnmount: cheatDetectionEnabled && examStatus !== "submitted" && !hasEnded,
+    expectInitialStream: precheckPassed && examStatus === "in_progress",
     intervalMs: anticheatEffective ? Math.max(1, anticheatEffective.captureIntervalSeconds) * 1000 : undefined,
     maxRetries: anticheatEffective ? Math.max(1, anticheatEffective.captureUploadMaxRetries) : undefined,
     forcedCaptureCooldownMs: anticheatEffective
@@ -201,7 +207,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       await serviceEndExam(contestId, {
         upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
-      forceStopCapture();
+      forceStopCapture("screen_share_timeout_submit");
       if (onRefresh) await onRefresh();
       setShowAutoSubmitNotice(true);
     } catch {
@@ -214,17 +220,21 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const handleScreenShareLost = useCallback(() => {
     if (examStatus === "submitted") return;
-    if (!anticheatEffective) return;
+    if (!streamMonitorEnabled) return;
     // Guard: don't fire twice if both callback and streamActive fallback trigger
     if (isRuntimeScreenShareReauthActive(contestId)) return;
+    const recoveryMs = Math.max(
+      1,
+      anticheatEffective?.screenShareRecoveryGraceMs ?? SCREEN_SHARE_RECOVERY_GRACE_MS,
+    );
     // Record P2 informational event — the user still has a recovery window.
     // P0 screen_share_stopped is only recorded if recovery times out.
     recordExamEvent(contestId, "screen_share_interrupted", {
       source: "anticheat:screen_capture",
       metadata: { reason: "stream_ended" },
     }).catch(() => null);
-    beginRuntimeScreenShareReauth(contestId, Math.max(1, anticheatEffective.screenShareRecoveryGraceMs));
-  }, [anticheatEffective, contestId, examStatus]);
+    beginRuntimeScreenShareReauth(contestId, recoveryMs);
+  }, [anticheatEffective?.screenShareRecoveryGraceMs, contestId, examStatus, streamMonitorEnabled]);
   onScreenShareLostRef.current = handleScreenShareLost;
 
   const handleScreenShareReacquire = useCallback(async () => {
@@ -312,6 +322,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
   }, [contestId, examStatus, effectiveMonitoringEnabled]);
 
+  useEffect(() => {
+    if (!hasEnded) return;
+    forceStopCapture("contest_ended");
+  }, [forceStopCapture, hasEnded]);
+
   useExamHeartbeat(contestId, effectiveMonitoringEnabled);
 
   // Initial check: if exam is active but not in fullscreen after page load, show confirmation
@@ -348,7 +363,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
-      forceStopCapture();
+      forceStopCapture("submitted");
       if (fullscreenAdapterRef.current.isActive()) {
         void fullscreenAdapterRef.current.exit();
       }
@@ -408,7 +423,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       await serviceEndExam(contestId, {
         upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
-      forceStopCapture();
+      forceStopCapture("fullscreen_exit_submit");
       if (onRefresh) await onRefresh();
       setShowFullscreenExitConfirm(false);
     } catch {
