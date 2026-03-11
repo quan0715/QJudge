@@ -98,5 +98,48 @@
     "easy": "簡單",
     "medium": "中等",
     "hard": "困難"
+  },
+  "edit": {
+    "sections": {
+      "basicInfo": "基本資訊",
+      "content": "題目內容",
+      "testCases": "測試案例",
+      "languageSettings": "語言設定"
+    },
+    "actions": {
+      "import": "匯入",
+      "export": "匯出",
+      "preview": "預覽",
+      "save": "儲存",
+      "delete": "刪除",
+      "back": "返回"
+    },
+    "messages": {
+      "importSuccess": "匯入成功",
+      "importSuccessDetail": "YAML 資料已匯入並儲存",
+      "importSuccessSaveFailed": "匯入成功，但自動儲存失敗",
+      "deleteSuccess": "刪除成功",
+      "deleteSuccessDetail": "正在跳轉...",
+      "deleteFailed": "刪除失敗",
+      "exportSuccess": "YAML 匯出成功",
+      "exportSuccessDetail": "檔案已下載",
+      "loadFailed": "無法載入題目資料",
+      "notFound": "題目不存在",
+      "noPermission": "您沒有編輯題目的權限",
+      "noPermissionTitle": "權限不足"
+    },
+    "status": {
+      "public": "題目已公開",
+      "private": "題目已設為私有",
+      "hidden": "題目已隱藏"
+    },
+    "exportModal": {
+      "title": "匯出題目",
+      "submit": "匯出",
+      "cancel": "取消",
+      "scaleLabel": "縮放比例",
+      "scalePlaceholder": "選擇縮放比例",
+      "description": "將題目資料匯出為 YAML 格式，可用於備份或匯入至其他系統。"
+    }
   }
 }

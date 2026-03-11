@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Loading } from "@carbon/react";
 import type { BackgroundInformation } from "@/core/types/chatbot.types";
 import { AgentAvatar } from "@/shared/ui/chatbot/components/AgentAvatar";
@@ -31,6 +32,8 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
   backgroundInfo = null,
   onProblemUpdated,
 }) => {
+  const { t } = useTranslation("chatbot");
+  const { t: tc } = useTranslation("common");
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   // 追蹤是否曾經展開過，用於延遲初始化（一旦展開過就永遠為 true）
   const [hasBeenExpanded, setHasBeenExpanded] = useState(defaultExpanded);
@@ -76,8 +79,8 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
         <button
           className={styles.collapsedButton}
           onClick={handleToggle}
-          aria-label="展開 Qgent TA"
-          title="展開 Qgent TA"
+          aria-label={t("widget.expandLabel")}
+          title={t("widget.expandLabel")}
         >
           <AgentAvatar size="md" />
         </button>
@@ -89,7 +92,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
           {isInitializing ? (
             <div className={styles.loadingContainer}>
               <Loading withOverlay={false} small />
-              <span>載入中...</span>
+              <span>{tc("message.loading")}</span>
             </div>
           ) : (
             <ChatWindow

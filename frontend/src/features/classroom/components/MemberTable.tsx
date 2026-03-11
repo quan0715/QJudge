@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   DataTable,
   Table,
@@ -19,19 +20,22 @@ interface MemberTableProps {
   onRemove: (userId: number) => void;
 }
 
-const headers = [
-  { key: "username", header: "Username" },
-  { key: "email", header: "Email" },
-  { key: "role", header: "角色" },
-  { key: "joinedAt", header: "加入時間" },
-  { key: "actions", header: "" },
-];
-
 export const MemberTable: React.FC<MemberTableProps> = ({
   members,
   isPrivileged,
   onRemove,
 }) => {
+  const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
+
+  const headers = [
+    { key: "username", header: t("members.headers.username") },
+    { key: "email", header: t("members.headers.email") },
+    { key: "role", header: t("members.headers.role") },
+    { key: "joinedAt", header: t("members.headers.joinedAt") },
+    { key: "actions", header: "" },
+  ];
+
   const rows = members.map((m) => ({
     id: String(m.userId),
     username: m.username,
@@ -62,7 +66,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                     return (
                       <TableCell key={cell.id}>
                         <Tag type={cell.value === "ta" ? "purple" : "teal"} size="sm">
-                          {cell.value}
+                          {tc(`user.role.${cell.value}`)}
                         </Tag>
                       </TableCell>
                     );
@@ -75,7 +79,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                           size="sm"
                           hasIconOnly
                           renderIcon={TrashCan}
-                          iconDescription="移除"
+                          iconDescription={t("members.actions.remove")}
                           onClick={() => onRemove(cell.value as number)}
                         />
                       </TableCell>

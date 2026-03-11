@@ -1,8 +1,8 @@
 import type { FC } from "react";
 import { useMemo, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  IconButton,
-  Dropdown,
+  IconButton,  Dropdown,
   InlineNotification,
   Modal,
   TextInput,
@@ -82,6 +82,8 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   onConfirmAction,
   onCancelAction,
 }) => {
+  const { t } = useTranslation("chatbot");
+  const { t: tc } = useTranslation("common");
   const messages: ChatMessage[] = currentSession?.messages ?? [];
   const isUninitializedTempSession = Boolean(
     currentSession &&
@@ -106,53 +108,53 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       prompts.push(
         {
           icon: Idea,
-          text: "幫我設計這題的測試案例",
-          onClick: () => onSend("請幫我設計這題的測試案例，包含邊界條件和特殊情況。"),
+          text: t("prompts.designTestCases"),
+          onClick: () => onSend(t("prompts.designTestCasesPrompt")),
         },
         {
           icon: DocumentAdd,
-          text: "生成題目描述範例",
-          onClick: () => onSend("請幫我生成這題的題目描述範例，讓學生更容易理解。"),
+          text: t("prompts.generateDescription"),
+          onClick: () => onSend(t("prompts.generateDescriptionPrompt")),
         },
         {
           icon: CheckmarkOutline,
-          text: "檢查題目完整性",
-          onClick: () => onSend("請檢查這題的完整性，包含題目描述、測試案例、限制條件等。"),
+          text: t("prompts.checkCompleteness"),
+          onClick: () => onSend(t("prompts.checkCompletenessPrompt")),
         },
         {
           icon: EditIcon,
-          text: "優化題目難度設定",
-          onClick: () => onSend("請評估並建議這題的難度設定是否合適。"),
+          text: t("prompts.optimizeDifficulty"),
+          onClick: () => onSend(t("prompts.optimizeDifficultyPrompt")),
         }
       );
     } else {
       prompts.push(
         {
           icon: Idea,
-          text: "如何設計一個好的題目？",
-          onClick: () => onSend("請教我如何設計一個好的程式題目？"),
+          text: t("prompts.howToDesign"),
+          onClick: () => onSend(t("prompts.howToDesignPrompt")),
         },
         {
           icon: DocumentAdd,
-          text: "測試案例設計技巧",
-          onClick: () => onSend("請分享測試案例設計的技巧和最佳實踐。"),
+          text: t("prompts.testCaseSkills"),
+          onClick: () => onSend(t("prompts.testCaseSkillsPrompt")),
         }
       );
     }
 
     return prompts;
-  }, [problemContext, onSend]);
+  }, [problemContext, onSend, t]);
 
   // 歡迎畫面
   const welcomeScreen = useMemo(() => {
     return (
       <WelcomeScreen
-        title="我能為您做什麼？"
-        subtitle={problemContext ? `正在協助您編輯：${problemContext.title}` : undefined}
+        title={t("welcome.title")}
+        subtitle={problemContext ? t("welcome.subtitle", { title: problemContext.title }) : undefined}
         suggestedPrompts={suggestedPrompts}
       />
     );
-  }, [problemContext, suggestedPrompts]);
+  }, [problemContext, suggestedPrompts, t]);
 
   return (
     <div className={styles.chatWindow}>
@@ -170,7 +172,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
           <Dropdown
             id="session-selector"
             titleText=""
-            label={currentSession?.title || "新對話"}
+            label={currentSession?.title || t("widget.newChatLabel")}
             items={sessions.map((s) => s.id)}
             itemToString={(itemId) =>
               sessions.find((s) => s.id === itemId)?.title || ""
@@ -191,7 +193,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
           {currentSession && (
             <OverflowMenu key={`overflow-${currentSession.id}`} flipped>
               <OverflowMenuItem
-                itemText="重命名"
+                itemText={t("widget.rename")}
                 onClick={() => {
                   setRenameInputValue(currentSession.title);
                   setIsRenameModalOpen(true);
@@ -199,7 +201,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
               />
               <OverflowMenuItem
                 isDelete
-                itemText="刪除"
+                itemText={t("widget.delete")}
                 onClick={() => {
                   setIsDeleteConfirmOpen(true);
                 }}
@@ -207,7 +209,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
             </OverflowMenu>
           )}
           <IconButton
-            label="新增對話"
+            label={t("widget.addChat")}
             kind="ghost"
             size="sm"
             onClick={onCreateSession}
@@ -216,7 +218,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
             <Edit size={16} />
           </IconButton>
           <IconButton
-            label="收合面板"
+            label={t("widget.collapse")}
             kind="ghost"
             size="sm"
             onClick={onCollapse}
@@ -232,7 +234,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         <div className={styles.errorContainer}>
           <InlineNotification
             kind="error"
-            title="錯誤"
+            title={tc("error.title")}
             subtitle={error}
             lowContrast
             hideCloseButton={!onClearError}
@@ -254,7 +256,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         <div className={styles.approvalBanner}>
           <InlineNotification
             kind="warning"
-            title={pendingApproval.actionType === "create" ? "建立題目確認" : "修改題目確認"}
+            title={t("approval.title")}
             subtitle="Agent 已準備好執行操作，請確認或取消。"
             lowContrast
             hideCloseButton
@@ -264,13 +266,13 @@ export const ChatWindow: FC<ChatWindowProps> = ({
               className={styles.approvalConfirmBtn}
               onClick={onConfirmAction}
             >
-              確認執行
+              {t("approval.confirm")}
             </button>
             <button
               className={styles.approvalCancelBtn}
               onClick={onCancelAction}
             >
-              取消
+              {t("approval.cancel")}
             </button>
           </div>
         </div>
@@ -302,9 +304,9 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {currentSession && (
         <Modal
           open={isRenameModalOpen}
-          modalHeading="重命名對話"
-          primaryButtonText="儲存"
-          secondaryButtonText="取消"
+          modalHeading={t("widget.renameModal.title")}
+          primaryButtonText={t("widget.renameModal.submit")}
+          secondaryButtonText={t("widget.renameModal.cancel")}
           onRequestClose={() => setIsRenameModalOpen(false)}
           onRequestSubmit={async () => {
             if (
@@ -327,10 +329,10 @@ export const ChatWindow: FC<ChatWindowProps> = ({
           <div style={{ paddingBottom: "1rem" }}>
             <TextInput
               id="rename-input"
-              labelText="新名稱"
+              labelText={t("widget.renameModal.label")}
               value={renameInputValue}
               onChange={(e) => setRenameInputValue(e.target.value)}
-              placeholder="輸入新的對話名稱"
+              placeholder={t("widget.renameModal.placeholder")}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const submitBtn = e.currentTarget
@@ -351,10 +353,10 @@ export const ChatWindow: FC<ChatWindowProps> = ({
       {currentSession && (
         <Modal
           open={isDeleteConfirmOpen}
-          modalHeading="確認刪除"
-          primaryButtonText={isDeleting ? "刪除中..." : "刪除"}
+          modalHeading={t("widget.deleteModal.title")}
+          primaryButtonText={isDeleting ? t("widget.deleteModal.submitting") : t("widget.deleteModal.submit")}
           primaryButtonDisabled={isDeleting}
-          secondaryButtonText="取消"
+          secondaryButtonText={t("widget.deleteModal.cancel")}
           danger
           onRequestClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
           onRequestSubmit={async () => {
@@ -373,9 +375,9 @@ export const ChatWindow: FC<ChatWindowProps> = ({
           size="sm"
         >
           <p>
-            確定要刪除對話「<strong>{currentSession.title}</strong>」嗎？
+            {t("widget.deleteModal.confirmMessage", { title: currentSession.title })}
             <br />
-            此操作無法復原。
+            {t("widget.deleteModal.undoWarning")}
           </p>
         </Modal>
       )}

@@ -23,10 +23,13 @@
     "userManagement": "ユーザー管理",
     "announcements": "お知らせ管理",
     "environment": "環境設定",
-    "createContest": "コンテスト作成",
-    "createProblem": "問題作成",
-    "editProblem": "問題編集"
-  },
+    "createContest": "コンテストを作成",
+    "createProblem": "問題を新規作成",
+    "editProblem": "問題を編集",
+    "teacherDashboard": "Teacher Dashboard",
+    "problemManagement": "Problem Management",
+    "contestManagement": "Contest Management"
+    },
   "tab": {
     "overview": "概要",
     "problems": "問題",

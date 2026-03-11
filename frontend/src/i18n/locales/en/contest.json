@@ -102,6 +102,24 @@
   "duration": "Duration",
   "progress": "Progress",
   "notActive": "Not Running",
+  "preRegistration": {
+    "state": {
+      "draft": "Draft",
+      "archived": "Archived",
+      "upcoming": "Upcoming",
+      "running": "Running",
+      "ended": "Ended"
+    },
+    "noDescription": "No description yet",
+    "registerNow": "Register now",
+    "registeredHint": "Registered. Waiting for contest start.",
+    "registrationClosed": "Registration unavailable",
+    "ended": "Contest ended",
+    "openAdminPanel": "Open Admin Panel",
+    "anonymousTitle": "Anonymous Mode",
+    "countdownLabel": "Starts in",
+    "countdownValue": "{{days}}d {{hours}}h {{minutes}}m {{seconds}}s"
+  },
   "precheck": {
     "title": "Exam Pre-check",
     "description": "To ensure fairness, please complete the environment and eligibility checks before entering the exam room. Failure to pass necessary checks will restrict your access.",
@@ -613,6 +631,32 @@
     "autoSubmittedDesc": "Screen sharing was interrupted and could not be restored within the time limit. Your exam has been automatically submitted.",
     "autoSubmittedHint": "If you believe this was an error, please contact your proctor.",
     "returnToDashboard": "Return to Dashboard"
+  },
+  "createModal": {
+    "titleCoding": "Create Coding Test",
+    "titleExam": "Create Paper Exam",
+    "typeCoding": "Coding Test",
+    "typeCodingDesc": "Coding problems with automatic submission and judging",
+    "typeExam": "Paper Exam",
+    "typeExamDesc": "Question types including True/False, Multiple Choice, and Essay",
+    "modeCoding": "Coding Test Mode",
+    "modeExam": "Paper Exam Mode",
+    "descCoding": "Students focus on coding problems with existing submission and ranking flow.",
+    "descExam": "Students answer on screen, essay questions can be graded by TAs.",
+    "nameCoding": "Contest Name",
+    "nameExam": "Paper Exam Name",
+    "duration": "Duration (minutes)",
+    "durationUnit": "min",
+    "endTime": "Estimated End Time",
+    "endTimePlaceholder": "Set start time and valid duration first",
+    "private": "Private Contest",
+    "public": "Public",
+    "privateShort": "Private",
+    "validation": {
+      "durationPositive": "Duration must be greater than 0 minutes",
+      "passwordRequired": "Password is required for private contests",
+      "cannotComputeEndTime": "Cannot compute end time, please check start time and duration"
+    }
   },
   "settings": {
     "title": "Contest Settings",

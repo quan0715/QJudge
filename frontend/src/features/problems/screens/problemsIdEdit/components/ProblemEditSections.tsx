@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { ProblemVisibility } from "@/core/entities/problem.entity";
 import type { NavSection } from "../section/layout";
 import { ScrollSpyLayout } from "../section/layout";
@@ -25,6 +26,7 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
   onVisibilityChange,
   onDelete,
 }) => {
+  const { t } = useTranslation("problem");
   return (
     <ScrollSpyLayout sections={sections} onPreviewClick={onPreviewClick}>
       {({ registerSection }) => (
@@ -35,7 +37,7 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
             ref={registerSection("basic-info")}
             className="problem-edit-page__section"
           >
-            <h2 className="problem-edit-page__section-title">基本資訊</h2>
+            <h2 className="problem-edit-page__section-title">{t("edit.sections.basicInfo")}</h2>
             <BasicInfoSection />
           </section>
 
@@ -45,7 +47,7 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
             ref={registerSection("content")}
             className="problem-edit-page__section"
           >
-            <h2 className="problem-edit-page__section-title">題目內容</h2>
+            <h2 className="problem-edit-page__section-title">{t("edit.sections.content")}</h2>
             <ContentSection />
           </section>
 
@@ -55,7 +57,7 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
             ref={registerSection("test-cases")}
             className="problem-edit-page__section"
           >
-            <h2 className="problem-edit-page__section-title">測試案例</h2>
+            <h2 className="problem-edit-page__section-title">{t("edit.sections.testCases")}</h2>
             <TestCasesSection />
           </section>
 
@@ -65,7 +67,7 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
             ref={registerSection("language-config")}
             className="problem-edit-page__section"
           >
-            <h2 className="problem-edit-page__section-title">語言設定</h2>
+            <h2 className="problem-edit-page__section-title">{t("edit.sections.languageSettings")}</h2>
             <LanguageConfigSection />
           </section>
 

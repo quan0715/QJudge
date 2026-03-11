@@ -52,6 +52,24 @@
   "duration": "時長",
   "progress": "考試進度",
   "notActive": "非進行中",
+  "preRegistration": {
+    "state": {
+      "draft": "草稿",
+      "archived": "已封存",
+      "upcoming": "即將開始",
+      "running": "進行中",
+      "ended": "已結束"
+    },
+    "noDescription": "暫無描述",
+    "registerNow": "立即報名",
+    "registeredHint": "已報名，等待競賽開始",
+    "registrationClosed": "目前不可報名",
+    "ended": "競賽已結束",
+    "openAdminPanel": "前往管理後台",
+    "anonymousTitle": "匿名模式",
+    "countdownLabel": "距離開始",
+    "countdownValue": "{{days}}天 {{hours}}小時 {{minutes}}分 {{seconds}}秒"
+  },
   "precheck": {
     "title": "考前環境與資格檢查",
     "description": "為確保考試公平性，請在進入考場前完成以下環境檢測與資格確認。若未通過必要檢查，系統將限制您的作答權限。",
@@ -560,6 +578,32 @@
     "autoSubmittedDesc": "螢幕分享中斷後未能在時限內重新分享，系統已自動為您交卷。",
     "autoSubmittedHint": "如果您認為這是錯誤，請聯繫監考人員。",
     "returnToDashboard": "返回儀表板"
+  },
+  "createModal": {
+    "titleCoding": "建立 Coding Test",
+    "titleExam": "建立紙筆題考試",
+    "typeCoding": "Coding Test",
+    "typeCodingDesc": "程式題為主，支援提交與判題",
+    "typeExam": "紙筆題考試",
+    "typeExamDesc": "考卷題型，是非/選擇/問答",
+    "modeCoding": "Coding Test 模式",
+    "modeExam": "紙筆題考試模式",
+    "descCoding": "學生以程式題為主，走既有提交與排名流程。",
+    "descExam": "學生以卷面作答，問答題可由助教批改。",
+    "nameCoding": "競賽名稱",
+    "nameExam": "紙筆題考試名稱",
+    "duration": "比賽長度（分鐘）",
+    "durationUnit": "分",
+    "endTime": "預計結束時間",
+    "endTimePlaceholder": "請先設定開始時間與有效的比賽長度",
+    "private": "私人競賽",
+    "public": "公開",
+    "privateShort": "私人",
+    "validation": {
+      "durationPositive": "比賽長度必須是大於 0 的分鐘數",
+      "passwordRequired": "私人競賽必須設定密碼",
+      "cannotComputeEndTime": "無法計算結束時間，請檢查開始時間與比賽長度"
+    }
   },
   "settings": {
     "title": "競賽設定",

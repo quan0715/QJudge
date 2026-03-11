@@ -20,7 +20,7 @@ const TeacherDashboardScreen = () => {
         <div className={styles.content}>
           <div className={styles.inner}>
             <h1 className={styles.title}>
-              {t("page.teacherDashboard", "教師後台")}
+              {t("page.teacherDashboard")}
             </h1>
 
             <Tabs
