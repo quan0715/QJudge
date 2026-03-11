@@ -222,19 +222,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             type="button"
             className="user-menu-link"
             onClick={() => {
-              navigate("/docs");
-              setIsExpandedInternal(false);
-              onExpandedChange?.(false);
-            }}
-          >
-            <Book size={16} />
-            {t("nav.documentation")}
-          </button>
-
-          <button
-            type="button"
-            className="user-menu-link"
-            onClick={() => {
               navigate("/settings");
               setIsExpandedInternal(false);
               onExpandedChange?.(false);
