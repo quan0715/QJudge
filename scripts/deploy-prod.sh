@@ -3,6 +3,7 @@ set -euo pipefail
 
 DEPLOY_PATH="${1:?Usage: deploy-prod.sh <deploy_path> <git_ref>}"
 GIT_REF="${2:?Usage: deploy-prod.sh <deploy_path> <git_ref>}"
+COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.monitoring.yml)
 
 # ── prerequisites ──────────────────────────────────────────────
 
@@ -53,10 +54,10 @@ git fetch --all --tags --prune
 git checkout --force "${GIT_REF}"
 
 echo "[deploy] build images"
-docker compose build
+docker compose "${COMPOSE_FILES[@]}" build
 
 echo "[deploy] start services"
-docker compose up -d --remove-orphans
+docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
 
 echo "[deploy] initialize MinIO anti-cheat buckets/policies"
 if [ ! -x "./scripts/minio/run-init.sh" ]; then
@@ -85,6 +86,17 @@ done
 
 if [ "$attempt" -gt "$max_attempts" ]; then
   echo "[deploy] smoke failed: http://localhost:80 did not respond within 60s" >&2
+  exit 1
+fi
+
+echo "[deploy] monitoring smoke check"
+if ! docker inspect oj_grafana >/dev/null 2>&1; then
+  echo "[deploy] monitoring smoke failed: oj_grafana container not found" >&2
+  exit 1
+fi
+
+if [ "$(docker inspect -f '{{.State.Running}}' oj_grafana)" != "true" ]; then
+  echo "[deploy] monitoring smoke failed: oj_grafana is not running" >&2
   exit 1
 fi
 

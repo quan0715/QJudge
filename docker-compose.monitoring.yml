@@ -25,6 +25,7 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
     networks:
+      - oj_network
       - oj_network_dev
     restart: unless-stopped
 
@@ -49,6 +50,7 @@ services:
     depends_on:
       - prometheus
     networks:
+      - oj_network
       - oj_network_dev
     restart: unless-stopped
 
@@ -58,6 +60,7 @@ services:
     environment:
       DATA_SOURCE_NAME: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}?sslmode=disable"
     networks:
+      - oj_network
       - oj_network_dev
     restart: unless-stopped
 
@@ -67,6 +70,7 @@ services:
     environment:
       REDIS_ADDR: "redis:6379"
     networks:
+      - oj_network
       - oj_network_dev
     restart: unless-stopped
 
@@ -78,9 +82,14 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     networks:
+      - oj_network
       - oj_network_dev
     restart: unless-stopped
 
 volumes:
   prometheus_data:
   grafana_data:
+
+networks:
+  oj_network:
+  oj_network_dev:
