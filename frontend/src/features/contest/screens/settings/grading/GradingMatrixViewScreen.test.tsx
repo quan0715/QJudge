@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import GradingMatrixView from "./GradingMatrixView";
+import GradingMatrixViewScreen from "./GradingMatrixViewScreen";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
 
 vi.mock("react-i18next", () => ({
@@ -100,12 +100,12 @@ const answersByQuestion = new Map<string, GradingAnswerRow[]>([
   ],
 ]);
 
-describe("GradingMatrixView", () => {
+describe("GradingMatrixViewScreen", () => {
   it("renders matrix status and emits selection when a cell is clicked", () => {
     const onSelectCell = vi.fn();
 
     render(
-      <GradingMatrixView
+      <GradingMatrixViewScreen
         questionProgress={questionProgress}
         students={students}
         answersByQuestion={answersByQuestion}
@@ -125,7 +125,7 @@ describe("GradingMatrixView", () => {
   it("supports arrow-key navigation and Enter to open selected cell", () => {
     const onSelectCell = vi.fn();
     render(
-      <GradingMatrixView
+      <GradingMatrixViewScreen
         questionProgress={questionProgress}
         students={students}
         answersByQuestion={answersByQuestion}

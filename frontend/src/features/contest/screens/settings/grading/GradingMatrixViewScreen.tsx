@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
 import styles from "./GradingMatrixView.module.scss";
 
-interface GradingMatrixViewProps {
+interface GradingMatrixViewScreenProps {
   questionProgress: QuestionProgress[];
   students: { studentId: string; username: string; nickname: string }[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
@@ -12,12 +12,12 @@ interface GradingMatrixViewProps {
 
 type CellState = "graded" | "pending" | "empty";
 
-export default function GradingMatrixView({
+export default function GradingMatrixViewScreen({
   questionProgress,
   students,
   answersByQuestion,
   onSelectCell,
-}: GradingMatrixViewProps) {
+}: GradingMatrixViewScreenProps) {
   const { t } = useTranslation("contest");
   const gridRef = useRef<HTMLDivElement | null>(null);
   const [focusedCell, setFocusedCell] = useState({ row: 0, col: 0 });

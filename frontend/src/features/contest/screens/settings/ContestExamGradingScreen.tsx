@@ -12,7 +12,7 @@ import {
 import {
   GradingByQuestionTabScreen,
   GradingByStudentTabScreen,
-  GradingMatrixView,
+  GradingMatrixViewScreen,
   useGradingData,
 } from "./grading";
 import type { GradingFilter } from "./grading";
@@ -216,7 +216,7 @@ const ContestExamGradingScreen: React.FC = () => {
               onSearchChange={setSearchQuery}
             />
           ) : (
-            <GradingMatrixView
+            <GradingMatrixViewScreen
               questionProgress={questionProgress}
               students={students}
               answersByQuestion={answersByQuestion}
