@@ -1,9 +1,15 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { Pagination, Tag } from "@carbon/react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { Button, FluidSearch, Tag } from "@carbon/react";
+import { ChevronLeft, ChevronRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
-import type { GradingAnswerRow } from "./gradingTypes";
+import {
+  GRADING_COLLAPSED_LIST_WIDTH,
+  GRADING_PRIMARY_LIST_WIDTH,
+  GRADING_SECONDARY_LIST_WIDTH,
+  type GradingAnswerRow,
+} from "./gradingTypes";
 import styles from "./GradingByStudent.module.scss";
 
 interface StudentSummary {
@@ -21,6 +27,7 @@ interface GradingByStudentTabScreenProps {
   students: { studentId: string; username: string; nickname: string }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
+  onSearchChange: (value: string) => void;
 }
 
 export default function GradingByStudentTabScreen({
@@ -28,14 +35,16 @@ export default function GradingByStudentTabScreen({
   students,
   onGrade,
   searchQuery,
+  onSearchChange,
 }: GradingByStudentTabScreenProps) {
   const { t } = useTranslation("contest");
+  const [isStudentPaneCollapsed, setIsStudentPaneCollapsed] = useState(false);
+  const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
+  const [hoveredStudentId, setHoveredStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
     null
   );
   const [selectedAnswerIdx, setSelectedAnswerIdx] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
 
   const studentSummaries = useMemo<StudentSummary[]>(() => {
     return students.map((s) => {
@@ -65,13 +74,20 @@ export default function GradingByStudentTabScreen({
     );
   }, [studentSummaries, searchQuery]);
 
-  // Reset page on search change
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
+    if (filtered.length === 0) {
+      if (selectedStudentId !== null) {
+        setSelectedStudentId(null);
+      }
+      return;
+    }
 
-  const startIndex = (page - 1) * pageSize;
-  const paginated = filtered.slice(startIndex, startIndex + pageSize);
+    const selectedExists = filtered.some((student) => student.studentId === selectedStudentId);
+    if (!selectedStudentId || !selectedExists) {
+      setSelectedStudentId(filtered[0].studentId);
+      setSelectedAnswerIdx(0);
+    }
+  }, [filtered, selectedStudentId]);
 
   const currentStudentAnswers = useMemo(
     () =>
@@ -82,7 +98,31 @@ export default function GradingByStudentTabScreen({
   );
 
   const currentAnswer = currentStudentAnswers[selectedAnswerIdx] ?? null;
+  const selectedStudentSummary = useMemo(
+    () => filtered.find((student) => student.studentId === selectedStudentId) ?? null,
+    [filtered, selectedStudentId],
+  );
+  const previewStudentSummary = useMemo(() => {
+    const targetStudentId = hoveredStudentId ?? selectedStudentId;
+    if (!targetStudentId) {
+      return null;
+    }
+    return filtered.find((student) => student.studentId === targetStudentId) ?? null;
+  }, [hoveredStudentId, selectedStudentId, filtered]);
   const hasNext = selectedAnswerIdx < currentStudentAnswers.length - 1;
+
+  useEffect(() => {
+    if (currentStudentAnswers.length === 0) {
+      if (selectedAnswerIdx !== 0) {
+        setSelectedAnswerIdx(0);
+      }
+      return;
+    }
+
+    if (selectedAnswerIdx >= currentStudentAnswers.length) {
+      setSelectedAnswerIdx(0);
+    }
+  }, [currentStudentAnswers, selectedAnswerIdx]);
 
   // Find next student in filtered list
   const currentStudentFilteredIdx = useMemo(() => {
@@ -108,10 +148,51 @@ export default function GradingByStudentTabScreen({
     setSelectedAnswerIdx(0);
   }, [filtered, currentStudentFilteredIdx, hasNextStudent]);
 
-  const sidebarContent = (
-    <>
+  const sidebarContent = isStudentPaneCollapsed ? (
+    <div className={styles.collapsedPane}>
+      <Button
+        kind="ghost"
+        size="sm"
+        hasIconOnly
+        renderIcon={ChevronRight}
+        iconDescription={t("grading.expandStudentList", "展開學生列表")}
+        onClick={() => setIsStudentPaneCollapsed(false)}
+      />
+    </div>
+  ) : (
+    <div className={styles.pane}>
+      <div className={styles.paneHeaderRow}>
+        <div className={styles.sidebarHeader}>{t("grading.studentList", "學生列表")}</div>
+        <Button
+          kind="ghost"
+          size="sm"
+          hasIconOnly
+          renderIcon={ChevronLeft}
+          iconDescription={t("grading.collapseStudentList", "收摺學生列表")}
+          onClick={() => setIsStudentPaneCollapsed(true)}
+        />
+      </div>
+      <div className={styles.listControls}>
+        <div className={styles.toolbarSearch}>
+          <FluidSearch
+            id="grading-student-search"
+            labelText={t("grading.searchStudent", "搜尋學生")}
+            placeholder={t("grading.searchStudent", "搜尋學生") + "..."}
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </div>
+        <div className={styles.toolbarMeta}>
+          <span>
+            {t("grading.studentsDisplayCount", "顯示 {{shown}} / {{total}} 位", {
+              shown: filtered.length,
+              total: students.length,
+            })}
+          </span>
+        </div>
+      </div>
       <div className={styles.cardList}>
-        {paginated.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className={styles.emptyState}>
             <span className={styles.emptyStateDesc}>
               {searchQuery.trim()
@@ -120,16 +201,29 @@ export default function GradingByStudentTabScreen({
             </span>
           </div>
         ) : (
-          paginated.map((s) => {
+          filtered.map((s) => {
             const isSelected = s.studentId === selectedStudentId;
+            const statusClass =
+              s.totalCount === 0
+                ? styles.statusEmpty
+                : s.gradedCount === s.totalCount
+                  ? styles.statusDone
+                  : styles.statusPending;
             return (
               <div
                 key={s.studentId}
                 className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
                 onClick={() => handleStudentSelect(s.studentId)}
+                onMouseEnter={() => setHoveredStudentId(s.studentId)}
+                onMouseLeave={() => setHoveredStudentId(null)}
+                onPointerEnter={() => setHoveredStudentId(s.studentId)}
+                onPointerLeave={() => setHoveredStudentId(null)}
               >
                 <div className={styles.cardPrimary}>
-                  <span>{s.nickname}</span>
+                  <span className={styles.cardLabelRow}>
+                    <span className={`${styles.statusDot} ${statusClass}`} />
+                    <span>{s.nickname}</span>
+                  </span>
                   <span>
                     <span style={{ fontWeight: 600 }}>{s.totalScore}</span>
                     <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.8125rem" }}>
@@ -152,64 +246,89 @@ export default function GradingByStudentTabScreen({
           })
         )}
       </div>
-
-      <Pagination
-        totalItems={filtered.length}
-        backwardText={t("common.prevPage", "上一頁")}
-        forwardText={t("common.nextPage", "下一頁")}
-        itemsPerPageText={t("common.itemsPerPage", "每頁")}
-        page={page}
-        pageSize={pageSize}
-        pageSizes={[25, 50, 100]}
-        onChange={({
-          page: p,
-          pageSize: ps,
-        }: {
-          page: number;
-          pageSize: number;
-        }) => {
-          setPage(p);
-          setPageSize(ps);
-        }}
-      />
-    </>
+    </div>
   );
 
-  const middlePaneContent = (
-    <>
+  const middlePaneContent = isQuestionPaneCollapsed ? (
+    <div className={styles.collapsedPane}>
+      <Button
+        kind="ghost"
+        size="sm"
+        hasIconOnly
+        renderIcon={ChevronRight}
+        iconDescription={t("grading.expandQuestionList", "展開題目列表")}
+        onClick={() => setIsQuestionPaneCollapsed(false)}
+      />
+    </div>
+  ) : (
+    <div className={styles.pane}>
+      <div className={styles.paneHeaderRow}>
+        <div className={styles.sidebarHeader}>{t("grading.questionList", "題目列表")}</div>
+        <Button
+          kind="ghost"
+          size="sm"
+          hasIconOnly
+          renderIcon={ChevronLeft}
+          iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
+          onClick={() => setIsQuestionPaneCollapsed(true)}
+        />
+      </div>
+      {previewStudentSummary ? (
+        <div className={styles.previewBar} aria-live="polite">
+          {t(
+            "grading.previewStudentSummary",
+            "{{name}} · {{graded}}/{{total}} 完成 · {{score}} 分",
+            {
+              name: previewStudentSummary.nickname,
+              graded: previewStudentSummary.gradedCount,
+              total: previewStudentSummary.totalCount,
+              score: previewStudentSummary.totalScore,
+            },
+          )}
+        </div>
+      ) : null}
       {selectedStudentId && currentStudentAnswers.length > 0 ? (
-        <>
-          <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
-          {currentStudentAnswers.map((a, i) => {
-            const isActive = i === selectedAnswerIdx;
-            return (
-              <div
-                key={a.id}
-                className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ""}`}
-                onClick={() => setSelectedAnswerIdx(i)}
-              >
+        currentStudentAnswers.map((a, i) => {
+          const isActive = i === selectedAnswerIdx;
+          const statusClass = a.score !== null ? styles.statusDone : styles.statusPending;
+          return (
+            <div
+              key={a.id}
+              className={`${styles.sidebarItem} ${isActive ? styles.sidebarItemActive : ""}`}
+              onClick={() => setSelectedAnswerIdx(i)}
+            >
+              <span className={styles.cardLabelRow}>
+                <span className={`${styles.statusDot} ${statusClass}`} />
                 <span className={styles.sidebarLabel}>Q{a.questionIndex}</span>
-                {a.score !== null ? (
-                  <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
-                ) : (
-                  <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
-                )}
-              </div>
-            );
-          })}
-        </>
+              </span>
+              {a.score !== null ? (
+                <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+              ) : (
+                <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
+              )}
+            </div>
+          );
+        })
       ) : (
-        <div className={styles.sidebarHeader}>{t("grading.questionList", "題目")}</div>
+        <div className={styles.emptyStateCompact}>
+          {selectedStudentId
+            ? t("grading.noSubmissions", "此學生尚未提交任何作答")
+            : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
+        </div>
       )}
-    </>
+    </div>
   );
 
   return (
     <AdminSplitLayout
       sidebar={sidebarContent}
-      sidebarWidth={220}
+      sidebarWidth={
+        isStudentPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_PRIMARY_LIST_WIDTH
+      }
       middlePane={middlePaneContent}
-      middlePaneWidth={160}
+      middlePaneWidth={
+        isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_SECONDARY_LIST_WIDTH
+      }
       contentClassName={styles.gradingContent}
     >
       <div className={styles.panel}>
@@ -217,10 +336,19 @@ export default function GradingByStudentTabScreen({
           <GradingSplitPanelScreen
             answer={currentAnswer}
             onGrade={onGrade}
-            onNext={handleNext}
-            hasNext={hasNext}
+            flowMode="byStudent"
+            onNextQuestion={handleNext}
+            hasNextQuestion={hasNext}
             onNextStudent={handleNextStudent}
             hasNextStudent={hasNextStudent}
+            contextPath={{
+              primary: selectedStudentSummary
+                ? `${selectedStudentSummary.nickname} (${selectedStudentSummary.username})`
+                : t("grading.student", "學生"),
+              secondary: currentAnswer
+                ? `Q${currentAnswer.questionIndex}`
+                : undefined,
+            }}
           />
         ) : (
           <div className={styles.panelEmpty}>

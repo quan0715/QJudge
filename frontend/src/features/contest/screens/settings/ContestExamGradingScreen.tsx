@@ -4,16 +4,16 @@ import {
   ContentSwitcher,
   Switch,
   Loading,
-  Search,
-  Dropdown,
   Button,
   Tag,
+  OverflowMenu,
+  OverflowMenuItem,
 } from "@carbon/react";
 import {
   GradingByQuestionTabScreen,
   GradingByStudentTabScreen,
+  GradingMatrixViewScreen,
   useGradingData,
-  gradingFilterOptions,
 } from "./grading";
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
@@ -27,11 +27,16 @@ import styles from "./grading/ContestExamGrading.module.scss";
 const ContestExamGradingScreen: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { contest, refreshContest } = useContest();
-  const [viewMode, setViewMode] = useState<0 | 1>(0);
+  const [viewMode, setViewMode] = useState<"byQuestion" | "byStudent" | "matrix">("byQuestion");
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<GradingFilter>("all");
   const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
   const [publishingResults, setPublishingResults] = useState(false);
+  const [selectionRequest, setSelectionRequest] = useState<{
+    questionId: string;
+    studentId: string;
+    nonce: number;
+  } | null>(null);
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
 
@@ -68,26 +73,21 @@ const ContestExamGradingScreen: React.FC = () => {
     () => answers.filter((row) => !isSubjectiveType(row.questionType)).length,
     [answers],
   );
-
-  // Compute visible count for display
-  const visibleCount = useMemo(() => {
-    if (viewMode === 1) {
-      // ByStudent — count filtered students
-      if (!searchQuery.trim()) return students.length;
-      const q = searchQuery.toLowerCase().trim();
-      return students.filter(
-        (s) =>
-          s.username.toLowerCase().includes(q) ||
-          s.nickname.toLowerCase().includes(q)
-      ).length;
-    }
-    return null; // ByQuestion count is per-question, shown inside
-  }, [viewMode, students, searchQuery]);
+  const ungradedCount = useMemo(
+    () => answers.filter((row) => row.score === null).length,
+    [answers],
+  );
 
   const handleViewChange = (e: { index?: number; name?: string | number; text?: string; key?: string | number }) => {
-    setViewMode((e.index ?? 0) as 0 | 1);
+    const nextMode = (e.name as "byQuestion" | "byStudent" | "matrix") ?? "byQuestion";
+    setViewMode(nextMode);
     setSearchQuery("");
     setFilter("all");
+  };
+
+  const handleSelectMatrixCell = (questionId: string, studentId: string) => {
+    setSelectionRequest({ questionId, studentId, nonce: Date.now() });
+    setViewMode("byQuestion");
   };
 
   const handleRegradeObjective = async () => {
@@ -127,63 +127,40 @@ const ContestExamGradingScreen: React.FC = () => {
 
   return (
     <div className={styles.editorRoot}>
-      {/* Single unified toolbar */}
-      <div className={styles.editorToolbar}>
-        <ContentSwitcher
-          onChange={handleViewChange}
-          selectedIndex={viewMode}
-          size="sm"
-          className={styles.toolbarSwitcher}
-        >
-          <Switch name="byQuestion" text={t("grading.byQuestion", "按題目批改")} />
-          <Switch name="byStudent" text={t("grading.byStudent", "按學生批改")} />
-        </ContentSwitcher>
+      <div className={styles.globalToolbar}>
+        <div className={styles.toolbarGroup}>
+          <div className={styles.globalTitle}>
+            {contest?.name || t("grading.gradingCenter", "批改中心")}
+          </div>
+          <div className={styles.globalMeta}>
+            {t("grading.globalSummary", "題目 {{questions}} 題 · 作答 {{answers}} 筆 · 待批改 {{pending}} 筆", {
+              questions: questionProgress.length,
+              answers: answers.length,
+              pending: ungradedCount,
+            })}
+          </div>
+        </div>
 
         <div className={styles.toolbarSpacer} />
 
-        <Search
-          id="grading-search"
-          labelText={t("grading.searchStudent", "搜尋學生")}
-          placeholder={t("grading.searchStudent", "搜尋學生") + "..."}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          size="sm"
-          className={styles.toolbarSearch}
-        />
-
-        {viewMode === 0 && (
-          <Dropdown
-            id="grading-filter"
-            titleText=""
-            label={t("grading.filter", "篩選")}
-            items={gradingFilterOptions}
-            itemToString={(item) => item?.label ?? ""}
-            selectedItem={gradingFilterOptions.find((o) => o.id === filter)}
-            onChange={({ selectedItem }) =>
-              setFilter((selectedItem?.id as GradingFilter) ?? "all")
-            }
+        {objectiveAnswerCount > 0 ? (
+          <OverflowMenu
+            ariaLabel={t("grading.moreActions", "更多操作")}
+            className={styles.toolbarOverflow}
             size="sm"
-            className={styles.toolbarFilter}
-          />
-        )}
-
-        {objectiveAnswerCount > 0 && (
-          <Button
-            kind="ghost"
-            size="sm"
-            disabled={regradingObjective || objectiveRegradedOnce}
-            onClick={handleRegradeObjective}
-            className={styles.toolbarAction}
+            flipped
           >
-            {objectiveRegradedOnce ? t("grading.autoGraded", "已自動批改") : t("grading.autoGrade", "自動批改客觀題")}
-          </Button>
-        )}
-
-        {visibleCount !== null && (
-          <span className={styles.toolbarCount}>
-            {t("grading.studentsCount", { count: visibleCount })}
-          </span>
-        )}
+            <OverflowMenuItem
+              itemText={
+                objectiveRegradedOnce
+                  ? t("grading.autoGraded", "已自動批改")
+                  : t("grading.autoGrade", "自動批改客觀題")
+              }
+              disabled={regradingObjective || objectiveRegradedOnce}
+              onClick={handleRegradeObjective}
+            />
+          </OverflowMenu>
+        ) : null}
 
         <div className={styles.toolbarDivider} />
         <Tag type={published ? "green" : "gray"} size="sm">
@@ -200,25 +177,53 @@ const ContestExamGradingScreen: React.FC = () => {
         </Button>
       </div>
 
+      <div className={styles.localToolbar}>
+        <ContentSwitcher
+          onChange={handleViewChange}
+          selectedIndex={viewMode === "byStudent" ? 1 : viewMode === "matrix" ? 2 : 0}
+          size="sm"
+          className={styles.toolbarSwitcher}
+        >
+          <Switch name="byQuestion" text={t("grading.byQuestion", "按題目批改")} />
+          <Switch name="byStudent" text={t("grading.byStudent", "按學生批改")} />
+          <Switch name="matrix" text={t("grading.matrixOverview", "矩陣總覽")} />
+        </ContentSwitcher>
+
+        <div className={styles.toolbarSpacer} />
+      </div>
+
       {/* Editor body */}
       <div className={styles.editorBody}>
-        {viewMode === 0 ? (
-          <GradingByQuestionTabScreen
-            questionProgress={questionProgress}
-            answersByQuestion={answersByQuestion}
-            students={students}
-            onGrade={gradeAnswer}
-            searchQuery={searchQuery}
-            filter={filter}
-          />
-        ) : (
-          <GradingByStudentTabScreen
-            answersByStudent={answersByStudent}
-            students={students}
-            onGrade={gradeAnswer}
-            searchQuery={searchQuery}
-          />
-        )}
+        <div key={viewMode} className={styles.viewTransition}>
+          {viewMode === "byQuestion" ? (
+            <GradingByQuestionTabScreen
+              questionProgress={questionProgress}
+              answersByQuestion={answersByQuestion}
+              students={students}
+              onGrade={gradeAnswer}
+              searchQuery={searchQuery}
+              filter={filter}
+              onSearchChange={setSearchQuery}
+              onFilterChange={setFilter}
+              selectionRequest={selectionRequest}
+            />
+          ) : viewMode === "byStudent" ? (
+            <GradingByStudentTabScreen
+              answersByStudent={answersByStudent}
+              students={students}
+              onGrade={gradeAnswer}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          ) : (
+            <GradingMatrixViewScreen
+              questionProgress={questionProgress}
+              students={students}
+              answersByQuestion={answersByQuestion}
+              onSelectCell={handleSelectMatrixCell}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

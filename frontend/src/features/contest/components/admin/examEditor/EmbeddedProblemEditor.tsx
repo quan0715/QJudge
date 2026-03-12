@@ -140,6 +140,7 @@ const EditorContent: React.FC<{
           visibility={watchedValues.visibility || "private"}
           onVisibilityChange={handleVisibilityChange}
           onDelete={handleDelete}
+          hideSidebar={true}
         />
       </div>
 

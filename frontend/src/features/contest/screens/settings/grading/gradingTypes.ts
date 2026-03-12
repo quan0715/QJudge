@@ -12,6 +12,11 @@ export const isSubjectiveType = (t: ExamQuestionType): boolean =>
 
 export { QUESTION_TYPE_LABELS as questionTypeLabel } from "@/features/contest/constants/examLabels";
 
+/** Shared split-pane widths for grading screens to keep both tabs visually consistent. */
+export const GRADING_PRIMARY_LIST_WIDTH = 220;
+export const GRADING_SECONDARY_LIST_WIDTH = 220;
+export const GRADING_COLLAPSED_LIST_WIDTH = 48;
+
 /** A single student answer row used across all tabs. */
 export interface GradingAnswerRow {
   id: string;

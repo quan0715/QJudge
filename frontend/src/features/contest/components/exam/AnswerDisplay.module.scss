@@ -30,8 +30,14 @@
   border: 1px solid var(--cds-border-subtle-01);
 }
 
-.reference {
-  composes: fieldBase;
+.answerField {
+  background: var(--cds-field);
+}
+
+.referenceField {
+  background: color-mix(in srgb, var(--cds-support-info) 8%, var(--cds-layer));
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--cds-support-info) 40%, var(--cds-border-subtle-01));
   font-size: 0.8125rem;
   color: var(--cds-text-secondary);
 }
@@ -101,4 +107,11 @@
 .correctAnswerText {
   color: var(--cds-support-success);
   font-weight: 500;
+}
+
+.referenceInline {
+  padding: 0.5rem 0.625rem;
+  border-radius: 4px;
+  border: 1px dashed color-mix(in srgb, var(--cds-support-info) 40%, var(--cds-border-subtle-01));
+  background: color-mix(in srgb, var(--cds-support-info) 8%, var(--cds-layer));
 }
