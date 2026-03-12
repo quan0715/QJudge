@@ -16,6 +16,7 @@ interface ProblemEditSectionsProps {
   visibility: ProblemVisibility;
   onVisibilityChange: (visibility: ProblemVisibility) => Promise<void>;
   onDelete: () => Promise<void>;
+  hideSidebar?: boolean;
 }
 
 const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
@@ -25,10 +26,11 @@ const ProblemEditSections: React.FC<ProblemEditSectionsProps> = ({
   visibility,
   onVisibilityChange,
   onDelete,
+  hideSidebar,
 }) => {
   const { t } = useTranslation("problem");
   return (
-    <ScrollSpyLayout sections={sections} onPreviewClick={onPreviewClick}>
+    <ScrollSpyLayout sections={sections} onPreviewClick={onPreviewClick} hideSidebar={hideSidebar}>
       {({ registerSection }) => (
         <div className="problem-edit-page__sections">
           {/* Basic Info */}

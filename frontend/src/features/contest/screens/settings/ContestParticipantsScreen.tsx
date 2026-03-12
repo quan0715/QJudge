@@ -58,8 +58,6 @@ const ContestParticipantsScreen = () => {
   const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const refreshInFlightRef = useRef(false);
@@ -151,11 +149,6 @@ const ContestParticipantsScreen = () => {
     return rows;
   }, [participants, searchQuery, statusFilter, sortKey]);
 
-  const pagedParticipants = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return processedParticipants.slice(start, start + pageSize);
-  }, [page, pageSize, processedParticipants]);
-
   /** The currently selected participant object (from unfiltered list) */
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.userId === selectedUserId),
@@ -186,10 +179,6 @@ const ContestParticipantsScreen = () => {
       return hasChanges ? next : prev;
     });
   }, [setSearchParams]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, statusFilter, sortKey]);
 
   // Auto-select first participant + validate selected user / detail
   useEffect(() => {
@@ -386,7 +375,7 @@ const ContestParticipantsScreen = () => {
   };
 
   const listPaneProps = {
-    participants: pagedParticipants,
+    participants: processedParticipants,
     selectedUserId,
     loading: isRefreshing,
     searchQuery,
@@ -394,16 +383,10 @@ const ContestParticipantsScreen = () => {
     statusOptions,
     sortKey,
     sortOptions,
-    page,
-    pageSize,
     totalItems: processedParticipants.length,
     onSearchChange: (value: string) => updateParams({ q: value || null }),
     onStatusFilterChange: (value: string) => updateParams({ status: value === "all" ? null : value }),
     onSortChange: (value: string) => updateParams({ sort: value === "score_desc" ? null : value }),
-    onPageChange: (nextPage: number, nextPageSize: number) => {
-      setPage(nextPage);
-      setPageSize(nextPageSize);
-    },
     onAddParticipant: () => setAddModalOpen(true),
     onRefreshParticipants: () => void handleRefreshParticipants(),
     isRefreshingParticipants: isManualRefreshing || isRefreshing,
