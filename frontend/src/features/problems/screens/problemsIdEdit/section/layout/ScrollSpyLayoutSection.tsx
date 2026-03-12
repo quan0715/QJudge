@@ -16,6 +16,8 @@ export interface ScrollSpyLayoutProps {
   headerContent?: React.ReactNode;
   /** Additional class name */
   className?: string;
+  /** Whether to hide the left sidebar */
+  hideSidebar?: boolean;
 }
 
 export const ScrollSpyLayout: React.FC<ScrollSpyLayoutProps> = ({
@@ -24,6 +26,7 @@ export const ScrollSpyLayout: React.FC<ScrollSpyLayoutProps> = ({
   children,
   headerContent,
   className,
+  hideSidebar,
 }) => {
   // Content container ref for scroll spy
   const contentRef = useRef<HTMLDivElement>(null);
@@ -38,21 +41,23 @@ export const ScrollSpyLayout: React.FC<ScrollSpyLayoutProps> = ({
   return (
     <div className={`${styles.layout} ${className || ""}`}>
       {/* Left Sidebar */}
-      <aside className={styles.sidebar}>
-        {/* Optional header content (e.g., problem switcher) */}
-        {headerContent && (
-          <div className={styles.sidebarHeader}>{headerContent}</div>
-        )}
+      {!hideSidebar && (
+        <aside className={styles.sidebar}>
+          {/* Optional header content (e.g., problem switcher) */}
+          {headerContent && (
+            <div className={styles.sidebarHeader}>{headerContent}</div>
+          )}
 
-        {/* Scroll-spy Navigation */}
-        <ScrollSpyNav
-          sections={sections}
-          activeId={activeId}
-          onSectionClick={scrollToSection}
-          onPreviewClick={onPreviewClick}
-          className={styles.nav}
-        />
-      </aside>
+          {/* Scroll-spy Navigation */}
+          <ScrollSpyNav
+            sections={sections}
+            activeId={activeId}
+            onSectionClick={scrollToSection}
+            onPreviewClick={onPreviewClick}
+            className={styles.nav}
+          />
+        </aside>
+      )}
 
       {/* Main Content Area */}
       <main className={styles.content} ref={contentRef}>

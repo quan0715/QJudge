@@ -61,7 +61,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
       <div className={styles.root}>
         <div className={styles.section}>
           <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
-          <div className={styles.fieldBase}>
+          <div className={`${styles.fieldBase} ${styles.answerField}`}>
             {text ? (
               <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
             ) : (
@@ -72,7 +72,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
         {correctAnswer != null && typeof correctAnswer === "string" && (
           <div className={styles.section}>
             <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
-            <div className={styles.reference}>
+            <div className={`${styles.fieldBase} ${styles.referenceField}`}>
               <MarkdownContent.Simple>{correctAnswer}</MarkdownContent.Simple>
             </div>
           </div>
@@ -117,7 +117,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           })}
         </div>
         {correctAnswer != null && (
-          <div className={styles.correctAnswerLine}>
+          <div className={`${styles.correctAnswerLine} ${styles.referenceInline}`}>
             <span className={styles.correctAnswerLabel}>
               {t("grading.correctAnswer", "正確答案")}:
             </span>
