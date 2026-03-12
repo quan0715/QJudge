@@ -3,7 +3,7 @@ import {
   type ExamEventResponse,
   type RecordExamEventOptions,
 } from "@/infrastructure/api/repositories";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 
 export type ForcedCaptureSkipReason =
   | "disabled"

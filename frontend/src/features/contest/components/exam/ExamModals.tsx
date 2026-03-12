@@ -159,6 +159,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           {/* Auto-lock countdown */}
           {warningCountdown != null && warningCountdown > 0 && !pendingApiResponse && !isLocked && (
             <p
+              data-testid="exam-warning-countdown"
               style={{
                 marginBottom: "1rem",
                 fontSize: "0.875rem",

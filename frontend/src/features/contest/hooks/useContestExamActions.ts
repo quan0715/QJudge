@@ -19,7 +19,7 @@ import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/ho
 import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,
-} from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+} from "@/shared/state/examCaptureSessionStore";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import {
@@ -173,6 +173,7 @@ export const useContestExamActions = ({
       const result = await leaveExamUseCase({
         contestId: contest.id,
         shouldEndExam,
+        uploadSessionId: uploadSessionId || undefined,
       });
 
       if (contest.cheatDetectionEnabled) {

@@ -14,7 +14,7 @@ import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repos
 import type { Contest } from "@/core/entities/contest.entity";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { formatDateTime } from "@/i18n/date.utils";
+import { formatDateTime } from "@/i18n/dateUtils";
 import "./DashboardScreen.scss";
 
 interface UserStats {

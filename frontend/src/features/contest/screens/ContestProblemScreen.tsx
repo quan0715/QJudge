@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContestNavigationGuard } from "@/features/contest/hooks/useContestNavigationGuard";
 import { Loading, Button } from "@carbon/react";
-import { useAuth } from "@/shared/hooks";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isContestEnded } from "@/core/entities/contest.entity";
 import { useContestProblemSelection } from "@/features/contest/hooks/useContestProblemSelection";

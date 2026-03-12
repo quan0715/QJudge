@@ -33,13 +33,13 @@ vi.mock("./participants/useParticipantDashboard", () => ({
   default: (...args: unknown[]) => participantDashboardHookMock(...args),
 }));
 
-vi.mock("./participants/ParticipantsListPane", () => ({
+vi.mock("@/features/contest/components/participants/ParticipantsListPane", () => ({
   default: ({ selectedUserId }: { selectedUserId?: string | null }) => (
     <div data-testid="participants-list">selected:{selectedUserId || "none"}</div>
   ),
 }));
 
-vi.mock("./participants/ParticipantDashboardPane", () => ({
+vi.mock("@/features/contest/components/participants/ParticipantDashboardPane", () => ({
   default: ({
     activeDetail,
     dashboard,

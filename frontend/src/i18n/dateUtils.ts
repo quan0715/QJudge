@@ -14,6 +14,7 @@ export interface DateFormatOptions extends Intl.DateTimeFormatOptions {
 export const DATE_FORMATS = {
   /** Example: Mar 10, 08:30 or 3月10日 08:30 */
   SHORT: {
+    year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -67,8 +68,18 @@ export const formatDateTime = (
     return new Intl.DateTimeFormat(currentLocale, intlOptions).format(d);
   } catch (e) {
     console.error('Failed to format date:', e);
-    return d.toLocaleString();
+    return d.toLocaleString(currentLocale);
   }
+};
+
+/**
+ * Format date only (YYYY/MM/DD)
+ */
+export const formatDate = (
+  date: string | number | Date | null | undefined,
+  locale?: string
+): string => {
+  return formatDateTime(date, { ...DATE_FORMATS.DATE_ONLY, locale });
 };
 
 /**

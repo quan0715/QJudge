@@ -11,7 +11,7 @@ vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn(),
 }));
 
-vi.mock("@/features/contest/screens/paperExam/hooks/examCaptureSession", () => ({
+vi.mock("@/shared/state/examCaptureSessionStore", () => ({
   getExamCaptureSessionId: vi.fn(() => "session-123"),
 }));
 

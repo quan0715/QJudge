@@ -12,6 +12,7 @@ import {
   Tag,
 } from "@carbon/react";
 import { TrashCan } from "@carbon/icons-react";
+import { formatDate } from "@/i18n/dateUtils";
 import type { ClassroomMember } from "@/core/entities/classroom.entity";
 
 interface MemberTableProps {
@@ -41,7 +42,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
     username: m.username,
     email: m.email,
     role: m.role,
-    joinedAt: new Date(m.joinedAt).toLocaleDateString(),
+    joinedAt: formatDate(m.joinedAt),
     actions: m.userId,
   }));
 

@@ -13,6 +13,7 @@ import {
   Password,
   Edit,
   Code,
+  Book,
   Settings,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
@@ -155,6 +156,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   return (
     <>
       <HeaderGlobalAction
+        data-testid="user-menu-toggle-btn"
         aria-label={t("header.userMenu")}
         isActive={isExpanded}
         onClick={handleToggle}
@@ -179,11 +181,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               value={themePreference as ThemePreference}
               onChange={handleThemeChange}
               showLabel
+              testId="user-menu-theme-dropdown"
             />
             <LanguageSwitch
               value={language}
               onChange={handleLanguageChange}
               showLabel
+              testId="user-menu-language-dropdown"
             />
           </div>
 
@@ -200,6 +204,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           )}
 
           {/* Settings Link */}
+          <button
+            data-testid="user-menu-docs-btn"
+            type="button"
+            className="user-menu-link"
+            onClick={() => {
+              navigate("/docs");
+              setIsExpandedInternal(false);
+              onExpandedChange?.(false);
+            }}
+          >
+            <Book size={16} />
+            {t("nav.documentation")}
+          </button>
+
           <button
             type="button"
             className="user-menu-link"

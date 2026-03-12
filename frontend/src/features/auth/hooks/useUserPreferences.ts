@@ -21,11 +21,13 @@ import type {
 let globalLoadedForUserId: number | null = null;
 let globalPreferencesCache: UserPreferences | null = null;
 let globalLoadPromise: Promise<UserPreferences | null> | null = null;
+let globalPreferencesMutationEpoch = 0;
 
 export const __resetUserPreferencesCacheForTests = () => {
   globalLoadedForUserId = null;
   globalPreferencesCache = null;
   globalLoadPromise = null;
+  globalPreferencesMutationEpoch = 0;
 };
 
 export interface UseUserPreferencesReturn {
@@ -122,6 +124,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
 
     setLoading(true);
     setError(null);
+    const loadStartedAtEpoch = globalPreferencesMutationEpoch;
 
     if (!globalLoadPromise) {
       globalLoadPromise = (async () => {
@@ -138,6 +141,14 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     try {
       const loadedPreferences = await pendingLoad;
       if (loadedPreferences) {
+        // A local preference mutation happened while this request was inflight.
+        // Keep the newer optimistic state instead of overwriting it with stale data.
+        if (loadStartedAtEpoch !== globalPreferencesMutationEpoch) {
+          if (globalPreferencesCache) {
+            applyPreferencesToState(globalPreferencesCache);
+          }
+          return;
+        }
         globalPreferencesCache = loadedPreferences;
         globalLoadedForUserId = user.id;
         applyPreferencesToState(loadedPreferences);
@@ -186,6 +197,24 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   // Update language preference
   const updateLanguage = useCallback(
     async (lang: string) => {
+      globalPreferencesMutationEpoch += 1;
+
+      setPreferences((prev) => {
+        const base =
+          prev ??
+          globalPreferencesCache ?? {
+            preferred_language: contentLanguage,
+            preferred_theme: preference,
+            editor_font_size: 12,
+            editor_tab_size: 4 as 2 | 4,
+          };
+        const next = { ...base, preferred_language: lang };
+        globalPreferencesCache = next;
+        if (user) {
+          globalLoadedForUserId = user.id;
+        }
+        return next;
+      });
       setContentLanguage(lang as typeof contentLanguage);
 
       if (user) {
@@ -204,7 +233,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
         }
       }
     },
-    [user, setContentLanguage]
+    [contentLanguage, preference, user, setContentLanguage]
   );
 
   // Update editor settings

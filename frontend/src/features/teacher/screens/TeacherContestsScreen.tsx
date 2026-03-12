@@ -27,6 +27,7 @@ import {
   getContestStateLabel,
   type ContestStatus,
 } from "@/core/entities/contest.entity";
+import { formatDateTime } from "@/i18n/dateUtils";
 
 type FilterStatus = "all" | ContestStatus;
 
@@ -59,6 +60,15 @@ const TeacherContestsScreen = ({
     { id: "published", text: t("status.published") },
     { id: "archived", text: t("status.archived") },
   ];
+
+  const dateTimeCellOptions = {
+    year: "numeric" as const,
+    month: "2-digit" as const,
+    day: "2-digit" as const,
+    hour: "2-digit" as const,
+    minute: "2-digit" as const,
+    locale: i18n.language,
+  };
 
   const filteredContests = useMemo(() => {
     if (statusFilter === "all") return contests;
@@ -93,17 +103,6 @@ const TeacherContestsScreen = ({
       onError: (err: Error) => {
         setError(err.message || t("message.deleteFailed"));
       },
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString(i18n.language, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -228,8 +227,12 @@ const TeacherContestsScreen = ({
                           {getContestStateLabel(state)}
                         </Tag>
                       </TableCell>
-                      <TableCell>{formatDateTime(contest.startTime)}</TableCell>
-                      <TableCell>{formatDateTime(contest.endTime)}</TableCell>
+                      <TableCell>
+                        {formatDateTime(contest.startTime, dateTimeCellOptions)}
+                      </TableCell>
+                      <TableCell>
+                        {formatDateTime(contest.endTime, dateTimeCellOptions)}
+                      </TableCell>
                       <TableCell>
                         <Tag
                           type={

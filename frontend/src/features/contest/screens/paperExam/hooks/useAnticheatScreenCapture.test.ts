@@ -20,7 +20,7 @@ vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
   unregisterForcedCaptureHandler: vi.fn(),
 }));
 
-vi.mock("./examCaptureSession", () => ({
+vi.mock("@/shared/state/examCaptureSessionStore", () => ({
   getExamCaptureSessionId: () => "test-session",
   setExamCaptureSessionId: vi.fn(),
 }));
@@ -51,7 +51,7 @@ const createMockHandoffStream = (opts?: { active?: boolean }) => {
 
 let mockHandoffStream: MediaStream | null = null;
 
-vi.mock("./examScreenShareHandoff", () => ({
+vi.mock("@/features/contest/anticheat/screenShareHandoffStore", () => ({
   consumePrecheckScreenShareHandoff: () => {
     const stream = mockHandoffStream;
     mockHandoffStream = null;
@@ -347,5 +347,44 @@ describe("forceStopCapture cleans up all streams", () => {
 
     expect(mockSetRuntimeHandoff).toHaveBeenCalledTimes(1);
     expect(mockClearPrecheck).toHaveBeenCalledWith(true);
+  });
+
+  it("does not force-stop on monitor transition when preserve mode is enabled", async () => {
+    mockHandoffStream = createMockHandoffStream();
+
+    const { result, rerender } = renderHook(
+      ({
+        monitorStream,
+        preserveStreamOnUnmount,
+      }: {
+        monitorStream: boolean;
+        preserveStreamOnUnmount: boolean;
+      }) =>
+        useAnticheatScreenCapture({
+          contestId: CONTEST_ID,
+          enabled: true,
+          monitorStream,
+          preserveStreamOnUnmount,
+          intervalMs: 100_000,
+        }),
+      {
+        initialProps: {
+          monitorStream: true,
+          preserveStreamOnUnmount: true,
+        },
+      }
+    );
+
+    await act(async () => {
+      await result.current.forceCaptureNow("init", { eventType: "screen_share_stopped" });
+    });
+
+    rerender({
+      monitorStream: false,
+      preserveStreamOnUnmount: true,
+    });
+
+    expect(mockClearPrecheck).not.toHaveBeenCalled();
+    expect(mockClearRuntime).not.toHaveBeenCalled();
   });
 });

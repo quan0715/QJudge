@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { endExam as serviceEndExam, recordExamEvent } from "@/infrastructure/api/repositories";
-import { getExamCaptureSessionId } from "@/features/contest/screens/paperExam/hooks/examCaptureSession";
+import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
@@ -26,7 +26,7 @@ import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hook
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
 import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter";
-import { setRuntimeScreenShareHandoff } from "@/features/contest/screens/paperExam/hooks/examScreenShareHandoff";
+import { setRuntimeScreenShareHandoff } from "@/features/contest/anticheat/screenShareHandoffStore";
 import {
   applyExamMonitoringPolicyOverrides,
   SCREEN_SHARE_RECOVERY_GRACE_MS,
@@ -94,7 +94,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     });
   }, [anticheatEffective]);
 
-  // 1. Core State & API actions
   const {
     examState,
     showWarning,
@@ -117,7 +116,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     warningTimeoutSeconds: anticheatEffective?.warningTimeoutSeconds,
   });
 
-  // 2. Monitoring Hook — keep running in locked/paused so violations are still recorded
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const captureEnabled = effectiveMonitoringEnabled && precheckPassed;
   const hasSentDegradedRef = useRef(false);
@@ -135,9 +133,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       metadata: { upload_session_id: getExamCaptureSessionId(contestId) || undefined },
     }).catch(() => {});
   }, [contestId]);
-  // monitorStream should stay enabled while policy is required (including config loading),
-  // otherwise we may accidentally stop handoff stream before the first answering capture tick.
-  // enabled (captureEnabled): additionally runs capture interval + upload on answering pages.
   const streamMonitorEnabled = policyRequired && !policyUnavailable;
 
   const capture = useAnticheatScreenCapture({
@@ -173,25 +168,21 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     });
   }, [showToast]);
 
-  // 3. UI Status Management (Fullscreen modals & exit flows)
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] = useState(false);
   const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] = useState(false);
   const [recoveryCountdown, setRecoveryCountdown] = useState<number | null>(null);
   const [recoverySource, setRecoverySource] = useState<"fullscreen" | "mouse-leave" | null>(null);
   const initialFullscreenCheckDone = useRef(false);
 
-  // Screen share recovery state
   const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
   const [isSubmittingFromScreenShareLoss, setIsSubmittingFromScreenShareLoss] = useState(false);
   const hasTriggeredScreenShareTimeoutSubmitRef = useRef(false);
 
-  // Auto-submit notification (shown after force submit due to screen share loss)
   const [showAutoSubmitNotice, setShowAutoSubmitNotice] = useState(false);
 
   const handleForceSubmitFromScreenShareLoss = useCallback(async () => {
     setIsSubmittingFromScreenShareLoss(true);
     try {
-      // Record P0 event only now that recovery grace period has expired
       await recordExamEvent(contestId, "screen_share_stopped", {
         source: "anticheat:screen_capture",
         metadata: { reason: "recovery_timeout" },
@@ -211,7 +202,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       if (onRefresh) await onRefresh();
       setShowAutoSubmitNotice(true);
     } catch {
-      // Best-effort submit
+      // best effort: submission fallback should not block cleanup
     } finally {
       setIsSubmittingFromScreenShareLoss(false);
       endRuntimeScreenShareReauth(contestId, 0);
@@ -221,14 +212,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleScreenShareLost = useCallback(() => {
     if (examStatus === "submitted") return;
     if (!streamMonitorEnabled) return;
-    // Guard: don't fire twice if both callback and streamActive fallback trigger
     if (isRuntimeScreenShareReauthActive(contestId)) return;
     const recoveryMs = Math.max(
       1,
       anticheatEffective?.screenShareRecoveryGraceMs ?? SCREEN_SHARE_RECOVERY_GRACE_MS,
     );
-    // Record P2 informational event — the user still has a recovery window.
-    // P0 screen_share_stopped is only recorded if recovery times out.
     recordExamEvent(contestId, "screen_share_interrupted", {
       source: "anticheat:screen_capture",
       metadata: { reason: "stream_ended" },
@@ -248,9 +236,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           source: "anticheat:screen_capture",
           metadata: { reason: "user_reshared" },
         }).catch(() => null);
-        // Keep screen-share recovery independent from fullscreen recovery.
-        // If fullscreen re-entry fails, existing fullscreen detectors/modals
-        // will handle it separately without forcing screen-share timeout submit.
         if (requiresFullscreen && !fullscreenAdapterRef.current.isActive()) {
           void fullscreenAdapterRef.current.request();
         }
@@ -273,10 +258,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
     onRecoveryCountdownChange: (secondsLeft, source) => {
-      // Suppress fullscreen/mouse-leave recovery when screen share reauth is
-      // active — screen share loss already covers this scenario and showing
-      // both modals simultaneously confuses the user.
-      if (isRuntimeScreenShareReauthActive(contestId)) {
+	      if (isRuntimeScreenShareReauthActive(contestId)) {
         setRecoveryCountdown(null);
         setRecoverySource(null);
         return;
@@ -287,8 +269,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     onTraceEvent: handleTraceEvent,
   });
 
-  // Dismiss fullscreen/mouse-leave recovery modal when screen share reauth
-  // starts (e.g. both fire nearly simultaneously when screen share stops).
   useEffect(() => {
     if (runtimeReauthActive && recoveryCountdown != null) {
       setRecoveryCountdown(null);
@@ -329,7 +309,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   useExamHeartbeat(contestId, effectiveMonitoringEnabled);
 
-  // Initial check: if exam is active but not in fullscreen after page load, show confirmation
   useEffect(() => {
     if (contestId) {
       syncAnticheatPhaseWithExamStatus(contestId, examStatus);
@@ -359,7 +338,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     runtimeReauthActive,
   ]);
 
-  // Fullscreen transition flows for submit / locked states
   useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
@@ -382,7 +360,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
   }, [examStatus, cheatDetectionEnabled, forceStopCapture, runtimeReauthActive]);
 
-  // Monitor fullscreen exit for locked states - show submit confirmation
   useEffect(() => {
     const shouldMonitorFullscreen =
       cheatDetectionEnabled && examStatus === "locked";
@@ -452,7 +429,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     );
   };
 
-  // Locked state should always block answering views.
   const shouldShowPolicyUnavailableScreen = policyUnavailable && isAnsweringPath();
   const shouldShowLockScreen = (examState.isLocked || shouldShowPolicyUnavailableScreen) && isAnsweringPath();
   const lockReasonText = shouldShowPolicyUnavailableScreen

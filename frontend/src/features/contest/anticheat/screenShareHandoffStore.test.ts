@@ -4,7 +4,7 @@ import {
   clearRuntimeScreenShareHandoff,
   consumeRuntimeScreenShareHandoff,
   setRuntimeScreenShareHandoff,
-} from "./examScreenShareHandoff";
+} from "./screenShareHandoffStore";
 
 type MockTrack = {
   stop: ReturnType<typeof vi.fn>;
@@ -23,7 +23,7 @@ afterEach(() => {
   clearRuntimeScreenShareHandoff(true);
 });
 
-describe("examScreenShareHandoff runtime", () => {
+describe("screenShareHandoffStore runtime", () => {
   it("preserves stream without stopping tracks when consumed", () => {
     const stream = createMockStream();
     setRuntimeScreenShareHandoff(stream as unknown as MediaStream);
@@ -42,4 +42,3 @@ describe("examScreenShareHandoff runtime", () => {
     expect(consumeRuntimeScreenShareHandoff()).toBeNull();
   });
 });
-

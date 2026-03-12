@@ -10,7 +10,7 @@ import {
 import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,
-} from "./hooks/examCaptureSession";
+} from "@/shared/state/examCaptureSessionStore";
 import {
   beginAnticheatTermination,
   markAnticheatTerminal,

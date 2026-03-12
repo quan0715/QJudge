@@ -19,7 +19,6 @@ import {
   Code,
   Trophy,
   List,
-  Book,
   UserMultiple,
   Bullhorn,
   Settings,
@@ -85,12 +84,6 @@ export const GlobalHeader = () => {
                 onClick={() => navigate("/classrooms")}
               >
                 {t("nav.classrooms")}
-              </HeaderMenuItem>
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/docs")}
-                onClick={() => navigate("/docs")}
-              >
-                {t("nav.documentation")}
               </HeaderMenuItem>
               {isTeacherOrAdmin && (
                 <HeaderMenuItem
@@ -173,18 +166,6 @@ export const GlobalHeader = () => {
                   isActive={location.pathname.startsWith("/classrooms")}
                 >
                   {t("nav.classrooms")}
-                </SideNavLink>
-                <SideNavLink
-                  renderIcon={Book}
-                  href="#"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    navigate("/docs");
-                    onClickSideNavExpand();
-                  }}
-                  isActive={location.pathname.startsWith("/docs")}
-                >
-                  {t("nav.documentation")}
                 </SideNavLink>
 
                 {/* Teacher/Admin items */}
