@@ -177,7 +177,7 @@ const ContestParticipantsScreen = () => {
       });
 
       return hasChanges ? next : prev;
-    });
+    }, { replace: true });
   }, [setSearchParams]);
 
   // Auto-select first participant + validate selected user / detail
@@ -383,7 +383,7 @@ const ContestParticipantsScreen = () => {
     statusOptions,
     sortKey,
     sortOptions,
-    totalItems: processedParticipants.length,
+    totalItems: participants.length,
     onSearchChange: (value: string) => updateParams({ q: value || null }),
     onStatusFilterChange: (value: string) => updateParams({ status: value === "all" ? null : value }),
     onSortChange: (value: string) => updateParams({ sort: value === "score_desc" ? null : value }),

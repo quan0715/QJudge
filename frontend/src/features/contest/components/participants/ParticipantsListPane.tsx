@@ -2,10 +2,14 @@ import {
   Button,
   FluidDropdown,
   FluidSearch,
+  Layer,
+  Popover,
+  PopoverContent,
   SkeletonText,
   Tag,
 } from "@carbon/react";
-import { Add, Renew } from "@carbon/icons-react";
+import { Add, Filter, Renew } from "@carbon/icons-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -68,6 +72,14 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   type Option = { id: string; label: string };
+  const [filterOpen, setFilterOpen] = useState(false);
+  const hasActiveFilters = useMemo(
+    () =>
+      searchQuery.trim().length > 0 ||
+      statusFilter !== "all" ||
+      sortKey !== "score_desc",
+    [searchQuery, sortKey, statusFilter],
+  );
 
   return (
     <ContainerCard
@@ -87,6 +99,76 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           >
             {t("common.refresh", "重新整理")}
           </Button>
+          <Layer>
+            <Popover
+              open={filterOpen}
+              align="bottom-left"
+              onRequestClose={() => setFilterOpen(false)}
+            >
+              <Button
+                kind={hasActiveFilters ? "primary" : "ghost"}
+                size="md"
+                hasIconOnly
+                renderIcon={Filter}
+                iconDescription={t("participants.filters", "篩選")}
+                data-testid="participants-list-filter-btn"
+                onClick={() => setFilterOpen((prev) => !prev)}
+              />
+              <PopoverContent className={styles.filterPopoverContent}>
+                <div className={styles.filterPopoverFields}>
+                  <FluidSearch
+                    id="participants-dashboard-search"
+                    labelText={t("participants.searchLabel", "搜尋參賽者")}
+                    placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
+                    value={searchQuery}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                  />
+                  <FluidDropdown
+                    id="participants-dashboard-status"
+                    titleText={t("participants.selectStatus", "狀態")}
+                    label={t("participants.selectStatus", "狀態")}
+                    items={statusOptions}
+                    itemToString={(item) => (item as Option | null)?.label ?? ""}
+                    selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+                    onChange={({ selectedItem }) =>
+                      onStatusFilterChange((selectedItem as Option | null)?.id ?? "all")
+                    }
+                  />
+                  <FluidDropdown
+                    id="participants-dashboard-sort"
+                    titleText={t("participantsDashboard.sortLabel", "排序")}
+                    label={t("participantsDashboard.sortLabel", "排序")}
+                    items={sortOptions}
+                    itemToString={(item) => (item as Option | null)?.label ?? ""}
+                    selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
+                    onChange={({ selectedItem }) =>
+                      onSortChange((selectedItem as Option | null)?.id ?? "score_desc")
+                    }
+                  />
+                </div>
+                <div className={styles.filterPopoverActions}>
+                  <Button
+                    kind="ghost"
+                    size="sm"
+                    onClick={() => {
+                      onSearchChange("");
+                      onStatusFilterChange("all");
+                      onSortChange("score_desc");
+                    }}
+                  >
+                    {t("common.reset", "重設")}
+                  </Button>
+                  <Button
+                    kind="primary"
+                    size="sm"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    {t("common.done", "完成")}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </Layer>
           <Button
             kind="primary"
             size="md"
@@ -100,41 +182,6 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
       }
     >
       <div className={styles.paneInner}>
-        <div className={styles.toolbarSearch}>
-          <FluidSearch
-            id="participants-dashboard-search"
-            labelText={t("participants.searchLabel", "搜尋參賽者")}
-            placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </div>
-
-        <div className={styles.toolbar}>
-          <FluidDropdown
-            id="participants-dashboard-status"
-            titleText={t("participants.selectStatus", "狀態")}
-            label={t("participants.selectStatus", "狀態")}
-            items={statusOptions}
-            itemToString={(item) => (item as Option | null)?.label ?? ""}
-            selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
-            onChange={({ selectedItem }) =>
-              onStatusFilterChange((selectedItem as Option | null)?.id ?? "all")
-            }
-          />
-          <FluidDropdown
-            id="participants-dashboard-sort"
-            titleText={t("participantsDashboard.sortLabel", "排序")}
-            label={t("participantsDashboard.sortLabel", "排序")}
-            items={sortOptions}
-            itemToString={(item) => (item as Option | null)?.label ?? ""}
-            selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
-            onChange={({ selectedItem }) =>
-              onSortChange((selectedItem as Option | null)?.id ?? "score_desc")
-            }
-          />
-        </div>
-
         <div className={styles.toolbarMeta}>
           <span>
             {t("participants.displayCount", {

@@ -1,0 +1,22 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  padding: 0.125rem;
+  background: var(--cds-layer-01);
+}
+
+.iconBtn {
+  border-radius: 999px;
+  color: var(--cds-icon-secondary);
+}
+
+.iconBtn :global(svg) {
+  color: inherit;
+}
+
+.iconBtnActive {
+  color: var(--cds-icon-primary);
+}

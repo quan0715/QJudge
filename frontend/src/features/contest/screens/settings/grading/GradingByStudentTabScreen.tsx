@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button, FluidSearch, Tag } from "@carbon/react";
+import { Button, Tag } from "@carbon/react";
 import { ChevronLeft, ChevronRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
@@ -27,7 +27,8 @@ interface GradingByStudentTabScreenProps {
   students: { studentId: string; username: string; nickname: string }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
-  onSearchChange: (value: string) => void;
+  selectedStudentId: string | null;
+  onSelectedStudentIdChange: (studentId: string | null) => void;
 }
 
 export default function GradingByStudentTabScreen({
@@ -35,15 +36,13 @@ export default function GradingByStudentTabScreen({
   students,
   onGrade,
   searchQuery,
-  onSearchChange,
+  selectedStudentId,
+  onSelectedStudentIdChange,
 }: GradingByStudentTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isStudentPaneCollapsed, setIsStudentPaneCollapsed] = useState(false);
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
   const [hoveredStudentId, setHoveredStudentId] = useState<string | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    null
-  );
   const [selectedAnswerIdx, setSelectedAnswerIdx] = useState(0);
 
   const studentSummaries = useMemo<StudentSummary[]>(() => {
@@ -73,43 +72,42 @@ export default function GradingByStudentTabScreen({
         s.nickname.toLowerCase().includes(q)
     );
   }, [studentSummaries, searchQuery]);
-
-  useEffect(() => {
-    if (filtered.length === 0) {
-      if (selectedStudentId !== null) {
-        setSelectedStudentId(null);
-      }
-      return;
+  const activeSelectedStudentId = useMemo(() => {
+    if (filtered.length === 0) return null;
+    if (
+      selectedStudentId &&
+      filtered.some((student) => student.studentId === selectedStudentId)
+    ) {
+      return selectedStudentId;
     }
-
-    const selectedExists = filtered.some((student) => student.studentId === selectedStudentId);
-    if (!selectedStudentId || !selectedExists) {
-      setSelectedStudentId(filtered[0].studentId);
-      setSelectedAnswerIdx(0);
-    }
+    return filtered[0].studentId;
   }, [filtered, selectedStudentId]);
 
   const currentStudentAnswers = useMemo(
     () =>
-      selectedStudentId
-        ? (answersByStudent.get(selectedStudentId) ?? [])
+      activeSelectedStudentId
+        ? (answersByStudent.get(activeSelectedStudentId) ?? [])
         : [],
-    [answersByStudent, selectedStudentId]
+    [answersByStudent, activeSelectedStudentId]
   );
 
   const currentAnswer = currentStudentAnswers[selectedAnswerIdx] ?? null;
   const selectedStudentSummary = useMemo(
-    () => filtered.find((student) => student.studentId === selectedStudentId) ?? null,
-    [filtered, selectedStudentId],
+    () => filtered.find((student) => student.studentId === activeSelectedStudentId) ?? null,
+    [filtered, activeSelectedStudentId],
   );
   const previewStudentSummary = useMemo(() => {
-    const targetStudentId = hoveredStudentId ?? selectedStudentId;
+    const targetStudentId = hoveredStudentId ?? activeSelectedStudentId;
     if (!targetStudentId) {
       return null;
     }
     return filtered.find((student) => student.studentId === targetStudentId) ?? null;
-  }, [hoveredStudentId, selectedStudentId, filtered]);
+  }, [hoveredStudentId, activeSelectedStudentId, filtered]);
   const hasNext = selectedAnswerIdx < currentStudentAnswers.length - 1;
+
+  useEffect(() => {
+    setSelectedAnswerIdx(0);
+  }, [activeSelectedStudentId]);
 
   useEffect(() => {
     if (currentStudentAnswers.length === 0) {
@@ -126,14 +124,14 @@ export default function GradingByStudentTabScreen({
 
   // Find next student in filtered list
   const currentStudentFilteredIdx = useMemo(() => {
-    if (!selectedStudentId) return -1;
-    return filtered.findIndex((s) => s.studentId === selectedStudentId);
-  }, [filtered, selectedStudentId]);
+    if (!activeSelectedStudentId) return -1;
+    return filtered.findIndex((s) => s.studentId === activeSelectedStudentId);
+  }, [filtered, activeSelectedStudentId]);
 
   const hasNextStudent = currentStudentFilteredIdx >= 0 && currentStudentFilteredIdx < filtered.length - 1;
 
   const handleStudentSelect = (studentId: string) => {
-    setSelectedStudentId(studentId);
+    onSelectedStudentIdChange(studentId);
     setSelectedAnswerIdx(0);
   };
 
@@ -144,9 +142,9 @@ export default function GradingByStudentTabScreen({
   const handleNextStudent = useCallback(() => {
     if (!hasNextStudent) return;
     const nextStudent = filtered[currentStudentFilteredIdx + 1];
-    setSelectedStudentId(nextStudent.studentId);
+    onSelectedStudentIdChange(nextStudent.studentId);
     setSelectedAnswerIdx(0);
-  }, [filtered, currentStudentFilteredIdx, hasNextStudent]);
+  }, [filtered, currentStudentFilteredIdx, hasNextStudent, onSelectedStudentIdChange]);
 
   const sidebarContent = isStudentPaneCollapsed ? (
     <div className={styles.collapsedPane}>
@@ -173,15 +171,6 @@ export default function GradingByStudentTabScreen({
         />
       </div>
       <div className={styles.listControls}>
-        <div className={styles.toolbarSearch}>
-          <FluidSearch
-            id="grading-student-search"
-            labelText={t("grading.searchStudent", "搜尋學生")}
-            placeholder={t("grading.searchStudent", "搜尋學生") + "..."}
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </div>
         <div className={styles.toolbarMeta}>
           <span>
             {t("grading.studentsDisplayCount", "顯示 {{shown}} / {{total}} 位", {
@@ -202,7 +191,7 @@ export default function GradingByStudentTabScreen({
           </div>
         ) : (
           filtered.map((s) => {
-            const isSelected = s.studentId === selectedStudentId;
+            const isSelected = s.studentId === activeSelectedStudentId;
             const statusClass =
               s.totalCount === 0
                 ? styles.statusEmpty
@@ -287,7 +276,7 @@ export default function GradingByStudentTabScreen({
           )}
         </div>
       ) : null}
-      {selectedStudentId && currentStudentAnswers.length > 0 ? (
+      {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
         currentStudentAnswers.map((a, i) => {
           const isActive = i === selectedAnswerIdx;
           const statusClass = a.score !== null ? styles.statusDone : styles.statusPending;
@@ -311,7 +300,7 @@ export default function GradingByStudentTabScreen({
         })
       ) : (
         <div className={styles.emptyStateCompact}>
-          {selectedStudentId
+          {activeSelectedStudentId
             ? t("grading.noSubmissions", "此學生尚未提交任何作答")
             : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
         </div>
@@ -332,7 +321,7 @@ export default function GradingByStudentTabScreen({
       contentClassName={styles.gradingContent}
     >
       <div className={styles.panel}>
-        {selectedStudentId && currentStudentAnswers.length > 0 ? (
+        {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
           <GradingSplitPanelScreen
             answer={currentAnswer}
             onGrade={onGrade}
@@ -352,7 +341,7 @@ export default function GradingByStudentTabScreen({
           />
         ) : (
           <div className={styles.panelEmpty}>
-            {selectedStudentId
+            {activeSelectedStudentId
               ? t("grading.noSubmissions", "此學生尚未提交任何作答")
               : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
           </div>

@@ -62,6 +62,25 @@
   gap: 0.5rem;
 }
 
+.filterPopoverContent {
+  min-width: 320px;
+}
+
+.filterPopoverFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.filterPopoverActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
 .list {
   display: flex;
   flex-direction: column;
