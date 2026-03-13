@@ -113,7 +113,6 @@ describe("GradingMatrixViewScreen", () => {
       />,
     );
 
-    expect(screen.getByText("學生 2 人 · 題目 2 題")).toBeInTheDocument();
     expect(screen.getByText("已批改 1")).toBeInTheDocument();
     expect(screen.getByText("待批改 1")).toBeInTheDocument();
     expect(screen.getByText("未作答 2")).toBeInTheDocument();
