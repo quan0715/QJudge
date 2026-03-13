@@ -9,8 +9,11 @@ from apps.users.models import User
 from apps.users.services import (
     APIKeyService,
     EmailAuthService,
+    GitHubOAuthService,
+    GoogleOAuthService,
     JWTService,
     NYCUOAuthService,
+    get_oauth_service,
 )
 
 
@@ -192,6 +195,162 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertTrue(user.username.startswith("taken-name"))
         self.assertEqual(user.auth_provider, "nycu-oauth")
         self.assertTrue(user.email_verified)
+
+
+class AccountLinkingTests(TestCase):
+    """Test that same-email users are auto-merged across providers."""
+
+    def test_email_user_merged_on_oauth_login(self):
+        """An existing email user logging in via NYCU OAuth gets merged."""
+        existing = User.objects.create_user(
+            username="email-user",
+            email="shared@example.com",
+            password="password123",
+            auth_provider="email",
+            email_verified=False,
+        )
+        result = NYCUOAuthService.get_or_create_user(
+            {"user_info": {"username": "nycu-name", "email": "shared@example.com"}}
+        )
+        existing.refresh_from_db()
+
+        self.assertEqual(result.id, existing.id)
+        self.assertEqual(existing.auth_provider, "nycu-oauth")
+        self.assertTrue(existing.email_verified)
+
+    def test_nycu_user_merged_on_github_login(self):
+        """An existing NYCU user logging in via GitHub gets merged."""
+        existing = User.objects.create_user(
+            username="nycu-user",
+            email="shared@example.com",
+            password="password123",
+            auth_provider="nycu-oauth",
+        )
+        result = GitHubOAuthService.get_or_create_user(
+            {"user_info": {"username": "gh-user", "email": "shared@example.com", "oauth_id": "12345"}}
+        )
+        existing.refresh_from_db()
+
+        self.assertEqual(result.id, existing.id)
+        self.assertEqual(existing.auth_provider, "github")
+        self.assertEqual(existing.oauth_id, "12345")
+
+    def test_github_user_merged_on_google_login(self):
+        """An existing GitHub user logging in via Google gets merged."""
+        existing = User.objects.create_user(
+            username="gh-user",
+            email="shared@example.com",
+            password="password123",
+            auth_provider="github",
+        )
+        result = GoogleOAuthService.get_or_create_user(
+            {"user_info": {"username": "Google Name", "email": "shared@example.com", "oauth_id": "google-sub"}}
+        )
+        existing.refresh_from_db()
+
+        self.assertEqual(result.id, existing.id)
+        self.assertEqual(existing.auth_provider, "google")
+
+
+class OAuthProviderRegistryTests(TestCase):
+    def test_get_oauth_service_returns_known_providers(self):
+        self.assertIs(get_oauth_service("nycu"), NYCUOAuthService)
+        self.assertIs(get_oauth_service("github"), GitHubOAuthService)
+        self.assertIs(get_oauth_service("google"), GoogleOAuthService)
+
+    def test_get_oauth_service_returns_none_for_unknown(self):
+        self.assertIsNone(get_oauth_service("facebook"))
+        self.assertIsNone(get_oauth_service(""))
+
+
+class GitHubOAuthServiceTests(TestCase):
+    @override_settings(
+        GITHUB_OAUTH_CLIENT_ID="gh-client-id",
+        GITHUB_OAUTH_AUTHORIZE_URL="https://github.com/login/oauth/authorize",
+    )
+    def test_get_authorization_url(self):
+        url = GitHubOAuthService.get_authorization_url(
+            "http://localhost/callback", "state-gh"
+        )
+        self.assertIn("https://github.com/login/oauth/authorize?", url)
+        self.assertIn("client_id=gh-client-id", url)
+        self.assertIn("state=state-gh", url)
+        self.assertIn("scope=read", url)
+
+    @override_settings(
+        GITHUB_OAUTH_TOKEN_URL="https://github.com/login/oauth/access_token",
+        GITHUB_OAUTH_CLIENT_ID="gh-client-id",
+        GITHUB_OAUTH_CLIENT_SECRET="gh-secret",
+        GITHUB_OAUTH_USERINFO_URL="https://api.github.com/user",
+        GITHUB_OAUTH_USER_EMAILS_URL="https://api.github.com/user/emails",
+    )
+    @patch("apps.users.services.requests.get")
+    @patch("apps.users.services.requests.post")
+    def test_exchange_code_fetches_private_email(self, mock_post, mock_get):
+        token_resp = MagicMock(status_code=200)
+        token_resp.json.return_value = {"access_token": "gh-token"}
+        mock_post.return_value = token_resp
+
+        # First GET = /user (no email), second GET = /user/emails
+        userinfo_resp = MagicMock(status_code=200)
+        userinfo_resp.json.return_value = {
+            "login": "octocat",
+            "id": 1,
+            "email": None,
+        }
+        emails_resp = MagicMock(status_code=200)
+        emails_resp.json.return_value = [
+            {"email": "secondary@example.com", "primary": False, "verified": True},
+            {"email": "octocat@github.com", "primary": True, "verified": True},
+        ]
+        mock_get.side_effect = [userinfo_resp, emails_resp]
+
+        data = GitHubOAuthService.exchange_code("gh-code", "http://localhost/callback")
+
+        self.assertEqual(data["user_info"]["username"], "octocat")
+        self.assertEqual(data["user_info"]["email"], "octocat@github.com")
+        self.assertEqual(data["user_info"]["oauth_id"], "1")
+
+
+class GoogleOAuthServiceTests(TestCase):
+    @override_settings(
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_AUTHORIZE_URL="https://accounts.google.com/o/oauth2/v2/auth",
+    )
+    def test_get_authorization_url(self):
+        url = GoogleOAuthService.get_authorization_url(
+            "http://localhost/callback", "state-g"
+        )
+        self.assertIn("https://accounts.google.com/o/oauth2/v2/auth?", url)
+        self.assertIn("client_id=google-client-id", url)
+        self.assertIn("scope=openid", url)
+
+    @override_settings(
+        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
+        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    )
+    @patch("apps.users.services.requests.get")
+    @patch("apps.users.services.requests.post")
+    def test_exchange_code_success(self, mock_post, mock_get):
+        token_resp = MagicMock(status_code=200)
+        token_resp.json.return_value = {"access_token": "google-token"}
+        mock_post.return_value = token_resp
+
+        userinfo_resp = MagicMock(status_code=200)
+        userinfo_resp.json.return_value = {
+            "sub": "google-sub-123",
+            "email": "user@gmail.com",
+            "name": "Test User",
+        }
+        mock_get.return_value = userinfo_resp
+
+        data = GoogleOAuthService.exchange_code("g-code", "http://localhost/callback")
+
+        self.assertEqual(data["user_info"]["username"], "Test User")
+        self.assertEqual(data["user_info"]["email"], "user@gmail.com")
+        self.assertEqual(data["user_info"]["oauth_id"], "google-sub-123")
 
 
 class APIKeyServiceTests(TestCase):

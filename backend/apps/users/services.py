@@ -1,16 +1,19 @@
 """
 Authentication services for different auth providers.
 """
-import requests
+import logging
 import secrets
+from abc import ABC, abstractmethod
 from datetime import timedelta
 from urllib.parse import urlencode
+
+import requests
 from django.conf import settings
-from django.utils import timezone
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -147,110 +150,70 @@ class EmailAuthService:
             return None
 
 
-class NYCUOAuthService:
-    """Service for NYCU OAuth authentication."""
-    
-    @staticmethod
-    def get_authorization_url(redirect_uri, state):
-        """Generate NYCU OAuth authorization URL."""
+# ---------------------------------------------------------------------------
+# OAuth provider registry & base class
+# ---------------------------------------------------------------------------
+
+class BaseOAuthService(ABC):
+    """Abstract base for OAuth provider services.
+
+    Subclasses must set class-level attributes and implement
+    ``_parse_user_info`` to normalize the provider's user-info response.
+    """
+
+    # Subclasses override these
+    provider_name: str = ""          # e.g. "github", "google", "nycu-oauth"
+    authorize_url_setting: str = ""  # settings attr name for authorize URL
+    token_url_setting: str = ""      # settings attr name for token URL
+    userinfo_url_setting: str = ""   # settings attr name for userinfo URL
+    client_id_setting: str = ""      # settings attr name for client ID
+    client_secret_setting: str = ""  # settings attr name for client secret
+    default_scope: str = ""          # space-separated scopes
+
+    # ---- public API (shared across all providers) ----
+
+    @classmethod
+    def get_authorization_url(cls, redirect_uri: str, state: str) -> str:
         params = {
-            'client_id': settings.NYCU_OAUTH_CLIENT_ID,
+            'client_id': getattr(settings, cls.client_id_setting),
             'response_type': 'code',
             'redirect_uri': redirect_uri,
             'state': state,
-            'scope': 'profile',
+            'scope': cls.default_scope,
         }
+        base = getattr(settings, cls.authorize_url_setting)
+        return f"{base}?{urlencode(params)}"
 
-        query_string = urlencode(params)
-        return f"{settings.NYCU_OAUTH_AUTHORIZE_URL}?{query_string}"
-    
-    @staticmethod
-    def exchange_code(code, redirect_uri):
-        """
-        Exchange authorization code for access token and user info.
-        
-        Returns:
-            dict: {
-                'access_token': str,
-                'user_info': {
-                    'username': str,
-                    'email': str,
-                    'oauth_id': str,
-                }
-            }
-        
-        Raises:
-            Exception: If OAuth exchange fails
-        """
-        # Exchange code for access token
-        try:
-            token_response = requests.post(
-                settings.NYCU_OAUTH_TOKEN_URL,
-                data={
-                    'grant_type': 'authorization_code',
-                    'code': code,
-                    'redirect_uri': redirect_uri,
-                    'client_id': settings.NYCU_OAUTH_CLIENT_ID,
-                    'client_secret': settings.NYCU_OAUTH_CLIENT_SECRET,
-                },
-                timeout=(5, 15),
-            )
-        except requests.RequestException as exc:
-            raise Exception('Failed to connect to OAuth token endpoint') from exc
-        
-        if token_response.status_code != 200:
-            raise Exception('Failed to exchange authorization code')
-        
-        token_data = token_response.json()
-        access_token = token_data['access_token']
-        
-        # Get user info
-        try:
-            userinfo_response = requests.get(
-                settings.NYCU_OAUTH_USERINFO_URL,
-                headers={'Authorization': f"Bearer {access_token}"},
-                timeout=(5, 15),
-            )
-        except requests.RequestException as exc:
-            raise Exception('Failed to connect to OAuth userinfo endpoint') from exc
-        
-        if userinfo_response.status_code != 200:
-            raise Exception('Failed to get user information')
-        
-        user_info = userinfo_response.json()
-        
+    @classmethod
+    def exchange_code(cls, code: str, redirect_uri: str) -> dict:
+        """Exchange authorization code → access_token + normalized user_info."""
+        access_token = cls._exchange_token(code, redirect_uri)
+        user_info = cls._fetch_user_info(access_token)
         return {
             'access_token': access_token,
-            'user_info': {
-                'username': user_info.get('username'),
-                'email': user_info.get('email'),
-                'oauth_id': user_info.get('sub') or user_info.get('id'),
-            }
+            'user_info': user_info,
         }
-    
-    @staticmethod
-    def get_or_create_user(oauth_data):
-        """
-        Get or create user from NYCU OAuth data.
-        
-        Args:
-            oauth_data: dict with 'username', 'email'
-        
-        Returns:
-            User object
+
+    @classmethod
+    def get_or_create_user(cls, oauth_data: dict) -> User:
+        """Find existing user by email (auto-merge) or create a new one.
+
+        Account-linking rule: lookup by email only, regardless of
+        ``auth_provider``.  If found, update ``auth_provider`` to this
+        provider so the field reflects the most recent login method.
         """
         user_info = oauth_data['user_info']
         email = user_info.get('email')
-        username = user_info['username']
-        
-        # Try to find existing user by email and auth_provider
+        username = user_info.get('username') or ''
+        oauth_id = user_info.get('oauth_id') or ''
+
         if email:
             try:
-                user = User.objects.get(
-                    auth_provider='nycu-oauth',
-                    email=email
-                )
-                
+                user = User.objects.get(email=email)
+                # Update provider to latest login method
+                user.auth_provider = cls.provider_name
+                if oauth_id:
+                    user.oauth_id = oauth_id
                 # Update username if changed and available
                 if username and user.username != username:
                     if not User.objects.filter(username=username).exclude(id=user.id).exists():
@@ -260,8 +223,10 @@ class NYCUOAuthService:
                 return user
             except User.DoesNotExist:
                 pass
-        
-        # Create new user
+
+        # Create new user with unique username
+        if not username:
+            username = (email or '').split('@')[0] or 'user'
         counter = 1
         original_username = username
         while User.objects.filter(username=username).exists():
@@ -271,12 +236,162 @@ class NYCUOAuthService:
         user = User.objects.create(
             username=username,
             email=email,
-            auth_provider='nycu-oauth',
+            auth_provider=cls.provider_name,
+            oauth_id=oauth_id,
             email_verified=True,
             is_active=True,
         )
-
         return user
+
+    # ---- internal helpers ----
+
+    @classmethod
+    def _exchange_token(cls, code: str, redirect_uri: str) -> str:
+        try:
+            resp = requests.post(
+                getattr(settings, cls.token_url_setting),
+                data={
+                    'grant_type': 'authorization_code',
+                    'code': code,
+                    'redirect_uri': redirect_uri,
+                    'client_id': getattr(settings, cls.client_id_setting),
+                    'client_secret': getattr(settings, cls.client_secret_setting),
+                },
+                headers={'Accept': 'application/json'},
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth token endpoint') from exc
+
+        if resp.status_code != 200:
+            raise Exception('Failed to exchange authorization code')
+
+        return resp.json()['access_token']
+
+    @classmethod
+    def _fetch_user_info(cls, access_token: str) -> dict:
+        try:
+            resp = requests.get(
+                getattr(settings, cls.userinfo_url_setting),
+                headers={'Authorization': f"Bearer {access_token}"},
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth userinfo endpoint') from exc
+
+        if resp.status_code != 200:
+            raise Exception('Failed to get user information')
+
+        return cls._parse_user_info(resp.json())
+
+    @classmethod
+    @abstractmethod
+    def _parse_user_info(cls, raw: dict) -> dict:
+        """Return ``{'username': str, 'email': str, 'oauth_id': str}``."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Concrete providers
+# ---------------------------------------------------------------------------
+
+class NYCUOAuthService(BaseOAuthService):
+    provider_name = 'nycu-oauth'
+    authorize_url_setting = 'NYCU_OAUTH_AUTHORIZE_URL'
+    token_url_setting = 'NYCU_OAUTH_TOKEN_URL'
+    userinfo_url_setting = 'NYCU_OAUTH_USERINFO_URL'
+    client_id_setting = 'NYCU_OAUTH_CLIENT_ID'
+    client_secret_setting = 'NYCU_OAUTH_CLIENT_SECRET'
+    default_scope = 'profile'
+
+    @classmethod
+    def _parse_user_info(cls, raw: dict) -> dict:
+        return {
+            'username': raw.get('username'),
+            'email': raw.get('email'),
+            'oauth_id': raw.get('sub') or raw.get('id'),
+        }
+
+
+class GitHubOAuthService(BaseOAuthService):
+    provider_name = 'github'
+    authorize_url_setting = 'GITHUB_OAUTH_AUTHORIZE_URL'
+    token_url_setting = 'GITHUB_OAUTH_TOKEN_URL'
+    userinfo_url_setting = 'GITHUB_OAUTH_USERINFO_URL'
+    client_id_setting = 'GITHUB_OAUTH_CLIENT_ID'
+    client_secret_setting = 'GITHUB_OAUTH_CLIENT_SECRET'
+    default_scope = 'read:user user:email'
+
+    @classmethod
+    def _parse_user_info(cls, raw: dict) -> dict:
+        return {
+            'username': raw.get('login'),
+            'email': raw.get('email'),
+            'oauth_id': str(raw.get('id', '')),
+        }
+
+    @classmethod
+    def _fetch_user_info(cls, access_token: str) -> dict:
+        """Override to also fetch private email from /user/emails."""
+        info = super()._fetch_user_info(access_token)
+
+        # GitHub may not expose email in /user — fetch from /user/emails
+        if not info.get('email'):
+            try:
+                resp = requests.get(
+                    getattr(settings, 'GITHUB_OAUTH_USER_EMAILS_URL',
+                            'https://api.github.com/user/emails'),
+                    headers={
+                        'Authorization': f"Bearer {access_token}",
+                        'Accept': 'application/json',
+                    },
+                    timeout=(5, 15),
+                )
+                if resp.status_code == 200:
+                    emails = resp.json()
+                    primary = next(
+                        (e['email'] for e in emails
+                         if e.get('primary') and e.get('verified')),
+                        None,
+                    )
+                    if primary:
+                        info['email'] = primary
+            except requests.RequestException:
+                logger.warning('Failed to fetch GitHub user emails')
+
+        return info
+
+
+class GoogleOAuthService(BaseOAuthService):
+    provider_name = 'google'
+    authorize_url_setting = 'GOOGLE_OAUTH_AUTHORIZE_URL'
+    token_url_setting = 'GOOGLE_OAUTH_TOKEN_URL'
+    userinfo_url_setting = 'GOOGLE_OAUTH_USERINFO_URL'
+    client_id_setting = 'GOOGLE_OAUTH_CLIENT_ID'
+    client_secret_setting = 'GOOGLE_OAUTH_CLIENT_SECRET'
+    default_scope = 'openid email profile'
+
+    @classmethod
+    def _parse_user_info(cls, raw: dict) -> dict:
+        name = raw.get('name') or raw.get('email', '').split('@')[0]
+        return {
+            'username': name,
+            'email': raw.get('email'),
+            'oauth_id': raw.get('sub'),
+        }
+
+
+# Provider registry for view dispatch
+OAUTH_PROVIDERS: dict[str, type[BaseOAuthService]] = {
+    'nycu': NYCUOAuthService,
+    'github': GitHubOAuthService,
+    'google': GoogleOAuthService,
+}
+
+
+def get_oauth_service(provider: str) -> type[BaseOAuthService] | None:
+    """Return the service class for *provider*, or ``None``."""
+    return OAUTH_PROVIDERS.get(provider)
 
 
 class APIKeyService:

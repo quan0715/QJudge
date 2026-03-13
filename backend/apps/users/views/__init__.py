@@ -5,6 +5,8 @@ from .auth import (
     RegisterView,
     LoginView,
     DevTokenView,
+    OAuthLoginView,
+    OAuthCallbackView,
     NYCUOAuthLoginView,
     NYCUOAuthCallbackView,
 )
@@ -25,6 +27,8 @@ __all__ = [
     "RegisterView",
     "LoginView",
     "DevTokenView",
+    "OAuthLoginView",
+    "OAuthCallbackView",
     "NYCUOAuthLoginView",
     "NYCUOAuthCallbackView",
     "TokenRefreshView",

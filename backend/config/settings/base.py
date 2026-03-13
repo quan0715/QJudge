@@ -304,6 +304,21 @@ NYCU_OAUTH_AUTHORIZE_URL = "https://id.nycu.edu.tw/o/authorize/"
 NYCU_OAUTH_TOKEN_URL = "https://id.nycu.edu.tw/o/token/"
 NYCU_OAUTH_USERINFO_URL = "https://id.nycu.edu.tw/api/profile/"
 
+# GitHub OAuth settings
+GITHUB_OAUTH_CLIENT_ID = os.getenv("GITHUB_OAUTH_CLIENT_ID", "")
+GITHUB_OAUTH_CLIENT_SECRET = os.getenv("GITHUB_OAUTH_CLIENT_SECRET", "")
+GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
+GITHUB_OAUTH_TOKEN_URL = "https://github.com/login/oauth/access_token"
+GITHUB_OAUTH_USERINFO_URL = "https://api.github.com/user"
+GITHUB_OAUTH_USER_EMAILS_URL = "https://api.github.com/user/emails"
+
+# Google OAuth settings
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_OAUTH_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
 # Judge Engine settings
 JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"
 JUDGE_MAX_CPU_TIME = int(os.getenv("JUDGE_MAX_CPU_TIME", "10"))  # seconds

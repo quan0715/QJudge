@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { Loading, Button } from '@carbon/react';
 import { ArrowLeft, Login } from '@carbon/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ type CallbackState = 'loading' | 'error' | 'conflict';
 
 const OAuthCallbackPage = () => {
   const { t } = useTranslation();
+  const { provider = 'nycu' } = useParams<{ provider: string }>();
   const [searchParams] = useSearchParams();
   const code = searchParams.get('code');
   const errorParam = searchParams.get('error');
@@ -30,8 +31,8 @@ const OAuthCallbackPage = () => {
 
     const handleCallback = async () => {
       try {
-        const redirectUri = `${window.location.origin}/auth/nycu/callback`;
-        const response = await oauthCallback({ code, redirect_uri: redirectUri });
+        const redirectUri = `${window.location.origin}/auth/${provider}/callback`;
+        const response = await oauthCallback(provider, { code, redirect_uri: redirectUri });
 
         if (response.success) {
           localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -58,7 +59,7 @@ const OAuthCallbackPage = () => {
     };
 
     handleCallback();
-  }, [code, initialError, t]);
+  }, [code, initialError, provider, t]);
 
   const handleTakeover = async () => {
     if (!conflictToken || resolving) return;
