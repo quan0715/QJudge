@@ -8,7 +8,7 @@ import { useTheme } from '@/shared/ui/theme/ThemeContext';
 import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
 import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
 import { TextModeSwitcher, type TextModeOption } from '@/shared/ui/navigation/TextModeSwitcher';
-import { SUPPORTED_LANGUAGES } from '@/i18n';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 import "../../screens/AuthPages.scss";
 
 const themeOptions: IconModeOption<'light' | 'dark'>[] = [
@@ -23,7 +23,7 @@ const AuthLayout = () => {
   const location = useLocation();
   const outlet = useOutlet();
 
-  const langOptions = useMemo<TextModeOption<string>[]>(
+  const langOptions = useMemo<TextModeOption<SupportedLanguage>[]>(
     () =>
       SUPPORTED_LANGUAGES.map((lang) => ({
         value: lang.id,

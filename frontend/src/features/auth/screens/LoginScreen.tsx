@@ -6,11 +6,10 @@ import {
   Form,
   InlineLoading,
 } from "@carbon/react";
-import { ArrowRight, LogoGithub, Education } from "@carbon/icons-react";
+import { ArrowRight, Education } from "@carbon/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  getOAuthUrl,
   login,
   resolveConflict,
 } from "@/infrastructure/api/repositories/auth.repository";
@@ -70,17 +69,6 @@ const LoginPage = () => {
         setError(t("auth.login.invalidCredentials"));
       }
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOAuthLogin = async (provider: string) => {
-    try {
-      setLoading(true);
-      const url = await getOAuthUrl(provider);
-      window.location.href = url;
-    } catch {
-      setError(t("auth.login.oauthFailed"));
       setLoading(false);
     }
   };

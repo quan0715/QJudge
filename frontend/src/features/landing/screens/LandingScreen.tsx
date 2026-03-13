@@ -46,7 +46,7 @@ import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
 import { TextModeSwitcher, type TextModeOption } from '@/shared/ui/navigation/TextModeSwitcher';
 import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
-import { SUPPORTED_LANGUAGES } from '@/i18n';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 import { AreaChart, DonutChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import "./LandingScreen.scss";
@@ -76,7 +76,7 @@ const LandingScreen = () => {
   const landingThemeClass = matrixVariant === "light" ? "landing--light" : "landing--dark";
   const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
 
-  const langOptions = useMemo<TextModeOption<string>[]>(
+  const langOptions = useMemo<TextModeOption<SupportedLanguage>[]>(
     () =>
       SUPPORTED_LANGUAGES.map((lang) => ({
         value: lang.id,
