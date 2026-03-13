@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
-import { useContestAdmin } from "@/features/contest/contexts";
+import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import {
@@ -182,6 +182,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 }) => {
   const { contestId } = useParams<{ contestId: string }>();
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { registerPanelRefresh } = useAdminPanelRefresh();
   const { t } = useTranslation("contest");
   const {
     config: antiCheatConfig,
@@ -370,6 +371,13 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     refreshAntiCheatConfig,
   ]);
 
+  useEffect(() => {
+    if (embedded) return;
+    return registerPanelRefresh("logs", async () => {
+      await handleRefresh();
+    });
+  }, [embedded, handleRefresh, registerPanelRefresh]);
+
   const handleKpiClick = (category: string) => {
     if (activeTab !== 0) return;
     setSelectedCategories((prev) =>
@@ -390,15 +398,17 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         <div className={styles.feedSection}>
           <div className={styles.feedHeader}>
             <h4 className={styles.feedTitle}>{t("logs.eventRecords", "事件紀錄")}</h4>
-            <Button
-              kind="ghost"
-              renderIcon={Renew}
-              onClick={() => { void handleRefresh(); }}
-              hasIconOnly
-              iconDescription={t("common.refresh", "重新整理")}
-              disabled={isRefreshPending}
-              size="sm"
-            />
+            {embedded ? (
+              <Button
+                kind="ghost"
+                renderIcon={Renew}
+                onClick={() => { void handleRefresh(); }}
+                hasIconOnly
+                iconDescription={t("common.refresh", "重新整理")}
+                disabled={isRefreshPending}
+                size="sm"
+              />
+            ) : null}
           </div>
           <div className={styles.feedEmpty}>
             {t("logs.anticheatConfigUnavailable", "無法載入防作弊策略設定，請稍後重新整理。")}
@@ -515,15 +525,17 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       <div className={styles.feedSection}>
         <div className={styles.feedHeader}>
           <h4 className={styles.feedTitle}>{t("logs.eventRecords", "事件紀錄")}</h4>
-          <Button
-            kind="ghost"
-            renderIcon={Renew}
-            onClick={() => { void handleRefresh(); }}
-            hasIconOnly
-            iconDescription={t("common.refresh", "重新整理")}
-            disabled={isRefreshing || isRefreshPending || antiCheatConfigLoading}
-            size="sm"
-          />
+          {embedded ? (
+            <Button
+              kind="ghost"
+              renderIcon={Renew}
+              onClick={() => { void handleRefresh(); }}
+              hasIconOnly
+              iconDescription={t("common.refresh", "重新整理")}
+              disabled={isRefreshing || isRefreshPending || antiCheatConfigLoading}
+              size="sm"
+            />
+          ) : null}
         </div>
         <Tabs selectedIndex={activeTab} onChange={({ selectedIndex }) => setActiveTab(selectedIndex)}>
           <TabList aria-label="Event feed tabs">

@@ -1,12 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, NumberInput, Slider, TextArea, Tag } from "@carbon/react";
-import { ArrowRight, Checkmark, UserFollow } from "@carbon/icons-react";
+import {
+  ArrowRight,
+  Boolean as BooleanIcon,
+  Checkbox as CheckboxIcon,
+  Checkmark,
+  Document,
+  Pen,
+  RadioButton as RadioButtonIcon,
+  UserFollow,
+} from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import type { GradingAnswerRow } from "./gradingTypes";
 import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./GradingPanel.module.scss";
+
+const QUESTION_TYPE_ICON: Record<ExamQuestionType, React.ElementType> = {
+  single_choice: RadioButtonIcon,
+  multiple_choice: CheckboxIcon,
+  true_false: BooleanIcon,
+  short_answer: Pen,
+  essay: Document,
+};
 
 interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
@@ -30,7 +48,6 @@ export default function GradingSplitPanelScreen({
   hasNextQuestion = false,
   onNextStudent,
   hasNextStudent = false,
-  contextPath,
 }: GradingSplitPanelScreenProps) {
   const { t } = useTranslation("contest");
   const [score, setScore] = useState<number>(0);
@@ -246,35 +263,22 @@ export default function GradingSplitPanelScreen({
   return (
     <div className={styles.panel}>
       <div className={styles.panelHeader}>
-        {contextPath ? (
-          <div className={styles.focusPath}>
-            <span className={styles.focusPrimary}>{contextPath.primary}</span>
-            {contextPath.secondary ? (
-              <>
-                <span className={styles.focusSeparator}>/</span>
-                <span className={styles.focusSecondary}>{contextPath.secondary}</span>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-        <div className={styles.panelMeta}>
-          <Tag type="high-contrast" size="sm">
-            Q{answer.questionIndex}
-          </Tag>
-          <Tag type="blue" size="sm">
-            {t(`common:questionType.label.${answer.questionType}`, answer.questionType)}
-          </Tag>
-          <Tag type="teal" size="sm">
-            {t("grading.maxScore", "滿分")} {answer.maxScore}
-          </Tag>
-          {answer.gradedBy && (
-            <Tag type="green" size="sm">
-              {answer.gradedBy === "system"
-                ? t("grading.auto", "自動批改")
-                : `${answer.gradedBy}`}
-            </Tag>
-          )}
+        <div className={styles.panelHeaderLeading}>
+          {(() => {
+            const TypeIcon = QUESTION_TYPE_ICON[answer.questionType];
+            return <TypeIcon size={14} className={styles.panelHeaderIcon} />;
+          })()}
+          <span className={styles.panelHeaderLabel}>Q{answer.questionIndex}</span>
+          <Tag type="blue" size="sm">{t(`common:questionType.label.${answer.questionType}`, answer.questionType)}</Tag>
+          <Tag type="teal" size="sm">{answer.maxScore}</Tag>
         </div>
+        {answer.gradedBy && (
+          <span className={styles.panelHeaderMeta}>
+            {answer.gradedBy === "system"
+              ? t("grading.auto", "自動批改")
+              : answer.gradedBy}
+          </span>
+        )}
       </div>
 
       <div className={styles.panelContent}>

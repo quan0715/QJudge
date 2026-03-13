@@ -10,13 +10,19 @@
 
 .iconBtn {
   border-radius: 999px;
-  color: var(--cds-icon-secondary);
-}
 
-.iconBtn :global(svg) {
-  color: inherit;
+  &:global(.cds--btn--ghost) {
+    color: var(--cds-icon-secondary);
+  }
 }
 
 .iconBtnActive {
-  color: var(--cds-icon-primary);
+  &:global(.cds--btn--ghost) {
+    color: var(--cds-interactive);
+    background: var(--cds-highlight);
+  }
+
+  &:global(.cds--btn--ghost:hover) {
+    background: var(--cds-highlight);
+  }
 }

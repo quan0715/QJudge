@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Tag } from "@carbon/react";
-import { ChevronLeft, ChevronRight } from "@carbon/icons-react";
+import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
@@ -50,7 +49,6 @@ export default function GradingByQuestionTabScreen({
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
-  const [isAnswerPaneCollapsed, setIsAnswerPaneCollapsed] = useState(false);
   const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
   const lastHandledSelectionNonceRef = useRef<number | null>(null);
@@ -262,39 +260,10 @@ export default function GradingByQuestionTabScreen({
     />
   );
 
-  const middlePaneContent = isAnswerPaneCollapsed ? (
-    <div className={styles.collapsedPane}>
-      <Button
-        kind="ghost"
-        size="sm"
-        hasIconOnly
-        renderIcon={ChevronRight}
-        iconDescription={t("grading.expandAnswerList", "展開作答列表")}
-        onClick={() => setIsAnswerPaneCollapsed(false)}
-      />
-    </div>
-  ) : (
+  const middlePaneContent = (
     <div className={styles.tableCol}>
       <div className={styles.paneHeaderRow}>
         <div className={styles.sidebarHeader}>{t("grading.answerList", "作答列表")}</div>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          renderIcon={ChevronLeft}
-          iconDescription={t("grading.collapseAnswerList", "收摺作答列表")}
-          onClick={() => setIsAnswerPaneCollapsed(true)}
-        />
-      </div>
-      <div className={styles.listControls}>
-        <div className={styles.toolbarMeta}>
-          <span>
-            {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {
-              shown: currentAnswers.length,
-              total: students.length,
-            })}
-          </span>
-        </div>
       </div>
       {previewQuestion ? (
         <div className={styles.previewBar} aria-live="polite">
@@ -329,11 +298,6 @@ export default function GradingByQuestionTabScreen({
           currentAnswers.map((a) => {
             const isSelected = a.id === selectedAnswerId;
             const isAbsent = a.isAbsent === true;
-            const statusClass = isAbsent
-              ? styles.statusEmpty
-              : a.score !== null
-                ? styles.statusDone
-                : styles.statusPending;
             return (
               <div
                 key={a.id}
@@ -350,7 +314,6 @@ export default function GradingByQuestionTabScreen({
               >
                 <div className={styles.cardPrimary}>
                   <span className={styles.cardLabelRow}>
-                    <span className={`${styles.statusDot} ${statusClass}`} />
                     <span>{a.studentNickname}</span>
                   </span>
                   {isAbsent ? (
@@ -376,6 +339,14 @@ export default function GradingByQuestionTabScreen({
           })
         )}
       </div>
+      <div className={styles.listFooter}>
+        <span>
+          {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {
+            shown: currentAnswers.length,
+            total: students.length,
+          })}
+        </span>
+      </div>
     </div>
   );
 
@@ -386,9 +357,7 @@ export default function GradingByQuestionTabScreen({
         isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_PRIMARY_LIST_WIDTH
       }
       middlePane={middlePaneContent}
-      middlePaneWidth={
-        isAnswerPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_SECONDARY_LIST_WIDTH
-      }
+      middlePaneWidth={GRADING_SECONDARY_LIST_WIDTH}
       contentClassName={styles.gradingContent}
     >
       <GradingSplitPanelScreen

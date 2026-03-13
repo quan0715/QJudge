@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import {
   AreaChart,
   DonutChart,
@@ -93,6 +93,30 @@ const toTagType = (status: ParticipantDashboardStatus | null | undefined) => {
   }
 };
 
+const toExamStatusTagType = (examStatus: string | null | undefined) => {
+  switch (examStatus) {
+    case "submitted":
+      return "green";
+    case "in_progress":
+      return "blue";
+    case "paused":
+      return "purple";
+    case "locked":
+    case "locked_takeover":
+      return "red";
+    default:
+      return "cool-gray";
+  }
+};
+
+const TAB_ICON_BY_DETAIL: Record<ParticipantDashboardDetail, ComponentType<{ size?: number; className?: string }>> = {
+  overview: UserMultiple,
+  report: DocumentTasks,
+  events: Calendar,
+  evidence: View,
+  submissions: SendAlt,
+};
+
 type PaperReportPayload = Extract<ParticipantDashboard["report"], { overviewRows: unknown[] }>;
 type CodingReportPayload = Extract<ParticipantDashboard["report"], { problemGrid: unknown[] }>;
 
@@ -174,7 +198,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (!dashboard && !loading && !error) {
     return (
-      <ContainerCard className={styles.pane}>
+      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
         <div className={styles.detailEmpty}>
           {t("participantsDashboard.selectPrompt", "選擇一位參賽者以查看個人作答、報告、事件與監控資訊")}
         </div>
@@ -184,7 +208,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (loading) {
     return (
-      <ContainerCard className={styles.pane}>
+      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
         <div className={styles.skeletonStack}>
           <SkeletonText heading width="40%" />
           <SkeletonText width="65%" />
@@ -204,7 +228,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (!dashboard) {
     return (
-      <ContainerCard className={styles.pane}>
+      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
         <InlineNotification
           kind="error"
           lowContrast
@@ -290,7 +314,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         ];
 
   return (
-    <ContainerCard className={styles.pane} noPadding>
+    <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} noPadding withLayer={false}>
       {error ? (
         <InlineNotification
           kind="warning"
@@ -313,13 +337,19 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             onDetailChange(nextDetail);
           }}
         >
-          <TabList contained aria-label={t("participantsDashboard.detailTabs", "參賽者資料分頁")}>
-          {availableDetails.map((detail) => (
-            <Tab key={detail}>
-              {t(`participantsDashboard.tabs.${detail}`, detail)}
-            </Tab>
-          ))}
-        </TabList>
+          <TabList className={styles.tabsList} aria-label={t("participantsDashboard.detailTabs", "參賽者資料分頁")}>
+            {availableDetails.map((detail) => {
+              const Icon = TAB_ICON_BY_DETAIL[detail];
+              return (
+                <Tab key={detail}>
+                  <span className={styles.tabLabel}>
+                    {Icon ? <Icon size={16} className={styles.tabLabelIcon} /> : null}
+                    <span>{t(`participantsDashboard.tabs.${detail}`, detail)}</span>
+                  </span>
+                </Tab>
+              );
+            })}
+          </TabList>
         <TabPanels>
             {availableDetails.map((detail) => (
               <TabPanel key={detail} className={styles.tabPanel}>
@@ -327,24 +357,38 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   <div className={styles.overviewPanel}>
                     {/* Profile header */}
                     <div className={styles.profileHeader}>
-                      <div className={styles.listItemName}>
-                        <span className={styles.primaryText}>
-                          {participant.userDisplayName || participant.displayName || participant.nickname || participant.username}
-                        </span>
+                      <div className={styles.profileIdentity}>
+                        <div className={styles.profileNameRow}>
+                          <span className={styles.primaryText}>
+                            {participant.userDisplayName || participant.displayName || participant.nickname || participant.username}
+                          </span>
+                          <Tag size="sm" type={toExamStatusTagType(participant.examStatus)}>
+                            {t(`examStatus.${participant.examStatus}`, participant.examStatus)}
+                          </Tag>
+                        </div>
                         <span className={styles.secondaryText}>
                           @{participant.username}
                           {participant.email ? ` • ${participant.email}` : ""}
                         </span>
-                        <div className={styles.inlineMeta}>
-                          <Tag type="blue">{t(`examStatus.${participant.examStatus}`, participant.examStatus)}</Tag>
-                          {participant.submitReason ? <Tag>{participant.submitReason}</Tag> : null}
-                          {participant.lockReason ? <Tag type="red">{participant.lockReason}</Tag> : null}
-                        </div>
+                        {participant.submitReason || participant.lockReason ? (
+                          <div className={styles.profileStatusNotice}>
+                            {participant.submitReason ? (
+                              <span className={styles.profileStatusNoticeItem}>
+                                {t("participantsDashboard.submitReason", "交卷原因")}：{participant.submitReason}
+                              </span>
+                            ) : null}
+                            {participant.lockReason ? (
+                              <span className={styles.profileStatusNoticeItem}>
+                                {t("participants.headers.lockReason", "鎖定原因")}：{participant.lockReason}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
-                      <div className={styles.actionsRow}>
+                      <div className={styles.profileActions}>
                         {primaryAction ? (
                           <Button
-                            kind="secondary"
+                            kind="ghost"
                             size="sm"
                             renderIcon={primaryAction.icon}
                             onClick={primaryAction.onClick}
@@ -419,13 +463,17 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       </div>
                     </div>
 
-                    {/* Metric cards */}
+                    {/* Metrics bar */}
                     <OverviewDataCards
                       items={overviewItems.map((item) => ({
                         ...item,
-                        tone: item.key === "violations" && participant.violationCount > 0 ? "warning" : "default",
+                        tone:
+                          item.key === "violations" && participant.violationCount > 0
+                            ? "warning"
+                            : "default",
                       }))}
                       mode="compact"
+                      className={styles.metricsCards}
                     />
 
                     {/* Summary details */}
