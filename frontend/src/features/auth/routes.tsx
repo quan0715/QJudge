@@ -18,9 +18,10 @@ export const guestRoutes = (
 
 /**
  * OAuth Callback 路由（需在 AuthLayout 內使用，不需要 Guard）
+ * 支援所有 provider: /auth/:provider/callback (nycu, github, google)
  */
 export const oauthCallbackRoute = (
-  <Route path="/auth/nycu/callback" element={<OAuthCallbackScreen />} />
+  <Route path="/auth/:provider/callback" element={<OAuthCallbackScreen />} />
 );
 
 /**
