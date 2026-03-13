@@ -27,7 +27,13 @@ export default function OverviewEventSummaryPanel({
 
   const summary = useMemo(() => {
     const events = examEvents.filter((event) => event.eventType !== "heartbeat");
-    const now = Date.now();
+    let latestEventTs = Number.NEGATIVE_INFINITY;
+    for (const event of events) {
+      const ts = new Date(event.timestamp).getTime();
+      if (Number.isFinite(ts)) {
+        latestEventTs = Math.max(latestEventTs, ts);
+      }
+    }
 
     let criticalCount = 0;
     let violationCount = 0;
@@ -42,7 +48,11 @@ export default function OverviewEventSummaryPanel({
         qaCount += 1;
       }
       const ts = new Date(event.timestamp).getTime();
-      if (Number.isFinite(ts) && now - ts <= RECENT_WINDOW_MS) {
+      if (
+        Number.isFinite(ts) &&
+        Number.isFinite(latestEventTs) &&
+        latestEventTs - ts <= RECENT_WINDOW_MS
+      ) {
         recentWindowCount += 1;
       }
     }
