@@ -1,9 +1,91 @@
-.root {
-  display: grid;
-  grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
-  gap: 1rem;
+.page {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   height: 100%;
+}
+
+.localToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  flex-shrink: 0;
+  background: var(--cds-background);
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.localToolbarLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-left: 1rem;
+}
+
+.localToolbarTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+}
+
+.localToolbarMeta {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  white-space: nowrap;
+}
+
+.localToolbarRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.localToolbarSearch :global(.cds--search) {
+  width: 14rem;
+  height: 2.5rem;
+}
+
+.localToolbarIconButton {
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.localToolbarIconActive {
+  color: var(--cds-icon-primary);
+  background: var(--cds-layer-selected-01);
+}
+
+.localToolbarIconActive:hover {
+  background: var(--cds-layer-selected-hover);
+}
+
+.localToolbar :global(.cds--tooltip),
+.localToolbar :global(.cds--tooltip-container),
+.localToolbar :global(.cds--popover-container) {
+  z-index: 9000;
+}
+
+.root {
+  display: grid;
+  grid-template-columns: minmax(12.5rem, 16rem) minmax(0, 1fr);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  background: var(--cds-background);
 }
 
 /* Grid items (Layer wrappers, ContainerCards) must not exceed the row height */
@@ -15,10 +97,59 @@
 .listCol {
   min-height: 0;
   overflow: hidden;
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle);
 }
 
 .pane {
   min-height: 0;
+}
+
+.listPaneCard {
+  border: 0;
+  background: var(--cds-layer-01);
+}
+
+.listPaneHeader {
+  min-height: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  background: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.listPaneHeaderTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.listPaneBody {
+  background: var(--cds-layer-01);
+  min-height: 0;
+}
+
+.listPaneFooter {
+  flex-shrink: 0;
+  min-height: 2.25rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  border-top: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.detailPaneCard {
+  border: 0;
+  background: var(--cds-background);
 }
 
 /* Inner wrapper: flex column, no padding — toolbar rows sit flush to card edges */
@@ -36,16 +167,6 @@
   overflow-y: auto;
 }
 
-/* Full-width fluid search row */
-.toolbarSearch {
-}
-
-/* 2-col dropdown row */
-.toolbar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
 .toolbarMeta {
   display: flex;
   justify-content: space-between;
@@ -54,12 +175,6 @@
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
   padding: 0.375rem 0.75rem;
-}
-
-.listActions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .filterPopoverContent {
@@ -91,10 +206,10 @@
 
 .listItem {
   border: none;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-bottom: 1px solid var(--cds-border-subtle);
   border-radius: 0;
-  padding: 0.625rem 0.75rem;
-  background: var(--cds-layer);
+  padding: 0.625rem 0.625rem;
+  background: transparent;
   cursor: pointer;
   transition: background-color 120ms ease;
 }
@@ -104,9 +219,9 @@
 }
 
 .listItemSelected {
-  background: var(--cds-layer-selected);
-  border-left: 3px solid var(--cds-border-interactive);
-  padding-left: calc(0.75rem - 2px);
+  background: var(--cds-layer-selected-01, var(--cds-layer-selected));
+  border-left: 4px solid var(--cds-border-interactive);
+  padding-left: calc(0.625rem - 3px);
 }
 
 .listItemHeader,
@@ -123,7 +238,7 @@
 .listItemHeader,
 .dashboardHeader {
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .listItemName {
@@ -136,14 +251,14 @@
 .primaryText {
   color: var(--cds-text-primary);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .secondaryText {
   color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   line-height: 1.2;
 }
 
@@ -152,8 +267,8 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0.125rem;
   color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
+  font-size: var(--cds-helper-text-01-font-size, 0.75rem);
+  margin-top: 0.125rem;
 }
 
 .listItemStats {
@@ -184,6 +299,30 @@
   flex-direction: column;
 }
 
+.tabsList {
+  padding: 0 1rem;
+  min-height: 3rem;
+  background: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.tabsList :global(.cds--tabs__nav-link) {
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.tabLabelIcon {
+  color: var(--cds-icon-secondary);
+  flex-shrink: 0;
+}
+
 /* Make the visible Carbon TabPanel fill remaining space and scroll */
 .tabsWrapper :global(.cds--tab-content:not([hidden])) {
   flex: 1;
@@ -211,6 +350,48 @@
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
+.profileIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.profileNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.profileStatusNotice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.625rem;
+  border-left: 2px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.profileStatusNoticeItem {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.profileActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.metricsCards {
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  padding-bottom: 0.875rem;
+}
+
 .summaryGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
@@ -231,6 +412,16 @@
 .summaryList {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+}
+
+.listStatusTag {
+  color: var(--cds-text-secondary);
+}
+
+.listStatusTagSubmitted {
+  color: var(--cds-support-success);
+  border-color: var(--cds-support-success);
 }
 
 .summaryDataRow {
@@ -238,12 +429,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
-
-  &:last-child {
-    border-bottom: none;
-  }
+  padding: 0.375rem 0;
 }
 
 .summaryDataLabel {
@@ -411,6 +597,23 @@
 /* --- Responsive: mobile / narrow --- */
 
 @media (max-width: 1056px) {
+  .localToolbar {
+    flex-wrap: wrap;
+  }
+
+  .localToolbarLeft {
+    width: 100%;
+  }
+
+  .localToolbarRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .localToolbarSearch :global(.cds--search) {
+    width: 100%;
+  }
+
   .root {
     grid-template-columns: 1fr;
     height: auto;
@@ -514,17 +717,26 @@
 }
 
 @media (max-width: 672px) {
-  .toolbar {
-    grid-template-columns: 1fr;
-  }
-
   .toolbarMeta {
     align-items: flex-start;
   }
 
+  .localToolbarMeta {
+    display: none;
+  }
 }
 
 @media (max-width: 960px) {
+  .profileHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profileActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .listItemHeader {
     flex-wrap: wrap;
   }

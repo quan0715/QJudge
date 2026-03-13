@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   Loading,
@@ -22,6 +22,7 @@ import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
 import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useAdminPanelRefresh } from "@/features/contest/contexts";
 import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -46,6 +47,7 @@ const ContestExamGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [, startTransition] = useTransition();
   const { contest, refreshContest } = useContest();
+  const { registerPanelRefresh } = useAdminPanelRefresh();
   const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
   const [publishingResults, setPublishingResults] = useState(false);
   const [selectionRequest, setSelectionRequest] = useState<{
@@ -137,6 +139,7 @@ const ContestExamGradingScreen: React.FC = () => {
     gradeAnswer,
     regradeObjectiveAnswers,
     regradingObjective,
+    refreshData,
     loading,
   } = useGradingData();
 
@@ -224,6 +227,12 @@ const ContestExamGradingScreen: React.FC = () => {
       subtitle: t("grading.regradeDetail", { updated: result.updated, skipped: result.skipped }),
     });
   };
+
+  useEffect(() => {
+    return registerPanelRefresh("grading", async () => {
+      await Promise.all([refreshData(), refreshContest()]);
+    });
+  }, [refreshContest, refreshData, registerPanelRefresh]);
 
   if (loading) {
     return (
@@ -394,6 +403,7 @@ const ContestExamGradingScreen: React.FC = () => {
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen
               answersByStudent={answersByStudent}
+              questionProgress={questionProgress}
               students={students}
               onGrade={gradeAnswer}
               searchQuery={searchQuery}

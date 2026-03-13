@@ -999,6 +999,7 @@
   },
   "participants": {
     "title": "參賽者列表",
+    "listHeaderTitle": "學生列表",
     "add": "新增",
     "added": "參賽者已新增",
     "addFailed": "新增參賽者失敗",

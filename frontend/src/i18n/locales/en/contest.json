@@ -50,6 +50,7 @@
   "participantCount": "Participants",
   "participants": {
     "title": "Participants",
+    "listHeaderTitle": "Students",
     "add": "Add",
     "added": "Participant added",
     "addFailed": "Failed to add participant",

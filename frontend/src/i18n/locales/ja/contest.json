@@ -50,6 +50,7 @@
   "participantCount": "参加者数",
   "participants": {
     "title": "参加者リスト",
+    "listHeaderTitle": "学生リスト",
     "add": "追加",
     "added": "参加者が追加されました",
     "addFailed": "参加者の追加に失敗しました",

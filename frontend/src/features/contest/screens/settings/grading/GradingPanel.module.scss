@@ -1,3 +1,5 @@
+@use "@/features/contest/components/admin/styles/admin-panel-mixins" as mixins;
+
 /* Right panel (GradingSplitPanel) */
 
 .panel {
@@ -19,33 +21,30 @@
 }
 
 .panelHeader {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-02, var(--cds-layer));
+  @include mixins.pane-header-row;
+  padding: 0 0.75rem;
+}
+
+.panelHeaderLeading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.panelHeaderIcon {
+  color: var(--cds-icon-secondary);
   flex-shrink: 0;
 }
 
-.focusPath {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  margin-bottom: 0.625rem;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
+.panelHeaderLabel {
+  @include mixins.sidebar-label;
+  white-space: nowrap;
 }
 
-.focusPrimary {
-  color: var(--cds-text-primary);
-  font-weight: 600;
-}
-
-.focusSeparator {
-  color: var(--cds-text-secondary);
-}
-
-.focusSecondary {
-  color: var(--cds-text-secondary);
-  font-weight: 500;
+.panelHeaderMeta {
+  @include mixins.sidebar-meta;
+  flex-shrink: 0;
 }
 
 .panelContent {
@@ -104,12 +103,6 @@
   border-top: 1px solid var(--cds-border-subtle);
 }
 
-.panelMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
 
 /* Options list (objective questions) */
 .optionsList {

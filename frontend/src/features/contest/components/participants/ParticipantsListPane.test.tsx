@@ -6,8 +6,20 @@ import ParticipantsListPane from "./ParticipantsListPane";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, defaultValue?: string | Record<string, unknown>) =>
-      typeof defaultValue === "string" ? defaultValue : key,
+    t: (
+      key: string,
+      defaultValueOrOptions?: string | Record<string, unknown>,
+      options?: Record<string, unknown>,
+    ) => {
+      const template =
+        typeof defaultValueOrOptions === "string" ? defaultValueOrOptions : key;
+      const vars =
+        (typeof defaultValueOrOptions === "object" ? defaultValueOrOptions : options) ?? {};
+      return template.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => {
+        const value = vars[name];
+        return value === undefined || value === null ? `{{${name}}}` : String(value);
+      });
+    },
   }),
 }));
 
@@ -25,55 +37,49 @@ const participant: ContestParticipant = {
 };
 
 describe("ParticipantsListPane", () => {
-  it("calls refresh handler when refresh button is clicked", () => {
-    const onRefreshParticipants = vi.fn();
+  it("shows bottom footer count and supports row selection", () => {
+    const onSelect = vi.fn();
     render(
       <ParticipantsListPane
         participants={[participant]}
+        totalItems={3}
         selectedUserId={participant.userId}
         loading={false}
-        searchQuery=""
-        statusFilter="all"
-        statusOptions={[{ id: "all", label: "全部狀態" }]}
-        sortKey="score_desc"
-        sortOptions={[{ id: "score_desc", label: "分數高到低" }]}
-        totalItems={1}
-        onSearchChange={vi.fn()}
-        onStatusFilterChange={vi.fn()}
-        onSortChange={vi.fn()}
-        onSelect={vi.fn()}
-        onAddParticipant={vi.fn()}
-        onRefreshParticipants={onRefreshParticipants}
+        onSelect={onSelect}
       />,
     );
 
-    fireEvent.click(screen.getByTestId("participants-list-refresh-btn"));
-    expect(onRefreshParticipants).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("顯示 1 / 3 位")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Real Name"));
+    expect(onSelect).toHaveBeenCalledWith("1");
   });
 
   it("does not render identity detail row", () => {
     render(
       <ParticipantsListPane
         participants={[participant]}
+        totalItems={1}
         selectedUserId={participant.userId}
         loading={false}
-        searchQuery=""
-        statusFilter="all"
-        statusOptions={[{ id: "all", label: "全部狀態" }]}
-        sortKey="score_desc"
-        sortOptions={[{ id: "score_desc", label: "分數高到低" }]}
-        totalItems={1}
-        onSearchChange={vi.fn()}
-        onStatusFilterChange={vi.fn()}
-        onSortChange={vi.fn()}
         onSelect={vi.fn()}
-        onAddParticipant={vi.fn()}
-        onRefreshParticipants={vi.fn()}
       />,
     );
 
     expect(screen.queryByText("顯示名稱 Real Name")).not.toBeInTheDocument();
     expect(screen.queryByText("身份 student")).not.toBeInTheDocument();
     expect(screen.queryByText("註冊身份 SSO")).not.toBeInTheDocument();
+  });
+
+  it("falls back footer total to shown count when totalItems is missing", () => {
+    render(
+      <ParticipantsListPane
+        participants={[participant]}
+        selectedUserId={participant.userId}
+        loading={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("顯示 1 / 1 位")).toBeInTheDocument();
   });
 });
