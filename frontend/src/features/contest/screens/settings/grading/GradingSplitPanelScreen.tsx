@@ -48,7 +48,6 @@ export default function GradingSplitPanelScreen({
   hasNextQuestion = false,
   onNextStudent,
   hasNextStudent = false,
-  contextPath,
 }: GradingSplitPanelScreenProps) {
   const { t } = useTranslation("contest");
   const [score, setScore] = useState<number>(0);
