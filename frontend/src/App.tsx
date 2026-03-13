@@ -77,13 +77,11 @@ function App() {
                   <BrowserRouter>
                     <ApiErrorProvider>
                       <Routes>
-                        {/* Guest Routes (Login/Register) */}
-                        <Route element={<RequireGuest />}>
-                          <Route element={<AuthLayout />}>{guestRoutes}</Route>
-                        </Route>
-
-                        {/* OAuth Callback - not protected, handles its own auth flow */}
+                        {/* Auth Routes - shared AuthLayout for login/register/callback */}
                         <Route element={<AuthLayout />}>
+                          <Route element={<RequireGuest />}>
+                            {guestRoutes}
+                          </Route>
                           {oauthCallbackRoute}
                         </Route>
 

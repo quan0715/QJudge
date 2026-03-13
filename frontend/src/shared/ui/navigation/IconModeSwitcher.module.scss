@@ -8,21 +8,36 @@
   background: var(--cds-layer-01);
 }
 
+.btnWrap {
+  position: relative;
+}
+
+.activeBg {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--cds-highlight);
+  z-index: 0;
+}
+
 .iconBtn {
+  position: relative;
+  z-index: 1;
   border-radius: 999px;
 
   &:global(.cds--btn--ghost) {
     color: var(--cds-icon-secondary);
+    background: transparent;
   }
 }
 
 .iconBtnActive {
   &:global(.cds--btn--ghost) {
     color: var(--cds-interactive);
-    background: var(--cds-highlight);
+    background: transparent;
   }
 
   &:global(.cds--btn--ghost:hover) {
-    background: var(--cds-highlight);
+    background: transparent;
   }
 }
