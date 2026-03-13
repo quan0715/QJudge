@@ -50,6 +50,7 @@
   "participantCount": "참가자 수",
   "participants": {
     "title": "참가자 목록",
+    "listHeaderTitle": "학생 목록",
     "add": "추가",
     "added": "참가자가 추가되었습니다",
     "addFailed": "참가자 추가에 실패했습니다",
@@ -400,6 +401,7 @@
       "prompt": "문제",
       "type": "유형",
       "maxScore": "만점",
+      "status": "상태",
       "score": "점수",
       "feedback": "피드백"
     }
@@ -629,7 +631,16 @@
     "autoSubmittedHeading": "시험이 자동으로 제출되었습니다",
     "autoSubmittedDesc": "화면 공유가 중단되었고 제한 시간 내에 복구되지 않아 시스템이 자동으로 제출했습니다.",
     "autoSubmittedHint": "오류라고 생각되면 감독관에게 문의하세요.",
-    "returnToDashboard": "대시보드로 돌아가기"
+    "returnToDashboard": "대시보드로 돌아가기",
+    "submitProgress": {
+      "title": "제출 처리 중",
+      "checking": "답안 내용을 확인하는 중",
+      "recording": "시험 이벤트를 기록하는 중",
+      "uploading": "화면 캡처 데이터를 업로드하는 중",
+      "finalizing": "제출을 마무리하는 중",
+      "hint": "제출이 완료될 때까지 이 창을 닫지 마세요.",
+      "failed": "제출 처리에 실패했습니다. 다시 시도해 주세요."
+    }
   },
   "createModal": {
     "titleCoding": "Create Coding Test",
@@ -722,21 +733,29 @@
   "grading": {
     "byQuestion": "문제별 채점",
     "byStudent": "학생별 채점",
+    "gradingCenter": "채점 센터",
+    "globalSummary": "문항 {{questions}}개 · 학생 {{students}}명 · 채점 진행 {{graded}}/{{total}} ({{progress}}) · {{status}}",
+    "moreActions": "추가 작업",
+    "matrixOverview": "매트릭스 개요",
     "searchStudent": "학생 검색",
     "filter": "필터",
     "autoGrade": "객관식 자동 채점",
     "autoGraded": "자동 채점 완료",
     "publishResults": "성적 공개",
     "unpublishResults": "공개 취소",
+    "publishConfirmTitle": "성적을 공개하시겠습니까?",
+    "publishConfirmBody": "공개 후 학생이 성적을 확인할 수 있습니다.",
+    "unpublishConfirmTitle": "공개된 성적을 취소하시겠습니까?",
+    "unpublishConfirmBody": "취소 후 학생은 성적을 확인할 수 없습니다.",
     "published": "공개됨",
     "unpublished": "미공개",
     "score": "점수",
     "feedback": "피드백 (선택)",
     "save": "저장",
+    "saveAndNextStudent": "저장 및 다음 학생",
     "saved": "저장됨",
     "nextQuestion": "다음 문제",
     "nextStudent": "다음 학생",
-    "fullScore": "만점",
     "student": "학생",
     "question": "문제",
     "answerContent": "답안 내용",
@@ -755,7 +774,32 @@
     "selectAnswerToGrade": "학생의 답안을 선택하여 채점 시작",
     "noSubmissions": "이 학생은 아직 답안을 제출하지 않았습니다",
     "studentsCount": "학생 {{count}}명",
+    "studentsDisplayCount": "{{shown}} / {{total}} 명 표시",
+    "answersDisplayCount": "{{shown}} / {{total}} 명 표시",
     "questionList": "문제 목록",
+    "answerList": "답안 목록",
+    "studentList": "학생 목록",
+    "previewQuestionSummary": "Q{{index}} · {{graded}}/{{total}} 채점됨 · 평균 {{avg}}",
+    "previewQuestionNoAnswers": "Q{{index}} · 답안 데이터 없음",
+    "previewStudentSummary": "{{name}} · {{graded}}/{{total}} 완료 · {{score}} 점",
+    "matrixSummary": "학생 {{students}}명 · 문항 {{questions}}개",
+    "matrixLegendGraded": "채점됨",
+    "matrixLegendPending": "채점 대기",
+    "matrixLegendEmpty": "미응답",
+    "matrixSummaryRow": "합계 (평균)",
+    "matrixGradedCount": "채점됨 {{count}}",
+    "matrixPendingCount": "채점 대기 {{count}}",
+    "matrixEmptyCount": "미응답 {{count}}",
+    "matrixCellGraded": "채점됨: {{score}} / {{max}}",
+    "matrixCellPending": "응답함, 채점 대기 중",
+    "matrixCellEmpty": "미응답",
+    "matrixEmpty": "현재 매트릭스 개요를 표시할 데이터가 부족합니다.",
+    "expandQuestionList": "문항 목록 펼치기",
+    "collapseQuestionList": "문항 목록 접기",
+    "expandAnswerList": "답안 목록 펼치기",
+    "collapseAnswerList": "답안 목록 접기",
+    "expandStudentList": "학생 목록 펼치기",
+    "collapseStudentList": "학생 목록 접기",
     "complete": "완료",
     "objectiveRegradeComplete": "객관식 재채점 완료",
     "objectiveRegradePartialFail": "객관식 재채점 완료 (일부 실패)",
@@ -769,11 +813,16 @@
     "loading": "채점 데이터 로드 중...",
     "regradePartialDetail": "업데이트 {{updated}}건, 실패 {{failed}}건, 건너뜀 {{skipped}}건",
     "regradeDetail": "업데이트 {{updated}}건, 건너뜀 {{skipped}}건",
-    "filterAll": "전체",
-    "filterUngraded": "미채점",
-    "filterGraded": "채점됨",
+    "shortcutPrefix": "단축키:",
+    "shortcutAdjust": "점수 조정",
+    "shortcutDirectInput": "직접 입력",
+    "shortcutSetZero": "0점 설정",
+    "shortcutSetMax": "만점 설정",
+    "shortcutCommitAndNext": "저장 / 다음 단계",
+    "all": "전체",
     "gradedBy": "{{name}} 채점",
-    "maxScore": "만점"
+    "maxScore": "만점",
+    "objectiveReadonlyHint": "객관식 문항은 자동 채점됩니다. 점수가 이상할 경우 상단의 '객관식 자동 채점' 버튼을 사용하세요."
   },
   "examVideoReview": {
     "modalHeading": "감독 영상 검토",
@@ -1133,13 +1182,75 @@
   },
   "studentStatus": {
     "title": "학생 상태 분포",
+    "pausedLocked": "일시 정지 / 잠금",
     "personCount": "{{count}}명",
     "submittedProgress": "제출 완료 {{submitted}}/{{total}} ({{percent}}%)"
+  },
+  "adminOverview": {
+    "kpi": {
+      "onlineNow": "현재 온라인",
+      "exams": "시험 상태",
+      "examMode": "시험 모드",
+      "time": "시간 진행",
+      "examCount": "1건"
+    },
+    "examStatus": {
+      "upcoming": "시작 전",
+      "running": "진행 중",
+      "ended": "종료됨"
+    },
+    "examType": {
+      "paper_exam": "지필 시험",
+      "coding": "코딩 테스트"
+    },
+    "time": {
+      "remaining": "남은 시간 {{time}}",
+      "remainingLabel": "남은 시간",
+      "notStarted": "시작 전",
+      "ended": "종료됨"
+    },
+    "sidebar": {
+      "title": "시험 요약",
+      "timeProgress": "시간 진행",
+      "timeAndWindow": "시간 진행 및 시험 시간대",
+      "online": "온라인 상태",
+      "heartbeatOnline": "Heartbeat 온라인",
+      "activeSessions": "Active Sessions",
+      "window": "시험 시간대",
+      "start": "시작",
+      "end": "종료",
+      "settings": "대회 설정",
+      "contestState": "대회 상태",
+      "strictMode": "엄격 시험 모드",
+      "resultsPublished": "성적 공개",
+      "enabled": "활성화",
+      "disabled": "비활성화",
+      "published": "공개됨",
+      "unpublished": "미공개"
+    },
+    "events": {
+      "title": "이벤트 요약",
+      "critical": "고위험 이벤트",
+      "violations": "위반 이벤트",
+      "qa": "Q&A 상호작용",
+      "recent30m": "최근 30분",
+      "recentList": "최근 이벤트",
+      "empty": "현재 이벤트가 없습니다",
+      "unit": "건"
+    }
   },
   "statistics": {
     "noData": "문제 데이터가 없습니다",
     "title": "문제 통계",
-    "questionCount": "{{count}}문제"
+    "questionCount": "{{count}} 문제",
+    "gradedCount": "{{graded}}/{{total}} 채점 완료",
+    "averageScore": "평균 점수",
+    "averageScoreRatio": "평균 점수 비율",
+    "optionDistribution": "선택지 분포",
+    "noRecords": "아직 기록이 없습니다",
+    "studentAnswers": "학생 답안",
+    "scoreUnit": "{{score}} 점",
+    "notAnswered": "(답변 없음)"
   },
   "adminLayout": {
     "title": "관리 대시보드",
@@ -1157,6 +1268,7 @@
       "settings": "설정"
     },
     "header": {
+      "refresh": "새로고침",
       "exportFiles": "파일 내보내기",
       "previewAnswer": "답안 화면 미리보기",
       "backToHome": "대회 홈으로 돌아가기"

@@ -348,6 +348,7 @@
       "prompt": "題目",
       "type": "題型",
       "maxScore": "滿分",
+      "status": "狀態",
       "score": "得分",
       "feedback": "評語"
     }
@@ -577,7 +578,16 @@
     "autoSubmittedHeading": "您的考試已被系統自動交卷",
     "autoSubmittedDesc": "螢幕分享中斷後未能在時限內重新分享，系統已自動為您交卷。",
     "autoSubmittedHint": "如果您認為這是錯誤，請聯繫監考人員。",
-    "returnToDashboard": "返回儀表板"
+    "returnToDashboard": "返回儀表板",
+    "submitProgress": {
+      "title": "正在處理交卷",
+      "checking": "正在檢查作答內容",
+      "recording": "正在記錄考試事件",
+      "uploading": "正在上傳螢幕截圖資料",
+      "finalizing": "正在完成交卷",
+      "hint": "請勿關閉此視窗，系統正在完成交卷流程。",
+      "failed": "交卷流程失敗，請再試一次"
+    }
   },
   "createModal": {
     "titleCoding": "建立 Coding Test",
@@ -671,7 +681,7 @@
     "byQuestion": "按題目批改",
     "byStudent": "按學生批改",
     "gradingCenter": "批改中心",
-    "globalSummary": "題目 {{questions}} 題 · 作答 {{answers}} 筆 · 待批改 {{pending}} 筆",
+    "globalSummary": "題目 {{questions}} 題 · 學生 {{students}} 人 · 批改進度 {{graded}}/{{total}} ({{progress}}) · {{status}}",
     "moreActions": "更多操作",
     "matrixOverview": "矩陣總覽",
     "searchStudent": "搜尋學生",
@@ -680,6 +690,10 @@
     "autoGraded": "已自動批改",
     "publishResults": "發布成績",
     "unpublishResults": "撤回發布",
+    "publishConfirmTitle": "確定要發布成績嗎？",
+    "publishConfirmBody": "發布後學生將可看到成績。",
+    "unpublishConfirmTitle": "確定要撤回已發布成績嗎？",
+    "unpublishConfirmBody": "撤回後學生將無法查看已發布成績。",
     "published": "已發布",
     "unpublished": "未發布",
     "score": "分數",
@@ -689,7 +703,6 @@
     "saved": "已儲存",
     "nextQuestion": "下一題",
     "nextStudent": "下一位學生",
-    "fullScore": "滿分",
     "student": "學生",
     "question": "題目",
     "answerContent": "作答內容",
@@ -720,6 +733,7 @@
     "matrixLegendGraded": "已批改",
     "matrixLegendPending": "待批改",
     "matrixLegendEmpty": "未作答",
+    "matrixSummaryRow": "總和（平均）",
     "matrixGradedCount": "已批改 {{count}}",
     "matrixPendingCount": "待批改 {{count}}",
     "matrixEmptyCount": "未作答 {{count}}",
@@ -752,11 +766,10 @@
     "shortcutSetZero": "歸零",
     "shortcutSetMax": "滿分",
     "shortcutCommitAndNext": "儲存/前往下一步",
-    "filterAll": "全部",
-    "filterUngraded": "未批改",
-    "filterGraded": "已批改",
+    "all": "全部",
     "gradedBy": "{{name}} 批改",
-    "maxScore": "滿分"
+    "maxScore": "滿分",
+    "objectiveReadonlyHint": "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。"
   },
   "examVideoReview": {
     "modalHeading": "防弊影片檢視",
@@ -986,6 +999,7 @@
   },
   "participants": {
     "title": "參賽者列表",
+    "listHeaderTitle": "學生列表",
     "add": "新增",
     "added": "參賽者已新增",
     "addFailed": "新增參賽者失敗",
@@ -1166,13 +1180,75 @@
   },
   "studentStatus": {
     "title": "學生狀態分佈",
+    "pausedLocked": "已暫停 / 已鎖定",
     "personCount": "{{count}} 人",
     "submittedProgress": "已交卷 {{submitted}}/{{total}}（{{percent}}%）"
+  },
+  "adminOverview": {
+    "kpi": {
+      "onlineNow": "目前上線",
+      "exams": "考試狀態",
+      "examMode": "考試模式",
+      "time": "時間進度",
+      "examCount": "1 場"
+    },
+    "examStatus": {
+      "upcoming": "即將開始",
+      "running": "進行中",
+      "ended": "已結束"
+    },
+    "examType": {
+      "paper_exam": "考卷",
+      "coding": "Coding Test"
+    },
+    "time": {
+      "remaining": "剩餘 {{time}}",
+      "remainingLabel": "剩餘時間",
+      "notStarted": "尚未開始",
+      "ended": "已結束"
+    },
+    "sidebar": {
+      "title": "考試摘要",
+      "timeProgress": "時間進度",
+      "timeAndWindow": "時間進度與考試時段",
+      "online": "在線狀態",
+      "heartbeatOnline": "Heartbeat 在線",
+      "activeSessions": "Active Sessions",
+      "window": "考試時段",
+      "start": "開始",
+      "end": "結束",
+      "settings": "競賽設定",
+      "contestState": "競賽狀態",
+      "strictMode": "嚴格考試模式",
+      "resultsPublished": "成績發布",
+      "enabled": "已啟用",
+      "disabled": "未啟用",
+      "published": "已發布",
+      "unpublished": "未發布"
+    },
+    "events": {
+      "title": "事件摘要",
+      "critical": "高風險事件",
+      "violations": "違規事件",
+      "qa": "問答互動",
+      "recent30m": "近 30 分鐘",
+      "recentList": "最近事件",
+      "empty": "目前沒有事件",
+      "unit": "件"
+    }
   },
   "statistics": {
     "noData": "尚無題目資料",
     "title": "題目統計",
-    "questionCount": "{{count}} 題"
+    "questionCount": "{{count}} 題",
+    "gradedCount": "{{graded}}/{{total}} 已批改",
+    "averageScore": "平均分數",
+    "averageScoreRatio": "平均分數比例",
+    "optionDistribution": "選項分布",
+    "noRecords": "目前尚無作答紀錄",
+    "studentAnswers": "學生作答",
+    "scoreUnit": "{{score}} 分",
+    "notAnswered": "(未作答)"
   },
   "adminLayout": {
     "title": "管理後台",
@@ -1190,6 +1266,7 @@
       "settings": "設定"
     },
     "header": {
+      "refresh": "重新整理",
       "exportFiles": "匯出檔案",
       "previewAnswer": "預覽作答畫面",
       "backToHome": "前往競賽主頁"

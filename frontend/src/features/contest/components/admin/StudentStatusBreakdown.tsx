@@ -1,34 +1,27 @@
-import { Tile, Button, Layer } from "@carbon/react";
+import { Tile, Layer } from "@carbon/react";
 import {
-  Renew,
   CircleDash,
   InProgress,
   PauseFilled,
-  Locked,
   CheckmarkFilled,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { DashboardKpi } from "@/features/contest/screens/admin/mockData";
+import type { ParticipantStatusKpi } from "@/features/contest/screens/admin/participantStatusKpi";
 import styles from "./StudentStatusBreakdown.module.scss";
 
 interface StudentStatusBreakdownProps {
-  kpi: DashboardKpi;
-  onRefresh: () => void;
-  isRefreshing?: boolean;
+  kpi: ParticipantStatusKpi;
 }
 
 const STATUS_DEFS = [
   { key: "notStartedCount" as const, statusKey: "not_started", icon: CircleDash, color: "var(--cds-text-secondary)" },
   { key: "inProgressCount" as const, statusKey: "in_progress", icon: InProgress, color: "var(--cds-support-info)" },
-  { key: "pausedCount" as const, statusKey: "paused", icon: PauseFilled, color: "var(--cds-text-secondary)" },
-  { key: "lockedCount" as const, statusKey: "locked", icon: Locked, color: "var(--cds-support-error)" },
+  { key: "pausedOrLockedCount" as const, statusKey: "paused_or_locked", icon: PauseFilled, color: "var(--cds-support-warning)" },
   { key: "submittedCount" as const, statusKey: "submitted", icon: CheckmarkFilled, color: "var(--cds-support-success)" },
 ];
 
 export default function StudentStatusBreakdown({
   kpi,
-  onRefresh,
-  isRefreshing = false,
 }: StudentStatusBreakdownProps) {
   const { t } = useTranslation("contest");
   const total = kpi.totalParticipants || 1;
@@ -38,15 +31,6 @@ export default function StudentStatusBreakdown({
     <div className={styles.section}>
       <div className={styles.header}>
         <h3 className={styles.title}>{t("studentStatus.title", "學生狀態分佈")}</h3>
-        <Button
-          kind="ghost"
-          renderIcon={Renew}
-          hasIconOnly
-          iconDescription={t("common.refresh", "重新整理")}
-          size="sm"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-        />
       </div>
 
       <div className={styles.grid}>
@@ -58,7 +42,11 @@ export default function StudentStatusBreakdown({
               <Tile className={styles.tile}>
                 <div className={styles.tileBadge} style={{ color }}>
                   <Icon size={16} />
-                  <span>{t(`examStatus.${statusKey}`, statusKey)}</span>
+                  <span>
+                    {statusKey === "paused_or_locked"
+                      ? t("studentStatus.pausedLocked", "已暫停 / 已鎖定")
+                      : t(`examStatus.${statusKey}`, statusKey)}
+                  </span>
                 </div>
                 <span className={styles.tileCount}>
                   {t("studentStatus.personCount", { count })}

@@ -5,6 +5,7 @@ export interface KpiCardProps {
   icon?: React.ComponentType<{ size?: number }> | ReactNode;
   value: ReactNode;
   label: string;
+  meta?: ReactNode;
   showBorder?: boolean;
   active?: boolean;
   onClick?: () => void;
@@ -31,6 +32,7 @@ export const KpiCard = ({
   icon,
   value,
   label,
+  meta,
   showBorder = true,
   active,
   onClick,
@@ -50,6 +52,7 @@ export const KpiCard = ({
       <div className={styles.kpiIcon}>{renderIconNode(icon)}</div>
       <div className={styles.kpiValue}>{value}</div>
       <div className={styles.kpiLabel}>{label}</div>
+      {meta ? <div className={styles.kpiMeta}>{meta}</div> : null}
     </div>
   );
 };

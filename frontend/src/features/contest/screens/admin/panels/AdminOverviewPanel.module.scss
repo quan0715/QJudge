@@ -13,3 +13,26 @@
   max-width: 1200px;
   margin: 0 auto;
 }
+
+.bodyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.mainCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sideCol {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .bodyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

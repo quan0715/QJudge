@@ -74,12 +74,8 @@
   align-items: stretch;
   justify-content: flex-end;
   flex-wrap: nowrap;
-  gap: 0;
+  gap: 0.5rem;
   min-width: 0;
-}
-
-.warningValue {
-  color: var(--cds-support-error);
 }
 
 /* Responsive: stack on narrower screens */

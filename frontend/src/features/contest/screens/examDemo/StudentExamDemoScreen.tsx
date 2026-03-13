@@ -7,8 +7,8 @@ import {
   Loading,
 } from "@carbon/react";
 import {
-  ChevronLeft,
   Time,
+  Recording,
 } from "@carbon/icons-react";
 import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
@@ -122,9 +122,9 @@ const StudentExamDemoScreen: FC = () => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   }, []);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate(-1);
-  };
+  }, [navigate]);
 
   const renderItem = useCallback(
     (item: ExamItem, index: number, mode: "single" | "all") => {
@@ -211,16 +211,9 @@ const StudentExamDemoScreen: FC = () => {
       renderItem={renderItem}
       toolbarLeft={(
         <>
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            renderIcon={ChevronLeft}
-            iconDescription="返回"
-            onClick={handleBack}
-          />
           <span className={styles.title}>{contest.name}</span>
-          <Tag size="sm" type="purple">Demo 模式</Tag>
+          <Tag size="sm" type="cool-gray">Demo 模式</Tag>
+          <Tag size="sm" type="cool-gray" renderIcon={Recording}>監控中</Tag>
         </>
       )}
       toolbarCenter={(

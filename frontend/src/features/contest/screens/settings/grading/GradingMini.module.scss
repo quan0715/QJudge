@@ -1,0 +1,61 @@
+@use "@/features/contest/components/admin/styles/admin-panel-mixins" as mixins;
+
+/* Shared mini (collapsed) pane used by both ByQuestion and ByStudent views. */
+
+.miniPane {
+  @include mixins.mini-pane;
+}
+
+.miniHeader {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+/* Native <button> — no Carbon overrides needed. Same height as miniItem. */
+.miniToggleButton {
+  @include mixins.mini-item;
+  color: var(--cds-icon-primary);
+}
+
+.miniList {
+  @include mixins.mini-list;
+}
+
+.miniFooter {
+  @include mixins.mini-footer;
+}
+
+.miniItem {
+  @include mixins.mini-item;
+}
+
+/* ─── Status colors (shared by mini & expanded question items) ─── */
+
+.statusDone {
+  color: var(--cds-support-success);
+}
+
+.statusPending {
+  color: var(--cds-support-warning);
+}
+
+.statusEmpty {
+  color: var(--cds-text-secondary);
+}
+
+/* Active = status-tinted background */
+.statusActive {
+  font-weight: 700;
+}
+
+.statusActive.statusDone {
+  background: rgba(36, 161, 72, 0.14);
+}
+
+.statusActive.statusPending {
+  background: rgba(244, 184, 0, 0.16);
+}
+
+.statusActive.statusEmpty {
+  background: rgba(141, 141, 141, 0.14);
+}

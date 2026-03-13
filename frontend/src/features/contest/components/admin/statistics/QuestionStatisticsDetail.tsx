@@ -1,4 +1,5 @@
 import { Accordion, AccordionItem, ProgressBar, Tag } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
 import type { QuestionStatistics } from "./useExamStatistics";
 import styles from "./ExamStatisticsPanel.module.scss";
@@ -10,6 +11,7 @@ interface QuestionStatisticsDetailProps {
 export default function QuestionStatisticsDetail({
   stat,
 }: QuestionStatisticsDetailProps) {
+  const { t } = useTranslation("contest");
   const optionLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const progressPercent =
     stat.totalAnswers > 0
@@ -24,17 +26,20 @@ export default function QuestionStatisticsDetail({
           {questionTypeLabel[stat.questionType]}
         </Tag>
         <Tag type={progressPercent === 100 ? "green" : "gray"} size="sm">
-          {stat.gradedCount}/{stat.totalAnswers} 已批改
+          {t("statistics.gradedCount", "{{graded}}/{{total}} 已批改", {
+            graded: stat.gradedCount,
+            total: stat.totalAnswers,
+          })}
         </Tag>
       </div>
 
       <div className={styles.averageSection}>
-        <span className={styles.averageLabel}>平均分數</span>
+        <span className={styles.averageLabel}>{t("statistics.averageScore", "平均分數")}</span>
         <span className={styles.averageValue}>
           {stat.averageScore.toFixed(1)} / {stat.maxScore}
         </span>
         <ProgressBar
-          label="平均分數比例"
+          label={t("statistics.averageScoreRatio", "平均分數比例")}
           hideLabel
           value={stat.maxScore > 0 ? (stat.averageScore / stat.maxScore) * 100 : 0}
           size="small"
@@ -43,9 +48,9 @@ export default function QuestionStatisticsDetail({
 
       {stat.isObjective ? (
         <div className={styles.distributionSection}>
-          <span className={styles.sectionTitle}>選項分布</span>
+          <span className={styles.sectionTitle}>{t("statistics.optionDistribution", "選項分布")}</span>
           {stat.totalAnswers === 0 && (
-            <span className={styles.emptyHint}>目前尚無作答紀錄</span>
+            <span className={styles.emptyHint}>{t("statistics.noRecords", "目前尚無作答紀錄")}</span>
           )}
           {(stat.optionDistribution ?? []).map((opt, idx) => (
             <div key={idx} className={styles.optionRow}>
@@ -76,15 +81,21 @@ export default function QuestionStatisticsDetail({
         </div>
       ) : (
         <div className={styles.distributionSection}>
-          <span className={styles.sectionTitle}>學生作答</span>
+          <span className={styles.sectionTitle}>{t("statistics.studentAnswers", "學生作答")}</span>
           <Accordion>
             {(stat.subjectiveEntries ?? []).map((entry, idx) => (
               <AccordionItem
                 key={idx}
-                title={`${entry.studentNickname} — ${entry.score !== null ? `${entry.score} 分` : "未批改"}`}
+                title={`${entry.studentNickname} — ${
+                  entry.score !== null
+                    ? t("statistics.scoreUnit", "{{score}} 分", {
+                        score: entry.score,
+                      })
+                    : t("grading.ungraded", "未批改")
+                }`}
               >
                 <p style={{ whiteSpace: "pre-wrap", fontSize: "0.875rem" }}>
-                  {entry.answerText || "(未作答)"}
+                  {entry.answerText || t("statistics.notAnswered", "(未作答)")}
                 </p>
               </AccordionItem>
             ))}

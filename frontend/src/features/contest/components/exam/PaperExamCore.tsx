@@ -173,7 +173,6 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
         <div className={styles.navButtons}>
           <Button
             kind="ghost"
-            size="sm"
             renderIcon={ArrowLeft}
             disabled={effectiveActiveIndex === 0}
             onClick={() => handleSetActiveIndex((i) => i - 1)}
@@ -185,7 +184,6 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
           </span>
           <Button
             kind="ghost"
-            size="sm"
             renderIcon={ArrowRight}
             disabled={isLast}
             onClick={() => handleSetActiveIndex((i) => i + 1)}

@@ -6,6 +6,7 @@ import type { ContestParticipant, ParticipantDashboard } from "@/core/entities/c
 import ContestParticipantsScreen from "./ContestParticipantsScreen";
 
 const useContestAdminMock = vi.fn();
+const useAdminPanelRefreshMock = vi.fn();
 const useContestMock = vi.fn();
 const useAuthMock = vi.fn();
 const participantDashboardHookMock = vi.fn();
@@ -19,6 +20,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/features/contest/contexts", () => ({
   useContestAdmin: () => useContestAdminMock(),
+  useAdminPanelRefresh: () => useAdminPanelRefreshMock(),
 }));
 
 vi.mock("@/features/contest/contexts/ContestContext", () => ({
@@ -152,8 +154,16 @@ describe("ContestParticipantsScreen", () => {
     useContestAdminMock.mockReturnValue({
       participants: [participant],
       examEvents: [],
+      overviewMetrics: null,
       isRefreshing: false,
+      isOverviewRefreshing: false,
       refreshAdminData: vi.fn().mockResolvedValue(undefined),
+      refreshOverviewMetrics: vi.fn().mockResolvedValue(undefined),
+      refreshAllAdminData: vi.fn().mockResolvedValue(undefined),
+    });
+    useAdminPanelRefreshMock.mockReturnValue({
+      registerPanelRefresh: vi.fn(() => () => undefined),
+      triggerPanelRefresh: vi.fn().mockResolvedValue(false),
     });
     useAuthMock.mockReturnValue({
       user: { username: "owner" },

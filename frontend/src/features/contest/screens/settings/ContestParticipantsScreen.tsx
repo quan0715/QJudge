@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
+  Button,
+  ExpandableSearch,
+  FluidDropdown,
   InlineNotification,
+  Layer,
+  Popover,
+  PopoverContent,
 } from "@carbon/react";
+import { Add, Filter } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -11,7 +18,7 @@ import type {
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useContestAdmin } from "@/features/contest/contexts";
+import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import {
@@ -43,6 +50,7 @@ const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
   const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { registerPanelRefresh } = useAdminPanelRefresh();
   const { contest } = useContest();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,7 +67,7 @@ const ContestParticipantsScreen = () => {
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const refreshInFlightRef = useRef(false);
 
   const searchQuery = searchParams.get("q") || "";
@@ -96,6 +104,14 @@ const ContestParticipantsScreen = () => {
       { id: "name_asc", label: t("participantsDashboard.sort.nameAsc", "姓名 A-Z") },
     ],
     [t],
+  );
+  type Option = { id: string; label: string };
+  const hasActiveFilters = useMemo(
+    () =>
+      searchQuery.trim().length > 0 ||
+      statusFilter !== "all" ||
+      sortKey !== "score_desc",
+    [searchQuery, statusFilter, sortKey],
   );
 
   const processedParticipants = useMemo(() => {
@@ -177,7 +193,7 @@ const ContestParticipantsScreen = () => {
       });
 
       return hasChanges ? next : prev;
-    });
+    }, { replace: true });
   }, [setSearchParams]);
 
   // Auto-select first participant + validate selected user / detail
@@ -227,6 +243,12 @@ const ContestParticipantsScreen = () => {
       refreshInFlightRef.current = false;
     }
   }, [refreshAdminData, refreshDashboard]);
+
+  useEffect(() => {
+    return registerPanelRefresh("participants", async () => {
+      await refreshBoth();
+    });
+  }, [refreshBoth, registerPanelRefresh]);
 
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
@@ -337,15 +359,6 @@ const ContestParticipantsScreen = () => {
     }
   };
 
-  const handleRefreshParticipants = async () => {
-    setIsManualRefreshing(true);
-    try {
-      await refreshBoth();
-    } finally {
-      setIsManualRefreshing(false);
-    }
-  };
-
   const openEditModal = () => {
     if (!dashboard) return;
     setEditingParticipant(dashboard.participant);
@@ -376,20 +389,9 @@ const ContestParticipantsScreen = () => {
 
   const listPaneProps = {
     participants: processedParticipants,
+    totalItems: participants.length,
     selectedUserId,
     loading: isRefreshing,
-    searchQuery,
-    statusFilter,
-    statusOptions,
-    sortKey,
-    sortOptions,
-    totalItems: processedParticipants.length,
-    onSearchChange: (value: string) => updateParams({ q: value || null }),
-    onStatusFilterChange: (value: string) => updateParams({ status: value === "all" ? null : value }),
-    onSortChange: (value: string) => updateParams({ sort: value === "score_desc" ? null : value }),
-    onAddParticipant: () => setAddModalOpen(true),
-    onRefreshParticipants: () => void handleRefreshParticipants(),
-    isRefreshingParticipants: isManualRefreshing || isRefreshing,
   };
 
   const selectedDisplayName = getParticipantDisplayName(selectedParticipant);
@@ -400,48 +402,160 @@ const ContestParticipantsScreen = () => {
 
   return (
     <>
-      <div className={styles.root}>
-        <ParticipantsMobileSelector
-          drawerOpen={drawerOpen}
-          selectedDisplayName={selectedDisplayName}
-          selectedParticipant={selectedParticipant}
-          selectedStatusTag={selectedStatusTag}
-          selectedStatusLabel={
-            selectedParticipant?.examStatus
-              ? t(`examStatus.${selectedParticipant.examStatus}`, selectedParticipant.examStatus)
-              : null
-          }
-          selectParticipantLabel={t("participants.selectParticipant", "選擇參賽者")}
-          listPaneProps={listPaneProps}
-          onOpenDrawer={() => setDrawerOpen(true)}
-          onCloseDrawer={() => setDrawerOpen(false)}
-          onSelectUser={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
-        />
-
-        <div className={styles.listCol}>
-          <ParticipantsListPane
-            {...listPaneProps}
-            onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
-          />
+      <div className={styles.page}>
+        <div className={styles.localToolbar}>
+          <div className={styles.localToolbarLeft}>
+            <h4 className={styles.localToolbarTitle}>
+              {t("participants.viewTitle", "檢視參與者")}
+            </h4>
+          </div>
+          <div className={styles.localToolbarRight}>
+            <ExpandableSearch
+              id="participants-toolbar-search"
+              size="md"
+              className={styles.localToolbarSearch}
+              labelText={t("participants.searchLabel", "搜尋參賽者")}
+              placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
+              value={searchQuery}
+              onChange={(event) => updateParams({ q: event.target.value || null })}
+            />
+            <Layer>
+              <Popover
+                open={filterOpen}
+                align="bottom-right"
+                isTabTip
+                onRequestClose={() => setFilterOpen(false)}
+              >
+                <Button
+                  kind="ghost"
+                  size="md"
+                  hasIconOnly
+                  renderIcon={Filter}
+                  iconDescription={t("participants.filters", "篩選")}
+                  tooltipPosition="bottom"
+                  tooltipAlignment="center"
+                  data-testid="participants-toolbar-filter-btn"
+                  onClick={() => setFilterOpen((prev) => !prev)}
+                  className={`${styles.localToolbarIconButton} ${
+                    hasActiveFilters ? styles.localToolbarIconActive : ""
+                  }`}
+                />
+                <PopoverContent className={styles.filterPopoverContent}>
+                  <div className={styles.filterPopoverFields}>
+                    <FluidDropdown
+                      id="participants-toolbar-status"
+                      titleText={t("participants.selectStatus", "狀態")}
+                      label={t("participants.selectStatus", "狀態")}
+                      items={statusOptions}
+                      itemToString={(item) => (item as Option | null)?.label ?? ""}
+                      selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+                      onChange={({ selectedItem }) =>
+                        updateParams({
+                          status:
+                            (selectedItem as Option | null)?.id &&
+                            (selectedItem as Option).id !== "all"
+                              ? (selectedItem as Option).id
+                              : null,
+                        })
+                      }
+                    />
+                    <FluidDropdown
+                      id="participants-toolbar-sort"
+                      titleText={t("participantsDashboard.sortLabel", "排序")}
+                      label={t("participantsDashboard.sortLabel", "排序")}
+                      items={sortOptions}
+                      itemToString={(item) => (item as Option | null)?.label ?? ""}
+                      selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
+                      onChange={({ selectedItem }) =>
+                        updateParams({
+                          sort:
+                            (selectedItem as Option | null)?.id &&
+                            (selectedItem as Option).id !== "score_desc"
+                              ? (selectedItem as Option).id
+                              : null,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={styles.filterPopoverActions}>
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      onClick={() =>
+                        updateParams({
+                          q: null,
+                          status: null,
+                          sort: null,
+                        })
+                      }
+                    >
+                      {t("common.reset", "重設")}
+                    </Button>
+                    <Button kind="primary" size="sm" onClick={() => setFilterOpen(false)}>
+                      {t("common.done", "完成")}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </Layer>
+            <Button
+              kind="primary"
+              size="md"
+              data-testid="participants-toolbar-add-btn"
+              renderIcon={Add}
+              iconDescription={t("participants.add", "新增參賽者")}
+              tooltipPosition="bottom"
+              tooltipAlignment="center"
+              onClick={() => setAddModalOpen(true)}
+              hasIconOnly
+              className={styles.localToolbarIconButton}
+            />
+          </div>
         </div>
 
-        <ParticipantDashboardPane
-          contestId={contestId}
-          dashboard={dashboard}
-          loading={dashboardLoading}
-          error={dashboardError}
-          activeDetail={detail}
-          onDetailChange={(nextDetail) => updateParams({ detail: nextDetail })}
-          onDownloadReport={handleDownloadReport}
-          onEditStatus={openEditModal}
-          onUnlock={handleUnlock}
-          onApproveTakeover={handleApproveTakeover}
-          onReopenExam={handleReopenExam}
-          onRemoveParticipant={handleRemoveParticipant}
-          canDeleteExamVideos={canDeleteExamVideos}
-          onOpenGrading={() => updateParams({ panel: "grading" })}
-          onRefreshEvents={refreshBoth}
-        />
+        <div className={styles.root}>
+          <ParticipantsMobileSelector
+            drawerOpen={drawerOpen}
+            selectedDisplayName={selectedDisplayName}
+            selectedParticipant={selectedParticipant}
+            selectedStatusTag={selectedStatusTag}
+            selectedStatusLabel={
+              selectedParticipant?.examStatus
+                ? t(`examStatus.${selectedParticipant.examStatus}`, selectedParticipant.examStatus)
+                : null
+            }
+            selectParticipantLabel={t("participants.selectParticipant", "選擇參賽者")}
+            listPaneProps={listPaneProps}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onCloseDrawer={() => setDrawerOpen(false)}
+            onSelectUser={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
+          />
+
+          <div className={styles.listCol}>
+            <ParticipantsListPane
+              {...listPaneProps}
+              onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
+            />
+          </div>
+
+          <ParticipantDashboardPane
+            contestId={contestId}
+            dashboard={dashboard}
+            loading={dashboardLoading}
+            error={dashboardError}
+            activeDetail={detail}
+            onDetailChange={(nextDetail) => updateParams({ detail: nextDetail })}
+            onDownloadReport={handleDownloadReport}
+            onEditStatus={openEditModal}
+            onUnlock={handleUnlock}
+            onApproveTakeover={handleApproveTakeover}
+            onReopenExam={handleReopenExam}
+            onRemoveParticipant={handleRemoveParticipant}
+            canDeleteExamVideos={canDeleteExamVideos}
+            onOpenGrading={() => updateParams({ panel: "grading" })}
+            onRefreshEvents={refreshBoth}
+          />
+        </div>
       </div>
 
       {notification ? (

@@ -21,11 +21,16 @@ import {
   clearPrecheckScreenShareHandoff,
   clearRuntimeScreenShareHandoff,
 } from "@/features/contest/anticheat/screenShareHandoffStore";
+import { getAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 import type {
   CaptureStopReason,
   CaptureStopResult,
+} from "@/features/contest/anticheat/captureLifecycle";
+import {
+  registerCaptureStopHandler,
+  unregisterCaptureStopHandler,
 } from "@/features/contest/anticheat/captureLifecycle";
 
 interface CaptureLifecycleEvent {
@@ -266,6 +271,13 @@ export const useAnticheatScreenCapture = ({
     [contestId, emitCaptureLifecycleEvent, stopStream],
   );
 
+  useEffect(() => {
+    registerCaptureStopHandler(contestId, forceStopCapture);
+    return () => {
+      unregisterCaptureStopHandler(contestId, forceStopCapture);
+    };
+  }, [contestId, forceStopCapture]);
+
   const forceCaptureNow = useCallback(async (
     _reason: string,
     _options?: ForcedCaptureOptions & { eventType?: string },
@@ -415,7 +427,12 @@ export const useAnticheatScreenCapture = ({
         clearInterval(captureIntervalRef.current);
         captureIntervalRef.current = null;
       }
-      if (preserveStreamOnUnmount) {
+      const phase = getAnticheatPhase(contestId);
+      const shouldPreserveStream =
+        preserveStreamOnUnmount &&
+        phase !== "TERMINATING" &&
+        phase !== "TERMINAL";
+      if (shouldPreserveStream) {
         const stream = streamRef.current;
         if (stream?.active) {
           streamRef.current = null;
@@ -428,7 +445,7 @@ export const useAnticheatScreenCapture = ({
       }
       forceStopCapture("unmount");
     },
-    [forceStopCapture, preserveStreamOnUnmount],
+    [contestId, forceStopCapture, preserveStreamOnUnmount],
   );
 
   // Lightweight stream health poll — detect loss even when capture interval is off.

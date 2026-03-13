@@ -1,16 +1,25 @@
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Tag } from "@carbon/react";
 import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useAdminPanelRefresh } from "@/features/contest/contexts";
 import { useClarifications } from "@/features/contest/hooks/useClarifications";
 import styles from "./AdminClarificationsPanel.module.scss";
 
 export default function AdminClarificationsScreen() {
   const { contestId } = useParams<{ contestId: string }>();
-  const { contest } = useContest();
-  const { clarifications, announcements } = useClarifications(contestId ?? "");
+  const { contest, refreshContest } = useContest();
+  const { registerPanelRefresh } = useAdminPanelRefresh();
+  const { clarifications, announcements, refresh } = useClarifications(contestId ?? "");
 
   const unanswered = clarifications.filter((c) => !c.answer).length;
+
+  useEffect(() => {
+    return registerPanelRefresh("clarifications", async () => {
+      await Promise.all([refresh(), refreshContest()]);
+    });
+  }, [refresh, refreshContest, registerPanelRefresh]);
 
   return (
     <div className={styles.root}>

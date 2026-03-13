@@ -2,6 +2,7 @@ import type {
   Contest,
   ContestAnticheatConfig,
   ContestDetail,
+  ContestOverviewMetrics,
   ContestStatus,
   ContestVisibility,
   ScoreboardData,
@@ -41,6 +42,7 @@ export interface IContestRepository {
   // Scoreboard
   getContestStandings(id: string): Promise<ScoreboardData>;
   getContestAnticheatConfig(id: string): Promise<ContestAnticheatConfig>;
+  getContestOverviewMetrics(id: string): Promise<ContestOverviewMetrics>;
 }
 
 // ============================================================================

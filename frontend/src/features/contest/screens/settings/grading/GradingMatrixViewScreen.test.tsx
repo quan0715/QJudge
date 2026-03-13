@@ -113,10 +113,13 @@ describe("GradingMatrixViewScreen", () => {
       />,
     );
 
-    expect(screen.getByText("學生 2 人 · 題目 2 題")).toBeInTheDocument();
     expect(screen.getByText("已批改 1")).toBeInTheDocument();
     expect(screen.getByText("待批改 1")).toBeInTheDocument();
     expect(screen.getByText("未作答 2")).toBeInTheDocument();
+    expect(screen.getByTestId("matrix-summary-label")).toHaveTextContent("總和（平均）");
+    expect(screen.getByTestId("matrix-summary-total")).toHaveTextContent("4");
+    expect(screen.getByTestId("matrix-summary-cell-0")).toHaveTextContent("8");
+    expect(screen.getByTestId("matrix-summary-cell-1")).toHaveTextContent("-");
 
     fireEvent.click(screen.getByTestId("matrix-cell-0-0"));
     expect(onSelectCell).toHaveBeenCalledWith("q-1", "s-1");

@@ -5,7 +5,10 @@ import { Loading } from "@carbon/react";
 import {
   ContestProvider,
   ContestAdminProvider,
+  AdminPanelRefreshProvider,
   useContest,
+  useContestAdmin,
+  useAdminPanelRefresh,
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
@@ -50,7 +53,9 @@ const AdminDashboardInner = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const { contest, loading } = useContest();
+  const { contest, loading, refreshContest } = useContest();
+  const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
+  const { triggerPanelRefresh } = useAdminPanelRefresh();
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
@@ -89,6 +94,31 @@ const AdminDashboardInner = () => {
       }
       return next;
     });
+  };
+
+  const handleNavbarRefresh = () => {
+    const run = async () => {
+      const handled = await triggerPanelRefresh(activePanel);
+      if (handled) return;
+
+      switch (activePanel) {
+        case "overview":
+          await Promise.all([refreshAllAdminData(), refreshContest()]);
+          return;
+        case "participants":
+        case "logs":
+          await refreshAdminData();
+          return;
+        case "clarifications":
+        case "grading":
+        case "settings":
+        case "problem_editor":
+        case "statistics":
+        default:
+          await refreshContest();
+      }
+    };
+    void run();
   };
 
   useEffect(() => {
@@ -137,6 +167,7 @@ const AdminDashboardInner = () => {
       examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}
+      onRefresh={handleNavbarRefresh}
       showExamJsonActions={showExamJsonActions}
       onImportExamJson={() => examEditorRef.current?.openJsonImportModal()}
       onPreview={handlePreview}
@@ -168,7 +199,9 @@ const AdminDashboardScreen = () => {
   return (
     <ContestProvider contestId={contestId}>
       <ContestAdminProvider contestId={contestId}>
-        <AdminDashboardInner />
+        <AdminPanelRefreshProvider>
+          <AdminDashboardInner />
+        </AdminPanelRefreshProvider>
       </ContestAdminProvider>
     </ContestProvider>
   );

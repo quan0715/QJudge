@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button, FluidDropdown, FluidSearch, Tag } from "@carbon/react";
-import { ChevronLeft, ChevronRight } from "@carbon/icons-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
@@ -15,7 +14,6 @@ import type {
   QuestionProgress,
   GradingFilter,
 } from "./gradingTypes";
-import { gradingFilterOptions } from "./gradingTypes";
 import styles from "./GradingByQuestion.module.scss";
 
 interface GradingByQuestionTabScreenProps {
@@ -25,8 +23,10 @@ interface GradingByQuestionTabScreenProps {
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
   filter: GradingFilter;
-  onSearchChange: (value: string) => void;
-  onFilterChange: (value: GradingFilter) => void;
+  selectedQuestionId: string | null;
+  onSelectedQuestionIdChange: (questionId: string | null) => void;
+  selectedStudentId: string | null;
+  onSelectedStudentIdChange: (studentId: string | null) => void;
   selectionRequest?: {
     questionId: string;
     studentId: string;
@@ -41,48 +41,51 @@ export default function GradingByQuestionTabScreen({
   onGrade,
   searchQuery,
   filter,
-  onSearchChange,
-  onFilterChange,
+  selectedQuestionId,
+  onSelectedQuestionIdChange,
+  selectedStudentId,
+  onSelectedStudentIdChange,
   selectionRequest = null,
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
-  type FilterOption = { id: GradingFilter; label: string };
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
-  const [isAnswerPaneCollapsed, setIsAnswerPaneCollapsed] = useState(false);
   const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
-    questionProgress[0]?.questionId ?? ""
-  );
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (questionProgress.length === 0) {
-      if (selectedQuestionId !== "") {
-        setSelectedQuestionId("");
-      }
-      return;
+  const lastHandledSelectionNonceRef = useRef<number | null>(null);
+  const lastAppliedSelectionStudentNonceRef = useRef<number | null>(null);
+  const activeQuestionId = useMemo(() => {
+    if (!selectedQuestionId) {
+      return questionProgress[0]?.questionId ?? "";
     }
-
-    const questionExists = questionProgress.some(
+    const exists = questionProgress.some(
       (question) => question.questionId === selectedQuestionId,
     );
-    if (!selectedQuestionId || !questionExists) {
-      setSelectedQuestionId(questionProgress[0].questionId);
-    }
+    return exists ? selectedQuestionId : (questionProgress[0]?.questionId ?? "");
   }, [questionProgress, selectedQuestionId]);
 
   useEffect(() => {
     if (!selectionRequest?.questionId) {
       return;
     }
-    setSelectedQuestionId(selectionRequest.questionId);
+    if (lastHandledSelectionNonceRef.current === selectionRequest.nonce) {
+      return;
+    }
+    lastHandledSelectionNonceRef.current = selectionRequest.nonce;
+    if (selectionRequest.questionId !== activeQuestionId) {
+      onSelectedQuestionIdChange(selectionRequest.questionId);
+    }
     setSelectedAnswerId(null);
-  }, [selectionRequest?.nonce, selectionRequest?.questionId]);
+  }, [
+    activeQuestionId,
+    onSelectedQuestionIdChange,
+    selectionRequest?.nonce,
+    selectionRequest?.questionId,
+  ]);
 
-  // Current question's answers (filtered + searched), including absent placeholders
+  // Current question's answers (filtered by global toolbar state), including absent placeholders
   const currentAnswers = useMemo(() => {
-    const existingRows = answersByQuestion.get(selectedQuestionId) ?? [];
-    const qInfo = questionProgress.find((q) => q.questionId === selectedQuestionId);
+    const existingRows = answersByQuestion.get(activeQuestionId) ?? [];
+    const qInfo = questionProgress.find((q) => q.questionId === activeQuestionId);
 
     // Build set of students who have answered this question
     const answeredStudentIds = new Set(existingRows.map((r) => r.studentId));
@@ -91,11 +94,11 @@ export default function GradingByQuestionTabScreen({
     const absentRows: GradingAnswerRow[] = students
       .filter((s) => !answeredStudentIds.has(s.studentId))
       .map((s) => ({
-        id: `absent-${s.studentId}-${selectedQuestionId}`,
+        id: `absent-${s.studentId}-${activeQuestionId}`,
         studentId: s.studentId,
         studentUsername: s.username,
         studentNickname: s.nickname,
-        questionId: selectedQuestionId,
+        questionId: activeQuestionId,
         questionIndex: qInfo?.questionIndex ?? 0,
         questionPrompt: qInfo?.prompt ?? "",
         questionType: qInfo?.questionType ?? "short_answer",
@@ -126,7 +129,7 @@ export default function GradingByQuestionTabScreen({
     }
 
     return rows;
-  }, [answersByQuestion, selectedQuestionId, filter, searchQuery, students, questionProgress]);
+  }, [answersByQuestion, activeQuestionId, filter, searchQuery, students, questionProgress]);
 
   useEffect(() => {
     const selectableRows = currentAnswers.filter((row) => !row.isAbsent);
@@ -135,12 +138,26 @@ export default function GradingByQuestionTabScreen({
       selectableRows.some((row) => row.id === selectedAnswerId);
 
     if (!selectedStillExists) {
-      setSelectedAnswerId(selectableRows[0]?.id ?? null);
+      const fallbackRow = selectableRows[0] ?? null;
+      setSelectedAnswerId(fallbackRow?.id ?? null);
     }
   }, [currentAnswers, selectedAnswerId]);
 
   useEffect(() => {
-    if (!selectionRequest || selectedQuestionId !== selectionRequest.questionId) {
+    if (!selectedStudentId) return;
+    const selectedRow = currentAnswers.find(
+      (row) => row.studentId === selectedStudentId && !row.isAbsent,
+    );
+    if (selectedRow && selectedRow.id !== selectedAnswerId) {
+      setSelectedAnswerId(selectedRow.id);
+    }
+  }, [currentAnswers, selectedAnswerId, selectedStudentId]);
+
+  useEffect(() => {
+    if (!selectionRequest || activeQuestionId !== selectionRequest.questionId) {
+      return;
+    }
+    if (lastAppliedSelectionStudentNonceRef.current === selectionRequest.nonce) {
       return;
     }
     const selectedRow = currentAnswers.find(
@@ -148,24 +165,25 @@ export default function GradingByQuestionTabScreen({
     );
     if (selectedRow) {
       setSelectedAnswerId(selectedRow.id);
+      lastAppliedSelectionStudentNonceRef.current = selectionRequest.nonce;
     }
-  }, [selectionRequest?.nonce, selectionRequest, selectedQuestionId, currentAnswers]);
+  }, [selectionRequest?.nonce, selectionRequest, activeQuestionId, currentAnswers]);
 
   const selectedAnswer = useMemo(
     () =>
       selectedAnswerId
         ? (answersByQuestion
-            .get(selectedQuestionId)
+            .get(activeQuestionId)
             ?.find((a) => a.id === selectedAnswerId) ?? null)
         : null,
-    [answersByQuestion, selectedQuestionId, selectedAnswerId]
+    [answersByQuestion, activeQuestionId, selectedAnswerId]
   );
   const selectedQuestion = useMemo(
-    () => questionProgress.find((q) => q.questionId === selectedQuestionId) ?? null,
-    [questionProgress, selectedQuestionId],
+    () => questionProgress.find((q) => q.questionId === activeQuestionId) ?? null,
+    [questionProgress, activeQuestionId],
   );
   const previewQuestion = useMemo(() => {
-    const targetQuestionId = hoveredQuestionId ?? selectedQuestionId;
+    const targetQuestionId = hoveredQuestionId ?? activeQuestionId;
     if (!targetQuestionId) {
       return null;
     }
@@ -186,10 +204,10 @@ export default function GradingByQuestionTabScreen({
       totalAnswers: q.totalAnswers,
       avgScore,
     };
-  }, [hoveredQuestionId, selectedQuestionId, questionProgress, answersByQuestion]);
+  }, [hoveredQuestionId, activeQuestionId, questionProgress, answersByQuestion]);
 
   const findNextUngraded = (): string | null => {
-    const rows = answersByQuestion.get(selectedQuestionId) ?? [];
+    const rows = answersByQuestion.get(activeQuestionId) ?? [];
     const currentIdx = rows.findIndex((r) => r.id === selectedAnswerId);
     for (let i = currentIdx + 1; i < rows.length; i++) {
       if (rows[i].score === null) return rows[i].id;
@@ -201,39 +219,40 @@ export default function GradingByQuestionTabScreen({
   };
 
   const handleQuestionSelect = (qId: string) => {
-    setSelectedQuestionId(qId);
+    onSelectedQuestionIdChange(qId);
     setSelectedAnswerId(null);
   };
 
   const handleNext = () => {
     const nextId = findNextUngraded();
-    if (nextId) setSelectedAnswerId(nextId);
+    if (!nextId) return;
+    setSelectedAnswerId(nextId);
   };
 
   const handleNextQuestion = () => {
     const currentIdx = questionProgress.findIndex(
-      (question) => question.questionId === selectedQuestionId,
+      (question) => question.questionId === activeQuestionId,
     );
     if (currentIdx < 0 || currentIdx >= questionProgress.length - 1) {
       return;
     }
     const nextQuestionId = questionProgress[currentIdx + 1].questionId;
-    setSelectedQuestionId(nextQuestionId);
+    onSelectedQuestionIdChange(nextQuestionId);
     setSelectedAnswerId(null);
   };
 
   const hasNext = !!findNextUngraded();
   const hasNextQuestion = useMemo(() => {
     const currentIdx = questionProgress.findIndex(
-      (question) => question.questionId === selectedQuestionId,
+      (question) => question.questionId === activeQuestionId,
     );
     return currentIdx >= 0 && currentIdx < questionProgress.length - 1;
-  }, [questionProgress, selectedQuestionId]);
+  }, [questionProgress, activeQuestionId]);
 
   const sidebarContent = (
     <QuestionSidebarScreen
       questions={questionProgress}
-      selectedQuestionId={selectedQuestionId}
+      selectedQuestionId={activeQuestionId}
       onSelect={handleQuestionSelect}
       onHoverQuestion={setHoveredQuestionId}
       collapsed={isQuestionPaneCollapsed}
@@ -241,63 +260,10 @@ export default function GradingByQuestionTabScreen({
     />
   );
 
-  const middlePaneContent = isAnswerPaneCollapsed ? (
-    <div className={styles.collapsedPane}>
-      <Button
-        kind="ghost"
-        size="sm"
-        hasIconOnly
-        renderIcon={ChevronRight}
-        iconDescription={t("grading.expandAnswerList", "展開作答列表")}
-        onClick={() => setIsAnswerPaneCollapsed(false)}
-      />
-    </div>
-  ) : (
+  const middlePaneContent = (
     <div className={styles.tableCol}>
       <div className={styles.paneHeaderRow}>
         <div className={styles.sidebarHeader}>{t("grading.answerList", "作答列表")}</div>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          renderIcon={ChevronLeft}
-          iconDescription={t("grading.collapseAnswerList", "收摺作答列表")}
-          onClick={() => setIsAnswerPaneCollapsed(true)}
-        />
-      </div>
-      <div className={styles.listControls}>
-        <div className={styles.toolbarSearch}>
-          <FluidSearch
-            id="grading-answer-search"
-            labelText={t("grading.searchStudent", "搜尋學生")}
-            placeholder={t("grading.searchStudent", "搜尋學生") + "..."}
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </div>
-        <div className={styles.toolbarFilter}>
-          <FluidDropdown
-            id="grading-answer-filter"
-            titleText={t("grading.filter", "篩選")}
-            label={t("grading.filter", "篩選")}
-            items={gradingFilterOptions}
-            itemToString={(item) => (item as FilterOption | null)?.label ?? ""}
-            selectedItem={
-              (gradingFilterOptions.find((option) => option.id === filter) as FilterOption | undefined) ?? null
-            }
-            onChange={({ selectedItem }) =>
-              onFilterChange((selectedItem as FilterOption | null)?.id ?? "all")
-            }
-          />
-        </div>
-        <div className={styles.toolbarMeta}>
-          <span>
-            {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {
-              shown: currentAnswers.length,
-              total: students.length,
-            })}
-          </span>
-        </div>
       </div>
       {previewQuestion ? (
         <div className={styles.previewBar} aria-live="polite">
@@ -332,21 +298,22 @@ export default function GradingByQuestionTabScreen({
           currentAnswers.map((a) => {
             const isSelected = a.id === selectedAnswerId;
             const isAbsent = a.isAbsent === true;
-            const statusClass = isAbsent
-              ? styles.statusEmpty
-              : a.score !== null
-                ? styles.statusDone
-                : styles.statusPending;
             return (
               <div
                 key={a.id}
                 className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
-                onClick={isAbsent ? undefined : () => setSelectedAnswerId(a.id)}
+                onClick={
+                  isAbsent
+                    ? undefined
+                    : () => {
+                        setSelectedAnswerId(a.id);
+                        onSelectedStudentIdChange(a.studentId);
+                      }
+                }
                 style={isAbsent ? { cursor: "default", opacity: 0.7 } : undefined}
               >
                 <div className={styles.cardPrimary}>
                   <span className={styles.cardLabelRow}>
-                    <span className={`${styles.statusDot} ${statusClass}`} />
                     <span>{a.studentNickname}</span>
                   </span>
                   {isAbsent ? (
@@ -372,6 +339,14 @@ export default function GradingByQuestionTabScreen({
           })
         )}
       </div>
+      <div className={styles.listFooter}>
+        <span>
+          {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {
+            shown: currentAnswers.length,
+            total: students.length,
+          })}
+        </span>
+      </div>
     </div>
   );
 
@@ -382,9 +357,7 @@ export default function GradingByQuestionTabScreen({
         isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_PRIMARY_LIST_WIDTH
       }
       middlePane={middlePaneContent}
-      middlePaneWidth={
-        isAnswerPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_SECONDARY_LIST_WIDTH
-      }
+      middlePaneWidth={GRADING_SECONDARY_LIST_WIDTH}
       contentClassName={styles.gradingContent}
     >
       <GradingSplitPanelScreen

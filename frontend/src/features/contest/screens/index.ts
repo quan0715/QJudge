@@ -11,7 +11,6 @@ export { default as ContestSubmissionListScreen } from "./ContestSubmissionListS
 export {
   ExamPrecheckScreen,
   PaperExamAnsweringScreen,
-  PaperExamSubmitReviewScreen,
 } from "./paperExam";
 
 // Settings Screens

@@ -1,0 +1,59 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--cds-body-02-font-size, 1rem);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.tile {
+  border: 1px solid var(--cds-border-subtle);
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.mainValue {
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.subText {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.metricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+}
+
+.windowRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}

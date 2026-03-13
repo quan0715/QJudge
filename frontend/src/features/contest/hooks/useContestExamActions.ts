@@ -20,6 +20,10 @@ import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,
 } from "@/shared/state/examCaptureSessionStore";
+import {
+  clearPrecheckScreenShareHandoff,
+  clearRuntimeScreenShareHandoff,
+} from "@/features/contest/anticheat/screenShareHandoffStore";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import {
@@ -28,6 +32,8 @@ import {
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
 import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
+import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
+import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -60,6 +66,20 @@ export const useContestExamActions = ({
   messages,
   onError,
 }: UseContestExamActionsParams) => {
+  const submissionProgress = useExamSubmissionProgress();
+
+  const cleanupExamArtifacts = useCallback((
+    id: string,
+    stopReason: "manual" | "submitted" = "manual",
+  ) => {
+    stopCaptureForContest(id, stopReason);
+    clearExamCaptureSessionId(id);
+    clearExamPrecheckPassed(id);
+    clearRuntimeScreenShareReauth(id);
+    clearRuntimeScreenShareHandoff(true);
+    clearPrecheckScreenShareHandoff(true);
+  }, []);
+
   const handleJoin = useCallback(
     async (data?: { nickname?: string; password?: string }) => {
       if (!contest) return;
@@ -123,34 +143,48 @@ export const useContestExamActions = ({
 
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
-    try {
-      const uploadSessionId = getExamCaptureSessionId(contest.id);
-      await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
-        reason: "Student initiated exam submission from contest dashboard",
-        source: "contest_dashboard:end_exam",
-        forceCaptureReason: "exam_submit_initiated:dashboard_submit",
-        metadata: {
-          upload_session_id: uploadSessionId || undefined,
+    const uploadSessionId = getExamCaptureSessionId(contest.id);
+
+    const success = await submissionProgress.run({
+      handlers: {
+        recording: async () => {
+          await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
+            reason: "Student initiated exam submission from contest dashboard",
+            source: "contest_dashboard:end_exam",
+            forceCaptureReason: "exam_submit_initiated:dashboard_submit",
+            metadata: {
+              upload_session_id: uploadSessionId || undefined,
+            },
+          }).catch(() => null);
+          beginAnticheatTermination(contest.id);
         },
-      }).catch(() => null);
-      beginAnticheatTermination(contest.id);
-      const response = uploadSessionId
-        ? await endExam(contest.id, { upload_session_id: uploadSessionId })
-        : await endExam(contest.id);
-      if (!isSubmittedExamSessionResponse(response)) {
-        throw new Error("Exam submission did not complete");
-      }
-    } catch {
+        finalizing: async () => {
+          const response = uploadSessionId
+            ? await endExam(contest.id, { upload_session_id: uploadSessionId })
+            : await endExam(contest.id);
+          if (!isSubmittedExamSessionResponse(response)) {
+            throw new Error("Exam submission did not complete");
+          }
+          await refreshContest();
+          markAnticheatTerminal(contest.id);
+        },
+      },
+    });
+
+    if (!success) {
       syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
       onError(messages.endError);
       return;
     }
-    clearExamCaptureSessionId(contest.id);
-    clearExamPrecheckPassed(contest.id);
-    clearRuntimeScreenShareReauth(contest.id);
-    await refreshContest();
-    markAnticheatTerminal(contest.id);
-  }, [contest, messages.endError, onError, refreshContest]);
+    cleanupExamArtifacts(contest.id, "submitted");
+  }, [
+    cleanupExamArtifacts,
+    contest,
+    messages.endError,
+    onError,
+    refreshContest,
+    submissionProgress,
+  ]);
 
   const handleExit = useCallback(async () => {
     if (!contestId || !contest) return;
@@ -158,38 +192,71 @@ export const useContestExamActions = ({
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
+      let navigateTo = "/contests";
+
       if (shouldEndExam) {
-        await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
-          reason: "Exam auto-submitted because student exited the monitored exam flow",
-          source: "contest_dashboard:exit_exam",
-          forceCaptureReason: "exam_submit_initiated:exit_exam",
-          metadata: {
-            upload_session_id: uploadSessionId || undefined,
+        const success = await submissionProgress.run({
+          handlers: {
+            recording: async () => {
+              await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
+                reason: "Exam auto-submitted because student exited the monitored exam flow",
+                source: "contest_dashboard:exit_exam",
+                forceCaptureReason: "exam_submit_initiated:exit_exam",
+                metadata: {
+                  upload_session_id: uploadSessionId || undefined,
+                },
+              }).catch(() => null);
+              beginAnticheatTermination(contest.id);
+            },
+            finalizing: async () => {
+              const result = await leaveExamUseCase({
+                contestId: contest.id,
+                shouldEndExam,
+                uploadSessionId: uploadSessionId || undefined,
+              });
+              if (!result.success) {
+                throw new Error(result.error || "Failed to leave exam");
+              }
+              navigateTo = result.navigateTo;
+              markAnticheatTerminal(contest.id);
+            },
           },
-        }).catch(() => null);
-        beginAnticheatTermination(contest.id);
+        });
+
+        if (!success) {
+          syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
+          onError(messages.exitError);
+          return;
+        }
+      } else {
+        const result = await leaveExamUseCase({
+          contestId: contest.id,
+          shouldEndExam: false,
+          uploadSessionId: undefined,
+        });
+        if (!result.success) {
+          onError(result.error || messages.exitError);
+          return;
+        }
+        navigateTo = result.navigateTo;
       }
 
-      const result = await leaveExamUseCase({
-        contestId: contest.id,
-        shouldEndExam,
-        uploadSessionId: uploadSessionId || undefined,
-      });
-
-      if (contest.cheatDetectionEnabled) {
-        clearExamPrecheckPassed(contest.id);
-      }
-      clearExamCaptureSessionId(contest.id);
-      clearRuntimeScreenShareReauth(contest.id);
-      if (shouldEndExam) {
-        markAnticheatTerminal(contest.id);
-      }
-      navigate(result.navigateTo);
+      cleanupExamArtifacts(contest.id, shouldEndExam ? "submitted" : "manual");
+      navigate(navigateTo);
     } catch {
       syncAnticheatPhaseWithExamStatus(contest.id, contest.examStatus);
       onError(messages.exitError);
     }
-  }, [contest, contestId, hasEnded, messages.exitError, navigate, onError]);
+  }, [
+    cleanupExamArtifacts,
+    contest,
+    contestId,
+    hasEnded,
+    messages.exitError,
+    navigate,
+    onError,
+    submissionProgress,
+  ]);
 
   const toggleFullscreen = useCallback(async () => {
     try {
@@ -210,5 +277,6 @@ export const useContestExamActions = ({
     handleEndExam,
     handleExit,
     toggleFullscreen,
+    submissionProgress,
   };
 };

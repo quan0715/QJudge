@@ -57,4 +57,18 @@ describe("AdminDashboardLayout", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByLabelText("adminLayout.header.exportFiles")).toBeInTheDocument();
   });
+
+  it("renders refresh action when onRefresh is provided", () => {
+    const onRefresh = vi.fn();
+
+    render(
+      <AdminDashboardLayout {...baseProps} onRefresh={onRefresh}>
+        <div>content</div>
+      </AdminDashboardLayout>,
+    );
+
+    const refreshAction = screen.getByLabelText("adminLayout.header.refresh");
+    fireEvent.click(refreshAction);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
 });

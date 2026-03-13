@@ -50,6 +50,7 @@
   "participantCount": "Participants",
   "participants": {
     "title": "Participants",
+    "listHeaderTitle": "Students",
     "add": "Add",
     "added": "Participant added",
     "addFailed": "Failed to add participant",
@@ -630,7 +631,16 @@
     "autoSubmittedHeading": "Your exam has been automatically submitted",
     "autoSubmittedDesc": "Screen sharing was interrupted and could not be restored within the time limit. Your exam has been automatically submitted.",
     "autoSubmittedHint": "If you believe this was an error, please contact your proctor.",
-    "returnToDashboard": "Return to Dashboard"
+    "returnToDashboard": "Return to Dashboard",
+    "submitProgress": {
+      "title": "Submitting Exam",
+      "checking": "Checking your answers",
+      "recording": "Recording exam events",
+      "uploading": "Uploading screen capture data",
+      "finalizing": "Finalizing submission",
+      "hint": "Please keep this window open while submission is in progress.",
+      "failed": "Submission flow failed. Please try again."
+    }
   },
   "createModal": {
     "titleCoding": "Create Coding Test",
@@ -724,7 +734,7 @@
     "byQuestion": "Grade by Question",
     "byStudent": "Grade by Student",
     "gradingCenter": "Grading Center",
-    "globalSummary": "{{questions}} questions · {{answers}} answers · {{pending}} pending",
+    "globalSummary": "{{questions}} questions · {{students}} students · Grading {{graded}}/{{total}} ({{progress}}) · {{status}}",
     "moreActions": "More actions",
     "matrixOverview": "Matrix Overview",
     "searchStudent": "Search student",
@@ -733,6 +743,10 @@
     "autoGraded": "Auto-graded",
     "publishResults": "Publish Results",
     "unpublishResults": "Unpublish Results",
+    "publishConfirmTitle": "Publish results now?",
+    "publishConfirmBody": "Students will be able to view results after publishing.",
+    "unpublishConfirmTitle": "Unpublish published results?",
+    "unpublishConfirmBody": "Students will no longer be able to view results after unpublishing.",
     "published": "Published",
     "unpublished": "Unpublished",
     "score": "Score",
@@ -742,7 +756,6 @@
     "saved": "Saved",
     "nextQuestion": "Next Question",
     "nextStudent": "Next Student",
-    "fullScore": "Full Score",
     "student": "Student",
     "question": "Question",
     "answerContent": "Answer Content",
@@ -773,6 +786,7 @@
     "matrixLegendGraded": "Graded",
     "matrixLegendPending": "Pending",
     "matrixLegendEmpty": "No Answer",
+    "matrixSummaryRow": "Total (Avg)",
     "matrixGradedCount": "Graded {{count}}",
     "matrixPendingCount": "Pending {{count}}",
     "matrixEmptyCount": "No Answer {{count}}",
@@ -805,11 +819,10 @@
     "shortcutSetZero": "set 0",
     "shortcutSetMax": "set max",
     "shortcutCommitAndNext": "save / next step",
-    "filterAll": "All",
-    "filterUngraded": "Ungraded",
-    "filterGraded": "Graded",
+    "all": "All",
     "gradedBy": "Graded by {{name}}",
-    "maxScore": "Full Score"
+    "maxScore": "Full Score",
+    "objectiveReadonlyHint": "Objective questions are auto-graded. If scores are incorrect, please use the \"Auto-grade objective questions\" button above."
   },
   "examVideoReview": {
     "modalHeading": "Exam Video Review",
@@ -1169,13 +1182,75 @@
   },
   "studentStatus": {
     "title": "Student Status Distribution",
+    "pausedLocked": "Paused / Locked",
     "personCount": "{{count}}",
     "submittedProgress": "Submitted {{submitted}}/{{total}} ({{percent}}%)"
+  },
+  "adminOverview": {
+    "kpi": {
+      "onlineNow": "Online Now",
+      "exams": "Exam",
+      "examMode": "Exam Mode",
+      "time": "Time",
+      "examCount": "1"
+    },
+    "examStatus": {
+      "upcoming": "Upcoming",
+      "running": "Running",
+      "ended": "Ended"
+    },
+    "examType": {
+      "paper_exam": "Paper Exam",
+      "coding": "Coding Test"
+    },
+    "time": {
+      "remaining": "Remaining {{time}}",
+      "remainingLabel": "Remaining",
+      "notStarted": "Not started",
+      "ended": "Ended"
+    },
+    "sidebar": {
+      "title": "Exam Summary",
+      "timeProgress": "Time Progress",
+      "timeAndWindow": "Time Progress & Exam Window",
+      "online": "Online Status",
+      "heartbeatOnline": "Heartbeat Online",
+      "activeSessions": "Active Sessions",
+      "window": "Exam Window",
+      "start": "Start",
+      "end": "End",
+      "settings": "Contest Settings",
+      "contestState": "Contest Status",
+      "strictMode": "Strict Exam Mode",
+      "resultsPublished": "Results",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "published": "Published",
+      "unpublished": "Unpublished"
+    },
+    "events": {
+      "title": "Event Summary",
+      "critical": "High-risk Events",
+      "violations": "Violations",
+      "qa": "Q&A Interactions",
+      "recent30m": "Last 30 Minutes",
+      "recentList": "Recent Events",
+      "empty": "No events yet",
+      "unit": "events"
+    }
   },
   "statistics": {
     "noData": "No question data",
     "title": "Question Statistics",
-    "questionCount": "{{count}} questions"
+    "questionCount": "{{count}} questions",
+    "gradedCount": "{{graded}}/{{total}} graded",
+    "averageScore": "Average Score",
+    "averageScoreRatio": "Average Score Ratio",
+    "optionDistribution": "Option Distribution",
+    "noRecords": "No records yet",
+    "studentAnswers": "Student Answers",
+    "scoreUnit": "{{score}} pts",
+    "notAnswered": "(No answer)"
   },
   "adminLayout": {
     "title": "Admin Dashboard",
@@ -1193,6 +1268,7 @@
       "settings": "Settings"
     },
     "header": {
+      "refresh": "Refresh",
       "exportFiles": "Export Files",
       "previewAnswer": "Preview Answer Screen",
       "backToHome": "Back to Contest Home"

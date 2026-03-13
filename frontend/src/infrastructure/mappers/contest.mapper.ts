@@ -22,6 +22,7 @@ import type {
   Clarification,
   ContestAnnouncement,
   ContestAnticheatConfig,
+  ContestOverviewMetrics,
 } from "@/core/entities/contest.entity";
 
 export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
@@ -113,6 +114,34 @@ export function mapContestDetailDto(dto: any): ContestDetail {
           username: a.username || "",
         }))
       : [],
+  };
+}
+
+export function mapContestOverviewMetricsDto(dto: any): ContestOverviewMetrics {
+  const examStatus =
+    dto?.exam?.status === "upcoming" ||
+    dto?.exam?.status === "running" ||
+    dto?.exam?.status === "ended"
+      ? dto.exam.status
+      : "upcoming";
+
+  const contestType = dto?.exam?.contest_type === "paper_exam" ? "paper_exam" : "coding";
+
+  return {
+    onlineNow: Number(dto?.online_now ?? 0),
+    onlineActiveSessions: Number(dto?.online_active_sessions ?? 0),
+    exam: {
+      status: examStatus,
+      contestType,
+    },
+    timeProgress: {
+      totalSeconds: Number(dto?.time_progress?.total_seconds ?? 0),
+      elapsedSeconds: Number(dto?.time_progress?.elapsed_seconds ?? 0),
+      remainingSeconds: Number(dto?.time_progress?.remaining_seconds ?? 0),
+      progressPercent: Number(dto?.time_progress?.progress_percent ?? 0),
+      isStarted: !!dto?.time_progress?.is_started,
+      isEnded: !!dto?.time_progress?.is_ended,
+    },
   };
 }
 

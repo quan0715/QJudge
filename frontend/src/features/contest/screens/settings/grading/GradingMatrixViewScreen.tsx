@@ -47,6 +47,37 @@ export default function GradingMatrixViewScreen({
     return scoreMap;
   }, [students, questionProgress, answerLookup]);
 
+  const questionAverageScore = useMemo(() => {
+    const scoreMap = new Map<string, number | null>();
+    questionProgress.forEach((question) => {
+      let sum = 0;
+      let gradedCount = 0;
+      students.forEach((student) => {
+        const row = answerLookup.get(`${question.questionId}:${student.studentId}`);
+        if (row?.score !== null && row?.score !== undefined) {
+          sum += row.score;
+          gradedCount += 1;
+        }
+      });
+      scoreMap.set(question.questionId, gradedCount > 0 ? sum / gradedCount : null);
+    });
+    return scoreMap;
+  }, [questionProgress, students, answerLookup]);
+
+  const averageTotalScore = useMemo(() => {
+    if (students.length === 0) return null;
+    let total = 0;
+    students.forEach((student) => {
+      total += studentTotalScore.get(student.studentId) ?? 0;
+    });
+    return total / students.length;
+  }, [students, studentTotalScore]);
+
+  const formatScore = (value: number | null) => {
+    if (value === null) return "-";
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  };
+
   const matrixSummary = useMemo(() => {
     let graded = 0;
     let pending = 0;
@@ -135,10 +166,9 @@ export default function GradingMatrixViewScreen({
     <div className={styles.root}>
       <div className={styles.header}>
         <div className={styles.summary}>
-          {t("grading.matrixSummary", "學生 {{students}} 人 · 題目 {{questions}} 題", {
-            students: students.length,
-            questions: colCount,
-          })}
+          <span>{t("grading.matrixGradedCount", "已批改 {{count}}", { count: matrixSummary.graded })}</span>
+          <span>{t("grading.matrixPendingCount", "待批改 {{count}}", { count: matrixSummary.pending })}</span>
+          <span>{t("grading.matrixEmptyCount", "未作答 {{count}}", { count: matrixSummary.empty })}</span>
         </div>
         <div className={styles.legend}>
           <span className={styles.legendItem}>
@@ -156,17 +186,11 @@ export default function GradingMatrixViewScreen({
         </div>
       </div>
 
-      <div className={styles.metaRow}>
-        <span>{t("grading.matrixGradedCount", "已批改 {{count}}", { count: matrixSummary.graded })}</span>
-        <span>{t("grading.matrixPendingCount", "待批改 {{count}}", { count: matrixSummary.pending })}</span>
-        <span>{t("grading.matrixEmptyCount", "未作答 {{count}}", { count: matrixSummary.empty })}</span>
-      </div>
-
       <div className={styles.scroller} ref={gridRef}>
         <div
           className={styles.grid}
           role="grid"
-          aria-rowcount={students.length + 1}
+          aria-rowcount={students.length + 2}
           aria-colcount={colCount + 1}
           style={{ "--col-count": colCount } as CSSProperties}
         >
@@ -272,6 +296,37 @@ export default function GradingMatrixViewScreen({
               </div>
             );
           })}
+
+          <div role="row" style={{ display: "contents" }}>
+            <div
+              className={`${styles.gridCell} ${styles.frozenCol} ${styles.summaryRowHeader}`}
+              role="rowheader"
+              data-testid="matrix-summary-label"
+            >
+              <div className={styles.studentHeader}>
+                <div className={styles.studentName}>
+                  {t("grading.matrixSummaryRow", "總和（平均）")}
+                </div>
+                <div className={styles.studentScore}>
+                  <span data-testid="matrix-summary-total">
+                    {formatScore(averageTotalScore)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {questionProgress.map((question, index) => (
+              <div
+                key={`summary:${question.questionId}`}
+                className={`${styles.gridCell} ${styles.dataCell} ${styles.summaryDataCell}`}
+                role="gridcell"
+                data-testid={`matrix-summary-cell-${index}`}
+              >
+                <span className={styles.summaryCellValue}>
+                  {formatScore(questionAverageScore.get(question.questionId) ?? null)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

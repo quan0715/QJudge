@@ -12,17 +12,23 @@ import {
   getContestParticipants,
   getExamEvents,
   getContestActivities,
+  getContestOverviewMetrics,
 } from "@/infrastructure/api/repositories";
 import type {
   ContestParticipant,
+  ContestOverviewMetrics,
   ExamEvent,
 } from "@/core/entities/contest.entity";
 
 interface ContestAdminContextType {
   participants: ContestParticipant[];
   examEvents: ExamEvent[];
+  overviewMetrics: ContestOverviewMetrics | null;
   isRefreshing: boolean;
+  isOverviewRefreshing: boolean;
   refreshAdminData: () => Promise<void>;
+  refreshOverviewMetrics: () => Promise<void>;
+  refreshAllAdminData: () => Promise<void>;
 }
 
 const ContestAdminContext = createContext<ContestAdminContextType | undefined>(
@@ -45,7 +51,10 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
   const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
+  const [overviewMetrics, setOverviewMetrics] =
+    useState<ContestOverviewMetrics | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
 
   const refreshAdminData = useCallback(async () => {
     if (!contestId) return;
@@ -74,19 +83,62 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
     }
   }, [contestId]);
 
+  const refreshOverviewMetrics = useCallback(async () => {
+    if (!contestId) return;
+
+    setIsOverviewRefreshing(true);
+    try {
+      const overviewData = await getContestOverviewMetrics(contestId);
+      setOverviewMetrics(overviewData);
+    } catch (err) {
+      console.error("Failed to fetch contest overview metrics:", err);
+    } finally {
+      setIsOverviewRefreshing(false);
+    }
+  }, [contestId]);
+
+  const refreshAllAdminData = useCallback(async () => {
+    await Promise.all([refreshAdminData(), refreshOverviewMetrics()]);
+  }, [refreshAdminData, refreshOverviewMetrics]);
+
   useEffect(() => {
     if (!autoLoad || !contestId) return;
-    void refreshAdminData();
-  }, [autoLoad, contestId, refreshAdminData]);
+    void refreshAllAdminData();
+  }, [autoLoad, contestId, refreshAllAdminData]);
+
+  useEffect(() => {
+    if (!autoLoad || !contestId) return;
+
+    const intervalId = window.setInterval(() => {
+      void refreshOverviewMetrics();
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoLoad, contestId, refreshOverviewMetrics]);
 
   const value = useMemo(
     () => ({
       participants,
       examEvents,
+      overviewMetrics,
       isRefreshing,
+      isOverviewRefreshing,
       refreshAdminData,
+      refreshOverviewMetrics,
+      refreshAllAdminData,
     }),
-    [participants, examEvents, isRefreshing, refreshAdminData]
+    [
+      participants,
+      examEvents,
+      overviewMetrics,
+      isRefreshing,
+      isOverviewRefreshing,
+      refreshAdminData,
+      refreshOverviewMetrics,
+      refreshAllAdminData,
+    ]
   );
 
   return (

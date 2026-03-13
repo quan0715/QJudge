@@ -35,7 +35,6 @@ export const contestDetailRoutes = (
     <Route path="paper-exam" element={<PaperExamLayout />}>
       <Route index element={<Navigate to="answering" replace />} />
       <Route path="answering" element={<PaperExamAnsweringScreen />} />
-      <Route path="submit-review" element={<Navigate to="../answering?review=1" replace />} />
     </Route>
   </Route>
 );

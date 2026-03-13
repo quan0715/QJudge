@@ -1,6 +1,7 @@
 .root {
-  --col-w: 4.5rem;
-  --row-h: 3.25rem;
+  --matrix-cell-size: clamp(3rem, 3.8vw, 4.25rem);
+  --col-w: var(--matrix-cell-size);
+  --row-h: var(--matrix-cell-size);
   --hdr-h: 2.5rem;
   --frozen-w: 14rem;
 
@@ -24,6 +25,9 @@
 }
 
 .summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
   color: var(--cds-text-primary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
@@ -47,17 +51,6 @@
   height: 0.625rem;
   border-radius: 999px;
   border: 1px solid transparent;
-}
-
-.metaRow {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  border-bottom: 1px solid var(--cds-border-subtle);
-  flex-shrink: 0;
 }
 
 /* ── Scroll viewport ── */
@@ -143,6 +136,17 @@
   padding: 0;
 }
 
+.summaryDataCell {
+  background: var(--cds-layer-02);
+  border-top: 2px solid var(--cds-border-strong-01);
+}
+
+.summaryCellValue {
+  color: var(--cds-text-primary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 600;
+}
+
 /* ── Student info ── */
 .studentHeader {
   display: flex;
@@ -169,6 +173,11 @@
   font-weight: 600;
   line-height: 1.1;
   padding-left: 0.25rem;
+}
+
+.summaryRowHeader {
+  background: var(--cds-layer-02);
+  border-top: 2px solid var(--cds-border-strong-01);
 }
 
 /* ── Cell button ── */

@@ -17,28 +17,11 @@
   background: var(--cds-layer-02, var(--cds-layer));
 }
 
-.localToolbar {
+.toolbarGroup {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  flex-shrink: 0;
-  background: var(--cds-layer);
-}
-
-.toolbarGroup {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
   min-width: 0;
-}
-
-.globalTitle {
-  font-size: var(--cds-heading-01-font-size, 0.875rem);
-  color: var(--cds-text-primary);
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .globalMeta {
@@ -47,9 +30,8 @@
   white-space: nowrap;
 }
 
-.toolbarSwitcher {
+.modeSwitcher {
   flex-shrink: 0;
-  max-width: 280px;
 }
 
 .toolbarSpacer {
@@ -58,6 +40,30 @@
 
 .toolbarAction {
   flex-shrink: 0;
+}
+
+.globalFilterActive :global(svg) {
+  color: var(--cds-icon-primary);
+}
+
+.globalFilterPopoverContent {
+  min-width: 16rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+}
+
+.globalFilterPopoverFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.globalFilterPopoverActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .toolbarOverflow :global(.cds--overflow-menu) {
@@ -117,13 +123,13 @@
 }
 
 @media (max-width: 1056px) {
-  .globalToolbar,
-  .localToolbar {
+  .globalToolbar {
     flex-wrap: wrap;
   }
 
   .toolbarGroup {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .toolbarSpacer {
