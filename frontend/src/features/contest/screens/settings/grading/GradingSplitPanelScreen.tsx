@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, NumberInput, Slider, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
@@ -55,6 +55,9 @@ export default function GradingSplitPanelScreen({
   const [saved, setSaved] = useState(false);
   const scoreInputBufferRef = useRef("");
   const scoreInputBufferTimerRef = useRef<number | null>(null);
+  const advanceTimerRef = useRef<number | null>(null);
+  const saveCooldownRef = useRef<number | null>(null);
+  const saveLockedRef = useRef(false);
   const maxScore = answer?.maxScore ?? 0;
   const isSubjective = answer ? isSubjectiveType(answer.questionType) : false;
   const scoreStep = isSubjective ? 0.5 : 1;
@@ -66,6 +69,11 @@ export default function GradingSplitPanelScreen({
       setSaved(false);
       scoreInputBufferRef.current = "";
     }
+    saveLockedRef.current = false;
+    if (saveCooldownRef.current !== null) {
+      window.clearTimeout(saveCooldownRef.current);
+      saveCooldownRef.current = null;
+    }
   }, [answer?.id]);
 
   useEffect(() => {
@@ -73,10 +81,19 @@ export default function GradingSplitPanelScreen({
       if (scoreInputBufferTimerRef.current !== null) {
         window.clearTimeout(scoreInputBufferTimerRef.current);
       }
+      if (advanceTimerRef.current !== null) {
+        window.clearTimeout(advanceTimerRef.current);
+      }
+      if (saveCooldownRef.current !== null) {
+        window.clearTimeout(saveCooldownRef.current);
+      }
     };
   }, []);
 
-  const clampScore = (value: number) => {
+  const clampScore = (value: number, fallback = 0) => {
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
     const rounded = Math.round(value / scoreStep) * scoreStep;
     return Math.max(0, Math.min(maxScore, rounded));
   };
@@ -84,29 +101,44 @@ export default function GradingSplitPanelScreen({
   const formatScore = (value: number) =>
     Number.isInteger(value) ? String(value) : value.toFixed(1);
 
-  const goNext = () => {
-    if (flowMode === "byQuestion") {
-      if (hasNextStudent && onNextStudent) {
-        setTimeout(() => onNextStudent(), 300);
+  const goNext = useCallback(() => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+
+    advanceTimerRef.current = window.setTimeout(() => {
+      advanceTimerRef.current = null;
+
+      if (flowMode === "byQuestion") {
+        if (hasNextStudent && onNextStudent) {
+          onNextStudent();
+          return;
+        }
+        if (hasNextQuestion && onNextQuestion) {
+          onNextQuestion();
+        }
         return;
       }
-      if (hasNextQuestion && onNextQuestion) {
-        setTimeout(() => onNextQuestion(), 300);
-      }
-      return;
-    }
 
-    if (hasNextQuestion && onNextQuestion) {
-      setTimeout(() => onNextQuestion(), 300);
-      return;
-    }
-    if (hasNextStudent && onNextStudent) {
-      setTimeout(() => onNextStudent(), 300);
-    }
-  };
+      if (hasNextQuestion && onNextQuestion) {
+        onNextQuestion();
+        return;
+      }
+      if (hasNextStudent && onNextStudent) {
+        onNextStudent();
+      }
+    }, 120);
+  }, [
+    flowMode,
+    hasNextQuestion,
+    hasNextStudent,
+    onNextQuestion,
+    onNextStudent,
+  ]);
 
   const updateScore = (value: number) => {
-    setScore(clampScore(value));
+    setScore((prev) => clampScore(value, prev));
     setSaved(false);
   };
 
@@ -142,8 +174,6 @@ export default function GradingSplitPanelScreen({
       }
 
       const key = event.key;
-      const lowerKey = key.toLowerCase();
-
       if (key === "ArrowUp" || key === "ArrowRight" || key === "+" || key === "=") {
         event.preventDefault();
         updateScore(score + scoreStep);
@@ -153,18 +183,6 @@ export default function GradingSplitPanelScreen({
       if (key === "ArrowDown" || key === "ArrowLeft" || key === "-" || key === "_") {
         event.preventDefault();
         updateScore(score - scoreStep);
-        return;
-      }
-
-      if (key === "Home") {
-        event.preventDefault();
-        updateScore(0);
-        return;
-      }
-
-      if (key === "End" || lowerKey === "m") {
-        event.preventDefault();
-        updateScore(maxScore);
         return;
       }
 
@@ -194,14 +212,25 @@ export default function GradingSplitPanelScreen({
     };
   }, [answer, isSubjective, maxScore, score, scoreStep]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!answer || !isSubjective) {
       return;
     }
+    if (saveLockedRef.current) {
+      return;
+    }
+    saveLockedRef.current = true;
+    if (saveCooldownRef.current !== null) {
+      window.clearTimeout(saveCooldownRef.current);
+    }
+    saveCooldownRef.current = window.setTimeout(() => {
+      saveLockedRef.current = false;
+      saveCooldownRef.current = null;
+    }, 350);
     onGrade(answer.id, score, feedback);
     setSaved(true);
     goNext();
-  };
+  }, [answer, feedback, goNext, isSubjective, onGrade, score]);
 
   useEffect(() => {
     if (!answer) {
@@ -356,15 +385,6 @@ export default function GradingSplitPanelScreen({
               <span className={styles.shortcutGroup}>
                 <kbd className={styles.keyCap}>0-9</kbd>
                 <span>{t("grading.shortcutDirectInput", "直接輸入")}</span>
-              </span>
-              <span className={styles.shortcutGroup}>
-                <kbd className={styles.keyCap}>Home</kbd>
-                <span>{t("grading.shortcutSetZero", "歸零")}</span>
-              </span>
-              <span className={styles.shortcutGroup}>
-                <kbd className={styles.keyCap}>End</kbd>
-                <kbd className={styles.keyCap}>M</kbd>
-                <span>{t("grading.shortcutSetMax", "滿分")}</span>
               </span>
               <span className={styles.shortcutGroup}>
                 <kbd className={styles.keyCap}>Enter</kbd>

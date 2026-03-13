@@ -19,7 +19,12 @@ import styles from "./GradingByQuestion.module.scss";
 interface GradingByQuestionTabScreenProps {
   questionProgress: QuestionProgress[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
-  students: { studentId: string; username: string; nickname: string }[];
+  students: {
+    studentId: string;
+    username: string;
+    nickname: string;
+    displayName?: string;
+  }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
   filter: GradingFilter;
@@ -206,14 +211,14 @@ export default function GradingByQuestionTabScreen({
     };
   }, [hoveredQuestionId, activeQuestionId, questionProgress, answersByQuestion]);
 
-  const findNextUngraded = (): string | null => {
+  const findNextUngraded = (): GradingAnswerRow | null => {
     const rows = answersByQuestion.get(activeQuestionId) ?? [];
     const currentIdx = rows.findIndex((r) => r.id === selectedAnswerId);
     for (let i = currentIdx + 1; i < rows.length; i++) {
-      if (rows[i].score === null) return rows[i].id;
+      if (rows[i].score === null) return rows[i];
     }
     for (let i = 0; i < currentIdx; i++) {
-      if (rows[i].score === null) return rows[i].id;
+      if (rows[i].score === null) return rows[i];
     }
     return null;
   };
@@ -224,9 +229,11 @@ export default function GradingByQuestionTabScreen({
   };
 
   const handleNext = () => {
-    const nextId = findNextUngraded();
-    if (!nextId) return;
-    setSelectedAnswerId(nextId);
+    const nextRow = findNextUngraded();
+    if (!nextRow) return;
+    // Keep selection sources in sync: otherwise selectedStudent effect may pull selection back.
+    setSelectedAnswerId(nextRow.id);
+    onSelectedStudentIdChange(nextRow.studentId);
   };
 
   const handleNextQuestion = () => {

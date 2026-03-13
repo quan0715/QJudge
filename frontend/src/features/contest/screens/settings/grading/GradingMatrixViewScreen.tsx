@@ -5,7 +5,12 @@ import styles from "./GradingMatrixView.module.scss";
 
 interface GradingMatrixViewScreenProps {
   questionProgress: QuestionProgress[];
-  students: { studentId: string; username: string; nickname: string }[];
+  students: {
+    studentId: string;
+    username: string;
+    nickname: string;
+    displayName?: string;
+  }[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
   onSelectCell: (questionId: string, studentId: string) => void;
 }
@@ -213,10 +218,15 @@ export default function GradingMatrixViewScreen({
 
           {/* ── Body rows ── */}
           {students.map((student, rowIndex) => {
-            const primaryName =
+            const username = (student.username && student.username.trim()) || student.studentId;
+            const displayNameCandidate =
+              (student.displayName && student.displayName.trim()) ||
               (student.nickname && student.nickname.trim()) ||
-              (student.username && student.username.trim()) ||
-              student.studentId;
+              "";
+            const displayName =
+              displayNameCandidate && displayNameCandidate !== username
+                ? displayNameCandidate
+                : null;
             const score = studentTotalScore.get(student.studentId) ?? 0;
             const scoreDisplay = Number.isInteger(score) ? String(score) : score.toFixed(1);
 
@@ -226,10 +236,15 @@ export default function GradingMatrixViewScreen({
                 <div
                   className={`${styles.gridCell} ${styles.frozenCol}`}
                   role="rowheader"
-                  title={`${student.nickname} (${student.username})`}
+                  title={displayName ? `${username} (${displayName})` : username}
                 >
                   <div className={styles.studentHeader}>
-                    <div className={styles.studentName}>{primaryName}</div>
+                    <div className={styles.studentIdentity}>
+                      <div className={styles.studentUsername}>{username}</div>
+                      {displayName ? (
+                        <div className={styles.studentDisplayName}>{displayName}</div>
+                      ) : null}
+                    </div>
                     <div className={styles.studentScore}>{scoreDisplay}</div>
                   </div>
                 </div>
@@ -272,7 +287,7 @@ export default function GradingMatrixViewScreen({
                         type="button"
                         className={`${styles.cell} ${styles[cellState]}`}
                         title={cellTitle}
-                        aria-label={`${student.nickname} Q${question.questionIndex}: ${cellTitle}`}
+                        aria-label={`${username} Q${question.questionIndex}: ${cellTitle}`}
                         data-testid={`matrix-cell-${rowIndex}-${colIndex}`}
                         data-row={rowIndex}
                         data-col={colIndex}
@@ -304,7 +319,7 @@ export default function GradingMatrixViewScreen({
               data-testid="matrix-summary-label"
             >
               <div className={styles.studentHeader}>
-                <div className={styles.studentName}>
+                <div className={styles.studentUsername}>
                   {t("grading.matrixSummaryRow", "總和（平均）")}
                 </div>
                 <div className={styles.studentScore}>
