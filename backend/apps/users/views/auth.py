@@ -14,7 +14,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
-from ..services import EmailAuthService, JWTService, NYCUOAuthService
+from ..services import (
+    EmailAuthService,
+    JWTService,
+    NYCUOAuthService,
+    get_oauth_service,
+)
 from .common import (
     SchemaAPIView,
     build_conflict_response,
@@ -163,39 +168,55 @@ class DevTokenView(SchemaAPIView):
         return token_cookie_response(user, tokens, extra_data=extra_data)
 
 
-class NYCUOAuthLoginView(SchemaAPIView):
+# ---------------------------------------------------------------------------
+# Generic OAuth views (provider-dispatching)
+# ---------------------------------------------------------------------------
+
+class OAuthLoginView(SchemaAPIView):
+    """GET /api/v1/auth/<provider>/login → return authorization URL."""
+
     permission_classes = [AllowAny]
     serializer_class = serializers.Serializer
 
-    def get(self, request):
-        redirect_uri = f"{settings.FRONTEND_URL}/auth/nycu/callback"
+    def get(self, request, provider: str):
+        service = get_oauth_service(provider)
+        if service is None:
+            return Response(
+                {"success": False, "error": {"code": "UNKNOWN_PROVIDER", "message": f"Unknown OAuth provider: {provider}"}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        redirect_uri = f"{settings.FRONTEND_URL}/auth/{provider}/callback"
         state = secrets.token_urlsafe(16)
-        auth_url = NYCUOAuthService.get_authorization_url(redirect_uri, state)
-        return Response(
-            {
-                "success": True,
-                "data": {"authorization_url": auth_url},
-            }
-        )
+        auth_url = service.get_authorization_url(redirect_uri, state)
+        return Response({"success": True, "data": {"authorization_url": auth_url}})
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
-class NYCUOAuthCallbackView(SchemaAPIView):
+class OAuthCallbackView(SchemaAPIView):
+    """POST /api/v1/auth/<provider>/callback → exchange code, return JWT."""
+
     permission_classes = [AllowAny]
     serializer_class = OAuthCallbackSerializer
 
-    def post(self, request):
+    def post(self, request, provider: str):
+        service = get_oauth_service(provider)
+        if service is None:
+            return Response(
+                {"success": False, "error": {"code": "UNKNOWN_PROVIDER", "message": f"Unknown OAuth provider: {provider}"}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = OAuthCallbackSerializer(data=request.data)
         if not serializer.is_valid():
             return validation_error_response("OAuth 參數驗證失敗", serializer.errors)
 
         try:
-            oauth_data = NYCUOAuthService.exchange_code(
+            oauth_data = service.exchange_code(
                 code=serializer.validated_data["code"],
                 redirect_uri=serializer.validated_data["redirect_uri"],
             )
-            user = NYCUOAuthService.get_or_create_user(oauth_data)
+            user = service.get_or_create_user(oauth_data)
             conflict_response = build_conflict_response(user, request, provider="oauth")
             if conflict_response is not None:
                 return conflict_response
@@ -203,17 +224,22 @@ class NYCUOAuthCallbackView(SchemaAPIView):
             tokens = JWTService.generate_tokens(user)
             return token_cookie_response(user, tokens)
         except Exception as exc:
-            logger.exception("NYCU OAuth callback failed: %s", exc)
+            logger.exception("%s OAuth callback failed: %s", provider, exc)
             return Response(
                 {
                     "success": False,
                     "error": {
                         "code": "AUTH_003",
-                        "message": "NYCU OAuth 授權失敗",
+                        "message": f"{provider} OAuth 授權失敗",
                     },
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+
+
+# Legacy aliases — keep backward-compatible imports
+NYCUOAuthLoginView = type('NYCUOAuthLoginView', (OAuthLoginView,), {})
+NYCUOAuthCallbackView = type('NYCUOAuthCallbackView', (OAuthCallbackView,), {})
 
 
 __all__ = [
@@ -221,6 +247,8 @@ __all__ = [
     "RegisterView",
     "LoginView",
     "DevTokenView",
+    "OAuthLoginView",
+    "OAuthCallbackView",
     "NYCUOAuthLoginView",
     "NYCUOAuthCallbackView",
 ]

@@ -6,10 +6,11 @@ import {
   Form,
   InlineLoading,
 } from "@carbon/react";
-import { ArrowRight, Education } from "@carbon/icons-react";
+import { ArrowRight, LogoGithub, Education } from "@carbon/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  getOAuthUrl,
   login,
   resolveConflict,
 } from "@/infrastructure/api/repositories/auth.repository";
@@ -73,6 +74,17 @@ const LoginPage = () => {
     }
   };
 
+  const handleOAuthLogin = async (provider: string) => {
+    try {
+      setLoading(true);
+      const url = await getOAuthUrl(provider);
+      window.location.href = url;
+    } catch {
+      setError(t("auth.login.oauthFailed"));
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="auth-header">
@@ -122,16 +134,14 @@ const LoginPage = () => {
             <span className="auth-oauth-btn__label">{t("auth.login.ssoLogin", "校園身份驗證登入")}</span>
             <ArrowRight size={20} className="auth-oauth-btn__arrow" />
           </button>
-          {/* TODO: 待後端實作 Google / GitHub OAuth
-          <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("google")}>
-            <img src="/illustrations/google-icon.svg" alt="" width={20} height={20} className="auth-oauth-btn__icon" />
-            <span className="auth-oauth-btn__label">{t("auth.login.googleLogin", "使用 Google 登入")}</span>
-          </button>
           <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("github")}>
             <LogoGithub size={20} className="auth-oauth-btn__icon" />
             <span className="auth-oauth-btn__label">{t("auth.login.githubLogin", "使用 GitHub 登入")}</span>
           </button>
-          */}
+          <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("google")}>
+            <span className="auth-oauth-btn__icon" style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>G</span>
+            <span className="auth-oauth-btn__label">{t("auth.login.googleLogin", "使用 Google 登入")}</span>
+          </button>
         </div>
       </Form>
 

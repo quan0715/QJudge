@@ -65,12 +65,12 @@ export const getOAuthUrl = async (provider: string): Promise<string> => {
   return data.data.authorization_url;
 };
 
-export const oauthCallback = async (data: {
+export const oauthCallback = async (provider: string, data: {
   code: string;
   redirect_uri: string;
   conflict_token?: string;
 }): Promise<AuthResponse> => {
-  const res = await httpClient.post(`${API_BASE}/nycu/callback`, data);
+  const res = await httpClient.post(`${API_BASE}/${provider}/callback`, data);
   if (!res.ok) {
     const errorData = await res.json().catch(() => null);
     const error: any = new Error("OAuth callback failed");

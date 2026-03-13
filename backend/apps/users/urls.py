@@ -7,8 +7,8 @@ from .views import (
     LoginView,
     DevTokenView,
     LogoutView,
-    NYCUOAuthLoginView,
-    NYCUOAuthCallbackView,
+    OAuthLoginView,
+    OAuthCallbackView,
     TokenRefreshView,
     ResolveConflictView,
     CurrentUserView,
@@ -34,9 +34,9 @@ urlpatterns = [
     # Development helper (DEBUG only)
     path('dev/token', DevTokenView.as_view(), name='dev-token'),
     
-    # NYCU OAuth
-    path('nycu/login', NYCUOAuthLoginView.as_view(), name='nycu-oauth-login'),
-    path('nycu/callback', NYCUOAuthCallbackView.as_view(), name='nycu-oauth-callback'),
+    # Generic OAuth (supports nycu, github, google, etc.)
+    path('<str:provider>/login', OAuthLoginView.as_view(), name='oauth-login'),
+    path('<str:provider>/callback', OAuthCallbackView.as_view(), name='oauth-callback'),
     
     # Token management
     path('refresh', TokenRefreshView.as_view(), name='token-refresh'),
