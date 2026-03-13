@@ -1,0 +1,52 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  padding: 0.125rem;
+  background: var(--cds-layer-01);
+}
+
+.textBtn {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--cds-text-secondary);
+
+  &:hover {
+    color: var(--cds-text-primary);
+  }
+}
+
+.textBtnActive {
+  color: var(--cds-interactive);
+
+  &:hover {
+    color: var(--cds-interactive);
+  }
+}
+
+.activeBg {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--cds-highlight);
+  z-index: 0;
+}
+
+.textLabel {
+  position: relative;
+  z-index: 1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}

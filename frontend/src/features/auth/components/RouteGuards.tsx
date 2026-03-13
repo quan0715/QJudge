@@ -23,7 +23,7 @@ export const RequireAuth = () => {
 
   if (!user) {
     // Redirect to landing page for unauthenticated users
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <Outlet />;
@@ -49,7 +49,7 @@ export const RequireAdmin = () => {
 
   if (!user) {
     // Redirect to landing page for unauthenticated users
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (user.role !== 'admin') {
@@ -67,7 +67,7 @@ export const RequireTeacherOrAdmin = () => {
 
   if (!user) {
     // Redirect to landing page for unauthenticated users
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (user.role !== 'teacher' && user.role !== 'admin') {

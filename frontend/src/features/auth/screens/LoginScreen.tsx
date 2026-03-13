@@ -6,19 +6,18 @@ import {
   Form,
   InlineLoading,
 } from "@carbon/react";
-import { ArrowRight } from "@carbon/icons-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, LogoGithub, Education } from "@carbon/icons-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getOAuthUrl,
   login,
   resolveConflict,
 } from "@/infrastructure/api/repositories/auth.repository";
-import MatrixBackground from "../components/MatrixBackground";
-import "./AuthPages.css";
 
 const LoginPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,73 +86,74 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="auth-page">
-      <MatrixBackground />
-
-      <div className="auth-modal">
-        {/* Title */}
-        <div className="auth-header">
-          <h1 className="auth-title">{t("auth.login.title")}</h1>
-          <p className="auth-subtitle">{t("auth.login.subtitle")}</p>
-        </div>
-
-        {/* Form */}
-        <Form onSubmit={handleLogin} className="auth-form">
-          <TextInput
-            id="email"
-            labelText={t("auth.login.email")}
-            placeholder={t("auth.login.emailPlaceholder")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <PasswordInput
-            id="password"
-            labelText={t("auth.login.password")}
-            placeholder={t("auth.login.passwordPlaceholder")}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          {error && <p className="auth-error">{error}</p>}
-
-          <div className="auth-actions">
-            {loading ? (
-              <InlineLoading description={t("auth.login.loading")} />
-            ) : (
-              <Button kind="primary" type="submit" className="auth-submit-btn">
-                {t("auth.login.submit")}
-              </Button>
-            )}
-          </div>
-
-          <div className="auth-divider">
-            <span>{t("auth.login.or")}</span>
-          </div>
-
-          <Button
-            kind="tertiary"
-            renderIcon={ArrowRight}
-            className="auth-oauth-btn"
-            onClick={() => handleOAuthLogin("nycu")}
-          >
-            {t("auth.login.ssoLogin")}
-          </Button>
-        </Form>
-
-        {/* Footer */}
-        <div className="auth-footer">
-          <p>
-            {t("auth.login.noAccount")}{" "}
-            <Link to="/register" className="auth-link">
-              {t("auth.login.registerNow")}
-            </Link>
-          </p>
-        </div>
+    <>
+      <div className="auth-header">
+        <h1 className="auth-title">{t("auth.login.title", "登入")}</h1>
+        <p className="auth-subtitle">{t("auth.login.subtitle", "歡迎回來，請登入您的帳號")}</p>
       </div>
-    </div>
+
+      <Form onSubmit={handleLogin} className="auth-form">
+        <TextInput
+          id="email"
+          labelText={t("auth.login.email", "Email")}
+          placeholder={t("auth.login.emailPlaceholder", "QStudent")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <PasswordInput
+          id="password"
+          labelText={t("auth.login.password", "密碼")}
+          placeholder={t("auth.login.passwordPlaceholder", "••••••••")}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        {error && <p className="auth-error">{error}</p>}
+
+        <div className="auth-actions">
+          {loading ? (
+            <InlineLoading description={t("auth.login.loading", "登入中...")} />
+          ) : (
+            <Button kind="primary" type="submit" className="auth-submit-btn" renderIcon={ArrowRight}>
+              {t("auth.login.submit", "登入")}
+            </Button>
+          )}
+        </div>
+
+        <div className="auth-divider">
+          <span>{t("auth.login.or", "或使用其他方式登入")}</span>
+        </div>
+
+
+        <div className="auth-oauth-group">
+          <button type="button" className="auth-oauth-btn auth-oauth-btn--sso" onClick={() => navigate("/login/campus-sso")}>
+            <Education size={20} className="auth-oauth-btn__icon" />
+            <span className="auth-oauth-btn__label">{t("auth.login.ssoLogin", "校園身份驗證登入")}</span>
+            <ArrowRight size={20} className="auth-oauth-btn__arrow" />
+          </button>
+          <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("google")}>
+            <img src="/illustrations/google-icon.svg" alt="" width={20} height={20} className="auth-oauth-btn__icon" />
+            <span className="auth-oauth-btn__label">{t("auth.login.googleLogin", "使用 Google 登入")}</span>
+          </button>
+          <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("github")}>
+            <LogoGithub size={20} className="auth-oauth-btn__icon" />
+            <span className="auth-oauth-btn__label">{t("auth.login.githubLogin", "使用 GitHub 登入")}</span>
+          </button>
+        </div>
+      </Form>
+
+      <div className="auth-footer">
+        <p>
+          {t("auth.login.noAccount", "還沒有帳號？")}{" "}
+          <Link to="/register" className="auth-link">
+            {t("auth.login.registerNow", "立即註冊")}
+          </Link>
+        </p>
+      </div>
+    </>
   );
 };
 

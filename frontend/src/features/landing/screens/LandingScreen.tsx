@@ -34,6 +34,8 @@ import {
   WatsonxAi,
   WarningFilled,
   Folder,
+  Light,
+  Asleep,
 } from "@carbon/icons-react";
 import MatrixBackground from "@/features/auth/components/MatrixBackground";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -41,10 +43,18 @@ import LandingFeatureCard from "@/features/landing/components/LandingFeatureCard
 import LandingHeroUiMock from "@/features/landing/components/LandingHeroUiMock";
 import LandingMiniJudgeSection from "@/features/landing/components/LandingMiniJudgeSection";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
+import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
+import { TextModeSwitcher, type TextModeOption } from '@/shared/ui/navigation/TextModeSwitcher';
+import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
+import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { AreaChart, DonutChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import "./LandingScreen.scss";
+
+const themeOptions: IconModeOption<'light' | 'dark'>[] = [
+  { value: 'light', label: 'Light', icon: Light },
+  { value: 'dark', label: 'Dark', icon: Asleep },
+];
 
 // Reusable MacDots component
 const MacDots = () => (
@@ -57,25 +67,30 @@ const MacDots = () => (
 
 const LandingScreen = () => {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation(["landing", "common"]);
+  const { t } = useTranslation(["landing", "common"]);
   const { theme, preference, setPreference } = useTheme();
+  const { contentLanguage, setContentLanguage } = useContentLanguage();
   const [activeInteractive, setActiveInteractive] = useState("editor");
   
   const matrixVariant = theme === "g100" || theme === "g90" ? "dark" : "light";
   const landingThemeClass = matrixVariant === "light" ? "landing--light" : "landing--dark";
   const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
 
+  const langOptions = useMemo<TextModeOption<string>[]>(
+    () =>
+      SUPPORTED_LANGUAGES.map((lang) => ({
+        value: lang.id,
+        label: lang.label,
+        shortLabel: lang.shortLabel,
+      })),
+    [],
+  );
+
+  const themeValue = preference === 'system' ? 'dark' : preference;
+
   const handleSignIn = () => navigate("/login");
   const handleDocs = () => navigate("/docs");
   const handleRegister = () => navigate("/register");
-
-  const handleLanguageSelect = (langId: string) => {
-    i18n.changeLanguage(langId);
-  };
-
-  const handleThemeChange = (value: ThemeValue) => {
-    setPreference(value);
-  };
 
   const heroSignals = [
     t("hero.signal.realtime", { defaultValue: "即時評測" }),
@@ -341,17 +356,18 @@ const LandingScreen = () => {
             <span className="landing__header-logo-text">QJudge</span>
           </div>
           <div className="landing__header-actions">
-            <LanguageSwitch
-              value={i18n.language}
-              onChange={handleLanguageSelect}
-              size="sm"
-              showLabel={false}
+            <TextModeSwitcher
+              value={contentLanguage}
+              options={langOptions}
+              onChange={setContentLanguage}
+              ariaLabel={t("language.title", "語言")}
             />
-            <ThemeSwitch
-              value={preference}
-              onChange={handleThemeChange}
-              size="sm"
-              showLabel={false}
+            <IconModeSwitcher
+              value={themeValue}
+              options={themeOptions}
+              onChange={setPreference}
+              ariaLabel={t("theme.title", "主題")}
+              tooltipPosition="bottom"
             />
           </div>
         </div>

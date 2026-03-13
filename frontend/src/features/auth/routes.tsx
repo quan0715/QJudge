@@ -1,6 +1,7 @@
 import { Route } from "react-router-dom";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
+import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 import UserSettingsScreen from "./screens/UserSettingsScreen";
 
@@ -10,6 +11,7 @@ import UserSettingsScreen from "./screens/UserSettingsScreen";
 export const guestRoutes = (
   <>
     <Route path="/login" element={<LoginScreen />} />
+    <Route path="/login/campus-sso" element={<CampusSsoScreen />} />
     <Route path="/register" element={<RegisterScreen />} />
   </>
 );
