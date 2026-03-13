@@ -2,27 +2,33 @@ import { Tag } from "@carbon/react";
 import {
   UserMultiple,
   ChartBar,
-  WarningAlt,
+  Education,
 } from "@carbon/icons-react";
-import type { DashboardKpi } from "@/features/contest/screens/admin/mockData";
-import type { ContestDetail } from "@/core/entities/contest.entity";
+import { useTranslation } from "react-i18next";
+import type {
+  ContestDetail,
+  ContestOverviewMetrics,
+} from "@/core/entities/contest.entity";
 import {
   getContestState,
   getContestStateLabel,
   getContestStateColor,
 } from "@/core/entities/contest.entity";
 import { KpiCard } from "@/shared/ui/dataCard";
+import { resolveOverviewSnapshot } from "./overviewMetrics.utils";
 import styles from "./KpiCards.module.scss";
 
 interface KpiCardsProps {
-  kpi: DashboardKpi;
   contest: ContestDetail;
+  overviewMetrics: ContestOverviewMetrics | null;
 }
 
-export default function KpiCards({ kpi, contest }: KpiCardsProps) {
+export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
+  const { t } = useTranslation("contest");
   const state = getContestState(contest);
   const startDate = new Date(contest.startTime).toLocaleDateString();
   const endDate = new Date(contest.endTime).toLocaleDateString();
+  const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
 
   return (
     <section className={styles.hero}>
@@ -51,24 +57,21 @@ export default function KpiCards({ kpi, contest }: KpiCardsProps) {
           <div className={styles.kpiStrip}>
             <KpiCard
               icon={UserMultiple}
-              value={String(kpi.totalParticipants)}
-              label="Participants"
+              value={String(snapshot.onlineNow)}
+              label={t("adminOverview.kpi.onlineNow", "Online Now")}
+              showBorder={false}
             />
             <KpiCard
               icon={ChartBar}
-              value={kpi.averageScore.toFixed(1)}
-              label="Avg Score"
+              value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
+              label={t("adminOverview.kpi.exams", "Exams")}
+              showBorder={false}
             />
             <KpiCard
-              icon={WarningAlt}
-              value={
-                kpi.totalViolations > 0 ? (
-                  <span className={styles.warningValue}>{kpi.totalViolations}</span>
-                ) : (
-                  String(kpi.totalViolations)
-                )
-              }
-              label="Violations"
+              icon={Education}
+              value={t(`adminOverview.examType.${snapshot.examType}`)}
+              label={t("adminOverview.kpi.examMode", "Exam Mode")}
+              showBorder={false}
             />
           </div>
         </div>

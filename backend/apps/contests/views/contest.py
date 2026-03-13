@@ -3,6 +3,7 @@ import csv
 import logging
 
 from django.db.models import Max
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
@@ -36,11 +37,13 @@ from ..services.export_service import (
     parse_scale,
 )
 from ..services.participant_state import (
+    ACTIVE_EXAM_STATUSES,
     admin_update_participant,
     reconcile_participant_on_contest_access,
     reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
+from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
@@ -66,6 +69,50 @@ class ContestViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
+
+    def _resolve_exam_window_status(self, contest: Contest, now):
+        if contest.status == "archived":
+            return "ended"
+        if contest.status != "published":
+            return "upcoming"
+        if contest.end_time and now >= contest.end_time:
+            return "ended"
+        if contest.start_time and now < contest.start_time:
+            return "upcoming"
+        return "running"
+
+    def _build_time_progress(self, contest: Contest, now):
+        start_time = contest.start_time
+        end_time = contest.end_time
+
+        if not start_time or not end_time or end_time <= start_time:
+            return {
+                "total_seconds": 0,
+                "elapsed_seconds": 0,
+                "remaining_seconds": 0,
+                "progress_percent": 0,
+                "is_started": False,
+                "is_ended": False,
+            }
+
+        total_seconds = max(0, int((end_time - start_time).total_seconds()))
+        elapsed_seconds = int((now - start_time).total_seconds())
+        elapsed_seconds = min(max(elapsed_seconds, 0), total_seconds)
+        remaining_seconds = max(total_seconds - elapsed_seconds, 0)
+        progress_percent = (
+            round((elapsed_seconds / total_seconds) * 100, 2)
+            if total_seconds > 0
+            else 0
+        )
+
+        return {
+            "total_seconds": total_seconds,
+            "elapsed_seconds": elapsed_seconds,
+            "remaining_seconds": remaining_seconds,
+            "progress_percent": progress_percent,
+            "is_started": now >= start_time,
+            "is_ended": now >= end_time,
+        }
 
     def get_queryset(self):
         """
@@ -347,6 +394,56 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         serializer = ContestParticipantSerializer(participants, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[IsContestOwnerOrAdmin],
+        url_path='overview-metrics',
+    )
+    def overview_metrics(self, request, pk=None):
+        contest = self.get_object()
+        now = timezone.now()
+        heartbeat_threshold = now - timezone.timedelta(seconds=90)
+
+        user_ids = list(
+            ContestParticipant.objects.filter(
+                contest=contest,
+                exam_status__in=ACTIVE_EXAM_STATUSES,
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+
+        online_now = 0
+        online_active_sessions = 0
+        for user_id in user_ids:
+            heartbeat_raw = get_last_heartbeat(contest.id, user_id)
+            if heartbeat_raw:
+                heartbeat_at = parse_datetime(heartbeat_raw)
+                if heartbeat_at and timezone.is_naive(heartbeat_at):
+                    heartbeat_at = timezone.make_aware(
+                        heartbeat_at,
+                        timezone.get_current_timezone(),
+                    )
+                if heartbeat_at and heartbeat_at >= heartbeat_threshold:
+                    online_now += 1
+
+            if get_active_session(contest.id, user_id):
+                online_active_sessions += 1
+
+        exam_status = self._resolve_exam_window_status(contest, now)
+        return Response(
+            {
+                "online_now": online_now,
+                "online_active_sessions": online_active_sessions,
+                "exam": {
+                    "status": exam_status,
+                    "contest_type": contest.contest_type,
+                },
+                "time_progress": self._build_time_progress(contest, now),
+            }
+        )
 
     @action(
         detail=True,

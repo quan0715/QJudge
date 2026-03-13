@@ -254,8 +254,9 @@
       "promptEmpty": "（問題文が未入力です）",
       "answerLabel": "解答欄"
     }
-    },
-    "scoreboard": {    "table": {
+  },
+  "scoreboard": {
+    "table": {
       "rank": "順位",
       "user": "参加者",
       "solved": "正解数",
@@ -269,8 +270,8 @@
       "partial": "部分点",
       "pts": "點"
     }
-    },
-    "report": {
+  },
+  "report": {
     "title": "個人成績レポート",
     "generating": "レポートを生成中...",
     "downloaded": "レポートをダウンロードしました",
@@ -279,8 +280,9 @@
     "descriptionCoding": "解答統計、ソースコード、および傾向グラフを含むPDFレポートをダウンロードします",
     "download": "レポートをダウンロード",
     "preparing": "生成中..."
-    },
-    "delete": {    "title": "コンテスト削除",
+  },
+  "delete": {
+    "title": "コンテスト削除",
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",
     "error": "削除に失敗しました"
   },
@@ -627,7 +629,16 @@
     "autoSubmittedHeading": "試験が自動的に提出されました",
     "autoSubmittedDesc": "画面共有が中断され、制限時間内に再共有できなかったため、システムが自動的に提出しました。",
     "autoSubmittedHint": "エラーだと思われる場合は、試験監督にお問い合わせください。",
-    "returnToDashboard": "ダッシュボードに戻る"
+    "returnToDashboard": "ダッシュボードに戻る",
+    "submitProgress": {
+      "title": "提出処理中",
+      "checking": "解答内容を確認中",
+      "recording": "試験イベントを記録中",
+      "uploading": "画面キャプチャデータをアップロード中",
+      "finalizing": "提出を確定中",
+      "hint": "提出処理中です。このウィンドウを閉じないでください。",
+      "failed": "提出処理に失敗しました。もう一度お試しください。"
+    }
   },
   "createModal": {
     "titleCoding": "Create Coding Test",
@@ -720,6 +731,10 @@
   "grading": {
     "byQuestion": "問題別に採点",
     "byStudent": "学生別に採点",
+    "gradingCenter": "採点センター",
+    "globalSummary": "問題 {{questions}} 問 · 解答 {{answers}} 件 · 採点待ち {{pending}} 件",
+    "moreActions": "その他の操作",
+    "matrixOverview": "マトリックス概要",
     "searchStudent": "学生を検索",
     "filter": "フィルター",
     "autoGrade": "客観問題を自動採点",
@@ -731,6 +746,7 @@
     "score": "スコア",
     "feedback": "講評（任意）",
     "save": "保存",
+    "saveAndNextStudent": "保存して次の学生へ",
     "saved": "保存済み",
     "nextQuestion": "次の問題",
     "nextStudent": "次の学生",
@@ -753,7 +769,31 @@
     "selectAnswerToGrade": "学生の解答を選択して採点を開始",
     "noSubmissions": "この学生はまだ解答を提出していません",
     "studentsCount": "{{count}} 名の学生",
+    "studentsDisplayCount": "{{shown}} / {{total}} 名を表示",
+    "answersDisplayCount": "{{shown}} / {{total}} 件を表示",
     "questionList": "問題リスト",
+    "answerList": "解答リスト",
+    "studentList": "学生リスト",
+    "previewQuestionSummary": "Q{{index}} · {{graded}}/{{total}} 採点済み · 平均 {{avg}}",
+    "previewQuestionNoAnswers": "Q{{index}} · 解答データなし",
+    "previewStudentSummary": "{{name}} · {{graded}}/{{total}} 完了 · {{score}} 点",
+    "matrixSummary": "学生 {{students}} 名 · 問題 {{questions}} 問",
+    "matrixLegendGraded": "採点済み",
+    "matrixLegendPending": "採点待ち",
+    "matrixLegendEmpty": "未解答",
+    "matrixGradedCount": "採点済み {{count}}",
+    "matrixPendingCount": "採点待ち {{count}}",
+    "matrixEmptyCount": "未解答 {{count}}",
+    "matrixCellGraded": "採点済み：{{score}} / {{max}}",
+    "matrixCellPending": "解答済み、採点待ち",
+    "matrixCellEmpty": "未解答",
+    "matrixEmpty": "現在、マトリックス概要を表示するためのデータが不足しています。",
+    "expandQuestionList": "問題リストを展開",
+    "collapseQuestionList": "問題リストを折りたたむ",
+    "expandAnswerList": "解答リストを展開",
+    "collapseAnswerList": "解答リストを折りたたむ",
+    "expandStudentList": "学生リストを展開",
+    "collapseStudentList": "学生リストを折りたたむ",
     "complete": "完了",
     "objectiveRegradeComplete": "客観問題の再採点が完了しました",
     "objectiveRegradePartialFail": "客観問題の再採点が完了しました（一部失敗）",
@@ -767,11 +807,18 @@
     "loading": "採点データを読み込み中...",
     "regradePartialDetail": "更新 {{updated}} 件、失敗 {{failed}} 件、スキップ {{skipped}} 件",
     "regradeDetail": "更新 {{updated}} 件、スキップ {{skipped}} 件",
+    "shortcutPrefix": "ショートカットキー：",
+    "shortcutAdjust": "スコア調整",
+    "shortcutDirectInput": "直接入力",
+    "shortcutSetZero": "0点にする",
+    "shortcutSetMax": "満点にする",
+    "shortcutCommitAndNext": "保存して次へ",
     "filterAll": "すべて",
     "filterUngraded": "未採点",
     "filterGraded": "採点済み",
     "gradedBy": "{{name}} が採点",
-    "maxScore": "満点"
+    "maxScore": "満点",
+    "objectiveReadonlyHint": "客観式問題は自動採点されます。スコアに異常がある場合は、上の「客観問題を自動採点」を使用してください。"
   },
   "examVideoReview": {
     "modalHeading": "監視動画レビュー",
@@ -1131,13 +1178,76 @@
   },
   "studentStatus": {
     "title": "学生ステータス分布",
+    "pausedLocked": "一時停止 / ロック",
     "personCount": "{{count}} 名",
     "submittedProgress": "提出済み {{submitted}}/{{total}}（{{percent}}%）"
+  },
+  "adminOverview": {
+    "kpi": {
+      "onlineNow": "現在オンライン",
+      "exams": "試験状態",
+      "examMode": "試験モード",
+      "time": "時間進捗",
+      "examCount": "1件"
+    },
+    "examStatus": {
+      "upcoming": "開始前",
+      "running": "実施中",
+      "ended": "終了"
+    },
+    "examType": {
+      "paper_exam": "ペーパー試験",
+      "coding": "コーディングテスト"
+    },
+    "time": {
+      "remaining": "残り {{time}}",
+      "remainingLabel": "残り時間",
+      "notStarted": "未開始",
+      "ended": "終了済み"
+    },
+    "sidebar": {
+      "title": "試験サマリー",
+      "timeProgress": "時間進捗",
+      "timeAndWindow": "時間進捗と試験時間帯",
+      "online": "オンライン状況",
+      "heartbeatOnline": "Heartbeat オンライン",
+      "activeSessions": "Active Sessions",
+      "window": "試験時間帯",
+      "start": "開始",
+      "end": "終了",
+      "settings": "コンテスト設定",
+      "contestState": "コンテスト状態",
+      "strictMode": "厳格試験モード",
+      "resultsPublished": "成績公開",
+      "enabled": "有効",
+      "disabled": "無効",
+      "published": "公開済み",
+      "unpublished": "未公開"
+    },
+    "events": {
+      "title": "イベント概要",
+      "critical": "高リスクイベント",
+      "violations": "違反イベント",
+      "qa": "Q&A 対応",
+      "recent30m": "直近30分",
+      "recentList": "最近のイベント",
+      "empty": "現在イベントはありません",
+      "unit": "件"
+    }
   },
   "statistics": {
     "noData": "問題データがありません",
     "title": "問題統計",
-    "questionCount": "{{count}} 問"
+    "questionCount": "{{count}} 問",
+    "gradedCount": "{{graded}}/{{total}} 採点済み",
+    "averageScore": "平均スコア",
+    "averageScoreRatio": "平均スコア比率",
+    "optionDistribution": "選択肢分布",
+    "noRecords": "まだ記録がありません",
+    "studentAnswers": "学生の回答",
+    "scoreUnit": "{{score}} 点",
+    "notGraded": "未採点",
+    "notAnswered": "(未回答)"
   },
   "adminLayout": {
     "title": "管理ダッシュボード",
@@ -1155,6 +1265,7 @@
       "settings": "設定"
     },
     "header": {
+      "refresh": "再読み込み",
       "exportFiles": "ファイルをエクスポート",
       "previewAnswer": "解答画面をプレビュー",
       "backToHome": "コンテストホームに戻る"

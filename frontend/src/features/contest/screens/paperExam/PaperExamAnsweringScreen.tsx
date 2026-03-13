@@ -30,6 +30,8 @@ import {
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
 import styles from "./PaperExamAnswering.module.scss";
+import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
+import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import {
   getContestDashboardPath,
   shouldRouteToPrecheck,
@@ -38,12 +40,14 @@ import {
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
+import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const submitProgress = useExamSubmissionProgress();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -104,29 +108,59 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const hasLoggedExamEntryRef = useRef(false);
 
-  useEffect(() => {
-    if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
-      flushAll()
-        .then(async () => {
+  const runSubmitWithProgress = useCallback(async () => {
+    const success = await submitProgress.run({
+      handlers: {
+        checking: async () => {
+          await flushAll();
+        },
+        uploading: async () => {
           await flushPendingUploads();
-          return submitExam(anticheatUploadSessionId || undefined);
-        })
-        .finally(() => {
-          if (contestId) clearExamCaptureSessionId(contestId);
-          forceStopCapture("submitted");
-          setAutoSubmitted(true);
-          if (isFullscreen()) exitFullscreen().catch(() => {});
-        });
-    }
+        },
+        finalizing: async () => {
+          const ok = await submitExam(anticheatUploadSessionId || undefined);
+          if (!ok) {
+            throw new Error(t("answering.error.submitFailed", "交卷失敗"));
+          }
+          if (contestId) {
+            clearExamCaptureSessionId(contestId);
+          }
+          const stopResult = contestId
+            ? stopCaptureForContest(contestId, "submitted")
+            : null;
+          if (!stopResult) {
+            forceStopCapture("submitted");
+          }
+          if (isFullscreen()) {
+            await exitFullscreen().catch(() => {});
+          }
+        },
+      },
+    });
+    return success;
   }, [
     anticheatUploadSessionId,
-    countdown.remaining,
+    contestId,
+    flushAll,
     flushPendingUploads,
+    forceStopCapture,
+    submitExam,
+    submitProgress,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
+      void runSubmitWithProgress().then((success) => {
+        if (!success) return;
+        setAutoSubmitted(true);
+      });
+    }
+  }, [
+    countdown.remaining,
     isInProgress,
     contestId,
-    submitExam,
-    flushAll,
-    forceStopCapture,
+    runSubmitWithProgress,
   ]);
 
   useEffect(() => {
@@ -145,7 +179,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
     if (contest.examStatus === "submitted") {
       clearExamCaptureSessionId(contestId);
-      forceStopCapture("submitted");
+      const stopResult = stopCaptureForContest(contestId, "submitted");
+      if (!stopResult) {
+        forceStopCapture("submitted");
+      }
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
   }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
@@ -218,24 +255,16 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const handleSubmitExam = useCallback(async () => {
     if (!contestId || isSubmittingExam) return;
     setIsSubmittingExam(true);
-    await flushAll();
-    await flushPendingUploads();
-    const success = await submitExam(anticheatUploadSessionId || undefined);
+    const success = await runSubmitWithProgress();
     setIsSubmittingExam(false);
     if (!success) return;
-    clearExamCaptureSessionId(contestId);
-    forceStopCapture("submitted");
     setShowSubmitReview(false);
     navigate(getContestDashboardPath(contestId));
   }, [
-    anticheatUploadSessionId,
     contestId,
-    flushAll,
-    flushPendingUploads,
-    forceStopCapture,
     isSubmittingExam,
     navigate,
-    submitExam,
+    runSubmitWithProgress,
   ]);
 
   if (autoSubmitted || isSubmitted) {
@@ -287,7 +316,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
           <>
             <Button
               kind="ghost"
-              size="sm"
               data-testid="paper-exam-back-dashboard-btn"
               hasIconOnly
               renderIcon={ChevronLeft}
@@ -297,7 +325,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             <span className={styles.title}>{contest?.name ?? t("common:page.contests")}</span>
             {contest?.cheatDetectionEnabled && (
               <Tooltip label={t("answering.status.monitoringTooltip")} align="bottom" autoAlign>
-                <Tag size="sm" type="red" renderIcon={Recording}>
+                <Tag size="sm" type="cool-gray" renderIcon={Recording}>
                   {t("answering.status.monitoring")}
                 </Tag>
               </Tooltip>
@@ -320,7 +348,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
             </div>
             <Button
               kind="primary"
-              size="sm"
               data-testid="paper-exam-open-submit-review-btn"
               renderIcon={SendFilled}
               onClick={openSubmitReview}
@@ -401,6 +428,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
           </div>
         </div>
       </Modal>
+      <ExamSubmissionProgressModal
+        state={submitProgress.state}
+        onRequestClose={submitProgress.close}
+      />
     </>
   );
 };

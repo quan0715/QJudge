@@ -7,7 +7,6 @@ import {
   getContestPrecheckPath,
   getContestSolvePath,
   getFirstContestProblemId,
-  getSubmitReviewBackPath,
   getPostPrecheckPath,
   isPathWithinContest,
   shouldRouteToPrecheck,
@@ -99,56 +98,6 @@ describe("contestRoutePolicy", () => {
         precheckPassed: true,
       }),
     ).toBe(false);
-  });
-
-  it("computes submit-review back path", () => {
-    const paperContest = createContest({ contestType: "paper_exam" });
-    
-    // cheatDetection enabled + paused → precheck
-    expect(
-      getSubmitReviewBackPath({
-        contestId: "42",
-        contest: paperContest,
-        examStatus: "paused",
-        cheatDetectionEnabled: true,
-        precheckPassed: false,
-      }),
-    ).toBe("/contests/42/exam-precheck");
-    // cheatDetection enabled + in_progress + precheck passed → answering
-    expect(
-      getSubmitReviewBackPath({
-        contestId: "42",
-        contest: paperContest,
-        examStatus: "in_progress",
-        cheatDetectionEnabled: true,
-        precheckPassed: true,
-      }),
-    ).toBe("/contests/42/paper-exam/answering");
-    // cheatDetection disabled → always answering, even if precheckPassed is false
-    expect(
-      getSubmitReviewBackPath({
-        contestId: "42",
-        contest: paperContest,
-        examStatus: "in_progress",
-        cheatDetectionEnabled: false,
-        precheckPassed: false,
-      }),
-    ).toBe("/contests/42/paper-exam/answering");
-
-    const codingContest = createContest({
-      contestType: "coding",
-      problems: [{ id: "1", problemId: "p1", label: "A", title: "P1", order: 1, score: 100 }],
-    });
-    // coding mode with cheat disabled → dynamic route
-    expect(
-      getSubmitReviewBackPath({
-        contestId: "42",
-        contest: codingContest,
-        examStatus: "in_progress",
-        cheatDetectionEnabled: false,
-        precheckPassed: false,
-      }),
-    ).toBe("/contests/42/solve/p1");
   });
 
   it("checks whether current path stays under contest scope", () => {

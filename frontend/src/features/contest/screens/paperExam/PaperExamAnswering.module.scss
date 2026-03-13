@@ -16,10 +16,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: layout.$spacing-03 layout.$spacing-05;
+  height: 3rem;
+  min-height: 3rem;
+  padding: 0;
   flex-shrink: 0;
   gap: layout.$spacing-04;
   background-color: var(--cds-background);
+  box-sizing: border-box;
   transition: transform 200ms motion.motion(standard, productive),
               opacity 200ms motion.motion(standard, productive);
 }
@@ -40,6 +43,7 @@
   align-items: center;
   gap: layout.$spacing-03;
   min-width: 0;
+  height: 100%;
 }
 
 .title {
@@ -54,12 +58,20 @@
   display: flex;
   align-items: center;
   gap: layout.$spacing-05;
+  height: 100%;
+}
+
+.toolbarLeft :global(.cds--btn),
+.toolbarCenter :global(.cds--btn) {
+  min-height: 3rem;
+  height: 3rem;
 }
 
 .timer {
   display: flex;
   align-items: center;
   gap: layout.$spacing-02;
+  height: 100%;
   color: var(--cds-text-secondary);
 }
 

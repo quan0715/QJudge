@@ -1029,3 +1029,118 @@ def test_remove_participant_blocked_even_for_succeeded_evidence(
 
     assert resp.status_code == status.HTTP_409_CONFLICT
     assert ContestParticipant.objects.filter(pk=participant.pk).exists()
+
+
+@pytest.mark.django_db
+def test_overview_metrics_uses_heartbeat_as_primary_online_count(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    student: User,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.IN_PROGRESS,
+    )
+
+    recent_heartbeat = (timezone.now() - timedelta(seconds=20)).isoformat()
+    monkeypatch.setattr(
+        contest_view_module,
+        "get_last_heartbeat",
+        lambda contest_id, user_id: recent_heartbeat if user_id == student.id else None,
+    )
+    monkeypatch.setattr(
+        contest_view_module,
+        "get_active_session",
+        lambda contest_id, user_id: {"device_id": "device-a"} if user_id == student.id else None,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.get(f"/api/v1/contests/{contest.id}/overview-metrics/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["online_now"] == 1
+    assert response.data["online_active_sessions"] == 1
+    assert response.data["exam"]["status"] == "running"
+    assert response.data["exam"]["contest_type"] == contest.contest_type
+
+
+@pytest.mark.django_db
+def test_overview_metrics_allows_active_session_without_recent_heartbeat(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    student: User,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.PAUSED,
+    )
+
+    stale_heartbeat = (timezone.now() - timedelta(minutes=5)).isoformat()
+    monkeypatch.setattr(
+        contest_view_module,
+        "get_last_heartbeat",
+        lambda contest_id, user_id: stale_heartbeat if user_id == student.id else None,
+    )
+    monkeypatch.setattr(
+        contest_view_module,
+        "get_active_session",
+        lambda contest_id, user_id: {"device_id": "device-b"} if user_id == student.id else None,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.get(f"/api/v1/contests/{contest.id}/overview-metrics/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["online_now"] == 0
+    assert response.data["online_active_sessions"] == 1
+
+
+@pytest.mark.django_db
+def test_overview_metrics_handles_exam_status_and_time_progress_boundaries(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contest_view_module, "get_last_heartbeat", lambda *args, **kwargs: None)
+    monkeypatch.setattr(contest_view_module, "get_active_session", lambda *args, **kwargs: None)
+
+    api_client.force_authenticate(user=owner)
+
+    contest.start_time = timezone.now() + timedelta(minutes=10)
+    contest.end_time = timezone.now() + timedelta(hours=1, minutes=10)
+    contest.save(update_fields=["start_time", "end_time"])
+
+    upcoming = api_client.get(f"/api/v1/contests/{contest.id}/overview-metrics/")
+    assert upcoming.status_code == status.HTTP_200_OK
+    assert upcoming.data["exam"]["status"] == "upcoming"
+    assert upcoming.data["time_progress"]["progress_percent"] == 0
+    assert upcoming.data["time_progress"]["is_started"] is False
+
+    contest.start_time = timezone.now() - timedelta(minutes=5)
+    contest.end_time = timezone.now() + timedelta(minutes=55)
+    contest.save(update_fields=["start_time", "end_time"])
+
+    running = api_client.get(f"/api/v1/contests/{contest.id}/overview-metrics/")
+    assert running.status_code == status.HTTP_200_OK
+    assert running.data["exam"]["status"] == "running"
+    assert 0 < running.data["time_progress"]["progress_percent"] < 100
+    assert running.data["time_progress"]["is_started"] is True
+    assert running.data["time_progress"]["is_ended"] is False
+
+    contest.start_time = timezone.now() - timedelta(hours=2)
+    contest.end_time = timezone.now() - timedelta(minutes=1)
+    contest.save(update_fields=["start_time", "end_time"])
+
+    ended = api_client.get(f"/api/v1/contests/{contest.id}/overview-metrics/")
+    assert ended.status_code == status.HTTP_200_OK
+    assert ended.data["exam"]["status"] == "ended"
+    assert ended.data["time_progress"]["progress_percent"] == 100
+    assert ended.data["time_progress"]["remaining_seconds"] == 0
+    assert ended.data["time_progress"]["is_ended"] is True

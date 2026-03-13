@@ -6,6 +6,7 @@ import {
   ContestProvider,
   ContestAdminProvider,
   useContest,
+  useContestAdmin,
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
@@ -51,6 +52,7 @@ const AdminDashboardInner = () => {
   const navigate = useNavigate();
 
   const { contest, loading } = useContest();
+  const { refreshAllAdminData } = useContestAdmin();
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
@@ -137,6 +139,9 @@ const AdminDashboardInner = () => {
       examMode={isExamMode}
       onPanelChange={handlePanelChange}
       onBack={handleBack}
+      onRefresh={() => {
+        void refreshAllAdminData();
+      }}
       showExamJsonActions={showExamJsonActions}
       onImportExamJson={() => examEditorRef.current?.openJsonImportModal()}
       onPreview={handlePreview}

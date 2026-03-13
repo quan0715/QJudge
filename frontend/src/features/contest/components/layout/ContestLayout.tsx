@@ -34,6 +34,7 @@ import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
 import { getContestAnsweringEntryPath } from "@/features/contest/domain/contestRoutePolicy";
+import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import styles from "./ContestLayout.module.scss";
 
 const ContestLayout = () => {
@@ -89,6 +90,7 @@ const ContestLayout = () => {
     handleEndExam,
     handleExit,
     toggleFullscreen,
+    submissionProgress,
   } = useContestExamActions({
     contest,
     contestId,
@@ -361,6 +363,11 @@ const ContestLayout = () => {
             shouldWarnOnExit={shouldWarnOnExit}
             onClose={() => setIsExitModalOpen(false)}
             onConfirm={handleExit}
+          />
+
+          <ExamSubmissionProgressModal
+            state={submissionProgress.state}
+            onRequestClose={submissionProgress.close}
           />
 
           <Modal

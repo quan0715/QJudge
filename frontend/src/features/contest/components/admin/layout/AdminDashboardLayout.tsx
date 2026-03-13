@@ -21,6 +21,7 @@ import {
   View,
   DocumentDownload,
   Upload,
+  Renew,
 } from "@carbon/icons-react";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import styles from "./AdminDashboardLayout.module.scss";
@@ -32,6 +33,7 @@ interface AdminDashboardLayoutProps {
   examMode?: boolean;
   onPanelChange: (panel: AdminPanelId) => void;
   onBack: () => void;
+  onRefresh?: () => void;
   onPreview?: () => void;
   onExport?: () => void;
   showExamJsonActions?: boolean;
@@ -72,6 +74,7 @@ export default function AdminDashboardLayout({
   examMode,
   onPanelChange,
   onBack,
+  onRefresh,
   onPreview,
   onExport,
   showExamJsonActions,
@@ -87,6 +90,15 @@ export default function AdminDashboardLayout({
           {contestName}
         </HeaderName>
         <HeaderGlobalBar>
+          {onRefresh && (
+            <HeaderGlobalAction
+              aria-label={t("adminLayout.header.refresh")}
+              tooltipAlignment="end"
+              onClick={onRefresh}
+            >
+              <Renew size={20} />
+            </HeaderGlobalAction>
+          )}
           {showExamJsonActions && onImportExamJson && (
             <HeaderGlobalAction
               aria-label={t("examJson.importAction")}

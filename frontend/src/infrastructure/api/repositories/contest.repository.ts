@@ -9,6 +9,7 @@ import type {
   Contest,
   ContestAnticheatConfig,
   ContestDetail,
+  ContestOverviewMetrics,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
 import type {
@@ -22,6 +23,7 @@ import {
   mapScoreboardDto,
   mapContestUpdateRequestToDto,
   mapContestAnticheatConfigDto,
+  mapContestOverviewMetricsDto,
 } from "@/infrastructure/mappers/contest.mapper";
 
 // ============================================================================
@@ -140,6 +142,16 @@ export const getContestAnticheatConfig = async (
   return mapContestAnticheatConfigDto(data);
 };
 
+export const getContestOverviewMetrics = async (
+  id: string
+): Promise<ContestOverviewMetrics> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/contests/${id}/overview-metrics/`),
+    "Failed to fetch contest overview metrics"
+  );
+  return mapContestOverviewMetricsDto(data);
+};
+
 // ============================================================================
 // Repository Instance (implements IContestRepository)
 // ============================================================================
@@ -157,6 +169,7 @@ export const contestRepository: IContestRepository = {
   archiveContest,
   getContestStandings,
   getContestAnticheatConfig,
+  getContestOverviewMetrics,
 };
 
 export default contestRepository;

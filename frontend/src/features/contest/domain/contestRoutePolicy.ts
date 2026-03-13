@@ -1,4 +1,4 @@
-import type { ContestDetail, ExamStatusType } from "@/core/entities/contest.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 
 type ContestRouteTarget =
@@ -23,9 +23,6 @@ export const getContestPaperAnsweringPath = (
   if (!questionId) return base;
   return `${base}?q=${encodeURIComponent(questionId)}`;
 };
-
-export const getContestPaperSubmitReviewPath = (contestId: string): string =>
-  `/contests/${contestId}/paper-exam/submit-review`;
 
 export const getContestSolvePath = (contestId: string, problemId: string): string =>
   `/contests/${contestId}/solve/${problemId}`;
@@ -68,29 +65,6 @@ export const shouldRouteToPrecheck = (params: {
   }
 
   return contest.examStatus === "in_progress" && !precheckPassed;
-};
-
-export const getSubmitReviewBackPath = (params: {
-  contestId: string;
-  contest: NonNullable<ContestRouteTarget>;
-  examStatus?: ExamStatusType;
-  cheatDetectionEnabled?: boolean;
-  precheckPassed: boolean;
-}): string => {
-  const { contestId, contest, examStatus, cheatDetectionEnabled, precheckPassed } = params;
-  
-  const targetPath = getContestAnsweringEntryPath(contestId, contest);
-
-  if (!cheatDetectionEnabled) {
-    return targetPath;
-  }
-  if (
-    examStatus === "paused" ||
-    (examStatus === "in_progress" && !precheckPassed)
-  ) {
-    return getContestPrecheckPath(contestId);
-  }
-  return targetPath;
 };
 
 export const isPathWithinContest = (params: {

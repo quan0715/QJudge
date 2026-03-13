@@ -152,8 +152,12 @@ describe("ContestParticipantsScreen", () => {
     useContestAdminMock.mockReturnValue({
       participants: [participant],
       examEvents: [],
+      overviewMetrics: null,
       isRefreshing: false,
+      isOverviewRefreshing: false,
       refreshAdminData: vi.fn().mockResolvedValue(undefined),
+      refreshOverviewMetrics: vi.fn().mockResolvedValue(undefined),
+      refreshAllAdminData: vi.fn().mockResolvedValue(undefined),
     });
     useAuthMock.mockReturnValue({
       user: { username: "owner" },

@@ -343,6 +343,25 @@ export interface ContestDetail extends Contest {
   admins?: Array<{ id: string; username: string }>;
 }
 
+export type ContestOverviewExamStatus = "upcoming" | "running" | "ended";
+
+export interface ContestOverviewMetrics {
+  onlineNow: number;
+  onlineActiveSessions: number;
+  exam: {
+    status: ContestOverviewExamStatus;
+    contestType: ContestType;
+  };
+  timeProgress: {
+    totalSeconds: number;
+    elapsedSeconds: number;
+    remainingSeconds: number;
+    progressPercent: number;
+    isStarted: boolean;
+    isEnded: boolean;
+  };
+}
+
 export interface AnticheatConfigSettingDescriptor {
   key: string;
   description: string;

@@ -33,6 +33,9 @@ import {
 } from "@/features/contest/domain/examMonitoringPolicy";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import { useTranslation } from "react-i18next";
+import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
+import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
+import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -71,6 +74,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const runtimeReauth = useRuntimeScreenShareReauth(contestId);
   const runtimeReauthActive = runtimeReauth.active;
   const { showToast } = useToast();
+  const submissionProgress = useExamSubmissionProgress();
   const streamAdapterRef = useRef(createStreamAdapter());
   const { t } = useTranslation("contest");
   const {
@@ -183,31 +187,45 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleForceSubmitFromScreenShareLoss = useCallback(async () => {
     setIsSubmittingFromScreenShareLoss(true);
     try {
-      await recordExamEvent(contestId, "screen_share_stopped", {
-        source: "anticheat:screen_capture",
-        metadata: { reason: "recovery_timeout" },
-      }).catch(() => null);
-      await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
-        reason: "Force submit after screen share recovery timeout",
-        source: "exam_mode:screen_share_recovery_timeout",
-        forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
-        metadata: {
-          upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+      const success = await submissionProgress.run({
+        handlers: {
+          recording: async () => {
+            await recordExamEvent(contestId, "screen_share_stopped", {
+              source: "anticheat:screen_capture",
+              metadata: { reason: "recovery_timeout" },
+            }).catch(() => null);
+            await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
+              reason: "Force submit after screen share recovery timeout",
+              source: "exam_mode:screen_share_recovery_timeout",
+              forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
+              metadata: {
+                upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+              },
+            }).catch(() => null);
+          },
+          finalizing: async () => {
+            await serviceEndExam(contestId, {
+              upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+            });
+            const stopResult = stopCaptureForContest(contestId, "screen_share_timeout_submit");
+            if (!stopResult) {
+              forceStopCapture("screen_share_timeout_submit");
+            }
+            if (onRefresh) await onRefresh();
+          },
         },
-      }).catch(() => null);
-      await serviceEndExam(contestId, {
-        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
-      forceStopCapture("screen_share_timeout_submit");
-      if (onRefresh) await onRefresh();
-      setShowAutoSubmitNotice(true);
+
+      if (success) {
+        setShowAutoSubmitNotice(true);
+      }
     } catch {
       // best effort: submission fallback should not block cleanup
     } finally {
       setIsSubmittingFromScreenShareLoss(false);
       endRuntimeScreenShareReauth(contestId, 0);
     }
-  }, [contestId, forceStopCapture, onRefresh]);
+  }, [contestId, forceStopCapture, onRefresh, submissionProgress]);
 
   const handleScreenShareLost = useCallback(() => {
     if (examStatus === "submitted") return;
@@ -258,7 +276,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
     onRecoveryCountdownChange: (secondsLeft, source) => {
-	      if (isRuntimeScreenShareReauthActive(contestId)) {
+      if (isRuntimeScreenShareReauthActive(contestId)) {
         setRecoveryCountdown(null);
         setRecoverySource(null);
         return;
@@ -341,7 +359,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
-      forceStopCapture("submitted");
+      const stopResult = stopCaptureForContest(contestId, "submitted");
+      if (!stopResult) {
+        forceStopCapture("submitted");
+      }
       if (fullscreenAdapterRef.current.isActive()) {
         void fullscreenAdapterRef.current.exit();
       }
@@ -389,20 +410,36 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleFullscreenExitConfirm = async () => {
     setIsSubmittingFromFullscreenExit(true);
     try {
-      await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
-        reason: "Exam submitted after fullscreen exit confirmation",
-        source: "exam_mode:fullscreen_exit_confirm",
-        forceCaptureReason: "exam_submit_initiated:fullscreen_exit_confirm",
-        metadata: {
-          upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+      const success = await submissionProgress.run({
+        handlers: {
+          recording: async () => {
+            await recordExamEventWithForcedCapture(contestId, "exam_submit_initiated", {
+              reason: "Exam submitted after fullscreen exit confirmation",
+              source: "exam_mode:fullscreen_exit_confirm",
+              forceCaptureReason: "exam_submit_initiated:fullscreen_exit_confirm",
+              metadata: {
+                upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+              },
+            }).catch(() => null);
+          },
+          finalizing: async () => {
+            await serviceEndExam(contestId, {
+              upload_session_id: getExamCaptureSessionId(contestId) || undefined,
+            });
+            const stopResult = stopCaptureForContest(contestId, "fullscreen_exit_submit");
+            if (!stopResult) {
+              forceStopCapture("fullscreen_exit_submit");
+            }
+            if (onRefresh) await onRefresh();
+          },
         },
-      }).catch(() => null);
-      await serviceEndExam(contestId, {
-        upload_session_id: getExamCaptureSessionId(contestId) || undefined,
       });
-      forceStopCapture("fullscreen_exit_submit");
-      if (onRefresh) await onRefresh();
-      setShowFullscreenExitConfirm(false);
+      if (success) {
+        setShowFullscreenExitConfirm(false);
+      } else {
+        setShowFullscreenExitConfirm(false);
+        await fullscreenAdapterRef.current.request();
+      }
     } catch {
       setShowFullscreenExitConfirm(false);
       await fullscreenAdapterRef.current.request();
@@ -489,6 +526,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             setShowAutoSubmitNotice(false);
             navigate(getContestDashboardPath(contestId));
           }}
+        />
+        <ExamSubmissionProgressModal
+          state={submissionProgress.state}
+          onRequestClose={submissionProgress.close}
         />
       </div>
     </ExamCaptureProvider>
