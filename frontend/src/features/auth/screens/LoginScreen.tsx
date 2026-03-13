@@ -134,6 +134,7 @@ const LoginPage = () => {
             <span className="auth-oauth-btn__label">{t("auth.login.ssoLogin", "校園身份驗證登入")}</span>
             <ArrowRight size={20} className="auth-oauth-btn__arrow" />
           </button>
+          {/* TODO: 待後端實作 Google / GitHub OAuth
           <button type="button" className="auth-oauth-btn" onClick={() => handleOAuthLogin("google")}>
             <img src="/illustrations/google-icon.svg" alt="" width={20} height={20} className="auth-oauth-btn__icon" />
             <span className="auth-oauth-btn__label">{t("auth.login.googleLogin", "使用 Google 登入")}</span>
@@ -142,6 +143,7 @@ const LoginPage = () => {
             <LogoGithub size={20} className="auth-oauth-btn__icon" />
             <span className="auth-oauth-btn__label">{t("auth.login.githubLogin", "使用 GitHub 登入")}</span>
           </button>
+          */}
         </div>
       </Form>
 

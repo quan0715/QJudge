@@ -59,7 +59,8 @@
   left: 0;
   width: 100%;
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: $spacing-10; /* 縮小間距，讓功能點更向中心插圖靠攏 */
   padding: 0 $spacing-09;
   z-index: 10;
 
@@ -192,8 +193,9 @@
   padding: 0 $spacing-05;
   background-color: $layer-01;
   color: $text-primary;
+  border: 1px solid $border-subtle-01;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: all 0.15s;
 
   &__icon {
     flex-shrink: 0;
@@ -216,6 +218,7 @@
 
   &:hover {
     background-color: $layer-hover-01;
+    border-color: $border-subtle-selected-01;
   }
 
   &--sso {
