@@ -17,7 +17,8 @@
 .toolbar {
   grid-column: 1 / -1;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid
+    var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
 }
 
 .sidebar {
@@ -25,7 +26,8 @@
   grid-column: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid var(--cds-border-subtle);
+  border-right: 1px solid
+    var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   background: var(--cds-layer);
   display: flex;
   flex-direction: column;
@@ -37,7 +39,8 @@
   grid-column: 2;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid var(--cds-border-subtle);
+  border-right: 1px solid
+    var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   background: var(--cds-layer);
   display: flex;
   flex-direction: column;
@@ -72,7 +75,8 @@
     grid-row: 2;
     max-height: 240px;
     border-right: none;
-    border-bottom: 1px solid var(--cds-border-subtle);
+    border-bottom: 1px solid
+      var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
   .middle {
@@ -80,7 +84,8 @@
     grid-row: 3;
     max-height: 240px;
     border-right: none;
-    border-bottom: 1px solid var(--cds-border-subtle);
+    border-bottom: 1px solid
+      var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
   .content {

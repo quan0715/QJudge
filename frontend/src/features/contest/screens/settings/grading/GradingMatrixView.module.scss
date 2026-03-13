@@ -20,7 +20,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem 0.5rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
 }
 
@@ -71,8 +71,8 @@
 /* ── Every cell base ── */
 .gridCell {
   box-sizing: border-box;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  border-right: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
+  border-right: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -157,10 +157,27 @@
   min-width: 0;
 }
 
-.studentName {
+.studentIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.studentUsername {
   color: var(--cds-text-primary);
   font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
   line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-weight: 600;
+}
+
+.studentDisplayName {
+  color: var(--cds-text-secondary);
+  font-size: 0.6875rem;
+  line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -169,10 +186,11 @@
 .studentScore {
   flex-shrink: 0;
   color: var(--cds-text-primary);
-  font-size: 1.125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.1;
-  padding-left: 0.25rem;
+  padding-left: 0.5rem;
+  padding-top: 0;
 }
 
 .summaryRowHeader {
@@ -228,8 +246,16 @@
 
 .empty,
 .legendDot.empty {
-  background: color-mix(in srgb, var(--cds-border-subtle) 45%, transparent);
-  border-color: color-mix(in srgb, var(--cds-border-subtle-selected) 55%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--qg-panel-divider-muted-color, var(--cds-border-subtle)) 45%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--qg-panel-divider-color, var(--cds-border-subtle-selected)) 55%,
+    transparent
+  );
   color: var(--cds-text-secondary);
 }
 

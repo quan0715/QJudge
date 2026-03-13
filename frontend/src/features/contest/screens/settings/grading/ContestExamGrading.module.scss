@@ -1,10 +1,33 @@
 /* Full-bleed editor shell (used by ContestExamGradingScreen) */
 
 .editorRoot {
+  --qg-panel-divider-strong-color: var(--cds-border-subtle);
+  --qg-panel-divider-color: var(--cds-border-subtle);
+  --qg-panel-divider-muted-color: var(--cds-border-subtle-01);
+
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+:global([data-carbon-theme="g90"]) .editorRoot,
+:global([data-carbon-theme="g100"]) .editorRoot {
+  --qg-panel-divider-strong-color: color-mix(
+    in srgb,
+    var(--cds-text-primary) 34%,
+    transparent
+  );
+  --qg-panel-divider-color: color-mix(
+    in srgb,
+    var(--cds-text-primary) 26%,
+    transparent
+  );
+  --qg-panel-divider-muted-color: color-mix(
+    in srgb,
+    var(--cds-text-primary) 18%,
+    transparent
+  );
 }
 
 .globalToolbar {
@@ -12,7 +35,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
   background: var(--cds-layer-02, var(--cds-layer));
 }
@@ -63,7 +86,7 @@
   justify-content: flex-end;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem 0.75rem;
-  border-top: 1px solid var(--cds-border-subtle-01);
+  border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
 }
 
 .toolbarOverflow :global(.cds--overflow-menu) {
@@ -74,7 +97,7 @@
 .toolbarDivider {
   width: 1px;
   height: 1.25rem;
-  background: var(--cds-border-subtle);
+  background: var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
 }
 

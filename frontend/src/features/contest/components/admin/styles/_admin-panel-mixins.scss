@@ -14,7 +14,7 @@ $pane-header-height: 2.5rem;
   color: var(--cds-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
 }
 
 @mixin pane-header-row {
@@ -22,7 +22,7 @@ $pane-header-height: 2.5rem;
   align-items: center;
   justify-content: space-between;
   min-height: $pane-header-height;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   background: var(--cds-layer-02, var(--cds-layer));
   flex-shrink: 0;
 }
@@ -33,7 +33,7 @@ $pane-header-height: 2.5rem;
   justify-content: space-between;
   padding: 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   transition: background 0.1s;
   font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
 
@@ -75,7 +75,7 @@ $pane-header-height: 2.5rem;
 
 @mixin card-item {
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   cursor: pointer;
   transition: background 0.1s;
   display: flex;
@@ -157,7 +157,7 @@ $pane-header-height: 2.5rem;
 @mixin mini-footer {
   flex-shrink: 0;
   min-height: 2.25rem;
-  border-top: 1px solid var(--cds-border-subtle);
+  border-top: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   background: var(--cds-layer-01);
 }
 
@@ -168,7 +168,7 @@ $pane-header-height: 2.5rem;
   max-height: 2.5rem;
   flex-shrink: 0;
   border: none;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   background: transparent;
   font-size: 0.75rem;
   font-weight: 600;

@@ -43,7 +43,12 @@ interface StudentSummary {
 interface GradingByStudentTabScreenProps {
   answersByStudent: Map<string, GradingAnswerRow[]>;
   questionProgress: QuestionProgress[];
-  students: { studentId: string; username: string; nickname: string }[];
+  students: {
+    studentId: string;
+    username: string;
+    nickname: string;
+    displayName?: string;
+  }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
   searchQuery: string;
   selectedStudentId: string | null;
