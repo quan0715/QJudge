@@ -751,7 +751,6 @@
     "saved": "Saved",
     "nextQuestion": "Next Question",
     "nextStudent": "Next Student",
-    "fullScore": "Full Score",
     "student": "Student",
     "question": "Question",
     "answerContent": "Answer Content",
@@ -814,9 +813,7 @@
     "shortcutSetZero": "set 0",
     "shortcutSetMax": "set max",
     "shortcutCommitAndNext": "save / next step",
-    "filterAll": "All",
-    "filterUngraded": "Ungraded",
-    "filterGraded": "Graded",
+    "all": "All",
     "gradedBy": "Graded by {{name}}",
     "maxScore": "Full Score",
     "objectiveReadonlyHint": "Objective questions are auto-graded. If scores are incorrect, please use the \"Auto-grade objective questions\" button above."
@@ -1247,7 +1244,6 @@
     "noRecords": "No records yet",
     "studentAnswers": "Student Answers",
     "scoreUnit": "{{score}} pts",
-    "notGraded": "Ungraded",
     "notAnswered": "(No answer)"
   },
   "adminLayout": {

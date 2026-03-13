@@ -265,7 +265,7 @@ export default function GradingSplitPanelScreen({
             {t(`common:questionType.label.${answer.questionType}`, answer.questionType)}
           </Tag>
           <Tag type="teal" size="sm">
-            {t("grading.fullScore", "滿分")} {answer.maxScore}
+            {t("grading.maxScore", "滿分")} {answer.maxScore}
           </Tag>
           {answer.gradedBy && (
             <Tag type="green" size="sm">

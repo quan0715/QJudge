@@ -400,6 +400,7 @@
       "prompt": "問題",
       "type": "種別",
       "maxScore": "満点",
+      "status": "ステータス",
       "score": "得点",
       "feedback": "講評"
     }
@@ -750,7 +751,6 @@
     "saved": "保存済み",
     "nextQuestion": "次の問題",
     "nextStudent": "次の学生",
-    "fullScore": "満点",
     "student": "学生",
     "question": "問題",
     "answerContent": "解答内容",
@@ -813,9 +813,7 @@
     "shortcutSetZero": "0点にする",
     "shortcutSetMax": "満点にする",
     "shortcutCommitAndNext": "保存して次へ",
-    "filterAll": "すべて",
-    "filterUngraded": "未採点",
-    "filterGraded": "採点済み",
+    "all": "すべて",
     "gradedBy": "{{name}} が採点",
     "maxScore": "満点",
     "objectiveReadonlyHint": "客観式問題は自動採点されます。スコアに異常がある場合は、上の「客観問題を自動採点」を使用してください。"
@@ -1246,7 +1244,6 @@
     "noRecords": "まだ記録がありません",
     "studentAnswers": "学生の回答",
     "scoreUnit": "{{score}} 点",
-    "notGraded": "未採点",
     "notAnswered": "(未回答)"
   },
   "adminLayout": {

@@ -73,7 +73,7 @@ export interface GlobalStats {
 export type GradingFilter = "all" | "ungraded" | "graded";
 
 export const gradingFilterOptions: { id: GradingFilter; label: string }[] = [
-  { id: "all", get label() { return i18n.t("contest:grading.filterAll", "全部"); } },
-  { id: "ungraded", get label() { return i18n.t("contest:grading.filterUngraded", "未批改"); } },
-  { id: "graded", get label() { return i18n.t("contest:grading.filterGraded", "已批改"); } },
+  { id: "all", get label() { return i18n.t("contest:grading.all", "全部"); } },
+  { id: "ungraded", get label() { return i18n.t("contest:grading.ungraded", "未批改"); } },
+  { id: "graded", get label() { return i18n.t("contest:grading.published", "已發布"); } },
 ];

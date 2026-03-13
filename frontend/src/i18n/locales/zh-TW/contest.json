@@ -348,6 +348,7 @@
       "prompt": "題目",
       "type": "題型",
       "maxScore": "滿分",
+      "status": "狀態",
       "score": "得分",
       "feedback": "評語"
     }
@@ -698,7 +699,6 @@
     "saved": "已儲存",
     "nextQuestion": "下一題",
     "nextStudent": "下一位學生",
-    "fullScore": "滿分",
     "student": "學生",
     "question": "題目",
     "answerContent": "作答內容",
@@ -761,9 +761,7 @@
     "shortcutSetZero": "歸零",
     "shortcutSetMax": "滿分",
     "shortcutCommitAndNext": "儲存/前往下一步",
-    "filterAll": "全部",
-    "filterUngraded": "未批改",
-    "filterGraded": "已批改",
+    "all": "全部",
     "gradedBy": "{{name}} 批改",
     "maxScore": "滿分",
     "objectiveReadonlyHint": "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。"
@@ -1244,7 +1242,6 @@
     "noRecords": "目前尚無作答紀錄",
     "studentAnswers": "學生作答",
     "scoreUnit": "{{score}} 分",
-    "notGraded": "未批改",
     "notAnswered": "(未作答)"
   },
   "adminLayout": {

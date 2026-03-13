@@ -91,7 +91,7 @@ export default function QuestionStatisticsDetail({
                     ? t("statistics.scoreUnit", "{{score}} 分", {
                         score: entry.score,
                       })
-                    : t("statistics.notGraded", "未批改")
+                    : t("grading.ungraded", "未批改")
                 }`}
               >
                 <p style={{ whiteSpace: "pre-wrap", fontSize: "0.875rem" }}>

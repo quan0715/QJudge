@@ -400,6 +400,7 @@
       "prompt": "문제",
       "type": "유형",
       "maxScore": "만점",
+      "status": "상태",
       "score": "점수",
       "feedback": "피드백"
     }
@@ -750,7 +751,6 @@
     "saved": "저장됨",
     "nextQuestion": "다음 문제",
     "nextStudent": "다음 학생",
-    "fullScore": "만점",
     "student": "학생",
     "question": "문제",
     "answerContent": "답안 내용",
@@ -813,9 +813,7 @@
     "shortcutSetZero": "0점 설정",
     "shortcutSetMax": "만점 설정",
     "shortcutCommitAndNext": "저장 / 다음 단계",
-    "filterAll": "전체",
-    "filterUngraded": "미채점",
-    "filterGraded": "채점됨",
+    "all": "전체",
     "gradedBy": "{{name}} 채점",
     "maxScore": "만점",
     "objectiveReadonlyHint": "객관식 문항은 자동 채점됩니다. 점수가 이상할 경우 상단의 '객관식 자동 채점' 버튼을 사용하세요."
@@ -1246,7 +1244,6 @@
     "noRecords": "아직 기록이 없습니다",
     "studentAnswers": "학생 답안",
     "scoreUnit": "{{score}} 점",
-    "notGraded": "미채점",
     "notAnswered": "(답변 없음)"
   },
   "adminLayout": {
