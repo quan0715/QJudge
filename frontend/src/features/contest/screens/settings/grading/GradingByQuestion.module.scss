@@ -86,8 +86,30 @@
 }
 
 .sidebarProgress {
-  @include mixins.sidebar-meta;
-  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.sidebarProgressRing {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebarProgressRingCenter {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  border-radius: 50%;
+  background: var(--cds-layer-02, var(--cds-layer));
+  box-shadow: inset 0 0 0 1px var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
 }
 
 .collapsedPane {

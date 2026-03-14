@@ -183,6 +183,11 @@
 
 .scoreSliderWrap {
   margin-top: 0.125rem;
+  padding: 0.625rem 0.75rem 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
+  background: color-mix(in srgb, var(--cds-layer-01) 92%, var(--cds-layer-02));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cds-layer-02) 70%, transparent);
 }
 
 .shortcutHint {
