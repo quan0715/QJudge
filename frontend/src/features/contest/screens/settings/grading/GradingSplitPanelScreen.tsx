@@ -55,7 +55,6 @@ export default function GradingSplitPanelScreen({
   const [saved, setSaved] = useState(false);
   const scoreInputBufferRef = useRef("");
   const scoreInputBufferTimerRef = useRef<number | null>(null);
-  const advanceTimerRef = useRef<number | null>(null);
   const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
   const maxScore = answer?.maxScore ?? 0;
@@ -81,9 +80,6 @@ export default function GradingSplitPanelScreen({
       if (scoreInputBufferTimerRef.current !== null) {
         window.clearTimeout(scoreInputBufferTimerRef.current);
       }
-      if (advanceTimerRef.current !== null) {
-        window.clearTimeout(advanceTimerRef.current);
-      }
       if (saveCooldownRef.current !== null) {
         window.clearTimeout(saveCooldownRef.current);
       }
@@ -102,33 +98,24 @@ export default function GradingSplitPanelScreen({
     Number.isInteger(value) ? String(value) : value.toFixed(1);
 
   const goNext = useCallback(() => {
-    if (advanceTimerRef.current !== null) {
-      window.clearTimeout(advanceTimerRef.current);
-      advanceTimerRef.current = null;
-    }
-
-    advanceTimerRef.current = window.setTimeout(() => {
-      advanceTimerRef.current = null;
-
-      if (flowMode === "byQuestion") {
-        if (hasNextStudent && onNextStudent) {
-          onNextStudent();
-          return;
-        }
-        if (hasNextQuestion && onNextQuestion) {
-          onNextQuestion();
-        }
-        return;
-      }
-
-      if (hasNextQuestion && onNextQuestion) {
-        onNextQuestion();
-        return;
-      }
+    if (flowMode === "byQuestion") {
       if (hasNextStudent && onNextStudent) {
         onNextStudent();
+        return;
       }
-    }, 120);
+      if (hasNextQuestion && onNextQuestion) {
+        onNextQuestion();
+      }
+      return;
+    }
+
+    if (hasNextQuestion && onNextQuestion) {
+      onNextQuestion();
+      return;
+    }
+    if (hasNextStudent && onNextStudent) {
+      onNextStudent();
+    }
   }, [
     flowMode,
     hasNextQuestion,
@@ -137,10 +124,24 @@ export default function GradingSplitPanelScreen({
     onNextStudent,
   ]);
 
-  const updateScore = (value: number) => {
+  const updateScore = useCallback((value: number) => {
     setScore((prev) => clampScore(value, prev));
     setSaved(false);
-  };
+  }, [maxScore, scoreStep]);
+
+  const handleScoreNumberInputChange = useCallback(
+    (_: unknown, { value }: { value: string | number }) => {
+      updateScore(Number(value));
+    },
+    [updateScore],
+  );
+
+  const handleScoreSliderChange = useCallback(
+    ({ value }: { value?: number | number[] }) => {
+      updateScore(Array.isArray(value) ? value[0] ?? 0 : value ?? 0);
+    },
+    [updateScore],
+  );
 
   const resetScoreBufferTimer = () => {
     if (scoreInputBufferTimerRef.current !== null) {
@@ -228,8 +229,11 @@ export default function GradingSplitPanelScreen({
       saveCooldownRef.current = null;
     }, 350);
     onGrade(answer.id, score, feedback);
+    if (hasNextQuestion || hasNextStudent) {
+      goNext();
+      return;
+    }
     setSaved(true);
-    goNext();
   }, [answer, feedback, goNext, isSubjective, onGrade, score]);
 
   useEffect(() => {
@@ -343,9 +347,7 @@ export default function GradingSplitPanelScreen({
               step={scoreStep}
               size="sm"
               disabled={!isSubjective}
-              onChange={(_: unknown, { value }: { value: string | number }) =>
-                updateScore(Number(value))
-              }
+              onChange={handleScoreNumberInputChange}
               style={{ maxWidth: "140px" }}
             />
             <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
@@ -361,7 +363,7 @@ export default function GradingSplitPanelScreen({
                 step={scoreStep}
                 value={score}
                 hideTextInput
-                onChange={({ value }) => updateScore(value ?? 0)}
+                onChange={handleScoreSliderChange}
               />
             </div>
           ) : null}

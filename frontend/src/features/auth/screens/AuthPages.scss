@@ -176,6 +176,91 @@
   }
 }
 
+/* 學校選擇列表 */
+.auth-school-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  width: 100%;
+  margin-top: $spacing-07;
+}
+
+.auth-school-list-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: $spacing-06;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-01;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0.38, 0.9);
+  border-radius: 4px;
+
+  &__logo-container {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: $spacing-06;
+  }
+
+  &__logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: $spacing-05;
+  }
+
+  &__title {
+    @include type.type-style("heading-01");
+    color: $text-primary;
+    margin: 0;
+  }
+
+  &__desc {
+    @include type.type-style("label-01");
+    color: $text-secondary;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    color: $icon-secondary;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover {
+    background-color: $layer-hover-01;
+    border-color: $border-subtle-selected-01;
+    
+    .auth-school-list-item__arrow {
+      transform: translateX(4px);
+      color: $icon-primary;
+    }
+  }
+
+  &:active {
+    background-color: $layer-selected-01;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .auth-oauth-group {
   display: flex;
   flex-direction: column;

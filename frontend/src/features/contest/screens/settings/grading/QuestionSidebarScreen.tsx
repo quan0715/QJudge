@@ -30,6 +30,12 @@ const QUESTION_TYPE_ICON = {
   essay: Document,
 } as const;
 
+const getProgressRingColor = (progressPercent: number) => {
+  if (progressPercent >= 100) return "var(--cds-support-success)";
+  if (progressPercent > 0) return "var(--cds-support-warning)";
+  return "var(--cds-border-strong)";
+};
+
 function getStatusClass(q: QuestionProgress) {
   if (q.totalAnswers === 0) return mini.statusEmpty;
   if (q.progressPercent === 100 || q.isObjective) return mini.statusDone;
@@ -122,8 +128,19 @@ export default function QuestionSidebarScreen({
                 <TypeIcon size={14} className={styles.sidebarTypeIcon} />
                 <div className={styles.sidebarLabel}>Q{q.questionIndex}</div>
               </div>
-              <span className={styles.sidebarProgress}>
-                {q.gradedCount}/{q.totalAnswers}
+              <span
+                className={styles.sidebarProgress}
+                title={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
+                aria-label={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
+              >
+                <span
+                  className={styles.sidebarProgressRing}
+                  style={{
+                    background: `conic-gradient(${getProgressRingColor(q.progressPercent)} ${q.progressPercent}%, var(--cds-border-strong) ${q.progressPercent}% 100%)`,
+                  }}
+                >
+                  <span className={styles.sidebarProgressRingCenter} />
+                </span>
               </span>
             </div>
           );

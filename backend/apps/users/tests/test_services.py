@@ -154,7 +154,7 @@ class NYCUOAuthServiceTests(TestCase):
         with self.assertRaisesMessage(Exception, "Failed to exchange authorization code"):
             NYCUOAuthService.exchange_code("bad-code", "http://localhost/callback")
 
-    def test_get_or_create_user_updates_existing_oauth_user(self):
+    def test_get_or_create_user_updates_existing_oauth_user_without_overwriting_username(self):
         existing = User.objects.create_user(
             username="legacy-name",
             email="nycu@example.com",
@@ -173,7 +173,7 @@ class NYCUOAuthServiceTests(TestCase):
         existing.refresh_from_db()
 
         self.assertEqual(result.id, existing.id)
-        self.assertEqual(existing.username, "new-name")
+        self.assertEqual(existing.username, "legacy-name")
         self.assertTrue(existing.email_verified)
 
     def test_get_or_create_user_creates_new_user_with_unique_username(self):
@@ -216,6 +216,7 @@ class AccountLinkingTests(TestCase):
 
         self.assertEqual(result.id, existing.id)
         self.assertEqual(existing.auth_provider, "nycu-oauth")
+        self.assertEqual(existing.username, "email-user")
         self.assertTrue(existing.email_verified)
 
     def test_nycu_user_merged_on_github_login(self):
@@ -234,6 +235,7 @@ class AccountLinkingTests(TestCase):
         self.assertEqual(result.id, existing.id)
         self.assertEqual(existing.auth_provider, "github")
         self.assertEqual(existing.oauth_id, "12345")
+        self.assertEqual(existing.username, "nycu-user")
 
     def test_github_user_merged_on_google_login(self):
         """An existing GitHub user logging in via Google gets merged."""
@@ -250,6 +252,7 @@ class AccountLinkingTests(TestCase):
 
         self.assertEqual(result.id, existing.id)
         self.assertEqual(existing.auth_provider, "google")
+        self.assertEqual(existing.username, "gh-user")
 
 
 class OAuthProviderRegistryTests(TestCase):

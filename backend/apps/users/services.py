@@ -214,10 +214,6 @@ class BaseOAuthService(ABC):
                 user.auth_provider = cls.provider_name
                 if oauth_id:
                     user.oauth_id = oauth_id
-                # Update username if changed and available
-                if username and user.username != username:
-                    if not User.objects.filter(username=username).exclude(id=user.id).exists():
-                        user.username = username
                 user.email_verified = True
                 user.save()
                 return user
