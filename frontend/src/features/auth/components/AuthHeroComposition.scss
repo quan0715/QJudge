@@ -1,31 +1,209 @@
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-10px); }
+/* ── Exam mockup window ── */
+.hero-mock {
+  position: relative;
+  width: min(100%, 22rem);
 }
 
-.auth-hero-composition {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.hero-mock__window {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+}
+
+/* Title bar */
+.hero-mock__titlebar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #243bb5;
-  pointer-events: none;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-mock__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.hero-mock__dot--red    { background: #ff5f57; }
+.hero-mock__dot--yellow { background: #febc2e; }
+.hero-mock__dot--green  { background: #28c840; }
+
+.hero-mock__titlebar-text {
+  margin-left: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.3px;
+}
+
+/* Body */
+.hero-mock__body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Progress bar */
+.hero-mock__progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-mock__progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
   overflow: hidden;
 }
 
-.auth-hero-composition__svg-wrap {
-  width: 70%;
-  max-width: 600px;
-  z-index: 2;
-  animation: float 6s ease-in-out infinite;
+.hero-mock__progress-fill {
+  width: 60%;
+  height: 100%;
+  background: #638cff;
+  border-radius: 2px;
 }
 
-.auth-hero-composition__svg {
-  width: 100%;
-  height: auto;
-  display: block;
+.hero-mock__progress-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+}
+
+/* Question */
+.hero-mock__question {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hero-mock__q-badge {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(99, 140, 255, 0.25);
+  color: #a8c0ff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-mock__q-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.hero-mock__line {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hero-mock__line--long { width: 100%; }
+.hero-mock__line--med  { width: 70%; }
+.hero-mock__line--opt  { width: 65%; }
+
+/* Answer options */
+.hero-mock__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-mock__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.hero-mock__option--selected {
+  background: rgba(99, 140, 255, 0.12);
+  border-color: rgba(99, 140, 255, 0.3);
+  color: #a8c0ff;
+}
+
+/* Question nav dots */
+.hero-mock__nav {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.hero-mock__nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hero-mock__nav-dot--done {
+  background: rgba(36, 161, 72, 0.5);
+}
+
+.hero-mock__nav-dot--active {
+  background: #638cff;
+}
+
+/* ── Floating badges ── */
+.hero-mock__badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: badge-float 5s ease-in-out infinite;
+}
+
+.hero-mock__badge--timer {
+  top: -10px;
+  right: -20px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  animation-delay: 0s;
+}
+
+.hero-mock__badge--score {
+  bottom: 28px;
+  left: -24px;
+  background: rgba(99, 140, 255, 0.2);
+  color: #a8c0ff;
+  animation-delay: -1.5s;
+}
+
+.hero-mock__badge--status {
+  bottom: -10px;
+  right: -16px;
+  background: rgba(36, 161, 72, 0.18);
+  color: #42be65;
+  font-size: 11px;
+  animation-delay: -3s;
+}
+
+@keyframes badge-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
 }

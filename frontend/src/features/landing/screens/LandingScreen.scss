@@ -64,6 +64,10 @@
   gap: layout.$spacing-03;
 }
 
+.landing__header-logo-icon {
+  color: var(--cds-link-primary, #4589ff);
+}
+
 .landing__header-logo-text {
   @include type.type-style("heading-02");
   font-weight: 600;
@@ -156,7 +160,96 @@
 }
 
 // ============================================
-// Interactive Showcase
+// Showcase (rewritten)
+// ============================================
+
+.landing__showcase {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: layout.$spacing-10 layout.$spacing-07 layout.$spacing-12;
+}
+
+.landing__showcase-header {
+  text-align: center;
+  margin-bottom: layout.$spacing-07;
+}
+
+.landing__showcase-tabs {
+  display: flex;
+  justify-content: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+  margin-bottom: layout.$spacing-05;
+}
+
+.landing__showcase-tab {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border-radius: 999px;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: transparent;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01, var(--cds-layer-01));
+    border-color: var(--cds-border-interactive, #4589ff);
+    color: var(--cds-text-primary);
+    font-weight: 600;
+  }
+}
+
+.landing__showcase-desc {
+  text-align: center;
+  margin-bottom: layout.$spacing-06;
+
+  p {
+    @include type.type-style("body-long-01");
+    color: var(--cds-text-secondary);
+    margin: 0;
+  }
+}
+
+.landing__showcase-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+.landing__showcase-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  background: var(--cds-layer-02, var(--cds-layer-accent-01));
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.landing__showcase-titlebar-text {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.landing__showcase-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+// ============================================
+// Interactive Showcase (legacy — kept for non-showcase mocks)
 // ============================================
 
 .landing__section--interactive {
@@ -274,8 +367,6 @@
 
 .landing__precise-mock {
   width: 100%;
-  max-width: 800px;
-  height: 480px;
   background: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle-01);
   border-radius: 12px;
@@ -324,6 +415,18 @@
     overflow: hidden;
     position: relative;
   }
+}
+
+.landing__screenshot-content {
+  flex: none;
+  padding: 0;
+  line-height: 0;
+}
+
+.landing__screenshot-img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 // Editor Mock
@@ -1208,6 +1311,57 @@
 
 .landing__hero-visual-panel {
   width: 100%;
+}
+
+.landing__hero-visual-panel--exam {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: layout.$spacing-07;
+
+  /* Override mockup window to adapt to page background */
+  .hero-mock__window {
+    background: var(--cds-layer-01);
+    border-color: var(--cds-border-subtle-01);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+  }
+
+  .hero-mock__titlebar {
+    background: var(--cds-layer-02, var(--cds-layer-accent-01));
+    border-bottom-color: var(--cds-border-subtle-01);
+  }
+
+  .hero-mock__titlebar-text { color: var(--cds-text-secondary); }
+
+  .hero-mock__line,
+  .hero-mock__option {
+    background: var(--cds-layer-02, rgba(0, 0, 0, 0.06));
+  }
+
+  .hero-mock__option { border-color: var(--cds-border-subtle-01); color: var(--cds-text-secondary); }
+  .hero-mock__option--selected {
+    background: var(--cds-highlight, rgba(0, 67, 206, 0.08));
+    border-color: var(--cds-border-interactive, #4589ff);
+    color: var(--cds-link-primary, #4589ff);
+  }
+
+  .hero-mock__q-badge { background: var(--cds-highlight, rgba(0, 67, 206, 0.1)); color: var(--cds-link-primary, #4589ff); }
+  .hero-mock__progress-fill { background: var(--cds-link-primary, #4589ff); }
+  .hero-mock__progress-label { color: var(--cds-text-helper); }
+  .hero-mock__nav-dot { background: var(--cds-border-subtle-01); }
+  .hero-mock__nav-dot--done { background: var(--cds-support-success, #24a148); }
+  .hero-mock__nav-dot--active { background: var(--cds-link-primary, #4589ff); }
+  .hero-mock__editor-header { color: var(--cds-text-secondary); }
+
+  .hero-mock__badge {
+    background: var(--cds-layer-01);
+    border-color: var(--cds-border-subtle-01);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-mock__badge--timer { color: var(--cds-text-primary); }
+  .hero-mock__badge--score { color: var(--cds-link-primary, #4589ff); }
+  .hero-mock__badge--status { color: var(--cds-support-success, #24a148); }
 }
 
 .landing__hero-visual-title {

@@ -25,6 +25,10 @@
       "remaining": "Time Remaining"
     }
   },
+  "seo": {
+    "title": "QJudge | Secure & Stable Online Exam Platform",
+    "description": "QJudge is an online exam and evaluation platform designed for education, supporting 20+ programming languages, diverse question types, and strict anti-cheating monitoring."
+  },
   "modes": {
     "eyebrow": "Diverse Modes",
     "title": "Supports Multiple Contest and Learning Modes",
@@ -63,20 +67,20 @@
     "title": "Deeply Rooted in Every Detail of the Teaching Process",
     "items": {
       "editor": {
-        "label": "Supreme Editing Experience",
-        "desc": "Support for Markdown and LaTeX ensures complex formulas and technical documents are as beautiful as print."
-      },
-      "proctor": {
-        "label": "Comprehensive Proctoring",
-        "desc": "Multi-dimensional violation detection and video evidence establish an unshakeable line of fairness for online exams."
+        "label": "AI-Assisted Question Creation",
+        "desc": "Build and refine exam questions across subjects through AI conversations — from settings to test cases in one go."
       },
       "grading": {
-        "label": "Digital High-Efficiency Grading",
-        "desc": "An intuitive three-column interface and auto-scoring make the tedious work of grading effortless and precise."
+        "label": "Grading & Analytics",
+        "desc": "Visual grade overview to instantly track each student's answers and grading progress per question."
+      },
+      "proctor": {
+        "label": "Anti-Cheating Proctoring",
+        "desc": "Real-time detection of tab switches, window exits and anomalies with automatic warnings and violation logs."
       },
       "stats": {
-        "label": "Intelligent Results Analysis",
-        "desc": "Instantly grasp class score distributions and question difficulty to provide the most valuable teaching feedback."
+        "label": "Exam Interface",
+        "desc": "Clean question list and answer area that keeps students focused on the exam itself."
       }
     }
   },
