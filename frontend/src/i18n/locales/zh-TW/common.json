@@ -236,7 +236,13 @@
       "title": "校園身份驗證",
       "subtitle": "選擇您的學校進行身份驗證登入",
       "redirecting": "正在導向校園驗證頁面...",
-      "backToLogin": "返回登入"
+      "backToLogin": "返回登入",
+      "providers": {
+        "nycu": {
+          "name": "NYCU 國立陽明交通大學",
+          "description": "使用校內 Portal 單一入口帳號進行身份驗證登入"
+        }
+      }
     },
     "register": {
       "title": "建立帳號",

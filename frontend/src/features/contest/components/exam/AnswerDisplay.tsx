@@ -14,21 +14,18 @@ export interface AnswerDisplayProps {
   correctAnswer: unknown;
 }
 
-/** Check whether a given option index is selected by the student. */
 function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
   const selected = answerContent.selected;
   if (Array.isArray(selected)) return selected.includes(idx);
   return selected === idx;
 }
 
-/** Check whether a given option index is a correct answer. */
 function isCorrect(correctAnswer: unknown, idx: number): boolean {
   if (correctAnswer == null) return false;
   if (Array.isArray(correctAnswer)) return correctAnswer.includes(idx);
   return correctAnswer === idx;
 }
 
-/** Format correct answer as label text. */
 function formatCorrectLabel(correctAnswer: unknown, options: string[]): string {
   if (correctAnswer == null) return "";
   if (Array.isArray(correctAnswer)) {
@@ -59,20 +56,18 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
     const text = getTextAnswer(answerContent);
     return (
       <div className={styles.root}>
-        <div className={styles.section}>
+        <div className={styles.group}>
           <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
-          <div className={`${styles.fieldBase} ${styles.answerField}`}>
-            {text ? (
-              <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
-            ) : (
-              <span className={styles.noAnswer}>{t("participantsDashboard.noAnswer", "未作答")}</span>
-            )}
-          </div>
+          {text ? (
+            <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
+          ) : (
+            <span className={styles.noAnswer}>{t("participantsDashboard.noAnswer", "未作答")}</span>
+          )}
         </div>
         {correctAnswer != null && typeof correctAnswer === "string" && (
-          <div className={styles.section}>
+          <div className={`${styles.group} ${styles.reference}`}>
             <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
-            <div className={`${styles.fieldBase} ${styles.referenceField}`}>
+            <div className={styles.referenceText}>
               <MarkdownContent.Simple>{correctAnswer}</MarkdownContent.Simple>
             </div>
           </div>
@@ -91,42 +86,40 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
 
   return (
     <div className={styles.root}>
-      <div className={styles.section}>
-        <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
-        <div className={styles.optionsList}>
-          {options.map((opt, i) => {
-            const selected = isSelected(answerContent, i);
-            const correct = isCorrect(correctAnswer, i);
-            const classNames = [
-              styles.optionItem,
-              selected && correct ? styles.optionSelectedCorrect : "",
-              selected && !correct ? styles.optionSelectedWrong : "",
-              !selected && correct ? styles.optionCorrect : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
+      <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
+      <div className={styles.optionsList}>
+        {options.map((opt, i) => {
+          const selected = isSelected(answerContent, i);
+          const correct = isCorrect(correctAnswer, i);
+          const classNames = [
+            styles.optionItem,
+            selected && correct ? styles.optionSelectedCorrect : "",
+            selected && !correct ? styles.optionSelectedWrong : "",
+            !selected && correct ? styles.optionCorrect : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
-            return (
-              <div key={i} className={classNames}>
-                <span>
-                  {String.fromCharCode(65 + i)}. {opt}
-                </span>
-                {correct && <Checkmark size={16} className={styles.correctIcon} />}
-              </div>
-            );
-          })}
-        </div>
-        {correctAnswer != null && (
-          <div className={`${styles.correctAnswerLine} ${styles.referenceInline}`}>
-            <span className={styles.correctAnswerLabel}>
-              {t("grading.correctAnswer", "正確答案")}:
-            </span>
-            <span className={styles.correctAnswerText}>
-              {formatCorrectLabel(correctAnswer, options)}
-            </span>
-          </div>
-        )}
+          return (
+            <div key={i} className={classNames}>
+              <span>
+                {String.fromCharCode(65 + i)}. {opt}
+              </span>
+              {correct && <Checkmark size={16} className={styles.correctIcon} />}
+            </div>
+          );
+        })}
       </div>
+      {correctAnswer != null && (
+        <div className={styles.correctSummary}>
+          <span className={styles.correctLabel}>
+            {t("grading.correctAnswer", "正確答案")}:
+          </span>
+          <span className={styles.correctValue}>
+            {formatCorrectLabel(correctAnswer, options)}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

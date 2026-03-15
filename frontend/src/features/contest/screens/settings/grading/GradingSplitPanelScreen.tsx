@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, NumberInput, Slider, TextArea, Tag } from "@carbon/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
   Boolean as BooleanIcon,
@@ -57,9 +57,13 @@ export default function GradingSplitPanelScreen({
   const scoreInputBufferTimerRef = useRef<number | null>(null);
   const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
   const maxScore = answer?.maxScore ?? 0;
   const isSubjective = answer ? isSubjectiveType(answer.questionType) : false;
   const scoreStep = isSubjective ? 0.5 : 1;
+
+  // ── Lifecycle ──
 
   useEffect(() => {
     if (answer) {
@@ -77,19 +81,17 @@ export default function GradingSplitPanelScreen({
 
   useEffect(() => {
     return () => {
-      if (scoreInputBufferTimerRef.current !== null) {
+      if (scoreInputBufferTimerRef.current !== null)
         window.clearTimeout(scoreInputBufferTimerRef.current);
-      }
-      if (saveCooldownRef.current !== null) {
+      if (saveCooldownRef.current !== null)
         window.clearTimeout(saveCooldownRef.current);
-      }
     };
   }, []);
 
+  // ── Helpers ──
+
   const clampScore = (value: number, fallback = 0) => {
-    if (!Number.isFinite(value)) {
-      return fallback;
-    }
+    if (!Number.isFinite(value)) return fallback;
     const rounded = Math.round(value / scoreStep) * scoreStep;
     return Math.max(0, Math.min(maxScore, rounded));
   };
@@ -99,54 +101,74 @@ export default function GradingSplitPanelScreen({
 
   const goNext = useCallback(() => {
     if (flowMode === "byQuestion") {
-      if (hasNextStudent && onNextStudent) {
-        onNextStudent();
-        return;
-      }
-      if (hasNextQuestion && onNextQuestion) {
-        onNextQuestion();
-      }
+      if (hasNextStudent && onNextStudent) { onNextStudent(); return; }
+      if (hasNextQuestion && onNextQuestion) { onNextQuestion(); }
       return;
     }
-
-    if (hasNextQuestion && onNextQuestion) {
-      onNextQuestion();
-      return;
-    }
-    if (hasNextStudent && onNextStudent) {
-      onNextStudent();
-    }
-  }, [
-    flowMode,
-    hasNextQuestion,
-    hasNextStudent,
-    onNextQuestion,
-    onNextStudent,
-  ]);
+    if (hasNextQuestion && onNextQuestion) { onNextQuestion(); return; }
+    if (hasNextStudent && onNextStudent) { onNextStudent(); }
+  }, [flowMode, hasNextQuestion, hasNextStudent, onNextQuestion, onNextStudent]);
 
   const updateScore = useCallback((value: number) => {
     setScore((prev) => clampScore(value, prev));
     setSaved(false);
   }, [maxScore, scoreStep]);
 
-  const handleScoreNumberInputChange = useCallback(
-    (_: unknown, { value }: { value: string | number }) => {
-      updateScore(Number(value));
-    },
-    [updateScore],
-  );
+  // ── Slider pointer handling ──
 
-  const handleScoreSliderChange = useCallback(
-    ({ value }: { value?: number | number[] }) => {
-      updateScore(Array.isArray(value) ? value[0] ?? 0 : value ?? 0);
-    },
-    [updateScore],
-  );
+  const getValueFromPosition = useCallback((clientX: number) => {
+    const pill = pillRef.current;
+    if (!pill || maxScore <= 0) return 0;
+    const rect = pill.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const raw = ratio * maxScore;
+    const rounded = Math.round(raw / scoreStep) * scoreStep;
+    return Math.max(0, Math.min(maxScore, rounded));
+  }, [maxScore, scoreStep]);
+
+  const handleSliderPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSubjective) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDraggingRef.current = true;
+    updateScore(getValueFromPosition(e.clientX));
+  }, [isSubjective, getValueFromPosition, updateScore]);
+
+  const handleSliderPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    updateScore(getValueFromPosition(e.clientX));
+  }, [getValueFromPosition, updateScore]);
+
+  const handleSliderPointerUp = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
+  // ── Tick marks ──
+
+  /** Tick marks — labels (integers) + inner lines (every scoreStep). */
+  const tickLabels = useMemo(() => {
+    if (maxScore <= 0) return [0];
+    const step = maxScore <= 10 ? 1 : maxScore <= 20 ? 2 : 5;
+    const result: number[] = [];
+    for (let i = 0; i <= maxScore; i += step) result.push(i);
+    if (result[result.length - 1] !== maxScore) result.push(maxScore);
+    return result;
+  }, [maxScore]);
+
+  const tickLines = useMemo(() => {
+    if (maxScore <= 0) return [];
+    const result: number[] = [];
+    for (let i = scoreStep; i < maxScore; i += scoreStep) {
+      result.push(i);
+    }
+    return result;
+  }, [maxScore, scoreStep]);
+
+  // ── Keyboard shortcuts ──
 
   const resetScoreBufferTimer = () => {
-    if (scoreInputBufferTimerRef.current !== null) {
+    if (scoreInputBufferTimerRef.current !== null)
       window.clearTimeout(scoreInputBufferTimerRef.current);
-    }
     scoreInputBufferTimerRef.current = window.setTimeout(() => {
       scoreInputBufferRef.current = "";
       scoreInputBufferTimerRef.current = null;
@@ -154,39 +176,23 @@ export default function GradingSplitPanelScreen({
   };
 
   useEffect(() => {
-    if (!answer || !isSubjective) {
-      return;
-    }
-
+    if (!answer || !isSubjective) return;
     const handleScoreKeyboardShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" || target.isContentEditable)
+      ) return;
 
       const key = event.key;
       if (key === "ArrowUp" || key === "ArrowRight" || key === "+" || key === "=") {
-        event.preventDefault();
-        updateScore(score + scoreStep);
-        return;
+        event.preventDefault(); updateScore(score + scoreStep); return;
       }
-
       if (key === "ArrowDown" || key === "ArrowLeft" || key === "-" || key === "_") {
-        event.preventDefault();
-        updateScore(score - scoreStep);
-        return;
+        event.preventDefault(); updateScore(score - scoreStep); return;
       }
-
       if (/^[0-9]$/.test(key)) {
         event.preventDefault();
         const nextBuffer = `${scoreInputBufferRef.current}${key}`.replace(/^0+(?=\d)/, "");
@@ -206,82 +212,45 @@ export default function GradingSplitPanelScreen({
         resetScoreBufferTimer();
       }
     };
-
     window.addEventListener("keydown", handleScoreKeyboardShortcut);
-    return () => {
-      window.removeEventListener("keydown", handleScoreKeyboardShortcut);
-    };
+    return () => window.removeEventListener("keydown", handleScoreKeyboardShortcut);
   }, [answer, isSubjective, maxScore, score, scoreStep]);
 
+  // ── Save / Next ──
+
   const handleSave = useCallback(() => {
-    if (!answer || !isSubjective) {
-      return;
-    }
-    if (saveLockedRef.current) {
-      return;
-    }
+    if (!answer || !isSubjective) return;
+    if (saveLockedRef.current) return;
     saveLockedRef.current = true;
-    if (saveCooldownRef.current !== null) {
-      window.clearTimeout(saveCooldownRef.current);
-    }
+    if (saveCooldownRef.current !== null) window.clearTimeout(saveCooldownRef.current);
     saveCooldownRef.current = window.setTimeout(() => {
       saveLockedRef.current = false;
       saveCooldownRef.current = null;
     }, 350);
     onGrade(answer.id, score, feedback);
-    if (hasNextQuestion || hasNextStudent) {
-      goNext();
-      return;
-    }
+    if (hasNextQuestion || hasNextStudent) { goNext(); return; }
     setSaved(true);
   }, [answer, feedback, goNext, isSubjective, onGrade, score]);
 
   useEffect(() => {
-    if (!answer) {
-      return;
-    }
-
+    if (!answer) return;
     const handleEnterShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
-        return;
-      }
-      if (event.key !== "Enter") {
-        return;
-      }
-
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.key !== "Enter") return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" || target.isContentEditable)
+      ) return;
       event.preventDefault();
-      if (isSubjective) {
-        handleSave();
-      } else {
-        goNext();
-      }
+      if (isSubjective) { handleSave(); } else { goNext(); }
     };
-
     window.addEventListener("keydown", handleEnterShortcut);
-    return () => {
-      window.removeEventListener("keydown", handleEnterShortcut);
-    };
-  }, [
-    answer,
-    isSubjective,
-    flowMode,
-    hasNextQuestion,
-    hasNextStudent,
-    onNextQuestion,
-    onNextStudent,
-    handleSave,
-  ]);
+    return () => window.removeEventListener("keydown", handleEnterShortcut);
+  }, [answer, isSubjective, flowMode, hasNextQuestion, hasNextStudent, onNextQuestion, onNextStudent, handleSave]);
+
+  // ── Render ──
 
   if (!answer) {
     return (
@@ -292,6 +261,8 @@ export default function GradingSplitPanelScreen({
       </div>
     );
   }
+
+  const scorePct = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
   return (
     <div className={styles.panel}>
@@ -314,19 +285,13 @@ export default function GradingSplitPanelScreen({
         )}
       </div>
 
-      <div className={styles.panelContent}>
-        <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>{t("grading.student", "學生")}</span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-            {answer.studentNickname} ({answer.studentUsername})
-          </span>
-        </div>
+      <div className={styles.panelBody}>
+        <span className={styles.studentLine}>
+          {answer.studentNickname} ({answer.studentUsername})
+        </span>
 
-        <div className={styles.panelSection}>
-          <span className={styles.panelLabel}>{t("grading.question", "題目")}</span>
-          <div className={styles.panelPrompt}>
-            <MarkdownContent.Problem>{answer.questionPrompt}</MarkdownContent.Problem>
-          </div>
+        <div className={styles.questionPrompt}>
+          <MarkdownContent.Problem>{answer.questionPrompt}</MarkdownContent.Problem>
         </div>
 
         <AnswerDisplay
@@ -336,52 +301,52 @@ export default function GradingSplitPanelScreen({
           correctAnswer={answer.correctAnswer}
         />
 
-        <div className={styles.panelSection}>
-          <div className={styles.scoreRow}>
-            <NumberInput
-              id="panel-score"
-              label={t("grading.score", "分數")}
-              value={score}
-              min={0}
-              max={maxScore}
-              step={scoreStep}
-              size="sm"
-              disabled={!isSubjective}
-              onChange={handleScoreNumberInputChange}
-              style={{ maxWidth: "140px" }}
-            />
-            <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
-          </div>
-          {isSubjective ? (
-            <div className={styles.scoreSliderWrap}>
-              <Slider
-                id={`subjective-score-${answer.id}`}
-                labelText={t("grading.score", "分數")}
-                hideLabel
-                min={0}
-                max={maxScore}
-                step={scoreStep}
-                value={score}
-                hideTextInput
-                onChange={handleScoreSliderChange}
-              />
+        <hr className={styles.divider} />
+
+        {isSubjective ? (
+          <>
+            <div className={styles.sliderRow}>
+              <div className={styles.sliderArea}>
+                <div
+                  className={styles.sliderPill}
+                  ref={pillRef}
+                  onPointerDown={handleSliderPointerDown}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                >
+                  {tickLines.map((v) => (
+                    <span
+                      key={v}
+                      className={Number.isInteger(v) ? styles.tickLineMajor : styles.tickLine}
+                      style={{ left: `${(v / maxScore) * 100}%` }}
+                    />
+                  ))}
+                  <div
+                    className={styles.sliderFill}
+                    style={{ width: `max(1.5rem, ${scorePct}%)` }}
+                  >
+                    <span className={styles.sliderValue}>{formatScore(score)}</span>
+                  </div>
+                </div>
+                <div className={styles.sliderTicks}>
+                  {tickLabels.map((v) => (
+                    <span
+                      key={v}
+                      className={styles.tick}
+                      style={{ left: `${maxScore > 0 ? (v / maxScore) * 100 : 0}%` }}
+                    >
+                      {formatScore(v)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <span className={styles.sliderMaxOuter}>/ {formatScore(maxScore)}</span>
             </div>
-          ) : null}
-          {!isSubjective ? (
-            <p className={styles.shortcutHint}>
-              {t(
-                "grading.objectiveReadonlyHint",
-                "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
-              )}
-            </p>
-          ) : (
+
             <div className={styles.shortcutHint}>
-              <span>{t("grading.shortcutPrefix", "快捷鍵")}</span>
               <span className={styles.shortcutGroup}>
                 <kbd className={styles.keyCap}>↑</kbd>
                 <kbd className={styles.keyCap}>↓</kbd>
-                <kbd className={styles.keyCap}>+</kbd>
-                <kbd className={styles.keyCap}>-</kbd>
                 <span>{t("grading.shortcutAdjust", "調整分數")}</span>
               </span>
               <span className={styles.shortcutGroup}>
@@ -393,22 +358,33 @@ export default function GradingSplitPanelScreen({
                 <span>{t("grading.shortcutCommitAndNext", "儲存/前往下一步")}</span>
               </span>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.scoreReadonly}>
+              <span className={styles.scoreValue}>{formatScore(score)}</span>
+              <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
+            </div>
+            <p className={styles.readonlyHint}>
+              {t(
+                "grading.objectiveReadonlyHint",
+                "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
+              )}
+            </p>
+          </>
+        )}
 
-        <div className={styles.panelSection}>
-          <TextArea
-            id="panel-feedback"
-            labelText={t("grading.feedback", "評語（選填）")}
-            value={feedback}
-            disabled={!isSubjective}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-              setFeedback(e.target.value);
-              setSaved(false);
-            }}
-            rows={3}
-          />
-        </div>
+        <TextArea
+          id="panel-feedback"
+          labelText={t("grading.feedback", "評語（選填）")}
+          value={feedback}
+          disabled={!isSubjective}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setFeedback(e.target.value);
+            setSaved(false);
+          }}
+          rows={3}
+        />
 
         <div className={styles.panelActions}>
           {hasNextQuestion && (

@@ -236,7 +236,13 @@
       "title": "Campus Authentication",
       "subtitle": "Select your university to login",
       "redirecting": "Redirecting to campus login...",
-      "backToLogin": "Back to login"
+      "backToLogin": "Back to login",
+      "providers": {
+        "nycu": {
+          "name": "NYCU (National Yang Ming Chiao Tung University)",
+          "description": "Log in using your university portal account"
+        }
+      }
     },
     "register": {
       "title": "Create Account",

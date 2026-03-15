@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { Loading, Button } from '@carbon/react';
-import { ArrowLeft, Login } from '@carbon/icons-react';
+import { Login } from '@carbon/icons-react';
 import { useTranslation } from 'react-i18next';
 import { oauthCallback, resolveConflict } from "@/infrastructure/api/repositories/auth.repository";
+import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
 
 type CallbackState = 'loading' | 'error' | 'conflict';
 
@@ -25,6 +26,26 @@ const OAuthCallbackPage = () => {
   const [error, setError] = useState(initialError);
   const [conflictToken, setConflictToken] = useState<string>("");
   const [resolving, setResolving] = useState(false);
+
+  // Dynamic header metadata
+  const metadata = useMemo(() => {
+    if (state === 'loading') {
+      return {
+        title: t("auth.callback.loading"),
+        subtitle: t("auth.callback.loadingDesc"),
+        backTo: '/login',
+      };
+    }
+    return {
+      title: state === 'conflict'
+        ? t("auth.callback.conflictTitle", "考試衝突")
+        : t("auth.callback.errorTitle", "登入失敗"),
+      subtitle: error,
+      backTo: '/login',
+    };
+  }, [state, error, t]);
+
+  useAuthLayoutMetadata(metadata);
 
   useEffect(() => {
     if (initialError || !code) return;
@@ -88,48 +109,26 @@ const OAuthCallbackPage = () => {
     return (
       <div className="auth-callback">
         <Loading withOverlay={false} small={false} />
-        <h2 className="auth-callback__title">
-          {t("auth.callback.loading", "正在驗證身份")}
-        </h2>
-        <p className="auth-callback__desc">
-          {t("auth.callback.loadingDesc", "正在取得您的學生資訊，請稍候...")}
-        </p>
       </div>
     );
   }
 
   return (
-    <>
-      <Link to="/login" className="auth-back-link">
-        <ArrowLeft size={16} />
-        {t("auth.campusSso.backToLogin", "返回登入")}
-      </Link>
-
-      <div className="auth-header">
-        <h1 className="auth-title">
-          {state === 'conflict'
-            ? t("auth.callback.conflictTitle", "考試衝突")
-            : t("auth.callback.errorTitle", "登入失敗")}
-        </h1>
-        <p className="auth-subtitle">{error}</p>
-      </div>
-
-      <div className="auth-form">
-        {state === 'conflict' && (
-          <Button
-            kind="danger"
-            renderIcon={Login}
-            className="auth-submit-btn"
-            onClick={handleTakeover}
-            disabled={resolving}
-          >
-            {resolving
-              ? t("auth.callback.takingOver", "處理中...")
-              : t("auth.callback.takeover", "接管並鎖定舊裝置")}
-          </Button>
-        )}
-      </div>
-    </>
+    <div className="auth-form">
+      {state === 'conflict' && (
+        <Button
+          kind="danger"
+          renderIcon={Login}
+          className="auth-submit-btn"
+          onClick={handleTakeover}
+          disabled={resolving}
+        >
+          {resolving
+            ? t("auth.callback.takingOver", "處理中...")
+            : t("auth.callback.takeover", "接管並鎖定舊裝置")}
+        </Button>
+      )}
+    </div>
   );
 };
 

@@ -220,6 +220,18 @@
       "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
       "oauthFailed": "ログインを開始できませんでした"
     },
+    "campusSso": {
+      "title": "キャンパス認証",
+      "subtitle": "ログインする大学を選択してください",
+      "redirecting": "ログインページにリダイレクト中...",
+      "backToLogin": "ログインに戻る",
+      "providers": {
+        "nycu": {
+          "name": "NYCU (国立陽明交通大学)",
+          "description": "大学のポータルアカウントを使用してログインします"
+        }
+      }
+    },
     "register": {
       "title": "アカウント作成",
       "subtitle": "QJudgeに参加して、プログラミングの旅を始めましょう",
