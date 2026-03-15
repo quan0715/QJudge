@@ -3,139 +3,178 @@
 @use "@carbon/react/scss/type";
 
 .auth-split-wrapper {
-  display: flex;
   min-height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
   background-color: $background;
+  overflow: hidden;
 }
 
-/* 左側封面區 */
+.auth-split-grid {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .auth-hero-side {
-  flex: 1;
+  display: none;
+  min-height: 100%;
   position: relative;
-  background-color: #243bb5; 
-  /* 新增徑向漸層增加深度感 */
-  background-image: radial-gradient(circle at 30% 50%, #2d4bd1 0%, #243bb5 100%);
-  display: none; /* 行動端隱藏 */
-
-  @media (min-width: 42rem) {
-    display: flex;
-    flex-direction: column;
-  }
+  overflow: hidden;
+  isolation: isolate;
+  background-color: #233eac;
+  background-image: linear-gradient(180deg, #4a66dd 0%, #233eac 100%);
 }
 
-.auth-hero-content {
+/* subtle grid background — evokes a test sheet / digital exam feel */
+.auth-hero-side::before {
+  content: "";
   position: absolute;
-  top: $spacing-10;
-  left: $spacing-09;
-  z-index: 10;
-  color: #ffffff;
-
-  .auth-hero-title {
-    @include type.type-style("heading-05"); /* 從 heading-06 縮小，降低跑版風險 */
-    font-weight: 400;
-    margin-bottom: $spacing-06; /* 增加間距，提升呼吸感 */
-    /* 加入微弱陰影提升文字層次 */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    white-space: pre-wrap; /* 支援翻譯檔中的換行符號 */
-  }
-
-  .auth-hero-subtitle {
-    @include type.type-style("body-long-02"); /* 從 heading-03 縮小為長文本樣式 */
-    font-weight: 400;
-    opacity: 0.85;
-    max-width: 420px;
-    line-height: 1.6;
-  }
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
 }
 
-/* 底部功能特點 */
-.auth-hero-features {
+/* soft vignette to keep focus on center content */
+.auth-hero-side::after {
+  content: "";
   position: absolute;
-  bottom: $spacing-09;
-  left: 0;
-  width: 100%;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(15, 23, 60, 0.55) 100%);
+}
+
+.auth-hero-logo {
+  position: absolute;
+  top: $spacing-06;
+  left: $spacing-07;
+  z-index: 2;
   display: flex;
-  justify-content: center;
-  gap: $spacing-10; /* 縮小間距，讓功能點更向中心插圖靠攏 */
-  padding: 0 $spacing-09;
-  z-index: 10;
+  align-items: center;
+  gap: $spacing-03;
+}
 
-  .feature-item {
-    text-align: center;
-    color: #ffffff;
-    
-    .feature-title {
-      @include type.type-style("heading-01");
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    
-    .feature-desc {
-      @include type.type-style("label-01");
-      opacity: 0.6;
-    }
+.auth-hero-logo__icon {
+  color: #a8c0ff;
+}
+
+.auth-hero-logo__text {
+  @include type.type-style("heading-03");
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+@media (min-width: 66rem) {
+  .auth-split-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  }
+
+  .auth-hero-side {
+    display: block;
   }
 }
 
-/* 右側表單區 */
-.auth-form-side {
-  flex: 1;
+.auth-hero-shell {
+  min-height: 100vh;
+  max-width: min(100%, 36rem);
+  margin-inline: auto;
+  padding: clamp(3rem, 6vh, 5rem) clamp(2rem, 5vw, 4rem);
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: $spacing-07;
+  text-align: center;
+}
+
+.auth-hero-content {
+  color: #ffffff;
+  max-width: 28rem;
+}
+
+.auth-hero-title,
+.auth-title {
+  @include type.type-style("heading-05");
+  font-weight: 400;
+  margin-bottom: $spacing-02;
+}
+
+.auth-hero-title {
+  color: #ffffff;
+  margin-bottom: $spacing-04;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.5px;
+}
+
+.auth-hero-subtitle,
+.auth-subtitle {
+  @include type.type-style("body-long-02");
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.auth-hero-subtitle {
+  color: #ffffff;
+  opacity: 0.8;
+  max-width: 31rem;
+}
+
+@media (max-width: 81.99rem) {
+  .auth-hero-content {
+    max-width: 24rem;
+  }
+
+  .auth-hero-subtitle {
+    max-width: 24rem;
+  }
+}
+
+.auth-form-side {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
   background-color: $background;
-  margin: 0;
   position: relative;
   overflow-y: auto;
 }
 
 .auth-toolbar {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: $spacing-05;
+  right: clamp(1rem, 4vw, 3rem);
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: $spacing-04;
-  padding: $spacing-05 $spacing-07;
   z-index: 10;
+}
+
+.auth-form-shell {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(4rem, 6vh, 5rem) clamp(2rem, 5vw, 4rem);
 }
 
 .auth-form-inner {
   width: 100%;
-  max-width: 480px;
-  /* 固定 padding-top 讓所有頁面 title 從同一 Y 位置開始 */
-  padding: 12vh $spacing-07 $spacing-10;
-
-  /* 強制表單內所有 Carbon 組件寬度對齊 */
-  .auth-form,
-  .cds--form-item,
-  .cds--text-input-wrapper,
-  .cds--password-input-wrapper,
-  .auth-submit-btn,
-  .auth-oauth-btn,
-  .auth-divider {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
+  max-width: 26rem;
 }
 
 .auth-header {
-  margin-bottom: $spacing-08;
+  margin-bottom: $spacing-05;
 
   .auth-title {
-    @include type.type-style("heading-05");
-    font-weight: 400;
     color: $text-primary;
-    margin-bottom: $spacing-03;
   }
 
   .auth-subtitle {
-    @include type.type-style("body-short-01");
     color: $text-secondary;
   }
 }
@@ -143,22 +182,35 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: $spacing-06;
+  gap: $spacing-04;
+  width: 100%;
+
+  > * {
+    width: 100%;
+  }
+}
+
+.auth-actions,
+.auth-divider,
+.auth-oauth-group,
+.auth-school-list,
+.auth-submit-btn {
+  width: 100%;
 }
 
 .auth-submit-btn {
-  height: 48px;
   width: 100%;
   max-width: 100%;
+  min-height: 48px;
 }
 
 .auth-divider {
   position: relative;
   text-align: center;
-  margin: $spacing-07 0;
+  margin: $spacing-05 0;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: 0;
@@ -176,12 +228,11 @@
   }
 }
 
-/* 學校選擇列表 */
+/* 學校選擇列表 - 補回並修正跑版 */
 .auth-school-list {
   display: flex;
   flex-direction: column;
   gap: $spacing-05;
-  width: 100%;
   margin-top: $spacing-07;
 }
 
@@ -206,6 +257,7 @@
     justify-content: center;
     flex-shrink: 0;
     margin-right: $spacing-06;
+    overflow: hidden;
   }
 
   &__logo {
@@ -226,6 +278,7 @@
     @include type.type-style("heading-01");
     color: $text-primary;
     margin: 0;
+    font-weight: 600;
   }
 
   &__desc {
@@ -233,6 +286,7 @@
     color: $text-secondary;
     margin: 0;
     line-height: 1.4;
+    opacity: 0.8;
   }
 
   &__arrow {
@@ -264,8 +318,7 @@
 .auth-oauth-group {
   display: flex;
   flex-direction: column;
-  gap: $spacing-04;
-  width: 100%;
+  gap: $spacing-03;
 }
 
 .auth-oauth-btn {
@@ -273,8 +326,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  width: 100%;
-  min-height: 56px;
+  min-height: 44px;
   padding: 0 $spacing-05;
   background-color: $layer-01;
   color: $text-primary;
@@ -284,7 +336,7 @@
 
   &__icon {
     flex-shrink: 0;
-    width: 24px;
+    width: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -293,11 +345,12 @@
   &__label {
     flex: 1;
     text-align: center;
-    @include type.type-style("body-short-01");
+    @include type.type-style("label-01");
   }
 
   &__arrow {
     flex-shrink: 0;
+    width: 16px;
     color: $icon-secondary;
   }
 
@@ -309,16 +362,11 @@
   &--sso {
     background-color: $layer-hover-01;
   }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: $spacing-09;
+  margin-top: $spacing-06;
   color: $text-secondary;
 
   .auth-link {
@@ -347,26 +395,33 @@
   @include type.type-style("label-01");
 }
 
-/* OAuth callback loading state */
 .auth-callback {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  justify-content: center;
+  min-height: clamp(18rem, 40vh, 24rem);
   gap: $spacing-05;
-  /* 抵消 auth-form-inner 的 padding-top，讓 spinner 垂直居中 */
-  margin-top: 20vh;
+  text-align: left;
 
   &__title {
     @include type.type-style("heading-04");
     color: $text-primary;
-    margin-top: $spacing-05;
   }
 
   &__desc {
     @include type.type-style("body-short-01");
     color: $text-secondary;
-    max-width: 280px;
+    max-width: 18rem;
     line-height: 1.5;
+  }
+}
+
+@media (max-width: 65.99rem) {
+  .auth-form-shell {
+    padding-top: clamp(4rem, 8vh, 6rem);
+  }
+
+  .auth-toolbar {
+    right: $spacing-05;
   }
 }

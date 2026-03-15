@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useState, useMemo } from "react";
-import { Button, Grid, Column, Tag, TextInput, TextArea } from "@carbon/react";
+import { Helmet } from "react-helmet-async";
+import { Button, Grid, Column, Tag } from "@carbon/react";
 import {
   ArrowRight,
   Chat,
@@ -15,16 +16,11 @@ import {
   Education,
   ChartLine,
   Result,
-  WarningAlt,
-  Play,
   Screen,
   Switcher,
   Cursor_1,
   Copy,
-  Paste,
   CheckmarkFilled,
-  Activity,
-  UserFilled,
   Camera,
   Microphone,
   FaceActivated,
@@ -32,22 +28,20 @@ import {
   Home,
   Group,
   WatsonxAi,
-  WarningFilled,
   Folder,
   Light,
   Asleep,
+  TaskComplete,
 } from "@carbon/icons-react";
-import MatrixBackground from "@/features/auth/components/MatrixBackground";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import LandingFeatureCard from "@/features/landing/components/LandingFeatureCard";
-import LandingHeroUiMock from "@/features/landing/components/LandingHeroUiMock";
+import AuthHeroComposition from "@/features/auth/components/AuthHeroComposition";
 import LandingMiniJudgeSection from "@/features/landing/components/LandingMiniJudgeSection";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
 import { TextModeSwitcher, type TextModeOption } from '@/shared/ui/navigation/TextModeSwitcher';
 import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
-import { AreaChart, DonutChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import "./LandingScreen.scss";
 
@@ -70,11 +64,9 @@ const LandingScreen = () => {
   const { t } = useTranslation(["landing", "common"]);
   const { theme, preference, setPreference } = useTheme();
   const { contentLanguage, setContentLanguage } = useContentLanguage();
-  const [activeInteractive, setActiveInteractive] = useState("editor");
+  const [activeInteractive, setActiveInteractive] = useState("ai-create");
   
-  const matrixVariant = theme === "g100" || theme === "g90" ? "dark" : "light";
-  const landingThemeClass = matrixVariant === "light" ? "landing--light" : "landing--dark";
-  const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
+  const landingThemeClass = theme === "g100" || theme === "g90" ? "landing--dark" : "landing--light";
 
   const langOptions = useMemo<TextModeOption<SupportedLanguage>[]>(
     () =>
@@ -90,13 +82,6 @@ const LandingScreen = () => {
 
   const handleSignIn = () => navigate("/login");
   const handleDocs = () => navigate("/docs");
-  const handleRegister = () => navigate("/register");
-
-  const heroSignals = [
-    t("hero.signal.realtime", { defaultValue: "即時評測" }),
-    t("hero.signal.sandbox", { defaultValue: "沙盒執行" }),
-    t("hero.signal.report", { defaultValue: "詳細報告" }),
-  ];
 
   const features = [
     {
@@ -138,26 +123,11 @@ const LandingScreen = () => {
   ];
 
   const interactiveItems = [
-    { id: "editor", icon: <Code size={20} />, label: t("interactive.items.editor.label"), desc: t("interactive.items.editor.desc") },
-    { id: "proctor", icon: <Security size={20} />, label: t("interactive.items.proctor.label"), desc: t("interactive.items.proctor.desc") },
-    { id: "grading", icon: <Result size={20} />, label: t("interactive.items.grading.label"), desc: t("interactive.items.grading.desc") },
-    { id: "stats", icon: <ChartLine size={20} />, label: t("interactive.items.stats.label"), desc: t("interactive.items.stats.desc") },
+    { id: "ai-create", icon: <Code size={20} />, label: t("interactive.items.editor.label", { defaultValue: "AI 輔助出題" }), desc: t("interactive.items.editor.desc", { defaultValue: "AI 輔助各科考試題目建立與修改" }), img: "/illustrations/showcase-ai-create.png" },
+    { id: "grading", icon: <Result size={20} />, label: t("interactive.items.grading.label", { defaultValue: "批改與分析" }), desc: t("interactive.items.grading.desc", { defaultValue: "考試結果批改與分析" }), img: "/illustrations/showcase-grading.png" },
+    { id: "proctor", icon: <Security size={20} />, label: t("interactive.items.proctor.label", { defaultValue: "監考防弊" }), desc: t("interactive.items.proctor.desc", { defaultValue: "全方位監考防弊" }), img: "/illustrations/showcase-proctor.png" },
+    { id: "exam-ui", icon: <Education size={20} />, label: t("interactive.items.stats.label", { defaultValue: "考試介面" }), desc: t("interactive.items.stats.desc", { defaultValue: "直觀、不失焦的考試作答畫面" }), img: "/illustrations/showcase-exam-ui.png" },
   ];
-
-  const donutData = useMemo(() => [
-    { group: "A (90-100)", value: 25 },
-    { group: "B (80-89)", value: 40 },
-    { group: "C (70-79)", value: 20 },
-    { group: "D (Below 70)", value: 15 },
-  ], []);
-
-  const areaData = useMemo(() => [
-    { group: "Avg Score", date: "2024-03-01T00:00:00.000Z", value: 62 },
-    { group: "Avg Score", date: "2024-03-02T00:00:00.000Z", value: 68 },
-    { group: "Avg Score", date: "2024-03-03T00:00:00.000Z", value: 65 },
-    { group: "Avg Score", date: "2024-03-04T00:00:00.000Z", value: 78 },
-    { group: "Avg Score", date: "2024-03-05T00:00:00.000Z", value: 82 },
-  ], []);
 
   const proctorGrid = [
     { icon: <Screen size={24} />, label: "全螢幕鎖定" },
@@ -350,9 +320,38 @@ const LandingScreen = () => {
 
   return (
     <div className={`landing ${landingThemeClass}`}>
+      <Helmet>
+        <title>{t("seo.title", { defaultValue: "QJudge | 最安全穩定的線上考試平台" })}</title>
+        <meta name="description" content={t("seo.description", { defaultValue: "QJudge 是一個專為教學現場設計的線上考試與評測平台，支援 20+ 種程式語言、多元題型整合、嚴格防作弊監控與 AI 輔助出題，提供最完善的數位評量體驗。" })} />
+        <meta name="keywords" content="線上考試, 程式評測, Online Judge, 防作弊, 遠距教學, 程式教育, QJudge" />
+        <link rel="canonical" href="https://qjudge.app/" />
+        
+        {/* JSON-LD Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "QJudge",
+            "operatingSystem": "Web",
+            "applicationCategory": "EducationalApplication",
+            "description": "QJudge 是一個專為教學現場設計的線上考試與評測平台，支援 20+ 種程式語言、多元題型整合、嚴格防作弊監控。",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "TWD"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "120"
+            }
+          })}
+        </script>
+      </Helmet>
       <header className="landing__header">
         <div className="landing__header-inner">
           <div className="landing__header-logo" onClick={() => navigate("/")}>
+            <TaskComplete size={20} className="landing__header-logo-icon" />
             <span className="landing__header-logo-text">QJudge</span>
           </div>
           <div className="landing__header-actions">
@@ -373,269 +372,80 @@ const LandingScreen = () => {
         </div>
       </header>
 
-      <MatrixBackground variant={matrixVariant} />
-
       {/* Hero Section */}
       <section className="landing__hero">
         <div className="landing__hero-content">
           <div className="landing__hero-text">
-            <div className="landing__badge-row">
-              <Tag type="green" size="md">{t("hero.badge.product", { defaultValue: "QJudge" })}</Tag>
-              <Tag type="blue" size="md">{t("hero.badge.tagline", { defaultValue: "專業程式測驗平台" })}</Tag>
-            </div>
-
             <h1 className="landing__title">
-              {t("hero.title", { defaultValue: "QJudge，最安全穩定的線上考試平台" })}
+              {t("hero.title", { defaultValue: "最安全穩定的線上考試平台" })}
             </h1>
 
             <p className="landing__subtitle">
               {t("hero.subtitle", {
                 defaultValue:
-                  "專為學術現場打造的高品質測驗環境。整合 AI 監考偵測、紙筆題型與即時評測，讓每一場考試都兼具公平、效率與深度。",
+                  "從出題、考試到分析，一站式完成",
               })}
             </p>
 
-            <div className="landing__hero-signal-row">
-              {heroSignals.map((signal) => (
-                <span key={signal} className="landing__signal-pill">
-                  {signal}
-                </span>
-              ))}
-            </div>
-
             <div className="landing__cta-row">
-              <Button renderIcon={Login} onClick={handleSignIn} size="lg" kind="primary">
-                {t("hero.signIn", { defaultValue: "立即登入" })}
-              </Button>
-              <Button renderIcon={ArrowRight} onClick={handleRegister} size="lg" kind="tertiary">
-                {t("hero.register", { defaultValue: "免費註冊" })}
+              <Button renderIcon={ArrowRight} onClick={handleSignIn} size="lg" kind="primary">
+                {t("hero.signIn", { defaultValue: "開始體驗" })}
               </Button>
             </div>
           </div>
 
           <div className="landing__hero-visual">
-            <div className="landing__hero-visual-panel">
-              <p className="landing__hero-visual-title">
-                {t("hero.visual.title", { defaultValue: "程式測驗流程" })}
-              </p>
-              <p className="landing__hero-visual-desc">
-                {t("hero.visual.desc", { defaultValue: "Code -> Judge -> Verdict" })}
-              </p>
-              <LandingHeroUiMock />
+            <div className="landing__hero-visual-panel landing__hero-visual-panel--exam">
+              <AuthHeroComposition />
             </div>
           </div>
         </div>
       </section>
 
       {/* Interactive Showcase Section */}
-      <section className="landing__section landing__section--interactive">
-        <div className="landing__section-inner">
-          <Grid fullWidth>
-            <Column sm={4} md={4} lg={6}>
-              <div className="landing__interactive-content">
-                <p className="landing__eyebrow">{t("interactive.eyebrow")}</p>
-                <h2 className="landing__section-title landing__section-title--left-spaced">
-                  {t("interactive.title")}
-                </h2>
-                
-                <div className="landing__interactive-list">
-                  {interactiveItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className={`landing__interactive-item ${activeInteractive === item.id ? "landing__interactive-item--active" : ""}`}
-                      onClick={() => setActiveInteractive(item.id)}
-                    >
-                      <div className="landing__interactive-item-header">
-                        {item.icon}
-                        <h3>{item.label}</h3>
-                      </div>
-                      {activeInteractive === item.id && (
-                        <p className="landing__interactive-item-desc">{item.desc}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Column>
-            
-            <Column sm={4} md={4} lg={10}>
-              <div className="landing__interactive-visual-container">
-                <div className="landing__interactive-visual-bg" />
-                
-                <div className="landing__interactive-visual-content">
-                  {activeInteractive === "editor" && (
-                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
-                      <div className="landing-hero-ui__titlebar">
-                        <MacDots />
-                        <span className="landing-hero-ui__window-title">Supreme Editor - Markdown + LaTeX</span>
-                      </div>
-                      <div className="landing-hero-ui__content landing__mock-editor-grid">
-                        <div className="landing__mock-editor-sidebar">
-                          <header>Source Code</header>
-                          <code className="landing__mock-code-src">
-                            {"# Q1. Gaussian Integral\n\nCalculate the integral:\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$"}
-                          </code>
-                        </div>
-                        <div className="landing__mock-editor-main">
-                          <header className="landing__mock-preview-header">Live Preview (Printed Quality)</header>
-                          <div className="landing__mock-editor-preview">
-                            <MarkdownRenderer enableMath enableHighlight>
-                              {"### Q1. 高斯積分計算\n\n請詳細寫出下列積分的推導過程：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**提示：** 可考慮使用極座標轉換 ($r, \\theta$)。"}
-                            </MarkdownRenderer>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {activeInteractive === "proctor" && (
-                    <div className="landing-hero-ui__window landing__precise-mock landing__mock-proctor-container landing__precise-mock--fade-in">
-                      <div className="landing-hero-ui__titlebar">
-                        <MacDots />
-                        <span className="landing-hero-ui__window-title">Strict Proctoring Environment</span>
-                      </div>
-                      <div className="landing-hero-ui__content landing__mock-proctor-env">
-                        <div className="landing__mock-proctor-editor-bg">
-                          <div className="line w-40" />
-                          <div className="line w-60" />
-                          <div className="line w-30" />
-                        </div>
+      <section className="landing__showcase">
+        <div className="landing__showcase-header">
+          <p className="landing__eyebrow">{t("interactive.eyebrow")}</p>
+          <h2 className="landing__section-title">{t("interactive.title")}</h2>
+        </div>
 
-                        <div className="landing__proctor-warning-overlay">
-                          <div className="landing__proctor-warning-dialog">
-                            <WarningAlt size={48} className="warning-icon" />
-                            <h3>檢測到違規行為</h3>
-                            <p>系統偵測到您試圖離開考場環境，此行為已被記錄並即時通知監考老師。</p>
-                            <div className="warning-stats">
-                              <span>違規次數：1/3</span>
-                              <span>狀態：暫時鎖定</span>
-                            </div>
-                            <Button size="sm" kind="danger">重新進入全螢幕</Button>
-                          </div>
-                        </div>
+        <div className="landing__showcase-tabs">
+          {interactiveItems.map((item) => (
+            <button
+              key={item.id}
+              className={`landing__showcase-tab ${activeInteractive === item.id ? "landing__showcase-tab--active" : ""}`}
+              onClick={() => setActiveInteractive(item.id)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
 
-                        <div className="landing__forbidden-icons">
-                          <div className="forbidden-item forbidden-item--top-left">
-                            <Screen size={32} />
-                            <div className="slash" />
-                            <span className="label">多螢幕偵測</span>
-                          </div>
-                          <div className="forbidden-item forbidden-item--top-right">
-                            <Switcher size={32} />
-                            <div className="slash" />
-                            <span className="label">分頁切換</span>
-                          </div>
-                          <div className="forbidden-item forbidden-item--bottom-left">
-                            <Cursor_1 size={32} />
-                            <div className="slash" />
-                            <span className="label">滑鼠離開</span>
-                          </div>
-                          <div className="forbidden-item forbidden-item--bottom-right">
-                            <div className="copy-paste-group">
-                              <Copy size={24} />
-                              <Paste size={24} />
-                            </div>
-                            <div className="slash" />
-                            <span className="label">複製貼上</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {activeInteractive === "grading" && (
-                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
-                      <div className="landing-hero-ui__titlebar">
-                        <MacDots />
-                        <span className="landing-hero-ui__window-title">High-Efficiency Grading Panel</span>
-                      </div>
-                      <div className="landing-hero-ui__content landing__mock-grading-grid">
-                        <div className="landing__mock-grading-col landing__mock-grading-col--q">
-                          <div className="header">Questions</div>
-                          <div className="item success"><CheckmarkFilled size={14} /> Q1. Logic (Auto)</div>
-                          <div className="item active"><Play size={14} /> Q2. Architecture</div>
-                          <div className="item"><Play size={14} /> Q3. Analysis</div>
-                        </div>
-                        <div className="landing__mock-grading-col landing__mock-grading-col--ans">
-                          <div className="header">Student Response</div>
-                          <div className="ans-box">
-                            <p><strong>Question:</strong> 簡述微服務架構的優缺點。</p>
-                            <p><strong>Answer:</strong> 優點包含高擴充性、技術異質性與部署獨立性。缺點則是分散式系統帶來的複雜度...</p>
-                          </div>
-                        </div>
-                        <div className="landing__mock-grading-col landing__mock-grading-col--score">
-                          <div className="header">Grading Tool</div>
-                          <div className="score-input-mock">
-                            <TextInput id="score" labelText="Score" defaultValue="9" size="sm" />
-                            <span className="max">/ 10</span>
-                          </div>
-                          <TextArea id="feedback" labelText="Feedback" defaultValue="非常完整的分析，優缺點並陳且邏輯清晰。" rows={3} />
-                          <Button size="sm" kind="primary" className="landing__grading-next-btn">Next Student</Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {activeInteractive === "stats" && (
-                    <div className="landing-hero-ui__window landing__precise-mock landing__precise-mock--fade-in">
-                      <div className="landing-hero-ui__titlebar">
-                        <MacDots />
-                        <span className="landing-hero-ui__window-title">Intelligent Results Analysis</span>
-                      </div>
-                      <div className="landing-hero-ui__content landing__mock-stats-container">
-                        <div className="landing__mock-stats-kpis">
-                          <div className="kpi-card">
-                            <UserFilled size={20} />
-                            <div className="val">82.5</div>
-                            <div className="lab">Class Average</div>
-                          </div>
-                          <div className="kpi-card danger">
-                            <WarningFilled size={20} />
-                            <div className="val">Q4</div>
-                            <div className="lab">Hardest Question</div>
-                          </div>
-                          <div className="kpi-card success">
-                            <Activity size={20} />
-                            <div className="val">94%</div>
-                            <div className="lab">Passing Rate</div>
-                          </div>
-                        </div>
-                        <div className="landing__mock-stats-charts">
-                          <div className="chart-item">
-                            <DonutChart
-                              data={donutData}
-                              options={{
-                                title: "Grade Distribution",
-                                height: "180px",
-                                theme: chartTheme,
-                                donut: { center: { label: "Total" } },
-                                toolbar: { enabled: false }
-                              }}
-                            />
-                          </div>
-                          <div className="chart-item">
-                            <AreaChart
-                              data={areaData}
-                              options={{
-                                title: "Score Growth Trend",
-                                height: "180px",
-                                theme: chartTheme,
-                                axes: {
-                                  bottom: { mapsTo: "date", scaleType: "time" as any },
-                                  left: { mapsTo: "value", scaleType: "linear" as any }
-                                },
-                                toolbar: { enabled: false }
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Column>
-          </Grid>
+        <div className="landing__showcase-desc">
+          <p>{interactiveItems.find((i) => i.id === activeInteractive)?.desc}</p>
+        </div>
+
+        <div className="landing__showcase-frame">
+          <div className="landing__showcase-titlebar">
+            <MacDots />
+            <span className="landing__showcase-titlebar-text">
+              {interactiveItems.find((i) => i.id === activeInteractive)?.label}
+            </span>
+          </div>
+          {(() => {
+            const active = interactiveItems.find((i) => i.id === activeInteractive);
+            return active ? (
+              <img
+                key={active.id}
+                className="landing__showcase-img"
+                src={active.img}
+                alt={active.label}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : null;
+          })()}
         </div>
       </section>
 
@@ -838,7 +648,7 @@ const LandingScreen = () => {
           </h2>
           <p className="landing__cta-text">
             {t("cta.description", {
-              defaultValue: "立即加入 QJudge，開始你的程式學習之旅. 完全免費，無需信用卡。",
+              defaultValue: "立即加入 QJudge，體驗全新的線上測驗平台。完全免費，無需信用卡。",
             })}
           </p>
           <div className="landing__cta-actions">
