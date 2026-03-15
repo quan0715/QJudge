@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import {
 } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
+import ScoreSlider, { formatScore, getScoreColor } from "./ScoreSlider";
 import type { GradingAnswerRow } from "./gradingTypes";
 import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
@@ -57,8 +58,6 @@ export default function GradingSplitPanelScreen({
   const scoreInputBufferTimerRef = useRef<number | null>(null);
   const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
-  const pillRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
   const maxScore = answer?.maxScore ?? 0;
   const isSubjective = answer ? isSubjectiveType(answer.questionType) : false;
   const scoreStep = isSubjective ? 0.5 : 1;
@@ -96,9 +95,6 @@ export default function GradingSplitPanelScreen({
     return Math.max(0, Math.min(maxScore, rounded));
   };
 
-  const formatScore = (value: number) =>
-    Number.isInteger(value) ? String(value) : value.toFixed(1);
-
   const goNext = useCallback(() => {
     if (flowMode === "byQuestion") {
       if (hasNextStudent && onNextStudent) { onNextStudent(); return; }
@@ -112,56 +108,6 @@ export default function GradingSplitPanelScreen({
   const updateScore = useCallback((value: number) => {
     setScore((prev) => clampScore(value, prev));
     setSaved(false);
-  }, [maxScore, scoreStep]);
-
-  // ── Slider pointer handling ──
-
-  const getValueFromPosition = useCallback((clientX: number) => {
-    const pill = pillRef.current;
-    if (!pill || maxScore <= 0) return 0;
-    const rect = pill.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const raw = ratio * maxScore;
-    const rounded = Math.round(raw / scoreStep) * scoreStep;
-    return Math.max(0, Math.min(maxScore, rounded));
-  }, [maxScore, scoreStep]);
-
-  const handleSliderPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isSubjective) return;
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDraggingRef.current = true;
-    updateScore(getValueFromPosition(e.clientX));
-  }, [isSubjective, getValueFromPosition, updateScore]);
-
-  const handleSliderPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
-    updateScore(getValueFromPosition(e.clientX));
-  }, [getValueFromPosition, updateScore]);
-
-  const handleSliderPointerUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  // ── Tick marks ──
-
-  /** Tick marks — labels (integers) + inner lines (every scoreStep). */
-  const tickLabels = useMemo(() => {
-    if (maxScore <= 0) return [0];
-    const step = maxScore <= 10 ? 1 : maxScore <= 20 ? 2 : 5;
-    const result: number[] = [];
-    for (let i = 0; i <= maxScore; i += step) result.push(i);
-    if (result[result.length - 1] !== maxScore) result.push(maxScore);
-    return result;
-  }, [maxScore]);
-
-  const tickLines = useMemo(() => {
-    if (maxScore <= 0) return [];
-    const result: number[] = [];
-    for (let i = scoreStep; i < maxScore; i += scoreStep) {
-      result.push(i);
-    }
-    return result;
   }, [maxScore, scoreStep]);
 
   // ── Keyboard shortcuts ──
@@ -262,7 +208,8 @@ export default function GradingSplitPanelScreen({
     );
   }
 
-  const scorePct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  const scoreRatio = maxScore > 0 ? score / maxScore : 0;
+  const scoreColor = getScoreColor(scoreRatio);
 
   return (
     <div className={styles.panel}>
@@ -303,75 +250,50 @@ export default function GradingSplitPanelScreen({
 
         <hr className={styles.divider} />
 
-        {isSubjective ? (
-          <>
-            <div className={styles.sliderRow}>
-              <div className={styles.sliderArea}>
-                <div
-                  className={styles.sliderPill}
-                  ref={pillRef}
-                  onPointerDown={handleSliderPointerDown}
-                  onPointerMove={handleSliderPointerMove}
-                  onPointerUp={handleSliderPointerUp}
-                >
-                  {tickLines.map((v) => (
-                    <span
-                      key={v}
-                      className={Number.isInteger(v) ? styles.tickLineMajor : styles.tickLine}
-                      style={{ left: `${(v / maxScore) * 100}%` }}
-                    />
-                  ))}
-                  <div
-                    className={styles.sliderFill}
-                    style={{ width: `max(1.5rem, ${scorePct}%)` }}
-                  >
-                    <span className={styles.sliderValue}>{formatScore(score)}</span>
-                  </div>
-                </div>
-                <div className={styles.sliderTicks}>
-                  {tickLabels.map((v) => (
-                    <span
-                      key={v}
-                      className={styles.tick}
-                      style={{ left: `${maxScore > 0 ? (v / maxScore) * 100 : 0}%` }}
-                    >
-                      {formatScore(v)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <span className={styles.sliderMaxOuter}>/ {formatScore(maxScore)}</span>
-            </div>
+        {/* Score display */}
+        <div className={styles.scoreDisplay}>
+          <span className={styles.scoreLabel}>
+            {isSubjective
+              ? t("grading.scoreLabel", "批改成績")
+              : t("grading.autoScoreLabel", "自動批改成績")}
+          </span>
+          <span className={styles.scoreValue} style={{ color: scoreColor.bg }}>
+            {formatScore(score)}
+          </span>
+          <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
+        </div>
 
-            <div className={styles.shortcutHint}>
-              <span className={styles.shortcutGroup}>
-                <kbd className={styles.keyCap}>↑</kbd>
-                <kbd className={styles.keyCap}>↓</kbd>
-                <span>{t("grading.shortcutAdjust", "調整分數")}</span>
-              </span>
-              <span className={styles.shortcutGroup}>
-                <kbd className={styles.keyCap}>0-9</kbd>
-                <span>{t("grading.shortcutDirectInput", "直接輸入")}</span>
-              </span>
-              <span className={styles.shortcutGroup}>
-                <kbd className={styles.keyCap}>Enter</kbd>
-                <span>{t("grading.shortcutCommitAndNext", "儲存/前往下一步")}</span>
-              </span>
-            </div>
-          </>
+        <ScoreSlider
+          value={score}
+          max={maxScore}
+          step={scoreStep}
+          disabled={!isSubjective}
+          onChange={updateScore}
+        />
+
+        {isSubjective ? (
+          <div className={styles.shortcutHint}>
+            <span className={styles.shortcutGroup}>
+              <kbd className={styles.keyCap}>↑</kbd>
+              <kbd className={styles.keyCap}>↓</kbd>
+              <span>{t("grading.shortcutAdjust", "調整分數")}</span>
+            </span>
+            <span className={styles.shortcutGroup}>
+              <kbd className={styles.keyCap}>0-9</kbd>
+              <span>{t("grading.shortcutDirectInput", "直接輸入")}</span>
+            </span>
+            <span className={styles.shortcutGroup}>
+              <kbd className={styles.keyCap}>Enter</kbd>
+              <span>{t("grading.shortcutCommitAndNext", "儲存/前往下一步")}</span>
+            </span>
+          </div>
         ) : (
-          <>
-            <div className={styles.scoreReadonly}>
-              <span className={styles.scoreValue}>{formatScore(score)}</span>
-              <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
-            </div>
-            <p className={styles.readonlyHint}>
-              {t(
-                "grading.objectiveReadonlyHint",
-                "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
-              )}
-            </p>
-          </>
+          <p className={styles.readonlyHint}>
+            {t(
+              "grading.objectiveReadonlyHint",
+              "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
+            )}
+          </p>
         )}
 
         <TextArea
