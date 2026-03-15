@@ -121,4 +121,51 @@ describe("ExamQuestionJsonImportModal", () => {
     expect(payload[0].question_type).toBe("true_false");
     expect(payload[0].correct_answer).toBe(0);
   });
+
+  it("accepts pasted JSON content without selecting a file", async () => {
+    const onConfirmImport = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ExamQuestionJsonImportModal
+        open
+        onClose={vi.fn()}
+        onConfirmImport={onConfirmImport}
+      />,
+    );
+
+    const validJson = {
+      version: "qjudge.exam.v1",
+      meta: {
+        exported_at: "2026-03-02T00:00:00.000Z",
+        contest_name: "OS Exam",
+      },
+      questions: [
+        {
+          question_type: "essay",
+          prompt: "Explain process scheduling.",
+          score: 6,
+        },
+      ],
+    };
+
+    const textArea = screen.getByLabelText(/examJson\.import\.pasteTitle/i);
+    fireEvent.change(textArea, { target: { value: JSON.stringify(validJson) } });
+
+    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
+
+    const submitButton = screen.getByRole("button", {
+      name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
+    });
+    expect(submitButton).not.toBeDisabled();
+
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(onConfirmImport).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = onConfirmImport.mock.calls[0][0];
+    expect(payload).toHaveLength(1);
+    expect(payload[0].question_type).toBe("essay");
+    expect(payload[0].prompt).toContain("process scheduling");
+  });
 });
