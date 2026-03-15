@@ -1,0 +1,121 @@
+/* ═══ ScoreSlider — standalone component ═══ */
+
+.sliderRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.sliderArea {
+  flex: 1;
+  min-width: 0;
+}
+
+.sliderMaxOuter {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5rem;
+}
+
+.sliderPill {
+  position: relative;
+  height: 1.5rem;
+  border-radius: 0;
+  background: var(--cds-field, var(--cds-layer-01));
+  border: 1px solid var(--cds-border-subtle-01);
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.sliderFill {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 0.5rem;
+  transition: width 0.06s ease-out, background-color 0.15s ease-out;
+  min-width: 1.5rem;
+  box-sizing: border-box;
+}
+
+.sliderFill::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cds-background, #fff);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.sliderValue {
+  position: relative;
+  z-index: 2;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tickLine {
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  width: 1.5px;
+  background: var(--cds-border-strong);
+  pointer-events: none;
+  z-index: 0;
+  transform: translateX(-0.75px);
+}
+
+.tickLineMajor {
+  composes: tickLine;
+  top: 8%;
+  bottom: 8%;
+}
+
+.sliderTicks {
+  position: relative;
+  height: 1.125rem;
+  margin: 0.1875rem 1px 0;
+}
+
+.tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.6875rem;
+  color: var(--cds-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+}
+
+/* ── Disabled state (objective questions) ── */
+
+.disabled {
+  .sliderPill {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .sliderFill::after {
+    display: none;
+  }
+
+  .sliderMaxOuter,
+  .tick {
+    color: var(--cds-text-secondary);
+  }
+}

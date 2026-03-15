@@ -160,12 +160,23 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             ExamQuestion.objects.filter(contest=contest).delete()
 
             new_questions = []
+            create_allowed_fields = {
+                'question_type',
+                'prompt',
+                'options',
+                'correct_answer',
+                'score',
+            }
             for idx, item_data in enumerate(serializer.validated_data):
-                item_data.pop('id', None)
+                sanitized_data = {
+                    key: value
+                    for key, value in item_data.items()
+                    if key in create_allowed_fields
+                }
                 new_questions.append(ExamQuestion(
                     contest=contest,
                     order=idx,
-                    **item_data,
+                    **sanitized_data,
                 ))
             created = ExamQuestion.objects.bulk_create(new_questions)
 

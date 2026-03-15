@@ -220,6 +220,18 @@
       "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
       "oauthFailed": "로그인을 시작할 수 없습니다"
     },
+    "campusSso": {
+      "title": "캠퍼스 인증",
+      "subtitle": "로그인할 대학교를 선택하세요",
+      "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
+      "backToLogin": "로그인으로 돌아가기",
+      "providers": {
+        "nycu": {
+          "name": "NYCU (국립 양명 교통 대학교)",
+          "description": "대학교 포털 계정을 사용하여 로그인합니다"
+        }
+      }
+    },
     "register": {
       "title": "계정 만들기",
       "subtitle": "QJudge에 가입하여 코딩 여정을 시작하세요",

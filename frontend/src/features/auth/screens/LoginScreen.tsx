@@ -87,11 +87,6 @@ const LoginPage = () => {
 
   return (
     <>
-      <div className="auth-header">
-        <h1 className="auth-title">{t("auth.login.title", "登入")}</h1>
-        <p className="auth-subtitle">{t("auth.login.subtitle", "歡迎回來，請登入您的帳號")}</p>
-      </div>
-
       <Form onSubmit={handleLogin} className="auth-form">
         <TextInput
           id="email"

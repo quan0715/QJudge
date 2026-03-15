@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import {
   Modal,
   FileUploader,
+  TextArea,
   InlineNotification,
   Tag,
   RadioButtonGroup,
@@ -121,6 +122,7 @@ const ExamQuestionJsonImportModal = ({
 
   const resetState = () => {
     setFileName("");
+    setPastedJsonText("");
     setParsing(false);
     setImporting(false);
     setImportTarget("exam-json");
@@ -134,6 +136,33 @@ const ExamQuestionJsonImportModal = ({
     onClose();
   };
 
+  const parseContent = (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) {
+      setParsing(false);
+      setErrors([]);
+      setSubmitError("");
+      setParsedQuestions(null);
+      return;
+    }
+
+    setParsing(true);
+    setErrors([]);
+    setSubmitError("");
+    setParsedQuestions(null);
+
+    const result = parseExamQuestionJsonV1(trimmed);
+    if (result.success && result.data) {
+      setParsedQuestions(result.data.questions);
+      setErrors([]);
+    } else {
+      setErrors(result.errors ?? [{ field: "json", message: t("examJson.import.errors.invalidJson") }]);
+    }
+    setParsing(false);
+  };
+
+  const [pastedJsonText, setPastedJsonText] = useState("");
+
   const handleFileChange = (event: unknown, data?: unknown) => {
     const file = extractFileFromEvent(event, data);
     if (!file) {
@@ -142,22 +171,13 @@ const ExamQuestionJsonImportModal = ({
     }
 
     setFileName(file.name);
+    setPastedJsonText("");
     setParsing(true);
-    setErrors([]);
-    setSubmitError("");
-    setParsedQuestions(null);
 
     const reader = new FileReader();
     reader.onload = (loadEvent) => {
       const content = typeof loadEvent.target?.result === "string" ? loadEvent.target.result : "";
-      const result = parseExamQuestionJsonV1(content);
-      if (result.success && result.data) {
-        setParsedQuestions(result.data.questions);
-        setErrors([]);
-      } else {
-        setErrors(result.errors ?? [{ field: "json", message: t("examJson.import.errors.invalidJson") }]);
-      }
-      setParsing(false);
+      parseContent(content);
     };
 
     reader.onerror = () => {
@@ -166,6 +186,15 @@ const ExamQuestionJsonImportModal = ({
     };
 
     reader.readAsText(file);
+  };
+
+  const handlePasteChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const content = event.target.value;
+    setPastedJsonText(content);
+    if (content.trim()) {
+      setFileName("");
+    }
+    parseContent(content);
   };
 
   const handleConfirmImport = async () => {
@@ -221,6 +250,18 @@ const ExamQuestionJsonImportModal = ({
         accept={[".json", "application/json"]}
         onChange={(event, data) => handleFileChange(event, data)}
         disabled={importing}
+      />
+
+      <TextArea
+        id="exam-json-paste-input"
+        labelText={t("examJson.import.pasteTitle")}
+        helperText={t("examJson.import.pasteHint")}
+        placeholder={t("examJson.import.pastePlaceholder")}
+        rows={10}
+        value={pastedJsonText}
+        onChange={handlePasteChange}
+        disabled={importing}
+        style={{ marginTop: "1rem" }}
       />
 
       {fileName && (

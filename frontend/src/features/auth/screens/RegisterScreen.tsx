@@ -79,11 +79,6 @@ const RegisterPage = () => {
 
   return (
     <>
-      <div className="auth-header">
-        <h1 className="auth-title">{t("auth.register.title")}</h1>
-        <p className="auth-subtitle">{t("auth.register.subtitle")}</p>
-      </div>
-
       <Form onSubmit={handleRegister} className="auth-form">
         <TextInput
           id="username"

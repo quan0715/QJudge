@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { InlineLoading } from "@carbon/react";
-import { ArrowRight, ArrowLeft } from "@carbon/icons-react";
-import { Link } from "react-router-dom";
+import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -39,20 +38,6 @@ const CampusSsoScreen = () => {
 
   return (
     <>
-      <Link to="/login" className="auth-back-link">
-        <ArrowLeft size={16} />
-        {t("auth.campusSso.backToLogin", "返回登入")}
-      </Link>
-
-      <div className="auth-header">
-        <h1 className="auth-title">
-          {t("auth.campusSso.title", "校園身份驗證")}
-        </h1>
-        <p className="auth-subtitle">
-          {t("auth.campusSso.subtitle", "選擇您的學校進行身份驗證登入")}
-        </p>
-      </div>
-
       <div className="auth-form">
         <div className="auth-school-list">
           {CAMPUS_PROVIDERS.map((provider) => (
@@ -71,8 +56,12 @@ const CampusSsoScreen = () => {
                 />
               </div>
               <div className="auth-school-list-item__content">
-                <h3 className="auth-school-list-item__title">{provider.name}</h3>
-                <p className="auth-school-list-item__desc">{provider.description}</p>
+                <h3 className="auth-school-list-item__title">
+                  {t(`auth.campusSso.providers.${provider.id}.name`, provider.name)}
+                </h3>
+                <p className="auth-school-list-item__desc">
+                  {t(`auth.campusSso.providers.${provider.id}.description`, provider.description)}
+                </p>
               </div>
               <ArrowRight size={20} className="auth-school-list-item__arrow" />
             </button>

@@ -457,6 +457,59 @@ class TestReorder:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# Batch Import
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestBatchImport:
+    def test_batch_import_ignores_client_order_and_id(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+
+        ExamQuestion.objects.create(
+            contest=contest,
+            question_type="essay",
+            prompt="Legacy question",
+            score=1,
+            order=0,
+        )
+
+        payload = {
+            "questions": [
+                {
+                    "id": 99999,
+                    "order": 100,
+                    "question_type": "single_choice",
+                    "prompt": "Pick B",
+                    "options": ["A", "B", "C"],
+                    "correct_answer": 1,
+                    "score": 3,
+                },
+                {
+                    "id": 99998,
+                    "order": 50,
+                    "question_type": "essay",
+                    "prompt": "Explain CAP theorem",
+                    "score": 5,
+                },
+            ]
+        }
+
+        res = api_client.post(url(contest.id) + "batch-import/", payload, format="json")
+
+        assert res.status_code == status.HTTP_201_CREATED
+        assert len(res.data) == 2
+        assert [row["prompt"] for row in res.data] == ["Pick B", "Explain CAP theorem"]
+        assert [row["order"] for row in res.data] == [0, 1]
+
+        rows = list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
+        assert len(rows) == 2
+        assert rows[0].prompt == "Pick B"
+        assert rows[1].prompt == "Explain CAP theorem"
+        assert rows[0].order == 0
+        assert rows[1].order == 1
+
+
+# ═══════════════════════════════════════════════════════════════════
 # Permissions
 # ═══════════════════════════════════════════════════════════════════
 
