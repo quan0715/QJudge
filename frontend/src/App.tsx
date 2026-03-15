@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
+import { HelmetProvider } from "react-helmet-async";
 import i18n from "@/i18n";
 import MainLayout from "@/features/app/components/MainLayout";
 import ErrorBoundary from "@/features/app/components/ErrorBoundary";
@@ -67,8 +68,9 @@ function LegacyContestAdminRedirect({ panel }: { panel?: AdminPanelParam }) {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <I18nextProvider i18n={i18n}>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <I18nextProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
             <ContentLanguageProvider>
@@ -181,6 +183,7 @@ function App() {
         </QueryClientProvider>
       </I18nextProvider>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 }
 
