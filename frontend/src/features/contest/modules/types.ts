@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ContestDetail, ContestType, ScoreboardRow } from "@/core/entities/contest.entity";
 import type { ContestTabSpec } from "@/features/contest/tabConfig";
+import type { Params } from "react-router-dom";
 
 export type AdminPanelId =
   | "overview"
@@ -35,6 +36,17 @@ export type ContestStudentTabRenderer = (
   context: ContestStudentTabRenderContext,
 ) => ReactNode;
 
+export interface ContestSolveRenderContext {
+  contestId: string;
+  contest: ContestDetail | null;
+  params: Readonly<Params<string>>;
+  query: URLSearchParams;
+}
+
+export type ContestSolveRenderer = (
+  context: ContestSolveRenderContext,
+) => ReactNode;
+
 export interface AdminPanelProps {
   contestId: string;
   contest: ContestDetail | null;
@@ -55,6 +67,7 @@ export interface ContestStudentModule {
   getTabRenderers?: () => Partial<
     Record<ContestStudentTabContentKind, ContestStudentTabRenderer>
   >;
+  getSolveRenderer: () => ContestSolveRenderer;
   getAnsweringEntryPath: (
     contestId: string,
     contest?: ContestDetail | null,

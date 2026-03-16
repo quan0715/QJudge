@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContestNavigationGuard } from "@/features/contest/hooks/useContestNavigationGuard";
@@ -50,6 +50,30 @@ const ContestProblemScreen = () => {
     myRank,
     initialProblemId: problemId,
   });
+
+  useEffect(() => {
+    if (!contestId || contest?.contestType !== "coding") return;
+    if (problemId) return;
+
+    if (problemSelection.selectedProblemId) {
+      navigate(
+        `/contests/${contestId}/solve/${problemSelection.selectedProblemId}`,
+        { replace: true },
+      );
+      return;
+    }
+
+    if ((contest.problems?.length ?? 0) === 0) {
+      navigate(`/contests/${contestId}`, { replace: true });
+    }
+  }, [
+    contest?.contestType,
+    contest?.problems,
+    contestId,
+    navigate,
+    problemId,
+    problemSelection.selectedProblemId,
+  ]);
 
   // Check view permissions
   const canView =

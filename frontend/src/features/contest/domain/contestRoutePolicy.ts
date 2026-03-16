@@ -1,8 +1,16 @@
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
+import { isStrictSubmittedBeforeEnd } from "@/features/contest/domain/contestRuntimePolicy";
 
 type ContestRouteTarget =
-  | Pick<ContestDetail, "contestType" | "problems" | "examStatus" | "cheatDetectionEnabled">
+  | Pick<
+      ContestDetail,
+      | "contestType"
+      | "problems"
+      | "examStatus"
+      | "cheatDetectionEnabled"
+      | "endTime"
+    >
   | null
   | undefined;
 
@@ -15,11 +23,11 @@ export const getContestDashboardPath = (contestId: string): string =>
 export const getContestPrecheckPath = (contestId: string): string =>
   `/contests/${contestId}/exam-precheck`;
 
-export const getContestPaperAnsweringPath = (
+export const getContestSolveRootPath = (
   contestId: string,
   questionId?: string,
 ): string => {
-  const base = `/contests/${contestId}/paper-exam/answering`;
+  const base = `/contests/${contestId}/solve`;
   if (!questionId) return base;
   return `${base}?q=${encodeURIComponent(questionId)}`;
 };
@@ -75,4 +83,22 @@ export const isPathWithinContest = (params: {
   const contestBase = getContestDashboardPath(contestId);
   const normalizedPath = trimTrailingSlash(pathname);
   return normalizedPath === contestBase || normalizedPath.startsWith(`${contestBase}/`);
+};
+
+export const shouldRedirectToOverviewOnStrictSubmitted = (params: {
+  contestId: string;
+  contest: ContestRouteTarget;
+  pathname: string;
+  search?: string;
+  nowMs?: number;
+}): boolean => {
+  const { contestId, contest, pathname, search = "", nowMs } = params;
+  if (!isStrictSubmittedBeforeEnd(contest, nowMs)) return false;
+
+  const contestBase = getContestDashboardPath(contestId);
+  const normalizedPath = trimTrailingSlash(pathname);
+  if (normalizedPath !== contestBase) return true;
+
+  const tab = new URLSearchParams(search).get("tab");
+  return !!tab && tab !== "overview";
 };

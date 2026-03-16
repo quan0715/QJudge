@@ -11,6 +11,7 @@ import {
 import {
   getContestDashboardPath,
   getContestPrecheckPath,
+  shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -29,10 +30,8 @@ export function useContestLayoutState() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
-  const isSolvePage = location.pathname.includes("/solve/");
-  const isPaperExamPage =
-    location.pathname.includes("/paper-exam/") ||
-    /\/paper-exam\/?$/.test(location.pathname);
+  const isSolvePage = /\/solve(?:\/|$)/.test(location.pathname);
+  const isPaperExamPage = isSolvePage && contest?.contestType === "paper_exam";
   const isExamActive = isExamMonitoringActive(contest);
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
@@ -146,6 +145,26 @@ export function useContestLayoutState() {
       navigate(targetPath, { replace: true });
     }
   }, [contest?.cheatDetectionEnabled, contest?.examStatus, contestId, location.pathname, navigate]);
+
+  // Strict mode anti-leak: submitted before contest end can only stay on dashboard overview.
+  useEffect(() => {
+    if (!contestId || !contest) return;
+
+    if (
+      !shouldRedirectToOverviewOnStrictSubmitted({
+        contestId,
+        contest,
+        pathname: location.pathname,
+        search: location.search,
+      })
+    ) {
+      return;
+    }
+
+    navigate(`${getContestDashboardPath(contestId)}?tab=overview`, {
+      replace: true,
+    });
+  }, [contest, contestId, location.pathname, location.search, navigate]);
 
   // Exam active beforeunload
   useEffect(() => {

@@ -461,8 +461,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     const contestBasePath = getContestDashboardPath(contestId);
     const normalizedPath = location.pathname.replace(/\/+$/, "");
     return (
-      normalizedPath.startsWith(`${contestBasePath}/solve/`) ||
-      normalizedPath.startsWith(`${contestBasePath}/paper-exam/answering`)
+      normalizedPath === `${contestBasePath}/solve` ||
+      normalizedPath.startsWith(`${contestBasePath}/solve/`)
     );
   };
 

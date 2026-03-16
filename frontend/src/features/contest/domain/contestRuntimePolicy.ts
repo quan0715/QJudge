@@ -10,9 +10,15 @@ type TabTarget =
       | "hasJoined"
       | "isRegistered"
       | "examStatus"
+      | "endTime"
+      | "cheatDetectionEnabled"
       | "scoreboardVisibleDuringContest"
       | "permissions"
     >
+  | null
+  | undefined;
+type StrictSubmittedTarget =
+  | Pick<ContestDetail, "examStatus" | "cheatDetectionEnabled" | "endTime">
   | null
   | undefined;
 type MonitoringTarget =
@@ -54,9 +60,31 @@ export const isContestParticipant = (contest: ParticipantTarget): boolean =>
 export const hasStartedExam = (contest: ExamStatusTarget): boolean =>
   !!contest && isExamStatusIn(contest.examStatus, EXAM_STARTED_STATUSES);
 
-export const canAccessExamContent = (contest: TabTarget): boolean => {
+const parseEndTimeMs = (endTime: string | undefined): number | null => {
+  if (!endTime) return null;
+  const parsed = Date.parse(endTime);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+export const isStrictSubmittedBeforeEnd = (
+  contest: StrictSubmittedTarget,
+  nowMs: number = Date.now(),
+): boolean => {
+  if (!contest?.cheatDetectionEnabled) return false;
+  if (contest.examStatus !== "submitted") return false;
+
+  const endMs = parseEndTimeMs(contest.endTime);
+  if (endMs === null) return true;
+  return nowMs < endMs;
+};
+
+export const canAccessExamContent = (
+  contest: TabTarget,
+  nowMs: number = Date.now(),
+): boolean => {
   if (!isContestParticipant(contest)) return false;
   if (!contest) return false;
+  if (isStrictSubmittedBeforeEnd(contest, nowMs)) return false;
 
   return isExamStatusIn(contest.examStatus, EXAM_CONTENT_ACCESS_STATUSES);
 };

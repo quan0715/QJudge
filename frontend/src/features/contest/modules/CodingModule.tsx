@@ -2,6 +2,7 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   canAccessExamContent,
   isContestParticipant,
+  isStrictSubmittedBeforeEnd,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import { toContestTabSpecs, type ContestTabKey } from "@/features/contest/tabConfig";
 import type {
@@ -11,6 +12,7 @@ import type {
 } from "@/features/contest/modules/types";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
+import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
 
 const getFirstProblemId = (contest?: ContestDetail | null): string | undefined => {
   if (!contest?.problems?.length) return undefined;
@@ -48,6 +50,9 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
   if (!contest || !isContestParticipant(contest)) {
     return toTabDefinitions(["overview"]);
   }
+  if (isStrictSubmittedBeforeEnd(contest)) {
+    return toTabDefinitions(["overview"]);
+  }
 
   const tabs: ContestTabKey[] = ["overview"];
   if (canAccessExamContent(contest)) {
@@ -83,6 +88,7 @@ export const codingContestModule: ContestTypeModule = {
   type: "coding",
   student: {
     getTabs: (contest) => getCodingTabs(contest),
+    getSolveRenderer: () => () => <ContestProblemScreen />,
     getAnsweringEntryPath: (contestId, contest) => {
       const firstProblemId = getFirstProblemId(contest);
       return firstProblemId

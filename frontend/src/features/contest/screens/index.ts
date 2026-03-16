@@ -3,6 +3,7 @@ export { default as ContestListScreen } from "./ContestListScreen";
 export { default as ContestDashboardScreen } from "./ContestDashboardScreen";
 export { default as ContestPreRegistrationScreen } from "./ContestPreRegistrationScreen";
 export { default as ContestProblemScreen } from "./ContestProblemScreen";
+export { default as ContestSolveScreen } from "./ContestSolveScreen";
 export { default as ContestQAScreen } from "./ContestQAScreen";
 export { default as ContestStandingsScreen } from "./ContestStandingsScreen";
 export { default as ContestSubmissionListScreen } from "./ContestSubmissionListScreen";

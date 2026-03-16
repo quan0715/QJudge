@@ -3,10 +3,10 @@ import { Button, InlineNotification } from "@carbon/react";
 import { DocumentPdf } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import styles from "./ContestOverview.module.scss";
 
 interface ContestOverviewProps {
   contest: ContestDetail;
@@ -55,75 +55,61 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      {/* Exam Mode Warning */}
-      {contest.cheatDetectionEnabled && (
-        <InlineNotification
-          kind="warning"
-          title={t("overview.examModeWarning")}
-          subtitle={t("overview.examModeDesc")}
-          lowContrast
-          hideCloseButton
-          style={{ marginBottom: "1.5rem", maxWidth: "100%" }}
-        />
-      )}
+      <div className={styles.root}>
+        {/* Exam Mode Warning */}
+        {contest.cheatDetectionEnabled && (
+          <InlineNotification
+            kind="warning"
+            title={t("overview.examModeWarning")}
+            subtitle={t("overview.examModeDesc")}
+            lowContrast
+            hideCloseButton
+            style={{ maxWidth: "100%" }}
+          />
+        )}
 
-      {contest.rules && (
-        <ContainerCard
-          title={t("overview.contestRules")}
-          style={{ marginBottom: "1.5rem" }}
-        >
-          <MarkdownRenderer style={{ marginTop: "0.5rem" }}>
-            {contest.rules}
-          </MarkdownRenderer>
-        </ContainerCard>
-      )}
+        {contest.rules && (
+          <section className={styles.section} aria-label={t("overview.contestRules")}>
+            <h2 className={styles.sectionTitle}>{t("overview.contestRules")}</h2>
+            <MarkdownRenderer className={styles.rulesContent}>
+              {contest.rules}
+            </MarkdownRenderer>
+          </section>
+        )}
 
-      {/* Personal Report Download - Only after submission */}
-      {canDownloadReport && (
-        <ContainerCard
-          title={t("report.title")}
-          style={{ marginBottom: "1.5rem" }}
-        >
-          {reportNotification && (
-            <InlineNotification
-              kind={reportNotification.kind}
-              title={reportNotification.kind === "success" ? "" : t("common:error.title")}
-              subtitle={reportNotification.message}
-              onClose={() => setReportNotification(null)}
-              lowContrast
-              style={{ marginBottom: "0.75rem" }}
-            />
-          )}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--cds-text-secondary)",
-              }}
-            >
-              {isPaperExam
-                ? t("report.descriptionPaper")
-                : t("report.descriptionCoding")}
+        {/* Personal Report Download - Only after submission */}
+        {canDownloadReport && (
+          <section className={styles.section} aria-label={t("report.title")}>
+            <h2 className={styles.sectionTitle}>{t("report.title")}</h2>
+            {reportNotification && (
+              <InlineNotification
+                kind={reportNotification.kind}
+                title={reportNotification.kind === "success" ? "" : t("common:error.title")}
+                subtitle={reportNotification.message}
+                onClose={() => setReportNotification(null)}
+                lowContrast
+                style={{ marginBottom: "0.75rem" }}
+              />
+            )}
+            <div className={styles.reportRow}>
+              <div className={styles.reportDescription}>
+                {isPaperExam
+                  ? t("report.descriptionPaper")
+                  : t("report.descriptionCoding")}
+              </div>
+              <Button
+                kind="tertiary"
+                size="md"
+                renderIcon={DocumentPdf}
+                onClick={handleDownloadReport}
+                disabled={reportDownloading}
+              >
+                {reportDownloading ? t("report.preparing") : t("report.download")}
+              </Button>
             </div>
-            <Button
-              kind="tertiary"
-              size="md"
-              renderIcon={DocumentPdf}
-              onClick={handleDownloadReport}
-              disabled={reportDownloading}
-            >
-              {reportDownloading ? t("report.preparing") : t("report.download")}
-            </Button>
-          </div>
-        </ContainerCard>
-      )}
-
+          </section>
+        )}
+      </div>
     </SurfaceSection>
   );
 };

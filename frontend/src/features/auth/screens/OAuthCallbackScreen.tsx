@@ -1,10 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
-import { Loading, Button } from '@carbon/react';
+import { Button, Tag } from '@carbon/react';
 import { Login } from '@carbon/icons-react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'motion/react';
 import { oauthCallback, resolveConflict } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
+import { AuthLoadingSkeleton } from '../components/AuthLoadingSkeleton';
 
 type CallbackState = 'loading' | 'error' | 'conflict';
 
@@ -31,8 +33,8 @@ const OAuthCallbackPage = () => {
   const metadata = useMemo(() => {
     if (state === 'loading') {
       return {
-        title: t("auth.callback.loading"),
-        subtitle: t("auth.callback.loadingDesc"),
+        title: t("auth.callback.loadingTitle", "歡迎來到 QJudge"),
+        subtitle: t("auth.callback.loadingSubtitle", "正在為您準備專屬的程式舞台"),
         backTo: '/login',
       };
     }
@@ -50,6 +52,10 @@ const OAuthCallbackPage = () => {
   useEffect(() => {
     if (initialError || !code) return;
 
+    // We want the animation to run for at least 2.5 seconds for better UX
+    const startTime = Date.now();
+    const MIN_ANIMATION_TIME = 2500;
+
     const handleCallback = async () => {
       try {
         const redirectUri = `${window.location.origin}/auth/${provider}/callback`;
@@ -57,7 +63,13 @@ const OAuthCallbackPage = () => {
 
         if (response.success) {
           localStorage.setItem('user', JSON.stringify(response.data.user));
-          window.location.href = '/dashboard';
+          
+          const elapsedTime = Date.now() - startTime;
+          const remainingTime = Math.max(0, MIN_ANIMATION_TIME - elapsedTime);
+
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, remainingTime);
         } else {
           setError(t("auth.callback.failed", "登入失敗"));
           setState('error');
@@ -105,29 +117,61 @@ const OAuthCallbackPage = () => {
     }
   };
 
-  if (state === 'loading') {
-    return (
-      <div className="auth-callback">
-        <Loading withOverlay={false} small={false} />
-      </div>
-    );
-  }
-
   return (
-    <div className="auth-form">
-      {state === 'conflict' && (
-        <Button
-          kind="danger"
-          renderIcon={Login}
-          className="auth-submit-btn"
-          onClick={handleTakeover}
-          disabled={resolving}
-        >
-          {resolving
-            ? t("auth.callback.takingOver", "處理中...")
-            : t("auth.callback.takeover", "接管並鎖定舊裝置")}
-        </Button>
-      )}
+    <div className="auth-form-wrapper">
+      <AnimatePresence mode="wait">
+        {state === 'loading' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <AuthLoadingSkeleton />
+          </motion.div>
+        )}
+
+        {state === 'conflict' && (
+          <motion.div
+            key="conflict"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="auth-form"
+          >
+            <div style={{ marginBottom: '1.5rem' }}>
+              <Tag type="red" size="md">Active Session Detected</Tag>
+            </div>
+            <Button
+              kind="danger"
+              renderIcon={Login}
+              className="auth-submit-btn"
+              onClick={handleTakeover}
+              disabled={resolving}
+            >
+              {resolving
+                ? t("auth.callback.takingOver", "處理中...")
+                : t("auth.callback.takeover", "接管並鎖定舊裝置")}
+            </Button>
+          </motion.div>
+        )}
+
+        {state === 'error' && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="auth-form"
+          >
+            <Button
+              kind="secondary"
+              className="auth-submit-btn"
+              onClick={() => window.location.href = '/login'}
+            >
+              {t("auth.campusSso.backToLogin", "返回登入")}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
