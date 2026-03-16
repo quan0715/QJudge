@@ -4,9 +4,7 @@
     "problemCount": "全 {{count}} 問"
   },
   "button": {
-    "createProblem": "問題を作成",
-    "create": "作成",
-    "cancel": "キャンセル"
+    "create": "作成"
   },
   "form": {
     "title": "タイトル",

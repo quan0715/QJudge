@@ -46,7 +46,7 @@ const ParticipantStatusEditModal = ({
           ? t("common.saving", "儲存中...")
           : t("participants.editModal.save", "儲存變更")
       }
-      secondaryButtonText={t("common.cancel", "取消")}
+      secondaryButtonText={t("button.cancel", "取消")}
       onRequestClose={onClose}
       onRequestSubmit={onSubmit}
       primaryButtonDisabled={saving}

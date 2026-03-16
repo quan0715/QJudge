@@ -355,8 +355,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       const accepted = await confirm({
         title: t("examEditor.confirmDelete", { num: (q?.order ?? 0) + 1 }),
         danger: true,
-        confirmLabel: t("common.delete", "刪除"),
-        cancelLabel: t("common.cancel", "取消"),
+        confirmLabel: t("button.delete", "刪除"),
+        cancelLabel: t("button.cancel", "取消"),
       });
       if (!accepted) return;
       try {

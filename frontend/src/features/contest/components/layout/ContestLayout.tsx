@@ -320,7 +320,7 @@ const ContestLayout = () => {
               )}
 
               <HeaderGlobalAction
-                aria-label={isRefreshing ? t("refreshing") : t("refresh")}
+                aria-label={isRefreshing ? t('action.refreshing') : t("refresh")}
                 tooltipAlignment="center"
                 onClick={isRefreshing ? undefined : refreshContest}
               >

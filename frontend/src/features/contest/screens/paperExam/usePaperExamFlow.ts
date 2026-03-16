@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { usePaperExam } from "@/features/contest/contexts/PaperExamContext";
+import { useContest } from "@/features/contest/contexts/ContestContext";
 import {
   registerContest,
   startExam,
@@ -26,7 +26,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 export const usePaperExamFlow = () => {
   const { contestId } = useParams<{ contestId: string }>();
-  const { contest, refreshContest } = usePaperExam();
+  const { contest, refreshContest, loading: contextLoading } = useContest();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,7 +112,7 @@ export const usePaperExamFlow = () => {
   return {
     contestId,
     contest,
-    loading,
+    loading: loading || contextLoading,
     error,
     clearError,
     register,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 
@@ -86,7 +86,7 @@ describe("contest type module registry", () => {
       "/contests/42/solve/p1",
     );
     expect(paperModule.student.getAnsweringEntryPath("42", createContest({ contestType: "paper_exam" }))).toBe(
-      "/contests/42/paper-exam/answering",
+      "/contests/42/solve",
     );
   });
 
@@ -115,6 +115,50 @@ describe("contest type module registry", () => {
     ]);
     const problemsTab = module.student.getTabs(inProgress).find((tab) => tab.key === "problems");
     expect(problemsTab?.contentKind).toBe("coding_problems");
+  });
+
+  it("limits strict submitted contests to overview tab before contest end", () => {
+    const nowSpy = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.parse("2026-03-16T10:00:00.000Z"));
+
+    try {
+      const coding = getContestTypeModule("coding");
+      const paper = getContestTypeModule("paper_exam");
+      const strictSubmittedBeforeEnd = createContest({
+        contestType: "coding",
+        cheatDetectionEnabled: true,
+        examStatus: "submitted",
+        endTime: "2026-03-16T11:00:00.000Z",
+      });
+      const strictSubmittedAfterEnd = createContest({
+        contestType: "coding",
+        cheatDetectionEnabled: true,
+        examStatus: "submitted",
+        endTime: "2026-03-16T09:00:00.000Z",
+      });
+      const strictPaperBeforeEnd = createContest({
+        contestType: "paper_exam",
+        cheatDetectionEnabled: true,
+        examStatus: "submitted",
+        endTime: "2026-03-16T11:00:00.000Z",
+      });
+
+      expect(coding.student.getTabs(strictSubmittedBeforeEnd).map((tab) => tab.key)).toEqual([
+        "overview",
+      ]);
+      expect(coding.student.getTabs(strictSubmittedAfterEnd).map((tab) => tab.key)).toEqual([
+        "overview",
+        "problems",
+        "submissions",
+        "clarifications",
+      ]);
+      expect(paper.student.getTabs(strictPaperBeforeEnd).map((tab) => tab.key)).toEqual([
+        "overview",
+      ]);
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it("keeps paper-exam tab visibility rules", () => {

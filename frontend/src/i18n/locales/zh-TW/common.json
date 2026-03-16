@@ -24,7 +24,7 @@
     "announcements": "公告管理",
     "environment": "環境設定",
     "createContest": "建立競賽",
-    "createProblem": "新增題目",
+    "createProblem": "建立題目",
     "editProblem": "編輯題目",
     "teacherDashboard": "教師後台",
     "problemManagement": "題目管理",
@@ -230,7 +230,22 @@
       "conflictTitle": "考試衝突",
       "takeover": "接管並鎖定舊裝置",
       "takingOver": "處理中...",
-      "takeoverFailed": "接管失敗，請聯繫監考老師。"
+      "takeoverFailed": "接管失敗，請聯繫監考老師。",
+      "verifyingSession": "同步作業階段中...",
+      "connecting": "連線中...",
+      "pleaseWait": "請稍候",
+      "loadingTitle": "歡迎來到 QJudge",
+      "loadingSubtitle": "正在為您準備專屬的程式舞台",
+      "steps": {
+        "preparing": "準備開啟程式冒險...",
+        "assembling": "正在組裝工作區...",
+        "almost": "就快好了，請稍候",
+        "ready": "一切準備就緒！",
+        "verifying": "確認是本人無誤（你看起來很棒！）",
+        "stats": "正在同步您的戰績...",
+        "igniting": "引擎點火中，準備出發！"
+      },
+      "finalTouch": "正在進行最後確認..."
     },
     "campusSso": {
       "title": "校園身份驗證",

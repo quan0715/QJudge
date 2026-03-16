@@ -3,12 +3,13 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   getContestAnsweringEntryPath,
   getContestDashboardPath,
-  getContestPaperAnsweringPath,
   getContestPrecheckPath,
+  getContestSolveRootPath,
   getContestSolvePath,
   getFirstContestProblemId,
   getPostPrecheckPath,
   isPathWithinContest,
+  shouldRedirectToOverviewOnStrictSubmitted,
   shouldRouteToPrecheck,
 } from "./contestRoutePolicy";
 
@@ -53,8 +54,8 @@ describe("contestRoutePolicy", () => {
     expect(getContestDashboardPath("42")).toBe("/contests/42");
     expect(getContestPrecheckPath("42")).toBe("/contests/42/exam-precheck");
     expect(getContestSolvePath("42", "p1")).toBe("/contests/42/solve/p1");
-    expect(getContestPaperAnsweringPath("42", "q 1")).toBe(
-      "/contests/42/paper-exam/answering?q=q%201",
+    expect(getContestSolveRootPath("42", "q 1")).toBe(
+      "/contests/42/solve?q=q%201",
     );
   });
 
@@ -70,9 +71,9 @@ describe("contestRoutePolicy", () => {
     expect(getContestAnsweringEntryPath("42", contest)).toBe("/contests/42/solve/p1");
   });
 
-  it("routes paper contests to paper answering after precheck", () => {
+  it("routes paper contests to solve root after precheck", () => {
     const contest = createContest({ contestType: "paper_exam" });
-    expect(getPostPrecheckPath("42", contest)).toBe("/contests/42/paper-exam/answering");
+    expect(getPostPrecheckPath("42", contest)).toBe("/contests/42/solve");
   });
 
   it("returns dashboard fallback when coding contest has no problem", () => {
@@ -105,5 +106,58 @@ describe("contestRoutePolicy", () => {
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/42/" })).toBe(true);
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/42/solve/p1" })).toBe(true);
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/43" })).toBe(false);
+  });
+
+  it("redirects strict submitted users to dashboard overview", () => {
+    const nowMs = Date.parse("2026-03-16T10:00:00.000Z");
+    const strictSubmitted = createContest({
+      contestType: "paper_exam",
+      cheatDetectionEnabled: true,
+      examStatus: "submitted",
+      endTime: "2026-03-16T11:00:00.000Z",
+    });
+    const strictSubmittedEnded = createContest({
+      contestType: "paper_exam",
+      cheatDetectionEnabled: true,
+      examStatus: "submitted",
+      endTime: "2026-03-16T09:00:00.000Z",
+    });
+
+    expect(
+      shouldRedirectToOverviewOnStrictSubmitted({
+        contestId: "42",
+        contest: strictSubmitted,
+        pathname: "/contests/42/solve/p1",
+        search: "",
+        nowMs,
+      }),
+    ).toBe(true);
+    expect(
+      shouldRedirectToOverviewOnStrictSubmitted({
+        contestId: "42",
+        contest: strictSubmitted,
+        pathname: "/contests/42",
+        search: "?tab=problems",
+        nowMs,
+      }),
+    ).toBe(true);
+    expect(
+      shouldRedirectToOverviewOnStrictSubmitted({
+        contestId: "42",
+        contest: strictSubmitted,
+        pathname: "/contests/42",
+        search: "?tab=overview",
+        nowMs,
+      }),
+    ).toBe(false);
+    expect(
+      shouldRedirectToOverviewOnStrictSubmitted({
+        contestId: "42",
+        contest: strictSubmittedEnded,
+        pathname: "/contests/42/solve/p1",
+        search: "",
+        nowMs,
+      }),
+    ).toBe(false);
   });
 });

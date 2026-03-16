@@ -52,9 +52,9 @@ const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
     <Modal
       open={open}
       onRequestClose={onClose}
-      modalHeading={t("button.createProblem")}
+      modalHeading={t('page.createProblem')}
       primaryButtonText={t("button.create")}
-      secondaryButtonText={t("button.cancel")}
+      secondaryButtonText={t('button.cancel')}
       onRequestSubmit={handleSubmit}
       onSecondarySubmit={onClose}
       primaryButtonDisabled={!title || loading}
@@ -63,7 +63,7 @@ const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
         {error && (
           <InlineNotification
             kind="error"
-            title="Error"
+            title={t("common:error.title")}
             subtitle={error}
             style={{ marginBottom: "1rem" }}
           />
@@ -71,7 +71,7 @@ const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
         <TextInput
           id="problem-title"
           labelText={t("form.title")}
-          placeholder="Enter problem title"
+          placeholder={t("form.placeholder.title")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -80,10 +80,10 @@ const CreateProblemModal: React.FC<CreateProblemModalProps> = ({
         <TextInput
           id="problem-slug"
           labelText={t("form.slug")}
-          placeholder="Optional: custom-slug"
+          placeholder={t("form.placeholder.slug", "Optional: custom-slug")}
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          helperText="Leave empty for auto-generated slug"
+          helperText={t("form.helper.slug", "Leave empty for auto-generated slug")}
         />
       </Form>
     </Modal>

@@ -4,13 +4,14 @@
     "problemCount": "{{count}} problems in total"
   },
   "button": {
-    "createProblem": "Create Problem",
-    "create": "Create",
-    "cancel": "Cancel"
+    "create": "Create"
   },
   "form": {
     "title": "Title",
-    "slug": "URL Slug"
+    "slug": "URL Slug",
+    "placeholder": {
+      "title": "Enter problem title"
+    }
   },
   "section": {
     "description": "Description",
@@ -141,5 +142,17 @@
       "scalePlaceholder": "Select scale",
       "description": "Export problem data as YAML for backup or import to other systems."
     }
+  },
+  "hero": {
+    "timeLimit": "Time Limit",
+    "memoryLimit": "Memory Limit",
+    "acRate": "AC Rate",
+    "submissions": "Submissions",
+    "accepted": "Accepted",
+    "score": "Score"
+  },
+  "editor": {
+    "header": "Problem Editor",
+    "selectLanguage": "Select Language"
   }
 }

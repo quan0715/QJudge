@@ -5,6 +5,7 @@ import {
   hasStartedExam,
   isContestParticipant,
   isExamMonitoringActive,
+  isStrictSubmittedBeforeEnd,
   shouldForceEndExamOnExit,
   shouldWarnOnExit,
 } from "./contestRuntimePolicy";
@@ -115,6 +116,44 @@ describe("contestRuntimePolicy", () => {
         createContest({ hasJoined: true, isRegistered: true, examStatus: "locked" }),
       ),
     ).toBe(false);
+  });
+
+  it("blocks strict submitted contests before end time", () => {
+    const nowMs = Date.parse("2026-03-16T10:00:00.000Z");
+    const strictSubmitted = createContest({
+      cheatDetectionEnabled: true,
+      examStatus: "submitted",
+      endTime: "2026-03-16T10:30:00.000Z",
+    });
+    const strictSubmittedEnded = createContest({
+      cheatDetectionEnabled: true,
+      examStatus: "submitted",
+      endTime: "2026-03-16T09:30:00.000Z",
+    });
+    const nonStrictSubmitted = createContest({
+      cheatDetectionEnabled: false,
+      examStatus: "submitted",
+      endTime: "2026-03-16T10:30:00.000Z",
+    });
+
+    expect(isStrictSubmittedBeforeEnd(strictSubmitted, nowMs)).toBe(true);
+    expect(canAccessExamContent(strictSubmitted, nowMs)).toBe(false);
+    expect(isStrictSubmittedBeforeEnd(strictSubmittedEnded, nowMs)).toBe(false);
+    expect(canAccessExamContent(strictSubmittedEnded, nowMs)).toBe(true);
+    expect(isStrictSubmittedBeforeEnd(nonStrictSubmitted, nowMs)).toBe(false);
+    expect(canAccessExamContent(nonStrictSubmitted, nowMs)).toBe(true);
+  });
+
+  it("fails closed for strict submitted contests with invalid endTime", () => {
+    const nowMs = Date.parse("2026-03-16T10:00:00.000Z");
+    const strictSubmittedInvalidEnd = createContest({
+      cheatDetectionEnabled: true,
+      examStatus: "submitted",
+      endTime: "not-a-date",
+    });
+
+    expect(isStrictSubmittedBeforeEnd(strictSubmittedInvalidEnd, nowMs)).toBe(true);
+    expect(canAccessExamContent(strictSubmittedInvalidEnd, nowMs)).toBe(false);
   });
 
   it("computes monitoring and exit warning flags", () => {

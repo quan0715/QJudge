@@ -272,7 +272,7 @@ const ProblemEditPageInner: React.FC = () => {
         showToast({
           kind: "warning",
           title: t("edit.messages.importSuccessSaveFailed"),
-          subtitle: err instanceof Error ? err.message : t("button.save"),
+          subtitle: err instanceof Error ? err.message : t('button.save'),
         });
       }
     },

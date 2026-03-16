@@ -7,7 +7,6 @@
     "contestCount": "共 {{count}} 場競賽"
   },
   "button": {
-    "createContest": "新增競賽",
     "backToLobby": "返回競賽大廳"
   },
   "placeholder": {
@@ -37,7 +36,6 @@
   "timeToStart": "距開始 {{time}}",
   "problemList": "題目列表",
   "refresh": "重新整理競賽資訊",
-  "refreshing": "更新中...",
   "enterFullscreen": "進入全螢幕",
   "exitFullscreen": "離開全螢幕",
   "exit": "離開",
@@ -140,8 +138,8 @@
       "starting": "考試即將開始",
       "entering": "正在進入考場..."
     }
-    },
-    "answering": {
+  },
+  "answering": {
     "status": {
       "saving": "儲存中...",
       "saved": "已儲存",
@@ -204,33 +202,35 @@
       "promptEmpty": "（尚未填寫題目敘述）",
       "answerLabel": "作答區"
     }
+  },
+  "scoreboard": {
+    "table": {
+      "rank": "排名",
+      "user": "參與者",
+      "solved": "解題數",
+      "totalScore": "總分",
+      "penalty": "罰時"
     },
-    "scoreboard": {      "table": {
-        "rank": "排名",
-        "user": "參與者",
-        "solved": "解題數",
-        "totalScore": "總分",
-        "penalty": "罰時"
-      },
-      "status": {
-        "tries": "次嘗試",
-        "try": "次嘗試",
-        "pending": "評測中",
-        "partial": "部分得分",
-        "pts": "分"
-      }
-    },
-    "report": {
-      "title": "個人成績報告",
-      "generating": "正在產生報告...",
-      "downloaded": "報告已下載",
-      "failed": "下載報告失敗",
-      "descriptionPaper": "下載包含逐題作答、得分與 TA 評語的 PDF 報告",
-      "descriptionCoding": "下載包含解題統計、程式碼和趨勢圖的 PDF 報告",
-      "download": "下載報告",
-      "preparing": "產生中..."
-    },
-    "delete": {    "title": "刪除競賽",
+    "status": {
+      "tries": "次嘗試",
+      "try": "次嘗試",
+      "pending": "評測中",
+      "partial": "部分得分",
+      "pts": "分"
+    }
+  },
+  "report": {
+    "title": "個人成績報告",
+    "generating": "正在產生報告...",
+    "downloaded": "報告已下載",
+    "failed": "下載報告失敗",
+    "descriptionPaper": "下載包含逐題作答、得分與 TA 評語的 PDF 報告",
+    "descriptionCoding": "下載包含解題統計、程式碼和趨勢圖的 PDF 報告",
+    "download": "下載報告",
+    "preparing": "產生中..."
+  },
+  "delete": {
+    "title": "刪除競賽",
     "confirm": "確定要刪除此競賽嗎？此動作無法復原。",
     "error": "刪除失敗"
   },
@@ -476,12 +476,11 @@
     "refresh": "重新整理",
     "status": "狀態",
     "problem": "題目",
-    "user": "用戶",
+    "user": "使用者",
     "language": "語言",
     "score": "得分",
     "time": "耗時",
     "submittedAt": "提交時間",
-    "actions": "操作",
     "viewDetails": "查看詳情",
     "noPermission": "無權限查看",
     "searchPlaceholder": "搜尋用戶或題目...",
@@ -845,8 +844,7 @@
       "nickname": "暱稱",
       "score": "分數",
       "examStatus": "考試狀態",
-      "joinedAt": "加入時間",
-      "actions": "操作"
+      "joinedAt": "加入時間"
     },
     "add": "新增",
     "addSuccess": "參賽者已新增",
@@ -989,16 +987,12 @@
     }
   },
   "common": {
-    "delete": "刪除",
-    "cancel": "取消",
-    "refresh": "重新整理",
     "prevPage": "上一頁",
     "nextPage": "下一頁",
     "itemsPerPage": "每頁顯示",
     "success": "成功",
     "error": "錯誤",
-    "saving": "儲存中...",
-    "save": "儲存"
+    "saving": "儲存中..."
   },
   "participants": {
     "title": "參賽者列表",
@@ -1033,8 +1027,7 @@
       "score": "分數",
       "joinedAt": "加入時間",
       "status": "狀態",
-      "lockReason": "鎖定原因",
-      "actions": "操作"
+      "lockReason": "鎖定原因"
     },
     "actions": {
       "unlock": "解除鎖定",
@@ -1141,7 +1134,7 @@
     "confirmDelete": "確定刪除題目 #{{num}}？",
     "questionDeleted": "題目已刪除",
     "deleteFailed": "刪除失敗",
-    "addQuestion": "新增題目",
+    "addQuestion": "建立題目",
     "selectQuestionType": "選擇題目類型",
     "insertHere": "在此插入題目",
     "questionList": "題目列表",

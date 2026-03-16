@@ -18,7 +18,6 @@
       "submitEdit": "Save",
       "submittingCreate": "Posting...",
       "submittingEdit": "Saving...",
-      "cancel": "Cancel",
       "form": {
         "title": "Title",
         "titlePlaceholder": "Announcement Title",
@@ -42,7 +41,6 @@
       "title": "Bind Contest",
       "submit": "Bind",
       "submitting": "Binding...",
-      "cancel": "Cancel",
       "noContests": "No contests available to bind",
       "table": {
         "name": "Contest Name",

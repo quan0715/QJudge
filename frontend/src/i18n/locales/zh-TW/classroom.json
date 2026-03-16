@@ -18,7 +18,6 @@
       "submitEdit": "儲存",
       "submittingCreate": "發佈中...",
       "submittingEdit": "儲存中...",
-      "cancel": "取消",
       "form": {
         "title": "標題",
         "titlePlaceholder": "公告標題",
@@ -42,7 +41,6 @@
       "title": "綁定競賽",
       "submit": "綁定",
       "submitting": "綁定中...",
-      "cancel": "取消",
       "noContests": "沒有可綁定的競賽",
       "table": {
         "name": "競賽名稱",

@@ -4,6 +4,7 @@ import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { Checkmark, Percentage, Document, Trophy } from "@carbon/icons-react";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
+import { useTranslation } from "react-i18next";
 import "./ProblemHero.scss";
 
 interface ProblemHeroProps {
@@ -32,6 +33,8 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   maxWidth,
   actions,
 }) => {
+  const { t } = useTranslation("problem");
+
   if (loading || !problem) {
     return <HeroBase title="" loading={true} maxWidth={maxWidth} />;
   }
@@ -66,13 +69,13 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   const metadata = (
     <>
       <div className="problem-hero__metadata-item">
-        <span className="problem-hero__metadata-label">Time Limit</span>
+        <span className="problem-hero__metadata-label">{t("hero.timeLimit")}</span>
         <span className="problem-hero__metadata-value">
           {problem.timeLimit} ms
         </span>
       </div>
       <div className="problem-hero__metadata-item">
-        <span className="problem-hero__metadata-label">Memory Limit</span>
+        <span className="problem-hero__metadata-label">{t("hero.memoryLimit")}</span>
         <span className="problem-hero__metadata-value">
           {problem.memoryLimit} KB
         </span>
@@ -94,31 +97,31 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
       <KpiCard
         icon={Trophy}
         value={problemScore !== undefined ? `${problemScore} pts` : "-"}
-        label="Score"
+        label={t("hero.score")}
       />
       <KpiCard
         icon={Document}
         value={problem.submissionCount || 0}
-        label="Submissions"
+        label={t("hero.submissions")}
       />
       <KpiCard
         icon={Checkmark}
         value={problem.acceptedCount || 0}
-        label="Accepted"
+        label={t("hero.accepted")}
       />
     </>
   ) : (
     <>
-      <KpiCard icon={Percentage} value={`${acRate}%`} label="AC Rate" />
+      <KpiCard icon={Percentage} value={`${acRate}%`} label={t("hero.acRate")} />
       <KpiCard
         icon={Document}
         value={problem.submissionCount || 0}
-        label="Submissions"
+        label={t("hero.submissions")}
       />
       <KpiCard
         icon={Checkmark}
         value={problem.acceptedCount || 0}
-        label="Accepted"
+        label={t("hero.accepted")}
       />
     </>
   );

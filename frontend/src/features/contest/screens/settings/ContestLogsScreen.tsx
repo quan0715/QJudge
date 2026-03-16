@@ -404,7 +404,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
                 renderIcon={Renew}
                 onClick={() => { void handleRefresh(); }}
                 hasIconOnly
-                iconDescription={t("common.refresh", "重新整理")}
+                iconDescription={t("action.refresh", "重新整理")}
                 disabled={isRefreshPending}
                 size="sm"
               />
@@ -531,7 +531,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
               renderIcon={Renew}
               onClick={() => { void handleRefresh(); }}
               hasIconOnly
-              iconDescription={t("common.refresh", "重新整理")}
+              iconDescription={t("action.refresh", "重新整理")}
               disabled={isRefreshing || isRefreshPending || antiCheatConfigLoading}
               size="sm"
             />

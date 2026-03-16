@@ -4,13 +4,14 @@
     "problemCount": "共 {{count}} 道題目"
   },
   "button": {
-    "createProblem": "新增題目",
-    "create": "建立",
-    "cancel": "取消"
+    "create": "建立"
   },
   "form": {
     "title": "標題",
-    "slug": "網址代碼"
+    "slug": "網址代碼",
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    }
   },
   "section": {
     "description": "題目描述",
@@ -56,7 +57,7 @@
     "submitting": "提交中...",
     "submitConfirmTitle": "確認提交解答？",
     "submitConfirmMessage": "此操作將會評測所有隱藏測試案例。",
-    "createTitle": "新增題目",
+    "createTitle": "建立題目",
     "createSuccess": "題目建立成功！",
     "createError": "建立失敗，請稍後再試",
     "confirmDelete": "確認刪除",
@@ -141,5 +142,17 @@
       "scalePlaceholder": "選擇縮放比例",
       "description": "將題目資料匯出為 YAML 格式，可用於備份或匯入至其他系統。"
     }
+  },
+  "hero": {
+    "timeLimit": "時間限制",
+    "memoryLimit": "記憶體限制",
+    "acRate": "通過率",
+    "submissions": "提交次數",
+    "accepted": "通過次數",
+    "score": "配分"
+  },
+  "editor": {
+    "header": "題目編輯器",
+    "selectLanguage": "選擇語言"
   }
 }

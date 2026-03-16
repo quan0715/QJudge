@@ -57,7 +57,7 @@ export const BindContestModal: React.FC<BindContestModalProps> = ({
       modalHeading={t("bindContest.modal.title")}
       primaryButtonText={submitting ? t("bindContest.modal.submitting") : t("bindContest.modal.submit")}
       primaryButtonDisabled={submitting || !selected}
-      secondaryButtonText={t("bindContest.modal.cancel")}
+      secondaryButtonText={t('button.cancel')}
     >
       {contests.length === 0 ? (
         <p style={{ color: "var(--cds-text-secondary)" }}>{t("bindContest.modal.noContests")}</p>

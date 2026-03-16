@@ -7,7 +7,6 @@
     "contestCount": "全 {{count}} 件のコンテスト"
   },
   "button": {
-    "createContest": "コンテスト作成",
     "backToLobby": "コンテストロビーに戻る"
   },
   "placeholder": {
@@ -37,7 +36,6 @@
   "timeToStart": "開始まで {{time}}",
   "problemList": "問題一覧",
   "refresh": "コンテスト情報を更新",
-  "refreshing": "更新中...",
   "enterFullscreen": "フルスクリーン",
   "exitFullscreen": "フルスクリーン解除",
   "exit": "退出",
@@ -81,8 +79,7 @@
       "score": "スコア",
       "joinedAt": "参加日時",
       "status": "ステータス",
-      "lockReason": "ロック理由",
-      "actions": "操作"
+      "lockReason": "ロック理由"
     },
     "actions": {
       "unlock": "ロック解除",
@@ -534,7 +531,6 @@
     "score": "スコア",
     "time": "時間",
     "submittedAt": "提出時間",
-    "actions": "操作",
     "viewDetails": "詳細を見る",
     "noPermission": "権限がありません",
     "searchPlaceholder": "ユーザーまたは問題を検索...",
@@ -898,8 +894,7 @@
       "nickname": "ニックネーム",
       "score": "スコア",
       "examStatus": "試験状態",
-      "joinedAt": "参加日時",
-      "actions": "操作"
+      "joinedAt": "参加日時"
     },
     "add": "追加",
     "addSuccess": "参加者が追加されました",
@@ -1042,16 +1037,12 @@
     }
   },
   "common": {
-    "delete": "削除",
-    "cancel": "キャンセル",
-    "refresh": "更新",
     "prevPage": "前のページ",
     "nextPage": "次のページ",
     "itemsPerPage": "表示件数",
     "success": "成功",
     "error": "エラー",
-    "saving": "保存中...",
-    "save": "保存"
+    "saving": "保存中..."
   },
   "participantsDashboard": {
     "listSubtitle": "参加者を選択すると、解答・イベント・レポートを確認できます",
