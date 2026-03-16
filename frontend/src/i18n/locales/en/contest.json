@@ -7,7 +7,6 @@
     "contestCount": "{{count}} contests in total"
   },
   "button": {
-    "createContest": "Create Contest",
     "backToLobby": "Back to Contest Lobby"
   },
   "placeholder": {
@@ -37,7 +36,6 @@
   "timeToStart": "Starts in {{time}}",
   "problemList": "Problem List",
   "refresh": "Refresh Contest",
-  "refreshing": "Refreshing...",
   "enterFullscreen": "Enter Fullscreen",
   "exitFullscreen": "Exit Fullscreen",
   "exit": "Exit",
@@ -81,8 +79,7 @@
       "score": "Score",
       "joinedAt": "Joined At",
       "status": "Status",
-      "lockReason": "Lock Reason",
-      "actions": "Actions"
+      "lockReason": "Lock Reason"
     },
     "actions": {
       "unlock": "Unlock",
@@ -534,7 +531,6 @@
     "score": "Score",
     "time": "Time",
     "submittedAt": "Submitted At",
-    "actions": "Actions",
     "viewDetails": "View Details",
     "noPermission": "No Permission",
     "searchPlaceholder": "Search user or problem...",
@@ -898,8 +894,7 @@
       "nickname": "Nickname",
       "score": "Score",
       "examStatus": "Exam Status",
-      "joinedAt": "Joined At",
-      "actions": "Actions"
+      "joinedAt": "Joined At"
     },
     "add": "Add",
     "addSuccess": "Participant added",
@@ -1042,16 +1037,12 @@
     }
   },
   "common": {
-    "delete": "Delete",
-    "cancel": "Cancel",
-    "refresh": "Refresh",
     "prevPage": "Previous page",
     "nextPage": "Next page",
     "itemsPerPage": "Items per page",
     "success": "Success",
     "error": "Error",
-    "saving": "Saving...",
-    "save": "Save"
+    "saving": "Saving..."
   },
   "participantsDashboard": {
     "listSubtitle": "Select a participant to review answers, events, and report details",

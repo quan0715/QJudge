@@ -93,7 +93,18 @@
     "antiCheat": {
       "eyebrow": "Strict Proctoring",
       "title": "無需安裝，領先業界的防作弊技術",
-      "description": "基於瀏覽器的全方位偵測，考生無需安裝任何插件或軟體即可進入嚴格監考環境。我們捍衛每一份努力，確保測驗的絕對公平性。"
+      "description": "基於瀏覽器的全方位偵測，考生無需安裝任何插件或軟體即可進入嚴格監考環境。我們捍衛每一份努力，確保測驗的絕對公平性。",
+      "proctoring": {
+        "fullscreen": "全螢幕鎖定",
+        "tabSwitch": "分頁切換偵測",
+        "multiScreen": "多螢幕封鎖",
+        "mouseLeave": "滑鼠離開軌跡",
+        "noCopy": "禁止複製貼上",
+        "video": "視訊存證錄影",
+        "audio": "音訊異常偵測",
+        "face": "人臉身分驗證",
+        "ai": "AI 違規分析"
+      }
     },
     "teacher": {
       "eyebrow": "Teacher Friendly",
@@ -225,5 +236,13 @@
   },
   "footer": {
     "copyright": "© 2024 QJudge. 建立於 IBM Carbon Design System。"
+  },
+  "visuals": {
+    "mathTitle": "數學公式渲染",
+    "topics": "題目單元",
+    "continuePractice": "繼續練習",
+    "projectMode": "專案模式",
+    "live": "直播中",
+    "personalizedPath": "個人化學習路徑"
   }
 }

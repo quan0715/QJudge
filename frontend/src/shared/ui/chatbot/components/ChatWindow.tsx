@@ -272,7 +272,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({
               className={styles.approvalCancelBtn}
               onClick={onCancelAction}
             >
-              {t("approval.cancel")}
+              {t('button.cancel')}
             </button>
           </div>
         </div>
@@ -305,8 +305,8 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         <Modal
           open={isRenameModalOpen}
           modalHeading={t("widget.renameModal.title")}
-          primaryButtonText={t("widget.renameModal.submit")}
-          secondaryButtonText={t("widget.renameModal.cancel")}
+          primaryButtonText={t('button.save')}
+          secondaryButtonText={t('button.cancel')}
           onRequestClose={() => setIsRenameModalOpen(false)}
           onRequestSubmit={async () => {
             if (
@@ -354,9 +354,9 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         <Modal
           open={isDeleteConfirmOpen}
           modalHeading={t("widget.deleteModal.title")}
-          primaryButtonText={isDeleting ? t("widget.deleteModal.submitting") : t("widget.deleteModal.submit")}
+          primaryButtonText={isDeleting ? t("widget.deleteModal.submitting") : t('button.delete')}
           primaryButtonDisabled={isDeleting}
-          secondaryButtonText={t("widget.deleteModal.cancel")}
+          secondaryButtonText={t('button.cancel')}
           danger
           onRequestClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
           onRequestSubmit={async () => {

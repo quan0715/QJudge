@@ -221,5 +221,9 @@
   },
   "footer": {
     "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  },
+  "seo": {
+    "description": "QJudgeは教育向けに設計されたオンライン試験・評価プラットフォームです。20以上のプログラミング言語、多様な問題形式、厳格な不正防止監視をサポートしています。",
+    "title": "QJudge | 安全で安定したオンライン試験プラットフォーム"
   }
 }

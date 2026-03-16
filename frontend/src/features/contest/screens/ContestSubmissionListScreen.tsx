@@ -168,7 +168,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
     { key: "score", header: t("submissions.score") },
     { key: "time", header: t("submissions.time") },
     { key: "created_at", header: t("submissions.submittedAt") },
-    { key: "actions", header: t("submissions.actions") },
+    { key: "actions", header: t('table.actions') },
   ];
 
   const rows = submissions.map((sub) => {

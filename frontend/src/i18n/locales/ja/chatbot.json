@@ -28,16 +28,12 @@
     "newChatLabel": "New Chat",
     "renameModal": {
       "title": "Rename Chat",
-      "submit": "Save",
-      "cancel": "Cancel",
       "label": "New Name",
       "placeholder": "Enter new chat name"
     },
     "deleteModal": {
       "title": "Confirm Delete",
-      "submit": "Delete",
       "submitting": "Deleting...",
-      "cancel": "Cancel",
       "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
       "undoWarning": "This action cannot be undone."
     }
@@ -63,7 +59,6 @@
   "approval": {
     "title": "Approval Required",
     "confirm": "Confirm Action",
-    "cancel": "Cancel",
     "preview": "Preview Changes"
   },
   "userInput": {

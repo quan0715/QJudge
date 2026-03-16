@@ -4,9 +4,7 @@
     "problemCount": "총 {{count}}문제"
   },
   "button": {
-    "createProblem": "문제 생성",
-    "create": "생성",
-    "cancel": "취소"
+    "create": "생성"
   },
   "form": {
     "title": "제목",

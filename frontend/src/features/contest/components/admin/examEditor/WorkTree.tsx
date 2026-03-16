@@ -84,7 +84,7 @@ const TreeItem: React.FC<{
           <IconButton
             kind="ghost"
             size="sm"
-            label={t("common.delete", "刪除")}
+            label={t("button.delete", "刪除")}
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               onDelete();

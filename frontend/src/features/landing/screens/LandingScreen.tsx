@@ -130,15 +130,15 @@ const LandingScreen = () => {
   ];
 
   const proctorGrid = [
-    { icon: <Screen size={24} />, label: "全螢幕鎖定" },
-    { icon: <Switcher size={24} />, label: "分頁切換偵測" },
-    { icon: <UserMultiple size={24} />, label: "多螢幕封鎖" },
-    { icon: <Cursor_1 size={24} />, label: "滑鼠離開軌跡" },
-    { icon: <Copy size={24} />, label: "禁止複製貼上" },
-    { icon: <Camera size={24} />, label: "視訊存證錄影" },
-    { icon: <Microphone size={24} />, label: "音訊異常偵測" },
-    { icon: <FaceActivated size={24} />, label: "人臉身分驗證" },
-    { icon: <Security size={24} />, label: "AI 違規分析" },
+    { icon: <Screen size={24} />, label: t("sections.antiCheat.proctoring.fullscreen") },
+    { icon: <Switcher size={24} />, label: t("sections.antiCheat.proctoring.tabSwitch") },
+    { icon: <UserMultiple size={24} />, label: t("sections.antiCheat.proctoring.multiScreen") },
+    { icon: <Cursor_1 size={24} />, label: t("sections.antiCheat.proctoring.mouseLeave") },
+    { icon: <Copy size={24} />, label: t("sections.antiCheat.proctoring.noCopy") },
+    { icon: <Camera size={24} />, label: t("sections.antiCheat.proctoring.video") },
+    { icon: <Microphone size={24} />, label: t("sections.antiCheat.proctoring.audio") },
+    { icon: <FaceActivated size={24} />, label: t("sections.antiCheat.proctoring.face") },
+    { icon: <Security size={24} />, label: t("sections.antiCheat.proctoring.ai") },
   ];
 
   const contestModes = [
@@ -195,7 +195,7 @@ const LandingScreen = () => {
       desc: t("modes.items.lab.desc"),
       visual: (
         <div className="landing__mode-visual-box lab-practice">
-          <div className="topic-header"><Folder size={14}/> Problem Topics</div>
+          <div className="topic-header"><Folder size={14}/> {t("visuals.topics")}</div>
           <div className="topic-list">
             <div className="topic-item">
               <span className="dot dot--green"/>
@@ -208,7 +208,7 @@ const LandingScreen = () => {
               <span className="stat">4/20</span>
             </div>
           </div>
-          <div className="practice-cta">Continue Practice</div>
+          <div className="practice-cta">{t("visuals.continuePractice")}</div>
         </div>
       )
     },
@@ -226,7 +226,7 @@ const LandingScreen = () => {
             <div className="tree-item"><Folder size={14}/> tests</div>
             <div className="tree-item"><DocumentMultiple_01 size={14}/> README.md</div>
           </div>
-          <div className="project-badge">Project Mode</div>
+          <div className="project-badge">{t("visuals.projectMode")}</div>
         </div>
       )
     },
@@ -248,7 +248,7 @@ const LandingScreen = () => {
               <div className="team-progress"><div className="fill w-70"/></div>
             </div>
           </div>
-          <div className="live-tag">LIVE</div>
+          <div className="live-tag">{t("visuals.live")}</div>
         </div>
       )
     },
@@ -267,7 +267,7 @@ const LandingScreen = () => {
             <div className="path-line" />
             <div className="node"><ChartLine size={16}/></div>
           </div>
-          <div className="ai-status">Personalized Path</div>
+          <div className="ai-status">{t("visuals.personalizedPath")}</div>
         </div>
       )
     },

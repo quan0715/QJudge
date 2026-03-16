@@ -93,7 +93,18 @@
     "antiCheat": {
       "eyebrow": "Strict Proctoring",
       "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology",
-      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test."
+      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test.",
+      "proctoring": {
+        "fullscreen": "Fullscreen Lock",
+        "tabSwitch": "Tab Switch Detection",
+        "multiScreen": "Multi-screen Block",
+        "mouseLeave": "Mouse Track",
+        "noCopy": "Copy/Paste Disabled",
+        "video": "Video Evidence",
+        "audio": "Audio Detection",
+        "face": "Face Identity",
+        "ai": "AI Analysis"
+      }
     },
     "teacher": {
       "eyebrow": "Teacher Friendly",
@@ -225,5 +236,13 @@
   },
   "footer": {
     "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  },
+  "visuals": {
+    "mathTitle": "Mathematics Rendering",
+    "topics": "Problem Topics",
+    "continuePractice": "Continue Practice",
+    "projectMode": "Project Mode",
+    "live": "LIVE",
+    "personalizedPath": "Personalized Path"
   }
 }

@@ -35,7 +35,7 @@ const OAuthCallbackPage = () => {
       return {
         title: t("auth.callback.loadingTitle", "歡迎來到 QJudge"),
         subtitle: t("auth.callback.loadingSubtitle", "正在為您準備專屬的程式舞台"),
-        backTo: '/login',
+        // Removed backTo: '/login' to hide the button while loading
       };
     }
     return {

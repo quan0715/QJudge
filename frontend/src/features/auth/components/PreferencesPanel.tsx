@@ -299,7 +299,7 @@ export const PreferencesPanel: React.FC = () => {
               >
                 {accountSaveState === "saving"
                   ? t("preferences.accountSaving", "儲存中...")
-                  : t("common.save", "Save")}
+                  : t("button.save", "Save")}
               </Button>
               {accountSaveState === "saved" ? (
                 <p className="preferences-panel__display-name-status preferences-panel__display-name-status--success">

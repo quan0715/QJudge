@@ -28,16 +28,12 @@
     "newChatLabel": "新對話",
     "renameModal": {
       "title": "重命名對話",
-      "submit": "儲存",
-      "cancel": "取消",
       "label": "新名稱",
       "placeholder": "輸入新的對話名稱"
     },
     "deleteModal": {
       "title": "確認刪除",
-      "submit": "刪除",
       "submitting": "刪除中...",
-      "cancel": "取消",
       "confirmMessage": "確定要刪除對話「{{title}}」嗎？",
       "undoWarning": "此操作無法復原。"
     }
@@ -63,7 +59,6 @@
   "approval": {
     "title": "需要確認操作",
     "confirm": "確認執行",
-    "cancel": "取消",
     "preview": "預覽變更"
   },
   "userInput": {

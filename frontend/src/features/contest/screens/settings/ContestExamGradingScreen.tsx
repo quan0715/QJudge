@@ -123,7 +123,7 @@ const ContestExamGradingScreen: React.FC = () => {
       confirmLabel: next
         ? t("grading.publishResults", "發布成績")
         : t("grading.unpublishResults", "撤回發布"),
-      cancelLabel: t("common.cancel", "取消"),
+      cancelLabel: t("button.cancel", "取消"),
       danger: !next,
     });
     if (!confirmed) return;

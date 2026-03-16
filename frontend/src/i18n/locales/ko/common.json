@@ -109,8 +109,8 @@
     "searching": "검색 중...",
     "clear": "초기화",
     "previous": "이전 단계"
-    },
-    "message": {
+  },
+  "message": {
     "loading": "로딩 중...",
     "error": "오류가 발생했습니다",
     "success": "작업이 완료되었습니다",
@@ -119,12 +119,12 @@
     "comingSoon": "출시 예정",
     "saveFailed": "저장 실패",
     "deleteFailed": "삭제 실패"
-    },
-    "error": {
+  },
+  "error": {
     "title": "오류",
     "validationFailed": "검증 실패"
-    },
-    "pagination": {
+  },
+  "pagination": {
     "previous": "이전",
     "next": "다음",
     "itemsPerPage": "페이지당 항목 수"
@@ -249,7 +249,21 @@
       "loginNow": "로그인",
       "failed": "가입 실패",
       "failedRetry": "가입 실패, 나중에 다시 시도하세요",
-      "passwordMismatch": "비밀번호가 일치하지 않습니다"
+      "passwordMismatch": "비밀번호가 일치하지 않습니다",
+      "passwordHelper": "최소 8자 이상, 숫자만으로 구성되거나 흔한 비밀번호는 피하십시오.",
+      "passwordTooShort": "비밀번호는 최소 8자 이상이어야 합니다."
+    },
+    "callback": {
+      "conflictTitle": "시험 충돌",
+      "errorTitle": "로그인 실패",
+      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
+      "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
+      "loading": "본인 확인 중",
+      "loadingDesc": "학생 정보를 가져오는 중입니다. 잠시 기다려 주십시오...",
+      "noCode": "인증 코드를 받지 못했습니다.",
+      "takeover": "인계받고 이전 장치 잠금",
+      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
+      "takingOver": "처리 중..."
     }
   },
   "status": {

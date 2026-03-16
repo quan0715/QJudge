@@ -7,7 +7,6 @@
     "contestCount": "총 {{count}}개의 대회"
   },
   "button": {
-    "createContest": "대회 생성",
     "backToLobby": "대회 로비로 돌아가기"
   },
   "placeholder": {
@@ -37,7 +36,6 @@
   "timeToStart": "시작까지 {{time}}",
   "problemList": "문제 목록",
   "refresh": "대회 정보 새로고침",
-  "refreshing": "새로고침 중...",
   "enterFullscreen": "전체 화면",
   "exitFullscreen": "전체 화면 종료",
   "exit": "나가기",
@@ -81,8 +79,7 @@
       "score": "점수",
       "joinedAt": "참가 일시",
       "status": "상태",
-      "lockReason": "잠금 사유",
-      "actions": "작업"
+      "lockReason": "잠금 사유"
     },
     "actions": {
       "unlock": "잠금 해제",
@@ -534,7 +531,6 @@
     "score": "점수",
     "time": "시간",
     "submittedAt": "제출 시간",
-    "actions": "작업",
     "viewDetails": "상세 보기",
     "noPermission": "권한 없음",
     "searchPlaceholder": "사용자 또는 문제 검색...",
@@ -898,8 +894,7 @@
       "nickname": "닉네임",
       "score": "점수",
       "examStatus": "시험 상태",
-      "joinedAt": "참가 일시",
-      "actions": "작업"
+      "joinedAt": "참가 일시"
     },
     "add": "추가",
     "addSuccess": "참가자가 추가되었습니다",
@@ -1042,16 +1037,12 @@
     }
   },
   "common": {
-    "delete": "삭제",
-    "cancel": "취소",
-    "refresh": "새로고침",
     "prevPage": "이전 페이지",
     "nextPage": "다음 페이지",
     "itemsPerPage": "페이지당 표시",
     "success": "성공",
     "error": "오류",
-    "saving": "저장 중...",
-    "save": "저장"
+    "saving": "저장 중..."
   },
   "participantsDashboard": {
     "listSubtitle": "참가자를 선택하면 답안, 이벤트, 리포트를 확인할 수 있습니다",

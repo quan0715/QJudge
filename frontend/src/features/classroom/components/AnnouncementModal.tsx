@@ -87,7 +87,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           : t("announcement.modal.submitCreate")
       }
       primaryButtonDisabled={submitting || !title.trim()}
-      secondaryButtonText={t("announcement.modal.cancel")}
+      secondaryButtonText={t('button.cancel')}
       size="lg"
     >
       <div style={{ display: "grid", gap: "1rem" }}>

@@ -29,7 +29,7 @@
     "teacherDashboard": "Teacher Dashboard",
     "problemManagement": "Problem Management",
     "contestManagement": "Contest Management"
-    },
+  },
   "tab": {
     "overview": "概要",
     "problems": "問題",
@@ -249,7 +249,21 @@
       "loginNow": "ログイン",
       "failed": "登録に失敗しました",
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",
-      "passwordMismatch": "パスワードが一致しません"
+      "passwordMismatch": "パスワードが一致しません",
+      "passwordHelper": "少なくとも8文字で、数字のみや一般的なパスワードは避けてください。",
+      "passwordTooShort": "パスワードは少なくとも8文字である必要があります。"
+    },
+    "callback": {
+      "conflictTitle": "試験の競合",
+      "errorTitle": "ログイン失敗",
+      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
+      "failed": "ログインに失敗しました。もう一度お試しください。",
+      "loading": "本人確認中",
+      "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
+      "noCode": "認証コードが受信されませんでした。",
+      "takeover": "引き継いで古いデバイスをロックする",
+      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
+      "takingOver": "処理中..."
     }
   },
   "status": {

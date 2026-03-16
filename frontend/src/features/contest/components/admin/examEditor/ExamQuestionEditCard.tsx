@@ -566,7 +566,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             </div>
           </div>
           <div className={styles.editToolbarRight}>
-            <IconButton kind="ghost" size="sm" label={t("common.cancel", "取消")} onClick={handleCancel}>
+            <IconButton kind="ghost" size="sm" label={t("button.cancel", "取消")} onClick={handleCancel}>
               <Close size={16} />
             </IconButton>
             <Button
@@ -576,7 +576,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               onClick={handleSave}
               disabled={!dirty || saving || frozen}
             >
-              {saving ? t("common.saving", "儲存中...") : t("common.save", "儲存")}
+              {saving ? t("common.saving", "儲存中...") : t("button.save", "儲存")}
             </Button>
           </div>
         </div>

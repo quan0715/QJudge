@@ -263,7 +263,7 @@ const TeacherProblemsScreen = ({
         open={deleteModalOpen}
         modalHeading={tp("modal.confirmDelete")}
         primaryButtonText={t("button.delete")}
-        secondaryButtonText={t("button.cancel")}
+        secondaryButtonText={t('button.cancel')}
         onRequestClose={() => {
           setDeleteModalOpen(false);
           setProblemToDelete(null);

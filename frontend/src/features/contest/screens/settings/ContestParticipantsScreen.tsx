@@ -284,7 +284,7 @@ const ContestParticipantsScreen = () => {
     const confirmed = await confirm({
       title: t("participants.confirmUnlock", "確定要解除此學生的鎖定嗎？"),
       confirmLabel: t("participants.unlock", "解除"),
-      cancelLabel: t("common.cancel", "取消"),
+      cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
@@ -304,7 +304,7 @@ const ContestParticipantsScreen = () => {
     const confirmed = await confirm({
       title: t("participantsDashboard.confirmTakeover", "確定要核可此學生的裝置接管嗎？"),
       confirmLabel: t("participantsDashboard.approveTakeover", "核可裝置接管"),
-      cancelLabel: t("common.cancel", "取消"),
+      cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
@@ -323,7 +323,7 @@ const ContestParticipantsScreen = () => {
     const confirmed = await confirm({
       title: t("participants.confirmReopen", "確定要重新開放此學生考試嗎？"),
       confirmLabel: t("participants.reopen", "重新開放"),
-      cancelLabel: t("common.cancel", "取消"),
+      cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
@@ -343,7 +343,7 @@ const ContestParticipantsScreen = () => {
     const confirmed = await confirm({
       title: t("participants.confirmRemove", { name: dashboard.participant.username }),
       confirmLabel: t("participants.remove", "移除"),
-      cancelLabel: t("common.cancel", "取消"),
+      cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;

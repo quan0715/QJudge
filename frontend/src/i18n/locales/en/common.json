@@ -230,7 +230,22 @@
       "conflictTitle": "Exam Conflict",
       "takeover": "Take over and lock old device",
       "takingOver": "Processing...",
-      "takeoverFailed": "Takeover failed, please contact the proctor."
+      "takeoverFailed": "Takeover failed, please contact the proctor.",
+      "verifyingSession": "Synchronizing session...",
+      "connecting": "Connecting...",
+      "pleaseWait": "Please wait",
+      "loadingTitle": "Welcome to QJudge",
+      "loadingSubtitle": "Preparing your personalized coding stage",
+      "steps": {
+        "preparing": "Preparing for your coding adventure...",
+        "assembling": "Assembling the workspace...",
+        "almost": "Almost there, please wait",
+        "ready": "Everything is ready!",
+        "verifying": "Confirming it's really you (you look great!)",
+        "stats": "Synchronizing your achievements...",
+        "igniting": "Igniting engines, ready to go!"
+      },
+      "finalTouch": "Final confirmation..."
     },
     "campusSso": {
       "title": "Campus Authentication",
