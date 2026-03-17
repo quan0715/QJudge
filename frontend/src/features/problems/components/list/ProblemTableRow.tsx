@@ -11,7 +11,6 @@ import {
   CheckmarkOutline,
   CaretUp,
   CaretDown,
-  Close,
 } from "@carbon/icons-react";
 import { Link } from "react-router-dom";
 import { DifficultyBadge } from "@/shared/ui/tag";
@@ -21,7 +20,7 @@ import type { ProblemRowData } from "./ProblemTable";
 interface ProblemTableRowProps {
   rowKey: string;
   rowProps: React.HTMLAttributes<HTMLTableRowElement>;
-  mode: "admin" | "contest" | "student" | "lab";
+  mode: "admin" | "contest" | "student";
   problem: ProblemRowData;
   onRowClick?: (problem: ProblemRowData) => void;
   onAction?: (action: string, problem: ProblemRowData) => void;
@@ -110,44 +109,6 @@ const ProblemTableRow: React.FC<ProblemTableRowProps> = ({
               </div>
             </TableCell>
           )}
-        </>
-      ) : mode === "lab" ? (
-        <>
-          <TableCell>
-            <div style={{ fontWeight: 500 }}>{problem.title}</div>
-          </TableCell>
-          <TableCell>
-            <DifficultyBadge difficulty={problem.difficulty || "medium"} />
-          </TableCell>
-          <TableCell>
-            <ProblemTagList tags={problem.tags} />
-          </TableCell>
-          <TableCell>
-            <div style={{ display: "flex", gap: "0.25rem" }}>
-              <Button
-                kind="ghost"
-                size="sm"
-                renderIcon={Edit}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAction?.("edit", problem);
-                }}
-              >
-                編輯
-              </Button>
-              <Button
-                kind="danger--ghost"
-                size="sm"
-                renderIcon={Close}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAction?.("remove", problem);
-                }}
-              >
-                移除
-              </Button>
-            </div>
-          </TableCell>
         </>
       ) : mode === "student" ? (
         <>

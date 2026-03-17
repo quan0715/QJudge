@@ -15,7 +15,6 @@ urlpatterns = [
     path('api/v1/problems/', include('apps.problems.urls')),
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
-    path('api/v1/labs/', include('apps.labs.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),
     path('api/v1/questions/', include('apps.question_bank.question_urls')),

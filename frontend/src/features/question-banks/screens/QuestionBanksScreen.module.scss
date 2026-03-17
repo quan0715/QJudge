@@ -110,3 +110,46 @@
   align-items: center;
   gap: 0.15rem;
 }
+
+.inboxSectionTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.inboxEmpty {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.inboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.inboxRowContent {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.inboxTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--cds-text-primary);
+}
+
+.inboxMeta {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}

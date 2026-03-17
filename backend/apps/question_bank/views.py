@@ -11,13 +11,17 @@ from .serializers import (
     ExploreBankItemSerializer,
     QuestionBankSerializer,
     QuestionCloneSerializer,
+    QuestionInboxIngestSerializer,
+    QuestionInboxItemSerializer,
     QuestionSerializer,
 )
 from .services import (
     PLATFORM_BANK_FILTER,
     clone_question_to_bank,
     get_or_create_personal_bank,
+    ingest_question_bank_inbox_items,
     is_platform_public_bank,
+    list_question_bank_inbox,
 )
 
 
@@ -63,6 +67,44 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             "count": len(serializer.data),
             "results": serializer.data,
         })
+
+    @action(detail=False, methods=["get"], url_path="inbox")
+    def inbox(self, request):
+        category = request.query_params.get("category")
+        if category not in (None, "", "coding", "exam"):
+            return Response(
+                {"detail": "Invalid category. Use coding or exam."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        normalized_category = category or None
+        payload = list_question_bank_inbox(request.user, normalized_category)
+        coding_serialized = QuestionInboxItemSerializer(payload.get("coding", []), many=True).data
+        exam_serialized = QuestionInboxItemSerializer(payload.get("exam", []), many=True).data
+        return Response(
+            {
+                "coding": coding_serialized,
+                "exam": exam_serialized,
+                "counts": {
+                    "coding": len(coding_serialized),
+                    "exam": len(exam_serialized),
+                },
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="inbox/ingest")
+    def ingest_inbox(self, request):
+        serializer = QuestionInboxIngestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            result = ingest_question_bank_inbox_items(
+                user=request.user,
+                target_bank_uuid=data["target_bank_id"],
+                items=data["items"],
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get", "post"], url_path="questions")
     def questions(self, request, uuid=None, pk=None):

@@ -4,6 +4,8 @@ import type {
   QuestionBank,
   BankCategory,
   BankVisibility,
+  QuestionInboxSummary,
+  QuestionInboxSourceType,
 } from "@/core/entities/question-bank.entity";
 
 export interface CreateQuestionBankPayload {
@@ -52,4 +54,15 @@ export interface IQuestionBankRepository {
   updateQuestion(id: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
   deleteQuestion(id: string): Promise<void>;
   clone(questionId: string, targetBankId?: string): Promise<BankQuestion>;
+  listInbox(category?: BankCategory): Promise<QuestionInboxSummary>;
+  ingestInbox(params: {
+    targetBankId: string;
+    items: Array<{ sourceType: QuestionInboxSourceType; sourceId: number }>;
+  }): Promise<{
+    targetBankId: string;
+    requestedCount: number;
+    ingestedCount: number;
+    movedCount: number;
+    questionIds: number[];
+  }>;
 }

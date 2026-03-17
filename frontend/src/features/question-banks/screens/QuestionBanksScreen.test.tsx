@@ -16,11 +16,15 @@ vi.mock("@/shared/contexts", () => ({
 
 const listMineMock = vi.fn();
 const listExploreMock = vi.fn();
+const listInboxMock = vi.fn();
+const ingestInboxMock = vi.fn();
 const createMock = vi.fn();
 
 vi.mock("@/infrastructure/api/repositories/questionBank.repository", () => ({
   listMine: (...args: unknown[]) => listMineMock(...args),
   listExplore: (...args: unknown[]) => listExploreMock(...args),
+  listInbox: (...args: unknown[]) => listInboxMock(...args),
+  ingestInbox: (...args: unknown[]) => ingestInboxMock(...args),
   create: (...args: unknown[]) => createMock(...args),
 }));
 
@@ -30,6 +34,8 @@ describe("QuestionBanksScreen", () => {
   beforeEach(() => {
     listMineMock.mockReset();
     listExploreMock.mockReset();
+    listInboxMock.mockReset();
+    ingestInboxMock.mockReset();
     createMock.mockReset();
 
     listMineMock.mockResolvedValue([
@@ -55,6 +61,18 @@ describe("QuestionBanksScreen", () => {
         source: "platform",
       },
     ]);
+    listInboxMock.mockResolvedValue({
+      coding: [],
+      exam: [],
+      counts: { coding: 0, exam: 0 },
+    });
+    ingestInboxMock.mockResolvedValue({
+      targetBankId: "11111111-1111-4111-8111-111111111111",
+      requestedCount: 0,
+      ingestedCount: 0,
+      movedCount: 0,
+      questionIds: [],
+    });
   });
 
   it("renders my/explore tabs with card gallery style", async () => {
@@ -67,7 +85,8 @@ describe("QuestionBanksScreen", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "我的題庫" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "探索題庫" })).toBeInTheDocument();
-      expect(screen.getByText("我的程式題庫")).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "待收編" })).toBeInTheDocument();
+      expect(screen.getAllByText("我的程式題庫").length).toBeGreaterThan(0);
     });
 
     fireEvent.click(screen.getByRole("tab", { name: "探索題庫" }));

@@ -65,3 +65,25 @@ export interface QuestionBank {
 export interface ExploreBankItem extends QuestionBank {
   source: "platform";
 }
+
+export type QuestionInboxSourceType = "problem" | "exam_question";
+
+export interface QuestionInboxItem {
+  sourceType: QuestionInboxSourceType;
+  sourceId: number;
+  title: string;
+  contestId?: number;
+  contestName?: string;
+  questionType?: string;
+  score?: number;
+  updatedAt?: string;
+}
+
+export interface QuestionInboxSummary {
+  coding: QuestionInboxItem[];
+  exam: QuestionInboxItem[];
+  counts: {
+    coding: number;
+    exam: number;
+  };
+}

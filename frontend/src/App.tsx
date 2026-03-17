@@ -32,7 +32,7 @@ import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
 import { teacherRoutes } from "@/features/teacher";
 import { landingRoute } from "@/features/landing";
-import { classroomRoutes } from "@/features/classroom";
+import { classroomDetailRoute } from "@/features/classroom";
 import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
 
 // Feature imports - Submissions
@@ -114,7 +114,6 @@ function App() {
                             {dashboardRoute}
                             {problemRoutes}
                             {contestListRoute}
-                            {classroomRoutes}
                             {submissionRoutes}
                             {settingsRoute}
                             <Route
@@ -134,6 +133,9 @@ function App() {
 
                           {/* Contest Routes - Outside MainLayout with Custom Header */}
                           {contestDetailRoutes}
+
+                          {/* Classroom Detail - Standalone classroom admin shell */}
+                          {classroomDetailRoute}
 
                           {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
                           {examPrecheckRoute}

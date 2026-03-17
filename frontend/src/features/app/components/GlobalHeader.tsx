@@ -23,7 +23,6 @@ import {
   Bullhorn,
   Settings,
   Education,
-  Collaborate,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -40,6 +39,58 @@ export const GlobalHeader = () => {
   const isAdmin = user?.role === "admin";
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
+  const desktopNavItems = isTeacherOrAdmin
+    ? [
+        {
+          key: "dashboard",
+          active:
+            location.pathname.startsWith("/dashboard") ||
+            location.pathname.startsWith("/classrooms/"),
+          onClick: () => navigate("/dashboard"),
+          label: t("nav.dashboard"),
+        },
+        {
+          key: "question-banks",
+          active: location.pathname.startsWith("/question-banks"),
+          onClick: () => navigate("/question-banks"),
+          label: t("nav.questionBanks", "Question Banks"),
+        },
+        {
+          key: "problems",
+          active: location.pathname.startsWith("/problems"),
+          onClick: () => navigate("/problems"),
+          label: t("nav.problemsLegacy", "Problems (Legacy)"),
+        },
+        {
+          key: "contests",
+          active: location.pathname.startsWith("/contests"),
+          onClick: () => navigate("/contests"),
+          label: t("nav.contests"),
+        },
+        {
+          key: "submissions",
+          active: location.pathname.startsWith("/submissions"),
+          onClick: () => navigate("/submissions"),
+          label: t("nav.submissions"),
+        },
+        {
+          key: "teacher",
+          active: location.pathname.startsWith("/teacher"),
+          onClick: () => navigate("/teacher"),
+          label: t("header.teacherDashboard"),
+        },
+      ]
+    : [
+        {
+          key: "dashboard",
+          active:
+            location.pathname.startsWith("/dashboard") ||
+            location.pathname.startsWith("/classrooms/"),
+          onClick: () => navigate("/dashboard"),
+          label: t("nav.dashboard"),
+        },
+      ];
+
   return (
     <>
       <HeaderContainer
@@ -55,54 +106,15 @@ export const GlobalHeader = () => {
               QJudge
             </HeaderName>
             <HeaderNavigation aria-label={t("header.mainNavigation")}>
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/dashboard")}
-                onClick={() => navigate("/dashboard")}
-              >
-                {t("nav.dashboard")}
-              </HeaderMenuItem>
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/problems")}
-                onClick={() => navigate("/problems")}
-              >
-                {isTeacherOrAdmin
-                  ? t("nav.problemsLegacy", "Problems (Legacy)")
-                  : t("nav.problems")}
-              </HeaderMenuItem>
-              {isTeacherOrAdmin && (
+              {desktopNavItems.map((item) => (
                 <HeaderMenuItem
-                  isCurrentPage={location.pathname.startsWith("/question-banks")}
-                  onClick={() => navigate("/question-banks")}
+                  key={item.key}
+                  isCurrentPage={item.active}
+                  onClick={item.onClick}
                 >
-                  {t("nav.questionBanks", "Question Banks")}
+                  {item.label}
                 </HeaderMenuItem>
-              )}
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/contests")}
-                onClick={() => navigate("/contests")}
-              >
-                {t("nav.contests")}
-              </HeaderMenuItem>
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/submissions")}
-                onClick={() => navigate("/submissions")}
-              >
-                {t("nav.submissions")}
-              </HeaderMenuItem>
-              <HeaderMenuItem
-                isCurrentPage={location.pathname.startsWith("/classrooms")}
-                onClick={() => navigate("/classrooms")}
-              >
-                {t("nav.classrooms")}
-              </HeaderMenuItem>
-              {isTeacherOrAdmin && (
-                <HeaderMenuItem
-                  isCurrentPage={location.pathname.startsWith("/teacher")}
-                  onClick={() => navigate("/teacher")}
-                >
-                  {t("header.teacherDashboard")}
-                </HeaderMenuItem>
-              )}
+              ))}
             </HeaderNavigation>
             <HeaderGlobalBar>
               <UserMenu />
@@ -130,69 +142,73 @@ export const GlobalHeader = () => {
                   {t("nav.dashboard")}
                 </SideNavLink>
                 <SideNavLink
-                  renderIcon={Code}
+                  renderIcon={Education}
                   href="#"
                   onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
-                    navigate("/problems");
+                    navigate("/dashboard");
                     onClickSideNavExpand();
                   }}
-                  isActive={location.pathname.startsWith("/problems")}
+                  isActive={
+                    location.pathname.startsWith("/dashboard") ||
+                    location.pathname.startsWith("/classrooms/")
+                  }
                 >
-                  {isTeacherOrAdmin
-                    ? t("nav.problemsLegacy", "Problems (Legacy)")
-                    : t("nav.problems")}
+                  {t("nav.dashboard")}
                 </SideNavLink>
-                {isTeacherOrAdmin && (
-                  <SideNavLink
-                    renderIcon={Education}
-                    href="#"
-                    onClick={(e: React.MouseEvent) => {
-                      e.preventDefault();
-                      navigate("/question-banks");
-                      onClickSideNavExpand();
-                    }}
-                    isActive={location.pathname.startsWith("/question-banks")}
-                  >
-                    {t("nav.questionBanks", "Question Banks")}
-                  </SideNavLink>
-                )}
-                <SideNavLink
-                  renderIcon={Trophy}
-                  href="#"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    navigate("/contests");
-                    onClickSideNavExpand();
-                  }}
-                  isActive={location.pathname.startsWith("/contests")}
-                >
-                  {t("nav.contests")}
-                </SideNavLink>
-                <SideNavLink
-                  renderIcon={List}
-                  href="#"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    navigate("/submissions");
-                    onClickSideNavExpand();
-                  }}
-                  isActive={location.pathname.startsWith("/submissions")}
-                >
-                  {t("nav.submissions")}
-                </SideNavLink>
-                <SideNavLink
-                  renderIcon={Collaborate}
-                  href="#"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    navigate("/classrooms");
-                    onClickSideNavExpand();
-                  }}
-                  isActive={location.pathname.startsWith("/classrooms")}
-                >
-                  {t("nav.classrooms")}
-                </SideNavLink>
+
+                {isTeacherOrAdmin ? (
+                  <>
+                    <SideNavLink
+                      renderIcon={Education}
+                      href="#"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        navigate("/question-banks");
+                        onClickSideNavExpand();
+                      }}
+                      isActive={location.pathname.startsWith("/question-banks")}
+                    >
+                      {t("nav.questionBanks", "Question Banks")}
+                    </SideNavLink>
+                    <SideNavLink
+                      renderIcon={Code}
+                      href="#"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        navigate("/problems");
+                        onClickSideNavExpand();
+                      }}
+                      isActive={location.pathname.startsWith("/problems")}
+                    >
+                      {t("nav.problemsLegacy", "Problems (Legacy)")}
+                    </SideNavLink>
+                    <SideNavLink
+                      renderIcon={Trophy}
+                      href="#"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        navigate("/contests");
+                        onClickSideNavExpand();
+                      }}
+                      isActive={location.pathname.startsWith("/contests")}
+                    >
+                      {t("nav.contests")}
+                    </SideNavLink>
+                    <SideNavLink
+                      renderIcon={List}
+                      href="#"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        navigate("/submissions");
+                        onClickSideNavExpand();
+                      }}
+                      isActive={location.pathname.startsWith("/submissions")}
+                    >
+                      {t("nav.submissions")}
+                    </SideNavLink>
+                  </>
+                ) : null}
 
                 {/* Teacher/Admin items */}
                 {isTeacherOrAdmin && (

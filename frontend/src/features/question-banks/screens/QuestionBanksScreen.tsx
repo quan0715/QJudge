@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -18,13 +18,22 @@ import {
   TextInput,
   Select,
   SelectItem,
+  Checkbox,
+  InlineNotification,
 } from "@carbon/react";
 import { Add, Code, CheckmarkFilled, Download } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { useToast } from "@/shared/contexts";
-import type { ExploreBankItem, QuestionBank } from "@/core/entities/question-bank.entity";
+import type {
+  ExploreBankItem,
+  QuestionBank,
+  QuestionInboxItem,
+  QuestionInboxSummary,
+} from "@/core/entities/question-bank.entity";
 import {
   create as createQuestionBank,
+  ingestInbox,
+  listInbox,
   listExplore,
   listMine,
 } from "@/infrastructure/api/repositories/questionBank.repository";
@@ -100,12 +109,24 @@ const BankGalleryCard = ({
 
 const QuestionBanksScreen = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
 
   const [mineBanks, setMineBanks] = useState<QuestionBank[]>([]);
   const [exploreBanks, setExploreBanks] = useState<ExploreBankItem[]>([]);
+  const [inbox, setInbox] = useState<QuestionInboxSummary>({
+    coding: [],
+    exam: [],
+    counts: { coding: 0, exam: 0 },
+  });
   const [loading, setLoading] = useState(true);
+  const [ingesting, setIngesting] = useState<"coding" | "exam" | null>(null);
+  const [selectedCoding, setSelectedCoding] = useState<number[]>([]);
+  const [selectedExam, setSelectedExam] = useState<number[]>([]);
+  const [targetCodingBankId, setTargetCodingBankId] = useState("");
+  const [targetExamBankId, setTargetExamBankId] = useState("");
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [bankName, setBankName] = useState("");
@@ -181,9 +202,14 @@ const QuestionBanksScreen = () => {
   const refreshBanks = async () => {
     try {
       setLoading(true);
-      const [mine, explore] = await Promise.all([listMine(), listExplore()]);
+      const [mine, explore, inboxRows] = await Promise.all([
+        listMine(),
+        listExplore(),
+        listInbox(),
+      ]);
       setMineBanks(mine);
       setExploreBanks(explore);
+      setInbox(inboxRows);
     } catch (err: any) {
       showToast({
         kind: "error",
@@ -198,6 +224,141 @@ const QuestionBanksScreen = () => {
   useEffect(() => {
     void refreshBanks();
   }, []);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "explore") {
+      setActiveTabIndex(1);
+      return;
+    }
+    if (tab === "inbox") {
+      setActiveTabIndex(2);
+      return;
+    }
+    setActiveTabIndex(0);
+  }, [searchParams]);
+
+  const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
+    const nextIndex = selectedIndex;
+    setActiveTabIndex(nextIndex);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (nextIndex === 0) {
+        next.delete("tab");
+      } else if (nextIndex === 1) {
+        next.set("tab", "explore");
+      } else {
+        next.set("tab", "inbox");
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const codingBank = mineBanks.find((bank) => bank.category === "coding");
+    if (codingBank && !targetCodingBankId) {
+      setTargetCodingBankId(codingBank.id);
+    }
+
+    const examBank = mineBanks.find((bank) => bank.category === "exam");
+    if (examBank && !targetExamBankId) {
+      setTargetExamBankId(examBank.id);
+    }
+  }, [mineBanks, targetCodingBankId, targetExamBankId]);
+
+  const codingBanks = useMemo(
+    () => mineBanks.filter((bank) => bank.category === "coding"),
+    [mineBanks],
+  );
+  const examBanks = useMemo(
+    () => mineBanks.filter((bank) => bank.category === "exam"),
+    [mineBanks],
+  );
+
+  const toggleSelected = (
+    sourceId: number,
+    category: "coding" | "exam",
+  ) => {
+    const setState = category === "coding" ? setSelectedCoding : setSelectedExam;
+    setState((prev) =>
+      prev.includes(sourceId)
+        ? prev.filter((id) => id !== sourceId)
+        : [...prev, sourceId]
+    );
+  };
+
+  const handleIngest = async (category: "coding" | "exam") => {
+    const targetBankId = category === "coding" ? targetCodingBankId : targetExamBankId;
+    const selectedIds = category === "coding" ? selectedCoding : selectedExam;
+    const sourceType = category === "coding" ? "problem" : "exam_question";
+
+    if (!targetBankId || selectedIds.length === 0) return;
+
+    try {
+      setIngesting(category);
+      await ingestInbox({
+        targetBankId,
+        items: selectedIds.map((sourceId) => ({ sourceType, sourceId })),
+      });
+      if (category === "coding") {
+        setSelectedCoding([]);
+      } else {
+        setSelectedExam([]);
+      }
+      const [mineRows, inboxRows] = await Promise.all([listMine(), listInbox()]);
+      setMineBanks(mineRows);
+      setInbox(inboxRows);
+      showToast({
+        kind: "success",
+        title: t("message.success"),
+        subtitle: t("questionBank.inbox.ingestSuccess", "已成功收編到題庫"),
+      });
+    } catch (err: any) {
+      showToast({
+        kind: "error",
+        title: t("message.error"),
+        subtitle: err?.message || t("message.error"),
+      });
+    } finally {
+      setIngesting(null);
+    }
+  };
+
+  const renderInboxRows = (
+    items: QuestionInboxItem[],
+    category: "coding" | "exam",
+  ) => {
+    const selectedIds = category === "coding" ? selectedCoding : selectedExam;
+    if (items.length === 0) {
+      return (
+        <p className={styles.inboxEmpty}>
+          {t("questionBank.inbox.empty", "目前沒有待收編題目。")}
+        </p>
+      );
+    }
+
+    return (
+      <div className={styles.inboxList}>
+        {items.map((item) => (
+          <div key={`${item.sourceType}-${item.sourceId}`} className={styles.inboxRow}>
+            <Checkbox
+              id={`${category}-${item.sourceId}`}
+              checked={selectedIds.includes(item.sourceId)}
+              labelText=""
+              onChange={() => toggleSelected(item.sourceId, category)}
+            />
+            <div className={styles.inboxRowContent}>
+              <div className={styles.inboxTitle}>{item.title}</div>
+              <div className={styles.inboxMeta}>
+                {item.contestName || t("questionBank.inbox.fromUnknown", "來源未標記")}
+                {typeof item.score === "number" ? ` · ${item.score}pt` : ""}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleCreateBank = async () => {
     if (!bankName.trim()) return;
@@ -260,10 +421,11 @@ const QuestionBanksScreen = () => {
         </Column>
 
         <Column lg={16} md={8} sm={4}>
-          <Tabs>
+          <Tabs selectedIndex={activeTabIndex} onChange={handleTabChange}>
             <TabList aria-label="question bank tabs">
               <Tab>{t("questionBank.tabs.mine", "我的題庫")}</Tab>
               <Tab>{t("questionBank.tabs.explore", "探索題庫")}</Tab>
+              <Tab>{t("questionBank.tabs.inbox", "待收編")}</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -349,6 +511,99 @@ const QuestionBanksScreen = () => {
                     ))}
                     </Grid>
                   )}
+                </Stack>
+              </TabPanel>
+
+              <TabPanel>
+                <Stack gap={4}>
+                  <InlineNotification
+                    kind="info"
+                    lowContrast
+                    hideCloseButton
+                    title={t("questionBank.inbox.title", "待收編題目")}
+                    subtitle={t(
+                      "questionBank.inbox.description",
+                      "在競賽內臨時建立、尚未歸入題庫的題目，可在這裡手動收編到指定題庫。"
+                    )}
+                  />
+
+                  <>
+                      <Tile>
+                        <Stack gap={4}>
+                          <h5 className={styles.inboxSectionTitle}>
+                            {t("questionBank.inbox.coding", "程式題待收編")} ({inbox.counts.coding})
+                          </h5>
+                          <Select
+                            id="inbox-coding-target"
+                            labelText={t("questionBank.inbox.targetBank", "目標題庫")}
+                            value={targetCodingBankId}
+                            onChange={(e) => setTargetCodingBankId(e.currentTarget.value)}
+                          >
+                            {codingBanks.length === 0 ? (
+                              <SelectItem value="" text={t("questionBank.inbox.noCodingBank", "尚無程式題庫")} />
+                            ) : (
+                              codingBanks.map((bank) => (
+                                <SelectItem key={bank.id} value={bank.id} text={bank.name} />
+                              ))
+                            )}
+                          </Select>
+                          {renderInboxRows(inbox.coding, "coding")}
+                          <Button
+                            kind="secondary"
+                            size="sm"
+                            disabled={
+                              codingBanks.length === 0 ||
+                              !targetCodingBankId ||
+                              selectedCoding.length === 0 ||
+                              ingesting !== null
+                            }
+                            onClick={() => void handleIngest("coding")}
+                          >
+                            {ingesting === "coding"
+                              ? t("questionBank.inbox.ingesting", "收編中...")
+                              : t("questionBank.inbox.ingestSelected", "收編選取題目")}
+                          </Button>
+                        </Stack>
+                      </Tile>
+
+                      <Tile>
+                        <Stack gap={4}>
+                          <h5 className={styles.inboxSectionTitle}>
+                            {t("questionBank.inbox.exam", "考卷題待收編")} ({inbox.counts.exam})
+                          </h5>
+                          <Select
+                            id="inbox-exam-target"
+                            labelText={t("questionBank.inbox.targetBank", "目標題庫")}
+                            value={targetExamBankId}
+                            onChange={(e) => setTargetExamBankId(e.currentTarget.value)}
+                          >
+                            {examBanks.length === 0 ? (
+                              <SelectItem value="" text={t("questionBank.inbox.noExamBank", "尚無考卷題庫")} />
+                            ) : (
+                              examBanks.map((bank) => (
+                                <SelectItem key={bank.id} value={bank.id} text={bank.name} />
+                              ))
+                            )}
+                          </Select>
+                          {renderInboxRows(inbox.exam, "exam")}
+                          <Button
+                            kind="secondary"
+                            size="sm"
+                            disabled={
+                              examBanks.length === 0 ||
+                              !targetExamBankId ||
+                              selectedExam.length === 0 ||
+                              ingesting !== null
+                            }
+                            onClick={() => void handleIngest("exam")}
+                          >
+                            {ingesting === "exam"
+                              ? t("questionBank.inbox.ingesting", "收編中...")
+                              : t("questionBank.inbox.ingestSelected", "收編選取題目")}
+                          </Button>
+                        </Stack>
+                      </Tile>
+                  </>
                 </Stack>
               </TabPanel>
             </TabPanels>

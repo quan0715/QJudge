@@ -37,10 +37,10 @@ export interface ProblemRowData extends Partial<Problem> {
 
 interface ProblemTableProps {
   problems: ProblemRowData[];
-  mode: "admin" | "contest" | "student" | "lab";
+  mode: "admin" | "contest" | "student";
   loading?: boolean;
   onAction?: (action: string, problem: ProblemRowData) => void;
-  // Admin/Lab specific props
+  // Admin specific props
   onImport?: () => void;
   onAdd?: () => void;
   // Contest specific props
@@ -84,15 +84,6 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
       }
       return headers;
     }
-    if (mode === "lab") {
-      // Lab mode - for managing problems within a lab
-      return [
-        { key: "title", header: "題目" },
-        { key: "difficulty", header: "難度" },
-        { key: "tags", header: "標籤" },
-        { key: "actions", header: "" },
-      ];
-    }
     // Admin mode - simplified columns
     return [
       { key: "title", header: "題目" },
@@ -125,8 +116,8 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
         onInputChange,
       }) => (
         <TableContainer>
-          {/* Show toolbar when: admin/lab mode, or student mode without hideToolbarSearch, or contest with actions */}
-          {((mode === "admin" || mode === "lab") ||
+          {/* Show toolbar when: admin mode, or student mode without hideToolbarSearch, or contest with actions */}
+          {(mode === "admin" ||
             (mode === "student" && !hideToolbarSearch) ||
             (mode === "contest" && (!!onAdd || !!onImport))) && (
             <TableToolbar>
@@ -148,7 +139,7 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
                     匯入 YAML
                   </Button>
                 )}
-                {(mode === "admin" || mode === "contest" || mode === "lab") && onAdd && (
+                {(mode === "admin" || mode === "contest") && onAdd && (
                   <Button kind="primary" renderIcon={Add} onClick={onAdd}>
                     新增題目
                   </Button>

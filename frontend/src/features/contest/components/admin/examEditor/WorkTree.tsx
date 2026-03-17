@@ -20,8 +20,10 @@ interface WorkTreeProps {
   selectedId: string | null;
   frozen?: boolean;
   loading?: boolean;
+  inboxCount?: number;
   onSelect: (id: string) => void;
   onAdd: () => void;
+  onOpenInbox?: () => void;
   onDelete: (id: string) => void;
   onReorder: (reordered: ExamQuestion[]) => void;
 }
@@ -103,8 +105,10 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   selectedId,
   frozen,
   loading,
+  inboxCount = 0,
   onSelect,
   onAdd,
+  onOpenInbox,
   onDelete,
   onReorder,
 }) => {
@@ -127,15 +131,22 @@ const WorkTree: React.FC<WorkTreeProps> = ({
     <WorkTreeShell
       title={t("examEditor.questionList", "題目列表")}
       actions={(
-        !frozen && (
-          <Button
-            kind="ghost"
-            renderIcon={Add}
-            hasIconOnly
-            iconDescription={t("examEditor.addQuestion", "新增題目")}
-            onClick={onAdd}
-          />
-        )
+        <>
+          {onOpenInbox && (
+            <Button kind="ghost" size="sm" onClick={onOpenInbox}>
+              {t("questionBank.tabs.inbox", "待收編")} {inboxCount}
+            </Button>
+          )}
+          {!frozen && (
+            <Button
+              kind="ghost"
+              renderIcon={Add}
+              hasIconOnly
+              iconDescription={t("examEditor.addQuestion", "新增題目")}
+              onClick={onAdd}
+            />
+          )}
+        </>
       )}
       hasItems={questions.length > 0}
       loading={loading}

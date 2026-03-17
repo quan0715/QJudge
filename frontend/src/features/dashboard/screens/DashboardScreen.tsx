@@ -1,192 +1,291 @@
-import { useState, useEffect } from "react";
-import { Grid, Column, Tile, SkeletonPlaceholder } from "@carbon/react";
-import { Trophy, Education } from "@carbon/icons-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tag, Tile } from "@carbon/react";
+import { Add, Education, Launch, UserMultiple } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
-import StatsCard from "@/features/dashboard/components/StatsCard";
-import AnnouncementsSection from "@/features/dashboard/components/AnnouncementsSection";
-import ContestPreviewCard from "@/features/contest/components/ContestPreviewCard";
-import { getUserStats } from "@/infrastructure/api/repositories/auth.repository";
-import { getAnnouncements, type Announcement } from "@/infrastructure/api/repositories/announcement.repository";
-import { getContests } from "@/infrastructure/api/repositories";
-import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
-import type { Contest } from "@/core/entities/contest.entity";
+import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { formatDateTime } from "@/i18n/dateUtils";
+import { useToast } from "@/shared/contexts/ToastContext";
+import { JoinClassroomModal } from "@/features/classroom/components/JoinClassroomModal";
+import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
 import "./DashboardScreen.scss";
 
-interface UserStats {
-  total_solved: number;
-  easy_solved: number;
-  medium_solved: number;
-  hard_solved: number;
-  total_easy: number;
-  total_medium: number;
-  total_hard: number;
-}
-
 const DashboardScreen = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [contests, setContests] = useState<Contest[]>([]);
+  const { showToast } = useToast();
+  const { user } = useAuth();
+
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const isContestOngoing = (contest: Contest) => {
-    const now = new Date();
-    const startTime = new Date(contest.startTime);
-    const endTime = new Date(contest.endTime);
-
-    return contest.status === "published" && startTime <= now && endTime > now;
-  };
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
   useEffect(() => {
     let cancelled = false;
 
-    const fetchData = async () => {
+    const fetchClassrooms = async () => {
       setLoading(true);
       try {
-        const [statsData, announcementsData, contestsData, classroomsData] = await Promise.all([
-          getUserStats().catch(() => null),
-          getAnnouncements().catch(() => []),
-          getContests().catch(() => []),
-          getClassrooms().catch(() => []),
-        ]);
-
-        if (cancelled) return;
-
-        setStats(statsData);
-        setAnnouncements(
-          (announcementsData || [])
-            .filter((a: Announcement) => a.visible)
-            .slice(0, 5)
-        );
-        const ongoingContests = (contestsData || [])
-          .filter(isContestOngoing)
-          .slice(0, 6);
-        setContests(ongoingContests);
-        setClassrooms((classroomsData || []).slice(0, 4));
+        const rows = await getClassrooms();
+        if (!cancelled) setClassrooms(rows);
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to fetch dashboard data:", error);
+          showToast({
+            kind: "error",
+            title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
+            subtitle:
+              error instanceof Error
+                ? error.message
+                : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+          });
         }
-      }
-      finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchData();
+    void fetchClassrooms();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [showToast, t]);
+
+  const refreshClassrooms = async () => {
+    setLoading(true);
+    try {
+      const rows = await getClassrooms();
+      setClassrooms(rows);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateClassroom = async (name: string, description: string) => {
+    try {
+      const created = await createClassroom({ name, description });
+      setCreateOpen(false);
+      showToast({
+        kind: "success",
+        title: t("classroom.createSuccess", "教室建立成功"),
+      });
+      await refreshClassrooms();
+      navigate(`/classrooms/${created.id}`);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("classroom.createFailed", "建立教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+      });
+    }
+  };
+
+  const managedClassrooms = useMemo(
+    () =>
+      classrooms.filter(
+        (classroom) =>
+          classroom.currentUserRole === "admin" || classroom.currentUserRole === "teacher"
+      ),
+    [classrooms]
+  );
+
+  const enrolledClassrooms = useMemo(
+    () =>
+      classrooms.filter(
+        (classroom) =>
+          classroom.currentUserRole === "student" || classroom.currentUserRole === "ta"
+      ),
+    [classrooms]
+  );
+
+  const recentClassrooms = useMemo(() => classrooms.slice(0, 8), [classrooms]);
+
+  const renderClassroomGrid = (items: Classroom[]) => {
+    if (loading) {
+      return (
+        <div className="dashboard-classroom__grid">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <SkeletonPlaceholder key={idx} className="dashboard-classroom__skeleton" />
+          ))}
+        </div>
+      );
+    }
+
+    if (items.length === 0) {
+      return (
+        <Tile className="dashboard-classroom__empty-tile">
+          <div className="dashboard-classroom__empty">
+            <Education size={32} />
+            <div>
+              <h4>{t("dashboard.classroomHub.emptyTitle", "尚未加入任何教室")}</h4>
+              <p>{t("dashboard.classroomHub.emptyDesc", "先建立教室或透過邀請碼加入教室。")}</p>
+            </div>
+            <Stack orientation="horizontal" gap={3}>
+              <Button kind="tertiary" onClick={() => setJoinOpen(true)}>
+                {t("classroom.join", "加入教室")}
+              </Button>
+              {isTeacherOrAdmin ? (
+                <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
+                  {t("classroom.create", "建立教室")}
+                </Button>
+              ) : null}
+            </Stack>
+          </div>
+        </Tile>
+      );
+    }
+
+    return (
+      <div className="dashboard-classroom__grid">
+        {items.map((classroom) => (
+          <ClickableTile
+            key={classroom.id}
+            className="dashboard-classroom__card"
+            onClick={() => navigate(`/classrooms/${classroom.id}`)}
+          >
+            <div className="dashboard-classroom__card-header">
+              <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
+              <Tag type="blue" size="sm">
+                {classroom.currentUserRole || "member"}
+              </Tag>
+            </div>
+            <p className="dashboard-classroom__card-description">
+              {classroom.description ||
+                t("dashboard.classroomHub.noDescription", "尚未設定教室描述")}
+            </p>
+            <p className="dashboard-classroom__card-meta">
+              <UserMultiple size={14} />
+              {classroom.memberCount} {t("classroom.members", "members")} · {classroom.ownerUsername}
+            </p>
+          </ClickableTile>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="dashboard-page">
-      <Grid fullWidth className="dashboard-page__grid">
+    <div className="dashboard-classroom">
+      <Grid fullWidth className="dashboard-classroom__layout">
         <Column lg={16} md={8} sm={4}>
           <PageHeader
-            title={t("dashboard.welcomeBack", { name: user?.username || "User" })}
-            subtitle={t("dashboard.subtitle")}
+            title={t("dashboard.classroomHub.selectTitle", "先選擇教室")}
+            subtitle={t("dashboard.classroomHub.selectSubtitle", "從教室入口進入你的教室主頁")}
+            action={
+              <Stack orientation="horizontal" gap={3}>
+                <Button kind="tertiary" size="sm" onClick={() => setJoinOpen(true)}>
+                  {t("classroom.join", "加入教室")}
+                </Button>
+                {isTeacherOrAdmin ? (
+                  <Button
+                    kind="primary"
+                    size="sm"
+                    renderIcon={Add}
+                    onClick={() => setCreateOpen(true)}
+                  >
+                    {t("classroom.create", "建立教室")}
+                  </Button>
+                ) : null}
+              </Stack>
+            }
           />
         </Column>
 
-        <Column lg={8} md={8} sm={4} className="dashboard-page__column">
-          <StatsCard
-            loading={loading}
-            stats={stats}
-            title={t("dashboard.stats.title")}
-            subtitle={t("dashboard.stats.problems")}
-          />
-        </Column>
-
-        <Column lg={8} md={8} sm={4} className="dashboard-page__column">
-          <Tile className="dashboard-page__section">
-            <div className="dashboard-page__section-header">
-              <Trophy size={24} />
+        <Column lg={16} md={8} sm={4}>
+          <Tile className="dashboard-classroom__hero">
+            <div className="dashboard-classroom__hero-content">
               <div>
-                <h4 className="dashboard-page__section-title">
-                  {t("dashboard.contests.title")}
-                </h4>
-                <p className="dashboard-page__section-subtitle">
-                  {t("dashboard.contests.ongoing")}
+                <p className="dashboard-classroom__hero-overline">
+                  {t("dashboard.classroomHub.mainFlow", "主流程")}
+                </p>
+                <h3 className="dashboard-classroom__hero-title">
+                  {t("dashboard.classroomHub.mainFlowTitle", "選擇教室 → 進入教室主頁")}
+                </h3>
+                <p className="dashboard-classroom__hero-description">
+                  {t(
+                    "dashboard.classroomHub.mainFlowDesc",
+                    "點擊下方任一教室卡片，直接開啟該教室的管理與學習入口。"
+                  )}
                 </p>
               </div>
+              <Stack orientation="horizontal" gap={4}>
+                {recentClassrooms[0] ? (
+                  <Button
+                    kind="primary"
+                    renderIcon={Launch}
+                    onClick={() => navigate(`/classrooms/${recentClassrooms[0].id}`)}
+                  >
+                    {t("dashboard.classroomHub.quickEnter", "快速進入最近教室")}
+                  </Button>
+                ) : null}
+              </Stack>
             </div>
-            {loading ? (
-              <div className="dashboard-page__contests-grid">
-                <SkeletonPlaceholder />
-                <SkeletonPlaceholder />
-              </div>
-            ) : contests.length > 0 ? (
-              <div className="dashboard-page__contests-grid">
-                {contests.map((contest) => (
-                  <ContestPreviewCard
-                    key={contest.id}
-                    contest={contest}
-                    onSelect={() => navigate(`/contests/${contest.id}`)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="dashboard-page__empty">
-                {t("dashboard.contests.noContests")}
-              </p>
-            )}
           </Tile>
         </Column>
 
-        {classrooms.length > 0 && (
-          <Column lg={16} md={8} sm={4} className="dashboard-page__column">
-            <Tile className="dashboard-page__section">
-              <div className="dashboard-page__section-header">
-                <Education size={24} />
-                <div>
-                  <h4 className="dashboard-page__section-title">
-                    {t("dashboard.classrooms.title")}
-                  </h4>
-                  <p className="dashboard-page__section-subtitle">
-                    {t("dashboard.classrooms.subtitle")}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.75rem" }}>
-                {classrooms.map((c) => (
-                  <Tile
-                    key={c.id}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => navigate(`/classrooms/${c.id}`)}
-                  >
-                    <strong>{c.name}</strong>
-                    <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
-                      {c.memberCount} {t("classroom.members")} · {c.ownerUsername}
-                    </p>
-                  </Tile>
-                ))}
-              </div>
-            </Tile>
+        {isTeacherOrAdmin ? (
+          <>
+            <Column lg={16} md={8} sm={4}>
+              <section className="dashboard-classroom__section">
+                <header className="dashboard-classroom__section-header">
+                  <h4>{t("classroom.managed", "我管理的")}</h4>
+                </header>
+                {renderClassroomGrid(managedClassrooms)}
+              </section>
+            </Column>
+
+            <Column lg={16} md={8} sm={4}>
+              <section className="dashboard-classroom__section">
+                <header className="dashboard-classroom__section-header">
+                  <h4>{t("classroom.enrolled", "已加入的")}</h4>
+                </header>
+                {renderClassroomGrid(enrolledClassrooms)}
+              </section>
+            </Column>
+          </>
+        ) : (
+          <Column lg={16} md={8} sm={4}>
+            <section className="dashboard-classroom__section">
+              <header className="dashboard-classroom__section-header">
+                <h4>{t("classroom.enrolled", "已加入的")}</h4>
+              </header>
+              {renderClassroomGrid(recentClassrooms)}
+            </section>
           </Column>
         )}
-
-        <Column lg={16} md={8} sm={4}>
-          <AnnouncementsSection
-            announcements={announcements}
-            loading={loading}
-            title={t("dashboard.announcements.title")}
-            subtitle={t("dashboard.announcements.subtitle")}
-            emptyMessage={t("dashboard.announcements.noAnnouncements")}
-            formatDate={formatDateTime}
-          />
-        </Column>
       </Grid>
+
+      <JoinClassroomModal
+        open={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        onJoined={() => {
+          setJoinOpen(false);
+          void refreshClassrooms();
+        }}
+      />
+
+      {isTeacherOrAdmin ? (
+        <CreateClassroomModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onSubmit={handleCreateClassroom}
+        />
+      ) : null}
     </div>
   );
 };

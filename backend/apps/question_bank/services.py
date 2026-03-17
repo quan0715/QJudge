@@ -8,6 +8,7 @@ from typing import Any
 
 from uuid import UUID
 
+from django.db import transaction
 from django.db.models import Q, Sum
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
@@ -285,3 +286,157 @@ def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> Ex
             return ExamReconstructibilityResult(False, "choice question correct_answer is missing")
 
     return ExamReconstructibilityResult(True)
+
+
+def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:
+    result: dict[str, list[dict[str, Any]]] = {
+        "coding": [],
+        "exam": [],
+    }
+
+    if category in (None, "coding"):
+        coding_rows = (
+            Problem.objects.filter(created_by=user)
+            .filter(synced_question_bank_entries__isnull=True)
+            .order_by("-updated_at", "-id")
+        )
+        result["coding"] = [
+            {
+                "source_type": "problem",
+                "source_id": row.id,
+                "title": row.title,
+                "contest_id": row.created_in_contest_id,
+                "contest_name": row.created_in_contest.name if row.created_in_contest_id else "",
+                "question_type": "coding",
+                "updated_at": row.updated_at,
+            }
+            for row in coding_rows.select_related("created_in_contest")
+        ]
+
+    if category in (None, "exam"):
+        exam_rows = (
+            ExamQuestion.objects.filter(
+                Q(contest__owner=user) | Q(contest__admins=user)
+            )
+            .filter(synced_question_bank_entries__isnull=True)
+            .select_related("contest")
+            .order_by("-updated_at", "-id")
+            .distinct()
+        )
+        result["exam"] = [
+            {
+                "source_type": "exam_question",
+                "source_id": row.id,
+                "title": f"{row.contest.name} - Q{(row.order or 0) + 1}",
+                "contest_id": row.contest_id,
+                "contest_name": row.contest.name,
+                "question_type": row.question_type,
+                "score": row.score,
+                "updated_at": row.updated_at,
+            }
+            for row in exam_rows
+        ]
+
+    return result
+
+
+def ingest_question_bank_inbox_items(
+    *,
+    user,
+    target_bank_uuid: UUID | str,
+    items: list[dict[str, Any]],
+) -> dict[str, Any]:
+    target_bank = QuestionBank.objects.filter(
+        uuid=target_bank_uuid,
+        owner=user,
+        is_archived=False,
+    ).first()
+    if not target_bank:
+        raise ValueError("Target bank not found")
+
+    if not items:
+        raise ValueError("No items selected")
+
+    normalized_items = []
+    seen: set[tuple[str, int]] = set()
+    for item in items:
+        source_type = item["source_type"]
+        source_id = int(item["source_id"])
+        key = (source_type, source_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized_items.append({"source_type": source_type, "source_id": source_id})
+
+    if target_bank.category == QuestionBank.Category.CODING:
+        invalid = [row for row in normalized_items if row["source_type"] != "problem"]
+        if invalid:
+            raise ValueError("Coding bank can only ingest coding problems")
+    elif target_bank.category == QuestionBank.Category.EXAM:
+        invalid = [row for row in normalized_items if row["source_type"] != "exam_question"]
+        if invalid:
+            raise ValueError("Exam bank can only ingest exam questions")
+
+    ingested_question_ids: list[int] = []
+    moved_question_ids: list[int] = []
+
+    with transaction.atomic():
+        for item in normalized_items:
+            source_type = item["source_type"]
+            source_id = item["source_id"]
+
+            if source_type == "problem":
+                source = Problem.objects.filter(id=source_id, created_by=user).first()
+                if not source:
+                    raise ValueError(f"Problem {source_id} not found")
+
+                existing = Question.objects.filter(source_problem=source).select_related("bank").first()
+                if existing:
+                    if existing.bank.owner_id != user.id:
+                        raise ValueError(f"Problem {source_id} already synced to an inaccessible bank")
+                    if existing.bank_id != target_bank.id:
+                        existing.bank = target_bank
+                        existing.order = target_bank.questions.count()
+                        existing.save(update_fields=["bank", "order", "updated_at"])
+                        moved_question_ids.append(existing.id)
+                    ingested_question_ids.append(existing.id)
+                    continue
+
+                question = upsert_problem_into_bank(problem=source, bank=target_bank, created_by=user)
+                ingested_question_ids.append(question.id)
+                continue
+
+            source = (
+                ExamQuestion.objects.filter(id=source_id)
+                .filter(Q(contest__owner=user) | Q(contest__admins=user))
+                .first()
+            )
+            if not source:
+                raise ValueError(f"Exam question {source_id} not found")
+
+            existing = Question.objects.filter(source_exam_question=source).select_related("bank").first()
+            if existing:
+                if existing.bank.owner_id != user.id:
+                    raise ValueError(f"Exam question {source_id} already synced to an inaccessible bank")
+                if existing.bank_id != target_bank.id:
+                    existing.bank = target_bank
+                    existing.order = target_bank.questions.count()
+                    existing.save(update_fields=["bank", "order", "updated_at"])
+                    moved_question_ids.append(existing.id)
+                ingested_question_ids.append(existing.id)
+                continue
+
+            question = upsert_exam_question_into_bank(
+                exam_question=source,
+                bank=target_bank,
+                created_by=user,
+            )
+            ingested_question_ids.append(question.id)
+
+    return {
+        "target_bank_id": str(target_bank.uuid),
+        "requested_count": len(normalized_items),
+        "ingested_count": len(ingested_question_ids),
+        "moved_count": len(moved_question_ids),
+        "question_ids": ingested_question_ids,
+    }

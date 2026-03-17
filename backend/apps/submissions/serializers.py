@@ -89,7 +89,6 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     problem_id = serializers.IntegerField(source='problem.id', read_only=True)
     problem_title = serializers.CharField(source='problem.title', read_only=True)
     contest_id = serializers.IntegerField(source='contest.id', read_only=True, allow_null=True)
-    lab_id = serializers.IntegerField(source='lab.id', read_only=True, allow_null=True)
     
     def get_username(self, obj):
         """Handle anonymous mode for contests."""
@@ -124,7 +123,6 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             'problem_id',
             'problem_title',
             'contest_id',
-            'lab_id',
             'source_type',
             'language',
             'status',
@@ -150,7 +148,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'user',
             'problem',
             'contest',
-            'lab',
             'source_type',
             'language',
             'code',
@@ -181,7 +178,6 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
             'id',
             'problem',
             'contest',
-            'lab',
             'source_type',
             'language',
             'code',
@@ -198,10 +194,6 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
         }
     
     def validate(self, attrs):
-        # Additional validation if needed
-        if attrs.get('contest') and attrs.get('lab'):
-            raise serializers.ValidationError('contest and lab cannot be set together')
-
         # Reject test-only fields from submit API
         disallowed_fields = []
         for field in ['is_test', 'custom_test_cases']:

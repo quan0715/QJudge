@@ -2,6 +2,7 @@ import type {
   BankQuestion,
   CodingQuestionExt,
   ExploreBankItem,
+  QuestionInboxItem,
   QuestionBank,
 } from "@/core/entities/question-bank.entity";
 
@@ -82,5 +83,16 @@ export const mapBankQuestionDto = (dto: any): BankQuestion => ({
     : undefined,
   codingExt: dto.coding_ext ? mapCodingExtDto(dto.coding_ext) : undefined,
   createdAt: dto.created_at,
+  updatedAt: dto.updated_at,
+});
+
+export const mapQuestionInboxItemDto = (dto: any): QuestionInboxItem => ({
+  sourceType: dto.source_type,
+  sourceId: Number(dto.source_id),
+  title: dto.title || "",
+  contestId: dto.contest_id ? Number(dto.contest_id) : undefined,
+  contestName: dto.contest_name || undefined,
+  questionType: dto.question_type || undefined,
+  score: typeof dto.score === "number" ? dto.score : undefined,
   updatedAt: dto.updated_at,
 });

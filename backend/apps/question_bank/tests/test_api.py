@@ -227,3 +227,87 @@ class TestQuestionBankAPI:
         report = json.loads(report_file.read_text(encoding="utf-8"))
         assert report["migrated_practice_questions"] >= 1
         assert len(report["skipped_exam_questions"]) >= 1
+
+    def test_inbox_lists_unsynced_sources(self, api_client: APIClient, teacher: User):
+        problem = Problem.objects.create(
+            title="Inbox Coding",
+            slug="inbox-coding",
+            created_by=teacher,
+            visibility=Problem.ProblemVisibility.PRIVATE,
+        )
+        ProblemTranslation.objects.create(
+            problem=problem,
+            language="zh-TW",
+            title="Inbox Coding",
+            description="desc",
+            input_description="in",
+            output_description="out",
+            hint="",
+        )
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
+
+        contest = Contest.objects.create(name="Inbox Exam", owner=teacher, contest_type="paper_exam")
+        ExamQuestion.objects.create(
+            contest=contest,
+            question_type="single_choice",
+            prompt="Q?",
+            options=["A", "B"],
+            correct_answer=0,
+            score=2,
+            order=0,
+        )
+
+        api_client.force_authenticate(user=teacher)
+        resp = api_client.get("/api/v1/question-banks/inbox/")
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data["counts"]["coding"] >= 1
+        assert resp.data["counts"]["exam"] >= 1
+        assert any(item["source_type"] == "problem" for item in resp.data["coding"])
+        assert any(item["source_type"] == "exam_question" for item in resp.data["exam"])
+
+    def test_inbox_ingest_moves_unsynced_problem_into_selected_bank(
+        self,
+        api_client: APIClient,
+        teacher: User,
+    ):
+        target_bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Target Coding Bank",
+            category=QuestionBank.Category.CODING,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        problem = Problem.objects.create(
+            title="Needs Ingest",
+            slug="needs-ingest",
+            created_by=teacher,
+            visibility=Problem.ProblemVisibility.PRIVATE,
+        )
+        ProblemTranslation.objects.create(
+            problem=problem,
+            language="zh-TW",
+            title="Needs Ingest",
+            description="desc",
+            input_description="in",
+            output_description="out",
+            hint="",
+        )
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
+
+        api_client.force_authenticate(user=teacher)
+        resp = api_client.post(
+            "/api/v1/question-banks/inbox/ingest/",
+            {
+                "target_bank_id": str(target_bank.uuid),
+                "items": [{"source_type": "problem", "source_id": problem.id}],
+            },
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data["ingested_count"] == 1
+        assert Question.objects.filter(
+            bank=target_bank,
+            source_problem=problem,
+        ).exists()

@@ -16,8 +16,10 @@ interface ProblemWorkTreeProps {
   problems: ContestProblemSummary[];
   selectedId: string | null;
   loading?: boolean;
+  inboxCount?: number;
   onSelect: (id: string) => void;
   onAdd: () => void;
+  onOpenInbox?: () => void;
   onRemove: (id: string) => void;
   onReorder: (reordered: ContestProblemSummary[]) => void;
 }
@@ -88,8 +90,10 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   problems,
   selectedId,
   loading,
+  inboxCount = 0,
   onSelect,
   onAdd,
+  onOpenInbox,
   onRemove,
   onReorder,
 }) => {
@@ -98,15 +102,22 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   return (
     <WorkTreeShell
       title="Problem List"
-      actions={(
-        <Button
-          kind="ghost"
-          renderIcon={Add}
-          hasIconOnly
-          iconDescription="Add Problem"
-          onClick={onAdd}
-        />
-      )}
+      actions={
+        <>
+          {onOpenInbox && (
+            <Button kind="ghost" size="sm" onClick={onOpenInbox}>
+              Inbox {inboxCount}
+            </Button>
+          )}
+          <Button
+            kind="ghost"
+            renderIcon={Add}
+            hasIconOnly
+            iconDescription="Add Problem"
+            onClick={onAdd}
+          />
+        </>
+      }
       hasItems={problems.length > 0}
       loading={loading}
       emptyState={(

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Modal,
   TextInput,
@@ -10,6 +11,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import {
   addContestProblem,
+  listInbox,
   removeContestProblem,
   reorderContestProblems,
 } from "@/infrastructure/api/repositories";
@@ -30,6 +32,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contestId,
   contest,
 }) => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
   const { confirm, modalProps } = useConfirmModal();
@@ -43,6 +46,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     { id: string; label: string }[]
   >([]);
   const [loadingPublic, setLoadingPublic] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const problems = contest.problems ?? [];
@@ -77,6 +81,19 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     }
   }, []);
 
+  const refreshInboxCount = useCallback(async () => {
+    try {
+      const data = await listInbox("coding");
+      setInboxCount(data.counts.coding);
+    } catch {
+      setInboxCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshInboxCount();
+  }, [refreshInboxCount]);
+
   const handleOpenAdd = useCallback(() => {
     setAddModalOpen(true);
     loadPublicProblems();
@@ -95,13 +112,14 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       setNewProblemId("");
       setNewProblemTitle("");
       await refreshContest();
+      await refreshInboxCount();
       showToast({ kind: "success", title: "Problem added" });
     } catch {
       showToast({ kind: "error", title: "Failed to add problem" });
     } finally {
       setAdding(false);
     }
-  }, [contestId, newProblemId, newProblemTitle, refreshContest, showToast]);
+  }, [contestId, newProblemId, newProblemTitle, refreshContest, refreshInboxCount, showToast]);
 
   // --- Remove ---
   const handleRemove = useCallback(
@@ -118,11 +136,12 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         showToast({ kind: "success", title: "Problem removed" });
         if (selectedId === problemId) setSelectedId(null);
         await refreshContest();
+        await refreshInboxCount();
       } catch {
         showToast({ kind: "error", title: "Failed to remove problem" });
       }
     },
-    [contestId, selectedId, confirm, refreshContest, showToast],
+    [contestId, selectedId, confirm, refreshContest, refreshInboxCount, showToast],
   );
 
   // --- Reorder (debounced) ---
@@ -165,8 +184,10 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             problems={problems}
             selectedId={selectedId}
             loading={contestLoading && problems.length === 0}
+            inboxCount={inboxCount}
             onSelect={setSelectedId}
             onAdd={handleOpenAdd}
+            onOpenInbox={() => navigate("/question-banks?tab=inbox&category=coding")}
             onRemove={handleRemove}
             onReorder={handleReorder}
           />

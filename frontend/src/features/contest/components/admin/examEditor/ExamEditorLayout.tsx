@@ -5,6 +5,7 @@ import React, {
   useRef,
   useImperativeHandle,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Modal } from "@carbon/react";
 import {
   Add,
@@ -23,6 +24,7 @@ import {
   deleteExamQuestion,
   reorderExamQuestions,
   batchImportExamQuestions,
+  listInbox,
   type ExamQuestionUpsertPayload,
 } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";

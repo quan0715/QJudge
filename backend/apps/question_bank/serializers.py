@@ -156,3 +156,24 @@ class ExploreBankItemSerializer(serializers.ModelSerializer):
 
 class QuestionCloneSerializer(serializers.Serializer):
     target_bank_id = serializers.UUIDField(required=False)
+
+
+class QuestionInboxItemSerializer(serializers.Serializer):
+    source_type = serializers.ChoiceField(choices=["problem", "exam_question"])
+    source_id = serializers.IntegerField(min_value=1)
+    title = serializers.CharField()
+    contest_id = serializers.IntegerField(required=False, allow_null=True)
+    contest_name = serializers.CharField(required=False, allow_blank=True)
+    question_type = serializers.CharField(required=False, allow_blank=True)
+    score = serializers.IntegerField(required=False, min_value=0)
+    updated_at = serializers.DateTimeField(required=False)
+
+
+class QuestionInboxIngestItemSerializer(serializers.Serializer):
+    source_type = serializers.ChoiceField(choices=["problem", "exam_question"])
+    source_id = serializers.IntegerField(min_value=1)
+
+
+class QuestionInboxIngestSerializer(serializers.Serializer):
+    target_bank_id = serializers.UUIDField()
+    items = QuestionInboxIngestItemSerializer(many=True, allow_empty=False)
