@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -20,17 +20,11 @@ import {
   Add,
   ArrowLeft,
   CheckmarkFilled,
-  Code,
   Download,
   Edit,
   Filter,
   TrashCan,
   Copy,
-  RadioButton as RadioButtonIcon,
-  Checkbox as CheckboxIcon,
-  Boolean as BooleanIcon,
-  Pen,
-  Document,
 } from "@carbon/icons-react";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
@@ -43,6 +37,11 @@ import {
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts";
+import { EXAM_QUESTION_TYPE_ICON as QUESTION_TYPE_ICONS } from "@/shared/ui/examQuestionTypeVisual";
+import {
+  getQuestionVisualFromBankQuestion,
+  type QuestionVisualTone,
+} from "@/shared/ui/questionVisual";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
@@ -61,30 +60,36 @@ import {
 } from "./questionBankProblemManagement.utils";
 import styles from "./QuestionBankProblemManagementPanel.module.scss";
 
+const QUESTION_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
+  coding: styles.iconToneCoding,
+  single_choice: styles.iconToneSingleChoice,
+  multiple_choice: styles.iconToneMultipleChoice,
+  true_false: styles.iconToneTrueFalse,
+  short_answer: styles.iconToneShortAnswer,
+  essay: styles.iconToneEssay,
+};
+
 const EXAM_DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload, "order">> = {
   single_choice: {
     question_type: "single_choice",
     prompt: "New question",
-    score: 5,
     options: ["Option A", "Option B"],
     correct_answer: 0,
   },
   multiple_choice: {
     question_type: "multiple_choice",
     prompt: "New question",
-    score: 5,
     options: ["Option A", "Option B"],
     correct_answer: [0],
   },
   true_false: {
     question_type: "true_false",
     prompt: "New question",
-    score: 5,
     options: ["True", "False"],
     correct_answer: true,
   },
-  short_answer: { question_type: "short_answer", prompt: "New question", score: 5 },
-  essay: { question_type: "essay", prompt: "New question", score: 5 },
+  short_answer: { question_type: "short_answer", prompt: "New question" },
+  essay: { question_type: "essay", prompt: "New question" },
 };
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
@@ -94,14 +99,6 @@ const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
   "short_answer",
   "essay",
 ];
-
-const QUESTION_TYPE_ICONS: Record<ExamQuestionType, ComponentType<{ size?: number }>> = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: BooleanIcon,
-  short_answer: Pen,
-  essay: Document,
-};
 
 interface QuestionBankProblemManagementPanelProps {
   bank: QuestionBank;
@@ -136,7 +133,6 @@ const QuestionBankProblemManagementPanel = ({
   const [codingTitle, setCodingTitle] = useState("");
   const [codingPrompt, setCodingPrompt] = useState("");
   const [codingDifficulty, setCodingDifficulty] = useState("medium");
-  const [codingScore, setCodingScore] = useState("100");
   const [codingTimeLimit, setCodingTimeLimit] = useState("1000");
   const [codingMemoryLimit, setCodingMemoryLimit] = useState("128");
 
@@ -224,7 +220,6 @@ const QuestionBankProblemManagementPanel = ({
     setCodingTitle(target?.title || "");
     setCodingPrompt(target?.prompt || "");
     setCodingDifficulty(target?.difficulty || "medium");
-    setCodingScore(String(target?.score ?? 100));
     setCodingTimeLimit(String(target?.timeLimit ?? 1000));
     setCodingMemoryLimit(String(target?.memoryLimit ?? 128));
     setCodingModalOpen(true);
@@ -253,7 +248,6 @@ const QuestionBankProblemManagementPanel = ({
       title: codingTitle.trim(),
       prompt: codingPrompt.trim(),
       difficulty: codingDifficulty,
-      score: parseNumberInput(codingScore, 100, 1),
       timeLimit: parseNumberInput(codingTimeLimit, 1000, 100),
       memoryLimit: parseNumberInput(codingMemoryLimit, 128, 64),
       order:
@@ -367,7 +361,6 @@ const QuestionBankProblemManagementPanel = ({
               prompt: question.prompt || "",
               options: question.options as string[],
               correct_answer: question.correctAnswer,
-              score: question.score,
               order: nextOrder,
             },
             question,
@@ -377,7 +370,6 @@ const QuestionBankProblemManagementPanel = ({
             questionType: "coding",
             title: `${question.title} (copy)`,
             prompt: question.prompt || "",
-            score: Number(question.score || 0),
             order: nextOrder,
             difficulty: question.difficulty || "medium",
             timeLimit: Number(question.timeLimit || 1000),
@@ -604,7 +596,6 @@ const QuestionBankProblemManagementPanel = ({
           title={codingTitle}
           prompt={codingPrompt}
           difficulty={codingDifficulty}
-          score={codingScore}
           timeLimit={codingTimeLimit}
           memoryLimit={codingMemoryLimit}
           editing={Boolean(editingCodingQuestion)}
@@ -612,7 +603,6 @@ const QuestionBankProblemManagementPanel = ({
           onTitleChange={setCodingTitle}
           onPromptChange={setCodingPrompt}
           onDifficultyChange={setCodingDifficulty}
-          onScoreChange={setCodingScore}
           onTimeLimitChange={setCodingTimeLimit}
           onMemoryLimitChange={setCodingMemoryLimit}
           onSubmit={handleSaveCoding}
@@ -707,6 +697,7 @@ const QuestionBankProblemManagementPanel = ({
               <ExamQuestionEditCard
                 question={toExamQuestion(bank.id, selectedQuestion)}
                 index={Number(selectedQuestion.order || 0)}
+                showScoreField={false}
                 onSave={handleSaveExamQuestion}
                 onDelete={(id) => handleDeleteQuestion(byId.get(id) || selectedQuestion)}
                 onDuplicate={(id) => handleDuplicateQuestion(byId.get(id) || selectedQuestion)}
@@ -717,7 +708,6 @@ const QuestionBankProblemManagementPanel = ({
                 <Stack gap={3}>
                   <p className={styles.previewPrompt}>{selectedQuestion.prompt || t("message.noData", "暫無資料")}</p>
                   <p className={styles.previewMeta}>
-                    {t("questionBank.score", "分數")}: {selectedQuestion.score} ·{" "}
                     {t("questionBank.timeLimit", "時間限制(ms)")}: {selectedQuestion.timeLimit} ·{" "}
                     {t("questionBank.memoryLimit", "記憶體限制(MB)")}: {selectedQuestion.memoryLimit}
                   </p>
@@ -733,7 +723,6 @@ const QuestionBankProblemManagementPanel = ({
         title={codingTitle}
         prompt={codingPrompt}
         difficulty={codingDifficulty}
-        score={codingScore}
         timeLimit={codingTimeLimit}
         memoryLimit={codingMemoryLimit}
         editing={Boolean(editingCodingQuestion)}
@@ -741,7 +730,6 @@ const QuestionBankProblemManagementPanel = ({
         onTitleChange={setCodingTitle}
         onPromptChange={setCodingPrompt}
         onDifficultyChange={setCodingDifficulty}
-        onScoreChange={setCodingScore}
         onTimeLimitChange={setCodingTimeLimit}
         onMemoryLimitChange={setCodingMemoryLimit}
         onSubmit={handleSaveCoding}
@@ -768,13 +756,15 @@ const QuestionPreviewCard = ({
   onClick: () => void;
 }) => {
   const meta = buildQuestionPreviewMeta(question, bank);
+  const { Icon, tone } = getQuestionVisualFromBankQuestion(question, "colored");
+  const iconToneClass = tone ? QUESTION_ICON_TONE_CLASS_MAP[tone] : "";
 
   return (
     <ClickableTile onClick={onClick} className={styles.previewCard}>
       <div className={styles.previewCardBody}>
         <div className={styles.previewTitleRow}>
-          <div className={styles.previewIconWrap}>
-            <Code size={16} />
+          <div className={`${styles.previewIconWrap} ${iconToneClass}`}>
+            <Icon size={20} />
           </div>
           <div className={styles.previewTitleContent}>
             <div className={styles.previewTitleLine}>
@@ -900,14 +890,12 @@ const CodingQuestionModal = ({
   title,
   prompt,
   difficulty,
-  score,
   timeLimit,
   memoryLimit,
   onClose,
   onTitleChange,
   onPromptChange,
   onDifficultyChange,
-  onScoreChange,
   onTimeLimitChange,
   onMemoryLimitChange,
   onSubmit,
@@ -917,14 +905,12 @@ const CodingQuestionModal = ({
   title: string;
   prompt: string;
   difficulty: string;
-  score: string;
   timeLimit: string;
   memoryLimit: string;
   onClose: () => void;
   onTitleChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onDifficultyChange: (value: string) => void;
-  onScoreChange: (value: string) => void;
   onTimeLimitChange: (value: string) => void;
   onMemoryLimitChange: (value: string) => void;
   onSubmit: () => void;
@@ -964,13 +950,6 @@ const CodingQuestionModal = ({
           <SelectItem value="medium" text={t("difficulty.medium", "中等")} />
           <SelectItem value="hard" text={t("difficulty.hard", "困難")} />
         </Select>
-        <TextInput
-          id="coding-question-score"
-          type="number"
-          labelText={t("questionBank.score", "分數")}
-          value={score}
-          onChange={(event) => onScoreChange(event.currentTarget.value)}
-        />
         <TextInput
           id="coding-question-time-limit"
           type="number"

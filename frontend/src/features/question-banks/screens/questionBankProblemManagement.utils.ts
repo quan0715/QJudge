@@ -2,14 +2,7 @@ import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.ent
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories/examQuestions.repository";
-
-const QUESTION_TYPES: ExamQuestionType[] = [
-  "single_choice",
-  "multiple_choice",
-  "true_false",
-  "short_answer",
-  "essay",
-];
+import { resolveExamQuestionTypeFromBankQuestion } from "@/shared/ui/questionVisual";
 
 export interface QuestionFilterState {
   keyword: string;
@@ -30,23 +23,7 @@ export interface ProblemManagementViewState {
 }
 
 export const resolveExamQuestionType = (question: BankQuestion): ExamQuestionType => {
-  const metadata =
-    question.metadata && typeof question.metadata === "object"
-      ? (question.metadata as Record<string, unknown>)
-      : {};
-  const direct = metadata.exam_question_type;
-  if (typeof direct === "string" && QUESTION_TYPES.includes(direct as ExamQuestionType)) {
-    return direct as ExamQuestionType;
-  }
-  const legacy = metadata.legacy_question_type;
-  if (typeof legacy === "string" && QUESTION_TYPES.includes(legacy as ExamQuestionType)) {
-    return legacy as ExamQuestionType;
-  }
-  if (Array.isArray(question.correctAnswer)) return "multiple_choice";
-  if (typeof question.correctAnswer === "string" && question.options.length === 0) {
-    return "short_answer";
-  }
-  return "single_choice";
+  return resolveExamQuestionTypeFromBankQuestion(question);
 };
 
 export const extractQuestionTags = (question: BankQuestion): string[] => {
@@ -143,7 +120,8 @@ export const toExamQuestion = (bankId: string, question: BankQuestion): ExamQues
   prompt: question.prompt || "",
   options: Array.isArray(question.options) ? question.options.map((item) => String(item)) : [],
   correctAnswer: question.correctAnswer,
-  score: Number(question.score || 0),
+  // Question bank does not expose scoring semantics; keep a safe internal placeholder.
+  score: Number(question.score || 1),
   order: Number(question.order || 0),
   createdAt: question.createdAt || "",
   updatedAt: question.updatedAt || "",
@@ -172,7 +150,8 @@ export const toExamBankPayload = (
     prompt,
     options: payload.question_type === "true_false" ? [...TRUE_FALSE_OPTIONS] : payload.options || [],
     correctAnswer: payload.correct_answer ?? null,
-    score: Number(payload.score || existing?.score || 0),
+    // Bank question score is a transport placeholder. Real score is assigned in contest exam.
+    score: Number(payload.score || existing?.score || 1),
     order,
     metadata: {
       ...existingMetadata,

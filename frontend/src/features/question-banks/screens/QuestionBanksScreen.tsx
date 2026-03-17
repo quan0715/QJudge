@@ -20,11 +20,19 @@ import {
   SelectItem,
   Checkbox,
   InlineNotification,
+  Tag,
 } from "@carbon/react";
-import { Add, Code, CheckmarkFilled, Download } from "@carbon/icons-react";
+import {
+  Add,
+  Code,
+  CheckmarkFilled,
+  Download,
+  Document,
+} from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { useToast } from "@/shared/contexts";
 import type {
+  BankCategory,
   ExploreBankItem,
   QuestionBank,
   QuestionInboxItem,
@@ -37,6 +45,7 @@ import {
   listExplore,
   listMine,
 } from "@/infrastructure/api/repositories/questionBank.repository";
+import { getQuestionVisualFromInboxItem, type QuestionVisualTone } from "@/shared/ui/questionVisual";
 import styles from "./QuestionBanksScreen.module.scss";
 
 type MockExploreCard = {
@@ -50,9 +59,26 @@ type MockExploreCard = {
   downloads: string;
 };
 
+type InboxCategoryFilter = "all" | "coding" | "exam";
+
+const INBOX_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
+  coding: styles.iconToneCoding,
+  single_choice: styles.iconToneSingleChoice,
+  multiple_choice: styles.iconToneMultipleChoice,
+  true_false: styles.iconToneTrueFalse,
+  short_answer: styles.iconToneShortAnswer,
+  essay: styles.iconToneEssay,
+};
+
+const getInboxToneClass = (item: QuestionInboxItem): string => {
+  const { tone } = getQuestionVisualFromInboxItem(item, "colored");
+  return INBOX_ICON_TONE_CLASS_MAP[tone || "coding"];
+};
+
 interface BankGalleryCardProps {
   title: string;
   provider: string;
+  category: BankCategory;
   providerVerified?: boolean;
   downloads?: string;
   onClick?: () => void;
@@ -61,10 +87,13 @@ interface BankGalleryCardProps {
 const BankGalleryCard = ({
   title,
   provider,
+  category,
   providerVerified = false,
   downloads = "0",
   onClick,
 }: BankGalleryCardProps) => {
+  const CardIcon = category === "exam" ? Document : Code;
+  const iconToneClass = category === "exam" ? styles.iconToneExam : styles.iconToneCoding;
   const content = (
     <>
       <div className={styles.cover}>
@@ -73,8 +102,8 @@ const BankGalleryCard = ({
 
       <div className={styles.body}>
         <div className={styles.titleRow}>
-          <div className={styles.iconWrap}>
-            <Code size={16} />
+          <div className={`${styles.iconWrap} ${iconToneClass}`}>
+            <CardIcon size={16} />
           </div>
           <div className={styles.titleContent}>
             <div className={styles.titleLine}>
@@ -132,6 +161,13 @@ const QuestionBanksScreen = () => {
   const [bankName, setBankName] = useState("");
   const [bankDescription, setBankDescription] = useState("");
   const [bankCategory, setBankCategory] = useState<"coding" | "exam">("coding");
+  const inboxFilter: InboxCategoryFilter = (() => {
+    const category = searchParams.get("category");
+    if (category === "coding" || category === "exam") {
+      return category;
+    }
+    return "all";
+  })();
 
   const buildMetric = (value: number): string => {
     if (value >= 1000) {
@@ -235,8 +271,12 @@ const QuestionBanksScreen = () => {
       setActiveTabIndex(2);
       return;
     }
+    if (inboxFilter !== "all") {
+      setActiveTabIndex(2);
+      return;
+    }
     setActiveTabIndex(0);
-  }, [searchParams]);
+  }, [inboxFilter, searchParams]);
 
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
     const nextIndex = selectedIndex;
@@ -245,10 +285,25 @@ const QuestionBanksScreen = () => {
       const next = new URLSearchParams(prev);
       if (nextIndex === 0) {
         next.delete("tab");
+        next.delete("category");
       } else if (nextIndex === 1) {
         next.set("tab", "explore");
+        next.delete("category");
       } else {
         next.set("tab", "inbox");
+      }
+      return next;
+    });
+  };
+
+  const setInboxFilter = (filter: InboxCategoryFilter) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", "inbox");
+      if (filter === "all") {
+        next.delete("category");
+      } else {
+        next.set("category", filter);
       }
       return next;
     });
@@ -332,13 +387,39 @@ const QuestionBanksScreen = () => {
     if (items.length === 0) {
       return (
         <p className={styles.inboxEmpty}>
-          {t("questionBank.inbox.empty", "目前沒有待收編題目。")}
+          {t("questionBank.inbox.empty", "目前沒有可選取的題目。")}
         </p>
       );
     }
 
+    const isAllSelected = selectedIds.length > 0 && selectedIds.length === items.length;
+    const selectedCountText = t("questionBank.inbox.selectedCount", "已選 {{count}} 題").replace(
+      "{{count}}",
+      String(selectedIds.length),
+    );
     return (
       <div className={styles.inboxList}>
+        <div className={styles.inboxListActionRow}>
+          <Button
+            kind="ghost"
+            size="sm"
+            onClick={() => {
+              const nextIds = isAllSelected ? [] : items.map((item) => item.sourceId);
+              if (category === "coding") {
+                setSelectedCoding(nextIds);
+              } else {
+                setSelectedExam(nextIds);
+              }
+            }}
+          >
+            {isAllSelected
+              ? t("questionBank.inbox.clearSelection", "清除選取")
+              : t("questionBank.inbox.selectAll", "全選")}
+          </Button>
+          <span className={styles.inboxSelectedText}>
+            {selectedCountText}
+          </span>
+        </div>
         {items.map((item) => (
           <div key={`${item.sourceType}-${item.sourceId}`} className={styles.inboxRow}>
             <Checkbox
@@ -347,11 +428,16 @@ const QuestionBanksScreen = () => {
               labelText=""
               onChange={() => toggleSelected(item.sourceId, category)}
             />
+            <div className={`${styles.inboxTypeIcon} ${getInboxToneClass(item)}`}>
+              {(() => {
+                const { Icon } = getQuestionVisualFromInboxItem(item);
+                return <Icon size={14} />;
+              })()}
+            </div>
             <div className={styles.inboxRowContent}>
               <div className={styles.inboxTitle}>{item.title}</div>
               <div className={styles.inboxMeta}>
                 {item.contestName || t("questionBank.inbox.fromUnknown", "來源未標記")}
-                {typeof item.score === "number" ? ` · ${item.score}pt` : ""}
               </div>
             </div>
           </div>
@@ -425,7 +511,7 @@ const QuestionBanksScreen = () => {
             <TabList aria-label="question bank tabs">
               <Tab>{t("questionBank.tabs.mine", "我的題庫")}</Tab>
               <Tab>{t("questionBank.tabs.explore", "探索題庫")}</Tab>
-              <Tab>{t("questionBank.tabs.inbox", "待收編")}</Tab>
+              <Tab>{t("questionBank.tabs.inbox", "Card Gallery View Select")}</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -439,6 +525,7 @@ const QuestionBanksScreen = () => {
                       <Column key={bank.id} lg={4} md={4} sm={4}>
                         <BankGalleryCard
                           title={bank.name}
+                          category={bank.category}
                           provider={bank.ownerUsername || t("questionBank.mockOwnerTeacherA", "陳老師")}
                           providerVerified={bank.verified}
                           downloads={buildMetric(Math.max(120, bank.questionCount * 68))}
@@ -467,6 +554,7 @@ const QuestionBanksScreen = () => {
                         <Column key={item.id} lg={4} md={4} sm={4}>
                           <BankGalleryCard
                           title={item.name}
+                          category={item.category}
                           provider={item.ownerLabel}
                           providerVerified={item.verified}
                           downloads={item.downloads}
@@ -503,6 +591,7 @@ const QuestionBanksScreen = () => {
                         <Column key={bank.id} lg={4} md={4} sm={4}>
                           <BankGalleryCard
                           title={bank.name}
+                          category={bank.category}
                           provider={bank.ownerUsername || t("questionBank.mockOwnerPlatform", "QJudge Community")}
                           providerVerified={bank.verified}
                           downloads={buildMetric(Math.max(300, bank.questionCount * 96))}
@@ -520,19 +609,50 @@ const QuestionBanksScreen = () => {
                     kind="info"
                     lowContrast
                     hideCloseButton
-                    title={t("questionBank.inbox.title", "待收編題目")}
+                    title={t("questionBank.inbox.title", "Card Gallery View Select")}
                     subtitle={t(
                       "questionBank.inbox.description",
-                      "在競賽內臨時建立、尚未歸入題庫的題目，可在這裡手動收編到指定題庫。"
+                      "在競賽內臨時建立、尚未歸入題庫的題目，可在此選取並收錄到指定題庫。"
                     )}
                   />
 
+                  <div className={styles.inboxFilterRow}>
+                    <span className={styles.inboxFilterLabel}>
+                      {t("questionBank.inbox.filterLabel", "顯示範圍")}
+                    </span>
+                    <div className={styles.inboxFilterButtons}>
+                      <Button
+                        kind={inboxFilter === "all" ? "primary" : "ghost"}
+                        size="sm"
+                        onClick={() => setInboxFilter("all")}
+                      >
+                        {t("questionBank.inbox.filterAll", "全部")}
+                      </Button>
+                      <Button
+                        kind={inboxFilter === "coding" ? "primary" : "ghost"}
+                        size="sm"
+                        onClick={() => setInboxFilter("coding")}
+                      >
+                        {t("questionBank.categoryCoding", "程式題")}
+                      </Button>
+                      <Button
+                        kind={inboxFilter === "exam" ? "primary" : "ghost"}
+                        size="sm"
+                        onClick={() => setInboxFilter("exam")}
+                      >
+                        {t("questionBank.categoryExam", "考卷題")}
+                      </Button>
+                    </div>
+                  </div>
+
                   <>
+                      {(inboxFilter === "all" || inboxFilter === "coding") && (
                       <Tile>
                         <Stack gap={4}>
                           <h5 className={styles.inboxSectionTitle}>
-                            {t("questionBank.inbox.coding", "程式題待收編")} ({inbox.counts.coding})
+                            {t("questionBank.inbox.coding", "程式題選取清單")} ({inbox.counts.coding})
                           </h5>
+                          {inboxFilter === "coding" ? <Tag type="cyan">{t("questionBank.inbox.currentFilter", "目前顯示")}</Tag> : null}
                           <Select
                             id="inbox-coding-target"
                             labelText={t("questionBank.inbox.targetBank", "目標題庫")}
@@ -565,12 +685,15 @@ const QuestionBanksScreen = () => {
                           </Button>
                         </Stack>
                       </Tile>
+                      )}
 
+                      {(inboxFilter === "all" || inboxFilter === "exam") && (
                       <Tile>
                         <Stack gap={4}>
                           <h5 className={styles.inboxSectionTitle}>
-                            {t("questionBank.inbox.exam", "考卷題待收編")} ({inbox.counts.exam})
+                            {t("questionBank.inbox.exam", "考卷題選取清單")} ({inbox.counts.exam})
                           </h5>
+                          {inboxFilter === "exam" ? <Tag type="cyan">{t("questionBank.inbox.currentFilter", "目前顯示")}</Tag> : null}
                           <Select
                             id="inbox-exam-target"
                             labelText={t("questionBank.inbox.targetBank", "目標題庫")}
@@ -603,6 +726,7 @@ const QuestionBanksScreen = () => {
                           </Button>
                         </Stack>
                       </Tile>
+                      )}
                   </>
                 </Stack>
               </TabPanel>

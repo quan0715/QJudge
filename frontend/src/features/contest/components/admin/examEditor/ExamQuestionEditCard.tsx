@@ -20,15 +20,14 @@ import {
   Draggable,
   Edit,
   Copy,
-  RadioButton as RadioButtonIcon,
-  Checkbox as CheckboxIcon,
-  Boolean as BooleanIcon,
-  Pen,
-  Document,
 } from "@carbon/icons-react";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
+import {
+  EXAM_QUESTION_TYPE_ICON as TYPE_ICON,
+  EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
+} from "@/shared/ui/examQuestionTypeVisual";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import styles from "./ExamQuestionEditCard.module.scss";
@@ -38,22 +37,6 @@ import styles from "./ExamQuestionEditCard.module.scss";
 import { useTranslation } from "react-i18next";
 
 const TRUE_FALSE_OPTIONS = ["True", "False"];
-
-const TYPE_TAG_COLOR: Record<ExamQuestionType, string> = {
-  true_false: "teal",
-  single_choice: "blue",
-  multiple_choice: "purple",
-  short_answer: "cyan",
-  essay: "magenta",
-};
-
-const TYPE_ICON: Record<ExamQuestionType, React.ComponentType<{ size?: number }>> = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: BooleanIcon,
-  short_answer: Pen,
-  essay: Document,
-};
 
 // --- Form types & helpers ---
 
@@ -159,12 +142,17 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
   };
 };
 
-const buildPayload = (form: QuestionFormState): ExamQuestionUpsertPayload => {
+const buildPayload = (
+  form: QuestionFormState,
+  includeScore = true,
+): ExamQuestionUpsertPayload => {
   const payload: ExamQuestionUpsertPayload = {
     question_type: form.questionType,
     prompt: form.prompt.trim(),
-    score: Number(form.score || 0),
   };
+  if (includeScore) {
+    payload.score = Number(form.score || 0);
+  }
   if (form.questionType === "essay") {
     if (form.essayReferenceAnswer.trim()) {
       payload.correct_answer = form.essayReferenceAnswer.trim();
@@ -197,10 +185,14 @@ const buildPayload = (form: QuestionFormState): ExamQuestionUpsertPayload => {
 };
 
 /** Deep-compare two form states to detect dirty */
-const isFormDirty = (a: QuestionFormState, b: QuestionFormState): boolean => {
+const isFormDirty = (
+  a: QuestionFormState,
+  b: QuestionFormState,
+  includeScore = true,
+): boolean => {
   if (a.questionType !== b.questionType) return true;
   if (a.prompt !== b.prompt) return true;
-  if (a.score !== b.score) return true;
+  if (includeScore && a.score !== b.score) return true;
   if (a.singleAnswerIndex !== b.singleAnswerIndex) return true;
   if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
   if (a.shortAnswer !== b.shortAnswer) return true;
@@ -239,6 +231,7 @@ const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
 interface ExamQuestionEditCardProps {
   question: ExamQuestion;
   index: number;
+  showScoreField?: boolean;
   frozen?: boolean;
   startEditingSignal?: number;
   onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
@@ -250,6 +243,7 @@ interface ExamQuestionEditCardProps {
 const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   question,
   index,
+  showScoreField = true,
   frozen,
   startEditingSignal,
   onSave,
@@ -316,10 +310,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.emptyPrompt", "題目內容不可為空") });
       return false;
     }
-    const score = Number(form.score || 0);
-    if (!Number.isFinite(score) || score <= 0) {
-      showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.invalidScore", "配分必須大於 0") });
-      return false;
+    if (showScoreField) {
+      const score = Number(form.score || 0);
+      if (!Number.isFinite(score) || score <= 0) {
+        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.invalidScore", "配分必須大於 0") });
+        return false;
+      }
     }
     if (!isChoiceType(form.questionType)) return true;
     if (form.questionType !== "true_false") {
@@ -333,13 +329,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       }
     }
     return true;
-  }, [form, showToast, t]);
+  }, [form, showScoreField, showToast, t]);
 
   const handleSave = async () => {
     if (!validateForm()) return;
     try {
       setSaving(true);
-      const payload = buildPayload(form);
+      const payload = buildPayload(form, showScoreField);
       await onSave(payload, question.id);
       setEditing(false);
     } finally {
@@ -419,7 +415,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 </Tag>
               </span>
               <div className={styles.headerRight}>
-                <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
+                {showScoreField ? (
+                  <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
+                ) : null}
                 {!frozen && (
                   <>
                     <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={() => onDuplicate(question.id)}>
@@ -530,7 +528,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }
 
   // ─── EDIT MODE ───
-  const dirty = isFormDirty(form, originalFormRef.current);
+  const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
   const TypeIcon = TYPE_ICON[form.questionType];
 
   return (
@@ -557,20 +555,22 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 <SelectItem value="essay" text={t("common:questionType.label.essay", "問答題")} />
               </Select>
             </div>
-            <div className={styles.scoreInline}>
-              <TextInput
-                id={`eqc-score-${question.id}`}
-                labelText=""
-                hideLabel
-                size="sm"
-                type="number"
-                min={1}
-                value={form.score}
-                onChange={(e) => setForm((p) => ({ ...p, score: e.target.value }))}
-                disabled={frozen}
-              />
-              <span>{t("examEditor.scoreLabel", "分")}</span>
-            </div>
+            {showScoreField ? (
+              <div className={styles.scoreInline}>
+                <TextInput
+                  id={`eqc-score-${question.id}`}
+                  labelText=""
+                  hideLabel
+                  size="sm"
+                  type="number"
+                  min={1}
+                  value={form.score}
+                  onChange={(e) => setForm((p) => ({ ...p, score: e.target.value }))}
+                  disabled={frozen}
+                />
+                <span>{t("examEditor.scoreLabel", "分")}</span>
+              </div>
+            ) : null}
           </div>
           <div className={styles.editToolbarRight}>
             <IconButton kind="ghost" size="sm" label={t("button.cancel", "取消")} onClick={handleCancel}>

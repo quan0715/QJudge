@@ -58,10 +58,6 @@ const QuestionBankDetailScreen = () => {
   );
   const selectedQuestionId = searchParams.get("selectedQuestionId");
 
-  const totalScore = useMemo(
-    () => questions.reduce((sum, question) => sum + Number(question.score || 0), 0),
-    [questions]
-  );
   const examQuestionCount = useMemo(
     () => questions.filter((question) => question.questionType === "exam").length,
     [questions]
@@ -230,12 +226,6 @@ const QuestionBankDetailScreen = () => {
                   className={styles.kpiCard}
                 />
                 <KpiCard
-                  value={String(totalScore)}
-                  label={t("questionBank.score", "分數總計")}
-                  showBorder={false}
-                  className={styles.kpiCard}
-                />
-                <KpiCard
                   value={String(examQuestionCount)}
                   label={t("questionBank.categoryExam", "考卷題")}
                   showBorder={false}
@@ -254,7 +244,7 @@ const QuestionBankDetailScreen = () => {
                   <Stack gap={3}>
                     <h4 className={styles.panelTitle}>{t("tab.overview", "總覽")}</h4>
                     <p className={styles.panelDesc}>
-                      {t("questionBank.overviewDescription", "快速檢視題庫題量、分數與題型分佈。")}
+                      {t("questionBank.overviewDescription", "快速檢視題庫題量與題型分佈。")}
                     </p>
                   </Stack>
                 </Tile>

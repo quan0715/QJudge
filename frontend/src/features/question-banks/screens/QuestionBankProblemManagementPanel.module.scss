@@ -49,6 +49,13 @@
   min-height: 116px;
   display: flex;
   align-items: stretch;
+  background: var(--cds-layer-01);
+  transition: border-color 120ms ease, background-color 120ms ease;
+
+  &:hover {
+    border-color: var(--cds-border-interactive);
+    background: var(--cds-layer-hover);
+  }
 }
 
 .previewCardBody {
@@ -63,15 +70,36 @@
 }
 
 .previewIconWrap {
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #6929c4;
-  background: rgba(105, 41, 196, 0.11);
+  color: var(--cds-icon-secondary);
   flex-shrink: 0;
+  line-height: 1;
+}
+
+.iconToneCoding {
+  color: var(--cds-link-primary);
+}
+
+.iconToneSingleChoice {
+  color: var(--cds-link-primary);
+}
+
+.iconToneMultipleChoice {
+  color: var(--cds-support-success);
+}
+
+.iconToneTrueFalse {
+  color: var(--cds-support-warning);
+}
+
+.iconToneShortAnswer {
+  color: var(--cds-support-info);
+}
+
+.iconToneEssay {
+  color: var(--cds-support-error);
 }
 
 .previewTitleContent {
@@ -96,7 +124,7 @@
 }
 
 .verifiedIcon {
-  color: #0f62fe;
+  color: var(--cds-link-primary);
   flex-shrink: 0;
 }
 

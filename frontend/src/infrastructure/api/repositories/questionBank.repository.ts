@@ -112,28 +112,36 @@ const createMockState = (): MockState => ({
 
 const mockState = createMockState();
 
-const toQuestionWriteDto = (payload: UpsertBankQuestionPayload) => ({
-  question_type: payload.questionType,
-  title: payload.title,
-  prompt: payload.prompt ?? "",
-  options: payload.options ?? [],
-  correct_answer: payload.correctAnswer ?? null,
-  metadata: payload.metadata ?? {},
-  score: payload.score ?? 100,
-  order: payload.order ?? 0,
-  difficulty: payload.difficulty ?? "medium",
-  time_limit: payload.timeLimit ?? 1000,
-  memory_limit: payload.memoryLimit ?? 128,
-  coding_ext: payload.codingExt
-    ? {
-        translations: payload.codingExt.translations ?? [],
-        test_cases: payload.codingExt.testCases ?? [],
-        language_configs: payload.codingExt.languageConfigs ?? [],
-        forbidden_keywords: payload.codingExt.forbiddenKeywords ?? [],
-        required_keywords: payload.codingExt.requiredKeywords ?? [],
-      }
-    : undefined,
-});
+const toQuestionWriteDto = (payload: UpsertBankQuestionPayload) => {
+  const dto: Record<string, unknown> = {
+    question_type: payload.questionType,
+    title: payload.title,
+    prompt: payload.prompt ?? "",
+    options: payload.options ?? [],
+    correct_answer: payload.correctAnswer ?? null,
+    metadata: payload.metadata ?? {},
+    order: payload.order ?? 0,
+    difficulty: payload.difficulty ?? "medium",
+    time_limit: payload.timeLimit ?? 1000,
+    memory_limit: payload.memoryLimit ?? 128,
+    coding_ext: payload.codingExt
+      ? {
+          translations: payload.codingExt.translations ?? [],
+          test_cases: payload.codingExt.testCases ?? [],
+          language_configs: payload.codingExt.languageConfigs ?? [],
+          forbidden_keywords: payload.codingExt.forbiddenKeywords ?? [],
+          required_keywords: payload.codingExt.requiredKeywords ?? [],
+        }
+      : undefined,
+  };
+
+  // Score belongs to contest assignment semantics; bank writes should not force-bind it.
+  if (typeof payload.score === "number") {
+    dto.score = payload.score;
+  }
+
+  return dto;
+};
 
 const syncMockBankCount = (bankId: string): void => {
   const bank = mockState.mineBanks.find((row) => row.id === bankId);
@@ -265,7 +273,7 @@ const createQuestion = async (
       options: payload.options ?? [],
       correctAnswer: payload.correctAnswer ?? null,
       metadata: payload.metadata ?? {},
-      score: payload.score ?? 100,
+      score: payload.score ?? 1,
       order: payload.order ?? (mockState.questionsByBank[bankId]?.length || 0),
       difficulty: payload.difficulty ?? "medium",
       timeLimit: payload.timeLimit ?? 1000,
@@ -305,7 +313,7 @@ const updateQuestion = async (
       options: payload.options ?? [],
       correctAnswer: payload.correctAnswer ?? null,
       metadata: payload.metadata ?? current.metadata ?? {},
-      score: payload.score ?? 100,
+      score: payload.score ?? current.score ?? 1,
       order: payload.order ?? current.order,
       difficulty: payload.difficulty ?? "medium",
       timeLimit: payload.timeLimit ?? 1000,
