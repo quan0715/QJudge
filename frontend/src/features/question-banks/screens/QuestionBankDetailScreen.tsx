@@ -31,6 +31,7 @@ import {
   update as updateQuestionBank,
   updateQuestion,
 } from "@/infrastructure/api/repositories/questionBank.repository";
+import QuestionBankExamEditor from "./QuestionBankExamEditor";
 import styles from "./QuestionBankDetailScreen.module.scss";
 
 const parseNumericInput = (value: string, fallback: number): number => {
@@ -705,14 +706,16 @@ const QuestionBankDetailScreen = () => {
                   {t("button.back")}
                 </Button>
                 {activePanel === "problem_management" ? (
-                  <Button
-                    kind="primary"
-                    size="sm"
-                    renderIcon={Add}
-                    onClick={openCreateQuestionModal}
-                  >
-                    {t("questionBank.addQuestion", "新增題目")}
-                  </Button>
+                  questionType === "coding" ? (
+                    <Button
+                      kind="primary"
+                      size="sm"
+                      renderIcon={Add}
+                      onClick={openCreateQuestionModal}
+                    >
+                      {t("questionBank.addQuestion", "新增題目")}
+                    </Button>
+                  ) : null
                 ) : null}
               </div>
 
@@ -804,7 +807,18 @@ const QuestionBankDetailScreen = () => {
             </Stack>
           ) : null}
 
-          {activePanel === "problem_management" ? renderQuestionList() : null}
+          {activePanel === "problem_management" ? (
+            questionType === "exam" ? (
+              <QuestionBankExamEditor
+                bankId={bank.id}
+                questions={questions}
+                loading={loading}
+                onReload={loadData}
+              />
+            ) : (
+              renderQuestionList()
+            )
+          ) : null}
 
           {activePanel === "settings" ? (
             <Tile>
