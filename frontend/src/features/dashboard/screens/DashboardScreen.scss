@@ -10,33 +10,6 @@
   row-gap: layout.$spacing-05;
 }
 
-.dashboard-classroom__hero {
-  border: 1px solid var(--cds-border-subtle);
-}
-
-.dashboard-classroom__hero-content {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
-}
-
-.dashboard-classroom__hero-overline {
-  margin: 0;
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.dashboard-classroom__hero-title {
-  margin: layout.$spacing-03 0 0;
-  @include type.type-style("productive-heading-03");
-}
-
-.dashboard-classroom__hero-description {
-  margin: layout.$spacing-03 0 0;
-  @include type.type-style("body-short-01");
-  color: var(--cds-text-secondary);
-}
-
 .dashboard-classroom__section {
   display: flex;
   flex-direction: column;
@@ -60,43 +33,30 @@
 }
 
 .dashboard-classroom__card {
-  min-height: layout.rem(136px);
+  min-height: layout.rem(108px);
   border: 1px solid var(--cds-border-subtle);
-}
-
-.dashboard-classroom__card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
+  padding-block: layout.$spacing-04;
 }
 
 .dashboard-classroom__card-title {
   margin: 0;
-  @include type.type-style("productive-heading-01");
+  @include type.type-style("heading-compact-01");
   color: var(--cds-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dashboard-classroom__card-description {
-  margin: layout.$spacing-03 0 0;
-  @include type.type-style("body-compact-01");
-  color: var(--cds-text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .dashboard-classroom__card-meta {
-  margin: layout.$spacing-03 0 0;
+  margin: layout.$spacing-02 0 0;
   display: inline-flex;
   align-items: center;
   gap: layout.$spacing-02;
   @include type.type-style("label-01");
   color: var(--cds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-classroom__empty-tile {

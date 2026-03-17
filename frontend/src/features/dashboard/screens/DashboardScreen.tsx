@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tag, Tile } from "@carbon/react";
-import { Add, Education, Launch, UserMultiple } from "@carbon/icons-react";
+import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
+import { Add, Education, UserMultiple } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
@@ -96,25 +96,15 @@ const DashboardScreen = () => {
     }
   };
 
-  const managedClassrooms = useMemo(
-    () =>
-      classrooms.filter(
-        (classroom) =>
-          classroom.currentUserRole === "admin" || classroom.currentUserRole === "teacher"
-      ),
-    [classrooms]
-  );
-
-  const enrolledClassrooms = useMemo(
-    () =>
-      classrooms.filter(
-        (classroom) =>
-          classroom.currentUserRole === "student" || classroom.currentUserRole === "ta"
-      ),
-    [classrooms]
-  );
-
-  const recentClassrooms = useMemo(() => classrooms.slice(0, 8), [classrooms]);
+  const orderedClassrooms = useMemo(() => {
+    const rank: Record<string, number> = { admin: 0, teacher: 1, ta: 2, student: 3 };
+    return [...classrooms].sort((a, b) => {
+      const ra = rank[a.currentUserRole ?? "student"] ?? 99;
+      const rb = rank[b.currentUserRole ?? "student"] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return a.name.localeCompare(b.name);
+    });
+  }, [classrooms]);
 
   const renderClassroomGrid = (items: Classroom[]) => {
     if (loading) {
@@ -159,19 +149,11 @@ const DashboardScreen = () => {
             className="dashboard-classroom__card"
             onClick={() => navigate(`/classrooms/${classroom.id}`)}
           >
-            <div className="dashboard-classroom__card-header">
-              <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
-              <Tag type="blue" size="sm">
-                {classroom.currentUserRole || "member"}
-              </Tag>
-            </div>
-            <p className="dashboard-classroom__card-description">
-              {classroom.description ||
-                t("dashboard.classroomHub.noDescription", "尚未設定教室描述")}
-            </p>
+            <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
             <p className="dashboard-classroom__card-meta">
               <UserMultiple size={14} />
               {classroom.memberCount} {t("classroom.members", "members")} · {classroom.ownerUsername}
+              {classroom.currentUserRole ? ` · ${classroom.currentUserRole}` : ""}
             </p>
           </ClickableTile>
         ))}
@@ -185,7 +167,7 @@ const DashboardScreen = () => {
         <Column lg={16} md={8} sm={4}>
           <PageHeader
             title={t("dashboard.classroomHub.selectTitle", "先選擇教室")}
-            subtitle={t("dashboard.classroomHub.selectSubtitle", "從教室入口進入你的教室主頁")}
+            subtitle={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
             action={
               <Stack orientation="horizontal" gap={3}>
                 <Button kind="tertiary" size="sm" onClick={() => setJoinOpen(true)}>
@@ -207,67 +189,13 @@ const DashboardScreen = () => {
         </Column>
 
         <Column lg={16} md={8} sm={4}>
-          <Tile className="dashboard-classroom__hero">
-            <div className="dashboard-classroom__hero-content">
-              <div>
-                <p className="dashboard-classroom__hero-overline">
-                  {t("dashboard.classroomHub.mainFlow", "主流程")}
-                </p>
-                <h3 className="dashboard-classroom__hero-title">
-                  {t("dashboard.classroomHub.mainFlowTitle", "選擇教室 → 進入教室主頁")}
-                </h3>
-                <p className="dashboard-classroom__hero-description">
-                  {t(
-                    "dashboard.classroomHub.mainFlowDesc",
-                    "點擊下方任一教室卡片，直接開啟該教室的管理與學習入口。"
-                  )}
-                </p>
-              </div>
-              <Stack orientation="horizontal" gap={4}>
-                {recentClassrooms[0] ? (
-                  <Button
-                    kind="primary"
-                    renderIcon={Launch}
-                    onClick={() => navigate(`/classrooms/${recentClassrooms[0].id}`)}
-                  >
-                    {t("dashboard.classroomHub.quickEnter", "快速進入最近教室")}
-                  </Button>
-                ) : null}
-              </Stack>
-            </div>
-          </Tile>
+          <section className="dashboard-classroom__section">
+            <header className="dashboard-classroom__section-header">
+              <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
+            </header>
+            {renderClassroomGrid(orderedClassrooms)}
+          </section>
         </Column>
-
-        {isTeacherOrAdmin ? (
-          <>
-            <Column lg={16} md={8} sm={4}>
-              <section className="dashboard-classroom__section">
-                <header className="dashboard-classroom__section-header">
-                  <h4>{t("classroom.managed", "我管理的")}</h4>
-                </header>
-                {renderClassroomGrid(managedClassrooms)}
-              </section>
-            </Column>
-
-            <Column lg={16} md={8} sm={4}>
-              <section className="dashboard-classroom__section">
-                <header className="dashboard-classroom__section-header">
-                  <h4>{t("classroom.enrolled", "已加入的")}</h4>
-                </header>
-                {renderClassroomGrid(enrolledClassrooms)}
-              </section>
-            </Column>
-          </>
-        ) : (
-          <Column lg={16} md={8} sm={4}>
-            <section className="dashboard-classroom__section">
-              <header className="dashboard-classroom__section-header">
-                <h4>{t("classroom.enrolled", "已加入的")}</h4>
-              </header>
-              {renderClassroomGrid(recentClassrooms)}
-            </section>
-          </Column>
-        )}
       </Grid>
 
       <JoinClassroomModal
