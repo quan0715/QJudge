@@ -5,6 +5,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+from apps.question_bank.services import sync_problem_to_question_bank
+
 from ..models import (
     Contest,
     ContestParticipant,
@@ -134,6 +136,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Save with created_in_contest
         problem = serializer.save(created_in_contest=contest)
+        sync_problem_to_question_bank(problem, actor=request.user)
 
         # Calculate next order and label
         last_problem = ContestProblem.objects.filter(contest=contest).order_by('-order').first()

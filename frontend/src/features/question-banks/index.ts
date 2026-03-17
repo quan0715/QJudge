@@ -1,0 +1,1 @@
+export { questionBankRoutes } from "./routes";

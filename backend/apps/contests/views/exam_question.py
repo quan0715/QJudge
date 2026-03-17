@@ -10,6 +10,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+from apps.question_bank.services import sync_exam_question_to_question_bank
+
 from ..models import (
     Contest,
     ExamQuestion,
@@ -117,9 +119,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if 'order' not in self.request.data:
             last_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
             serializer.save(contest=contest, order=(last_order if last_order is not None else -1) + 1)
+            sync_exam_question_to_question_bank(serializer.instance, actor=self.request.user)
             return
 
         serializer.save(contest=contest)
+        sync_exam_question_to_question_bank(serializer.instance, actor=self.request.user)
 
         ContestActivityViewSet.log_activity(
             contest,
@@ -136,6 +140,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if frozen_response:
             raise PermissionDenied(frozen_response.data['error'])
         serializer.save()
+        sync_exam_question_to_question_bank(serializer.instance, actor=self.request.user)
 
         ContestActivityViewSet.log_activity(
             contest,
@@ -206,6 +211,8 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                     **sanitized_data,
                 ))
             created = ExamQuestion.objects.bulk_create(new_questions)
+            for question in created:
+                sync_exam_question_to_question_bank(question, actor=request.user)
 
         ContestActivityViewSet.log_activity(
             contest,

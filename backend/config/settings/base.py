@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.labs",
     "apps.classrooms",
     "apps.ai",  # AI Chat
+    "apps.question_bank",
     "drf_spectacular",
 ]
 

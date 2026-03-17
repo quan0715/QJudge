@@ -65,8 +65,18 @@ export const GlobalHeader = () => {
                 isCurrentPage={location.pathname.startsWith("/problems")}
                 onClick={() => navigate("/problems")}
               >
-                {t("nav.problems")}
+                {isTeacherOrAdmin
+                  ? t("nav.problemsLegacy", "Problems (Legacy)")
+                  : t("nav.problems")}
               </HeaderMenuItem>
+              {isTeacherOrAdmin && (
+                <HeaderMenuItem
+                  isCurrentPage={location.pathname.startsWith("/question-banks")}
+                  onClick={() => navigate("/question-banks")}
+                >
+                  {t("nav.questionBanks", "Question Banks")}
+                </HeaderMenuItem>
+              )}
               <HeaderMenuItem
                 isCurrentPage={location.pathname.startsWith("/contests")}
                 onClick={() => navigate("/contests")}
@@ -129,8 +139,24 @@ export const GlobalHeader = () => {
                   }}
                   isActive={location.pathname.startsWith("/problems")}
                 >
-                  {t("nav.problems")}
+                  {isTeacherOrAdmin
+                    ? t("nav.problemsLegacy", "Problems (Legacy)")
+                    : t("nav.problems")}
                 </SideNavLink>
+                {isTeacherOrAdmin && (
+                  <SideNavLink
+                    renderIcon={Education}
+                    href="#"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      navigate("/question-banks");
+                      onClickSideNavExpand();
+                    }}
+                    isActive={location.pathname.startsWith("/question-banks")}
+                  >
+                    {t("nav.questionBanks", "Question Banks")}
+                  </SideNavLink>
+                )}
                 <SideNavLink
                   renderIcon={Trophy}
                   href="#"
@@ -181,13 +207,25 @@ export const GlobalHeader = () => {
                         href="#"
                         onClick={(e: React.MouseEvent) => {
                           e.preventDefault();
+                          navigate("/question-banks");
+                          onClickSideNavExpand();
+                        }}
+                        isActive={location.pathname === "/question-banks"}
+                      >
+                        <List size={16} style={{ marginRight: "0.5rem" }} />
+                        {t("nav.questionBanks", "Question Banks")}
+                      </SideNavMenuItem>
+                      <SideNavMenuItem
+                        href="#"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
                           navigate("/teacher/problems");
                           onClickSideNavExpand();
                         }}
                         isActive={location.pathname === "/teacher/problems"}
                       >
                         <Code size={16} style={{ marginRight: "0.5rem" }} />
-                        {t("header.problemManagement")}
+                        {t("header.problemManagementLegacy", "Problem Management (Legacy)")}
                       </SideNavMenuItem>
                       <SideNavMenuItem
                         href="#"
