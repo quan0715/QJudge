@@ -75,6 +75,7 @@ export const mapBankQuestionDto = (dto: any): BankQuestion => ({
   difficulty: dto.difficulty || "medium",
   timeLimit: Number(dto.time_limit || 1000),
   memoryLimit: Number(dto.memory_limit || 128),
+  metadata: dto.metadata && typeof dto.metadata === "object" ? dto.metadata : undefined,
   sourceProblemId: dto.source_problem_id ? toStringId(dto.source_problem_id) : undefined,
   sourceExamQuestionId: dto.source_exam_question_id
     ? toStringId(dto.source_exam_question_id)

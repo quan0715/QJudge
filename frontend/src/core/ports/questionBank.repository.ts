@@ -26,6 +26,7 @@ export interface UpsertBankQuestionPayload {
   prompt?: string;
   options?: unknown[];
   correctAnswer?: unknown;
+  metadata?: Record<string, unknown>;
   score?: number;
   order?: number;
   difficulty?: string;

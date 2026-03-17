@@ -41,6 +41,7 @@ export interface BankQuestion {
   difficulty: string;
   timeLimit: number;
   memoryLimit: number;
+  metadata?: Record<string, unknown>;
   sourceProblemId?: string;
   sourceExamQuestionId?: string;
   codingExt?: CodingQuestionExt;
