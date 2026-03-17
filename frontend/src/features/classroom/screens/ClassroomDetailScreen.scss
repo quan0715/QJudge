@@ -2,10 +2,12 @@
 @use "@carbon/type";
 
 .classroom-admin-page {
-  display: grid;
-  gap: layout.$spacing-05;
-  padding: layout.$spacing-05;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  min-height: 0;
+  align-content: start;
 }
 
 .classroom-admin-loading,
@@ -25,20 +27,23 @@
 
 .classroom-admin-hero {
   background: var(--cds-layer);
-  border-bottom: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-05 layout.$spacing-06;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-05;
 }
 
 .classroom-admin-hero__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) layout.rem(380px);
-  gap: layout.$spacing-05;
+  gap: layout.$spacing-04;
   align-items: start;
+  max-width: layout.rem(1200px);
+  margin: 0 auto;
 }
 
 .classroom-admin-hero__main {
   display: grid;
   gap: layout.$spacing-03;
+  min-width: 0;
+  max-width: layout.rem(720px);
 }
 
 .classroom-admin-hero__top {
@@ -84,50 +89,63 @@
   }
 }
 
-.classroom-admin-hero__stats {
+.classroom-admin-hero__kpi-strip {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: layout.$spacing-03;
+  min-width: 0;
 }
 
-.classroom-admin-hero-stat {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  background: var(--cds-layer-02);
+.classroom-admin-hero__kpi-card {
+  background: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle);
-  padding: layout.$spacing-03 layout.$spacing-04;
-  min-height: layout.rem(66px);
+  min-height: layout.rem(104px);
 }
 
-.classroom-admin-hero-stat__icon {
-  color: var(--cds-icon-secondary);
+.classroom-admin-hero__kpi-card :global(.kpiValue) {
+  @include type.type-style("productive-heading-04");
 }
 
-.classroom-admin-hero-stat__value {
-  @include type.type-style("heading-03");
-  margin: 0;
-  line-height: 1;
-}
-
-.classroom-admin-hero-stat__label {
-  @include type.type-style("label-01");
-  margin: 0;
-  color: var(--cds-text-secondary);
+.classroom-admin-hero__kpi-skeleton {
+  display: grid;
+  gap: layout.$spacing-03;
+  align-content: start;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-05;
+  min-height: layout.rem(104px);
 }
 
 .classroom-admin-panel {
+  width: 100%;
+  max-width: layout.rem(1200px);
+  margin: 0 auto;
   min-height: 0;
 }
 
-.classroom-admin-overview-grid {
-  row-gap: layout.$spacing-05;
+.classroom-admin-overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(layout.rem(280px), 1fr);
+  gap: layout.$spacing-04;
+  align-items: start;
+}
+
+.classroom-admin-overview-layout__main,
+.classroom-admin-overview-layout__side {
+  min-width: 0;
+  display: grid;
+  gap: layout.$spacing-04;
+}
+
+.classroom-admin-overview-layout__main > .classroom-admin-section,
+.classroom-admin-overview-layout__side > .classroom-admin-section {
+  margin-bottom: 0;
 }
 
 .classroom-admin-section {
   background: var(--cds-layer);
-  padding: layout.$spacing-05;
-  margin-bottom: layout.$spacing-05;
+  padding: layout.$spacing-04;
+  margin-bottom: layout.$spacing-04;
 }
 
 .classroom-admin-section--invite {
@@ -139,7 +157,7 @@
   align-items: center;
   justify-content: space-between;
   gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-04;
+  margin-bottom: layout.$spacing-03;
 }
 
 .classroom-admin-section__title {
@@ -155,7 +173,7 @@
 
 .classroom-admin-announcement-list {
   display: grid;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
 }
 
 .classroom-admin-announcement-card {
@@ -163,12 +181,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-03;
   text-align: left;
   border: 0;
   background: var(--cds-layer-01);
   border-left: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-04 layout.$spacing-05;
+  padding: layout.$spacing-03 layout.$spacing-04;
   cursor: pointer;
 }
 
@@ -237,7 +255,7 @@
 
 .classroom-admin-practice {
   display: grid;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-03;
 }
 
 .classroom-admin-practice__hint {
@@ -248,7 +266,7 @@
 
 .classroom-admin-card-grid {
   display: grid;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-03;
   grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
 }
 
@@ -286,7 +304,7 @@
 
 .classroom-admin-mini-list {
   display: grid;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
 }
 
 .classroom-admin-mini-card {
@@ -325,10 +343,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
   text-align: center;
-  padding: layout.$spacing-07 layout.$spacing-05;
+  padding: layout.$spacing-05 layout.$spacing-04;
+  min-height: layout.rem(140px);
   color: var(--cds-text-secondary);
+}
+
+.classroom-admin-empty-block--compact {
+  min-height: layout.rem(96px);
+  padding: layout.$spacing-04;
 }
 
 .classroom-admin-empty-block__icon {
@@ -337,6 +361,16 @@
 
 .classroom-admin-empty-block p {
   margin: 0;
+}
+
+@media (max-width: 1056px) {
+  .classroom-admin-hero__kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .classroom-admin-overview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 672px) {
@@ -349,11 +383,10 @@
   }
 
   .classroom-admin-hero__body {
-    grid-template-columns: 1fr;
     gap: layout.$spacing-04;
   }
 
-  .classroom-admin-hero__stats {
+  .classroom-admin-hero__kpi-strip {
     grid-template-columns: 1fr;
   }
 

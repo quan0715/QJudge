@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  Grid,
-  Column,
   Button,
   Tag,
   Modal,
@@ -25,6 +23,7 @@ import {
 } from "@carbon/icons-react";
 import type { Classroom, ClassroomAnnouncement, ClassroomDetail, BoundContest } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
+import { KpiCard } from "@/shared/ui/dataCard";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import {
   getClassroom,
@@ -454,31 +453,28 @@ const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) =>
             </span>
           </div>
         </div>
-
-        <div className="classroom-admin-hero__stats">
-          <div className="classroom-admin-hero-stat">
-            <UserMultiple size={18} className="classroom-admin-hero-stat__icon" />
-            <div>
-              <p className="classroom-admin-hero-stat__value">{classroom.memberCount}</p>
-              <p className="classroom-admin-hero-stat__label">{t("classroom.members", "成員")}</p>
-            </div>
-          </div>
-          <div className="classroom-admin-hero-stat">
-            <Bullhorn size={18} className="classroom-admin-hero-stat__icon" />
-            <div>
-              <p className="classroom-admin-hero-stat__value">{classroom.announcements.length}</p>
-              <p className="classroom-admin-hero-stat__label">
-                {t("classroom.announcements", "公告")}
-              </p>
-            </div>
-          </div>
-          <div className="classroom-admin-hero-stat">
-            <Trophy size={18} className="classroom-admin-hero-stat__icon" />
-            <div>
-              <p className="classroom-admin-hero-stat__value">{classroom.contests.length}</p>
-              <p className="classroom-admin-hero-stat__label">{t("classroom.contests", "競賽")}</p>
-            </div>
-          </div>
+        <div className="classroom-admin-hero__kpi-strip">
+          <KpiCard
+            icon={UserMultiple}
+            value={String(classroom.memberCount)}
+            label={t("classroom.members", "成員")}
+            showBorder={false}
+            className="classroom-admin-hero__kpi-card"
+          />
+          <KpiCard
+            icon={Bullhorn}
+            value={String(classroom.announcements.length)}
+            label={t("classroom.announcements", "公告")}
+            showBorder={false}
+            className="classroom-admin-hero__kpi-card"
+          />
+          <KpiCard
+            icon={Trophy}
+            value={String(classroom.contests.length)}
+            label={t("classroom.contests", "競賽")}
+            showBorder={false}
+            className="classroom-admin-hero__kpi-card"
+          />
         </div>
       </div>
     </section>
@@ -505,13 +501,14 @@ const OverviewPanel: React.FC<{
   const { t } = useTranslation();
 
   return (
-    <Grid fullWidth className="classroom-admin-overview-grid">
-      <Column lg={10} md={8} sm={4}>
+    <div className="classroom-admin-overview-layout">
+      <div className="classroom-admin-overview-layout__main">
         <AnnouncementSection
           announcements={classroom.announcements.slice(0, 4)}
           isPrivileged={isPrivileged}
           onCreateClick={onCreateAnnouncement}
           onView={onViewAnnouncement}
+          compactEmpty
         />
         {classroom.announcements.length > 4 && (
           <Button
@@ -523,8 +520,8 @@ const OverviewPanel: React.FC<{
             {t("classroom.viewAllAnnouncements", "查看全部公告")}
           </Button>
         )}
-      </Column>
-      <Column lg={6} md={8} sm={4}>
+      </div>
+      <div className="classroom-admin-overview-layout__side">
         <section className="classroom-admin-section">
           <div className="classroom-admin-section__header">
             <div className="classroom-admin-section__title">
@@ -554,7 +551,11 @@ const OverviewPanel: React.FC<{
           </div>
 
           {classroom.contests.length === 0 ? (
-            <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚未綁定競賽")} />
+            <EmptyBlock
+              icon={Trophy}
+              message={t("classroom.noContests", "尚未綁定競賽")}
+              compact
+            />
           ) : (
             <div className="classroom-admin-mini-list">
               {classroom.contests.slice(0, 3).map((contest) => (
@@ -567,8 +568,8 @@ const OverviewPanel: React.FC<{
             </div>
           )}
         </section>
-      </Column>
-    </Grid>
+      </div>
+    </div>
   );
 };
 
@@ -734,7 +735,8 @@ const AnnouncementSection: React.FC<{
   isPrivileged: boolean;
   onCreateClick: () => void;
   onView: (announcement: ClassroomAnnouncement) => void;
-}> = ({ announcements, isPrivileged, onCreateClick, onView }) => {
+  compactEmpty?: boolean;
+}> = ({ announcements, isPrivileged, onCreateClick, onView, compactEmpty = false }) => {
   const { t } = useTranslation();
   return (
     <section className="classroom-admin-section">
@@ -750,7 +752,11 @@ const AnnouncementSection: React.FC<{
         )}
       </div>
       {announcements.length === 0 ? (
-        <EmptyBlock icon={Bullhorn} message={t("classroom.noAnnouncements", "尚無公告")} />
+        <EmptyBlock
+          icon={Bullhorn}
+          message={t("classroom.noAnnouncements", "尚無公告")}
+          compact={compactEmpty}
+        />
       ) : (
         <div className="classroom-admin-announcement-list">
           {announcements.map((announcement) => (
@@ -888,8 +894,9 @@ const AnnouncementViewModal: React.FC<{
 const EmptyBlock: React.FC<{
   icon: React.ComponentType<{ size: number; className?: string }>;
   message: string;
-}> = ({ icon: Icon, message }) => (
-  <div className="classroom-admin-empty-block">
+  compact?: boolean;
+}> = ({ icon: Icon, message, compact = false }) => (
+  <div className={`classroom-admin-empty-block${compact ? " classroom-admin-empty-block--compact" : ""}`}>
     <Icon size={28} className="classroom-admin-empty-block__icon" />
     <p>{message}</p>
   </div>
@@ -904,16 +911,16 @@ const ClassroomSkeleton = () => (
           <SkeletonText width="65%" />
           <SkeletonText width="55%" />
         </div>
-        <div className="classroom-admin-hero__stats">
-        {[1, 2, 3].map((item) => (
-            <div key={item} className="classroom-admin-hero-stat">
-            <SkeletonPlaceholder style={{ width: 42, height: 42 }} />
-            <div style={{ width: "100%" }}>
-              <SkeletonText width="40%" />
-              <SkeletonText width="70%" />
+        <div className="classroom-admin-hero__kpi-strip">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="classroom-admin-hero__kpi-skeleton">
+              <SkeletonPlaceholder style={{ width: 20, height: 20 }} />
+              <div style={{ width: "100%" }}>
+                <SkeletonText width="35%" />
+                <SkeletonText width="65%" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       </div>
     </section>
