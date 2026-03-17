@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -15,19 +15,20 @@ import {
   SelectItem,
   TextArea,
 } from "@carbon/react";
-import { Add, ArrowLeft, Edit, TrashCan } from "@carbon/icons-react";
+import { Add, ArrowLeft, Edit, TrashCan, Dashboard, Education, Settings } from "@carbon/icons-react";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts";
 import { KpiCard } from "@/shared/ui/dataCard";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
-import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
+import type { BankQuestion, QuestionBank, BankVisibility } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import {
   createQuestion,
   deleteQuestion,
   listMine,
   listQuestions,
+  update as updateQuestionBank,
   updateQuestion,
 } from "@/infrastructure/api/repositories/questionBank.repository";
 import styles from "./QuestionBankDetailScreen.module.scss";
@@ -36,6 +37,18 @@ const parseNumericInput = (value: string, fallback: number): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 };
+
+type DetailPanel = "overview" | "problem_management" | "settings";
+
+const PANEL_ALIAS: Record<string, DetailPanel> = {
+  overview: "overview",
+  problems: "problem_management",
+  problem_management: "problem_management",
+  settings: "settings",
+};
+
+const normalizePanelParam = (value: string | null): DetailPanel =>
+  value && PANEL_ALIAS[value] ? PANEL_ALIAS[value] : "overview";
 
 const QUESTION_TYPES: ExamQuestionType[] = [
   "single_choice",
@@ -54,9 +67,10 @@ const isChoiceExamQuestionType = (type: ExamQuestionType): boolean =>
   type === "single_choice" || type === "multiple_choice" || type === "true_false";
 
 const resolveExamQuestionType = (question: BankQuestion): ExamQuestionType => {
-  const meta = question.metadata && typeof question.metadata === "object"
-    ? (question.metadata as Record<string, unknown>)
-    : {};
+  const meta =
+    question.metadata && typeof question.metadata === "object"
+      ? (question.metadata as Record<string, unknown>)
+      : {};
 
   const direct = meta.exam_question_type;
   if (isExamQuestionType(direct)) return direct;
@@ -79,6 +93,7 @@ const trimPrompt = (raw: string): string => {
 
 const QuestionBankDetailScreen = () => {
   const { bankId } = useParams<{ bankId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
@@ -105,6 +120,14 @@ const QuestionBankDetailScreen = () => {
   const [examShortAnswer, setExamShortAnswer] = useState("");
   const [examEssayReferenceAnswer, setExamEssayReferenceAnswer] = useState("");
 
+  const [settingName, setSettingName] = useState("");
+  const [settingDescription, setSettingDescription] = useState("");
+  const [settingVisibility, setSettingVisibility] = useState<BankVisibility>("private");
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const panelParam = searchParams.get("panel");
+  const activePanel = useMemo(() => normalizePanelParam(panelParam), [panelParam]);
+
   const questionType = useMemo<"coding" | "exam">(
     () => (bank?.category === "exam" ? "exam" : "coding"),
     [bank?.category]
@@ -115,6 +138,11 @@ const QuestionBankDetailScreen = () => {
     [questions]
   );
 
+  const choiceQuestionCount = useMemo(
+    () => questions.filter((question) => question.questionType === "exam").length,
+    [questions]
+  );
+
   const loadData = async () => {
     if (!bankId) return;
     try {
@@ -122,7 +150,12 @@ const QuestionBankDetailScreen = () => {
       const mineBanks = await listMine();
       const targetBank = mineBanks.find((item) => item.id === bankId) || null;
       setBank(targetBank);
+
       if (!targetBank) return;
+
+      setSettingName(targetBank.name);
+      setSettingDescription(targetBank.description || "");
+      setSettingVisibility(targetBank.visibility);
 
       const rows = await listQuestions(targetBank.id);
       setQuestions(rows);
@@ -140,6 +173,34 @@ const QuestionBankDetailScreen = () => {
   useEffect(() => {
     void loadData();
   }, [bankId]);
+
+  useEffect(() => {
+    const normalized = normalizePanelParam(panelParam);
+    if (panelParam === normalized || (panelParam === null && normalized === "overview")) {
+      return;
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (normalized === "overview") {
+        next.delete("panel");
+      } else {
+        next.set("panel", normalized);
+      }
+      return next;
+    });
+  }, [panelParam, setSearchParams]);
+
+  const handlePanelChange = (panel: DetailPanel) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (panel === "overview") {
+        next.delete("panel");
+      } else {
+        next.set("panel", panel);
+      }
+      return next;
+    });
+  };
 
   const resetExamForm = () => {
     setExamQuestionType("single_choice");
@@ -185,11 +246,9 @@ const QuestionBankDetailScreen = () => {
     }
 
     if (resolvedType === "single_choice" || resolvedType === "true_false") {
-      if (typeof question.correctAnswer === "number") {
-        setExamSingleAnswerIndex(String(question.correctAnswer));
-      } else {
-        setExamSingleAnswerIndex("");
-      }
+      setExamSingleAnswerIndex(
+        typeof question.correctAnswer === "number" ? String(question.correctAnswer) : ""
+      );
       setExamMultiAnswerIndexesText("");
       setExamShortAnswer("");
       setExamEssayReferenceAnswer("");
@@ -217,9 +276,7 @@ const QuestionBankDetailScreen = () => {
       return;
     }
 
-    setExamEssayReferenceAnswer(
-      question.correctAnswer == null ? "" : String(question.correctAnswer)
-    );
+    setExamEssayReferenceAnswer(question.correctAnswer == null ? "" : String(question.correctAnswer));
     setExamSingleAnswerIndex("");
     setExamMultiAnswerIndexesText("");
     setExamShortAnswer("");
@@ -472,6 +529,96 @@ const QuestionBankDetailScreen = () => {
     }
   };
 
+  const handleSaveSettings = async () => {
+    if (!bank || !settingName.trim()) return;
+    try {
+      setSavingSettings(true);
+      const updated = await updateQuestionBank(bank.id, {
+        name: settingName.trim(),
+        description: settingDescription.trim(),
+        visibility: settingVisibility,
+      });
+      setBank(updated);
+      showToast({
+        kind: "success",
+        title: t("message.success"),
+        subtitle: t("questionBank.bankUpdated", "題庫已更新"),
+      });
+    } catch (err: any) {
+      showToast({
+        kind: "error",
+        title: t("message.error"),
+        subtitle: err?.message || t("message.error"),
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const renderQuestionList = () => (
+    <>
+      {questions.length === 0 ? (
+        <Tile>
+          <p className={styles.emptyText}>{t("message.noData")}</p>
+        </Tile>
+      ) : (
+        <div className={styles.questionList}>
+          {questions.map((question) => {
+            const examType =
+              question.questionType === "exam"
+                ? getQuestionTypeLabel(resolveExamQuestionType(question))
+                : null;
+
+            return (
+              <Tile key={question.id} className={styles.questionCard}>
+                <div className={styles.questionHeader}>
+                  <div className={styles.questionTitleWrap}>
+                    <h4 className={styles.questionTitle}>{question.title}</h4>
+                    <div className={styles.questionTags}>
+                      {examType ? <Tag type="purple">{examType}</Tag> : null}
+                      {!examType ? <Tag type="teal">{question.difficulty}</Tag> : null}
+                      <Tag type="gray">
+                        {t("questionBank.score", "分數")}: {question.score}
+                      </Tag>
+                    </div>
+                  </div>
+                  <Stack orientation="horizontal" gap={3}>
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      renderIcon={Edit}
+                      onClick={() => openEditQuestionModal(question)}
+                    >
+                      {t("button.edit")}
+                    </Button>
+                    <Button
+                      kind="danger--ghost"
+                      size="sm"
+                      renderIcon={TrashCan}
+                      onClick={() => {
+                        void handleDeleteQuestion(question);
+                      }}
+                    >
+                      {t("button.delete")}
+                    </Button>
+                  </Stack>
+                </div>
+
+                <p className={styles.questionPrompt}>{trimPrompt(question.prompt || "")}</p>
+
+                <p className={styles.questionMeta}>
+                  {question.questionType === "coding"
+                    ? `${t("questionBank.timeLimit", "時間限制(ms)")}: ${question.timeLimit} · ${t("questionBank.memoryLimit", "記憶體限制(MB)")}: ${question.memoryLimit}`
+                    : `${t("questionBank.options", "選項")}: ${question.options.length}`}
+                </p>
+              </Tile>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", marginTop: "4rem" }}>
@@ -487,7 +634,9 @@ const QuestionBankDetailScreen = () => {
           <Tile>
             <Stack gap={4}>
               <h3 style={{ margin: 0 }}>{t("questionBank.bankNotFound", "找不到題庫")}</h3>
-              <p style={{ margin: 0 }}>{t("questionBank.bankNotFoundDesc", "請回題庫列表重新選擇。")}</p>
+              <p style={{ margin: 0 }}>
+                {t("questionBank.bankNotFoundDesc", "請回題庫列表重新選擇。")}
+              </p>
               <div>
                 <Button
                   kind="ghost"
@@ -503,6 +652,28 @@ const QuestionBankDetailScreen = () => {
       </Grid>
     );
   }
+
+  const panelItems: Array<{
+    id: DetailPanel;
+    label: string;
+    icon: typeof Dashboard;
+  }> = [
+    {
+      id: "overview",
+      label: t("tab.overview", "總覽"),
+      icon: Dashboard,
+    },
+    {
+      id: "problem_management",
+      label: t("page.problemManagement", "題目管理"),
+      icon: Education,
+    },
+    {
+      id: "settings",
+      label: t("tab.settings", "設定"),
+      icon: Settings,
+    },
+  ];
 
   return (
     <div>
@@ -533,14 +704,16 @@ const QuestionBankDetailScreen = () => {
                 >
                   {t("button.back")}
                 </Button>
-                <Button
-                  kind="primary"
-                  size="sm"
-                  renderIcon={Add}
-                  onClick={openCreateQuestionModal}
-                >
-                  {t("questionBank.addQuestion", "新增題目")}
-                </Button>
+                {activePanel === "problem_management" ? (
+                  <Button
+                    kind="primary"
+                    size="sm"
+                    renderIcon={Add}
+                    onClick={openCreateQuestionModal}
+                  >
+                    {t("questionBank.addQuestion", "新增題目")}
+                  </Button>
+                ) : null}
               </div>
 
               <div className={styles.kpiStrip}>
@@ -559,8 +732,8 @@ const QuestionBankDetailScreen = () => {
                   className={styles.kpiCard}
                 />
                 <KpiCard
-                  value={bank.category}
-                  label={t("questionBank.category", "分類")}
+                  value={String(choiceQuestionCount)}
+                  label={t("questionBank.categoryExam", "考卷題")}
                   showBorder={false}
                   className={styles.kpiCard}
                 />
@@ -570,66 +743,111 @@ const QuestionBankDetailScreen = () => {
         </div>
       </section>
 
-      <div className={styles.content}>
-        {questions.length === 0 ? (
-          <Tile>
-            <p className={styles.emptyText}>{t("message.noData")}</p>
-          </Tile>
-        ) : (
-          <div className={styles.questionList}>
-            {questions.map((question) => {
-              const examType =
-                question.questionType === "exam"
-                  ? getQuestionTypeLabel(resolveExamQuestionType(question))
-                  : null;
+      <div className={styles.workspace}>
+        <aside className={styles.sideMenu}>
+          {panelItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`${styles.sideMenuButton} ${
+                  activePanel === item.id ? styles.sideMenuButtonActive : ""
+                }`}
+                onClick={() => handlePanelChange(item.id)}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </aside>
 
-              return (
-                <Tile key={question.id} className={styles.questionCard}>
-                  <div className={styles.questionHeader}>
-                    <div className={styles.questionTitleWrap}>
-                      <h4 className={styles.questionTitle}>{question.title}</h4>
-                      <div className={styles.questionTags}>
-                        {examType ? <Tag type="purple">{examType}</Tag> : null}
-                        {!examType ? <Tag type="teal">{question.difficulty}</Tag> : null}
-                        <Tag type="gray">
-                          {t("questionBank.score", "分數")}: {question.score}
-                        </Tag>
-                      </div>
-                    </div>
-                    <Stack orientation="horizontal" gap={3}>
-                      <Button
-                        kind="ghost"
-                        size="sm"
-                        renderIcon={Edit}
-                        onClick={() => openEditQuestionModal(question)}
-                      >
-                        {t("button.edit")}
-                      </Button>
-                      <Button
-                        kind="danger--ghost"
-                        size="sm"
-                        renderIcon={TrashCan}
-                        onClick={() => {
-                          void handleDeleteQuestion(question);
-                        }}
-                      >
-                        {t("button.delete")}
-                      </Button>
-                    </Stack>
-                  </div>
-
-                  <p className={styles.questionPrompt}>{trimPrompt(question.prompt || "")}</p>
-
-                  <p className={styles.questionMeta}>
-                    {question.questionType === "coding"
-                      ? `${t("questionBank.timeLimit", "時間限制(ms)")}: ${question.timeLimit} · ${t("questionBank.memoryLimit", "記憶體限制(MB)")}: ${question.memoryLimit}`
-                      : `${t("questionBank.options", "選項")}: ${question.options.length}`}
+        <main className={styles.panelContent}>
+          {activePanel === "overview" ? (
+            <Stack gap={5}>
+              <Tile>
+                <Stack gap={3}>
+                  <h4 className={styles.panelTitle}>{t("tab.overview", "總覽")}</h4>
+                  <p className={styles.panelDesc}>
+                    {t(
+                      "questionBank.overviewDescription",
+                      "快速檢視題庫題量、分數與題型分佈。"
+                    )}
                   </p>
-                </Tile>
-              );
-            })}
-          </div>
-        )}
+                </Stack>
+              </Tile>
+
+              <Tile>
+                <Stack gap={3}>
+                  <h5 className={styles.panelTitle}>
+                    {t("questionBank.recentQuestions", "近期題目")}
+                  </h5>
+                  {questions.length === 0 ? (
+                    <p className={styles.emptyText}>{t("message.noData")}</p>
+                  ) : (
+                    <div className={styles.recentList}>
+                      {questions.slice(0, 5).map((question) => (
+                        <div key={`recent-${question.id}`} className={styles.recentItem}>
+                          <p className={styles.recentTitle}>{question.title}</p>
+                          <p className={styles.recentMeta}>
+                            {question.questionType === "exam"
+                              ? getQuestionTypeLabel(resolveExamQuestionType(question))
+                              : question.difficulty}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Stack>
+              </Tile>
+            </Stack>
+          ) : null}
+
+          {activePanel === "problem_management" ? renderQuestionList() : null}
+
+          {activePanel === "settings" ? (
+            <Tile>
+              <Stack gap={5}>
+                <h4 className={styles.panelTitle}>{t("tab.settings", "設定")}</h4>
+                <TextInput
+                  id="bank-name-setting"
+                  labelText={t("table.title")}
+                  value={settingName}
+                  onChange={(e) => setSettingName(e.currentTarget.value)}
+                />
+                <TextArea
+                  id="bank-description-setting"
+                  labelText={t("questionBank.description", "描述")}
+                  value={settingDescription}
+                  onChange={(e) => setSettingDescription(e.currentTarget.value)}
+                />
+                <Select
+                  id="bank-visibility-setting"
+                  labelText={t("table.visibility", "可見性")}
+                  value={settingVisibility}
+                  onChange={(e) =>
+                    setSettingVisibility(e.currentTarget.value as BankVisibility)
+                  }
+                >
+                  <SelectItem value="private" text={t("questionBank.tagPrivate", "私人")} />
+                  <SelectItem value="public" text={t("questionBank.tagPublic", "公開")} />
+                </Select>
+                <div className={styles.settingActions}>
+                  <Button
+                    kind="primary"
+                    onClick={() => {
+                      void handleSaveSettings();
+                    }}
+                    disabled={!settingName.trim() || savingSettings}
+                  >
+                    {savingSettings ? t("button.updating", "更新中...") : t("button.save")}
+                  </Button>
+                </div>
+              </Stack>
+            </Tile>
+          ) : null}
+        </main>
       </div>
 
       <Modal

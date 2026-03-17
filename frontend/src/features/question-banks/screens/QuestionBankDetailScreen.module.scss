@@ -89,6 +89,54 @@
   padding: 1.25rem 1rem 2rem;
 }
 
+.workspace {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.sideMenu {
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sideMenuButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--cds-text-secondary);
+  padding: 0.78rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  text-align: left;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+.sideMenuButton:hover {
+  background: var(--cds-layer-hover);
+  color: var(--cds-text-primary);
+}
+
+.sideMenuButtonActive {
+  border-left-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected);
+  color: var(--cds-text-primary);
+}
+
+.panelContent {
+  min-width: 0;
+}
+
 .emptyText {
   margin: 0;
   color: var(--cds-text-secondary);
@@ -149,6 +197,47 @@
   font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
+.panelTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-02-font-size, 1rem);
+}
+
+.panelDesc {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.5);
+}
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.recentItem {
+  border: 1px solid var(--cds-border-subtle);
+  padding: 0.65rem 0.72rem;
+}
+
+.recentTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.recentMeta {
+  margin: 0.15rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+}
+
+.settingActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .optionRow {
   display: flex;
   align-items: flex-end;
@@ -179,6 +268,26 @@
 
   .kpiCard {
     flex: 1 1 12rem;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sideMenu {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .sideMenuButton {
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+
+  .sideMenuButtonActive {
+    border-left-color: transparent;
+    border-bottom-color: var(--cds-border-interactive);
   }
 }
 
