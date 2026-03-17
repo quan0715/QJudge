@@ -33,7 +33,7 @@ import { adminRoutes } from "@/features/admin";
 import { teacherRoutes } from "@/features/teacher";
 import { landingRoute } from "@/features/landing";
 import { classroomRoutes } from "@/features/classroom";
-import { questionBankRoutes } from "@/features/question-banks";
+import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
 
 // Feature imports - Submissions
 import { submissionRoutes } from "@/features/submissions";
@@ -143,7 +143,7 @@ function App() {
                         {/* Teacher/Admin Routes */}
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<MainLayout />}>
-                            {questionBankRoutes}
+                            {questionBankListRoute}
                             {/* Teacher Dashboard Routes */}
                             {teacherRoutes}
                             {/* Redirect old management paths to unified contest view */}
@@ -171,6 +171,7 @@ function App() {
 
                           {/* Contest Admin Dashboard - Standalone full page */}
                           {contestAdminRoute}
+                          {questionBankDetailRoute}
 
                           {/* Exam Preview - Standalone full page (Demo mode) */}
                           {examPreviewRoute}

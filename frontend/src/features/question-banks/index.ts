@@ -1,1 +1,1 @@
-export { questionBankRoutes } from "./routes";
+export { questionBankListRoute, questionBankDetailRoute } from "./routes";

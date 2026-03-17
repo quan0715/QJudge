@@ -240,6 +240,7 @@ interface ExamQuestionEditCardProps {
   question: ExamQuestion;
   index: number;
   frozen?: boolean;
+  startEditingSignal?: number;
   onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
@@ -250,6 +251,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   question,
   index,
   frozen,
+  startEditingSignal,
   onSave,
   onDelete,
   onDuplicate,
@@ -271,6 +273,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       originalFormRef.current = next;
     }
   }, [question, editing]);
+
+  useEffect(() => {
+    if (startEditingSignal == null) return;
+    setEditing(true);
+  }, [question.id, startEditingSignal]);
 
   // Click outside → save if dirty, else just close
   useEffect(() => {
@@ -326,7 +333,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       }
     }
     return true;
-  }, [form, showToast]);
+  }, [form, showToast, t]);
 
   const handleSave = async () => {
     if (!validateForm()) return;
