@@ -1,16 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button, Tag } from "@carbon/react";
 import {
-  Boolean as BooleanIcon,
-  Checkbox as CheckboxIcon,
   ChevronLeft,
   ChevronRight,
-  Document,
-  Pen,
-  RadioButton as RadioButtonIcon,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
@@ -21,14 +17,6 @@ import {
 } from "./gradingTypes";
 import styles from "./GradingByStudent.module.scss";
 import mini from "./GradingMini.module.scss";
-
-const QUESTION_TYPE_ICON = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: BooleanIcon,
-  short_answer: Pen,
-  essay: Document,
-} as const;
 
 interface StudentSummary {
   studentId: string;
@@ -344,7 +332,7 @@ export default function GradingByStudentTabScreen({
           currentStudentAnswers.map((a, i) => {
             const isActive = i === selectedAnswerIdx;
             const isAbsent = a.isAbsent === true;
-            const TypeIcon = QUESTION_TYPE_ICON[a.questionType];
+            const TypeIcon = EXAM_QUESTION_TYPE_ICON[a.questionType];
             const statusClass = isAbsent
               ? mini.statusEmpty
               : a.score !== null

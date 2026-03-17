@@ -121,7 +121,28 @@
     "questionDeleted": "題目已刪除",
     "tabs": {
       "mine": "我的題庫",
-      "explore": "探索題庫"
+      "explore": "探索題庫",
+      "inbox": "Card Gallery View Select"
+    },
+    "inbox": {
+      "title": "Card Gallery View Select",
+      "description": "在競賽內臨時建立、尚未歸入題庫的題目，可在此選取並收錄到指定題庫。",
+      "coding": "程式題選取清單",
+      "exam": "考卷題選取清單",
+      "empty": "目前沒有可選取的題目。",
+      "fromUnknown": "來源未標記",
+      "targetBank": "目標題庫",
+      "noCodingBank": "尚無程式題庫",
+      "noExamBank": "尚無考卷題庫",
+      "ingesting": "收錄中...",
+      "ingestSelected": "收錄選取題目",
+      "ingestSuccess": "已成功收錄到題庫",
+      "selectAll": "全選",
+      "clearSelection": "清除選取",
+      "selectedCount": "已選 {{count}} 題",
+      "filterLabel": "顯示範圍",
+      "filterAll": "全部",
+      "currentFilter": "目前顯示"
     },
     "emptyMine": "目前沒有題庫，先建立一個我的題庫。",
     "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",

@@ -4,16 +4,9 @@ import { Add, Draggable, TrashCan } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
+import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
-
-const TYPE_TAG_COLOR: Record<string, string> = {
-  true_false: "purple",
-  single_choice: "blue",
-  multiple_choice: "teal",
-  short_answer: "green",
-  essay: "warm-gray",
-};
 
 interface WorkTreeProps {
   questions: ExamQuestion[];
@@ -72,7 +65,7 @@ const TreeItem: React.FC<{
           </span>
           <div className={styles.itemMeta}>
             <Tag
-              type={(TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
+              type={(EXAM_QUESTION_TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
               size="sm"
             >
               {t(`common:questionType.label.${question.questionType}`, question.questionType)}
@@ -134,7 +127,7 @@ const WorkTree: React.FC<WorkTreeProps> = ({
         <>
           {onOpenInbox && (
             <Button kind="ghost" size="sm" onClick={onOpenInbox}>
-              {t("questionBank.tabs.inbox", "待收編")} {inboxCount}
+              {t("questionBank.tabs.inbox", "Card Gallery View Select")} {inboxCount}
             </Button>
           )}
           {!frozen && (

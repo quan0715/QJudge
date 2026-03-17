@@ -121,7 +121,28 @@
     "questionDeleted": "Question deleted",
     "tabs": {
       "mine": "My Banks",
-      "explore": "Explore Banks"
+      "explore": "Explore Banks",
+      "inbox": "Card Gallery View Select"
+    },
+    "inbox": {
+      "title": "Card Gallery View Select",
+      "description": "Select ad-hoc contest questions and save them into a target bank.",
+      "coding": "Coding Selection List",
+      "exam": "Exam Selection List",
+      "empty": "No selectable items.",
+      "fromUnknown": "Unknown source",
+      "targetBank": "Target Bank",
+      "noCodingBank": "No coding bank yet",
+      "noExamBank": "No exam bank yet",
+      "ingesting": "Saving...",
+      "ingestSelected": "Save Selected",
+      "ingestSuccess": "Saved to bank successfully",
+      "selectAll": "Select all",
+      "clearSelection": "Clear selection",
+      "selectedCount": "{{count}} selected",
+      "filterLabel": "Scope",
+      "filterAll": "All",
+      "currentFilter": "Current"
     },
     "emptyMine": "No bank yet. Create your first question bank.",
     "emptyExplore": "Explore currently focuses on QJudge Community banks.",

@@ -85,7 +85,7 @@ describe("QuestionBanksScreen", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "我的題庫" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "探索題庫" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "待收編" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Card Gallery View Select" })).toBeInTheDocument();
       expect(screen.getAllByText("我的程式題庫").length).toBeGreaterThan(0);
     });
 
@@ -94,6 +94,74 @@ describe("QuestionBanksScreen", () => {
     await waitFor(() => {
       expect(screen.getByText("Mock Card Gallery")).toBeInTheDocument();
       expect(screen.getByText("QJudge Community 程式題庫")).toBeInTheDocument();
+    });
+  });
+
+  it("opens inbox tab from query string", async () => {
+    listInboxMock.mockResolvedValue({
+      coding: [
+        {
+          sourceType: "problem",
+          sourceId: 101,
+          title: "Draft coding question",
+        },
+      ],
+      exam: [],
+      counts: { coding: 1, exam: 0 },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/question-banks?tab=inbox"]}>
+        <QuestionBanksScreen />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Card Gallery View Select" }),
+      ).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByText("Draft coding question")).toBeInTheDocument();
+    });
+  });
+
+  it("applies inbox category filter from query string", async () => {
+    listMineMock.mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "我的程式題庫",
+        description: "mine",
+        category: "coding",
+        visibility: "private",
+        verified: false,
+        questionCount: 0,
+      },
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "我的考卷題庫",
+        description: "mine",
+        category: "exam",
+        visibility: "private",
+        verified: false,
+        questionCount: 0,
+      },
+    ]);
+    listInboxMock.mockResolvedValue({
+      coding: [{ sourceType: "problem", sourceId: 1, title: "coding item" }],
+      exam: [{ sourceType: "exam_question", sourceId: 2, title: "exam item" }],
+      counts: { coding: 1, exam: 1 },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/question-banks?tab=inbox&category=coding"]}>
+        <QuestionBanksScreen />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("程式題選取清單 (1)")).toBeInTheDocument();
+      expect(screen.queryByText("考卷題選取清單 (1)")).not.toBeInTheDocument();
+      expect(screen.getByText("coding item")).toBeInTheDocument();
+      expect(screen.queryByText("exam item")).not.toBeInTheDocument();
     });
   });
 });

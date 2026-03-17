@@ -11,11 +11,11 @@ import type {
 } from "@/core/entities/contest.entity";
 import {
   addContestProblem,
-  listInbox,
   removeContestProblem,
   reorderContestProblems,
 } from "@/infrastructure/api/repositories";
 import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
+import { listInbox } from "@/infrastructure/api/repositories/questionBank.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";

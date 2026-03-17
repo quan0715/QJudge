@@ -1,13 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal } from "@carbon/react";
-import {
-  Add,
-  RadioButton as RadioButtonIcon,
-  Checkbox as CheckboxIcon,
-  Boolean,
-  Pen,
-  Document,
-} from "@carbon/icons-react";
+import { Add } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion } from "@/core/entities/question-bank.entity";
@@ -24,6 +17,7 @@ import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSp
 import WorkTree from "@/features/contest/components/admin/examEditor/WorkTree";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
 import { useTranslation } from "react-i18next";
+import { EXAM_QUESTION_TYPE_ICON as QUESTION_TYPE_ICONS } from "@/shared/ui/examQuestionTypeVisual";
 import styles from "./QuestionBankExamEditor.module.scss";
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
@@ -33,17 +27,6 @@ const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
   "short_answer",
   "essay",
 ];
-
-const QUESTION_TYPE_ICONS: Record<
-  ExamQuestionType,
-  React.ComponentType<{ size?: number }>
-> = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: Boolean,
-  short_answer: Pen,
-  essay: Document,
-};
 
 const DEFAULT_PAYLOADS: Record<
   ExamQuestionType,
