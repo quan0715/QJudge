@@ -77,10 +77,9 @@ export const mapBankQuestionDto = (dto: any): BankQuestion => ({
   timeLimit: Number(dto.time_limit || 1000),
   memoryLimit: Number(dto.memory_limit || 128),
   metadata: dto.metadata && typeof dto.metadata === "object" ? dto.metadata : undefined,
-  sourceProblemId: dto.source_problem_id ? toStringId(dto.source_problem_id) : undefined,
-  sourceExamQuestionId: dto.source_exam_question_id
-    ? toStringId(dto.source_exam_question_id)
-    : undefined,
+  sourceQuestionId: dto.source_question_id ?? null,
+  sourceBankId: dto.source_bank_id ?? null,
+  sourceBankName: dto.source_bank_name ?? null,
   codingExt: dto.coding_ext ? mapCodingExtDto(dto.coding_ext) : undefined,
   createdAt: dto.created_at,
   updatedAt: dto.updated_at,

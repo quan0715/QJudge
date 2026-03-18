@@ -44,6 +44,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'output_data',
             'is_sample',
             'score',
+            'weight_percent',
             'order',
             'is_hidden',
         ]
@@ -440,6 +441,51 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
 
         problem.tags.set(all_tags)
 
+    def _normalize_and_validate_test_case_weights(self, test_cases_data):
+        """
+        Normalize testcase weights to percentage semantics.
+        Backward-compatible: if weight_percent missing, fallback to score.
+        """
+        if not test_cases_data:
+            return
+
+        weights = []
+        for idx, tc in enumerate(test_cases_data):
+            raw_weight = tc.get('weight_percent', None)
+            if raw_weight is None:
+                raw_weight = tc.get('score', None)
+
+            if raw_weight is None:
+                raise serializers.ValidationError(
+                    {
+                        'test_cases': [
+                            f'test_cases[{idx}].weight_percent is required (or provide legacy score)'
+                        ]
+                    }
+                )
+
+            try:
+                weight = int(raw_weight)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {'test_cases': [f'test_cases[{idx}].weight_percent must be an integer']}
+                )
+
+            if weight < 0 or weight > 100:
+                raise serializers.ValidationError(
+                    {'test_cases': [f'test_cases[{idx}].weight_percent must be between 0 and 100']}
+                )
+
+            tc['weight_percent'] = weight
+            # Keep legacy score in sync for transition compatibility.
+            tc['score'] = weight
+            weights.append(weight)
+
+        if sum(weights) != 100:
+            raise serializers.ValidationError(
+                {'test_cases': ['test_cases weight_percent total must equal 100']}
+            )
+
     def create(self, validated_data):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
@@ -448,6 +494,8 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         # Extract tag data but don't process yet
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
+
+        self._normalize_and_validate_test_case_weights(test_cases_data)
         
         # Auto-generate slug if empty
         if not validated_data.get('slug'):
@@ -483,6 +531,8 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         # Extract tag data
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
+
+        self._normalize_and_validate_test_case_weights(test_cases_data)
         
         
         # Auto-generate slug if empty

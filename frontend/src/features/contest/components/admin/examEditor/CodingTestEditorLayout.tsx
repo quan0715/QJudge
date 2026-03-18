@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Modal,
   TextInput,
@@ -13,14 +12,15 @@ import {
   addContestProblem,
   removeContestProblem,
   reorderContestProblems,
+  updateContestProblemScore,
 } from "@/infrastructure/api/repositories";
 import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
-import { listInbox } from "@/infrastructure/api/repositories/questionBank.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import ProblemWorkTree from "./ProblemWorkTree";
 import EmbeddedProblemEditor from "./EmbeddedProblemEditor";
+import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -32,13 +32,13 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contestId,
   contest,
 }) => {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
   const { confirm, modalProps } = useConfirmModal();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [bankImportOpen, setBankImportOpen] = useState(false);
   const [newProblemTitle, setNewProblemTitle] = useState("");
   const [newProblemId, setNewProblemId] = useState("");
   const [adding, setAdding] = useState(false);
@@ -46,7 +46,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     { id: string; label: string }[]
   >([]);
   const [loadingPublic, setLoadingPublic] = useState(false);
-  const [inboxCount, setInboxCount] = useState(0);
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const problems = contest.problems ?? [];
@@ -81,19 +80,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     }
   }, []);
 
-  const refreshInboxCount = useCallback(async () => {
-    try {
-      const data = await listInbox("coding");
-      setInboxCount(data.counts.coding);
-    } catch {
-      setInboxCount(0);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshInboxCount();
-  }, [refreshInboxCount]);
-
   const handleOpenAdd = useCallback(() => {
     setAddModalOpen(true);
     loadPublicProblems();
@@ -112,14 +98,46 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       setNewProblemId("");
       setNewProblemTitle("");
       await refreshContest();
-      await refreshInboxCount();
       showToast({ kind: "success", title: "Problem added" });
     } catch {
       showToast({ kind: "error", title: "Failed to add problem" });
     } finally {
       setAdding(false);
     }
-  }, [contestId, newProblemId, newProblemTitle, refreshContest, refreshInboxCount, showToast]);
+  }, [contestId, newProblemId, newProblemTitle, refreshContest, showToast]);
+
+  const handleImportFromBank = useCallback(
+    async (items: BankImportSelectionItem[], mode: "copy" | "reference") => {
+      if (!contestId || items.length === 0) return;
+      for (const item of items) {
+        await addContestProblem(contestId, {
+          question_bank_id: item.questionBankId,
+          question_id: item.questionId,
+          import_mode: mode,
+        });
+      }
+      await refreshContest();
+      showToast({
+        kind: "success",
+        title: "Imported from question bank",
+        subtitle: `${items.length} question(s) imported`,
+      });
+    },
+    [contestId, refreshContest, showToast]
+  );
+
+  const handleUpdateScore = useCallback(
+    async (contestProblemId: string, maxScore: number) => {
+      try {
+        await updateContestProblemScore(contestId, contestProblemId, maxScore);
+        await refreshContest();
+      } catch {
+        showToast({ kind: "error", title: "Failed to update score" });
+        await refreshContest();
+      }
+    },
+    [contestId, refreshContest, showToast]
+  );
 
   // --- Remove ---
   const handleRemove = useCallback(
@@ -136,12 +154,11 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         showToast({ kind: "success", title: "Problem removed" });
         if (selectedId === problemId) setSelectedId(null);
         await refreshContest();
-        await refreshInboxCount();
       } catch {
         showToast({ kind: "error", title: "Failed to remove problem" });
       }
     },
-    [contestId, selectedId, confirm, refreshContest, refreshInboxCount, showToast],
+    [contestId, selectedId, confirm, refreshContest, showToast],
   );
 
   // --- Reorder (debounced) ---
@@ -184,12 +201,12 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             problems={problems}
             selectedId={selectedId}
             loading={contestLoading && problems.length === 0}
-            inboxCount={inboxCount}
             onSelect={setSelectedId}
             onAdd={handleOpenAdd}
-            onOpenInbox={() => navigate("/question-banks?tab=inbox&category=coding")}
+            onImportFromBank={() => setBankImportOpen(true)}
             onRemove={handleRemove}
             onReorder={handleReorder}
+            onUpdateScore={handleUpdateScore}
           />
         </div>
         <div className={styles.editorPane}>
@@ -267,6 +284,13 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       </Modal>
 
       <ConfirmModal {...modalProps} />
+
+      <QuestionBankImportModal
+        open={bankImportOpen}
+        category="coding"
+        onClose={() => setBankImportOpen(false)}
+        onConfirm={handleImportFromBank}
+      />
     </>
   );
 };

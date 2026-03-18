@@ -235,6 +235,12 @@ class TestCase(models.Model):
     
     is_sample = models.BooleanField(default=False, verbose_name='是否為範例')
     score = models.IntegerField(default=0, verbose_name='分數')
+    weight_percent = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='權重百分比',
+        help_text='建議使用 0~100 的整數百分比；同題測資加總應為 100',
+    )
     order = models.IntegerField(default=0, verbose_name='排序')
     
     is_hidden = models.BooleanField(default=False, verbose_name='是否隱藏')

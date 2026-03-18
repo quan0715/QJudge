@@ -28,13 +28,24 @@ import type {
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
 export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
+  const resolvedMaxScore = dto.max_score ?? dto.score;
   return {
     id: dto.id?.toString() || "",
     problemId: dto.problem_id?.toString() || "",
     label: dto.label || "",
     title: dto.title || "",
     order: dto.order,
-    score: dto.score,
+    score: resolvedMaxScore,
+    maxScore: resolvedMaxScore,
+    sourceBank: dto.source_bank
+      ? {
+          id: dto.source_bank.id?.toString() || "",
+          name: dto.source_bank.name || "",
+        }
+      : null,
+    sourceQuestionId:
+      dto.source_question_id != null ? Number(dto.source_question_id) : null,
+    sourceMode: dto.source_mode || "manual",
     userStatus: dto.user_status,
     difficulty: dto.difficulty,
   };

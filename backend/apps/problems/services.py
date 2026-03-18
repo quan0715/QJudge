@@ -75,6 +75,7 @@ class ProblemService:
                 output_data=tc.output_data,
                 is_sample=tc.is_sample,
                 score=tc.score,
+                weight_percent=tc.weight_percent,
                 order=tc.order,
                 is_hidden=tc.is_hidden
             )

@@ -18,7 +18,6 @@ import {
   TextInput,
   Select,
   SelectItem,
-  Checkbox,
   InlineNotification,
   Tag,
 } from "@carbon/react";
@@ -157,6 +156,7 @@ const QuestionBanksScreen = () => {
   const [targetExamBankId, setTargetExamBankId] = useState("");
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [bankName, setBankName] = useState("");
   const [bankDescription, setBankDescription] = useState("");
@@ -342,24 +342,65 @@ const QuestionBanksScreen = () => {
     );
   };
 
-  const handleIngest = async (category: "coding" | "exam") => {
-    const targetBankId = category === "coding" ? targetCodingBankId : targetExamBankId;
-    const selectedIds = category === "coding" ? selectedCoding : selectedExam;
-    const sourceType = category === "coding" ? "problem" : "exam_question";
+  const filteredInboxItems = useMemo<QuestionInboxItem[]>(() => {
+    if (inboxFilter === "coding") return inbox.coding;
+    if (inboxFilter === "exam") return inbox.exam;
+    return [...inbox.coding, ...inbox.exam];
+  }, [inbox, inboxFilter]);
 
-    if (!targetBankId || selectedIds.length === 0) return;
+  const selectedInbox = useMemo<Set<string>>(() => {
+    const keys = new Set<string>();
+    selectedCoding.forEach((id) => keys.add(`problem-${id}`));
+    selectedExam.forEach((id) => keys.add(`exam_question-${id}`));
+    return keys;
+  }, [selectedCoding, selectedExam]);
 
+  const toggleInboxItem = (item: QuestionInboxItem) => {
+    if (item.sourceType === "problem") {
+      toggleSelected(item.sourceId, "coding");
+    } else {
+      toggleSelected(item.sourceId, "exam");
+    }
+  };
+
+  const isInboxItemSelected = (item: QuestionInboxItem) =>
+    selectedInbox.has(`${item.sourceType}-${item.sourceId}`);
+
+  const totalSelectedCount = selectedCoding.length + selectedExam.length;
+
+  const handleInboxSelectAll = () => {
+    if (totalSelectedCount === filteredInboxItems.length && totalSelectedCount > 0) {
+      setSelectedCoding([]);
+      setSelectedExam([]);
+    } else {
+      setSelectedCoding(filteredInboxItems.filter((i) => i.sourceType === "problem").map((i) => i.sourceId));
+      setSelectedExam(filteredInboxItems.filter((i) => i.sourceType === "exam_question").map((i) => i.sourceId));
+    }
+  };
+
+  const handleIngestAll = async () => {
     try {
-      setIngesting(category);
-      await ingestInbox({
-        targetBankId,
-        items: selectedIds.map((sourceId) => ({ sourceType, sourceId })),
-      });
-      if (category === "coding") {
-        setSelectedCoding([]);
-      } else {
-        setSelectedExam([]);
+      setIngesting("coding");
+      const promises: Promise<unknown>[] = [];
+      if (selectedCoding.length > 0 && targetCodingBankId) {
+        promises.push(
+          ingestInbox({
+            targetBankId: targetCodingBankId,
+            items: selectedCoding.map((id) => ({ sourceType: "problem" as const, sourceId: id })),
+          }),
+        );
       }
+      if (selectedExam.length > 0 && targetExamBankId) {
+        promises.push(
+          ingestInbox({
+            targetBankId: targetExamBankId,
+            items: selectedExam.map((id) => ({ sourceType: "exam_question" as const, sourceId: id })),
+          }),
+        );
+      }
+      await Promise.all(promises);
+      setSelectedCoding([]);
+      setSelectedExam([]);
       const [mineRows, inboxRows] = await Promise.all([listMine(), listInbox()]);
       setMineBanks(mineRows);
       setInbox(inboxRows);
@@ -377,73 +418,6 @@ const QuestionBanksScreen = () => {
     } finally {
       setIngesting(null);
     }
-  };
-
-  const renderInboxRows = (
-    items: QuestionInboxItem[],
-    category: "coding" | "exam",
-  ) => {
-    const selectedIds = category === "coding" ? selectedCoding : selectedExam;
-    if (items.length === 0) {
-      return (
-        <p className={styles.inboxEmpty}>
-          {t("questionBank.inbox.empty", "目前沒有可選取的題目。")}
-        </p>
-      );
-    }
-
-    const isAllSelected = selectedIds.length > 0 && selectedIds.length === items.length;
-    const selectedCountText = t("questionBank.inbox.selectedCount", "已選 {{count}} 題").replace(
-      "{{count}}",
-      String(selectedIds.length),
-    );
-    return (
-      <div className={styles.inboxList}>
-        <div className={styles.inboxListActionRow}>
-          <Button
-            kind="ghost"
-            size="sm"
-            onClick={() => {
-              const nextIds = isAllSelected ? [] : items.map((item) => item.sourceId);
-              if (category === "coding") {
-                setSelectedCoding(nextIds);
-              } else {
-                setSelectedExam(nextIds);
-              }
-            }}
-          >
-            {isAllSelected
-              ? t("questionBank.inbox.clearSelection", "清除選取")
-              : t("questionBank.inbox.selectAll", "全選")}
-          </Button>
-          <span className={styles.inboxSelectedText}>
-            {selectedCountText}
-          </span>
-        </div>
-        {items.map((item) => (
-          <div key={`${item.sourceType}-${item.sourceId}`} className={styles.inboxRow}>
-            <Checkbox
-              id={`${category}-${item.sourceId}`}
-              checked={selectedIds.includes(item.sourceId)}
-              labelText=""
-              onChange={() => toggleSelected(item.sourceId, category)}
-            />
-            <div className={`${styles.inboxTypeIcon} ${getInboxToneClass(item)}`}>
-              {(() => {
-                const { Icon } = getQuestionVisualFromInboxItem(item);
-                return <Icon size={14} />;
-              })()}
-            </div>
-            <div className={styles.inboxRowContent}>
-              <div className={styles.inboxTitle}>{item.title}</div>
-              <div className={styles.inboxMeta}>
-                {item.contestName || t("questionBank.inbox.fromUnknown", "來源未標記")}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   const handleCreateBank = async () => {
@@ -511,7 +485,7 @@ const QuestionBanksScreen = () => {
             <TabList aria-label="question bank tabs">
               <Tab>{t("questionBank.tabs.mine", "我的題庫")}</Tab>
               <Tab>{t("questionBank.tabs.explore", "探索題庫")}</Tab>
-              <Tab>{t("questionBank.tabs.inbox", "Card Gallery View Select")}</Tab>
+              <Tab>{t("questionBank.tabs.inbox", "收編題目")}</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -605,129 +579,115 @@ const QuestionBanksScreen = () => {
 
               <TabPanel>
                 <Stack gap={4}>
-                  <InlineNotification
-                    kind="info"
-                    lowContrast
-                    hideCloseButton
-                    title={t("questionBank.inbox.title", "Card Gallery View Select")}
-                    subtitle={t(
-                      "questionBank.inbox.description",
-                      "在競賽內臨時建立、尚未歸入題庫的題目，可在此選取並收錄到指定題庫。"
-                    )}
-                  />
-
-                  <div className={styles.inboxFilterRow}>
-                    <span className={styles.inboxFilterLabel}>
-                      {t("questionBank.inbox.filterLabel", "顯示範圍")}
-                    </span>
+                  <div className={styles.inboxToolbar}>
                     <div className={styles.inboxFilterButtons}>
                       <Button
                         kind={inboxFilter === "all" ? "primary" : "ghost"}
                         size="sm"
                         onClick={() => setInboxFilter("all")}
                       >
-                        {t("questionBank.inbox.filterAll", "全部")}
+                        {t("questionBank.inbox.filterAll", "全部")} ({inbox.counts.coding + inbox.counts.exam})
                       </Button>
                       <Button
                         kind={inboxFilter === "coding" ? "primary" : "ghost"}
                         size="sm"
                         onClick={() => setInboxFilter("coding")}
                       >
-                        {t("questionBank.categoryCoding", "程式題")}
+                        {t("questionBank.categoryCoding", "程式題")} ({inbox.counts.coding})
                       </Button>
                       <Button
                         kind={inboxFilter === "exam" ? "primary" : "ghost"}
                         size="sm"
                         onClick={() => setInboxFilter("exam")}
                       >
-                        {t("questionBank.categoryExam", "考卷題")}
+                        {t("questionBank.categoryExam", "考卷題")} ({inbox.counts.exam})
+                      </Button>
+                    </div>
+
+                    <div className={styles.inboxActions}>
+                      <Button kind="ghost" size="sm" onClick={handleInboxSelectAll}>
+                        {totalSelectedCount > 0 && totalSelectedCount === filteredInboxItems.length
+                          ? t("questionBank.inbox.clearSelection", "清除選取")
+                          : t("questionBank.inbox.selectAll", "全選")}
+                      </Button>
+                      <span className={styles.inboxSelectedText}>
+                        {t("questionBank.inbox.selectedCount", "已選 {{count}} 題").replace(
+                          "{{count}}",
+                          String(totalSelectedCount),
+                        )}
+                      </span>
+                      <Button
+                        kind="primary"
+                        size="sm"
+                        renderIcon={Download}
+                        disabled={totalSelectedCount === 0 || ingesting !== null}
+                        onClick={() => setMoveModalOpen(true)}
+                      >
+                        {t("questionBank.inbox.moveTo", "收錄到題庫")}
                       </Button>
                     </div>
                   </div>
 
-                  <>
-                      {(inboxFilter === "all" || inboxFilter === "coding") && (
-                      <Tile>
-                        <Stack gap={4}>
-                          <h5 className={styles.inboxSectionTitle}>
-                            {t("questionBank.inbox.coding", "程式題選取清單")} ({inbox.counts.coding})
-                          </h5>
-                          {inboxFilter === "coding" ? <Tag type="cyan">{t("questionBank.inbox.currentFilter", "目前顯示")}</Tag> : null}
-                          <Select
-                            id="inbox-coding-target"
-                            labelText={t("questionBank.inbox.targetBank", "目標題庫")}
-                            value={targetCodingBankId}
-                            onChange={(e) => setTargetCodingBankId(e.currentTarget.value)}
-                          >
-                            {codingBanks.length === 0 ? (
-                              <SelectItem value="" text={t("questionBank.inbox.noCodingBank", "尚無程式題庫")} />
-                            ) : (
-                              codingBanks.map((bank) => (
-                                <SelectItem key={bank.id} value={bank.id} text={bank.name} />
-                              ))
-                            )}
-                          </Select>
-                          {renderInboxRows(inbox.coding, "coding")}
-                          <Button
-                            kind="secondary"
-                            size="sm"
-                            disabled={
-                              codingBanks.length === 0 ||
-                              !targetCodingBankId ||
-                              selectedCoding.length === 0 ||
-                              ingesting !== null
-                            }
-                            onClick={() => void handleIngest("coding")}
-                          >
-                            {ingesting === "coding"
-                              ? t("questionBank.inbox.ingesting", "收編中...")
-                              : t("questionBank.inbox.ingestSelected", "收編選取題目")}
-                          </Button>
-                        </Stack>
-                      </Tile>
-                      )}
+                  {filteredInboxItems.length === 0 ? (
+                    <Tile className={styles.inboxEmptyTile}>
+                      <p className={styles.inboxEmpty}>
+                        {t("questionBank.inbox.empty", "目前沒有可收編的題目。")}
+                      </p>
+                    </Tile>
+                  ) : (
+                    <div className={styles.inboxList}>
+                      {filteredInboxItems.map((item) => {
+                        const key = `${item.sourceType}-${item.sourceId}`;
+                        const selected = isInboxItemSelected(item);
+                        const { Icon, tone } = getQuestionVisualFromInboxItem(item, "colored");
+                        const toneClass = INBOX_ICON_TONE_CLASS_MAP[tone || "coding"];
+                        const typeLabel =
+                          item.sourceType === "problem"
+                            ? t("questionType.label.coding", "程式題")
+                            : t(`questionType.label.${item.questionType || "exam"}`, item.questionType || "考卷題");
 
-                      {(inboxFilter === "all" || inboxFilter === "exam") && (
-                      <Tile>
-                        <Stack gap={4}>
-                          <h5 className={styles.inboxSectionTitle}>
-                            {t("questionBank.inbox.exam", "考卷題選取清單")} ({inbox.counts.exam})
-                          </h5>
-                          {inboxFilter === "exam" ? <Tag type="cyan">{t("questionBank.inbox.currentFilter", "目前顯示")}</Tag> : null}
-                          <Select
-                            id="inbox-exam-target"
-                            labelText={t("questionBank.inbox.targetBank", "目標題庫")}
-                            value={targetExamBankId}
-                            onChange={(e) => setTargetExamBankId(e.currentTarget.value)}
+                        return (
+                          <div
+                            key={key}
+                            className={`${styles.inboxCard} ${selected ? styles.inboxCardSelected : ""}`}
+                            onClick={() => toggleInboxItem(item)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                toggleInboxItem(item);
+                              }
+                            }}
                           >
-                            {examBanks.length === 0 ? (
-                              <SelectItem value="" text={t("questionBank.inbox.noExamBank", "尚無考卷題庫")} />
-                            ) : (
-                              examBanks.map((bank) => (
-                                <SelectItem key={bank.id} value={bank.id} text={bank.name} />
-                              ))
-                            )}
-                          </Select>
-                          {renderInboxRows(inbox.exam, "exam")}
-                          <Button
-                            kind="secondary"
-                            size="sm"
-                            disabled={
-                              examBanks.length === 0 ||
-                              !targetExamBankId ||
-                              selectedExam.length === 0 ||
-                              ingesting !== null
-                            }
-                            onClick={() => void handleIngest("exam")}
-                          >
-                            {ingesting === "exam"
-                              ? t("questionBank.inbox.ingesting", "收編中...")
-                              : t("questionBank.inbox.ingestSelected", "收編選取題目")}
-                          </Button>
-                        </Stack>
-                      </Tile>
-                      )}
-                  </>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              readOnly
+                              className={styles.inboxCheck}
+                            />
+                            <div className={styles.inboxCardBody}>
+                              <div className={styles.inboxCardTypeInfo}>
+                                <span className={`${styles.inboxCardIcon} ${toneClass}`}>
+                                  <Icon size={14} />
+                                </span>
+                                <span className={styles.inboxCardTypeLabel}>{typeLabel}</span>
+                              </div>
+                              <h4 className={styles.inboxCardTitle}>{item.title}</h4>
+                              <div className={styles.inboxCardMeta}>
+                                {item.contestName && (
+                                  <Tag size="sm" type="cool-gray">{item.contestName}</Tag>
+                                )}
+                                {item.score != null && (
+                                  <Tag size="sm" type="gray">{item.score} pt</Tag>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </Stack>
               </TabPanel>
             </TabPanels>
@@ -776,6 +736,54 @@ const QuestionBanksScreen = () => {
               text={t("questionBank.categoryExam", "考卷題")}
             />
           </Select>
+        </Stack>
+      </Modal>
+
+      <Modal
+        open={moveModalOpen}
+        modalHeading={t("questionBank.inbox.moveTo", "收錄到題庫")}
+        primaryButtonText={ingesting ? t("questionBank.inbox.ingesting", "收編中...") : t("questionBank.inbox.moveTo", "收錄到題庫")}
+        secondaryButtonText={t("button.cancel")}
+        onRequestClose={() => setMoveModalOpen(false)}
+        onRequestSubmit={() => {
+          void handleIngestAll().then(() => setMoveModalOpen(false));
+        }}
+        primaryButtonDisabled={ingesting !== null}
+        size="sm"
+      >
+        <Stack gap={5}>
+          {selectedCoding.length > 0 && (
+            <Select
+              id="move-coding-target"
+              labelText={t("questionBank.inbox.codingTarget", "程式題目標題庫") + ` (${selectedCoding.length})`}
+              value={targetCodingBankId}
+              onChange={(e) => setTargetCodingBankId(e.currentTarget.value)}
+            >
+              {codingBanks.length === 0 ? (
+                <SelectItem value="" text={t("questionBank.inbox.noCodingBank", "尚無程式題庫")} />
+              ) : (
+                codingBanks.map((bank) => (
+                  <SelectItem key={bank.id} value={bank.id} text={bank.name} />
+                ))
+              )}
+            </Select>
+          )}
+          {selectedExam.length > 0 && (
+            <Select
+              id="move-exam-target"
+              labelText={t("questionBank.inbox.examTarget", "考卷題目標題庫") + ` (${selectedExam.length})`}
+              value={targetExamBankId}
+              onChange={(e) => setTargetExamBankId(e.currentTarget.value)}
+            >
+              {examBanks.length === 0 ? (
+                <SelectItem value="" text={t("questionBank.inbox.noExamBank", "尚無考卷題庫")} />
+              ) : (
+                examBanks.map((bank) => (
+                  <SelectItem key={bank.id} value={bank.id} text={bank.name} />
+                ))
+              )}
+            </Select>
+          )}
         </Stack>
       </Modal>
     </div>

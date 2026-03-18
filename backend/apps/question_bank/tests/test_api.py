@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest, ExamQuestion
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.question_bank.models import Question, QuestionBank
-from apps.question_bank.services import sync_exam_question_to_question_bank, sync_problem_to_question_bank
+from apps.question_bank.services import upsert_exam_question_into_bank, upsert_problem_into_bank
 from apps.users.models import User
 
 
@@ -158,7 +158,34 @@ class TestQuestionBankAPI:
         assert len(resp.data) == 1
         assert resp.data[0]["title"] == "UUID Question"
 
-    def test_sync_problem_and_exam_question_dual_write(self, teacher: User):
+    def test_list_platform_public_bank_questions_is_allowed_for_non_owner(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        public_platform_bank: QuestionBank,
+    ):
+        Question.objects.create(
+            bank=public_platform_bank,
+            question_type=Question.QuestionType.CODING,
+            title="Platform Question",
+            prompt="desc",
+            score=100,
+        )
+
+        api_client.force_authenticate(user=teacher)
+        resp = api_client.get(f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/")
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert len(resp.data) == 1
+        assert resp.data[0]["title"] == "Platform Question"
+
+    def test_upsert_problem_and_exam_question_into_bank(self, teacher: User):
+        bank_coding = QuestionBank.objects.create(
+            owner=teacher,
+            name="Coding Bank",
+            category=QuestionBank.Category.CODING,
+            visibility=QuestionBank.Visibility.PRIVATE,
+        )
         problem = Problem.objects.create(
             title="Legacy Problem",
             slug="legacy-problem",
@@ -178,10 +205,16 @@ class TestQuestionBankAPI:
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
-        synced_problem_q = sync_problem_to_question_bank(problem, actor=teacher)
+        synced_problem_q = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
         assert synced_problem_q is not None
-        assert synced_problem_q.source_problem_id == problem.id
+        assert synced_problem_q.metadata["legacy_problem_id"] == problem.id
 
+        bank_exam = QuestionBank.objects.create(
+            owner=teacher,
+            name="Exam Bank",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+        )
         contest = Contest.objects.create(name="Exam A", owner=teacher)
         exam_question = ExamQuestion.objects.create(
             contest=contest,
@@ -193,9 +226,47 @@ class TestQuestionBankAPI:
             order=0,
         )
 
-        synced_exam_q = sync_exam_question_to_question_bank(exam_question, actor=teacher)
+        synced_exam_q = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
         assert synced_exam_q is not None
-        assert synced_exam_q.source_exam_question_id == exam_question.id
+        assert synced_exam_q.metadata["legacy_exam_question_id"] == exam_question.id
+
+    def test_create_exam_question_api_does_not_500_with_duplicate_exam_banks(
+        self,
+        api_client: APIClient,
+        teacher: User,
+    ):
+        QuestionBank.objects.create(
+            owner=teacher,
+            name="Exam Bank A",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        QuestionBank.objects.create(
+            owner=teacher,
+            name="Exam Bank B",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+
+        contest = Contest.objects.create(name="Exam API Duplicate", owner=teacher, contest_type="paper_exam")
+
+        api_client.force_authenticate(user=teacher)
+        resp = api_client.post(
+            f"/api/v1/contests/{contest.id}/exam-questions/",
+            {
+                "question_type": "single_choice",
+                "prompt": "API should not 500",
+                "options": ["A", "B"],
+                "correct_answer": 0,
+                "score": 2,
+                "order": 0,
+            },
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_201_CREATED
 
     def test_seed_migration_command_outputs_report(
         self,
@@ -309,5 +380,5 @@ class TestQuestionBankAPI:
         assert resp.data["ingested_count"] == 1
         assert Question.objects.filter(
             bank=target_bank,
-            source_problem=problem,
+            metadata__legacy_problem_id=problem.id,
         ).exists()

@@ -72,13 +72,12 @@
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  gap: layout.$spacing-03;
 }
 
 .kpiCard {
-  min-width: 0;
+  min-width: 11rem;
   border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
+  background: var(--cds-layer-01);
 }
 
 .panelSection {
@@ -144,6 +143,9 @@
 
   .kpiStrip {
     justify-content: flex-start;
-    flex-wrap: wrap;
+  }
+
+  .kpiCard {
+    min-width: 10rem;
   }
 }

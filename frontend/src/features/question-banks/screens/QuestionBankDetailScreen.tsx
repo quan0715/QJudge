@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Column, Grid, Loading, Select, SelectItem, Stack, Tag, TextArea, TextInput, Tile } from "@carbon/react";
-import { ArrowLeft } from "@carbon/icons-react";
+import { ArrowLeft, Document } from "@carbon/icons-react";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { useToast } from "@/shared/contexts";
 import type { BankQuestion, BankVisibility, QuestionBank } from "@/core/entities/question-bank.entity";
@@ -58,9 +58,9 @@ const QuestionBankDetailScreen = () => {
   );
   const selectedQuestionId = searchParams.get("selectedQuestionId");
 
-  const examQuestionCount = useMemo(
-    () => questions.filter((question) => question.questionType === "exam").length,
-    [questions]
+  const questionCountLabel = useMemo(
+    () => t("examEditor.questionList", "題目列表"),
+    [t]
   );
 
   const syncProblemViewState = (next: Partial<ProblemManagementViewState>) => {
@@ -220,14 +220,9 @@ const QuestionBankDetailScreen = () => {
 
               <div className={styles.kpiStrip}>
                 <KpiCard
+                  icon={Document}
                   value={String(questions.length)}
-                  label={t("questionBank.mockQuestionCount", "{{count}} 題", { count: questions.length })}
-                  showBorder={false}
-                  className={styles.kpiCard}
-                />
-                <KpiCard
-                  value={String(examQuestionCount)}
-                  label={t("questionBank.categoryExam", "考卷題")}
+                  label={questionCountLabel}
                   showBorder={false}
                   className={styles.kpiCard}
                 />

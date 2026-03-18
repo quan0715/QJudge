@@ -122,10 +122,10 @@
     "tabs": {
       "mine": "我的題庫",
       "explore": "探索題庫",
-      "inbox": "Card Gallery View Select"
+      "inbox": "收編題目"
     },
     "inbox": {
-      "title": "Card Gallery View Select",
+      "title": "收編題目",
       "description": "在競賽內臨時建立、尚未歸入題庫的題目，可在此選取並收錄到指定題庫。",
       "coding": "程式題選取清單",
       "exam": "考卷題選取清單",

@@ -108,11 +108,19 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get", "post"], url_path="questions")
     def questions(self, request, uuid=None, pk=None):
-        bank = self.get_object()
-
         if request.method.lower() == "get":
-            serializer = QuestionSerializer(bank.questions.order_by("order", "id"), many=True)
+            bank = QuestionBank.objects.filter(uuid=uuid, is_archived=False).first()
+            if not bank:
+                return Response({"detail": "Bank not found."}, status=status.HTTP_404_NOT_FOUND)
+            if bank.owner_id != request.user.id and not is_platform_public_bank(bank):
+                return Response({"detail": "No access to this bank."}, status=status.HTTP_403_FORBIDDEN)
+            serializer = QuestionSerializer(
+                bank.questions.select_related("source_bank").order_by("order", "id"),
+                many=True,
+            )
             return Response(serializer.data)
+
+        bank = self.get_object()
 
         serializer = QuestionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -131,7 +139,7 @@ class QuestionViewSet(
 
     def get_queryset(self):
         user = self.request.user
-        base = Question.objects.select_related("bank", "bank__owner", "created_by")
+        base = Question.objects.select_related("bank", "bank__owner", "created_by", "source_bank")
 
         if self.action == "clone_to_my_bank":
             return base.filter(

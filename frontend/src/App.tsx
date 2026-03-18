@@ -18,25 +18,22 @@ import {
   settingsRoute,
   AuthLayout,
   AuthProvider,
+  useAuth,
   RequireAuth,
   RequireGuest,
   RequireAdmin,
   RequireTeacherOrAdmin,
 } from "@/features/auth";
-import { problemRoutes, problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
+import { problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
 import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
 import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
-import { teacherRoutes } from "@/features/teacher";
 import { landingRoute } from "@/features/landing";
 import { classroomDetailRoute } from "@/features/classroom";
 import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
-
-// Feature imports - Submissions
-import { submissionRoutes } from "@/features/submissions";
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
@@ -68,6 +65,12 @@ function LegacyContestAdminRedirect({ panel }: { panel?: AdminPanelParam }) {
   }
   const query = panel ? `?panel=${panel}` : "";
   return <Navigate to={`/contests/${contestId}/admin${query}`} replace />;
+}
+
+function LegacyProblemListRedirect() {
+  const { user } = useAuth();
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
+  return <Navigate to={isTeacherOrAdmin ? "/question-banks" : "/dashboard"} replace />;
 }
 
 function App() {
@@ -112,15 +115,18 @@ function App() {
                         <Route element={<RequireAuth />}>
                           <Route element={<MainLayout />}>
                             {dashboardRoute}
-                            {problemRoutes}
                             {contestListRoute}
-                            {submissionRoutes}
                             {settingsRoute}
                             <Route
                               path="/ranking"
                               element={<div>Ranking Page (Coming Soon)</div>}
                             />
                           </Route>
+
+                          {/* Legacy hidden routes */}
+                          <Route path="/problems" element={<LegacyProblemListRedirect />} />
+                          <Route path="/teacher" element={<Navigate to="/dashboard" replace />} />
+                          <Route path="/teacher/*" element={<Navigate to="/dashboard" replace />} />
 
                           {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
                           {problemDetailRoutes}
@@ -146,8 +152,6 @@ function App() {
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<MainLayout />}>
                             {questionBankListRoute}
-                            {/* Teacher Dashboard Routes */}
-                            {teacherRoutes}
                             {/* Redirect old management paths to unified contest view */}
                             <Route
                               path="/management/contests/:contestId"

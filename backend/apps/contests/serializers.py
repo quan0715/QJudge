@@ -433,6 +433,10 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     difficulty = serializers.CharField(source='problem.difficulty', read_only=True)
     label = serializers.CharField(read_only=True)
     score = serializers.SerializerMethodField()
+    max_score = serializers.IntegerField(source='max_score', read_only=True)
+    source_bank = serializers.SerializerMethodField()
+    source_question_id = serializers.IntegerField(read_only=True)
+    source_mode = serializers.CharField(read_only=True)
     user_status = serializers.SerializerMethodField()
     
     class Meta:
@@ -444,6 +448,10 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'label',
             'order',
             'score',
+            'max_score',
+            'source_bank',
+            'source_question_id',
+            'source_mode',
             'difficulty',
             'user_status',
         ]
@@ -482,11 +490,16 @@ class ContestProblemSerializer(serializers.ModelSerializer):
         return None
 
     def get_score(self, obj):
-        # Allow pre-calculated/annotated score to avoid N+1
-        if hasattr(obj, 'problem_score_sum'):
-            return obj.problem_score_sum or 0
-        # Fallback to aggregation
-        return obj.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
+        # Backward-compatible alias: `score` now mirrors contest-level max_score.
+        return obj.max_score
+
+    def get_source_bank(self, obj):
+        if not obj.source_bank_id:
+            return None
+        return {
+            'id': str(obj.source_bank_id),
+            'name': obj.source_bank_name or '',
+        }
 
 
 

@@ -2,7 +2,8 @@
 import csv
 import logging
 
-from django.db.models import Max
+from django.db import transaction
+from django.db.models import Max, Sum
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.core.cache import cache
@@ -52,6 +53,9 @@ from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
+from apps.problems.serializers import ProblemAdminSerializer
+from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.services import is_platform_public_bank
 
 logger = logging.getLogger(__name__)
 CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
@@ -809,45 +813,258 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         return Response({'message': 'Left successfully'})
 
+    def _get_default_problem_max_score(self, problem: Problem) -> int:
+        score_sum = (
+            problem.test_cases.aggregate(total=Sum('score')).get('total')
+            or 0
+        )
+        return max(1, int(score_sum or 100))
+
+    def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
+        bank = QuestionBank.objects.filter(uuid=question_bank_id, is_archived=False).first()
+        if not bank:
+            return None, None, Response({'error': 'Question bank not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if bank.owner_id != user.id and not is_platform_public_bank(bank):
+            return None, None, Response({'error': 'No access to this question bank'}, status=status.HTTP_403_FORBIDDEN)
+
+        question = Question.objects.filter(bank=bank, id=question_id).first()
+        if not question:
+            return None, None, Response({'error': 'Question not found in bank'}, status=status.HTTP_404_NOT_FOUND)
+
+        if question.question_type != Question.QuestionType.CODING:
+            return None, None, Response({'error': 'Only coding bank questions can be imported here'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return bank, question, None
+
+    def _materialize_problem_from_bank_question(self, *, contest: Contest, question: Question, user, request):
+        def _normalize_weights(cases):
+            if not cases:
+                return
+            raw_weights = [max(0, int(case.get('weight_percent', 0) or 0)) for case in cases]
+            total = sum(raw_weights)
+            if total == 100:
+                return
+            if total <= 0:
+                base = 100 // len(cases)
+                remainder = 100 % len(cases)
+                for idx, case in enumerate(cases):
+                    weight = base + (1 if idx < remainder else 0)
+                    case['weight_percent'] = weight
+                    case['score'] = weight
+                return
+
+            scaled = []
+            for weight in raw_weights:
+                scaled.append((weight * 100) / total)
+            floor_values = [int(value) for value in scaled]
+            remainder = 100 - sum(floor_values)
+            fractions = sorted(
+                enumerate(value - int(value) for value in scaled),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            for idx in range(remainder):
+                floor_values[fractions[idx][0]] += 1
+
+            for idx, case in enumerate(cases):
+                case['weight_percent'] = floor_values[idx]
+                case['score'] = floor_values[idx]
+
+        coding_ext = getattr(question, "coding_ext", None)
+        translations = []
+        test_cases = []
+        language_configs = []
+        forbidden_keywords = []
+        required_keywords = []
+
+        if coding_ext:
+            translations = coding_ext.translations or []
+            for idx, raw_tc in enumerate(coding_ext.test_cases or []):
+                tc = dict(raw_tc or {})
+                weight_percent = tc.get('weight_percent')
+                if weight_percent is None:
+                    weight_percent = tc.get('score', 0)
+                try:
+                    normalized_weight = int(weight_percent)
+                except (TypeError, ValueError):
+                    normalized_weight = 0
+                test_cases.append(
+                    {
+                        'input_data': tc.get('input_data', ''),
+                        'output_data': tc.get('output_data', ''),
+                        'is_sample': bool(tc.get('is_sample', False)),
+                        'score': normalized_weight,
+                        'weight_percent': normalized_weight,
+                        'order': int(tc.get('order', idx)),
+                        'is_hidden': bool(tc.get('is_hidden', False)),
+                    }
+                )
+            language_configs = coding_ext.language_configs or []
+            forbidden_keywords = coding_ext.forbidden_keywords or []
+            required_keywords = coding_ext.required_keywords or []
+
+        if not translations:
+            translations = [
+                {
+                    'language': 'zh-TW',
+                    'title': question.title or 'Imported Problem',
+                    'description': question.prompt or '',
+                    'input_description': '',
+                    'output_description': '',
+                    'hint': '',
+                }
+            ]
+
+        if not test_cases:
+            # Safety fallback for bank entries without coding extension.
+            test_cases = [
+                {
+                    'input_data': '',
+                    'output_data': '',
+                    'is_sample': True,
+                    'score': 100,
+                    'weight_percent': 100,
+                    'order': 0,
+                    'is_hidden': False,
+                }
+            ]
+        else:
+            _normalize_weights(test_cases)
+
+        payload = {
+            'title': question.title or 'Imported Problem',
+            'difficulty': question.difficulty or 'medium',
+            'time_limit': question.time_limit or 1000,
+            'memory_limit': question.memory_limit or 128,
+            'visibility': Problem.ProblemVisibility.PRIVATE,
+            'translations': translations,
+            'test_cases': test_cases,
+            'language_configs': language_configs,
+            'forbidden_keywords': forbidden_keywords,
+            'required_keywords': required_keywords,
+        }
+
+        serializer = ProblemAdminSerializer(data=payload, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        return serializer.save(
+            created_by=user,
+            created_in_contest=contest,
+        )
+
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def add_problem(self, request, pk=None):
         """
         Add a problem to the contest.
-        Supports adding existing problem (by ID) or creating a new one (by title).
+        Supports:
+        - legacy: existing problem (problem_id) or new blank problem (title)
+        - question bank import: question_bank_id + question_id (+ import_mode)
         """
         contest = self.get_object()
         user = request.user
 
         problem_id = request.data.get('problem_id')
         title = request.data.get('title')
+        question_bank_id = request.data.get('question_bank_id')
+        question_id = request.data.get('question_id')
+        import_mode = (request.data.get('import_mode') or ContestProblem.SourceMode.COPY).lower()
+        requested_max_score = request.data.get('max_score')
 
-        if problem_id:
-            # Clone existing problem (Template)
-            from apps.problems.models import Problem
-            from apps.problems.services import ProblemService
-            try:
-                source_problem = Problem.objects.get(id=problem_id)
-                # Clone it to the contest
-                problem = ProblemService.clone_problem(source_problem, contest, user)
-            except Problem.DoesNotExist:
-                return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
-        elif title:
-            # Create new problem
-            from apps.problems.services import ProblemService
-            problem = ProblemService.create_contest_problem(contest, user, title=title)
-        else:
-            return Response({'error': 'Either problem_id or title is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if import_mode not in {
+            ContestProblem.SourceMode.COPY,
+            ContestProblem.SourceMode.REFERENCE,
+        }:
+            return Response({'error': 'Invalid import_mode'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Determine order and label
-        last_order = ContestProblem.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
-        new_order = (last_order if last_order is not None else -1) + 1
+        source_bank_id = None
+        source_bank_name = ""
+        source_question_id = None
+        source_mode = ContestProblem.SourceMode.MANUAL
 
-        # Generate label (A, B, C...)
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=new_order,
-        )
+        try:
+            with transaction.atomic():
+                if question_bank_id and question_id:
+                    bank, bank_question, error_response = self._resolve_bank_question_for_import(
+                        user=user,
+                        question_bank_id=question_bank_id,
+                        question_id=question_id,
+                    )
+                    if error_response:
+                        return error_response
+
+                    source_bank_id = bank.uuid
+                    source_bank_name = bank.name
+                    source_question_id = bank_question.id
+                    source_mode = import_mode
+
+                    legacy_problem_id = (bank_question.metadata or {}).get("legacy_problem_id")
+
+                    if import_mode == ContestProblem.SourceMode.REFERENCE:
+                        if not legacy_problem_id:
+                            return Response(
+                                {'error': 'Reference mode requires a bank question linked to a source problem'},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
+                        problem = Problem.objects.get(id=legacy_problem_id)
+                    elif legacy_problem_id:
+                        source_problem = Problem.objects.get(id=legacy_problem_id)
+                        problem = ProblemService.clone_problem(source_problem, contest, user)
+                    else:
+                        problem = self._materialize_problem_from_bank_question(
+                            contest=contest,
+                            question=bank_question,
+                            user=user,
+                            request=request,
+                        )
+                elif problem_id:
+                    # Clone existing problem (Template)
+                    try:
+                        source_problem = Problem.objects.get(id=problem_id)
+                        problem = ProblemService.clone_problem(source_problem, contest, user)
+                    except Problem.DoesNotExist:
+                        return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+                elif title:
+                    problem = ProblemService.create_contest_problem(contest, user, title=title)
+                else:
+                    return Response(
+                        {'error': 'Either problem_id/title or question_bank_id/question_id is required'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Determine order and label
+                last_order = ContestProblem.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
+                new_order = (last_order if last_order is not None else -1) + 1
+
+                default_max_score = self._get_default_problem_max_score(problem)
+                max_score = default_max_score
+                if requested_max_score is not None:
+                    try:
+                        max_score = max(1, int(requested_max_score))
+                    except (TypeError, ValueError):
+                        return Response({'error': 'max_score must be a positive integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+                if (
+                    source_mode == ContestProblem.SourceMode.REFERENCE
+                    and ContestProblem.objects.filter(contest=contest, problem=problem).exists()
+                ):
+                    return Response(
+                        {'error': 'Referenced problem is already in this contest'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                ContestProblem.objects.create(
+                    contest=contest,
+                    problem=problem,
+                    order=new_order,
+                    max_score=max_score,
+                    source_bank_id=source_bank_id,
+                    source_bank_name=source_bank_name,
+                    source_question_id=source_question_id,
+                    source_mode=source_mode,
+                )
+        except Exception as exc:
+            logger.exception("Failed to add contest problem from payload: %s", exc)
+            return Response({'error': 'Failed to add problem'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         from apps.problems.serializers import ProblemListSerializer
         serializer = ProblemListSerializer(problem, context={'request': request})

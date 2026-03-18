@@ -2,10 +2,9 @@
 from django.utils import timezone
 from django.db.models import Sum
 from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-
-from apps.question_bank.services import sync_problem_to_question_bank
 
 from ..models import (
     Contest,
@@ -27,9 +26,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
-        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem').annotate(
-            problem_score_sum=Sum('problem__test_cases__score')
-        )
+        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem')
 
     def retrieve(self, request, *args, **kwargs):
         contest_id = self.kwargs.get('contest_pk')
@@ -103,9 +100,20 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         data = serializer.data
 
         # Add contest-specific fields
-        data['score'] = contest_problem.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
+        data['score'] = contest_problem.max_score
+        data['max_score'] = contest_problem.max_score
         data['label'] = contest_problem.label
         data['contest_problem_id'] = contest_problem.id
+        data['source_bank'] = (
+            {
+                'id': str(contest_problem.source_bank_id),
+                'name': contest_problem.source_bank_name or '',
+            }
+            if contest_problem.source_bank_id
+            else None
+        )
+        data['source_question_id'] = contest_problem.source_question_id
+        data['source_mode'] = contest_problem.source_mode
 
         return Response(data)
 
@@ -136,7 +144,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Save with created_in_contest
         problem = serializer.save(created_in_contest=contest)
-        sync_problem_to_question_bank(problem, actor=request.user)
 
         # Calculate next order and label
         last_problem = ContestProblem.objects.filter(contest=contest).order_by('-order').first()
@@ -153,7 +160,14 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest_problem = ContestProblem.objects.create(
             contest=contest,
             problem=problem,
-            order=next_order
+            order=next_order,
+            max_score=max(
+                1,
+                int(
+                    problem.test_cases.aggregate(total=Sum('score')).get('total')
+                    or 100
+                ),
+            ),
         )
 
         # Return the created problem data with contest_id for navigation
@@ -215,3 +229,60 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 {'detail': 'Problem not found in this contest.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated], url_path="score")
+    def update_score(self, request, *args, **kwargs):
+        """
+        Update contest-level max score assignment for a contest problem.
+        This does not modify problem content or test cases.
+        """
+        contest_id = self.kwargs.get("contest_pk")
+        contest_problem_id = self.kwargs.get("pk")
+
+        contest = get_object_or_404(Contest, pk=contest_id)
+        if not can_manage_contest(request.user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        contest_problem = ContestProblem.objects.filter(
+            contest=contest,
+            id=contest_problem_id,
+        ).select_related("problem").first()
+        if not contest_problem:
+            return Response(
+                {"detail": "Problem assignment not found in this contest."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        raw_max_score = request.data.get("max_score")
+        try:
+            max_score = int(raw_max_score)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "max_score must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if max_score <= 0:
+            return Response(
+                {"error": "max_score must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        contest_problem.max_score = max_score
+        contest_problem.save(update_fields=["max_score"])
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            f"Updated problem {contest_problem.problem.display_id} score to {max_score}",
+        )
+
+        return Response(
+            {
+                "id": contest_problem.id,
+                "problem_id": contest_problem.problem_id,
+                "max_score": contest_problem.max_score,
+                "score": contest_problem.max_score,
+            },
+            status=status.HTTP_200_OK,
+        )

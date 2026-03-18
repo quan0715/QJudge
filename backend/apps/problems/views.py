@@ -7,8 +7,6 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
 
-from apps.question_bank.services import sync_problem_to_question_bank
-
 from .models import (
     Problem,
     Tag,
@@ -182,13 +180,10 @@ class ProblemViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Set created_by to current user."""
-        problem = serializer.save(created_by=self.request.user)
-        sync_problem_to_question_bank(problem, actor=self.request.user)
+        serializer.save(created_by=self.request.user)
 
     def perform_update(self, serializer):
-        """Update problem and keep question-bank compatibility sync."""
-        problem = serializer.save()
-        sync_problem_to_question_bank(problem, actor=self.request.user)
+        serializer.save()
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
@@ -255,8 +250,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         try:
             serializer.is_valid(raise_exception=True)
             problem = serializer.save()
-            sync_problem_to_question_bank(problem, actor=request.user)
-            
+
             return Response({
                 'message': 'Problem updated successfully from YAML',
                 'problem_id': problem.id

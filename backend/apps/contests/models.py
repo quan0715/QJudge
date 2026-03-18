@@ -3,6 +3,7 @@ Models for contests and exams.
 """
 import uuid as uuid_lib
 from django.db import models
+from django.db.models import Sum
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.utils import timezone
@@ -278,6 +279,29 @@ class ContestProblem(models.Model):
     
     # label = models.CharField(max_length=10, default='A', verbose_name='標籤', help_text='例如: A, B, C')
     order = models.IntegerField(default=0, verbose_name='排序')
+    max_score = models.PositiveIntegerField(default=100, verbose_name='題目配分')
+    source_bank_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫 UUID')
+    source_bank_name = models.CharField(max_length=255, blank=True, default='', verbose_name='來源題庫名稱')
+    source_question_id = models.PositiveIntegerField(null=True, blank=True, verbose_name='來源題庫題目 ID')
+
+    class SourceMode(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        COPY = "copy", "Copy"
+        REFERENCE = "reference", "Reference"
+
+    source_mode = models.CharField(
+        max_length=20,
+        choices=SourceMode.choices,
+        default=SourceMode.MANUAL,
+        verbose_name='來源模式',
+    )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.problem_id and (self.max_score is None or self.max_score == 100):
+            score_sum = self.problem.test_cases.aggregate(total=Sum('score')).get('total') or 0
+            if score_sum > 0:
+                self.max_score = max(1, int(score_sum))
+        super().save(*args, **kwargs)
 
 
     @property

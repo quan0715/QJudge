@@ -21,8 +21,9 @@ class QuestionCodingExtSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     bank = serializers.UUIDField(source="bank.uuid", read_only=True)
     coding_ext = QuestionCodingExtSerializer(required=False, allow_null=True)
-    source_problem_id = serializers.IntegerField(read_only=True)
-    source_exam_question_id = serializers.IntegerField(read_only=True)
+    source_question_id = serializers.IntegerField(read_only=True)
+    source_bank_id = serializers.SerializerMethodField()
+    source_bank_name = serializers.SerializerMethodField()
     created_by_username = serializers.CharField(source="created_by.username", read_only=True)
 
     class Meta:
@@ -40,8 +41,9 @@ class QuestionSerializer(serializers.ModelSerializer):
             "difficulty",
             "time_limit",
             "memory_limit",
-            "source_problem_id",
-            "source_exam_question_id",
+            "source_question_id",
+            "source_bank_id",
+            "source_bank_name",
             "metadata",
             "created_by_username",
             "coding_ext",
@@ -50,13 +52,20 @@ class QuestionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "source_problem_id",
-            "source_exam_question_id",
+            "source_question_id",
+            "source_bank_id",
+            "source_bank_name",
             "created_by_username",
             "created_at",
             "updated_at",
             "bank",
         ]
+
+    def get_source_bank_id(self, obj):
+        return str(obj.source_bank.uuid) if obj.source_bank else None
+
+    def get_source_bank_name(self, obj):
+        return obj.source_bank.name if obj.source_bank else None
 
     def validate(self, attrs):
         question_type = attrs.get("question_type") or getattr(self.instance, "question_type", None)

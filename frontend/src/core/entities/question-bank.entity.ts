@@ -42,8 +42,9 @@ export interface BankQuestion {
   timeLimit: number;
   memoryLimit: number;
   metadata?: Record<string, unknown>;
-  sourceProblemId?: string;
-  sourceExamQuestionId?: string;
+  sourceQuestionId?: number | null;
+  sourceBankId?: string | null;
+  sourceBankName?: string | null;
   codingExt?: CodingQuestionExt;
   createdAt?: string;
   updatedAt?: string;

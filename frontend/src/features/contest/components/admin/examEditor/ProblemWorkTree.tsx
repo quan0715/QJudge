@@ -1,8 +1,9 @@
 import React from "react";
-import { Button, IconButton, Tag } from "@carbon/react";
+import { Button, IconButton, Tag, TextInput } from "@carbon/react";
 import { Add, Draggable, TrashCan } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
+import AddQuestionMenuButton from "./AddQuestionMenuButton";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
 
@@ -16,12 +17,12 @@ interface ProblemWorkTreeProps {
   problems: ContestProblemSummary[];
   selectedId: string | null;
   loading?: boolean;
-  inboxCount?: number;
   onSelect: (id: string) => void;
   onAdd: () => void;
-  onOpenInbox?: () => void;
+  onImportFromBank?: () => void;
   onRemove: (id: string) => void;
   onReorder: (reordered: ContestProblemSummary[]) => void;
+  onUpdateScore?: (id: string, maxScore: number) => Promise<void> | void;
 }
 
 const ProblemTreeItem: React.FC<{
@@ -29,8 +30,26 @@ const ProblemTreeItem: React.FC<{
   isActive: boolean;
   onSelect: () => void;
   onRemove: () => void;
-}> = ({ problem, isActive, onSelect, onRemove }) => {
+  onUpdateScore?: (id: string, maxScore: number) => Promise<void> | void;
+}> = ({ problem, isActive, onSelect, onRemove, onUpdateScore }) => {
   const dragControls = useDragControls();
+  const initialScore = Math.max(1, Number(problem.maxScore ?? problem.score ?? 100));
+  const [scoreDraft, setScoreDraft] = React.useState<string>(String(initialScore));
+
+  React.useEffect(() => {
+    setScoreDraft(String(Math.max(1, Number(problem.maxScore ?? problem.score ?? 100))));
+  }, [problem.maxScore, problem.score]);
+
+  const commitScore = async () => {
+    if (!onUpdateScore) return;
+    const parsed = Number(scoreDraft);
+    const normalized = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : initialScore;
+    if (normalized !== initialScore) {
+      await onUpdateScore(problem.id, normalized);
+    } else if (scoreDraft !== String(initialScore)) {
+      setScoreDraft(String(initialScore));
+    }
+  };
 
   return (
     <Reorder.Item
@@ -63,12 +82,36 @@ const ProblemTreeItem: React.FC<{
                 {DIFFICULTY_TAG[problem.difficulty].label}
               </Tag>
             )}
-            {problem.score != null && (
-              <span className={styles.itemScore}>{problem.score}pt</span>
+            {problem.maxScore != null && (
+              <span className={styles.itemScore}>{problem.maxScore} pt</span>
             )}
           </div>
+          {problem.sourceBank?.name && (
+            <span className={styles.itemSubMeta}>{problem.sourceBank.name}</span>
+          )}
         </div>
       </button>
+      <div className={styles.scoreEditor}>
+        <TextInput
+          id={`problem-score-${problem.id}`}
+          hideLabel
+          labelText="Score"
+          value={scoreDraft}
+          type="number"
+          min={1}
+          size="sm"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScoreDraft(e.target.value)}
+          onBlur={() => {
+            void commitScore();
+          }}
+          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+        />
+      </div>
       <div className={styles.deleteBtn}>
         <IconButton
           kind="ghost"
@@ -90,31 +133,23 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   problems,
   selectedId,
   loading,
-  inboxCount = 0,
   onSelect,
   onAdd,
-  onOpenInbox,
+  onImportFromBank,
   onRemove,
   onReorder,
+  onUpdateScore,
 }) => {
-  const totalScore = problems.reduce((sum, problem) => sum + (problem.score ?? 0), 0);
+  const totalScore = problems.reduce((sum, problem) => sum + (problem.maxScore ?? problem.score ?? 0), 0);
 
   return (
     <WorkTreeShell
       title="Problem List"
       actions={
         <>
-          {onOpenInbox && (
-            <Button kind="ghost" size="sm" onClick={onOpenInbox}>
-              Inbox {inboxCount}
-            </Button>
-          )}
-          <Button
-            kind="ghost"
-            renderIcon={Add}
-            hasIconOnly
-            iconDescription="Add Problem"
-            onClick={onAdd}
+          <AddQuestionMenuButton
+            onCreate={onAdd}
+            onImportFromBank={onImportFromBank}
           />
         </>
       }
@@ -149,6 +184,7 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
             isActive={selectedId === p.id}
             onSelect={() => onSelect(p.id)}
             onRemove={() => onRemove(p.id)}
+            onUpdateScore={onUpdateScore}
           />
         ))}
       </Reorder.Group>

@@ -18,7 +18,6 @@ import {
   Pin,
   Task,
   Trophy,
-  TrashCan,
   UserMultiple,
 } from "@carbon/icons-react";
 import type { Classroom, ClassroomAnnouncement, ClassroomDetail, BoundContest } from "@/core/entities/classroom.entity";
@@ -30,14 +29,14 @@ import {
   getClassrooms,
   removeMember,
   regenerateCode,
-  unbindContest,
+  bindContest,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { InviteCodeDisplay } from "../components/InviteCodeDisplay";
 import { MemberTable } from "../components/MemberTable";
 import { AddMembersModal } from "../components/AddMembersModal";
-import { BindContestModal } from "../components/BindContestModal";
 import { AnnouncementModal } from "../components/AnnouncementModal";
+import CreateContestModal from "@/features/teacher/components/modals/CreateContestModal";
 import ClassroomAdminLayout, { type ClassroomAdminPanelId } from "./ClassroomAdminLayout";
 import "./ClassroomDetailScreen.scss";
 
@@ -69,7 +68,7 @@ const ClassroomDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [addMembersOpen, setAddMembersOpen] = useState(false);
-  const [bindContestOpen, setBindContestOpen] = useState(false);
+  const [createContestOpen, setCreateContestOpen] = useState(false);
   const [viewingAnnouncement, setViewingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
@@ -218,19 +217,20 @@ const ClassroomDetailScreen: React.FC = () => {
     }
   };
 
-  const handleUnbindContest = async (contestId: string) => {
-    if (!classroomId) return;
+  const handleCreateContest = async (contestId?: string) => {
+    if (!classroomId || !contestId) return;
     try {
-      await unbindContest(classroomId, contestId);
+      await bindContest(classroomId, contestId);
       showToast({
         kind: "success",
-        title: t("classroom.unbindContestSuccess", "已解除綁定競賽"),
+        title: t("classroom.createContestSuccess", "已建立競賽並加入教室"),
       });
+      setCreateContestOpen(false);
       await fetchClassroomData();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.unbindContestFailed", "解除綁定失敗"),
+        title: t("classroom.createContestFailed", "建立競賽成功但加入教室失敗"),
         subtitle:
           error instanceof Error
             ? error.message
@@ -240,8 +240,9 @@ const ClassroomDetailScreen: React.FC = () => {
   };
 
   const handleDeleteAnnouncement = async () => {
-    if (!classroomId || !viewingAnnouncement) return;
+    if (!classroomId) return;
     try {
+      if (!viewingAnnouncement) return;
       await deleteAnnouncement(classroomId, viewingAnnouncement.id);
       showToast({
         kind: "success",
@@ -304,7 +305,7 @@ const ClassroomDetailScreen: React.FC = () => {
                   setAnnouncementModalOpen(true);
                 }}
                 onViewAnnouncement={setViewingAnnouncement}
-                onBindContest={() => setBindContestOpen(true)}
+                onCreateContest={() => setCreateContestOpen(true)}
                 onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
                 onJumpToPanel={handlePanelChange}
               />
@@ -333,9 +334,8 @@ const ClassroomDetailScreen: React.FC = () => {
               <ContestPanel
                 contests={classroom.contests}
                 isPrivileged={Boolean(isPrivileged)}
-                onBindContest={() => setBindContestOpen(true)}
+                onCreateContest={() => setCreateContestOpen(true)}
                 onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
-                onUnbindContest={handleUnbindContest}
               />
             )}
 
@@ -371,14 +371,11 @@ const ClassroomDetailScreen: React.FC = () => {
               void fetchClassroomData();
             }}
           />
-          <BindContestModal
-            open={bindContestOpen}
-            classroomId={classroomId || ""}
-            boundContestIds={classroom.contests.map((c) => c.contestId)}
-            onClose={() => setBindContestOpen(false)}
-            onBound={() => {
-              setBindContestOpen(false);
-              void fetchClassroomData();
+          <CreateContestModal
+            open={createContestOpen}
+            onClose={() => setCreateContestOpen(false)}
+            onCreated={(contestId) => {
+              void handleCreateContest(contestId);
             }}
           />
         </>
@@ -486,7 +483,7 @@ const OverviewPanel: React.FC<{
   isPrivileged: boolean;
   onCreateAnnouncement: () => void;
   onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
-  onBindContest: () => void;
+  onCreateContest: () => void;
   onNavigateContest: (contestId: string) => void;
   onJumpToPanel: (panel: ClassroomAdminPanelId) => void;
 }> = ({
@@ -494,7 +491,7 @@ const OverviewPanel: React.FC<{
   isPrivileged,
   onCreateAnnouncement,
   onViewAnnouncement,
-  onBindContest,
+  onCreateContest,
   onNavigateContest,
   onJumpToPanel,
 }) => {
@@ -544,8 +541,8 @@ const OverviewPanel: React.FC<{
               <h3>{t("classroom.contests", "競賽")}</h3>
             </div>
             {isPrivileged && (
-              <Button kind="ghost" size="sm" renderIcon={Add} onClick={onBindContest}>
-                {t("classroom.bindContest", "綁定競賽")}
+              <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
+                {t("classroom.createContest", "建立競賽")}
               </Button>
             )}
           </div>
@@ -553,7 +550,7 @@ const OverviewPanel: React.FC<{
           {classroom.contests.length === 0 ? (
             <EmptyBlock
               icon={Trophy}
-              message={t("classroom.noContests", "尚未綁定競賽")}
+              message={t("classroom.noContests", "尚未建立競賽")}
               compact
             />
           ) : (
@@ -604,15 +601,13 @@ const PracticePanel: React.FC<{
 const ContestPanel: React.FC<{
   contests: BoundContest[];
   isPrivileged: boolean;
-  onBindContest: () => void;
+  onCreateContest: () => void;
   onNavigateContest: (contestId: string) => void;
-  onUnbindContest: (contestId: string) => void;
 }> = ({
   contests,
   isPrivileged,
-  onBindContest,
+  onCreateContest,
   onNavigateContest,
-  onUnbindContest,
 }) => {
   const { t } = useTranslation();
 
@@ -624,23 +619,21 @@ const ContestPanel: React.FC<{
           <h3>{t("classroom.contests", "競賽列表")}</h3>
         </div>
         {isPrivileged && (
-          <Button kind="ghost" size="sm" renderIcon={Add} onClick={onBindContest}>
-            {t("classroom.bindContest", "綁定競賽")}
+          <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
+            {t("classroom.createContest", "建立競賽")}
           </Button>
         )}
       </div>
 
       {contests.length === 0 ? (
-        <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚未綁定競賽")} />
+        <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚未建立競賽")} />
       ) : (
         <div className="classroom-admin-card-grid">
           {contests.map((contest) => (
             <ContestCard
               key={contest.contestId}
               contest={contest}
-              isPrivileged={isPrivileged}
               onNavigate={() => onNavigateContest(contest.contestId)}
-              onUnbind={() => onUnbindContest(contest.contestId)}
             />
           ))}
         </div>
@@ -774,10 +767,8 @@ const AnnouncementSection: React.FC<{
 
 const ContestCard: React.FC<{
   contest: BoundContest;
-  isPrivileged: boolean;
   onNavigate: () => void;
-  onUnbind: () => void;
-}> = ({ contest, isPrivileged, onNavigate, onUnbind }) => (
+}> = ({ contest, onNavigate }) => (
   <ClickableTile onClick={onNavigate} className="classroom-admin-contest-card">
     <div className="classroom-admin-contest-card__header">
       <h4>{contest.contestName}</h4>
@@ -789,20 +780,6 @@ const ContestCard: React.FC<{
       <Calendar size={14} />
       {new Date(contest.boundAt).toLocaleDateString()}
     </div>
-    {isPrivileged && (
-      <Button
-        kind="ghost"
-        size="sm"
-        hasIconOnly
-        renderIcon={TrashCan}
-        iconDescription="Unbind contest"
-        className="classroom-admin-contest-card__unbind"
-        onClick={(event: React.MouseEvent) => {
-          event.stopPropagation();
-          onUnbind();
-        }}
-      />
-    )}
   </ClickableTile>
 );
 

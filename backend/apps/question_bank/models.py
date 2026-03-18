@@ -74,7 +74,7 @@ class Question(models.Model):
         default=QuestionType.CODING,
         db_index=True,
     )
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, default="")
     prompt = models.TextField(blank=True, default="")
     options = models.JSONField(default=list, blank=True)
     correct_answer = models.JSONField(null=True, blank=True)
@@ -86,20 +86,20 @@ class Question(models.Model):
     time_limit = models.IntegerField(default=1000)
     memory_limit = models.IntegerField(default=128)
 
-    # Compatibility links (for dual-write sync)
-    source_problem = models.ForeignKey(
-        "problems.Problem",
+    # Unified source tracking (set when cloned/imported from another bank)
+    source_question = models.ForeignKey(
+        "self",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="synced_question_bank_entries",
+        related_name="derived_questions",
     )
-    source_exam_question = models.ForeignKey(
-        "contests.ExamQuestion",
+    source_bank = models.ForeignKey(
+        QuestionBank,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="synced_question_bank_entries",
+        related_name="sourced_questions",
     )
 
     created_by = models.ForeignKey(
@@ -119,12 +119,11 @@ class Question(models.Model):
         indexes = [
             models.Index(fields=["bank", "order"]),
             models.Index(fields=["question_type"]),
-            models.Index(fields=["source_problem"]),
-            models.Index(fields=["source_exam_question"]),
+            models.Index(fields=["source_bank", "source_question"]),
         ]
 
     def __str__(self):
-        return f"{self.id} - {self.title}"
+        return f"{self.id} - {self.title or self.prompt[:40]}"
 
 
 class QuestionCodingExt(models.Model):

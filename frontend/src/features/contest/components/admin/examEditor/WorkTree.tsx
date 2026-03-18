@@ -5,6 +5,7 @@ import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
+import AddQuestionMenuButton from "./AddQuestionMenuButton";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
 
@@ -13,10 +14,9 @@ interface WorkTreeProps {
   selectedId: string | null;
   frozen?: boolean;
   loading?: boolean;
-  inboxCount?: number;
   onSelect: (id: string) => void;
   onAdd: () => void;
-  onOpenInbox?: () => void;
+  onImportFromBank?: () => void;
   onDelete: (id: string) => void;
   onReorder: (reordered: ExamQuestion[]) => void;
 }
@@ -98,10 +98,9 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   selectedId,
   frozen,
   loading,
-  inboxCount = 0,
   onSelect,
   onAdd,
-  onOpenInbox,
+  onImportFromBank,
   onDelete,
   onReorder,
 }) => {
@@ -125,18 +124,10 @@ const WorkTree: React.FC<WorkTreeProps> = ({
       title={t("examEditor.questionList", "題目列表")}
       actions={(
         <>
-          {onOpenInbox && (
-            <Button kind="ghost" size="sm" onClick={onOpenInbox}>
-              {t("questionBank.tabs.inbox", "Card Gallery View Select")} {inboxCount}
-            </Button>
-          )}
           {!frozen && (
-            <Button
-              kind="ghost"
-              renderIcon={Add}
-              hasIconOnly
-              iconDescription={t("examEditor.addQuestion", "新增題目")}
-              onClick={onAdd}
+            <AddQuestionMenuButton
+              onCreate={onAdd}
+              onImportFromBank={onImportFromBank}
             />
           )}
         </>

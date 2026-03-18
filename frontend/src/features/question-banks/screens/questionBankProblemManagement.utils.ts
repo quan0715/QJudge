@@ -15,6 +15,9 @@ export interface QuestionPreviewMeta {
   providerName: string;
   downloadCount: number;
   isVerified: boolean;
+  difficulty: string;
+  tags: string[];
+  passRate: number | null;
 }
 
 export interface ProblemManagementViewState {
@@ -49,6 +52,34 @@ export const getQuestionTypeLabel = (token: string): string => {
   return token.replace("exam:", "exam/");
 };
 
+const GENERATED_TITLE_PATTERN = /^(test|exam|question)\s*[-_ ]\s*q?\d+$/i;
+
+const normalizePromptAsTitle = (prompt: string): string => {
+  const text = prompt
+    .replace(/[#*_`>\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.slice(0, 60);
+};
+
+export const getQuestionDisplayTitle = (question: Pick<BankQuestion, "title" | "prompt" | "questionType">): string => {
+  const rawTitle = (question.title || "").trim();
+
+  // Exam questions: always prefer prompt content as display title
+  if (question.questionType === "exam") {
+    const promptTitle = normalizePromptAsTitle(question.prompt || "");
+    return promptTitle || rawTitle || "Untitled question";
+  }
+
+  // Coding questions: use title (it's meaningful, e.g. "A+B Problem")
+  if (rawTitle && !GENERATED_TITLE_PATTERN.test(rawTitle)) {
+    return rawTitle;
+  }
+
+  const promptTitle = normalizePromptAsTitle(question.prompt || "");
+  return promptTitle || rawTitle || "Untitled question";
+};
+
 export const buildQuestionPreviewMeta = (
   question: BankQuestion,
   bank: QuestionBank
@@ -65,10 +96,41 @@ export const buildQuestionPreviewMeta = (
       ? (metadata.stats as Record<string, unknown>).downloads
       : undefined);
   const parsed = Number(downloadCandidate);
+  const difficultyCandidate =
+    typeof metadata.difficulty === "string" && metadata.difficulty.trim().length > 0
+      ? metadata.difficulty
+      : question.difficulty || "medium";
+  const normalizedDifficulty = difficultyCandidate.trim().toLowerCase();
+  const passRateCandidate =
+    metadata.pass_rate ??
+    metadata.acceptance_rate ??
+    metadata.ac_rate ??
+    metadata.passRate ??
+    (metadata.stats && typeof metadata.stats === "object"
+      ? (metadata.stats as Record<string, unknown>).pass_rate ??
+        (metadata.stats as Record<string, unknown>).acceptance_rate
+      : undefined);
+  const toPassRate = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const normalized = value <= 1 ? value * 100 : value;
+      return Math.max(0, Math.min(100, normalized));
+    }
+    if (typeof value === "string") {
+      const parsedValue = Number(value.replace("%", "").trim());
+      if (Number.isFinite(parsedValue)) {
+        const normalized = parsedValue <= 1 ? parsedValue * 100 : parsedValue;
+        return Math.max(0, Math.min(100, normalized));
+      }
+    }
+    return null;
+  };
   return {
     providerName: bank.ownerUsername || "QJudge Community",
     downloadCount: Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
     isVerified: Boolean(bank.verified),
+    difficulty: normalizedDifficulty,
+    tags: extractQuestionTags(question),
+    passRate: toPassRate(passRateCandidate),
   };
 };
 
@@ -129,12 +191,6 @@ export const toExamQuestion = (bankId: string, question: BankQuestion): ExamQues
 
 const TRUE_FALSE_OPTIONS = ["True", "False"];
 
-const sanitizeTitleFromPrompt = (prompt: string, order: number): string => {
-  const normalized = prompt.replace(/\s+/g, " ").trim();
-  if (!normalized) return `Question ${order + 1}`;
-  return normalized.slice(0, 64);
-};
-
 export const toExamBankPayload = (
   payload: ExamQuestionUpsertPayload,
   existing?: BankQuestion,
@@ -146,7 +202,7 @@ export const toExamBankPayload = (
     existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {};
   return {
     questionType: "exam",
-    title: existing?.title?.trim() || sanitizeTitleFromPrompt(prompt, order),
+    title: "",
     prompt,
     options: payload.question_type === "true_false" ? [...TRUE_FALSE_OPTIONS] : payload.options || [],
     correctAnswer: payload.correct_answer ?? null,

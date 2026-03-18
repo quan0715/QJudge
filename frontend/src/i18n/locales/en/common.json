@@ -122,10 +122,10 @@
     "tabs": {
       "mine": "My Banks",
       "explore": "Explore Banks",
-      "inbox": "Card Gallery View Select"
+      "inbox": "Inbox"
     },
     "inbox": {
-      "title": "Card Gallery View Select",
+      "title": "Inbox",
       "description": "Select ad-hoc contest questions and save them into a target bank.",
       "coding": "Coding Selection List",
       "exam": "Exam Selection List",

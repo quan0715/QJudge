@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
-from django.db.models import Sum
-
 from apps.contests.models import Contest, ContestParticipant, ContestProblem, ExamStatus
 from apps.contests.permissions import get_user_role_in_contest
 from apps.submissions.models import Submission
@@ -43,10 +41,9 @@ class ScoreboardService:
             ContestProblem.objects.filter(contest=contest)
             .select_related("problem")
             .order_by("order")
-            .annotate(problem_score_sum=Sum("problem__test_cases__score"))
         )
         max_score_by_problem = {
-            cp.problem_id: cp.problem_score_sum or 0 for cp in contest_problems
+            cp.problem_id: cp.max_score or 0 for cp in contest_problems
         }
 
         problems_data = [

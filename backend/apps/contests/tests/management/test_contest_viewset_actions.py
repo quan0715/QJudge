@@ -12,7 +12,8 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
 from apps.contests import views as contest_views
 from apps.contests.views import contest as contest_view_module
-from apps.problems.models import Problem
+from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
 from apps.users.models import User, UserProfile
 
 
@@ -569,6 +570,199 @@ def test_add_problem_returns_404_when_problem_id_not_found(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data["error"] == "Problem not found"
+
+
+@pytest.mark.django_db
+def test_add_problem_supports_question_bank_copy_and_reference(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_problem = _create_problem("Bank Source", owner)
+    ProblemTranslation.objects.create(
+        problem=source_problem,
+        language="zh-TW",
+        title="Bank Source",
+        description="desc",
+        input_description="in",
+        output_description="out",
+        hint="",
+    )
+    ProblemTestCase.objects.create(problem=source_problem, input_data="1", output_data="1", score=100)
+
+    platform_admin = User.objects.create_user(
+        username="platform_admin_for_bank_import",
+        email="platform_admin_for_bank_import@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Official Coding Bank",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    question = Question.objects.create(
+        bank=bank,
+        question_type=Question.QuestionType.CODING,
+        title="Bank Coding Question",
+        prompt="Use source problem",
+        score=100,
+        metadata={"legacy_problem_id": source_problem.id},
+    )
+
+    api_client.force_authenticate(user=owner)
+
+    referenced = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {
+            "question_bank_id": str(bank.uuid),
+            "question_id": question.id,
+            "import_mode": "reference",
+            "max_score": 30,
+        },
+        format="json",
+    )
+    assert referenced.status_code == status.HTTP_201_CREATED
+
+    reference_cp = contest.contest_problems.get(source_question_id=question.id)
+    assert reference_cp.problem_id == source_problem.id
+    assert reference_cp.max_score == 30
+    assert reference_cp.source_mode == "reference"
+    assert str(reference_cp.source_bank_id) == str(bank.uuid)
+    assert reference_cp.source_bank_name == bank.name
+
+    cloned_problem = _create_problem("Cloned From Bank", owner, created_in_contest=contest)
+    ProblemTranslation.objects.create(
+        problem=cloned_problem,
+        language="zh-TW",
+        title="Cloned From Bank",
+        description="desc",
+        input_description="in",
+        output_description="out",
+        hint="",
+    )
+    ProblemTestCase.objects.create(problem=cloned_problem, input_data="2", output_data="2", score=100)
+    monkeypatch.setattr(
+        contest_view_module.ProblemService,
+        "clone_problem",
+        staticmethod(lambda _source_problem, _contest, _user: cloned_problem),
+    )
+
+    copied = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {
+            "question_bank_id": str(bank.uuid),
+            "question_id": question.id,
+            "import_mode": "copy",
+            "max_score": 45,
+        },
+        format="json",
+    )
+    assert copied.status_code == status.HTTP_201_CREATED
+
+    copied_cp = contest.contest_problems.filter(source_mode="copy").latest("id")
+    assert copied_cp.problem_id == cloned_problem.id
+    assert copied_cp.max_score == 45
+    assert copied_cp.source_question_id == question.id
+
+
+@pytest.mark.django_db
+def test_add_problem_materializes_coding_ext_when_bank_question_has_no_source_problem(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    platform_admin = User.objects.create_user(
+        username="platform_admin_for_materialize",
+        email="platform_admin_for_materialize@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Official Coding Bank Materialize",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    question = Question.objects.create(
+        bank=bank,
+        question_type=Question.QuestionType.CODING,
+        title="Materialized Coding Question",
+        prompt="prompt",
+        difficulty="easy",
+        score=100,
+    )
+    QuestionCodingExt.objects.create(
+        question=question,
+        translations=[
+            {
+                "language": "zh-TW",
+                "title": "Materialized Coding Question",
+                "description": "desc",
+                "input_description": "in",
+                "output_description": "out",
+                "hint": "",
+            }
+        ],
+        test_cases=[
+            {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 40, "order": 0},
+            {"input_data": "2", "output_data": "2", "is_sample": False, "weight_percent": 60, "order": 1},
+        ],
+        language_configs=[],
+        forbidden_keywords=[],
+        required_keywords=[],
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {
+            "question_bank_id": str(bank.uuid),
+            "question_id": question.id,
+            "import_mode": "copy",
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    contest_problem = contest.contest_problems.latest("id")
+    assert contest_problem.source_question_id == question.id
+    assert contest_problem.source_mode == "copy"
+    assert contest_problem.problem.created_in_contest_id == contest.id
+    weights = list(contest_problem.problem.test_cases.order_by("order").values_list("weight_percent", flat=True))
+    assert weights == [40, 60]
+
+
+@pytest.mark.django_db
+def test_update_contest_problem_score_action(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    problem = _create_problem("Score Update", owner)
+    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        {"max_score": 35},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    contest_problem.refresh_from_db()
+    assert contest_problem.max_score == 35
+
+    invalid = api_client.patch(
+        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        {"max_score": 0},
+        format="json",
+    )
+    assert invalid.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db

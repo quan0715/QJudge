@@ -58,11 +58,21 @@ const DEFAULT_PAYLOADS: Record<
 };
 
 const TRUE_FALSE_OPTIONS = ["True", "False"];
+const GENERATED_TITLE_PATTERN = /^(test|exam|question)\s*[-_ ]\s*q?\d+$/i;
 
 const sanitizeTitleFromPrompt = (prompt: string, order: number): string => {
   const normalized = prompt.replace(/\s+/g, " ").trim();
   if (!normalized) return `Question ${order + 1}`;
   return normalized.slice(0, 64);
+};
+
+const resolveStoredTitle = (title: string | undefined, prompt: string, order: number): string => {
+  const rawTitle = (title || "").trim();
+  if (!rawTitle) return sanitizeTitleFromPrompt(prompt, order);
+  if (GENERATED_TITLE_PATTERN.test(rawTitle)) {
+    return sanitizeTitleFromPrompt(prompt, order);
+  }
+  return rawTitle;
 };
 
 const resolveExamQuestionType = (question: BankQuestion): ExamQuestionType => {
@@ -222,8 +232,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
 
       return {
         questionType: "exam",
-        title:
-          existing?.title?.trim() || sanitizeTitleFromPrompt(prompt, order),
+        title: resolveStoredTitle(existing?.title, prompt, order),
         prompt,
         options:
           payload.question_type === "true_false"

@@ -11,7 +11,7 @@ from uuid import UUID
 from django.db import transaction
 from django.db.models import Q, Sum
 
-from apps.contests.models import ExamQuestion, ExamQuestionType
+from apps.contests.models import ContestProblem, ExamQuestion, ExamQuestionType
 from apps.problems.models import Problem
 
 from .models import QuestionBank, Question, QuestionCodingExt
@@ -35,6 +35,34 @@ def get_my_bank_default_name(category: str) -> str:
     return "我的程式題庫"
 
 
+def _resolve_or_create_active_personal_bank(user, category: str) -> QuestionBank:
+    """
+    Resolve a user's active bank for category.
+    If duplicated rows exist (legacy data), pick the most recently updated one
+    instead of raising MultipleObjectsReturned.
+    """
+    bank = (
+        QuestionBank.objects.filter(
+            owner=user,
+            category=category,
+            is_archived=False,
+        )
+        .order_by("-updated_at", "-id")
+        .first()
+    )
+    if bank:
+        return bank
+
+    return QuestionBank.objects.create(
+        owner=user,
+        category=category,
+        is_archived=False,
+        name=get_my_bank_default_name(category),
+        visibility=QuestionBank.Visibility.PRIVATE,
+        verified=False,
+    )
+
+
 def get_or_create_personal_bank(
     user,
     category: str,
@@ -52,17 +80,7 @@ def get_or_create_personal_bank(
             raise ValueError("Target bank category mismatch")
         return bank
 
-    bank, _ = QuestionBank.objects.get_or_create(
-        owner=user,
-        category=category,
-        is_archived=False,
-        defaults={
-            "name": get_my_bank_default_name(category),
-            "visibility": QuestionBank.Visibility.PRIVATE,
-            "verified": False,
-        },
-    )
-    return bank
+    return _resolve_or_create_active_personal_bank(user=user, category=category)
 
 
 def _pick_problem_translation(problem: Problem):
@@ -90,6 +108,7 @@ def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
                 "output_data",
                 "is_sample",
                 "score",
+                "weight_percent",
                 "order",
                 "is_hidden",
             )
@@ -130,15 +149,18 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
         },
     }
 
-    question, created = Question.objects.get_or_create(
+    existing = Question.objects.filter(
         bank=bank,
-        source_problem=problem,
-        defaults=defaults,
-    )
-    if not created:
+        metadata__legacy_problem_id=problem.id,
+    ).first()
+
+    if existing:
         for field, value in defaults.items():
-            setattr(question, field, value)
-        question.save(update_fields=list(defaults.keys()) + ["updated_at"])
+            setattr(existing, field, value)
+        existing.save(update_fields=list(defaults.keys()) + ["updated_at"])
+        question = existing
+    else:
+        question = Question.objects.create(bank=bank, **defaults)
 
     coding_payload = _build_coding_ext_payload(problem)
     QuestionCodingExt.objects.update_or_create(
@@ -148,30 +170,6 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
     return question
 
 
-def sync_problem_to_question_bank(problem: Problem, actor=None) -> Question | None:
-    owner = problem.created_by or actor
-    if owner is None:
-        return None
-
-    bank, _ = QuestionBank.objects.get_or_create(
-        owner=owner,
-        category=QuestionBank.Category.CODING,
-        is_archived=False,
-        defaults={
-            "name": get_my_bank_default_name(QuestionBank.Category.CODING),
-            "visibility": QuestionBank.Visibility.PRIVATE,
-            "verified": False,
-        },
-    )
-    return upsert_problem_into_bank(problem=problem, bank=bank, created_by=owner)
-
-
-def _build_exam_question_title(exam_question: ExamQuestion) -> str:
-    order = exam_question.order if exam_question.order is not None else 0
-    contest_name = exam_question.contest.name or "Exam"
-    return f"{contest_name} - Q{order + 1}"
-
-
 def upsert_exam_question_into_bank(
     exam_question: ExamQuestion,
     bank: QuestionBank,
@@ -179,7 +177,7 @@ def upsert_exam_question_into_bank(
 ) -> Question:
     defaults = {
         "question_type": Question.QuestionType.EXAM,
-        "title": _build_exam_question_title(exam_question),
+        "title": "",
         "prompt": exam_question.prompt,
         "options": exam_question.options or [],
         "correct_answer": exam_question.correct_answer,
@@ -193,39 +191,18 @@ def upsert_exam_question_into_bank(
         },
     }
 
-    question, created = Question.objects.get_or_create(
+    existing = Question.objects.filter(
         bank=bank,
-        source_exam_question=exam_question,
-        defaults=defaults,
-    )
-    if not created:
+        metadata__legacy_exam_question_id=exam_question.id,
+    ).first()
+
+    if existing:
         for field, value in defaults.items():
-            setattr(question, field, value)
-        question.save(update_fields=list(defaults.keys()) + ["updated_at"])
-    return question
+            setattr(existing, field, value)
+        existing.save(update_fields=list(defaults.keys()) + ["updated_at"])
+        return existing
 
-
-def sync_exam_question_to_question_bank(exam_question: ExamQuestion, actor=None) -> Question | None:
-    owner = actor or exam_question.contest.owner
-    if owner is None:
-        return None
-
-    bank, _ = QuestionBank.objects.get_or_create(
-        owner=owner,
-        category=QuestionBank.Category.EXAM,
-        is_archived=False,
-        defaults={
-            "name": get_my_bank_default_name(QuestionBank.Category.EXAM),
-            "visibility": QuestionBank.Visibility.PRIVATE,
-            "verified": False,
-        },
-    )
-
-    return upsert_exam_question_into_bank(
-        exam_question=exam_question,
-        bank=bank,
-        created_by=owner,
-    )
+    return Question.objects.create(bank=bank, **defaults)
 
 
 def clone_question_to_bank(source_question: Question, target_bank: QuestionBank, user) -> Question:
@@ -241,6 +218,8 @@ def clone_question_to_bank(source_question: Question, target_bank: QuestionBank,
         difficulty=source_question.difficulty,
         time_limit=source_question.time_limit,
         memory_limit=source_question.memory_limit,
+        source_question=source_question,
+        source_bank=source_question.bank,
         created_by=user,
         metadata={
             **(source_question.metadata or {}),
@@ -288,6 +267,17 @@ def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> Ex
     return ExamReconstructibilityResult(True)
 
 
+def _get_synced_ids(metadata_key: str) -> set[int]:
+    """Return the set of legacy source IDs already ingested into any bank."""
+    return {
+        v
+        for v in Question.objects.filter(
+            **{f"metadata__{metadata_key}__isnull": False}
+        ).values_list(f"metadata__{metadata_key}", flat=True)
+        if v is not None
+    }
+
+
 def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:
     result: dict[str, list[dict[str, Any]]] = {
         "coding": [],
@@ -295,9 +285,17 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
     }
 
     if category in (None, "coding"):
+        synced = _get_synced_ids("legacy_problem_id")
+        # Also exclude problems that were imported from a bank into a contest
+        bank_imported = set(
+            ContestProblem.objects.filter(
+                source_bank_id__isnull=False,
+            ).values_list("problem_id", flat=True)
+        )
         coding_rows = (
             Problem.objects.filter(created_by=user)
-            .filter(synced_question_bank_entries__isnull=True)
+            .exclude(id__in=synced | bank_imported)
+            .select_related("created_in_contest")
             .order_by("-updated_at", "-id")
         )
         result["coding"] = [
@@ -310,15 +308,16 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
                 "question_type": "coding",
                 "updated_at": row.updated_at,
             }
-            for row in coding_rows.select_related("created_in_contest")
+            for row in coding_rows
         ]
 
     if category in (None, "exam"):
+        synced = _get_synced_ids("legacy_exam_question_id")
         exam_rows = (
             ExamQuestion.objects.filter(
                 Q(contest__owner=user) | Q(contest__admins=user)
             )
-            .filter(synced_question_bank_entries__isnull=True)
+            .exclude(id__in=synced)
             .select_related("contest")
             .order_by("-updated_at", "-id")
             .distinct()
@@ -327,7 +326,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             {
                 "source_type": "exam_question",
                 "source_id": row.id,
-                "title": f"{row.contest.name} - Q{(row.order or 0) + 1}",
+                "title": (row.prompt or "").replace("\n", " ").strip()[:60] or f"Q{(row.order or 0) + 1}",
                 "contest_id": row.contest_id,
                 "contest_name": row.contest.name,
                 "question_type": row.question_type,
@@ -390,7 +389,9 @@ def ingest_question_bank_inbox_items(
                 if not source:
                     raise ValueError(f"Problem {source_id} not found")
 
-                existing = Question.objects.filter(source_problem=source).select_related("bank").first()
+                existing = Question.objects.filter(
+                    metadata__legacy_problem_id=source.id,
+                ).select_related("bank").first()
                 if existing:
                     if existing.bank.owner_id != user.id:
                         raise ValueError(f"Problem {source_id} already synced to an inaccessible bank")
@@ -414,7 +415,9 @@ def ingest_question_bank_inbox_items(
             if not source:
                 raise ValueError(f"Exam question {source_id} not found")
 
-            existing = Question.objects.filter(source_exam_question=source).select_related("bank").first()
+            existing = Question.objects.filter(
+                metadata__legacy_exam_question_id=source.id,
+            ).select_related("bank").first()
             if existing:
                 if existing.bank.owner_id != user.id:
                     raise ValueError(f"Exam question {source_id} already synced to an inaccessible bank")

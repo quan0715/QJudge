@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   Button,
   ClickableTile,
-  Column,
-  Grid,
   Loading,
   Modal,
   MultiSelect,
@@ -37,10 +35,10 @@ import {
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts";
+import { AcrBadge } from "@/shared/ui/tag";
 import { EXAM_QUESTION_TYPE_ICON as QUESTION_TYPE_ICONS } from "@/shared/ui/examQuestionTypeVisual";
 import {
   getQuestionVisualFromBankQuestion,
-  type QuestionVisualTone,
 } from "@/shared/ui/questionVisual";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
@@ -52,6 +50,7 @@ import {
   formatDownloadCount,
   getQuestionTypeLabel as getTypeTokenLabel,
   getQuestionTypeToken,
+  getQuestionDisplayTitle,
   resolveExamQuestionType,
   toExamBankPayload,
   toExamQuestion,
@@ -60,36 +59,36 @@ import {
 } from "./questionBankProblemManagement.utils";
 import styles from "./QuestionBankProblemManagementPanel.module.scss";
 
-const QUESTION_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
-  coding: styles.iconToneCoding,
-  single_choice: styles.iconToneSingleChoice,
-  multiple_choice: styles.iconToneMultipleChoice,
-  true_false: styles.iconToneTrueFalse,
-  short_answer: styles.iconToneShortAnswer,
-  essay: styles.iconToneEssay,
+const DIFFICULTY_TAG_TYPE: Record<string, "green" | "cyan" | "red" | "gray"> = {
+  easy: "green",
+  medium: "cyan",
+  hard: "red",
 };
 
 const EXAM_DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload, "order">> = {
   single_choice: {
     question_type: "single_choice",
     prompt: "New question",
+    score: 5,
     options: ["Option A", "Option B"],
     correct_answer: 0,
   },
   multiple_choice: {
     question_type: "multiple_choice",
     prompt: "New question",
+    score: 5,
     options: ["Option A", "Option B"],
     correct_answer: [0],
   },
   true_false: {
     question_type: "true_false",
     prompt: "New question",
+    score: 5,
     options: ["True", "False"],
     correct_answer: true,
   },
-  short_answer: { question_type: "short_answer", prompt: "New question" },
-  essay: { question_type: "essay", prompt: "New question" },
+  short_answer: { question_type: "short_answer", prompt: "New question", score: 5 },
+  essay: { question_type: "essay", prompt: "New question", score: 5 },
 };
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
@@ -355,10 +354,11 @@ const QuestionBankProblemManagementPanel = ({
 
     const payload: UpsertBankQuestionPayload =
       question.questionType === "exam"
-        ? toExamBankPayload(
+          ? toExamBankPayload(
             {
               question_type: resolveExamQuestionType(question),
               prompt: question.prompt || "",
+              score: Number(question.score || 5),
               options: question.options as string[],
               correct_answer: question.correctAnswer,
               order: nextOrder,
@@ -572,9 +572,9 @@ const QuestionBankProblemManagementPanel = ({
               <p className={styles.emptyText}>{t("message.noData", "暫無資料")}</p>
             </Tile>
           ) : (
-            <Grid fullWidth condensed className={styles.galleryGrid}>
+            <div className={styles.galleryGrid}>
               {filteredQuestions.map((question) => (
-                <Column key={question.id} lg={4} md={4} sm={4}>
+                <div key={question.id} className={styles.galleryCell}>
                   <QuestionPreviewCard
                     bank={bank}
                     question={question}
@@ -585,9 +585,9 @@ const QuestionBankProblemManagementPanel = ({
                       })
                     }
                   />
-                </Column>
+                </div>
               ))}
-            </Grid>
+            </div>
           )}
         </div>
 
@@ -644,7 +644,7 @@ const QuestionBankProblemManagementPanel = ({
             <Tile className={styles.detailHeaderTile}>
               <div className={styles.detailHeaderTop}>
                 <div>
-                  <h3 className={styles.detailTitle}>{selectedQuestion.title}</h3>
+                  <h3 className={styles.detailTitle}>{getQuestionDisplayTitle(selectedQuestion)}</h3>
                   <div className={styles.detailTags}>
                     <Tag type="blue">{selectedQuestion.questionType}</Tag>
                     {selectedQuestion.questionType === "exam" ? (
@@ -755,29 +755,56 @@ const QuestionPreviewCard = ({
   question: BankQuestion;
   onClick: () => void;
 }) => {
+  const { t } = useTranslation("common");
   const meta = buildQuestionPreviewMeta(question, bank);
-  const { Icon, tone } = getQuestionVisualFromBankQuestion(question, "colored");
-  const iconToneClass = tone ? QUESTION_ICON_TONE_CLASS_MAP[tone] : "";
+  const { Icon } = getQuestionVisualFromBankQuestion(question, "colored");
+  const displayTitle = getQuestionDisplayTitle(question);
+  const visibleTags = meta.tags.slice(0, 2);
+  const difficultyType = DIFFICULTY_TAG_TYPE[meta.difficulty] || "gray";
+  const difficultyLabel = t(`difficulty.${meta.difficulty}`, meta.difficulty);
+  const questionTypeLabel =
+    question.questionType === "exam"
+      ? getQuestionTypeLabel(resolveExamQuestionType(question))
+      : t("questionType.label.coding", "程式題");
 
   return (
     <ClickableTile onClick={onClick} className={styles.previewCard}>
       <div className={styles.previewCardBody}>
-        <div className={styles.previewTitleRow}>
-          <div className={`${styles.previewIconWrap} ${iconToneClass}`}>
-            <Icon size={20} />
+        <div className={styles.previewRowTop}>
+          <div className={styles.previewTypeInfo}>
+            <span className={styles.previewIconWrap}>
+              <Icon size={18} />
+            </span>
+            <span className={styles.previewTypeLabel}>{questionTypeLabel}</span>
           </div>
-          <div className={styles.previewTitleContent}>
-            <div className={styles.previewTitleLine}>
-              <h4 className={styles.previewTitle}>{question.title}</h4>
-              {meta.isVerified ? <CheckmarkFilled size={16} className={styles.verifiedIcon} /> : null}
-            </div>
-            <p className={styles.previewMetaRow}>
-              <span className={styles.previewProvider}>by {meta.providerName}</span>
-              <span className={styles.previewDownload}>
-                <Download size={12} />
-                {formatDownloadCount(meta.downloadCount)}
-              </span>
-            </p>
+          {meta.isVerified ? <CheckmarkFilled size={16} className={styles.verifiedIcon} /> : null}
+        </div>
+
+        <h4 className={styles.previewTitle}>{displayTitle}</h4>
+
+        <div className={styles.previewRowBottom}>
+          <div className={styles.previewBadges}>
+            <Tag size="sm" type={difficultyType}>
+              {difficultyLabel}
+            </Tag>
+            {visibleTags.map((tag) => (
+              <Tag key={tag} size="sm" type="gray">
+                {tag}
+              </Tag>
+            ))}
+          </div>
+          <div className={styles.previewMetaGroup}>
+            {meta.passRate == null ? (
+              <Tag size="sm" type="cool-gray">
+                {t("questionBank.passRate", "通過率")}: --
+              </Tag>
+            ) : (
+              <AcrBadge value={meta.passRate} size="sm" label={t("questionBank.passRate", "通過率")} />
+            )}
+            <span className={styles.previewDownload}>
+              <Download size={12} />
+              {formatDownloadCount(meta.downloadCount)}
+            </span>
           </div>
         </div>
       </div>
@@ -821,7 +848,7 @@ const QuestionListSidebar = ({
               >
                 <span className={styles.listOrder}>{index + 1}</span>
                 <div className={styles.listMain}>
-                  <span className={styles.listTitle}>{question.title}</span>
+                  <span className={styles.listTitle}>{getQuestionDisplayTitle(question)}</span>
                   <span className={styles.listMeta}>
                     {question.questionType === "exam"
                       ? getQuestionTypeLabel(resolveExamQuestionType(question))

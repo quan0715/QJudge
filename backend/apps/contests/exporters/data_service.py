@@ -4,7 +4,6 @@ Provides a clean interface for querying contest data and calculating statistics.
 """
 from typing import List, Optional, Dict, Any
 
-from django.db.models import Sum
 from django.utils import timezone
 
 from ..models import Contest, ContestProblem, ContestParticipant
@@ -67,14 +66,12 @@ class ContestDataService:
             'problem__translations',
             'problem__test_cases',
             'problem__tags'
-        ).annotate(
-            problem_score_sum=Sum('problem__test_cases__score')
         ).order_by('order')
 
         result = []
         for cp in contest_problems:
             problem_dto = self._format_problem(cp.problem, self._get_label(cp))
-            problem_dto.max_score = cp.problem_score_sum or 0
+            problem_dto.max_score = cp.max_score or 0
 
             result.append(ContestProblemDTO(
                 id=cp.id,
@@ -82,7 +79,7 @@ class ContestDataService:
                 order=cp.order,
                 label=self._get_label(cp),
                 problem=problem_dto,
-                score=cp.problem_score_sum or 0,
+                score=cp.max_score or 0,
             ))
 
         self._problems_cache = result

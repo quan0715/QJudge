@@ -26,8 +26,8 @@ class QuestionAdmin(admin.ModelAdmin):
         "title",
         "bank",
         "question_type",
-        "source_problem",
-        "source_exam_question",
+        "source_question",
+        "source_bank",
         "updated_at",
     )
     list_filter = ("question_type", "bank__category")

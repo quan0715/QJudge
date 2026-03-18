@@ -85,7 +85,7 @@ describe("QuestionBanksScreen", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "我的題庫" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "探索題庫" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Card Gallery View Select" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "收編題目" })).toBeInTheDocument();
       expect(screen.getAllByText("我的程式題庫").length).toBeGreaterThan(0);
     });
 
@@ -118,7 +118,7 @@ describe("QuestionBanksScreen", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("tab", { name: "Card Gallery View Select" }),
+        screen.getByRole("tab", { name: "收編題目" }),
       ).toHaveAttribute("aria-selected", "true");
       expect(screen.getByText("Draft coding question")).toBeInTheDocument();
     });
@@ -158,8 +158,7 @@ describe("QuestionBanksScreen", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("程式題選取清單 (1)")).toBeInTheDocument();
-      expect(screen.queryByText("考卷題選取清單 (1)")).not.toBeInTheDocument();
+      // With coding filter, only coding items should appear as cards
       expect(screen.getByText("coding item")).toBeInTheDocument();
       expect(screen.queryByText("exam item")).not.toBeInTheDocument();
     });

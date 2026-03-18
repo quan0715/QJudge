@@ -23,7 +23,14 @@ export const getContestProblem = async (
 
 export const addContestProblem = async (
   contestId: string,
-  data: { title?: string; problem_id?: string }
+  data: {
+    title?: string;
+    problem_id?: string;
+    question_bank_id?: string;
+    question_id?: string | number;
+    import_mode?: "copy" | "reference";
+    max_score?: number;
+  }
 ): Promise<Problem> => {
   const responseData = await requestJson<any>(
     httpClient.post(`/api/v1/contests/${contestId}/add_problem/`, data),
@@ -64,6 +71,19 @@ export const reorderContestProblems = async (
       orders,
     }),
     "Failed to reorder problems"
+  );
+};
+
+export const updateContestProblemScore = async (
+  contestId: string,
+  contestProblemId: string,
+  maxScore: number
+): Promise<void> => {
+  await ensureOk(
+    httpClient.patch(`/api/v1/contests/${contestId}/problems/${contestProblemId}/score/`, {
+      max_score: maxScore,
+    }),
+    "Failed to update contest problem score"
   );
 };
 

@@ -149,10 +149,8 @@ const buildPayload = (
   const payload: ExamQuestionUpsertPayload = {
     question_type: form.questionType,
     prompt: form.prompt.trim(),
+    score: includeScore ? Number(form.score || 0) : 1,
   };
-  if (includeScore) {
-    payload.score = Number(form.score || 0);
-  }
   if (form.questionType === "essay") {
     if (form.essayReferenceAnswer.trim()) {
       payload.correct_answer = form.essayReferenceAnswer.trim();

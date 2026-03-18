@@ -79,7 +79,14 @@ export interface ContestProblemSummary {
   label: string; // A, B, C...
   title: string;
   order?: number;
-  score?: number; // Problem score/points
+  score?: number; // Backward-compatible alias (same as maxScore)
+  maxScore?: number; // Contest-level score/points
+  sourceBank?: {
+    id: string;
+    name: string;
+  } | null;
+  sourceQuestionId?: number | null;
+  sourceMode?: "manual" | "copy" | "reference";
   userStatus?: SubmissionStatus;
   difficulty?: Difficulty;
 }

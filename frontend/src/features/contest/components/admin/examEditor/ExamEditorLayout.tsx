@@ -5,7 +5,6 @@ import React, {
   useRef,
   useImperativeHandle,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button, Modal } from "@carbon/react";
 import {
   Add,
@@ -21,7 +20,6 @@ import {
   batchImportExamQuestions,
   type ExamQuestionUpsertPayload,
 } from "@/infrastructure/api/repositories";
-import { listInbox } from "@/infrastructure/api/repositories/questionBank.repository";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
@@ -31,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
 import { type ExamQuestionJsonNormalizedQuestion } from "./examQuestionJson";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import styles from "./ExamEditorLayout.module.scss";
 
 // --- Question type picker config ---
@@ -47,6 +46,78 @@ const DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload,
   essay: { question_type: "essay", prompt: "New question", score: 5 },
 };
 
+const EXAM_TYPES: ExamQuestionType[] = [
+  "single_choice",
+  "multiple_choice",
+  "true_false",
+  "short_answer",
+  "essay",
+];
+
+const resolveImportedExamType = (item: BankImportSelectionItem): ExamQuestionType => {
+  const candidate = item.metadata?.exam_question_type;
+  if (typeof candidate === "string" && EXAM_TYPES.includes(candidate as ExamQuestionType)) {
+    return candidate as ExamQuestionType;
+  }
+  return "single_choice";
+};
+
+const normalizeImportedExamPayload = (
+  item: BankImportSelectionItem,
+  order: number,
+): ExamQuestionUpsertPayload => {
+  const questionType = resolveImportedExamType(item);
+  const prompt = (item.prompt || item.title || "").trim() || "New question";
+  const score = Math.max(1, Number(item.score || 5));
+  const optionsRaw = Array.isArray(item.options) ? item.options.map((row) => String(row)) : [];
+
+  const payload: ExamQuestionUpsertPayload = {
+    question_type: questionType,
+    prompt,
+    score,
+    order,
+  };
+
+  if (questionType === "true_false") {
+    payload.options = ["True", "False"];
+    const answer = item.correctAnswer;
+    if (answer === true || answer === 1 || answer === "1" || answer === "true") {
+      payload.correct_answer = 1;
+    } else if (answer === false || answer === 0 || answer === "0" || answer === "false") {
+      payload.correct_answer = 0;
+    }
+    return payload;
+  }
+
+  if (questionType === "single_choice") {
+    payload.options = optionsRaw.length >= 2 ? optionsRaw : ["Option A", "Option B"];
+    const index = Number(item.correctAnswer);
+    payload.correct_answer =
+      Number.isInteger(index) && index >= 0 && index < payload.options.length ? index : 0;
+    return payload;
+  }
+
+  if (questionType === "multiple_choice") {
+    payload.options = optionsRaw.length >= 2 ? optionsRaw : ["Option A", "Option B"];
+    const indices = Array.isArray(item.correctAnswer)
+      ? item.correctAnswer
+          .map((row) => Number(row))
+          .filter((row) => Number.isInteger(row) && row >= 0 && row < payload.options!.length)
+      : [];
+    payload.correct_answer = indices.length > 0 ? indices : [0];
+    return payload;
+  }
+
+  if (questionType === "short_answer" || questionType === "essay") {
+    if (typeof item.correctAnswer === "string" && item.correctAnswer.trim().length > 0) {
+      payload.correct_answer = item.correctAnswer.trim();
+    }
+    return payload;
+  }
+
+  return payload;
+};
+
 interface ExamEditorLayoutProps {
   contestId: string;
   contest: ContestDetail;
@@ -60,7 +131,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   contestId,
   contest,
 }, ref) => {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
@@ -68,7 +138,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [inboxCount, setInboxCount] = useState(0);
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for scroll sync
@@ -80,6 +149,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
+  const [bankImportOpen, setBankImportOpen] = useState(false);
 
   const frozen = !!contest.isExamQuestionsFrozen;
 
@@ -131,22 +201,9 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     }
   }, [contestId, showToast]);
 
-  const refreshInboxCount = useCallback(async () => {
-    try {
-      const data = await listInbox("exam");
-      setInboxCount(data.counts.exam);
-    } catch {
-      setInboxCount(0);
-    }
-  }, []);
-
   useEffect(() => {
     loadQuestions();
   }, [loadQuestions]);
-
-  useEffect(() => {
-    void refreshInboxCount();
-  }, [refreshInboxCount]);
 
   const handleJsonImport = useCallback(
     async (normalizedQuestions: ExamQuestionJsonNormalizedQuestion[]) => {
@@ -160,7 +217,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
 
       await batchImportExamQuestions(contestId, payloads);
       await loadQuestions();
-      await refreshInboxCount();
       setSelectedId(null);
       showToast({
         kind: "success",
@@ -168,7 +224,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
       });
     },
-    [contestId, frozen, loadQuestions, refreshInboxCount, showToast, toUpsertPayload],
+    [contestId, frozen, loadQuestions, showToast, toUpsertPayload],
   );
 
   useImperativeHandle(
@@ -177,6 +233,24 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       openJsonImportModal: () => setJsonImportOpen(true),
     }),
     [],
+  );
+
+  const handleImportFromBank = useCallback(
+    async (items: BankImportSelectionItem[]) => {
+      if (frozen || items.length === 0) return;
+      const baseOrder = questions.length;
+      for (const [index, item] of items.entries()) {
+        const payload = normalizeImportedExamPayload(item, baseOrder + index);
+        await createExamQuestion(contestId, payload);
+      }
+      await loadQuestions();
+      showToast({
+        kind: "success",
+        title: t("examEditor.importSuccess", "匯入成功"),
+        subtitle: t("examEditor.importSuccessDetail", { count: items.length }),
+      });
+    },
+    [contestId, frozen, loadQuestions, questions.length, showToast, t],
   );
 
   // Pre-select first question once loaded
@@ -261,7 +335,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         const created = await createExamQuestion(contestId, { ...base, order });
         showToast({ kind: "success", title: t("examEditor.questionAdded", "題目已新增") });
         await loadQuestions();
-        await refreshInboxCount();
         if (created?.id) {
           setSelectedId(created.id);
           requestAnimationFrame(() => {
@@ -275,7 +348,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗"), subtitle: message });
       }
     },
-    [contestId, frozen, insertAtOrder, questions.length, loadQuestions, refreshInboxCount, showToast],
+    [contestId, frozen, insertAtOrder, questions.length, loadQuestions, showToast],
   );
 
   // --- Reorder (debounced) ---
@@ -306,14 +379,13 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           showToast({ kind: "success", title: t("examEditor.questionUpdated", "題目已更新") });
         }
         await loadQuestions();
-        await refreshInboxCount();
       } catch (error) {
         console.error("Failed to save exam question", error);
         const message = error instanceof Error ? error.message : t("examEditor.saveFailed", "儲存失敗");
         showToast({ kind: "error", title: t("examEditor.saveFailed", "儲存失敗"), subtitle: message });
       }
     },
-    [contestId, loadQuestions, refreshInboxCount, showToast],
+    [contestId, loadQuestions, showToast],
   );
 
   // --- Duplicate ---
@@ -340,7 +412,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         const created = await createExamQuestion(contestId, payload);
         showToast({ kind: "success", title: t("examEditor.questionCopied", "題目已複製") });
         await loadQuestions();
-        await refreshInboxCount();
         if (created?.id) {
           setSelectedId(created.id);
           requestAnimationFrame(() => {
@@ -354,7 +425,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "error", title: t("examEditor.copyFailed", "複製失敗"), subtitle: message });
       }
     },
-    [contestId, frozen, questions, loadQuestions, refreshInboxCount, showToast],
+    [contestId, frozen, questions, loadQuestions, showToast],
   );
 
   // --- Delete ---
@@ -375,13 +446,12 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           setSelectedId(null);
         }
         await loadQuestions();
-        await refreshInboxCount();
       } catch (error) {
         console.error("Failed to delete exam question", error);
         showToast({ kind: "error", title: t("examEditor.deleteFailed", "刪除失敗") });
       }
     },
-    [contestId, questions, selectedId, confirm, loadQuestions, refreshInboxCount, showToast],
+    [contestId, questions, selectedId, confirm, loadQuestions, showToast],
   );
 
   const sidebarContent = (
@@ -390,10 +460,9 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       selectedId={selectedId}
       frozen={frozen}
       loading={loading && questions.length === 0}
-      inboxCount={inboxCount}
       onSelect={handleSelect}
       onAdd={() => openTypePicker()}
-      onOpenInbox={() => navigate("/question-banks?tab=inbox&category=exam")}
+      onImportFromBank={() => setBankImportOpen(true)}
       onDelete={handleDelete}
       onReorder={handleReorder}
     />
@@ -482,6 +551,15 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         open={jsonImportOpen}
         onClose={() => setJsonImportOpen(false)}
         onConfirmImport={handleJsonImport}
+      />
+
+      <QuestionBankImportModal
+        open={bankImportOpen}
+        category="exam"
+        onClose={() => setBankImportOpen(false)}
+        onConfirm={async (items) => {
+          await handleImportFromBank(items);
+        }}
       />
 
       <ConfirmModal {...modalProps} />
