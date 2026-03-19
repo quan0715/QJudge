@@ -23,6 +23,7 @@ from ..services import (
 from .common import (
     SchemaAPIView,
     build_conflict_response,
+    record_login,
     token_cookie_response,
     validation_error_response,
 )
@@ -99,6 +100,7 @@ class LoginView(SchemaAPIView):
             return conflict_response
 
         tokens = JWTService.generate_tokens(user)
+        record_login(user, request, login_method="email")
         return token_cookie_response(user, tokens)
 
 
@@ -222,6 +224,7 @@ class OAuthCallbackView(SchemaAPIView):
                 return conflict_response
 
             tokens = JWTService.generate_tokens(user)
+            record_login(user, request, login_method=provider)
             return token_cookie_response(user, tokens)
         except Exception as exc:
             logger.exception("%s OAuth callback failed: %s", provider, exc)

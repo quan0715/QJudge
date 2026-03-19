@@ -214,3 +214,116 @@ def get_last_heartbeat(contest_id: int, user_id: int) -> str | None:
 
 def clear_heartbeat(contest_id: int, user_id: int) -> None:
     cache.delete(heartbeat_key(contest_id, user_id))
+
+
+# ---------------------------------------------------------------------------
+# Part A: Blacklist other device tokens on exam start
+# ---------------------------------------------------------------------------
+
+EXAM_ALLOWED_JTI_PREFIX = "auth:exam_jti"
+# Default TTL matches ACCESS_TOKEN_LIFETIME (8 h) + small buffer
+_EXAM_JTI_LOCK_TTL_SECONDS = 8 * 60 * 60 + 600
+
+
+def _exam_allowed_jti_key(user_id: int) -> str:
+    return f"{EXAM_ALLOWED_JTI_PREFIX}:{user_id}"
+
+
+def set_exam_allowed_jti(user_id: int, jti: str) -> None:
+    """Pin this user's allowed access-token JTI in Redis.
+
+    While this key exists, ``is_access_token_allowed`` will reject any
+    access token whose JTI does not match.
+    """
+    cache.set(_exam_allowed_jti_key(user_id), jti, timeout=_EXAM_JTI_LOCK_TTL_SECONDS)
+
+
+def clear_exam_allowed_jti(user_id: int) -> None:
+    """Remove the JTI pin (e.g. when exam ends)."""
+    cache.delete(_exam_allowed_jti_key(user_id))
+
+
+def is_access_token_allowed(user_id: int, jti: str) -> bool:
+    """Check whether the given access-token JTI is allowed.
+
+    * If no pin exists → all tokens are allowed (normal operation).
+    * If a pin exists → only the pinned JTI is allowed.
+    """
+    allowed = cache.get(_exam_allowed_jti_key(user_id))
+    if allowed is None:
+        return True  # no restriction
+    return allowed == jti
+
+
+def blacklist_other_tokens(user, current_jti: str) -> int:
+    """Blacklist all outstanding JWT tokens for *user* except *current_jti*
+    **and** pin the allowed access-token JTI in Redis so that other devices'
+    access tokens are immediately rejected at the authentication layer.
+
+    Returns the number of refresh tokens that were newly blacklisted.
+    """
+    from rest_framework_simplejwt.token_blacklist.models import (
+        BlacklistedToken,
+        OutstandingToken,
+    )
+
+    # 1) Blacklist refresh tokens (prevents token refresh)
+    tokens = OutstandingToken.objects.filter(user=user).exclude(jti=current_jti)
+    count = 0
+    for token in tokens:
+        _, created = BlacklistedToken.objects.get_or_create(token=token)
+        if created:
+            count += 1
+
+    # 2) Pin allowed JTI (immediately rejects other access tokens)
+    set_exam_allowed_jti(user.id, current_jti)
+
+    return count
+
+
+# ---------------------------------------------------------------------------
+# Part B: Standalone device-conflict check (usable outside ViewSet mixins)
+# ---------------------------------------------------------------------------
+
+def build_device_conflict_response(contest, participant, request):
+    """Return a 409 ``Response`` if the request comes from a different device
+    than the one holding the active session.  Returns ``None`` when there is
+    no conflict (or anticheat is disabled).
+
+    This is the shared logic previously living only inside
+    ``ExamAnticheatMixin._ensure_active_device_session``.
+    """
+    from rest_framework.response import Response
+    from rest_framework import status as http_status
+    from ..models import ExamEvent
+
+    if not getattr(contest, "cheat_detection_enabled", False):
+        return None
+
+    device_id = get_device_id(request)
+    active = get_active_session(contest.id, participant.user_id)
+    if active and active.get("device_id") and active.get("device_id") != device_id:
+        ExamEvent.objects.create(
+            contest=contest,
+            user=participant.user,
+            event_type="concurrent_login_detected",
+            metadata={
+                "existing_device_id": active.get("device_id"),
+                "incoming_device_id": device_id,
+                "source": "device_guard",
+            },
+        )
+        return Response(
+            {
+                "code": "EXAM_ACTIVE_OTHER_DEVICE",
+                "message": "Another device is currently active for this exam session.",
+                "active_exam": {
+                    "contest_id": contest.id,
+                    "contest_name": contest.name,
+                    "exam_status": participant.exam_status,
+                    "started_at": participant.started_at,
+                },
+            },
+            status=http_status.HTTP_409_CONFLICT,
+        )
+    return None

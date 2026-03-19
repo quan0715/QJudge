@@ -21,6 +21,7 @@ from .profile import (
 )
 from .admin import UserSearchView, UserRoleUpdateView
 from .api_key import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
+from ._impl import LoginRecordsView, LogoutOtherDevicesView
 
 __all__ = [
     "SchemaAPIView",
@@ -45,4 +46,6 @@ __all__ = [
     "UserAPIKeyView",
     "ValidateAPIKeyView",
     "GetUsageStatsView",
+    "LoginRecordsView",
+    "LogoutOtherDevicesView",
 ]

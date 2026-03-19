@@ -14,6 +14,7 @@ from ..models import (
     ContestParticipant,
     ExamQuestion,
     ExamAnswer,
+    ExamStatus,
 )
 from ..serializers import (
     ExamAnswerSerializer,
@@ -22,6 +23,7 @@ from ..serializers import (
     ExamAnswerGradeSerializer,
 )
 from ..permissions import can_manage_contest
+from ..services.anti_cheat_session import build_device_conflict_response
 from ..services.exam_validation import validate_exam_operation
 
 
@@ -46,6 +48,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         )
         if error:
             return error
+
+        # Device guard (hard block)
+        conflict = build_device_conflict_response(contest, participant, request)
+        if conflict is not None:
+            return conflict
 
         serializer = ExamAnswerSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -92,6 +99,12 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 {'error': 'Not registered for this contest.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Device guard (hard block, skip if already submitted)
+        if participant.exam_status != ExamStatus.SUBMITTED:
+            conflict = build_device_conflict_response(contest, participant, request)
+            if conflict is not None:
+                return conflict
 
         answers = ExamAnswer.objects.filter(
             participant=participant

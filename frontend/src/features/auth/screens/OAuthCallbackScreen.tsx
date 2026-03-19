@@ -1,14 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
-import { Button, Tag } from '@carbon/react';
-import { Login } from '@carbon/icons-react';
+import { Button } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { oauthCallback, resolveConflict } from "@/infrastructure/api/repositories/auth.repository";
+import { oauthCallback } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
 import { AuthLoadingSkeleton } from '../components/AuthLoadingSkeleton';
 
-type CallbackState = 'loading' | 'error' | 'conflict';
+type CallbackState = 'loading' | 'error';
 
 const OAuthCallbackPage = () => {
   const { t } = useTranslation();
@@ -26,8 +25,6 @@ const OAuthCallbackPage = () => {
 
   const [state, setState] = useState<CallbackState>(initialError ? 'error' : 'loading');
   const [error, setError] = useState(initialError);
-  const [conflictToken, setConflictToken] = useState<string>("");
-  const [resolving, setResolving] = useState(false);
 
   // Dynamic header metadata
   const metadata = useMemo(() => {
@@ -35,13 +32,10 @@ const OAuthCallbackPage = () => {
       return {
         title: t("auth.callback.loadingTitle", "歡迎來到 QJudge"),
         subtitle: t("auth.callback.loadingSubtitle", "正在為您準備專屬的程式舞台"),
-        // Removed backTo: '/login' to hide the button while loading
       };
     }
     return {
-      title: state === 'conflict'
-        ? t("auth.callback.conflictTitle", "考試衝突")
-        : t("auth.callback.errorTitle", "登入失敗"),
+      title: t("auth.callback.errorTitle", "登入失敗"),
       subtitle: error,
       backTo: '/login',
     };
@@ -75,47 +69,28 @@ const OAuthCallbackPage = () => {
           setState('error');
         }
       } catch (err: any) {
-        if (
-          err?.response?.status === 409 &&
-          err?.response?.data?.code === "EXAM_CONFLICT_ACTIVE_SESSION" &&
-          err?.response?.data?.conflict_token
-        ) {
-          setConflictToken(err.response.data.conflict_token);
-          setError(t("auth.callback.examConflict", "偵測到進行中的考試，請選擇是否接管。"));
-          setState('conflict');
+        const errorCode = err?.response?.data?.code;
+        if (errorCode === "EXAM_LOGIN_BLOCKED") {
+          const exam = err.response.data.active_exam;
+          setError(
+            `考試「${exam?.contest_name || ""}」進行中，無法從其他裝置登入。` +
+            `請回到原裝置完成考試後再試。`
+          );
+          setState('error');
           return;
         }
         console.error(err);
-        setError(t("auth.callback.failed", "登入失敗，請稍後再試"));
+        setError(
+          err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
+          t("auth.callback.failed", "登入失敗，請稍後再試")
+        );
         setState('error');
       }
     };
 
     handleCallback();
   }, [code, initialError, provider, t]);
-
-  const handleTakeover = async () => {
-    if (!conflictToken || resolving) return;
-    setResolving(true);
-    try {
-      const response = await resolveConflict({
-        conflict_token: conflictToken,
-        action: "takeover_lock",
-      });
-      if (response.success) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        window.location.href = '/dashboard';
-      } else {
-        setError(t("auth.callback.takeoverFailed", "接管失敗，請聯繫監考老師。"));
-        setState('error');
-      }
-    } catch {
-      setError(t("auth.callback.takeoverFailed", "接管失敗，請聯繫監考老師。"));
-      setState('error');
-    } finally {
-      setResolving(false);
-    }
-  };
 
   return (
     <div className="auth-form-wrapper">
@@ -128,30 +103,6 @@ const OAuthCallbackPage = () => {
             exit={{ opacity: 0 }}
           >
             <AuthLoadingSkeleton />
-          </motion.div>
-        )}
-
-        {state === 'conflict' && (
-          <motion.div
-            key="conflict"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="auth-form"
-          >
-            <div style={{ marginBottom: '1.5rem' }}>
-              <Tag type="red" size="md">Active Session Detected</Tag>
-            </div>
-            <Button
-              kind="danger"
-              renderIcon={Login}
-              className="auth-submit-btn"
-              onClick={handleTakeover}
-              disabled={resolving}
-            >
-              {resolving
-                ? t("auth.callback.takingOver", "處理中...")
-                : t("auth.callback.takeover", "接管並鎖定舊裝置")}
-            </Button>
           </motion.div>
         )}
 

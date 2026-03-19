@@ -208,6 +208,31 @@ export const resetPassword = async (
 };
 
 // ============================================================================
+// Login Records & Device Management
+// ============================================================================
+
+export const getLoginRecords = async (): Promise<{
+  success: boolean;
+  data: import("@/core/entities/auth.entity").UserLoginRecord[];
+}> => {
+  return requestJson(
+    httpClient.get(`${API_BASE}/me/login-records`),
+    "Failed to fetch login records"
+  );
+};
+
+export const logoutOtherDevices = async (): Promise<{
+  success: boolean;
+  data: { blacklisted_count: number };
+  message?: string;
+}> => {
+  return requestJson(
+    httpClient.post(`${API_BASE}/me/logout-other-devices`),
+    "Failed to logout other devices"
+  );
+};
+
+// ============================================================================
 // API Key Management
 // ============================================================================
 
@@ -267,6 +292,8 @@ export default {
   updateCurrentUserProfile,
   requestPasswordReset,
   resetPassword,
+  getLoginRecords,
+  logoutOtherDevices,
   getAPIKeyInfo,
   setAPIKey,
   deleteAPIKey,

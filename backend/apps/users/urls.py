@@ -22,6 +22,8 @@ from .views import (
     UserAPIKeyView,
     ValidateAPIKeyView,
     GetUsageStatsView,
+    LoginRecordsView,
+    LogoutOtherDevicesView,
 )
 
 app_name = 'users'
@@ -52,6 +54,10 @@ urlpatterns = [
     path('change-password', ChangePasswordView.as_view(), name='change-password'),
     path('forgot-password', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password', ResetPasswordView.as_view(), name='reset-password'),
+
+    # Login records & device management
+    path('me/login-records', LoginRecordsView.as_view(), name='login-records'),
+    path('me/logout-other-devices', LogoutOtherDevicesView.as_view(), name='logout-other-devices'),
 
     # API Key management
     path('me/api-key', UserAPIKeyView.as_view(), name='api-key'),

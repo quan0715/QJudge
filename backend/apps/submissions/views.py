@@ -125,6 +125,21 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         contest = serializer.validated_data.get('contest')
         lab = serializer.validated_data.get('lab')
 
+        # Device guard for contest submissions with anticheat enabled
+        if contest and getattr(contest, "cheat_detection_enabled", False):
+            from apps.contests.models import ContestParticipant
+            from apps.contests.services.anti_cheat_session import build_device_conflict_response
+            participant = ContestParticipant.objects.filter(
+                contest=contest, user=user
+            ).first()
+            if participant:
+                conflict = build_device_conflict_response(contest, participant, self.request)
+                if conflict is not None:
+                    from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+                    raise DRFPermissionDenied(
+                        "Another device is currently active for this exam session."
+                    )
+
         try:
             submission = SubmissionService.create_and_dispatch(
                 user=user,

@@ -97,6 +97,17 @@ export interface CurrentUserResponse {
   message?: string;
 }
 
+// Login Records
+export interface UserLoginRecord {
+  id: number;
+  device_id: string;
+  ip_address: string;
+  user_agent: string;
+  login_method: string;
+  created_at: string;
+  is_current: boolean;
+}
+
 // API Key 相關
 export interface APIKeyInfo {
   has_key: boolean;

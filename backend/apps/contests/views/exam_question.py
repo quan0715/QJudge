@@ -20,6 +20,7 @@ from ..serializers import (
     ExamQuestionStudentSerializer,
 )
 from ..permissions import can_manage_contest
+from ..services.anti_cheat_session import build_device_conflict_response
 from ..services.export_service import (
     ExportValidationError,
     build_paper_exam_sheet_response,
@@ -82,7 +83,28 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied('Contest has not started yet')
             if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
                 raise PermissionDenied('You must start the exam before viewing questions')
+            # Device guard (hard block, skip if already submitted)
+            if participant.exam_status != ExamStatus.SUBMITTED:
+                conflict = build_device_conflict_response(contest, participant, self.request)
+                if conflict is not None:
+                    # Store for list()/retrieve() to return
+                    self._device_conflict_response = conflict
         return ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+
+    def list(self, request, *args, **kwargs):
+        # Trigger get_queryset first (which sets _device_conflict_response if needed)
+        self.get_queryset()
+        conflict = getattr(self, '_device_conflict_response', None)
+        if conflict is not None:
+            return conflict
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        self.get_queryset()
+        conflict = getattr(self, '_device_conflict_response', None)
+        if conflict is not None:
+            return conflict
+        return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         contest = self._get_contest()
