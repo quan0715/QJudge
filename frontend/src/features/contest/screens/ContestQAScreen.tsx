@@ -32,9 +32,7 @@ const ContestQAScreen: React.FC<ContestQAScreenProps> = ({ maxWidth }) => {
               </p>
               <ContestClarifications
                 contestId={contest.id}
-                isTeacherOrAdmin={["teacher", "admin"].includes(
-                  contest.currentUserRole || ""
-                )}
+                isTeacherOrAdmin={contest.permissions?.canManageClarifications ?? false}
                 problems={contest.problems}
                 contestStatus={contest.status}
                 contestEndTime={contest.endTime}

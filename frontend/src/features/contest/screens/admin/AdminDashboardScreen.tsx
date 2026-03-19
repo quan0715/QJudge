@@ -56,6 +56,18 @@ const AdminDashboardInner = () => {
   const { contest, loading, refreshContest } = useContest();
   const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
   const { triggerPanelRefresh } = useAdminPanelRefresh();
+
+  // Redirect non-owner/co-owner users away from admin dashboard
+  useEffect(() => {
+    if (
+      !loading &&
+      contest &&
+      contest.permissions &&
+      !contest.permissions.canEditContest
+    ) {
+      navigate(`/contests/${contestId}`, { replace: true });
+    }
+  }, [loading, contest, contestId, navigate]);
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
