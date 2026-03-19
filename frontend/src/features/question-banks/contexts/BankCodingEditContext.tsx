@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useMemo, type ReactNode } from "react";
+import React, { useCallback, useMemo, type ReactNode } from "react";
 import { useFormContext, type FieldErrors } from "react-hook-form";
 import { useBankCodingAutoSave } from "@/features/question-banks/hooks/useBankCodingAutoSave";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
@@ -6,7 +6,6 @@ import { SECTION_FIELDS, type SectionId } from "@/features/problems/forms/proble
 import type {
   ProblemEditContextValue,
   SectionValidation,
-  SectionValidationState,
 } from "@/features/problems/contexts/ProblemEditContext";
 import ProblemEditContext from "@/features/problems/contexts/ProblemEditContext";
 import type { FieldSaveState } from "@/features/problems/hooks/useAutoSave";

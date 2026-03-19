@@ -75,24 +75,24 @@ export default function AdminDashboardLayout({
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
 
-  const navItems: NavItem[] = availablePanels
-    .map((id) => {
-      const item = NAV_ITEMS[id];
-      if (!item) return null;
-      const { labelKey, examLabelKey, icon } = item;
-      const label =
-        examMode && examLabelKey
-          ? t(`adminLayout.nav.${examLabelKey}`)
-          : t(`adminLayout.nav.${labelKey}`);
-      return {
-        id,
+  const navItems: NavItem[] = availablePanels.flatMap((id) => {
+    const item = NAV_ITEMS[id];
+    if (!item) return [];
+    const { labelKey, examLabelKey, icon } = item;
+    const label =
+      examMode && examLabelKey
+        ? t(`adminLayout.nav.${examLabelKey}`)
+        : t(`adminLayout.nav.${labelKey}`);
+    return [
+      {
+        id: id as string,
         icon,
         label,
         isActive: activePanel === id,
         onClick: () => onPanelChange(id),
-      };
-    })
-    .filter((item): item is NavItem => item != null);
+      },
+    ];
+  });
 
   return (
     <AdminShellLayout

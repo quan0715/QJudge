@@ -5,8 +5,6 @@ import {
   TITLE_STYLE,
   DESC_STYLE,
   Section as SharedSection,
-  FieldRow as SharedFieldRow,
-  ActionRow as SharedActionRow,
   settingsPanelStyles as s,
 } from "@/shared/layout/SettingsPanel";
 

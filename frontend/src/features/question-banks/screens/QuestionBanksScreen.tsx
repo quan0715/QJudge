@@ -18,7 +18,6 @@ import {
   TextInput,
   Select,
   SelectItem,
-  InlineNotification,
   Tag,
 } from "@carbon/react";
 import {
@@ -56,11 +55,6 @@ const INBOX_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
   true_false: styles.iconToneTrueFalse,
   short_answer: styles.iconToneShortAnswer,
   essay: styles.iconToneEssay,
-};
-
-const getInboxToneClass = (item: QuestionInboxItem): string => {
-  const { tone } = getQuestionVisualFromInboxItem(item, "colored");
-  return INBOX_ICON_TONE_CLASS_MAP[tone || "coding"];
 };
 
 interface BankGalleryCardProps {

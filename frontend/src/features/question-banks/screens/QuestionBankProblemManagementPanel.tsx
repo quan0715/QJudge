@@ -11,7 +11,6 @@ import {
   SelectItem,
   Stack,
   Tag,
-  TextInput,
   Tile,
 } from "@carbon/react";
 import {
@@ -20,8 +19,6 @@ import {
   CheckmarkFilled,
   Download,
   Filter,
-  TrashCan,
-  Copy,
 } from "@carbon/icons-react";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";

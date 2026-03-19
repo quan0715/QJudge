@@ -3,7 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import { debounce } from "@/shared/utils/debounce";
 import { updateQuestion } from "@/infrastructure/api/repositories/questionBank.repository";
 import type { UseAutoSaveReturn, FieldSaveState, FieldSaveStatus, GlobalSaveStatus } from "@/features/problems/hooks/useAutoSave";
-import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { buildBankCodingPatchPayload } from "@/features/question-banks/adapters/bankCodingFormAdapters";
 
 export type { FieldSaveState, FieldSaveStatus, GlobalSaveStatus };

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@carbon/react";
@@ -20,7 +20,6 @@ import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/comp
 import ProblemEditPreviewModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal";
 import {
   ProblemEditUIProvider,
-  useProblemEditUI,
 } from "@/features/problems/screens/problemsIdEdit/contexts/ProblemEditUIContext";
 import {
   BASE_SECTIONS,
