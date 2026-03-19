@@ -4,7 +4,7 @@ Serializers for user authentication and profile management.
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, UserProfile, UserAPIKey
+from .models import User, UserLoginRecord, UserProfile, UserAPIKey
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -305,6 +305,23 @@ class ResetPasswordSerializer(serializers.Serializer):
             })
 
         return attrs
+
+
+class UserLoginRecordSerializer(serializers.ModelSerializer):
+    """Read-only serializer for login history entries."""
+
+    class Meta:
+        model = UserLoginRecord
+        fields = [
+            'id',
+            'device_id',
+            'ip_address',
+            'user_agent',
+            'login_method',
+            'created_at',
+            'is_current',
+        ]
+        read_only_fields = fields
 
 
 class SetAPIKeySerializer(serializers.Serializer):

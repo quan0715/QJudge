@@ -12,7 +12,6 @@ import { useTranslation } from "react-i18next";
 import {
   getOAuthUrl,
   login,
-  resolveConflict,
 } from "@/infrastructure/api/repositories/auth.repository";
 
 const LoginPage = () => {
@@ -36,36 +35,19 @@ const LoginPage = () => {
         setError(t("auth.login.failed"));
       }
     } catch (err: any) {
-      const conflictCode = err?.response?.data?.code;
-      const conflictToken = err?.response?.data?.conflict_token;
-      if (conflictCode === "EXAM_CONFLICT_ACTIVE_SESSION" && conflictToken) {
-        const accepted = window.confirm(
-          "偵測到你有進行中的考試。是否要接管並鎖定舊裝置作答狀態？"
+      const errorCode = err?.response?.data?.code;
+      if (errorCode === "EXAM_LOGIN_BLOCKED") {
+        const exam = err.response.data.active_exam;
+        setError(
+          `考試「${exam?.contest_name || ""}」進行中，無法從其他裝置登入。` +
+          `請回到原裝置完成考試後再試。`
         );
-        if (accepted) {
-          try {
-            const takeover = await resolveConflict({
-              conflict_token: conflictToken,
-              action: "takeover_lock",
-            });
-            if (takeover.success) {
-              localStorage.setItem("user", JSON.stringify(takeover.data.user));
-              window.location.href = "/dashboard";
-              return;
-            }
-          } catch (resolveError: any) {
-            setError(
-              resolveError?.response?.data?.error?.message ||
-                "接管失敗，請聯繫監考老師。"
-            );
-            return;
-          }
-        }
-        setError("請回到原裝置完成考試，或請監考老師協助。");
         return;
       }
       if (err.response?.data?.error?.message) {
         setError(err.response.data.error.message);
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
       } else {
         setError(t("auth.login.invalidCredentials"));
       }

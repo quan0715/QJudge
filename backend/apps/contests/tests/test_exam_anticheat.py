@@ -220,7 +220,16 @@ class ExamAntiCheatTests(APITestCase):
             },
         }
 
-        response = self.client.post(self.events_url, payload, format="json")
+        response = self.client.post(
+            self.events_url,
+            payload,
+            format="json",
+            HTTP_X_DEVICE_ID="device-ipad-1",
+            HTTP_USER_AGENT=(
+                "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
+                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            ),
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
@@ -233,6 +242,9 @@ class ExamAntiCheatTests(APITestCase):
         )
         self.assertEqual(event.metadata["forced_capture_result"], "uploaded")
         self.assertEqual(event.metadata["upload_session_id"], "session-entered-1")
+        self.assertEqual(event.metadata["device_id"], "device-ipad-1")
+        self.assertEqual(event.metadata["device_kind"], "tablet")
+        self.assertIn("iPad", event.metadata["user_agent"])
 
     def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
         self.client.force_authenticate(user=self.student)
@@ -524,7 +536,7 @@ class ExamAntiCheatTests(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_compile.assert_called_once_with(self.participant.id, "session-manual-1")
+        mock_compile.assert_called_once_with(self.participant.id, "session-manual-1", "screen_share")
 
     def test_owner_can_delete_exam_video_and_pending_job(self):
         job = ExamEvidenceJob.objects.create(

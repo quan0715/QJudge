@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport } from "@carbon/icons-react";
+import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport, VideoOff, FitToScreen } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamModeState } from "@/core/entities/contest.entity";
 
@@ -25,6 +25,14 @@ interface ExamModalsProps {
   isRequestingScreenShare?: boolean;
   isSubmittingFromScreenShareLoss?: boolean;
   onScreenShareReacquire?: () => void;
+  webcamRecoveryCountdown?: number | null;
+  isSubmittingFromWebcamLoss?: boolean;
+  isRequestingWebcam?: boolean;
+  onWebcamReacquire?: () => void;
+  webcamModuleRole?: "primary" | "secondary" | null;
+  viewportRecoveryCountdown?: number | null;
+  isSubmittingFromViewportLoss?: boolean;
+  isTablet?: boolean;
   showAutoSubmitNotice?: boolean;
   onAutoSubmitReturnToDashboard?: () => void;
 }
@@ -50,12 +58,22 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   isRequestingScreenShare = false,
   isSubmittingFromScreenShareLoss = false,
   onScreenShareReacquire,
+  webcamRecoveryCountdown,
+  isSubmittingFromWebcamLoss = false,
+  isRequestingWebcam = false,
+  onWebcamReacquire,
+  webcamModuleRole,
+  viewportRecoveryCountdown,
+  isSubmittingFromViewportLoss = false,
+  isTablet = false,
   showAutoSubmitNotice = false,
   onAutoSubmitReturnToDashboard,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const isLocked = !!(lastApiResponse?.locked || lastApiResponse?.isLocked);
+  const warningCloseCooldownActive =
+    !pendingApiResponse && !isLocked && warningCountdown != null && warningCountdown > 0;
   const withButtonTestId = (testId: string, label: React.ReactNode) => (
     <span data-testid={testId}>{label}</span>
   );
@@ -71,11 +89,13 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           "exam-warning-confirm-btn",
           pendingApiResponse
             ? t("exam.processing")
+            : warningCloseCooldownActive
+            ? t("exam.warningCloseCooling", { defaultValue: "請等待倒數結束" })
             : isLocked
             ? tc("button.confirm")
             : t("exam.iUnderstand")
         )}
-        primaryButtonDisabled={pendingApiResponse}
+        primaryButtonDisabled={pendingApiResponse || warningCloseCooldownActive}
         onRequestSubmit={onWarningClose}
         onRequestClose={onWarningClose}
         preventCloseOnClickOutside
@@ -156,7 +176,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             {t("exam.stayInExamPage")}
           </p>
 
-          {/* Auto-lock countdown */}
+          {/* Warning close cooldown */}
           {warningCountdown != null && warningCountdown > 0 && !pendingApiResponse && !isLocked && (
             <p
               data-testid="exam-warning-countdown"
@@ -164,10 +184,13 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
                 marginBottom: "1rem",
                 fontSize: "0.875rem",
                 fontWeight: 600,
-                color: "var(--cds-support-error)",
+                color: "var(--cds-support-warning)",
               }}
             >
-              {t("exam.autoLockIn", { seconds: warningCountdown })}
+              {t("exam.warningCloseIn", {
+                defaultValue: "可在 {{seconds}} 秒後關閉警告",
+                seconds: warningCountdown,
+              })}
             </p>
           )}
 
@@ -256,6 +279,15 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               {t("exam.zeroChanceWarning")}
             </p>
           )}
+          <p
+            style={{
+              marginTop: "0.5rem",
+              color: "var(--cds-text-secondary)",
+              fontSize: "0.75rem",
+            }}
+          >
+            {t("exam.monitoringStillActive", { defaultValue: "關閉警告後仍持續監控。" })}
+          </p>
         </div>
       </Modal>
 
@@ -475,6 +507,109 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               }}
             >
               {t("exam.screenShareTimeoutWarning")}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Webcam Recovery Modal */}
+      <Modal
+        data-testid="exam-webcam-recovery-modal"
+        open={webcamRecoveryCountdown != null}
+        modalHeading={t("exam.webcamLostTitle", "Webcam 連線中斷")}
+        primaryButtonText={withButtonTestId(
+          "exam-webcam-recovery-btn",
+          isSubmittingFromWebcamLoss
+            ? t("exam.submittingExam")
+            : isRequestingWebcam
+            ? t("exam.requestingWebcam", "正在請求 Webcam…")
+            : t("exam.reauthorizeWebcam", "重新授權 Webcam")
+        )}
+        primaryButtonDisabled={isRequestingWebcam || isSubmittingFromWebcamLoss}
+        onRequestSubmit={onWebcamReacquire}
+        preventCloseOnClickOutside
+        danger
+        size="sm"
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div style={{ padding: "1rem", backgroundColor: "var(--cds-notification-background-error)", borderRadius: "50%", marginBottom: "1.5rem" }}>
+            <VideoOff size={40} style={{ color: "var(--cds-support-error)" }} />
+          </div>
+          <p style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--cds-text-primary)" }}>
+            {t("exam.webcamLostHeading", "Webcam 已停止運作")}
+          </p>
+          <p style={{ marginBottom: "1.5rem", fontSize: "0.875rem", color: "var(--cds-text-secondary)", lineHeight: 1.5 }}>
+            {t("exam.webcamLostDesc", "系統偵測到 Webcam 連線中斷，請確認攝影機未被其他程式佔用。")}
+          </p>
+          {webcamRecoveryCountdown != null && webcamRecoveryCountdown > 0 && (
+            <p style={{ marginBottom: "1rem", fontSize: "1.5rem", fontWeight: 600, color: "var(--cds-support-error)" }}>
+              {webcamModuleRole === "primary"
+                ? t("exam.webcamForceSubmitIn", {
+                    defaultValue: "將在 {{seconds}} 秒後自動交卷",
+                    seconds: webcamRecoveryCountdown,
+                  })
+                : t("exam.webcamStopIn", {
+                    defaultValue: "將在 {{seconds}} 秒後記錄違規",
+                    seconds: webcamRecoveryCountdown,
+                  })}
+            </p>
+          )}
+          {webcamModuleRole === "primary" && (
+            <div style={{ width: "100%", padding: "0.75rem 1rem", backgroundColor: "var(--cds-notification-background-error)", textAlign: "center" }}>
+              <p style={{ fontSize: "0.875rem", color: "var(--cds-support-error)", margin: 0, fontWeight: 600 }}>
+                {t("exam.webcamTimeoutWarning", "若未在時限內恢復 Webcam，系統將自動交卷。")}
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Viewport / Split View Recovery Modal */}
+      <Modal
+        data-testid="exam-viewport-recovery-modal"
+        open={viewportRecoveryCountdown != null}
+        modalHeading={
+          isTablet
+            ? t("exam.splitViewDetectedTitle", "偵測到分割畫面")
+            : t("exam.viewportInterruptedTitle", "視窗大小異常")
+        }
+        primaryButtonText={withButtonTestId(
+          "exam-viewport-recovery-btn",
+          isSubmittingFromViewportLoss
+            ? t("exam.submittingExam")
+            : t("exam.iUnderstand")
+        )}
+        primaryButtonDisabled={isSubmittingFromViewportLoss}
+        onRequestSubmit={() => {}}
+        preventCloseOnClickOutside
+        danger
+        size="sm"
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div style={{ padding: "1rem", backgroundColor: "var(--cds-notification-background-error)", borderRadius: "50%", marginBottom: "1.5rem" }}>
+            <FitToScreen size={40} style={{ color: "var(--cds-support-error)" }} />
+          </div>
+          <p style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--cds-text-primary)" }}>
+            {isTablet
+              ? t("exam.splitViewDetectedHeading", "請關閉 Split View / Slide Over")
+              : t("exam.viewportInterruptedHeading", "請恢復考試視窗大小")}
+          </p>
+          <p style={{ marginBottom: "1.5rem", fontSize: "0.875rem", color: "var(--cds-text-secondary)", lineHeight: 1.5 }}>
+            {isTablet
+              ? t("exam.splitViewDetectedDesc", "考試期間不允許使用分割畫面或 Slide Over，請關閉後繼續作答。")
+              : t("exam.viewportInterruptedDesc", "系統偵測到視窗大小或縮放異常，請恢復原始大小。")}
+          </p>
+          {viewportRecoveryCountdown != null && viewportRecoveryCountdown > 0 && (
+            <p style={{ marginBottom: "1rem", fontSize: "1.5rem", fontWeight: 600, color: "var(--cds-support-error)" }}>
+              {t("exam.viewportForceSubmitIn", {
+                defaultValue: "將在 {{seconds}} 秒後自動交卷",
+                seconds: viewportRecoveryCountdown,
+              })}
+            </p>
+          )}
+          <div style={{ width: "100%", padding: "0.75rem 1rem", backgroundColor: "var(--cds-notification-background-error)", textAlign: "center" }}>
+            <p style={{ fontSize: "0.875rem", color: "var(--cds-support-error)", margin: 0, fontWeight: 600 }}>
+              {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將自動交卷。")}
             </p>
           </div>
         </div>

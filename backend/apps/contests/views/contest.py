@@ -147,7 +147,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         return super().handle_exception(exc)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        user = self.request.user
+        if not (user.is_staff or user.is_superuser or getattr(user, 'role', None) in ('teacher', 'admin')):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only teachers and admins can create contests.')
+        serializer.save(owner=user)
 
     def perform_update(self, serializer):
         """

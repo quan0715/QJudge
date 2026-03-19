@@ -107,6 +107,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'visibility',
             'contest_type',
             'cheat_detection_enabled',
+            'anticheat_device_policy',
+            'warning_timeout_seconds',
             'scoreboard_visible_during_contest',
             'owner_username',
             'created_at',
@@ -328,6 +330,8 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'password',
             'contest_type',
             'cheat_detection_enabled',
+            'anticheat_device_policy',
+            'warning_timeout_seconds',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
             'max_cheat_warnings',
@@ -715,6 +719,7 @@ class ExamEventCreateSerializer(serializers.ModelSerializer):
 
 
 class AnticheatUrlsQuerySerializer(serializers.Serializer):
+    MODULE_CHOICES = ("screen_share", "webcam")
     count = serializers.IntegerField(required=False, min_value=1, max_value=300, default=30)
     upload_session_id = serializers.RegexField(
         required=False,
@@ -723,6 +728,7 @@ class AnticheatUrlsQuerySerializer(serializers.Serializer):
         regex=r"^[A-Za-z0-9_-]+$",
     )
     start_seq = serializers.IntegerField(required=False, min_value=1, default=1)
+    module = serializers.ChoiceField(required=False, choices=MODULE_CHOICES, default="screen_share")
 
 
 class ActiveSessionClearSerializer(serializers.Serializer):
@@ -754,6 +760,7 @@ class ExamEvidenceVideoSerializer(serializers.ModelSerializer):
             "id",
             "participant_user_id",
             "participant_username",
+            "source_module",
             "upload_session_id",
             "bucket",
             "object_key",

@@ -5,17 +5,15 @@ import {
   Button,
   Tag,
   Loading,
-  Tooltip,
   Modal,
   InlineNotification,
 } from "@carbon/react";
 import {
   ChevronLeft,
-  Time,
   SendFilled,
-  Recording,
   CheckmarkFilled,
 } from "@carbon/icons-react";
+import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
@@ -41,12 +39,26 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
+import {
+  buildExamEntryDeviceMetadata,
+  detectAnticheatCapability,
+  resolveDeviceMonitoringPlan,
+} from "@/features/contest/domain/anticheatModulePolicy";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const capability = useMemo(() => detectAnticheatCapability(), []);
+  const monitoringPlan = useMemo(
+    () => resolveDeviceMonitoringPlan(capability, contest?.anticheatDevicePolicy),
+    [capability, contest?.anticheatDevicePolicy]
+  );
+  const examEntryDeviceMetadata = useMemo(
+    () => buildExamEntryDeviceMetadata(capability, monitoringPlan),
+    [capability, monitoringPlan]
+  );
   const submitProgress = useExamSubmissionProgress();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
@@ -206,12 +218,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
       forceCaptureReason: "exam_entered:paper_exam_answering",
       metadata: {
         upload_session_id: anticheatUploadSessionId || undefined,
+        ...examEntryDeviceMetadata,
       },
     }).catch(() => null);
   }, [
     anticheatUploadSessionId,
     contest,
     contestId,
+    examEntryDeviceMetadata,
     precheckPassed,
   ]);
 
@@ -323,16 +337,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
               onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
             />
             <span className={styles.title}>{contest?.name ?? t("common:page.contests")}</span>
-            {contest?.cheatDetectionEnabled && (
-              <Tooltip label={t("answering.status.monitoringTooltip")} align="bottom" autoAlign>
-                <Tag size="sm" type="cool-gray" renderIcon={Recording}>
-                  {t("answering.status.monitoring")}
-                </Tag>
-              </Tooltip>
-            )}
-            {!isInProgress && (
-              <Tag size="sm" type="red">{t("answering.status.notStarted")}</Tag>
-            )}
           </>
         )}
         toolbarCenter={(
@@ -342,10 +346,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
                 {saveStatusLabel}
               </span>
             )}
-            <div className={styles.timer}>
-              <Time size={16} />
-              <span className={styles.timerText}>{countdown.display}</span>
-            </div>
+            <ExamStatusBadge
+              examStatus={contest?.examStatus}
+              cheatDetectionEnabled={contest?.cheatDetectionEnabled}
+              timeLeft={countdown.display}
+              lockReason={contest?.lockReason}
+              autoUnlockAt={contest?.autoUnlockAt}
+            />
             <Button
               kind="primary"
               data-testid="paper-exam-open-submit-review-btn"

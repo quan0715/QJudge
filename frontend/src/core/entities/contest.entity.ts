@@ -17,7 +17,17 @@ export type ExamViolationType =
   | "warning_timeout"
   | "force_submit_locked"
   | "screen_share_stopped"
+  | "screen_share_interrupted"
+  | "screen_share_restored"
   | "screen_share_invalid_surface"
+  | "webcam_interrupted"
+  | "webcam_restored"
+  | "webcam_stopped"
+  | "webcam_quality_degraded"
+  | "viewport_interrupted"
+  | "viewport_restored"
+  | "viewport_stopped"
+  | "split_view_detected"
   | "capture_upload_degraded"
   | "exam_entered"
   | "exam_submit_initiated"
@@ -207,6 +217,7 @@ export interface ParticipantCodingTrendPoint {
 export interface ParticipantEvidenceRow {
   id: number;
   uploadSessionId: string;
+  sourceModule?: "screen_share" | "webcam";
   hasVideo: boolean;
   jobStatus: "pending" | "running" | "success" | "failed";
   jobErrorMessage: string;
@@ -302,6 +313,8 @@ export interface ContestDetail extends Contest {
 
   // Cheat detection
   cheatDetectionEnabled: boolean;
+  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
+  warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest: boolean;
 
   // Anonymous mode
@@ -367,6 +380,47 @@ export interface AnticheatConfigSettingDescriptor {
   description: string;
 }
 
+export type AnticheatDeviceKind = "desktop" | "tablet";
+export type AnticheatSourceKind = "screenShare" | "webcam";
+export type AnticheatDetectorKind =
+  | "pwaMode"
+  | "fullscreen"
+  | "focus"
+  | "tabVisibility"
+  | "multiDisplay"
+  | "mouseLeave"
+  | "viewportIntegrity";
+
+export interface ContestAnticheatSourcePolicy {
+  enabled: boolean;
+  required: boolean;
+  captureIntervalSeconds: number;
+}
+
+export interface ContestAnticheatDetectorPolicy {
+  pwaMode: boolean;
+  fullscreen: boolean;
+  focus: boolean;
+  tabVisibility: boolean;
+  multiDisplay: boolean;
+  mouseLeave: boolean;
+  viewportIntegrity: boolean;
+}
+
+export interface ContestAnticheatDevicePolicyItem {
+  enabled: boolean;
+  sources: {
+    screenShare: ContestAnticheatSourcePolicy;
+    webcam: ContestAnticheatSourcePolicy;
+  };
+  detectors: ContestAnticheatDetectorPolicy;
+}
+
+export interface ContestAnticheatDevicePolicy {
+  desktop: ContestAnticheatDevicePolicyItem;
+  tablet: ContestAnticheatDevicePolicyItem;
+}
+
 export interface ContestAnticheatEffectiveConfig {
   captureIntervalSeconds: number;
   captureUploadMaxRetries: number;
@@ -381,6 +435,8 @@ export interface ContestAnticheatEffectiveConfig {
   monitoringRecoveryGraceMs: number;
   mouseLeaveCooldownMs: number;
   screenShareRecoveryGraceMs: number;
+  webcamRecoveryGraceMs: number;
+  webcamCaptureIntervalSeconds: number;
   multiDisplayCheckIntervalMs: number;
   multiDisplayReportCooldownMs: number;
   presignedUrlTtlSeconds: number;
@@ -390,6 +446,7 @@ export interface ContestAnticheatEffectiveConfig {
   allowAutoUnlock: boolean;
   autoUnlockMinutes: number;
   contestType: ContestType;
+  anticheatDevicePolicy: ContestAnticheatDevicePolicy;
 }
 
 export interface ContestAnticheatConfig {
@@ -402,6 +459,7 @@ export interface ContestAnticheatConfig {
     | "allowAutoUnlock"
     | "autoUnlockMinutes"
     | "contestType"
+    | "anticheatDevicePolicy"
   >;
   contestSettings: Pick<
     ContestAnticheatEffectiveConfig,
@@ -411,8 +469,11 @@ export interface ContestAnticheatConfig {
     | "allowAutoUnlock"
     | "autoUnlockMinutes"
     | "contestType"
+    | "warningTimeoutSeconds"
+    | "anticheatDevicePolicy"
   >;
   effective: ContestAnticheatEffectiveConfig;
+  devicePolicy: ContestAnticheatDevicePolicy;
   frontendControlledSettings: {
     global: AnticheatConfigSettingDescriptor[];
     contest: AnticheatConfigSettingDescriptor[];
@@ -537,6 +598,8 @@ export interface ContestUpdateRequest {
   visibility?: ContestVisibility;
   password?: string;
   cheatDetectionEnabled?: boolean;
+  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
+  warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;

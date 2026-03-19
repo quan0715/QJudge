@@ -235,9 +235,9 @@ class DraftContestAccessTests(APITestCase):
 
         # Check that draft contest is not in the list
         contest_ids = [c['id'] for c in response.data['results']]
-        self.assertNotIn(self.draft_contest.id, contest_ids)
+        self.assertNotIn(str(self.draft_contest.id), contest_ids)
         # But active contest should be there
-        self.assertIn(self.active_contest.id, contest_ids)
+        self.assertIn(str(self.active_contest.id), contest_ids)
 
     def test_owner_sees_draft_contest_in_manage_list(self):
         """Owner should see their draft contests in manage list."""
@@ -248,7 +248,7 @@ class DraftContestAccessTests(APITestCase):
 
         # Owner should see draft contest
         contest_ids = [c['id'] for c in response.data['results']]
-        self.assertIn(self.draft_contest.id, contest_ids)
+        self.assertIn(str(self.draft_contest.id), contest_ids)
 
 
 class ContestNotStartedAccessTests(APITestCase):
@@ -457,7 +457,7 @@ class ArchivedContestAccessTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contest_ids = [c['id'] for c in response.data['results']]
-        self.assertNotIn(self.archived_contest.id, contest_ids)
+        self.assertNotIn(str(self.archived_contest.id), contest_ids)
 
     def test_archived_contest_visible_in_participated_list(self):
         """Archived contests should appear in participated contest list."""
@@ -466,4 +466,4 @@ class ArchivedContestAccessTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contest_ids = [c['id'] for c in response.data['results']]
-        self.assertIn(self.archived_contest.id, contest_ids)
+        self.assertIn(str(self.archived_contest.id), contest_ids)

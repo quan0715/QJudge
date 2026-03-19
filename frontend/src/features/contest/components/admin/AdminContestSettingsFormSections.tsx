@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { useRef, useEffect, type ChangeEvent } from "react";
 import type { TFunction } from "i18next";
 import {
   TextInput,
@@ -77,6 +77,180 @@ const AdminContestSettingsFormSections = ({
   onStartMeridiemChange,
   onEndMeridiemChange,
 }: AdminContestSettingsFormSectionsProps) => {
+  const defaultPolicy = {
+    desktop: {
+      enabled: true,
+      sources: {
+        screenShare: { enabled: true, required: true, captureIntervalSeconds: 5 },
+        webcam: { enabled: false, required: false, captureIntervalSeconds: 10 },
+      },
+      detectors: {
+        pwaMode: false,
+        fullscreen: true,
+        focus: true,
+        tabVisibility: true,
+        multiDisplay: true,
+        mouseLeave: true,
+        viewportIntegrity: false,
+      },
+    },
+    tablet: {
+      enabled: true,
+      sources: {
+        screenShare: { enabled: false, required: false, captureIntervalSeconds: 5 },
+        webcam: { enabled: true, required: true, captureIntervalSeconds: 10 },
+      },
+      detectors: {
+        pwaMode: true,
+        fullscreen: false,
+        focus: true,
+        tabVisibility: true,
+        multiDisplay: false,
+        mouseLeave: true,
+        viewportIntegrity: true,
+      },
+    },
+  };
+
+  const normalizeSource = (
+    source: unknown,
+    fallback: typeof defaultPolicy.desktop.sources.screenShare
+  ) => {
+    const sourceObj =
+      source && typeof source === "object" && !Array.isArray(source)
+        ? (source as Record<string, unknown>)
+        : {};
+    const intervalRaw =
+      sourceObj.captureIntervalSeconds ??
+      sourceObj.capture_interval_seconds ??
+      fallback.captureIntervalSeconds;
+    const interval = Number(intervalRaw);
+    return {
+      enabled: typeof sourceObj.enabled === "boolean" ? sourceObj.enabled : fallback.enabled,
+      required: typeof sourceObj.required === "boolean" ? sourceObj.required : fallback.required,
+      captureIntervalSeconds:
+        Number.isFinite(interval) && interval > 0
+          ? Math.floor(interval)
+          : fallback.captureIntervalSeconds,
+    };
+  };
+
+  const normalizeDetectors = (
+    detectors: unknown,
+    fallback: typeof defaultPolicy.desktop.detectors
+  ) => {
+    const detectorsObj =
+      detectors && typeof detectors === "object" && !Array.isArray(detectors)
+        ? (detectors as Record<string, unknown>)
+        : {};
+    return {
+      pwaMode:
+        typeof detectorsObj.pwaMode === "boolean"
+          ? detectorsObj.pwaMode
+          : typeof detectorsObj.pwa_mode === "boolean"
+          ? (detectorsObj.pwa_mode as boolean)
+          : fallback.pwaMode,
+      fullscreen:
+        typeof detectorsObj.fullscreen === "boolean"
+          ? detectorsObj.fullscreen
+          : fallback.fullscreen,
+      focus: typeof detectorsObj.focus === "boolean" ? detectorsObj.focus : fallback.focus,
+      tabVisibility:
+        typeof detectorsObj.tabVisibility === "boolean"
+          ? detectorsObj.tabVisibility
+          : typeof detectorsObj.tab_visibility === "boolean"
+          ? (detectorsObj.tab_visibility as boolean)
+          : fallback.tabVisibility,
+      multiDisplay:
+        typeof detectorsObj.multiDisplay === "boolean"
+          ? detectorsObj.multiDisplay
+          : typeof detectorsObj.multi_display === "boolean"
+          ? (detectorsObj.multi_display as boolean)
+          : fallback.multiDisplay,
+      mouseLeave:
+        typeof detectorsObj.mouseLeave === "boolean"
+          ? detectorsObj.mouseLeave
+          : typeof detectorsObj.mouse_leave === "boolean"
+          ? (detectorsObj.mouse_leave as boolean)
+          : fallback.mouseLeave,
+      viewportIntegrity:
+        typeof detectorsObj.viewportIntegrity === "boolean"
+          ? detectorsObj.viewportIntegrity
+          : typeof detectorsObj.viewport_integrity === "boolean"
+          ? (detectorsObj.viewport_integrity as boolean)
+          : fallback.viewportIntegrity,
+    };
+  };
+
+  const normalizeDevice = (
+    device: unknown,
+    fallback: typeof defaultPolicy.desktop
+  ) => {
+    const deviceObj =
+      device && typeof device === "object" && !Array.isArray(device)
+        ? (device as Record<string, unknown>)
+        : {};
+    const sourcesObj =
+      deviceObj.sources && typeof deviceObj.sources === "object" && !Array.isArray(deviceObj.sources)
+        ? (deviceObj.sources as Record<string, unknown>)
+        : {};
+    return {
+      enabled: typeof deviceObj.enabled === "boolean" ? deviceObj.enabled : fallback.enabled,
+      sources: {
+        screenShare: normalizeSource(
+          sourcesObj.screenShare ?? sourcesObj.screen_share,
+          fallback.sources.screenShare
+        ),
+        webcam: normalizeSource(sourcesObj.webcam, fallback.sources.webcam),
+      },
+      detectors: normalizeDetectors(deviceObj.detectors, fallback.detectors),
+    };
+  };
+
+  const rawPolicy =
+    form.anticheatDevicePolicy &&
+    typeof form.anticheatDevicePolicy === "object" &&
+    !Array.isArray(form.anticheatDevicePolicy)
+      ? (form.anticheatDevicePolicy as Record<string, unknown>)
+      : {};
+
+  const anticheatPolicy = {
+    desktop: normalizeDevice(rawPolicy.desktop, defaultPolicy.desktop),
+    tablet: normalizeDevice(rawPolicy.tablet, defaultPolicy.tablet),
+  };
+
+  // Use a ref to track the latest policy and avoid stale closures during rapid updates
+  const policyRef = useRef(anticheatPolicy);
+  useEffect(() => {
+    policyRef.current = anticheatPolicy;
+  }, [anticheatPolicy]);
+
+  // Use a stable reference for the updater to prevent unnecessary re-renders or stale closures
+  const updateDevicePolicy = (mutator: (next: typeof defaultPolicy) => void) => {
+    try {
+      // Always base the next state on the latest known value in the ref
+      const next = JSON.parse(JSON.stringify(policyRef.current)) as typeof defaultPolicy;
+      
+      mutator(next);
+
+      // Enforce allowed detector matrix to avoid hidden-but-active settings.
+      if (next.desktop?.detectors) {
+        next.desktop.detectors.pwaMode = false;
+        next.desktop.detectors.viewportIntegrity = false;
+      }
+      if (next.tablet?.detectors) {
+        next.tablet.detectors.fullscreen = false;
+        next.tablet.detectors.multiDisplay = false;
+      }
+
+      // Important: update the ref immediately so subsequent rapid calls use the new base
+      policyRef.current = next;
+      onChange("anticheatDevicePolicy", next);
+    } catch (e) {
+      console.error("Failed to update anticheat policy:", e);
+    }
+  };
+
   return (
     <>
       <Section title="基本資訊">
@@ -339,6 +513,220 @@ const AdminContestSettingsFormSections = ({
 
         {(form.cheatDetectionEnabled as boolean) && (
           <>
+            <ActionRow
+              label={t("settings.warningCooldown")}
+              description="偵測到違規後警告視窗需強制停留的時間，逾時未確認將視為持續違規"
+              saveState={getState("warningTimeoutSeconds")}
+              onRetry={() => onRetry("warningTimeoutSeconds")}
+            >
+              <NumberInput
+                id="settings-warning-timeout-seconds"
+                label=""
+                hideLabel
+                min={1}
+                max={120}
+                value={(form.warningTimeoutSeconds as number) ?? 20}
+                onChange={(_event, { value }) =>
+                  onChange("warningTimeoutSeconds", Math.max(1, Number(value || 20)))
+                }
+                style={{ maxWidth: 140 }}
+              />
+            </ActionRow>
+
+            {(["desktop", "tablet"] as const).map((deviceKey) => {
+              const deviceLabel = deviceKey === "desktop" ? "Desktop / Laptop" : "Tablet / iPad";
+              const devicePolicy = anticheatPolicy[deviceKey];
+              const isEnabled = devicePolicy.enabled;
+
+              return (
+                <div key={deviceKey} style={{ marginTop: "1.5rem", marginBottom: "2rem" }}>
+                  <div
+                    style={{
+                      borderBottom: "1px solid var(--cds-border-subtle)",
+                      paddingBottom: "0.5rem",
+                      marginBottom: "1rem",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                    }}
+                  >
+                    <h5 style={{ fontWeight: 600, color: "var(--cds-text-primary)" }}>
+                      {t(`settings.anticheat.${deviceKey}Label` as any, deviceLabel)}
+                    </h5>
+                  </div>
+
+                  <ActionRow
+                    label="裝置啟用"
+                    description={
+                      isEnabled
+                        ? t("settings.anticheat.enabledDesc", { device: deviceLabel })
+                        : t("settings.anticheat.disabledDesc", { device: deviceLabel })
+                    }
+                    saveState={getState("anticheatDevicePolicy")}
+                    onRetry={() => onRetry("anticheatDevicePolicy")}
+                  >
+                    <Toggle
+                      id={`settings-${deviceKey}-enabled`}
+                      labelText=""
+                      hideLabel
+                      labelA={tc("toggle.off")}
+                      labelB={tc("toggle.on")}
+                      toggled={isEnabled}
+                      onToggle={(checked) =>
+                        updateDevicePolicy((next) => {
+                          next[deviceKey].enabled = checked;
+                        })
+                      }
+                      size="sm"
+                    />
+                  </ActionRow>
+
+                  {isEnabled && (
+                    <div style={{ marginTop: "1rem", paddingLeft: "1rem", borderLeft: "2px solid var(--cds-border-subtle)" }}>
+                      <p style={{ 
+                        fontSize: "0.75rem", 
+                        fontWeight: 600, 
+                        color: "var(--cds-text-secondary)", 
+                        marginBottom: "1rem",
+                        marginTop: "1.5rem",
+                        textTransform: "uppercase" 
+                      }}>
+                        {t("settings.anticheat.monitoringSources")}
+                      </p>
+
+                      {(["screenShare", "webcam"] as const).map((sourceKey) => {
+                        const sourceLabel = t(`settings.anticheat.${sourceKey}` as any, sourceKey === "screenShare" ? "螢幕監控" : "視訊監控");
+                        const sourcePolicy = devicePolicy.sources[sourceKey];
+                        return (
+                          <div key={`${deviceKey}-${sourceKey}`} style={{ marginBottom: "1rem" }}>
+                            <FieldRow
+                              label={sourceLabel}
+                              description={t(`settings.anticheat.${sourceKey}Desc` as any, "")}
+                            >
+                              <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                                <Toggle
+                                  id={`settings-${deviceKey}-${sourceKey}-enabled`}
+                                  labelText={t("settings.anticheat.enableMonitoring")}
+                                  toggled={sourcePolicy.enabled}
+                                  onToggle={(checked) =>
+                                    updateDevicePolicy((next) => {
+                                      next[deviceKey].sources[sourceKey].enabled = checked;
+                                    })
+                                  }
+                                  size="sm"
+                                />
+                                <Toggle
+                                  id={`settings-${deviceKey}-${sourceKey}-required`}
+                                  labelText={t("settings.anticheat.forceEnable")}
+                                  toggled={sourcePolicy.required}
+                                  onToggle={(checked) =>
+                                    updateDevicePolicy((next) => {
+                                      next[deviceKey].sources[sourceKey].required = checked;
+                                    })
+                                  }
+                                  size="sm"
+                                  disabled={!sourcePolicy.enabled}
+                                />
+                                <div style={{ width: "120px" }}>
+                                  <NumberInput
+                                    id={`settings-${deviceKey}-${sourceKey}-interval`}
+                                    label={t("settings.anticheat.captureInterval")}
+                                    min={1}
+                                    max={60}
+                                    value={sourcePolicy.captureIntervalSeconds}
+                                    onChange={(_event, { value }) =>
+                                      updateDevicePolicy((next) => {
+                                        next[deviceKey].sources[sourceKey].captureIntervalSeconds = Math.max(
+                                          1,
+                                          Number(value || 1)
+                                        );
+                                      })
+                                    }
+                                    size="sm"
+                                    disabled={!sourcePolicy.enabled}
+                                  />
+                                </div>
+                              </div>
+                            </FieldRow>
+                          </div>
+                        );
+                      })}
+
+                      <p style={{ 
+                        fontSize: "0.75rem", 
+                        fontWeight: 600, 
+                        color: "var(--cds-text-secondary)", 
+                        marginBottom: "1rem",
+                        marginTop: "2rem",
+                        textTransform: "uppercase" 
+                      }}>
+                        {t("settings.anticheat.securityDetectors")}
+                      </p>
+                      
+                      <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "1fr 1fr", 
+                        gap: "1.5rem 2.5rem",
+                        paddingBottom: "1rem"
+                      }}>
+                        {(
+                          deviceKey === "desktop"
+                            ? ([
+                                ["fullscreen", "全螢幕監控"],
+                                ["focus", "焦點偵測"],
+                                ["tabVisibility", "分頁切換偵測"],
+                                ["multiDisplay", "多螢幕偵測"],
+                                ["mouseLeave", "滑鼠追蹤"],
+                              ] as const)
+                            : ([
+                                ["pwaMode", "PWA 模式"],
+                                ["focus", "焦點偵測"],
+                                ["tabVisibility", "分頁切換偵測"],
+                                ["mouseLeave", "滑鼠追蹤"],
+                                ["viewportIntegrity", "視窗完整性"],
+                              ] as const)
+                        ).map(([detectorKey, detectorLabel]) => (
+                          <div 
+                            key={`${deviceKey}-${detectorKey}`} 
+                            style={{ 
+                              display: "flex", 
+                              justifyContent: "space-between", 
+                              alignItems: "flex-start",
+                              padding: "0.5rem 0",
+                              borderBottom: "1px solid var(--cds-border-subtle)"
+                            }}
+                          >
+                            <div style={{ paddingRight: "1rem" }}>
+                              <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--cds-text-primary)" }}>
+                                {t(`settings.anticheat.detectors.${detectorKey}` as any, detectorLabel)}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "var(--cds-text-helper)", marginTop: "0.25rem" }}>
+                                {t(`settings.anticheat.detectors.${detectorKey}Desc` as any, "")}
+                              </div>
+                            </div>
+                            <Toggle
+                              id={`settings-${deviceKey}-${detectorKey}`}
+                              labelText=""
+                              hideLabel
+                              labelA=""
+                              labelB=""
+                              toggled={devicePolicy.detectors[detectorKey]}
+                              onToggle={(checked) =>
+                                updateDevicePolicy((next) => {
+                                  next[deviceKey].detectors[detectorKey] = checked;
+                                })
+                              }
+                              size="sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
             <ActionRow
               label={t("settings.allowMultipleJoins")}
               description="允許同一學生多次加入考試（例如斷線重連）"

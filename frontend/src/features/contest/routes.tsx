@@ -1,4 +1,5 @@
-import { Route, Navigate } from "react-router-dom";
+import { Route } from "react-router";
+import { Navigate } from "react-router-dom";
 import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
 import { ContestProvider } from "./contexts/ContestContext";

@@ -1,6 +1,7 @@
 """
 Models for contests and exams.
 """
+import uuid as uuid_lib
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, identify_hasher, make_password
@@ -11,11 +12,67 @@ from .managers import ContestQuerySet
 User = get_user_model()
 
 
+def default_anticheat_device_policy():
+    """Default anti-cheat device policy (desktop/tablet)."""
+    return {
+        "desktop": {
+            "enabled": True,
+            "sources": {
+                "screen_share": {
+                    "enabled": True,
+                    "required": True,
+                    "capture_interval_seconds": 5,
+                },
+                "webcam": {
+                    "enabled": False,
+                    "required": False,
+                    "capture_interval_seconds": 10,
+                },
+            },
+            "detectors": {
+                "pwa_mode": False,
+                "fullscreen": True,
+                "focus": True,
+                "tab_visibility": True,
+                "multi_display": True,
+                "mouse_leave": True,
+                "viewport_integrity": False,
+            },
+        },
+        "tablet": {
+            "enabled": True,
+            "sources": {
+                "screen_share": {
+                    "enabled": False,
+                    "required": False,
+                    "capture_interval_seconds": 5,
+                },
+                "webcam": {
+                    "enabled": True,
+                    "required": True,
+                    "capture_interval_seconds": 10,
+                },
+            },
+            "detectors": {
+                "pwa_mode": True,
+                "fullscreen": False,
+                "focus": True,
+                "tab_visibility": True,
+                "multi_display": False,
+                "mouse_leave": True,
+                "viewport_integrity": True,
+            },
+        },
+    }
+
+
 class Contest(models.Model):
     """
     Contest or Exam model.
     Supports both competition and exam modes with flexible creation flow.
     """
+    id = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
+
     # Basic info - name is the only required field for creation
     name = models.CharField(max_length=255, blank=True, default='', verbose_name='名稱')
     description = models.TextField(blank=True, verbose_name='描述')
@@ -88,6 +145,16 @@ class Contest(models.Model):
         default=False,
         verbose_name='啟用防作弊模式',
         help_text='啟用全螢幕與防失焦的嚴格防作弊模式'
+    )
+    anticheat_device_policy = models.JSONField(
+        default=default_anticheat_device_policy,
+        verbose_name='防作弊裝置策略',
+        help_text='依裝置定義 sources/detectors 的監考策略'
+    )
+    warning_timeout_seconds = models.PositiveIntegerField(
+        default=20,
+        verbose_name='警告框冷卻秒數',
+        help_text='警告框顯示後，需等待幾秒才可手動關閉'
     )
     
     # Scoreboard settings
@@ -492,6 +559,14 @@ class ExamEvent(models.Model):
         ('screen_share_interrupted', 'Screen Share Interrupted'),
         ('screen_share_restored', 'Screen Share Restored'),
         ('screen_share_invalid_surface', 'Screen Share Invalid Surface'),
+        ('webcam_interrupted', 'Webcam Interrupted'),
+        ('webcam_restored', 'Webcam Restored'),
+        ('webcam_stopped', 'Webcam Stopped'),
+        ('webcam_quality_degraded', 'Webcam Quality Degraded'),
+        ('viewport_interrupted', 'Viewport Interrupted'),
+        ('viewport_restored', 'Viewport Restored'),
+        ('viewport_stopped', 'Viewport Stopped'),
+        ('split_view_detected', 'Split View Detected'),
         ('capture_upload_degraded', 'Capture Upload Degraded'),
         ('exam_entered', 'Exam Entered'),
         ('exam_submit_initiated', 'Exam Submit Initiated'),
@@ -661,6 +736,7 @@ class ExamEvidenceJob(models.Model):
         on_delete=models.CASCADE,
         related_name="evidence_jobs",
     )
+    source_module = models.CharField(max_length=32, default="screen_share", blank=True)
     upload_session_id = models.CharField(max_length=64, default="", blank=True)
     status = models.CharField(
         max_length=20,
@@ -681,8 +757,8 @@ class ExamEvidenceJob(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["contest", "participant", "upload_session_id"],
-                name="uniq_evidence_job_contest_participant_session",
+                fields=["contest", "participant", "source_module", "upload_session_id"],
+                name="uniq_evidence_job_contest_participant_module_session",
             )
         ]
         indexes = [
@@ -711,6 +787,7 @@ class ExamEvidenceVideo(models.Model):
         on_delete=models.CASCADE,
         related_name="evidence_videos",
     )
+    source_module = models.CharField(max_length=32, default="screen_share", blank=True)
     upload_session_id = models.CharField(max_length=64, default="", blank=True)
     bucket = models.CharField(max_length=128)
     object_key = models.CharField(max_length=512)

@@ -1,4 +1,4 @@
-import { Route } from "react-router-dom";
+import { Route } from "react-router";
 import AnnouncementManagementScreen from "./screens/AnnouncementManagementScreen";
 import EnvironmentScreen from "./screens/EnvironmentScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";

@@ -25,6 +25,7 @@ from ..services.anticheat_storage import generate_get_url, get_s3_client
 from ..services.exam_submission import (
     enqueue_compile_video,
     ensure_evidence_job,
+    normalize_source_module,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,18 +114,23 @@ class ExamEvidenceMixin:
         if user_id:
             jobs_qs = jobs_qs.filter(participant__user_id=user_id)
 
-        jobs_by_key: dict[tuple[int, str], ExamEvidenceJob] = {}
+        jobs_by_key: dict[tuple[int, str, str], ExamEvidenceJob] = {}
         for job in jobs_qs.order_by("-created_at"):
-            key = (job.participant.user_id, job.upload_session_id or "default")
+            key = (
+                job.participant.user_id,
+                job.upload_session_id or "default",
+                job.source_module or "screen_share",
+            )
             jobs_by_key.setdefault(key, job)
 
         rows: list[dict] = []
-        existing_keys: set[tuple[int, str]] = set()
+        existing_keys: set[tuple[int, str, str]] = set()
         serialized_videos = ExamEvidenceVideoSerializer(qs, many=True).data
         for row in serialized_videos:
             participant_user_id = int(row.get("participant_user_id"))
             upload_session_id = str(row.get("upload_session_id") or "default")
-            key = (participant_user_id, upload_session_id)
+            source_module = str(row.get("source_module") or "screen_share")
+            key = (participant_user_id, upload_session_id, source_module)
             existing_keys.add(key)
             matched_job = jobs_by_key.get(key)
 
@@ -145,7 +151,8 @@ class ExamEvidenceMixin:
 
         if not flagged_only:
             for job in jobs_qs.order_by("-created_at"):
-                key = (job.participant.user_id, job.upload_session_id or "default")
+                source_module = job.source_module or "screen_share"
+                key = (job.participant.user_id, job.upload_session_id or "default", source_module)
                 if key in existing_keys:
                     continue
                 rows.append(
@@ -154,6 +161,7 @@ class ExamEvidenceMixin:
                         "job_id": job.id,
                         "participant_user_id": job.participant.user_id,
                         "participant_username": job.participant.user.username,
+                        "source_module": source_module,
                         "upload_session_id": job.upload_session_id or "default",
                         "bucket": "",
                         "object_key": "",
@@ -259,6 +267,7 @@ class ExamEvidenceMixin:
             except (TypeError, ValueError):
                 continue
             upload_session_id = str(target.get("upload_session_id") or "").strip() or "default"
+            source_module = normalize_source_module(target.get("source_module"))
             participant = ContestParticipant.objects.filter(
                 contest=contest,
                 user_id=user_id,
@@ -269,6 +278,7 @@ class ExamEvidenceMixin:
             running_exists = ExamEvidenceJob.objects.filter(
                 contest=contest,
                 participant=participant,
+                source_module=source_module,
                 upload_session_id=upload_session_id,
                 status="running",
             ).exists()
@@ -276,6 +286,7 @@ class ExamEvidenceMixin:
                 blocked.append(
                     {
                         "user_id": participant.user_id,
+                        "source_module": source_module,
                         "upload_session_id": upload_session_id,
                         "reason": "running",
                     }
@@ -285,16 +296,21 @@ class ExamEvidenceMixin:
             videos_qs = ExamEvidenceVideo.objects.filter(
                 contest=contest,
                 participant=participant,
+                source_module=source_module,
                 upload_session_id=upload_session_id,
             )
             jobs_qs = ExamEvidenceJob.objects.filter(
                 contest=contest,
                 participant=participant,
+                source_module=source_module,
                 upload_session_id=upload_session_id,
             )
 
             if upload_session_id != "default":
-                raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/session_{upload_session_id}/"
+                raw_prefix = (
+                    f"contest_{contest.id}/user_{participant.user_id}/"
+                    f"session_{upload_session_id}/{source_module}/"
+                )
             else:
                 raw_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
             raw_keys = self._safe_list_raw_evidence_keys(
@@ -313,6 +329,7 @@ class ExamEvidenceMixin:
             deleted.append(
                 {
                     "user_id": participant.user_id,
+                    "source_module": source_module,
                     "upload_session_id": upload_session_id,
                 }
             )
@@ -328,6 +345,7 @@ class ExamEvidenceMixin:
           - ts_from: lower bound timestamp in ms (inclusive)
           - ts_to: upper bound timestamp in ms (inclusive)
           - upload_session_id: specific session (default: all sessions)
+          - source_module: "screen_share" or "webcam" (default: all modules)
           - limit: max frames to return (default 20, max 50)
         """
         contest = get_object_or_404(Contest, id=contest_pk)
@@ -350,6 +368,8 @@ class ExamEvidenceMixin:
             return Response({"error": "participant not found"}, status=status.HTTP_404_NOT_FOUND)
 
         upload_session_id = (request.query_params.get("upload_session_id") or "").strip()
+        source_module_raw = (request.query_params.get("source_module") or "").strip()
+        source_module = normalize_source_module(source_module_raw) if source_module_raw else ""
         ts_from = _parse_int_param(request.query_params.get("ts_from"))
         ts_to = _parse_int_param(request.query_params.get("ts_to"))
         limit = min(_parse_int_param(request.query_params.get("limit")) or 20, 50)
@@ -369,22 +389,37 @@ class ExamEvidenceMixin:
             raw_keys = []
             storage_error = True
 
-        ts_re = re.compile(r"/ts_(\d+)_seq_(\d+)\.webp$")
+        # New keys include module segment:
+        # .../session_<id>/<module>/ts_<ms>_seq_<n>.webp
+        ts_with_module_re = re.compile(r"/session_[^/]+/([^/]+)/ts_(\d+)_seq_(\d+)\.webp$")
+        # Legacy fallback (pre-module split):
+        # .../ts_<ms>_seq_<n>.webp
+        ts_legacy_re = re.compile(r"/ts_(\d+)_seq_(\d+)\.webp$")
         frames = []
         for key in raw_keys:
-            m = ts_re.search(key)
-            if not m:
+            module = "screen_share"
+            m = ts_with_module_re.search(key)
+            if m:
+                module = m.group(1)
+                ts_ms = int(m.group(2))
+                seq = int(m.group(3))
+            else:
+                m_legacy = ts_legacy_re.search(key)
+                if not m_legacy:
+                    continue
+                ts_ms = int(m_legacy.group(1))
+                seq = int(m_legacy.group(2))
+            if source_module and module != source_module:
                 continue
-            ts_ms = int(m.group(1))
-            seq = int(m.group(2))
             if ts_from is not None and ts_ms < ts_from:
                 continue
             if ts_to is not None and ts_ms > ts_to:
                 continue
-            frames.append({"key": key, "ts_ms": ts_ms, "seq": seq})
+            frames.append({"key": key, "ts_ms": ts_ms, "seq": seq, "source_module": module})
 
         # Sort newest first, then apply limit
         frames.sort(key=lambda f: f["ts_ms"], reverse=True)
+        total_filtered_count = len(frames)
         frames = frames[:limit]
 
         # Generate presigned GET URLs
@@ -395,10 +430,11 @@ class ExamEvidenceMixin:
                 "url": url,
                 "ts_ms": frame["ts_ms"],
                 "seq": frame["seq"],
+                "source_module": frame["source_module"],
                 "expires_in": 120,
             })
 
-        return Response({"items": items, "total_raw_count": len(raw_keys), "storage_error": storage_error})
+        return Response({"items": items, "total_raw_count": total_filtered_count, "storage_error": storage_error})
 
     @action(detail=False, methods=["post"], url_path=r"videos/compile")
     def video_compile(self, request, contest_pk=None):
@@ -419,16 +455,18 @@ class ExamEvidenceMixin:
             except (TypeError, ValueError):
                 continue
             upload_session_id = str(target.get("upload_session_id") or "").strip() or "default"
+            source_module = normalize_source_module(target.get("source_module"))
             participant = ContestParticipant.objects.filter(
                 contest=contest,
                 user_id=user_id,
             ).first()
             if not participant:
                 continue
-            ensure_evidence_job(participant, upload_session_id)
-            enqueue_compile_video(participant.id, upload_session_id)
+            ensure_evidence_job(participant, upload_session_id, source_module)
+            enqueue_compile_video(participant.id, upload_session_id, source_module)
             queued.append({
                 "user_id": participant.user_id,
                 "upload_session_id": upload_session_id,
+                "source_module": source_module,
             })
         return Response({"queued": queued})

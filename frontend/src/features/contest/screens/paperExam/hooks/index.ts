@@ -1,6 +1,7 @@
 export { useCountdownTo } from "./useCountdownTo";
 export { useScrollDirection } from "./useScrollDirection";
 export { useAnticheatScreenCapture } from "./useAnticheatScreenCapture";
+export { useAnticheatWebcamCapture } from "./useAnticheatWebcamCapture";
 export { usePaperExamQuestions } from "./usePaperExamQuestions";
 export { usePaperExamSaveOnLeave, type SaveStatus } from "./usePaperExamSaveOnLeave";
 export {

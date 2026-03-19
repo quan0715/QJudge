@@ -47,6 +47,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("global_defaults", resp.data)
         self.assertIn("contest_settings", resp.data)
         self.assertIn("effective", resp.data)
+        self.assertIn("device_policy", resp.data)
         self.assertIn("frontend_controlled_settings", resp.data)
         self.assertIn("global", resp.data["frontend_controlled_settings"])
         self.assertIn("contest", resp.data["frontend_controlled_settings"])
@@ -58,6 +59,17 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertTrue(contest_settings["allow_auto_unlock"])
         self.assertEqual(contest_settings["auto_unlock_minutes"], 7)
         self.assertEqual(contest_settings["contest_type"], "paper_exam")
+        self.assertIn("warning_timeout_seconds", contest_settings)
+        self.assertEqual(contest_settings["warning_timeout_seconds"], 20)
+        self.assertIn("anticheat_device_policy", contest_settings)
+
+        device_policy = resp.data["device_policy"]
+        self.assertIn("desktop", device_policy)
+        self.assertIn("tablet", device_policy)
+        self.assertIn("sources", device_policy["desktop"])
+        self.assertIn("screen_share", device_policy["desktop"]["sources"])
+        self.assertIn("detectors", device_policy["tablet"])
+        self.assertIn("viewport_integrity", device_policy["tablet"]["detectors"])
 
         global_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["global"]}
         contest_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["contest"]}
@@ -66,6 +78,8 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("presigned_url_ttl_seconds", global_setting_keys)
         self.assertIn("cheat_detection_enabled", contest_setting_keys)
         self.assertIn("max_cheat_warnings", contest_setting_keys)
+        self.assertIn("warning_timeout_seconds", contest_setting_keys)
+        self.assertIn("anticheat_device_policy", contest_setting_keys)
 
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")

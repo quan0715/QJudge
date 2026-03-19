@@ -86,6 +86,7 @@ def get_contest_permissions(user, contest):
             'can_publish_problems': True,
             'can_view_all_submissions': True,
             'can_view_full_scoreboard': True,
+            'can_manage_clarifications': True,
         }
 
     # Owner has full permissions
@@ -98,6 +99,7 @@ def get_contest_permissions(user, contest):
             'can_publish_problems': True,
             'can_view_all_submissions': True,
             'can_view_full_scoreboard': True,
+            'can_manage_clarifications': True,
         }
 
     # Co-admin (teacher) can manage content but not lifecycle
@@ -110,8 +112,9 @@ def get_contest_permissions(user, contest):
             'can_publish_problems': True,
             'can_view_all_submissions': True,
             'can_view_full_scoreboard': True,
+            'can_manage_clarifications': True,
         }
-    
+
     # Student permissions are more restricted
     # Scoreboard visibility depends on contest settings and status
     has_ended = bool(contest.end_time and timezone.now() > contest.end_time)
@@ -119,7 +122,7 @@ def get_contest_permissions(user, contest):
         contest.scoreboard_visible_during_contest or
         has_ended
     )
-    
+
     return {
         'can_switch_view': False,
         'can_edit_contest': False,
@@ -128,6 +131,7 @@ def get_contest_permissions(user, contest):
         'can_publish_problems': False,
         'can_view_all_submissions': False,
         'can_view_full_scoreboard': can_view_scoreboard,
+        'can_manage_clarifications': False,
     }
 
 

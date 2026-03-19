@@ -112,27 +112,26 @@
 
 .examStatusLocked {
   composes: examStatusBase;
-  background-color: var(--cds-support-error);
-  color: var(--cds-text-on-color);
+  background-color: color-mix(in srgb, var(--cds-support-error) 12%, transparent);
+  color: var(--cds-support-error);
 }
 
 .examStatusPaused {
   composes: examStatusBase;
-  background-color: var(--cds-support-warning);
-  color: var(--cds-text-primary);
+  background-color: color-mix(in srgb, var(--cds-support-warning) 15%, transparent);
+  color: var(--cds-support-warning);
 }
 
 .examStatusInProgress {
   composes: examStatusBase;
-  background-color: var(--cds-support-success);
-  color: var(--cds-text-on-color);
+  background-color: color-mix(in srgb, var(--cds-support-success) 12%, transparent);
+  color: var(--cds-support-success);
   cursor: pointer;
 }
 
 .examTimeDisplay {
   font-family: var(--cds-code-font-family, monospace);
   margin-left: 0.5rem;
-  opacity: 0.9;
 }
 
 // Exit button

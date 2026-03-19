@@ -12,12 +12,9 @@ import {
 import {
   Maximize,
   Minimize,
-  View,
   Logout,
   Time,
   Renew,
-  Locked,
-  WarningAltFilled,
   Settings,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +25,7 @@ import ContestTabs from "@/features/contest/components/layout/ContestTabs";
 import { ContentPage } from "@/shared/layout/ContentPage";
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
+import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import ContestExitModal from "@/features/contest/components/layout/ContestExitModal";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
@@ -129,51 +127,17 @@ const ContestLayout = () => {
     return null;
   }
 
-  const renderExamStatus = () => {
-    if (!contest?.cheatDetectionEnabled) return null;
-
-    if (contest.examStatus === "locked") {
-      const title = `${contest.lockReason || t("exam.lockedReason")}${
-        contest.autoUnlockAt
-          ? `\n${t("exam.expectedUnlock")}: ${new Date(contest.autoUnlockAt).toLocaleTimeString()}`
-          : `\n${t("exam.contactProctor")}`
-      }`;
-      return (
-        <div title={title} className={styles.examStatusLocked}>
-          <Locked size={16} />
-          <span>{t("exam.locked")}</span>
-          {unlockTimeLeft && (
-            <span className={styles.examTimeDisplay}>{unlockTimeLeft}</span>
-          )}
-        </div>
-      );
-    }
-
-    if (contest.examStatus === "paused") {
-      return (
-        <div title={t("exam.pausedHint")} className={styles.examStatusPaused}>
-          <WarningAltFilled size={16} />
-          <span>{t("exam.paused")}</span>
-        </div>
-      );
-    }
-
-    if (contest.examStatus === "in_progress") {
-      return (
-        <div
-          title={t("exam.monitoringHint")}
-          onClick={() => setMonitoringModalOpen(true)}
-          className={styles.examStatusInProgress}
-        >
-          <View size={16} />
-          <span>{t("exam.monitoring")}</span>
-          <span className={styles.examTimeDisplay}>{timeLeft}</span>
-        </div>
-      );
-    }
-
-    return null;
-  };
+  const renderExamStatus = () => (
+    <ExamStatusBadge
+      examStatus={contest?.examStatus}
+      cheatDetectionEnabled={contest?.cheatDetectionEnabled}
+      timeLeft={timeLeft}
+      unlockTimeLeft={unlockTimeLeft}
+      lockReason={contest?.lockReason}
+      autoUnlockAt={contest?.autoUnlockAt}
+      onClick={() => setMonitoringModalOpen(true)}
+    />
+  );
 
   const renderMainContent = () => {
     const outletContent = (

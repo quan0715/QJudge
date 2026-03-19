@@ -121,6 +121,25 @@
   "precheck": {
     "title": "Exam Pre-check",
     "description": "To ensure fairness, please complete the environment and eligibility checks before entering the exam room. Failure to pass necessary checks will restrict your access.",
+    "entryDevice": {
+      "title": "Entry Device",
+      "summary": "You will enter this exam with {{device}} ({{mode}}).",
+      "sources": "Monitoring sources: {{sources}}",
+      "kind": {
+        "desktop": "Desktop / Laptop",
+        "tablet": "Tablet",
+        "ipad": "Tablet (iPad)"
+      },
+      "mode": {
+        "pwa": "PWA mode",
+        "browser": "Browser tab mode"
+      },
+      "source": {
+        "screenShare": "Screen share",
+        "webcam": "Webcam",
+        "none": "No source enabled"
+      }
+    },
     "backToDashboard": "Back to Dashboard",
     "steps": {
       "eligibility": "Eligibility",

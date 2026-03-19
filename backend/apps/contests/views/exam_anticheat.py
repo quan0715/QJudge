@@ -21,6 +21,7 @@ from ..serializers import (
 )
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
+    build_device_conflict_response,
     clear_active_session,
     get_active_session,
     get_device_id,
@@ -35,6 +36,7 @@ from ..services.anticheat_storage import (
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
 from apps.core.throttles import ExamAnticheatUrlsThrottle
+from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 
 
 class ExamAnticheatMixin:
@@ -53,21 +55,11 @@ class ExamAnticheatMixin:
         }
 
     def _ensure_active_device_session(self, contest, participant, request):
-        device_id = get_device_id(request)
-        active = get_active_session(contest.id, participant.user_id)
-        if active and active.get("device_id") and active.get("device_id") != device_id:
-            ExamEvent.objects.create(
-                contest=contest,
-                user=participant.user,
-                event_type="concurrent_login_detected",
-                metadata={
-                    "existing_device_id": active.get("device_id"),
-                    "incoming_device_id": device_id,
-                    "source": "exam_api",
-                },
-            )
-            return Response(self._conflict_payload(contest, participant), status=status.HTTP_409_CONFLICT)
-        set_active_session(contest, participant, request, device_id)
+        """Delegate to the shared helper, then refresh the active session."""
+        conflict = build_device_conflict_response(contest, participant, request)
+        if conflict is not None:
+            return conflict
+        set_active_session(contest, participant, request, get_device_id(request))
         return None
 
     @action(
@@ -100,8 +92,12 @@ class ExamAnticheatMixin:
 
         query_serializer = AnticheatUrlsQuerySerializer(data=request.query_params)
         query_serializer.is_valid(raise_exception=True)
+        module = str(query_serializer.validated_data.get("module") or "screen_share")
         count = query_serializer.validated_data["count"]
-        interval = settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS
+        if module == "webcam":
+            interval = WEBCAM_CAPTURE_INTERVAL_SECONDS
+        else:
+            interval = settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS
         max_safe_count = max(1, settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS // interval - 10)
         count = min(count, max_safe_count)
 
@@ -120,6 +116,7 @@ class ExamAnticheatMixin:
                 upload_session_id=upload_session_id,
                 ts_ms=ts_ms,
                 seq=seq,
+                module=module,
             )
             put_url = generate_put_url(
                 settings.ANTICHEAT_RAW_BUCKET,
@@ -130,6 +127,7 @@ class ExamAnticheatMixin:
                 {
                     "seq": seq,
                     "object_key": object_key,
+                    "module": module,
                     "put_url": put_url,
                     "required_headers": {
                         "Content-Type": "image/webp",
@@ -141,8 +139,9 @@ class ExamAnticheatMixin:
         return Response(
             {
                 "upload_session_id": upload_session_id,
+                "module": module,
                 "expires_at": timezone.now() + timedelta(seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
-                "interval_seconds": settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS,
+                "interval_seconds": interval,
                 "next_seq": start_seq + count,
                 "throttle_scope": "exam_anticheat_urls",
                 "server_time": timezone.now(),

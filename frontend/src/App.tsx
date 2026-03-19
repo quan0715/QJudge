@@ -1,10 +1,9 @@
 import {
   BrowserRouter,
-  Routes,
-  Route,
   Navigate,
   useParams,
 } from "react-router-dom";
+import { Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import { HelmetProvider } from "react-helmet-async";

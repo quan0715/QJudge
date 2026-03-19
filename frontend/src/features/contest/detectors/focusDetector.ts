@@ -14,6 +14,11 @@ const INTERACTION_EVENTS = [
   "touchstart", "touchend", "focusin", "focusout", "input",
 ];
 
+interface FocusDetectorOptions {
+  enableFocus?: boolean;
+  enableTabVisibility?: boolean;
+}
+
 export class FocusDetector implements ExamDetector {
   readonly id = "focus" as const;
   readonly severity = "violation" as const;
@@ -33,9 +38,13 @@ export class FocusDetector implements ExamDetector {
   private isComposing = false;
   private lastCompositionEndAt = 0;
   private onInteractionCallbacks: Array<() => void> = [];
+  private enableFocus: boolean;
+  private enableTabVisibility: boolean;
 
-  constructor(t: TFunction) {
+  constructor(t: TFunction, options: FocusDetectorOptions = {}) {
     this.t = t;
+    this.enableFocus = options.enableFocus !== false;
+    this.enableTabVisibility = options.enableTabVisibility !== false;
   }
 
   /** Register a callback invoked on every user interaction (for display check). */
@@ -59,12 +68,15 @@ export class FocusDetector implements ExamDetector {
       }
       if (document.visibilityState === "hidden") {
         this.lastVisibilityHiddenAt = Date.now();
-        this.emitViolation("tab_hidden", this.t("exam.tabHidden"));
+        if (this.enableTabVisibility) {
+          this.emitViolation("tab_hidden", this.t("exam.tabHidden"));
+        }
       }
     });
 
     this.handleBlur = () => {
       if (this.isComposing) return;
+      if (!this.enableFocus) return;
       if (Date.now() - this.lastCompositionEndAt < IME_BLUR_GUARD_MS) return;
 
       const timeSinceInteraction = Date.now() - this.lastInteractionTime;

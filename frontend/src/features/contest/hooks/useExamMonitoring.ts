@@ -17,9 +17,19 @@ import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/r
 
 export type RecoverySource = "fullscreen" | "mouse-leave";
 
+export interface ExamMonitoringDetectorToggles {
+  fullscreen?: boolean;
+  focus?: boolean;
+  tabVisibility?: boolean;
+  multiDisplay?: boolean;
+  mouseLeave?: boolean;
+}
+
 interface UseExamMonitoringProps {
   contestId?: string;
   enabled: boolean;
+  enforceFullscreen?: boolean;
+  detectorPolicy?: ExamMonitoringDetectorToggles;
   onViolation: (eventType: string, reason: string) => Promise<void> | void;
   onBlockedAction?: (message: string) => void;
   onRecoveryCountdownChange?: (secondsLeft: number | null, source: RecoverySource) => void;
@@ -30,6 +40,8 @@ interface UseExamMonitoringProps {
 export function useExamMonitoring({
   contestId,
   enabled,
+  enforceFullscreen = true,
+  detectorPolicy,
   onViolation,
   onBlockedAction,
   onRecoveryCountdownChange,
@@ -51,6 +63,14 @@ export function useExamMonitoring({
   useEffect(() => {
     if (!enabled) return;
 
+    const detectorToggles: Required<ExamMonitoringDetectorToggles> = {
+      fullscreen: detectorPolicy?.fullscreen ?? true,
+      focus: detectorPolicy?.focus ?? true,
+      tabVisibility: detectorPolicy?.tabVisibility ?? true,
+      multiDisplay: detectorPolicy?.multiDisplay ?? true,
+      mouseLeave: detectorPolicy?.mouseLeave ?? true,
+    };
+
     const emitViolation = (eventType: string, message: string) =>
       Promise.resolve(onViolationRef.current(eventType, message)).catch(() => undefined);
 
@@ -71,31 +91,51 @@ export function useExamMonitoring({
     };
 
     // Wire up interaction-triggered display checks
-    const multiDisplayDetector = new MultiDisplayDetector(tRef.current);
-    const focusDetector = new FocusDetector(tRef.current);
+    const multiDisplayDetector = detectorToggles.multiDisplay
+      ? new MultiDisplayDetector(tRef.current)
+      : null;
+    const focusDetector =
+      detectorToggles.focus || detectorToggles.tabVisibility
+        ? new FocusDetector(tRef.current, {
+            enableFocus: detectorToggles.focus,
+            enableTabVisibility: detectorToggles.tabVisibility,
+          })
+        : null;
     let lastUserDisplayCheckAt = 0;
-    focusDetector.onInteraction(() => {
-      const now = Date.now();
-      if (now - lastUserDisplayCheckAt < EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS) return;
-      lastUserDisplayCheckAt = now;
-      multiDisplayDetector.triggerCheck();
-    });
+    if (focusDetector && multiDisplayDetector) {
+      focusDetector.onInteraction(() => {
+        const now = Date.now();
+        if (now - lastUserDisplayCheckAt < EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS) return;
+        lastUserDisplayCheckAt = now;
+        multiDisplayDetector.triggerCheck();
+      });
+    }
 
-    const detectors: ExamDetector[] = [
-      new FullscreenDetector(tRef.current, {
-        onCountdownChange: (s) => onRecoveryCountdownChangeRef.current?.(s, "fullscreen"),
-      }),
-      multiDisplayDetector,
-      focusDetector,
+    const activeDetectors: ExamDetector[] = [
+      ...(enforceFullscreen
+      && detectorToggles.fullscreen
+        ? [
+            new FullscreenDetector(tRef.current, {
+              onCountdownChange: (s: number | null) =>
+                onRecoveryCountdownChangeRef.current?.(s, "fullscreen"),
+            }),
+          ]
+        : []),
+      ...(multiDisplayDetector ? [multiDisplayDetector] : []),
+      ...(focusDetector ? [focusDetector] : []),
       new ClipboardDetector(tRef.current),
       new KeyboardShortcutDetector(tRef.current),
-      new MouseLeaveDetector(tRef.current, {
-        onCountdownChange: (s) => onRecoveryCountdownChangeRef.current?.(s, "mouse-leave"),
-      }),
+      ...(detectorToggles.mouseLeave
+        ? [
+            new MouseLeaveDetector(tRef.current, {
+              onCountdownChange: (s) => onRecoveryCountdownChangeRef.current?.(s, "mouse-leave"),
+            }),
+          ]
+        : []),
       new PopupGuardDetector(tRef.current),
     ];
 
-    detectors.forEach((d) => d.start(handleViolation));
+    activeDetectors.forEach((d) => d.start(handleViolation));
 
     // --- Listener integrity verification (every 10s) ---
     const VERIFY_INTERVAL_MS = 10_000;
@@ -104,7 +144,7 @@ export function useExamMonitoring({
         ? crypto.randomUUID()
         : Math.random().toString(36).substring(2, 15);
       const failed: string[] = [];
-      for (const d of detectors) {
+      for (const d of activeDetectors) {
         if (d.verifyIntegrity && !d.verifyIntegrity(token)) {
           failed.push(d.id);
         }
@@ -118,8 +158,8 @@ export function useExamMonitoring({
     }, VERIFY_INTERVAL_MS);
 
     return () => {
-      detectors.forEach((d) => d.stop());
+      activeDetectors.forEach((d) => d.stop());
       clearInterval(verifyTimer);
     };
-  }, [contestId, enabled]);
+  }, [contestId, enabled, enforceFullscreen, detectorPolicy]);
 }

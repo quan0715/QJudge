@@ -20,6 +20,7 @@ from ..serializers import (
     ExamQuestionStudentSerializer,
 )
 from ..permissions import can_manage_contest
+from ..services.anti_cheat_session import build_device_conflict_response
 from ..services.export_service import (
     ExportValidationError,
     build_paper_exam_sheet_response,
@@ -68,6 +69,20 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             return ExamQuestionSerializer
         return ExamQuestionStudentSerializer
 
+    def _check_student_device_guard(self):
+        """Run device guard for student read actions (list/retrieve).
+
+        Returns a conflict Response or None.  Called once per request
+        from list()/retrieve() *before* DRF hits get_queryset().
+        """
+        contest = self._get_contest()
+        if self._is_admin(contest):
+            return None
+        participant = contest.registrations.filter(user=self.request.user).first()
+        if not participant or participant.exam_status == ExamStatus.SUBMITTED:
+            return None
+        return build_device_conflict_response(contest, participant, self.request)
+
     def get_queryset(self):
         contest = self._get_contest()
         # Students can only list; admin check is enforced per-action for writes
@@ -83,6 +98,18 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
                 raise PermissionDenied('You must start the exam before viewing questions')
         return ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+
+    def list(self, request, *args, **kwargs):
+        conflict = self._check_student_device_guard()
+        if conflict is not None:
+            return conflict
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        conflict = self._check_student_device_guard()
+        if conflict is not None:
+            return conflict
+        return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         contest = self._get_contest()

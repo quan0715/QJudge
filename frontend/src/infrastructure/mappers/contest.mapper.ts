@@ -21,6 +21,7 @@ import type {
   ParticipantPaperReportOverviewRow,
   Clarification,
   ContestAnnouncement,
+  ContestAnticheatDevicePolicy,
   ContestAnticheatConfig,
   ContestOverviewMetrics,
 } from "@/core/entities/contest.entity";
@@ -66,6 +67,9 @@ export function mapContestDetailDto(dto: any): ContestDetail {
 
     contestType: dto.contest_type ?? "coding",
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
+    anticheatDevicePolicy: mapAnticheatDevicePolicyDto(dto.anticheat_device_policy),
+    warningTimeoutSeconds:
+      typeof dto.warning_timeout_seconds === "number" ? dto.warning_timeout_seconds : 20,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
     anonymousModeEnabled: !!dto.anonymous_mode_enabled,
 
@@ -114,6 +118,159 @@ export function mapContestDetailDto(dto: any): ContestDetail {
           username: a.username || "",
         }))
       : [],
+  };
+}
+
+const DEFAULT_ANTICHEAT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
+  desktop: {
+    enabled: true,
+    sources: {
+      screenShare: {
+        enabled: true,
+        required: true,
+        captureIntervalSeconds: 5,
+      },
+      webcam: {
+        enabled: false,
+        required: false,
+        captureIntervalSeconds: 10,
+      },
+    },
+    detectors: {
+      pwaMode: false,
+      fullscreen: true,
+      focus: true,
+      tabVisibility: true,
+      multiDisplay: true,
+      mouseLeave: true,
+      viewportIntegrity: false,
+    },
+  },
+  tablet: {
+    enabled: true,
+    sources: {
+      screenShare: {
+        enabled: false,
+        required: false,
+        captureIntervalSeconds: 5,
+      },
+      webcam: {
+        enabled: true,
+        required: true,
+        captureIntervalSeconds: 10,
+      },
+    },
+    detectors: {
+      pwaMode: true,
+      fullscreen: false,
+      focus: true,
+      tabVisibility: true,
+      multiDisplay: false,
+      mouseLeave: true,
+      viewportIntegrity: true,
+    },
+  },
+};
+
+export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDevicePolicy {
+  const root =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const parseSource = (
+    sourceValue: unknown,
+    fallback: { enabled: boolean; required: boolean; captureIntervalSeconds: number }
+  ) => {
+    const source =
+      sourceValue && typeof sourceValue === "object" && !Array.isArray(sourceValue)
+        ? (sourceValue as Record<string, unknown>)
+        : {};
+    return {
+      enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
+      required: typeof source.required === "boolean" ? source.required : fallback.required,
+      captureIntervalSeconds:
+        typeof source.capture_interval_seconds === "number"
+          ? source.capture_interval_seconds
+          : typeof source.captureIntervalSeconds === "number"
+          ? source.captureIntervalSeconds
+          : fallback.captureIntervalSeconds,
+    };
+  };
+
+  const parseDetectors = (
+    detectorValue: unknown,
+    fallback: ContestAnticheatDevicePolicy["desktop"]["detectors"]
+  ) => {
+    const detectors =
+      detectorValue && typeof detectorValue === "object" && !Array.isArray(detectorValue)
+        ? (detectorValue as Record<string, unknown>)
+        : {};
+    return {
+      pwaMode:
+        typeof detectors.pwa_mode === "boolean"
+          ? detectors.pwa_mode
+          : typeof detectors.pwaMode === "boolean"
+          ? detectors.pwaMode
+          : fallback.pwaMode,
+      fullscreen:
+        typeof detectors.fullscreen === "boolean" ? detectors.fullscreen : fallback.fullscreen,
+      focus: typeof detectors.focus === "boolean" ? detectors.focus : fallback.focus,
+      tabVisibility:
+        typeof detectors.tab_visibility === "boolean"
+          ? detectors.tab_visibility
+          : typeof detectors.tabVisibility === "boolean"
+          ? detectors.tabVisibility
+          : fallback.tabVisibility,
+      multiDisplay:
+        typeof detectors.multi_display === "boolean"
+          ? detectors.multi_display
+          : typeof detectors.multiDisplay === "boolean"
+          ? detectors.multiDisplay
+          : fallback.multiDisplay,
+      mouseLeave:
+        typeof detectors.mouse_leave === "boolean"
+          ? detectors.mouse_leave
+          : typeof detectors.mouseLeave === "boolean"
+          ? detectors.mouseLeave
+          : fallback.mouseLeave,
+      viewportIntegrity:
+        typeof detectors.viewport_integrity === "boolean"
+          ? detectors.viewport_integrity
+          : typeof detectors.viewportIntegrity === "boolean"
+          ? detectors.viewportIntegrity
+          : fallback.viewportIntegrity,
+    };
+  };
+
+  const parseDevice = (
+    key: "desktop" | "tablet",
+    fallback: ContestAnticheatDevicePolicy["desktop"]
+  ) => {
+    const item =
+      root[key] && typeof root[key] === "object" && !Array.isArray(root[key])
+        ? (root[key] as Record<string, unknown>)
+        : {};
+    const sources =
+      item.sources && typeof item.sources === "object" && !Array.isArray(item.sources)
+        ? (item.sources as Record<string, unknown>)
+        : {};
+    return {
+      enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
+      sources: {
+        screenShare: parseSource(
+          sources.screen_share ?? sources.screenShare,
+          fallback.sources.screenShare
+        ),
+        webcam: parseSource(sources.webcam, fallback.sources.webcam),
+      },
+      detectors: parseDetectors(item.detectors, fallback.detectors),
+    };
+  };
+
+  return {
+    desktop: parseDevice("desktop", DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop),
+    tablet: parseDevice("tablet", DEFAULT_ANTICHEAT_DEVICE_POLICY.tablet),
   };
 }
 
@@ -215,12 +372,15 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
     throw new Error("Invalid anti-cheat config payload: version must be a number");
   }
 
+  const rawDevicePolicy = root["device_policy"] ?? contestSettings["anticheat_device_policy"];
+  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(rawDevicePolicy);
+
   return {
     version,
     globalDefaults: {
       captureIntervalSeconds: ensureNumber(globalDefaults, "capture_interval_seconds", "global_defaults"),
       captureUploadMaxRetries: ensureNumber(globalDefaults, "capture_upload_max_retries", "global_defaults"),
-      warningTimeoutSeconds: ensureNumber(globalDefaults, "warning_timeout_seconds", "global_defaults"),
+      warningTimeoutSeconds: ensureNumber(effective, "warning_timeout_seconds", "effective"),
       forcedCaptureCooldownMs: ensureNumber(globalDefaults, "forced_capture_cooldown_ms", "global_defaults"),
       forcedCaptureP1CooldownMs: ensureNumber(globalDefaults, "forced_capture_p1_cooldown_ms", "global_defaults"),
       eventFeedAggregationWindowSeconds: ensureNumber(
@@ -255,6 +415,12 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "screen_share_recovery_grace_ms",
         "global_defaults"
       ),
+      webcamRecoveryGraceMs: ensureNumber(globalDefaults, "webcam_recovery_grace_ms", "global_defaults"),
+      webcamCaptureIntervalSeconds: ensureNumber(
+        globalDefaults,
+        "webcam_capture_interval_seconds",
+        "global_defaults"
+      ),
       multiDisplayCheckIntervalMs: ensureNumber(
         globalDefaults,
         "multi_display_check_interval_ms",
@@ -277,6 +443,10 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         ensureString(contestSettings, "contest_type", "contest_settings") === "paper_exam"
           ? "paper_exam"
           : "coding",
+      warningTimeoutSeconds: ensureNumber(contestSettings, "warning_timeout_seconds", "contest_settings"),
+      anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
+        contestSettings["anticheat_device_policy"]
+      ),
     },
     effective: {
       captureIntervalSeconds: ensureNumber(effective, "capture_interval_seconds", "effective"),
@@ -316,6 +486,12 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "screen_share_recovery_grace_ms",
         "effective"
       ),
+      webcamRecoveryGraceMs: ensureNumber(effective, "webcam_recovery_grace_ms", "effective"),
+      webcamCaptureIntervalSeconds: ensureNumber(
+        effective,
+        "webcam_capture_interval_seconds",
+        "effective"
+      ),
       multiDisplayCheckIntervalMs: ensureNumber(
         effective,
         "multi_display_check_interval_ms",
@@ -333,7 +509,11 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
       allowAutoUnlock: ensureBoolean(effective, "allow_auto_unlock", "effective"),
       autoUnlockMinutes: ensureNumber(effective, "auto_unlock_minutes", "effective"),
       contestType: ensureString(effective, "contest_type", "effective") === "paper_exam" ? "paper_exam" : "coding",
+      anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
+        effective["anticheat_device_policy"]
+      ),
     },
+    devicePolicy: parsedDevicePolicy,
     frontendControlledSettings: {
       global: rawGlobalSettings.map(mapSetting),
       contest: rawContestSettings.map(mapSetting),
@@ -462,6 +642,7 @@ const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
 const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
   id: Number(dto?.id ?? 0),
   uploadSessionId: dto?.upload_session_id || "default",
+  sourceModule: dto?.source_module === "webcam" ? "webcam" : "screen_share",
   hasVideo: !!dto?.has_video,
   jobStatus: dto?.job_status || "pending",
   jobErrorMessage: dto?.job_error_message || "",
@@ -679,6 +860,70 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
 }
 
 export function mapContestUpdateRequestToDto(request: any): any {
+  const anticheatDevicePolicy =
+    request.anticheatDevicePolicy != null
+      ? {
+          desktop: {
+            enabled: !!request.anticheatDevicePolicy.desktop?.enabled,
+            sources: {
+              screen_share: {
+                enabled: !!request.anticheatDevicePolicy.desktop?.sources?.screenShare?.enabled,
+                required: !!request.anticheatDevicePolicy.desktop?.sources?.screenShare?.required,
+                capture_interval_seconds:
+                  request.anticheatDevicePolicy.desktop?.sources?.screenShare
+                    ?.captureIntervalSeconds ?? 5,
+              },
+              webcam: {
+                enabled: !!request.anticheatDevicePolicy.desktop?.sources?.webcam?.enabled,
+                required: !!request.anticheatDevicePolicy.desktop?.sources?.webcam?.required,
+                capture_interval_seconds:
+                  request.anticheatDevicePolicy.desktop?.sources?.webcam?.captureIntervalSeconds ??
+                  10,
+              },
+            },
+            detectors: {
+              pwa_mode: !!request.anticheatDevicePolicy.desktop?.detectors?.pwaMode,
+              fullscreen: !!request.anticheatDevicePolicy.desktop?.detectors?.fullscreen,
+              focus: !!request.anticheatDevicePolicy.desktop?.detectors?.focus,
+              tab_visibility: !!request.anticheatDevicePolicy.desktop?.detectors?.tabVisibility,
+              multi_display: !!request.anticheatDevicePolicy.desktop?.detectors?.multiDisplay,
+              mouse_leave: !!request.anticheatDevicePolicy.desktop?.detectors?.mouseLeave,
+              viewport_integrity:
+                !!request.anticheatDevicePolicy.desktop?.detectors?.viewportIntegrity,
+            },
+          },
+          tablet: {
+            enabled: !!request.anticheatDevicePolicy.tablet?.enabled,
+            sources: {
+              screen_share: {
+                enabled: !!request.anticheatDevicePolicy.tablet?.sources?.screenShare?.enabled,
+                required: !!request.anticheatDevicePolicy.tablet?.sources?.screenShare?.required,
+                capture_interval_seconds:
+                  request.anticheatDevicePolicy.tablet?.sources?.screenShare?.captureIntervalSeconds ??
+                  5,
+              },
+              webcam: {
+                enabled: !!request.anticheatDevicePolicy.tablet?.sources?.webcam?.enabled,
+                required: !!request.anticheatDevicePolicy.tablet?.sources?.webcam?.required,
+                capture_interval_seconds:
+                  request.anticheatDevicePolicy.tablet?.sources?.webcam?.captureIntervalSeconds ??
+                  10,
+              },
+            },
+            detectors: {
+              pwa_mode: !!request.anticheatDevicePolicy.tablet?.detectors?.pwaMode,
+              fullscreen: !!request.anticheatDevicePolicy.tablet?.detectors?.fullscreen,
+              focus: !!request.anticheatDevicePolicy.tablet?.detectors?.focus,
+              tab_visibility: !!request.anticheatDevicePolicy.tablet?.detectors?.tabVisibility,
+              multi_display: !!request.anticheatDevicePolicy.tablet?.detectors?.multiDisplay,
+              mouse_leave: !!request.anticheatDevicePolicy.tablet?.detectors?.mouseLeave,
+              viewport_integrity:
+                !!request.anticheatDevicePolicy.tablet?.detectors?.viewportIntegrity,
+            },
+          },
+        }
+      : undefined;
+
   const dto: any = {
     name: request.name,
     description: request.description,
@@ -689,6 +934,8 @@ export function mapContestUpdateRequestToDto(request: any): any {
     visibility: request.visibility,
     password: request.password,
     cheat_detection_enabled: request.cheatDetectionEnabled,
+    anticheat_device_policy: anticheatDevicePolicy,
+    warning_timeout_seconds: request.warningTimeoutSeconds,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     anonymous_mode_enabled: request.anonymousModeEnabled,
     allow_multiple_joins: request.allowMultipleJoins,

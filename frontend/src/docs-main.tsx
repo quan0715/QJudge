@@ -6,7 +6,8 @@
  */
 
 import { createRoot } from "react-dom/client";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/i18n";
 import DocsLayout from "@/features/docs/components/DocsLayout";

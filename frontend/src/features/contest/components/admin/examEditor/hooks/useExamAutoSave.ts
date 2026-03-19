@@ -41,6 +41,8 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   visibility: "visibility",
   password: "password",
   cheatDetectionEnabled: "cheatDetectionEnabled",
+  anticheatDevicePolicy: "anticheatDevicePolicy",
+  warningTimeoutSeconds: "warningTimeoutSeconds",
   scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
   anonymousModeEnabled: "anonymousModeEnabled",
   maxCheatWarnings: "maxCheatWarnings",
