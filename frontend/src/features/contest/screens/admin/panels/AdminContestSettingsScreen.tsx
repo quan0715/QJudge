@@ -22,62 +22,12 @@ import {
   removeContestAdmin,
 } from "@/infrastructure/api/repositories";
 import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
+import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 import s from "./AdminContestSettingsPanel.module.scss";
-
-const DEFAULT_ANTICHEAT_DEVICE_POLICY = {
-  desktop: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: true,
-        required: true,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: false,
-        required: false,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: false,
-      fullscreen: true,
-      focus: true,
-      tabVisibility: true,
-      multiDisplay: true,
-      mouseLeave: true,
-      viewportIntegrity: false,
-    },
-  },
-  tablet: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: false,
-        required: false,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: true,
-        required: true,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: true,
-      fullscreen: false,
-      focus: true,
-      tabVisibility: true,
-      multiDisplay: false,
-      mouseLeave: true,
-      viewportIntegrity: true,
-    },
-  },
-};
 
 const sanitizeAnticheatPolicy = (
   policy: unknown
-): typeof DEFAULT_ANTICHEAT_DEVICE_POLICY => {
+): typeof DEFAULT_DEVICE_POLICY => {
   const raw =
     policy && typeof policy === "object" && !Array.isArray(policy)
       ? (policy as Record<string, unknown>)
@@ -85,7 +35,7 @@ const sanitizeAnticheatPolicy = (
 
   const normalizeSource = (
     source: unknown,
-    fallback: typeof DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop.sources.screenShare
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.sources.screenShare
   ) => {
     const src =
       source && typeof source === "object" && !Array.isArray(source)
@@ -104,7 +54,7 @@ const sanitizeAnticheatPolicy = (
 
   const normalizeDetectors = (
     detectors: unknown,
-    fallback: typeof DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop.detectors
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.detectors
   ) => {
     const det =
       detectors && typeof detectors === "object" && !Array.isArray(detectors)
@@ -148,7 +98,7 @@ const sanitizeAnticheatPolicy = (
 
   const normalizeDevice = (
     device: unknown,
-    fallback: typeof DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop
   ) => {
     const item =
       device && typeof device === "object" && !Array.isArray(device)
@@ -172,8 +122,8 @@ const sanitizeAnticheatPolicy = (
   };
 
   const sanitized = {
-    desktop: normalizeDevice(raw.desktop, DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop),
-    tablet: normalizeDevice(raw.tablet, DEFAULT_ANTICHEAT_DEVICE_POLICY.tablet),
+    desktop: normalizeDevice(raw.desktop, DEFAULT_DEVICE_POLICY.desktop),
+    tablet: normalizeDevice(raw.tablet, DEFAULT_DEVICE_POLICY.tablet),
   };
 
   sanitized.desktop.detectors.pwaMode = false;

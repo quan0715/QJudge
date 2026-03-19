@@ -13,6 +13,8 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from rest_framework_simplejwt.tokens import AccessToken
+
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
 from ..services import (
     EmailAuthService,
@@ -100,7 +102,8 @@ class LoginView(SchemaAPIView):
             return conflict_response
 
         tokens = JWTService.generate_tokens(user)
-        record_login(user, request, login_method="email")
+        access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+        record_login(user, request, login_method="email", jti=access_jti)
         return token_cookie_response(user, tokens)
 
 
@@ -224,7 +227,8 @@ class OAuthCallbackView(SchemaAPIView):
                 return conflict_response
 
             tokens = JWTService.generate_tokens(user)
-            record_login(user, request, login_method=provider)
+            access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+            record_login(user, request, login_method=provider, jti=access_jti)
             return token_cookie_response(user, tokens)
         except Exception as exc:
             logger.exception("%s OAuth callback failed: %s", provider, exc)

@@ -87,7 +87,7 @@ export interface ExamEntryDeviceMetadata {
   active_sources: Array<"screen_share" | "webcam">;
 }
 
-const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
+export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
   desktop: {
     enabled: true,
     sources: {

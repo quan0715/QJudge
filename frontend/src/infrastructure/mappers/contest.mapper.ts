@@ -25,6 +25,7 @@ import type {
   ContestAnticheatConfig,
   ContestOverviewMetrics,
 } from "@/core/entities/contest.entity";
+import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
 export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
   return {
@@ -120,57 +121,6 @@ export function mapContestDetailDto(dto: any): ContestDetail {
       : [],
   };
 }
-
-const DEFAULT_ANTICHEAT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
-  desktop: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: true,
-        required: true,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: false,
-        required: false,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: false,
-      fullscreen: true,
-      focus: true,
-      tabVisibility: true,
-      multiDisplay: true,
-      mouseLeave: true,
-      viewportIntegrity: false,
-    },
-  },
-  tablet: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: false,
-        required: false,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: true,
-        required: true,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: true,
-      fullscreen: false,
-      focus: true,
-      tabVisibility: true,
-      multiDisplay: false,
-      mouseLeave: true,
-      viewportIntegrity: true,
-    },
-  },
-};
 
 export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDevicePolicy {
   const root =
@@ -269,8 +219,8 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
   };
 
   return {
-    desktop: parseDevice("desktop", DEFAULT_ANTICHEAT_DEVICE_POLICY.desktop),
-    tablet: parseDevice("tablet", DEFAULT_ANTICHEAT_DEVICE_POLICY.tablet),
+    desktop: parseDevice("desktop", DEFAULT_DEVICE_POLICY.desktop),
+    tablet: parseDevice("tablet", DEFAULT_DEVICE_POLICY.tablet),
   };
 }
 

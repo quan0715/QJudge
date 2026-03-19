@@ -178,7 +178,8 @@ class ExamEventsMixin:
                 participant.locked_at = timezone.now()
                 if force_lock:
                     if event_type == "warning_timeout":
-                        participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                        timeout = getattr(contest, "warning_timeout_seconds", 30)
+                        participant.lock_reason = f"Warning timeout: student did not acknowledge warning within {timeout} seconds"
                     elif event_type == "screen_share_stopped":
                         participant.lock_reason = "Screen share stopped during exam session"
                     elif event_type == self.WEBCAM_STOPPED_EVENT:

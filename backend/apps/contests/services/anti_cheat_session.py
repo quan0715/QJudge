@@ -62,6 +62,23 @@ def get_token_jti(request) -> str:
             return ""
 
 
+def get_refresh_jti(request) -> str:
+    """Extract the JTI from the refresh-token cookie (if present)."""
+    from django.conf import settings
+
+    cookie_name = getattr(settings, "JWT_AUTH_REFRESH_COOKIE", "refresh_token")
+    raw = request.COOKIES.get(cookie_name)
+    if not raw:
+        return ""
+    try:
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        token = RefreshToken(raw)
+        return str(token.get("jti", ""))
+    except Exception:
+        return ""
+
+
 def active_session_key(contest_id: int, user_id: int) -> str:
     return f"{ACTIVE_SESSION_KEY_PREFIX}:{contest_id}:{user_id}"
 
@@ -255,10 +272,15 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
     return allowed == jti
 
 
-def blacklist_other_tokens(user, current_jti: str) -> int:
-    """Blacklist all outstanding JWT tokens for *user* except *current_jti*
-    **and** pin the allowed access-token JTI in Redis so that other devices'
-    access tokens are immediately rejected at the authentication layer.
+def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "") -> int:
+    """Blacklist all outstanding JWT tokens for *user* except the current
+    session's refresh token **and** pin the allowed access-token JTI in Redis
+    so that other devices' access tokens are immediately rejected at the
+    authentication layer.
+
+    *access_jti* is used for the Redis pin (``set_exam_allowed_jti``).
+    *refresh_jti* is used to exclude the current session's refresh token from
+    blacklisting (``OutstandingToken.jti`` stores refresh-token JTIs).
 
     Returns the number of refresh tokens that were newly blacklisted.
     """
@@ -268,7 +290,10 @@ def blacklist_other_tokens(user, current_jti: str) -> int:
     )
 
     # 1) Blacklist refresh tokens (prevents token refresh)
-    tokens = OutstandingToken.objects.filter(user=user).exclude(jti=current_jti)
+    qs = OutstandingToken.objects.filter(user=user)
+    if refresh_jti:
+        qs = qs.exclude(jti=refresh_jti)
+    tokens = qs
     count = 0
     for token in tokens:
         _, created = BlacklistedToken.objects.get_or_create(token=token)
@@ -276,7 +301,7 @@ def blacklist_other_tokens(user, current_jti: str) -> int:
             count += 1
 
     # 2) Pin allowed JTI (immediately rejects other access tokens)
-    set_exam_allowed_jti(user.id, current_jti)
+    set_exam_allowed_jti(user.id, access_jti)
 
     return count
 

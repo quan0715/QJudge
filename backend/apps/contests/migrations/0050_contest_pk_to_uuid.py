@@ -51,6 +51,8 @@ def forwards(apps, schema_editor):
     cursor = schema_editor.connection.cursor()
 
     # ── Phase A: add uuid column to contests ─────────────────────────────
+    # Ensure pgcrypto is available (required for gen_random_uuid on PG < 13)
+    cursor.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
     cursor.execute(
         "ALTER TABLE contests ADD COLUMN uuid uuid NOT NULL DEFAULT gen_random_uuid()"
     )

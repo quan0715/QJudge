@@ -21,6 +21,5 @@ export const useAuthLayoutMetadata = (metadata: AuthMetadata) => {
       context.setMetadata({ title, subtitle, backTo });
     }
     // No cleanup to null here because it might clear another screen's metadata
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- context identity changes on every parent render; only re-run when metadata fields change
-  }, [title, subtitle, backTo]);
+  }, [context, title, subtitle, backTo]);
 };

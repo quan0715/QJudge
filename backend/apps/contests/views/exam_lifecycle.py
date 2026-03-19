@@ -17,6 +17,7 @@ from ..services.anti_cheat_session import (
     build_device_conflict_response,
     clear_exam_allowed_jti,
     get_device_id,
+    get_refresh_jti,
     get_token_jti,
     set_active_session,
     touch_heartbeat,
@@ -115,7 +116,7 @@ class ExamLifecycleMixin:
         if getattr(contest, "cheat_detection_enabled", False):
             jti = get_token_jti(request)
             if jti:
-                bl_count = blacklist_other_tokens(request.user, jti)
+                bl_count = blacklist_other_tokens(request.user, access_jti=jti, refresh_jti=get_refresh_jti(request))
                 if bl_count:
                     _ExamEvent.objects.create(
                         contest=contest,

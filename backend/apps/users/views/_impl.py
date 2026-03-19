@@ -792,7 +792,7 @@ class LogoutOtherDevicesView(SchemaAPIView):
     serializer_class = serializers.Serializer
 
     def post(self, request):
-        from apps.contests.services.anti_cheat_session import get_token_jti, blacklist_other_tokens
+        from apps.contests.services.anti_cheat_session import get_token_jti, get_refresh_jti, blacklist_other_tokens
 
         jti = get_token_jti(request)
         if not jti:
@@ -801,7 +801,7 @@ class LogoutOtherDevicesView(SchemaAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        count = blacklist_other_tokens(request.user, jti)
+        count = blacklist_other_tokens(request.user, access_jti=jti, refresh_jti=get_refresh_jti(request))
 
         # Mark other login records as not current
         from ..models import UserLoginRecord

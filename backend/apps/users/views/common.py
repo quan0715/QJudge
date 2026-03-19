@@ -4,6 +4,8 @@ from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.response import Response
 
+from rest_framework_simplejwt.tokens import AccessToken
+
 from ..authentication import set_jwt_cookies
 from ..services import JWTService
 from ..models import UserLoginRecord
@@ -202,7 +204,8 @@ def perform_takeover_lock(*, user_model, request, payload: dict):
             )
 
             tokens = JWTService.generate_tokens(user)
-            record_login(user, request, login_method="takeover")
+            access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+            record_login(user, request, login_method="takeover", jti=access_jti)
             return token_cookie_response(user, tokens)
     except (user_model.DoesNotExist, ContestParticipant.DoesNotExist):
         return Response(
