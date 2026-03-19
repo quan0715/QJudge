@@ -18,6 +18,10 @@ import {
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import {
+  detectAnticheatCapability,
+  resolveDeviceMonitoringPlan,
+} from "@/features/contest/domain/anticheatModulePolicy";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -78,6 +82,11 @@ export const usePaperExamFlow = () => {
 
   const submitExam = async (uploadSessionId?: string) => {
     const id = guardContestId();
+    const sourceModule: "screen_share" | "webcam" = resolveDeviceMonitoringPlan(
+      detectAnticheatCapability(),
+      contest?.anticheatDevicePolicy
+    ).primarySourceModule;
+    const moduleRole = "primary";
     setLoading(true);
     setError(null);
     try {
@@ -87,11 +96,14 @@ export const usePaperExamFlow = () => {
         forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
         metadata: {
           upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+          module: sourceModule,
+          module_role: moduleRole,
         },
       }).catch(() => null);
       beginAnticheatTermination(id);
       const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+        source_module: sourceModule,
       });
       if (!isSubmittedExamSessionResponse(response)) {
         throw new Error("Exam submission did not complete");

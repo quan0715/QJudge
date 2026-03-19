@@ -19,6 +19,7 @@ export interface LeaveExamInput {
   contestId: string;
   shouldEndExam: boolean;
   uploadSessionId?: string;
+  sourceModule?: "screen_share" | "webcam";
 }
 
 export interface LeaveExamOutput {
@@ -30,16 +31,15 @@ export interface LeaveExamOutput {
 export async function leaveExamUseCase(
   input: LeaveExamInput
 ): Promise<LeaveExamOutput> {
-  const { contestId, shouldEndExam, uploadSessionId } = input;
+  const { contestId, shouldEndExam, uploadSessionId, sourceModule } = input;
 
   try {
     // End exam if needed
     if (shouldEndExam) {
-      if (uploadSessionId) {
-        await endExam(contestId, { upload_session_id: uploadSessionId });
-      } else {
-        await endExam(contestId);
-      }
+      const payload: { upload_session_id?: string; source_module?: "screen_share" | "webcam" } = {};
+      if (uploadSessionId) payload.upload_session_id = uploadSessionId;
+      if (sourceModule) payload.source_module = sourceModule;
+      await endExam(contestId, Object.keys(payload).length > 0 ? payload : undefined);
     }
 
     // Exit fullscreen

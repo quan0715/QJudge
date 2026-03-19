@@ -1,5 +1,6 @@
 import type {
   Contest,
+  ContestAnticheatDevicePolicy,
   ContestAnticheatConfig,
   ContestDetail,
   ContestOverviewMetrics,
@@ -209,6 +210,8 @@ export interface ContestUpdatePayload {
   visibility?: ContestVisibility;
   password?: string;
   cheatDetectionEnabled?: boolean;
+  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
+  warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;

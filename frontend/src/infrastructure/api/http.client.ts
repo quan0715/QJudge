@@ -75,12 +75,22 @@ const dispatchServerError = (statusCode: number, message?: string) => {
   );
 };
 
+const shouldDispatchServerError = (endpoint: string): boolean => {
+  // Anti-cheat telemetry endpoints are noisy and transient failures (e.g. 502)
+  // should not hard-redirect users away from exam screens.
+  if (endpoint.includes("/exam/events/")) return false;
+  if (endpoint.includes("/exam/anticheat-urls/")) return false;
+  return true;
+};
+
 /**
  * Handle server errors (5xx) - dispatch event for global handling
  */
-const handleServerError = (response: Response): boolean => {
+const handleServerError = (endpoint: string, response: Response): boolean => {
   if (response.status >= 500 && response.status < 600) {
-    dispatchServerError(response.status, `伺服器錯誤 (${response.status})`);
+    if (shouldDispatchServerError(endpoint)) {
+      dispatchServerError(response.status, `伺服器錯誤 (${response.status})`);
+    }
     return true;
   }
   return false;
@@ -188,7 +198,7 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
   // Handle server errors (5xx) - dispatch event but don't throw
   // This allows components to still handle the error if needed
-  if (handleServerError(response)) {
+  if (handleServerError(endpoint, response)) {
     // Don't throw - let calling code decide how to handle
   }
 

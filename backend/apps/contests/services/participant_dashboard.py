@@ -139,21 +139,25 @@ def _serialize_evidence(contest: Contest, participant: ContestParticipant) -> li
         participant=participant,
     )
 
-    jobs_by_session: dict[str, ExamEvidenceJob] = {}
+    jobs_by_key: dict[tuple[str, str], ExamEvidenceJob] = {}
     for job in jobs_qs.order_by("-created_at"):
         session_id = job.upload_session_id or "default"
-        jobs_by_session.setdefault(session_id, job)
+        source_module = job.source_module or "screen_share"
+        jobs_by_key.setdefault((session_id, source_module), job)
 
     rows: list[dict[str, Any]] = []
-    seen_sessions: set[str] = set()
+    seen_keys: set[tuple[str, str]] = set()
     for video in videos_qs.order_by("-updated_at", "-created_at"):
         session_id = video.upload_session_id or "default"
-        seen_sessions.add(session_id)
-        job = jobs_by_session.get(session_id)
+        source_module = video.source_module or "screen_share"
+        key = (session_id, source_module)
+        seen_keys.add(key)
+        job = jobs_by_key.get(key)
         rows.append(
             {
                 "id": video.id,
                 "upload_session_id": session_id,
+                "source_module": source_module,
                 "has_video": True,
                 "job_status": job.status if job else "success",
                 "job_error_message": job.error_message if job else "",
@@ -171,12 +175,15 @@ def _serialize_evidence(contest: Contest, participant: ContestParticipant) -> li
 
     for job in jobs_qs.order_by("-updated_at", "-created_at"):
         session_id = job.upload_session_id or "default"
-        if session_id in seen_sessions:
+        source_module = job.source_module or "screen_share"
+        key = (session_id, source_module)
+        if key in seen_keys:
             continue
         rows.append(
             {
                 "id": -job.id,
                 "upload_session_id": session_id,
+                "source_module": source_module,
                 "has_video": False,
                 "job_status": job.status,
                 "job_error_message": job.error_message,

@@ -55,7 +55,7 @@ const priorityRank: Record<AnticheatSignalPriority, number> = {
   TERMINAL_GUARD: 4,
 };
 
-const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped", "warning_timeout"]);
+const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped", "warning_timeout", "viewport_stopped"]);
 const WARNING_EVENTS = new Set([
   "tab_hidden",
   "window_blur",

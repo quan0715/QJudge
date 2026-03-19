@@ -127,6 +127,10 @@ export default function IncidentCard({
     setScreenshotError(false);
     try {
       const sessionId = meta.upload_session_id as string | undefined;
+      const sourceModule =
+        meta.module === "webcam" || meta.module === "screen_share"
+          ? (meta.module as "screen_share" | "webcam")
+          : undefined;
       const params: Parameters<typeof fetchScreenshots>[1] = {
         user_id: String(incident.userId),
         limit: screenshotPreviewLimit,
@@ -138,6 +142,9 @@ export default function IncidentCard({
       if (sessionId) {
         // Prefer the session attached to event metadata first.
         params.upload_session_id = sessionId;
+      }
+      if (sourceModule) {
+        params.source_module = sourceModule;
       }
       const result = await fetchScreenshots(contestId, params);
 
