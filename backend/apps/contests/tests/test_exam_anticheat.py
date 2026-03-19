@@ -344,9 +344,10 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
         # Server sets lock_reason based on event_type, not client input
+        timeout = self.contest.warning_timeout_seconds
         self.assertEqual(
             self.participant.lock_reason,
-            "Warning timeout: student did not acknowledge warning within 30 seconds",
+            f"Warning timeout: student did not acknowledge warning within {timeout} seconds",
         )
 
     # ------------------------------------------------------------------
