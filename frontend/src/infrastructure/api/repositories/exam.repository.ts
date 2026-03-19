@@ -38,6 +38,9 @@ export interface RecordExamEventOptions {
   eventIdempotencyKey?: string;
 }
 
+const RETRYABLE_EVENT_STATUSES = new Set([502, 503, 504]);
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 interface ContestActivityDto {
   id?: string | number;
   user?: string | number;
@@ -60,7 +63,7 @@ export const startExam = async (contestId: string): Promise<ExamSessionResponse>
 
 export const endExam = async (
   contestId: string,
-  payload?: { submit_reason?: string; upload_session_id?: string }
+  payload?: { submit_reason?: string; upload_session_id?: string; source_module?: "screen_share" | "webcam" }
 ): Promise<ExamSessionResponse> => {
   return requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
@@ -88,17 +91,32 @@ export const recordExamEvent = async (
       : {}),
   };
 
-  const res = await httpClient.post(
-    `/api/v1/contests/${contestId}/exam/events/`,
-    {
-      event_type: eventType,
-      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  const payload = {
+    event_type: eventType,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  };
+
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const res = await httpClient.post(
+        `/api/v1/contests/${contestId}/exam/events/`,
+        payload
+      );
+      if (res.ok) {
+        return (await res.json()) as ExamEventResponse;
+      }
+      if (!RETRYABLE_EVENT_STATUSES.has(res.status) || attempt === maxAttempts) {
+        return null;
+      }
+    } catch {
+      if (attempt === maxAttempts) {
+        return null;
+      }
     }
-  );
-  if (!res.ok) {
-    return null;
+    await sleep(150 * attempt);
   }
-  return (await res.json()) as ExamEventResponse;
+  return null;
 };
 
 export const getExamEvents = async (
@@ -150,6 +168,7 @@ export const getContestActivities = async (
 export interface AnticheatUploadItem {
   seq: number;
   object_key: string;
+  module?: "screen_share" | "webcam";
   put_url: string;
   required_headers?: Record<string, string>;
 }
@@ -162,6 +181,7 @@ export interface AnticheatUploadBatchItem {
 
 export interface AnticheatUrlsResponse {
   upload_session_id: string;
+  module?: "screen_share" | "webcam";
   expires_at: string;
   interval_seconds: number;
   next_seq?: number;
@@ -188,7 +208,7 @@ const parseRetryAfterMs = (value: string | null): number | undefined => {
 export const getAnticheatUrls = async (
   contestId: string,
   count = 30,
-  options?: { upload_session_id?: string; start_seq?: number }
+  options?: { upload_session_id?: string; start_seq?: number; module?: "screen_share" | "webcam" }
 ): Promise<AnticheatUrlsResponse> => {
   const search = new URLSearchParams();
   search.set("count", String(count));
@@ -197,6 +217,9 @@ export const getAnticheatUrls = async (
   }
   if (typeof options?.start_seq === "number" && options.start_seq > 0) {
     search.set("start_seq", String(options.start_seq));
+  }
+  if (options?.module) {
+    search.set("module", options.module);
   }
 
   const response = await httpClient.get(
@@ -248,6 +271,7 @@ export interface ExamVideoDto {
   job_id?: number;
   participant_user_id: number;
   participant_username: string;
+  source_module?: "screen_share" | "webcam";
   upload_session_id: string;
   bucket: string;
   object_key: string;
@@ -305,9 +329,9 @@ export const getExamVideoDownloadUrl = async (
 
 export const compileExamVideos = async (
   contestId: string,
-  targets: Array<{ user_id: number; upload_session_id?: string }>,
-): Promise<{ queued: Array<{ user_id: number; upload_session_id: string }> }> => {
-  return requestJson<{ queued: Array<{ user_id: number; upload_session_id: string }> }>(
+  targets: Array<{ user_id: number; upload_session_id?: string; source_module?: "screen_share" | "webcam" }>,
+): Promise<{ queued: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }> }> => {
+  return requestJson<{ queued: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }> }>(
     httpClient.post(
       `/api/v1/contests/${contestId}/exam/videos/compile/`,
       { targets },
@@ -318,14 +342,14 @@ export const compileExamVideos = async (
 
 export const deleteExamVideos = async (
   contestId: string,
-  targets: Array<{ user_id: number; upload_session_id?: string }>,
+  targets: Array<{ user_id: number; upload_session_id?: string; source_module?: "screen_share" | "webcam" }>,
 ): Promise<{
-  deleted: Array<{ user_id: number; upload_session_id: string }>;
-  blocked: Array<{ user_id: number; upload_session_id: string; reason: string }>;
+  deleted: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }>;
+  blocked: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam"; reason: string }>;
 }> => {
   return requestJson<{
-    deleted: Array<{ user_id: number; upload_session_id: string }>;
-    blocked: Array<{ user_id: number; upload_session_id: string; reason: string }>;
+    deleted: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }>;
+    blocked: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam"; reason: string }>;
   }>(
     httpClient.post(
       `/api/v1/contests/${contestId}/exam/videos/delete/`,
@@ -350,6 +374,7 @@ export interface ScreenshotFrame {
   url: string;
   ts_ms: number;
   seq: number;
+  source_module?: "screen_share" | "webcam";
   expires_in: number;
 }
 
@@ -360,6 +385,7 @@ export const fetchScreenshots = async (
     ts_from?: number;
     ts_to?: number;
     upload_session_id?: string;
+    source_module?: "screen_share" | "webcam";
     limit?: number;
   }
 ): Promise<{ items: ScreenshotFrame[]; total_raw_count: number }> => {
@@ -368,6 +394,7 @@ export const fetchScreenshots = async (
   if (params.ts_from != null) search.set("ts_from", String(params.ts_from));
   if (params.ts_to != null) search.set("ts_to", String(params.ts_to));
   if (params.upload_session_id) search.set("upload_session_id", params.upload_session_id);
+  if (params.source_module) search.set("source_module", params.source_module);
   if (params.limit != null) search.set("limit", String(params.limit));
   return requestJson<{ items: ScreenshotFrame[]; total_raw_count: number }>(
     httpClient.get(`/api/v1/contests/${contestId}/exam/screenshots/?${search.toString()}`),

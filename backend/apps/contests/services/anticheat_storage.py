@@ -61,9 +61,17 @@ def build_upload_session_id() -> str:
     return uuid.uuid4().hex
 
 
-def build_raw_object_key(contest_id: int, user_id: int, upload_session_id: str, ts_ms: int, seq: int) -> str:
+def build_raw_object_key(
+    contest_id: int,
+    user_id: int,
+    upload_session_id: str,
+    ts_ms: int,
+    seq: int,
+    module: str = "screen_share",
+) -> str:
+    module_segment = (module or "screen_share").strip() or "screen_share"
     return (
-        f"contest_{contest_id}/user_{user_id}/session_{upload_session_id}/"
+        f"contest_{contest_id}/user_{user_id}/session_{upload_session_id}/{module_segment}/"
         f"ts_{ts_ms}_seq_{seq:04d}.webp"
     )
 

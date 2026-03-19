@@ -1,4 +1,4 @@
-import { Route } from "react-router-dom";
+import { Route } from "react-router";
 import NotFoundScreen from "./screens/NotFoundScreen";
 import ServerErrorScreen from "./screens/ServerErrorScreen";
 

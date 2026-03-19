@@ -19,8 +19,12 @@ from ..serializers import (
     ExamEventCreateSerializer,
 )
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import is_duplicate_exam_event, touch_heartbeat
-from ..services.exam_submission import finalize_submission
+from ..services.anti_cheat_session import (
+    get_device_id,
+    is_duplicate_exam_event,
+    touch_heartbeat,
+)
+from ..services.exam_submission import finalize_submission, normalize_source_module
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
 from apps.core.throttles import ExamEventsThrottle
@@ -30,6 +34,79 @@ logger = logging.getLogger(__name__)
 
 class ExamEventsMixin:
     """Mixin for exam event logging and penalty logic."""
+
+    MODULE_ROLE_PRIMARY = "primary"
+    MODULE_ROLE_SECONDARY = "secondary"
+    WEBCAM_STOPPED_EVENT = "webcam_stopped"
+    VIEWPORT_STOPPED_EVENT = "viewport_stopped"
+
+    def _infer_entry_device_kind(self, metadata: dict, user_agent: str) -> str:
+        explicit_kind = str(metadata.get("device_kind") or "").strip().lower()
+        if explicit_kind in {"desktop", "tablet"}:
+            return explicit_kind
+
+        is_tablet_meta = metadata.get("is_tablet")
+        if isinstance(is_tablet_meta, bool):
+            return "tablet" if is_tablet_meta else "desktop"
+
+        ua = user_agent.lower()
+        is_ipad = "ipad" in ua or ("macintosh" in ua and "mobile" in ua)
+        is_android_tablet = "android" in ua and "mobile" not in ua
+        return "tablet" if (is_ipad or is_android_tablet) else "desktop"
+
+    def _enrich_exam_entered_metadata(self, request, metadata: dict) -> dict:
+        user_agent = str(request.META.get("HTTP_USER_AGENT") or "")[:512]
+        device_id = get_device_id(request)
+        enriched = dict(metadata)
+        enriched.setdefault("device_id", device_id)
+        enriched.setdefault("user_agent", user_agent)
+        enriched["device_kind"] = self._infer_entry_device_kind(enriched, user_agent)
+        return enriched
+
+    def _resolve_module_context(self, contest, event_type: str, metadata: dict) -> tuple[str, str]:
+        module = normalize_source_module(metadata.get("module"))
+        if event_type.startswith("webcam_"):
+            module = "webcam"
+        elif event_type.startswith("screen_share_"):
+            module = "screen_share"
+
+        module_role_raw = str(metadata.get("module_role") or "").strip().lower()
+        if module_role_raw in {self.MODULE_ROLE_PRIMARY, self.MODULE_ROLE_SECONDARY}:
+            return module, module_role_raw
+
+        if event_type == self.WEBCAM_STOPPED_EVENT:
+            policy = contest.anticheat_device_policy if isinstance(contest.anticheat_device_policy, dict) else {}
+            desktop_policy = policy.get("desktop") if isinstance(policy.get("desktop"), dict) else {}
+            desktop_sources = (
+                desktop_policy.get("sources")
+                if isinstance(desktop_policy.get("sources"), dict)
+                else {}
+            )
+            screen_share_policy = (
+                desktop_sources.get("screen_share")
+                if isinstance(desktop_sources.get("screen_share"), dict)
+                else {}
+            )
+            webcam_policy = (
+                desktop_sources.get("webcam")
+                if isinstance(desktop_sources.get("webcam"), dict)
+                else {}
+            )
+            screen_required = bool(screen_share_policy.get("required"))
+            webcam_required = bool(webcam_policy.get("required"))
+            if webcam_required and not screen_required:
+                return module, self.MODULE_ROLE_PRIMARY
+            return module, self.MODULE_ROLE_SECONDARY
+
+        if event_type == "screen_share_stopped":
+            return module, self.MODULE_ROLE_PRIMARY
+
+        return module, self.MODULE_ROLE_SECONDARY
+
+    def _is_immediate_lock_event(self, event_type: str, module_role: str) -> bool:
+        if event_type in {self.WEBCAM_STOPPED_EVENT, self.VIEWPORT_STOPPED_EVENT}:
+            return module_role == self.MODULE_ROLE_PRIMARY
+        return event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
 
     def _build_event_response(self, participant, contest):
         auto_unlock_at = None
@@ -53,11 +130,13 @@ class ExamEventsMixin:
         actor,
         reason,
         upload_session_id: str | None = None,
+        source_module: str | None = None,
     ):
         finalize_submission(
             participant,
             submit_reason=reason,
             upload_session_id=upload_session_id,
+            source_module=source_module,
             activity_user=actor,
             activity_action_type="auto_submit",
             activity_details=reason,
@@ -70,6 +149,8 @@ class ExamEventsMixin:
         actor,
         event_type,
         upload_session_id: str | None = None,
+        source_module: str | None = None,
+        module_role: str | None = None,
     ):
         """
         Unified anti-cheat state handling.
@@ -82,7 +163,12 @@ class ExamEventsMixin:
 
         participant.violation_count += 1
         update_fields = ['violation_count']
-        force_lock = event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
+        normalized_role = (
+            module_role
+            if module_role in {self.MODULE_ROLE_PRIMARY, self.MODULE_ROLE_SECONDARY}
+            else self.MODULE_ROLE_SECONDARY
+        )
+        force_lock = self._is_immediate_lock_event(event_type, normalized_role)
         reached_threshold = participant.violation_count >= contest.max_cheat_warnings
         should_escalate = force_lock or reached_threshold
 
@@ -92,9 +178,14 @@ class ExamEventsMixin:
                 participant.locked_at = timezone.now()
                 if force_lock:
                     if event_type == "warning_timeout":
-                        participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
+                        timeout = getattr(contest, "warning_timeout_seconds", 30)
+                        participant.lock_reason = f"Warning timeout: student did not acknowledge warning within {timeout} seconds"
                     elif event_type == "screen_share_stopped":
                         participant.lock_reason = "Screen share stopped during exam session"
+                    elif event_type == self.WEBCAM_STOPPED_EVENT:
+                        participant.lock_reason = "Webcam stopped during exam session"
+                    elif event_type == self.VIEWPORT_STOPPED_EVENT:
+                        participant.lock_reason = "Viewport integrity lost during exam session"
                     else:
                         participant.lock_reason = f"System lock (immediate): {event_type}"
                 else:
@@ -121,6 +212,7 @@ class ExamEventsMixin:
                 actor,
                 reason,
                 upload_session_id=upload_session_id,
+                source_module=source_module,
             )
             return ContestParticipant.objects.get(pk=participant.pk)
 
@@ -171,6 +263,11 @@ class ExamEventsMixin:
         event_type = serializer.validated_data['event_type']
         raw_metadata = serializer.validated_data.get('metadata')
         metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+        if event_type == "exam_entered":
+            metadata = self._enrich_exam_entered_metadata(request, metadata)
+        source_module, module_role = self._resolve_module_context(contest, event_type, metadata)
+        metadata.setdefault("module", source_module)
+        metadata.setdefault("module_role", module_role)
         upload_session_id = str(metadata.get("upload_session_id") or "").strip() or None
         event_phase = str(metadata.get("phase") or "").upper()
         idempotency_token = str(metadata.get("event_idempotency_key") or "").strip()
@@ -247,6 +344,8 @@ class ExamEventsMixin:
                     actor=request.user,
                     event_type=event_type,
                     upload_session_id=upload_session_id,
+                    source_module=source_module,
+                    module_role=module_role,
                 )
         else:
             ExamEvent.objects.create(

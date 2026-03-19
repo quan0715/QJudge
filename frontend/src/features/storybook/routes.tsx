@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Route } from "react-router-dom";
+import { Route } from "react-router";
 import { Loading } from "@carbon/react";
 
 // Lazy load StorybookScreen for code splitting

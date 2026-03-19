@@ -45,12 +45,10 @@ export function useExamState({
   isBypassed,
   onRefresh,
   requestFullscreen,
-  warningTimeoutSeconds = 30,
+  warningTimeoutSeconds = 20,
 }: UseExamStateProps) {
   const EVENT_RETRY_DELAY_MS = 1500;
   const WARNING_TIMEOUT_SECONDS = Math.max(1, Math.floor(warningTimeoutSeconds));
-  const WARNING_TIMEOUT_REASON =
-    `Warning timeout: student did not acknowledge warning within ${WARNING_TIMEOUT_SECONDS} seconds`;
 
   type ViolationPayload = {
     eventType: string;
@@ -91,7 +89,6 @@ export function useExamState({
   const queuedViolationRef = useRef<ViolationPayload[]>([]);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const warningTimeoutProcessingRef = useRef(false);
   const prevExamStatusRef = useRef(examStatus);
 
   const stopWarningCountdown = useCallback(() => {
@@ -142,63 +139,6 @@ export function useExamState({
     [contestId]
   );
 
-  const handleWarningTimeout = useCallback(async () => {
-    if (
-      warningTimeoutProcessingRef.current ||
-      isBypassed ||
-      examStatus !== "in_progress"
-    ) {
-      return;
-    }
-
-    warningTimeoutProcessingRef.current = true;
-    setPendingApiResponse(true);
-    try {
-      const response = await dispatchExamEvent({
-        eventType: "warning_timeout",
-        reason: WARNING_TIMEOUT_REASON,
-        source: "warning_timeout",
-        severity: "violation",
-      });
-      if (isSkippedDispatchResult(response)) {
-        return;
-      }
-      if (!response || typeof response !== "object") {
-        throw new Error("Failed to record warning timeout event");
-      }
-
-      setLastApiResponse(response);
-      if (!response.bypass) {
-        setExamState((prev) => ({
-          ...prev,
-          violationCount: response.violation_count ?? prev.violationCount,
-          maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
-          autoUnlockAt: response.auto_unlock_at,
-          isLocked: !!response.locked || prev.isLocked,
-          lockReason: response.locked ? WARNING_TIMEOUT_REASON : prev.lockReason,
-        }));
-      }
-      if (onRefresh) {
-        void onRefresh().catch((refreshError) => {
-          console.error("Failed to refresh exam state after warning timeout:", refreshError);
-        });
-      }
-      queuedViolationRef.current = [];
-    } catch (error) {
-      console.error("Failed to record warning timeout:", error);
-      setLastApiResponse({
-        error: true,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to record warning timeout event",
-      });
-    } finally {
-      setPendingApiResponse(false);
-      warningTimeoutProcessingRef.current = false;
-    }
-  }, [dispatchExamEvent, examStatus, isBypassed, onRefresh, WARNING_TIMEOUT_REASON]);
-
   const startWarningCountdown = useCallback(() => {
     stopWarningCountdown();
     setWarningCountdown(WARNING_TIMEOUT_SECONDS);
@@ -210,13 +150,12 @@ export function useExamState({
             clearInterval(warningCountdownTimerRef.current);
             warningCountdownTimerRef.current = null;
           }
-          void handleWarningTimeout();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  }, [handleWarningTimeout, stopWarningCountdown, WARNING_TIMEOUT_SECONDS]);
+  }, [stopWarningCountdown, WARNING_TIMEOUT_SECONDS]);
 
   useEffect(() => {
     syncAnticheatPhaseWithExamStatus(contestId, examStatus);
@@ -248,7 +187,6 @@ export function useExamState({
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
-      warningTimeoutProcessingRef.current = false;
       stopWarningCountdown();
     }
 
@@ -380,6 +318,7 @@ export function useExamState({
 
   const handleWarningClose = useCallback(async () => {
     if (pendingApiResponse) return;
+    if (warningCountdown != null && warningCountdown > 0) return;
 
     setShowWarning(false);
     stopWarningCountdown();
@@ -413,7 +352,15 @@ export function useExamState({
     ) {
       void drainViolationQueue();
     }
-  }, [drainViolationQueue, pendingApiResponse, lastApiResponse, onRefresh, requestFullscreen, stopWarningCountdown]);
+  }, [
+    drainViolationQueue,
+    pendingApiResponse,
+    warningCountdown,
+    lastApiResponse,
+    onRefresh,
+    requestFullscreen,
+    stopWarningCountdown,
+  ]);
 
   const handleUnlockContinue = useCallback(async () => {
     setShowUnlockNotification(false);

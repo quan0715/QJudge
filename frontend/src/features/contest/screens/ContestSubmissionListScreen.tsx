@@ -185,7 +185,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
     };
     const isOwner = submission.username === currentUser?.username;
     const isAdminOrTeacher =
-      currentUser?.role === "admin" || currentUser?.role === "teacher";
+      contest?.permissions?.canViewAllSubmissions ?? false;
     const canView = isOwner || isAdminOrTeacher;
 
     const problemInfo = problems.find(

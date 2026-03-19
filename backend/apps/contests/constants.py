@@ -14,12 +14,20 @@ EVENT_PRIORITY: dict[str, int] = {
     'multiple_displays': 1,
     'mouse_leave': 1,
     'forbidden_focus_event': 1,
+    'webcam_stopped': 1,
+    'viewport_stopped': 1,
+    'split_view_detected': 1,
     # P2: Informational (no penalty)
     'forbidden_action': 2,
     'capture_upload_degraded': 2,
     'screen_share_interrupted': 2,
     'screen_share_invalid_surface': 2,
     'screen_share_restored': 2,
+    'webcam_interrupted': 2,
+    'webcam_restored': 2,
+    'webcam_quality_degraded': 2,
+    'viewport_interrupted': 2,
+    'viewport_restored': 2,
     'exit_fullscreen_triggered': 2,
     'mouse_leave_triggered': 2,
     # P3: Lifecycle / management
@@ -46,6 +54,9 @@ PENALIZED_EVENT_TYPES = {
     'multiple_displays',
     'mouse_leave',
     'screen_share_stopped',
+    'webcam_stopped',
+    'viewport_stopped',
+    'split_view_detected',
     'warning_timeout',
     'forbidden_focus_event',
     'heartbeat_timeout',
@@ -55,7 +66,7 @@ PENALIZED_EVENT_TYPES = {
 EVENT_FEED_AGGREGATION_WINDOW_SECONDS = 60
 
 # Frontend-consumed anti-cheat runtime defaults (server as source of truth)
-WARNING_TIMEOUT_SECONDS = 30
+WARNING_TIMEOUT_SECONDS = 20
 FORCED_CAPTURE_COOLDOWN_MS = 1_000
 FORCED_CAPTURE_P1_COOLDOWN_MS = 15_000
 
@@ -69,6 +80,8 @@ CAPTURE_UPLOAD_MAX_RETRIES = 3
 EXAM_MONITORING_RECOVERY_GRACE_MS = 3_000
 EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS = 3_000
 SCREEN_SHARE_RECOVERY_GRACE_MS = 10_000
+WEBCAM_RECOVERY_GRACE_MS = 10_000
+WEBCAM_CAPTURE_INTERVAL_SECONDS = 10
 
 EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS = 5_000
 EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS = 15_000

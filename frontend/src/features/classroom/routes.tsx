@@ -1,4 +1,4 @@
-import { Route } from "react-router-dom";
+import { Route } from "react-router";
 import ClassroomListScreen from "./screens/ClassroomListScreen";
 import ClassroomDetailScreen from "./screens/ClassroomDetailScreen";
 

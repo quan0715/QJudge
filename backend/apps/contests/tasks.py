@@ -432,6 +432,76 @@ def _extract_ts_from_key(key: str) -> int:
     return int(match.group(1))
 
 
+def _detect_image_ext(file_path: str) -> str:
+    """
+    Detect image type by magic bytes.
+    Fallback to webp to preserve previous behavior for unknown payloads.
+    """
+    try:
+        with open(file_path, "rb") as fp:
+            header = fp.read(16)
+    except OSError:
+        return "webp"
+
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if header.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP":
+        return "webp"
+    return "webp"
+
+
+def _build_ffmpeg_input_args(temp_dir: str, frame_paths: list[str]) -> list[str]:
+    """
+    Build ffmpeg input args.
+    - single image codec: use %06d pattern for simplicity
+    - mixed codecs: use concat list for compatibility
+    """
+    exts = {os.path.splitext(path)[1].lower() for path in frame_paths}
+    if len(exts) == 1:
+        ext = exts.pop().lstrip(".")
+        return [
+            "-framerate",
+            "1",
+            "-i",
+            os.path.join(temp_dir, f"frame_%06d.{ext}"),
+        ]
+
+    list_path = os.path.join(temp_dir, "frame_manifest.txt")
+    ordered = sorted(frame_paths)
+    with open(list_path, "w", encoding="utf-8") as manifest:
+        for idx, frame_path in enumerate(ordered):
+            escaped = frame_path.replace("'", r"'\''")
+            manifest.write(f"file '{escaped}'\n")
+            if idx < len(ordered) - 1:
+                manifest.write("duration 1\n")
+
+    return [
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        list_path,
+        "-vsync",
+        "vfr",
+    ]
+
+
+def _filter_session_root_keys(keys: list[str], session_prefix: str) -> list[str]:
+    """
+    Keep only old-format keys directly under session_<id>/.
+    Excludes new module-scoped paths like session_<id>/webcam/...
+    """
+    out: list[str] = []
+    for key in keys:
+        suffix = key[len(session_prefix):] if key.startswith(session_prefix) else ""
+        if suffix and "/" not in suffix:
+            out.append(key)
+    return out
+
+
 def _list_raw_keys(client, bucket: str, prefix: str) -> list[str]:
     paginator = client.get_paginator("list_objects_v2")
     keys: list[str] = []
@@ -461,7 +531,11 @@ def _delete_raw_keys(client, bucket: str, keys: list[str]) -> None:
 
 
 @shared_task
-def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
+def compile_anticheat_video(
+    participant_id: int,
+    upload_session_id: str = "",
+    source_module: str = "screen_share",
+):
     """
     Compile raw anti-cheat screenshots into a single MP4.
     """
@@ -472,27 +546,38 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
 
     contest = participant.contest
     upload_session_id = normalize_upload_session_id(upload_session_id)
+    source_module = (source_module or "screen_share").strip() or "screen_share"
 
     job, created = ExamEvidenceJob.objects.get_or_create(
         contest=contest,
         participant=participant,
+        source_module=source_module,
         upload_session_id=upload_session_id,
         defaults={"status": EvidenceJobStatus.PENDING},
     )
     if not created and job.status == EvidenceJobStatus.RUNNING:
-        return f"Job already running for participant={participant_id} session={upload_session_id}"
+        return (
+            f"Job already running for participant={participant_id} "
+            f"module={source_module} session={upload_session_id}"
+        )
 
     client = get_s3_client()
     raw_bucket = settings.ANTICHEAT_RAW_BUCKET
     video_bucket = settings.ANTICHEAT_VIDEO_BUCKET
     user_prefix = f"contest_{contest.id}/user_{participant.user_id}/"
-    raw_prefix = f"{user_prefix}session_{upload_session_id}/"
+    raw_prefix = f"{user_prefix}session_{upload_session_id}/{source_module}/"
+    legacy_session_prefix = f"{user_prefix}session_{upload_session_id}/"
 
     temp_dir = tempfile.mkdtemp(prefix=f"anticheat_{contest.id}_{participant.user_id}_")
     raw_keys: list[str] = []
     try:
         raw_keys = _list_raw_keys(client, raw_bucket, raw_prefix)
-        if upload_session_id == "default" and not raw_keys:
+        if source_module == "screen_share" and not raw_keys:
+            # Backward compatibility for pre-module keys:
+            # contest_X/user_Y/session_<id>/ts_*.webp
+            session_root_keys = _list_raw_keys(client, raw_bucket, legacy_session_prefix)
+            raw_keys = _filter_session_root_keys(session_root_keys, legacy_session_prefix)
+        if source_module == "screen_share" and upload_session_id == "default" and not raw_keys:
             # Legacy fallback: only include unscoped keys under user root, never mix session_* folders.
             legacy_keys = _list_raw_keys(client, raw_bucket, user_prefix)
             raw_keys = [key for key in legacy_keys if "/session_" not in key]
@@ -500,7 +585,7 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
             if not created and job.status == EvidenceJobStatus.SUCCESS:
                 return (
                     f"No new raw screenshots for participant={participant_id} "
-                    f"session={upload_session_id}; keeping previous SUCCESS"
+                    f"module={source_module} session={upload_session_id}; keeping previous SUCCESS"
                 )
             job.status = EvidenceJobStatus.FAILED
             job.error_message = "No raw screenshots found"
@@ -517,19 +602,23 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         job.raw_count = len(raw_keys)
         job.save(update_fields=["raw_count", "updated_at"])
 
+        frame_paths: list[str] = []
         for index, key in enumerate(raw_keys, start=1):
-            filename = os.path.join(temp_dir, f"frame_{index:06d}.webp")
-            client.download_file(raw_bucket, key, filename)
+            tmp_name = os.path.join(temp_dir, f"frame_{index:06d}.raw")
+            client.download_file(raw_bucket, key, tmp_name)
+            ext = _detect_image_ext(tmp_name)
+            frame_path = os.path.join(temp_dir, f"frame_{index:06d}.{ext}")
+            if os.path.exists(tmp_name):
+                os.replace(tmp_name, frame_path)
+            frame_paths.append(frame_path)
 
-        output_name = f"session_{upload_session_id}.mp4"
+        output_name = f"{source_module}_session_{upload_session_id}.mp4"
         output_path = os.path.join(temp_dir, output_name)
+        input_args = _build_ffmpeg_input_args(temp_dir, frame_paths)
         ffmpeg_cmd = [
             "ffmpeg",
             "-y",
-            "-framerate",
-            "1",
-            "-i",
-            os.path.join(temp_dir, "frame_%06d.webp"),
+            *input_args,
             "-c:v",
             "libx264",
             "-preset",
@@ -542,9 +631,16 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
             "+faststart",
             output_path,
         ]
-        subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
+        try:
+            subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as exc:
+            stderr_tail = "\n".join((exc.stderr or "").splitlines()[-20:]).strip()
+            detail = str(exc)
+            if stderr_tail:
+                detail = f"{detail}; ffmpeg_stderr_tail={stderr_tail}"
+            raise RuntimeError(detail) from exc
 
-        video_key = f"contest_{contest.id}/user_{participant.user_id}/{output_name}"
+        video_key = f"contest_{contest.id}/user_{participant.user_id}/{source_module}/{output_name}"
         client.upload_file(
             output_path,
             video_bucket,
@@ -556,6 +652,7 @@ def compile_anticheat_video(participant_id: int, upload_session_id: str = ""):
         ExamEvidenceVideo.objects.update_or_create(
             contest=contest,
             participant=participant,
+            source_module=source_module,
             upload_session_id=upload_session_id,
             defaults={
                 "bucket": video_bucket,

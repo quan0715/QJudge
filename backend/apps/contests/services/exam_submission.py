@@ -15,7 +15,7 @@ from apps.contests.models import (
     ExamStatus,
 )
 
-from .anti_cheat_session import clear_active_session
+from .anti_cheat_session import clear_active_session, clear_exam_allowed_jti
 
 if TYPE_CHECKING:
     from apps.contests.models import ContestParticipant
@@ -29,11 +29,26 @@ def normalize_upload_session_id(upload_session_id: str | None) -> str:
     return value or "default"
 
 
-def enqueue_compile_video(participant_id: int, upload_session_id: str | None) -> None:
+def normalize_source_module(source_module: str | None) -> str:
+    value = str(source_module or "").strip().lower()
+    if value not in {"screen_share", "webcam"}:
+        return "screen_share"
+    return value
+
+
+def enqueue_compile_video(
+    participant_id: int,
+    upload_session_id: str | None,
+    source_module: str | None = None,
+) -> None:
     from apps.contests.tasks import compile_anticheat_video
 
     compile_anticheat_video.apply_async(
-        args=[participant_id, normalize_upload_session_id(upload_session_id)],
+        args=[
+            participant_id,
+            normalize_upload_session_id(upload_session_id),
+            normalize_source_module(source_module),
+        ],
         queue="video_queue",
     )
 
@@ -45,12 +60,16 @@ def enqueue_retain_raw_screenshots(contest_id: int, user_id: int) -> None:
 
 
 def ensure_evidence_job(
-    participant: "ContestParticipant", upload_session_id: str | None
+    participant: "ContestParticipant",
+    upload_session_id: str | None,
+    source_module: str | None = None,
 ) -> ExamEvidenceJob:
     session_id = normalize_upload_session_id(upload_session_id)
+    module = normalize_source_module(source_module)
     job, _ = ExamEvidenceJob.objects.get_or_create(
         contest=participant.contest,
         participant=participant,
+        source_module=module,
         upload_session_id=session_id,
         defaults={"status": EvidenceJobStatus.PENDING},
     )
@@ -62,6 +81,7 @@ def finalize_submission(
     *,
     submit_reason: str,
     upload_session_id: str | None = None,
+    source_module: str | None = None,
     activity_user: "User | None" = None,
     activity_action_type: str | None = None,
     activity_details: str = "",
@@ -72,6 +92,7 @@ def finalize_submission(
     Video compilation is triggered only by the explicit manual compile endpoint.
     """
     session_id = normalize_upload_session_id(upload_session_id)
+    module = normalize_source_module(source_module)
 
     update_fields: list[str] = []
     now = timezone.now()
@@ -88,9 +109,11 @@ def finalize_submission(
         participant.save(update_fields=update_fields)
 
     clear_active_session(participant.contest_id, participant.user_id)
+    # Release JTI pin so other devices can work normally after exam ends
+    clear_exam_allowed_jti(participant.user_id)
 
     if participant.contest.cheat_detection_enabled:
-        ensure_evidence_job(participant, session_id)
+        ensure_evidence_job(participant, session_id, module)
         try:
             enqueue_retain_raw_screenshots(participant.contest_id, participant.user_id)
         except Exception:  # pragma: no cover - defensive guard for external storage/task backend failures

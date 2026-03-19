@@ -4,10 +4,11 @@ from apps.contests.models import Contest
 
 
 @pytest.mark.django_db
-def test_authenticated_user_can_create_contest(authenticated_client):
-    client, user = authenticated_client
+def test_authenticated_user_can_create_contest(api_client, user_factory):
+    user = user_factory(username="teacher-create", email="teacher-create@example.com", role="teacher")
+    api_client.force_authenticate(user=user)
 
-    response = client.post(
+    response = api_client.post(
         "/api/v1/contests/",
         {"name": "Weekly Contest", "visibility": "public"},
         format="json",
@@ -32,7 +33,7 @@ def test_unauthenticated_user_cannot_create_contest(api_client):
 
 @pytest.mark.django_db
 def test_owner_can_update_contest(api_client, user_factory):
-    owner = user_factory(username="contest-owner", email="owner@example.com")
+    owner = user_factory(username="contest-owner", email="owner@example.com", role="teacher")
     api_client.force_authenticate(user=owner)
 
     create_response = api_client.post(
@@ -55,11 +56,12 @@ def test_owner_can_update_contest(api_client, user_factory):
 
 
 @pytest.mark.django_db
-def test_create_contest_defaults_to_coding_type(authenticated_client):
+def test_create_contest_defaults_to_coding_type(api_client, user_factory):
     """New contests default to contest_type='coding'."""
-    client, _ = authenticated_client
+    user = user_factory(username="teacher-default", email="teacher-default@example.com", role="teacher")
+    api_client.force_authenticate(user=user)
 
-    response = client.post(
+    response = api_client.post(
         "/api/v1/contests/",
         {"name": "Coding Contest"},
         format="json",
@@ -72,11 +74,12 @@ def test_create_contest_defaults_to_coding_type(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_create_paper_exam_contest(authenticated_client):
+def test_create_paper_exam_contest(api_client, user_factory):
     """Can create a paper_exam contest with cheat detection enabled."""
-    client, _ = authenticated_client
+    user = user_factory(username="teacher-paper", email="teacher-paper@example.com", role="teacher")
+    api_client.force_authenticate(user=user)
 
-    response = client.post(
+    response = api_client.post(
         "/api/v1/contests/",
         {
             "name": "OS Midterm",
@@ -95,7 +98,7 @@ def test_create_paper_exam_contest(authenticated_client):
 @pytest.mark.django_db
 def test_contest_detail_includes_contest_type(api_client, user_factory):
     """GET contest detail returns contest_type and cheat_detection_enabled."""
-    owner = user_factory(username="detail-owner", email="detail@example.com")
+    owner = user_factory(username="detail-owner", email="detail@example.com", role="teacher")
     api_client.force_authenticate(user=owner)
 
     create_resp = api_client.post(
@@ -115,7 +118,7 @@ def test_contest_detail_includes_contest_type(api_client, user_factory):
 @pytest.mark.django_db
 def test_update_contest_type(api_client, user_factory):
     """Can update contest_type via PATCH."""
-    owner = user_factory(username="type-update", email="type@example.com")
+    owner = user_factory(username="type-update", email="type@example.com", role="teacher")
     api_client.force_authenticate(user=owner)
 
     create_resp = api_client.post(

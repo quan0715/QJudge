@@ -174,6 +174,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   const tableHeaders = useMemo(
     () => [
       t("examVideoReview.headers.student", "學生"),
+      t("examVideoReview.headers.module", "來源"),
       t("examVideoReview.headers.updatedAt", "最後更新"),
       t("examVideoReview.headers.duration", "長度"),
       t("examVideoReview.headers.flag", "標記"),
@@ -271,6 +272,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
         {
           user_id: selectedVideo.participant_user_id,
           upload_session_id: selectedVideo.upload_session_id,
+          source_module: selectedVideo.source_module,
         },
       ]);
       await reload();
@@ -293,6 +295,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
       const targets = pendingVideos.map((v) => ({
         user_id: v.participant_user_id,
         upload_session_id: v.upload_session_id,
+        source_module: v.source_module,
       }));
       await compileExamVideos(contestId, targets);
       await reload();
@@ -321,6 +324,7 @@ const ExamVideoReviewModal: React.FC<Props> = ({
         {
           user_id: selectedVideo.participant_user_id,
           upload_session_id: selectedVideo.upload_session_id,
+          source_module: selectedVideo.source_module,
         },
       ]);
       if (result.blocked.length > 0) {
@@ -412,6 +416,9 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                             onClick={() => setSelectedId(video.id)}
                           >
                             <TableCell>{video.participant_username}</TableCell>
+                            <TableCell>
+                              {video.source_module === "webcam" ? "webcam" : "screen_share"}
+                            </TableCell>
                             <TableCell>
                               {new Date(
                                 video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at

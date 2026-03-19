@@ -52,6 +52,18 @@ describe("useExamMonitoring", () => {
     expect(addEventListenerSpy).toHaveBeenCalledWith("fullscreenchange", expect.any(Function));
   });
 
+  it("does not attach fullscreen listener when fullscreen enforcement is disabled", () => {
+    const addEventListenerSpy = vi.spyOn(document, "addEventListener");
+    const onViolation = vi.fn();
+
+    renderHook(() =>
+      useExamMonitoring({ enabled: true, enforceFullscreen: false, onViolation })
+    );
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith("fullscreenchange", expect.any(Function));
+  });
+
   it("calls onViolation when visibility changes to hidden", () => {
     const onViolation = vi.fn();
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));

@@ -9,12 +9,13 @@
 
 import React, { useState } from "react";
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@carbon/react";
-import { Settings, Password, ChartLine } from "@carbon/icons-react";
+import { Settings, Password, ChartLine, Devices } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
 import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
 import { UsagePanel } from "@/features/auth/components/UsagePanel";
+import { LoginRecordsPanel } from "@/features/auth/components/LoginRecordsPanel";
 import "./UserSettingsScreen.scss";
 
 export const UserSettingsScreen: React.FC = () => {
@@ -53,6 +54,9 @@ export const UserSettingsScreen: React.FC = () => {
             <Tab renderIcon={Settings}>
               {t("settings.tabs.preferences", "偏好設定")}
             </Tab>
+            <Tab renderIcon={Devices}>
+              {t("settings.tabs.loginRecords", "登入紀錄")}
+            </Tab>
             {isTeacherOrAdmin && (
               <Tab renderIcon={Password}>
                 {t("settings.tabs.apiKey", "API Key")}
@@ -68,6 +72,9 @@ export const UserSettingsScreen: React.FC = () => {
           <TabPanels>
             <TabPanel>
               <PreferencesPanel />
+            </TabPanel>
+            <TabPanel>
+              <LoginRecordsPanel />
             </TabPanel>
             {isTeacherOrAdmin && (
               <TabPanel>

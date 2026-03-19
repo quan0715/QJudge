@@ -55,6 +55,21 @@ describe("useContestExamActions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     window.sessionStorage.clear();
+    // Mock matchMedia for detectAnticheatCapability
+    Object.defineProperty(window, "matchMedia", {
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+      writable: true,
+      configurable: true,
+    });
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(null);
     vi.spyOn(examUseCases, "leaveExamUseCase").mockResolvedValue({
       success: true,
@@ -165,10 +180,13 @@ describe("useContestExamActions", () => {
       await result.current.handleExit();
     });
 
-    expect(examUseCases.leaveExamUseCase).toHaveBeenCalledWith({
-      contestId: contest.id,
-      shouldEndExam: true,
-    });
+    expect(examUseCases.leaveExamUseCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contestId: contest.id,
+        shouldEndExam: true,
+        sourceModule: "screen_share",
+      })
+    );
     expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       contest.id,
       "exam_submit_initiated",

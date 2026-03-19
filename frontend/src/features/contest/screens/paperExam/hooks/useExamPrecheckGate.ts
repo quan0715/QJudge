@@ -1,14 +1,20 @@
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 
 const PRECHECK_GATE_KEY_PREFIX = "qjudge.exam.precheck_gate.v1";
+const precheckGateMemory = new Set<string>();
 
 const getPrecheckGateKey = (contestId: string) =>
   `${PRECHECK_GATE_KEY_PREFIX}:${contestId}`;
 
 export const hasExamPrecheckPassed = (contestId: string): boolean => {
   if (!contestId) return false;
+  if (precheckGateMemory.has(contestId)) return true;
   try {
-    return !!window.sessionStorage.getItem(getPrecheckGateKey(contestId));
+    const passed = !!window.sessionStorage.getItem(getPrecheckGateKey(contestId));
+    if (passed) {
+      precheckGateMemory.add(contestId);
+    }
+    return passed;
   } catch {
     return false;
   }
@@ -16,6 +22,7 @@ export const hasExamPrecheckPassed = (contestId: string): boolean => {
 
 export const markExamPrecheckPassed = (contestId: string): void => {
   if (!contestId) return;
+  precheckGateMemory.add(contestId);
   try {
     window.sessionStorage.setItem(getPrecheckGateKey(contestId), "1");
   } catch {
@@ -25,6 +32,7 @@ export const markExamPrecheckPassed = (contestId: string): void => {
 
 export const clearExamPrecheckPassed = (contestId: string): void => {
   if (!contestId) return;
+  precheckGateMemory.delete(contestId);
   try {
     window.sessionStorage.removeItem(getPrecheckGateKey(contestId));
   } catch {

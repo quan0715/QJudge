@@ -34,42 +34,62 @@ class CSRFCheck(CsrfViewMiddleware):
 class CookieJWTAuthentication(JWTAuthentication):
     """
     Custom JWT Authentication that reads token from HttpOnly cookie.
-    
+
     Priority:
     1. Authorization header (for API clients) - No CSRF check
     2. HttpOnly cookie (for browsers) - CSRF check required
-    
+
     This ensures:
     - API clients using Authorization header work without CSRF tokens
     - Browser requests using cookies must include valid CSRF token
+
+    Exam JTI pinning:
+    When an exam is started, a per-user "allowed JTI" is pinned in Redis.
+    Any access token whose JTI doesn't match is immediately rejected (401),
+    forcing the other device to re-login.
     """
-    
+
     def authenticate(self, request):
         # First, check Authorization header (no CSRF needed for header auth)
         header_result = super().authenticate(request)
         if header_result is not None:
             # Mark that we used header authentication (no CSRF needed)
             request._jwt_auth_type = 'header'
+            user, token = header_result
+            self._enforce_exam_jti(user, token)
             return header_result
-        
+
         # Then, try to get token from cookie
         cookie_name = getattr(settings, 'JWT_AUTH_COOKIE', 'access_token')
         raw_token = request.COOKIES.get(cookie_name)
-        
+
         if raw_token is not None:
             # Enforce CSRF check for cookie-based authentication
             self._enforce_csrf(request)
-            
+
             try:
                 validated_token = self.get_validated_token(raw_token)
+                user = self.get_user(validated_token)
                 # Mark that we used cookie authentication
                 request._jwt_auth_type = 'cookie'
-                return self.get_user(validated_token), validated_token
+                self._enforce_exam_jti(user, validated_token)
+                return user, validated_token
             except (InvalidToken, TokenError):
                 # Cookie token is invalid
                 pass
-        
+
         return None
+
+    @staticmethod
+    def _enforce_exam_jti(user, token):
+        """Reject access tokens not matching the exam-pinned JTI."""
+        from apps.contests.services.anti_cheat_session import is_access_token_allowed
+
+        jti = str(token.get("jti", ""))
+        if not jti:
+            return
+        if not is_access_token_allowed(user.id, jti):
+            raise InvalidToken("Session invalidated — please log in again.")
     
     def _enforce_csrf(self, request):
         """

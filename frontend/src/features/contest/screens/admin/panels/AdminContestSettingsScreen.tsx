@@ -22,7 +22,117 @@ import {
   removeContestAdmin,
 } from "@/infrastructure/api/repositories";
 import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
+import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 import s from "./AdminContestSettingsPanel.module.scss";
+
+const sanitizeAnticheatPolicy = (
+  policy: unknown
+): typeof DEFAULT_DEVICE_POLICY => {
+  const raw =
+    policy && typeof policy === "object" && !Array.isArray(policy)
+      ? (policy as Record<string, unknown>)
+      : {};
+
+  const normalizeSource = (
+    source: unknown,
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.sources.screenShare
+  ) => {
+    const src =
+      source && typeof source === "object" && !Array.isArray(source)
+        ? (source as Record<string, unknown>)
+        : {};
+    const interval = Number(
+      src.captureIntervalSeconds ?? src.capture_interval_seconds ?? fallback.captureIntervalSeconds
+    );
+    return {
+      enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
+      required: typeof src.required === "boolean" ? src.required : fallback.required,
+      captureIntervalSeconds:
+        Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : fallback.captureIntervalSeconds,
+    };
+  };
+
+  const normalizeDetectors = (
+    detectors: unknown,
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.detectors
+  ) => {
+    const det =
+      detectors && typeof detectors === "object" && !Array.isArray(detectors)
+        ? (detectors as Record<string, unknown>)
+        : {};
+    return {
+      pwaMode:
+        typeof det.pwaMode === "boolean"
+          ? det.pwaMode
+          : typeof det.pwa_mode === "boolean"
+          ? (det.pwa_mode as boolean)
+          : fallback.pwaMode,
+      fullscreen: typeof det.fullscreen === "boolean" ? det.fullscreen : fallback.fullscreen,
+      focus: typeof det.focus === "boolean" ? det.focus : fallback.focus,
+      tabVisibility:
+        typeof det.tabVisibility === "boolean"
+          ? det.tabVisibility
+          : typeof det.tab_visibility === "boolean"
+          ? (det.tab_visibility as boolean)
+          : fallback.tabVisibility,
+      multiDisplay:
+        typeof det.multiDisplay === "boolean"
+          ? det.multiDisplay
+          : typeof det.multi_display === "boolean"
+          ? (det.multi_display as boolean)
+          : fallback.multiDisplay,
+      mouseLeave:
+        typeof det.mouseLeave === "boolean"
+          ? det.mouseLeave
+          : typeof det.mouse_leave === "boolean"
+          ? (det.mouse_leave as boolean)
+          : fallback.mouseLeave,
+      viewportIntegrity:
+        typeof det.viewportIntegrity === "boolean"
+          ? det.viewportIntegrity
+          : typeof det.viewport_integrity === "boolean"
+          ? (det.viewport_integrity as boolean)
+          : fallback.viewportIntegrity,
+    };
+  };
+
+  const normalizeDevice = (
+    device: unknown,
+    fallback: typeof DEFAULT_DEVICE_POLICY.desktop
+  ) => {
+    const item =
+      device && typeof device === "object" && !Array.isArray(device)
+        ? (device as Record<string, unknown>)
+        : {};
+    const sources =
+      item.sources && typeof item.sources === "object" && !Array.isArray(item.sources)
+        ? (item.sources as Record<string, unknown>)
+        : {};
+    return {
+      enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
+      sources: {
+        screenShare: normalizeSource(
+          sources.screenShare ?? sources.screen_share,
+          fallback.sources.screenShare
+        ),
+        webcam: normalizeSource(sources.webcam, fallback.sources.webcam),
+      },
+      detectors: normalizeDetectors(item.detectors, fallback.detectors),
+    };
+  };
+
+  const sanitized = {
+    desktop: normalizeDevice(raw.desktop, DEFAULT_DEVICE_POLICY.desktop),
+    tablet: normalizeDevice(raw.tablet, DEFAULT_DEVICE_POLICY.tablet),
+  };
+
+  sanitized.desktop.detectors.pwaMode = false;
+  sanitized.desktop.detectors.viewportIntegrity = false;
+  sanitized.tablet.detectors.fullscreen = false;
+  sanitized.tablet.detectors.multiDisplay = false;
+
+  return sanitized;
+};
 
 interface Admin {
   id: string;
@@ -47,6 +157,23 @@ const toDateInput = (dateStr: string): string => {
 
 const isPM = (dateStr: string): boolean => new Date(dateStr).getHours() >= 12;
 
+const isValueEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) return true;
+  if (
+    left &&
+    right &&
+    typeof left === "object" &&
+    typeof right === "object"
+  ) {
+    try {
+      return JSON.stringify(left) === JSON.stringify(right);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
 const AdminContestSettingsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
@@ -60,7 +187,6 @@ const AdminContestSettingsScreen = () => {
   const autoSave = useExamAutoSave({
     contestId: contestId || "",
     debounceMs: 1500,
-    onSaveSuccess: () => refreshContest(),
   });
 
   const [form, setForm] = useState<Record<string, unknown>>({});
@@ -73,6 +199,7 @@ const AdminContestSettingsScreen = () => {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const initializedRef = useRef(false);
+  const initializedContestIdRef = useRef<string | null>(null);
 
   const adminRows = [
     ...(contest?.ownerUsername
@@ -88,14 +215,25 @@ const AdminContestSettingsScreen = () => {
 
   const handleChange = useCallback(
     (field: string, value: unknown) => {
-      setForm((prev) => ({ ...prev, [field]: value }));
+      setForm((prev) => {
+        if (isValueEqual(prev[field], value)) {
+          return prev;
+        }
+        return { ...prev, [field]: value };
+      });
+      // Side effect (auto-save) must be outside the state updater
+      // to avoid double-invocation in React 18 Strict Mode.
       autoSave.debouncedSaveField(field, value);
     },
     [autoSave],
   );
 
+  const formRef = useRef(form);
+  formRef.current = form;
+
   const handleConfirmedChange = useCallback(
     async (field: string, value: unknown, message: string) => {
+      if (isValueEqual(formRef.current[field], value)) return;
       const confirmed = await confirm({
         title: message,
         confirmLabel: tc("button.confirm"),
@@ -103,7 +241,12 @@ const AdminContestSettingsScreen = () => {
         danger: true,
       });
       if (!confirmed) return;
-      setForm((prev) => ({ ...prev, [field]: value }));
+      setForm((prev) => {
+        if (isValueEqual(prev[field], value)) {
+          return prev;
+        }
+        return { ...prev, [field]: value };
+      });
       autoSave.saveField(field, value);
     },
     [autoSave, confirm, tc],
@@ -265,6 +408,13 @@ const AdminContestSettingsScreen = () => {
   }, [contestId, loadAdmins]);
 
   useEffect(() => {
+    if (contestId && initializedContestIdRef.current !== contestId) {
+      initializedRef.current = false;
+      initializedContestIdRef.current = contestId;
+    }
+  }, [contestId]);
+
+  useEffect(() => {
     if (!contest || initializedRef.current) return;
     initializedRef.current = true;
     setForm({
@@ -277,6 +427,8 @@ const AdminContestSettingsScreen = () => {
       visibility: contest.visibility || "public",
       password: contest.password || "",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
+      anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
+      warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       anonymousModeEnabled: contest.anonymousModeEnabled ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,

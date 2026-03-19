@@ -24,6 +24,10 @@ import {
   clearPrecheckScreenShareHandoff,
   clearRuntimeScreenShareHandoff,
 } from "@/features/contest/anticheat/screenShareHandoffStore";
+import {
+  clearPrecheckWebcamHandoff,
+  clearRuntimeWebcamHandoff,
+} from "@/features/contest/anticheat/webcamHandoffStore";
 import { shouldForceEndExamOnExit } from "@/features/contest/domain/contestRuntimePolicy";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import {
@@ -34,6 +38,10 @@ import {
 import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
+import {
+  detectAnticheatCapability,
+  resolveDeviceMonitoringPlan,
+} from "@/features/contest/domain/anticheatModulePolicy";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -67,6 +75,13 @@ export const useContestExamActions = ({
   onError,
 }: UseContestExamActionsParams) => {
   const submissionProgress = useExamSubmissionProgress();
+  const resolvePrimarySourceModule = useCallback((): "screen_share" | "webcam" => {
+    const plan = resolveDeviceMonitoringPlan(
+      detectAnticheatCapability(),
+      contest?.anticheatDevicePolicy
+    );
+    return plan.primarySourceModule;
+  }, [contest?.anticheatDevicePolicy]);
 
   const cleanupExamArtifacts = useCallback((
     id: string,
@@ -78,6 +93,8 @@ export const useContestExamActions = ({
     clearRuntimeScreenShareReauth(id);
     clearRuntimeScreenShareHandoff(true);
     clearPrecheckScreenShareHandoff(true);
+    clearRuntimeWebcamHandoff(true);
+    clearPrecheckWebcamHandoff(true);
   }, []);
 
   const handleJoin = useCallback(
@@ -144,6 +161,7 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     const uploadSessionId = getExamCaptureSessionId(contest.id);
+    const sourceModule = resolvePrimarySourceModule();
 
     const success = await submissionProgress.run({
       handlers: {
@@ -154,14 +172,21 @@ export const useContestExamActions = ({
             forceCaptureReason: "exam_submit_initiated:dashboard_submit",
             metadata: {
               upload_session_id: uploadSessionId || undefined,
+              module: sourceModule,
+              module_role: "primary",
             },
           }).catch(() => null);
           beginAnticheatTermination(contest.id);
         },
         finalizing: async () => {
           const response = uploadSessionId
-            ? await endExam(contest.id, { upload_session_id: uploadSessionId })
-            : await endExam(contest.id);
+            ? await endExam(contest.id, {
+                upload_session_id: uploadSessionId,
+                source_module: sourceModule,
+              })
+            : await endExam(contest.id, {
+                source_module: sourceModule,
+              });
           if (!isSubmittedExamSessionResponse(response)) {
             throw new Error("Exam submission did not complete");
           }
@@ -184,6 +209,7 @@ export const useContestExamActions = ({
     onError,
     refreshContest,
     submissionProgress,
+    resolvePrimarySourceModule,
   ]);
 
   const handleExit = useCallback(async () => {
@@ -192,6 +218,7 @@ export const useContestExamActions = ({
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
+      const sourceModule = resolvePrimarySourceModule();
       let navigateTo = "/contests";
 
       if (shouldEndExam) {
@@ -204,6 +231,8 @@ export const useContestExamActions = ({
                 forceCaptureReason: "exam_submit_initiated:exit_exam",
                 metadata: {
                   upload_session_id: uploadSessionId || undefined,
+                  module: sourceModule,
+                  module_role: "primary",
                 },
               }).catch(() => null);
               beginAnticheatTermination(contest.id);
@@ -213,6 +242,7 @@ export const useContestExamActions = ({
                 contestId: contest.id,
                 shouldEndExam,
                 uploadSessionId: uploadSessionId || undefined,
+                sourceModule,
               });
               if (!result.success) {
                 throw new Error(result.error || "Failed to leave exam");
@@ -256,6 +286,7 @@ export const useContestExamActions = ({
     navigate,
     onError,
     submissionProgress,
+    resolvePrimarySourceModule,
   ]);
 
   const toggleFullscreen = useCallback(async () => {

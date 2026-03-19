@@ -1,4 +1,4 @@
-import { Route } from "react-router-dom";
+import { Route } from "react-router";
 import ProblemListScreen from "./screens/problems";
 import ProblemDetailScreen from "./screens/problemsId";
 import ProblemSolveScreen from "./screens/problemsIdSolve";

@@ -1,4 +1,4 @@
-import { cloneElement, useMemo, useState, useEffect } from 'react';
+import { cloneElement, useCallback, useMemo, useState, useEffect } from 'react';
 import { useLocation, useOutlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Light, Asleep, TaskComplete, ArrowLeft } from '@carbon/icons-react';
@@ -75,8 +75,13 @@ const AuthLayout = () => {
 
   const metadata = overrideMetadata || pathMetadata;
 
+  const authLayoutValue = useMemo(
+    () => ({ setMetadata: setOverrideMetadata }),
+    [setOverrideMetadata],
+  );
+
   return (
-    <AuthLayoutContext.Provider value={{ setMetadata: setOverrideMetadata }}>
+    <AuthLayoutContext.Provider value={authLayoutValue}>
       <div className="auth-split-wrapper">
         <div className="auth-split-grid">
           <section className="auth-hero-side" aria-hidden="true">

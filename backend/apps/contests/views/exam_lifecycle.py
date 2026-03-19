@@ -12,7 +12,18 @@ from ..models import (
 )
 from ..serializers import ExamEventCreateSerializer
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import get_device_id, set_active_session, touch_heartbeat, clear_heartbeat
+from ..services.anti_cheat_session import (
+    blacklist_other_tokens,
+    build_device_conflict_response,
+    clear_exam_allowed_jti,
+    get_device_id,
+    get_refresh_jti,
+    get_token_jti,
+    set_active_session,
+    touch_heartbeat,
+    clear_heartbeat,
+)
+from ..models import ExamEvent as _ExamEvent  # noqa: used in lifecycle
 from ..services.exam_submission import finalize_submission
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
@@ -100,6 +111,20 @@ class ExamLifecycleMixin:
             )
 
         set_active_session(contest, participant, request, get_device_id(request))
+
+        # Part A: blacklist other devices' JWT tokens
+        if getattr(contest, "cheat_detection_enabled", False):
+            jti = get_token_jti(request)
+            if jti:
+                bl_count = blacklist_other_tokens(request.user, access_jti=jti, refresh_jti=get_refresh_jti(request))
+                if bl_count:
+                    _ExamEvent.objects.create(
+                        contest=contest,
+                        user=request.user,
+                        event_type="other_devices_logged_out",
+                        metadata={"blacklisted_count": bl_count},
+                    )
+
         touch_heartbeat(contest.id, request.user.id)
         return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
 
@@ -147,16 +172,34 @@ class ExamLifecycleMixin:
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Soft device check — log event but do NOT block submission
+        conflict = build_device_conflict_response(contest, participant, request)
+        if conflict is not None:
+            _ExamEvent.objects.create(
+                contest=contest,
+                user=request.user,
+                event_type="end_exam_device_mismatch",
+                metadata={
+                    "device_id": get_device_id(request),
+                    "source": "end_exam_soft_check",
+                },
+            )
+
         submit_reason = str(request.data.get('submit_reason') or "Submitted exam").strip()
         finalize_submission(
             participant,
             submit_reason=submit_reason,
             upload_session_id=str(request.data.get("upload_session_id") or ""),
+            source_module=str(request.data.get("source_module") or ""),
             activity_user=request.user,
             activity_action_type="end_exam",
             activity_details=submit_reason,
         )
         clear_heartbeat(contest.id, request.user.id)
+
+        # Release JTI pin so other devices can work normally again
+        if getattr(contest, "cheat_detection_enabled", False):
+            clear_exam_allowed_jti(request.user.id)
 
         return Response({
             'status': 'finished',
@@ -183,6 +226,8 @@ class ExamViewSet(
         'multiple_displays',
         'mouse_leave',
         'screen_share_stopped',
+        'webcam_stopped',
+        'viewport_stopped',
         'warning_timeout',
         'forbidden_focus_event',
         'heartbeat_timeout',

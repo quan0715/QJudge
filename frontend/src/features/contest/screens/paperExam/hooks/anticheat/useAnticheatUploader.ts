@@ -5,7 +5,10 @@ import {
 } from "@/infrastructure/api/repositories/exam.repository";
 import type { AnticheatUploadBatchItem } from "@/infrastructure/api/repositories/exam.repository";
 
-export const useAnticheatUploader = (contestId: string) => {
+export const useAnticheatUploader = (
+  contestId: string,
+  module: "screen_share" | "webcam" = "screen_share"
+) => {
   const uploadBatch = useCallback(
     async (
       items: { id: number; createdAt: number; blob: Blob }[],
@@ -17,6 +20,7 @@ export const useAnticheatUploader = (contestId: string) => {
       try {
         const response = await getAnticheatUrls(contestId, items.length, {
           upload_session_id: sessionId,
+          module,
         });
 
         const uploadPayload: AnticheatUploadBatchItem[] = items
@@ -36,7 +40,7 @@ export const useAnticheatUploader = (contestId: string) => {
         throw err;
       }
     },
-    [contestId]
+    [contestId, module]
   );
 
   return { uploadBatch };
