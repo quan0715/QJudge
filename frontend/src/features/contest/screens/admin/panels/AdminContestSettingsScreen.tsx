@@ -22,7 +22,7 @@ import {
 } from "@/infrastructure/api/repositories";
 import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
-import s from "./AdminContestSettingsPanel.module.scss";
+import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 
 const sanitizeAnticheatPolicy = (
   policy: unknown

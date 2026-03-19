@@ -8,6 +8,8 @@ import {
   ClickableTile,
   SkeletonPlaceholder,
   SkeletonText,
+  TextInput,
+  TextArea,
 } from "@carbon/react";
 import {
   Add,
@@ -23,10 +25,12 @@ import {
 import type { Classroom, ClassroomAnnouncement, ClassroomDetail, BoundContest } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { KpiCard } from "@/shared/ui/dataCard";
+import { SettingsPanelRoot, Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import {
   getClassroom,
   getClassrooms,
+  updateClassroom,
   removeMember,
   regenerateCode,
   bindContest,
@@ -293,25 +297,29 @@ const ClassroomDetailScreen: React.FC = () => {
         }}
       >
         <div className="classroom-admin-page">
-          <HeroSection classroom={classroom} />
+          {activePanel === "overview" && (
+            <>
+              <HeroSection classroom={classroom} />
 
-          <div className="classroom-admin-panel">
-            {activePanel === "overview" && (
-              <OverviewPanel
-                classroom={classroom}
-                isPrivileged={Boolean(isPrivileged)}
-                onCreateAnnouncement={() => {
-                  setEditingAnnouncement(null);
-                  setAnnouncementModalOpen(true);
-                }}
-                onViewAnnouncement={setViewingAnnouncement}
-                onCreateContest={() => setCreateContestOpen(true)}
-                onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
-                onJumpToPanel={handlePanelChange}
-              />
-            )}
+              <div className="classroom-admin-panel">
+                <OverviewPanel
+                  classroom={classroom}
+                  isPrivileged={Boolean(isPrivileged)}
+                  onCreateAnnouncement={() => {
+                    setEditingAnnouncement(null);
+                    setAnnouncementModalOpen(true);
+                  }}
+                  onViewAnnouncement={setViewingAnnouncement}
+                  onCreateContest={() => setCreateContestOpen(true)}
+                  onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
+                  onJumpToPanel={handlePanelChange}
+                />
+              </div>
+            </>
+          )}
 
-            {activePanel === "announcements" && (
+          {activePanel === "announcements" && (
+            <div className="classroom-admin-panel">
               <AnnouncementSection
                 announcements={classroom.announcements}
                 isPrivileged={Boolean(isPrivileged)}
@@ -321,25 +329,31 @@ const ClassroomDetailScreen: React.FC = () => {
                 }}
                 onView={setViewingAnnouncement}
               />
-            )}
+            </div>
+          )}
 
-            {activePanel === "practice" && (
+          {activePanel === "practice" && (
+            <div className="classroom-admin-panel">
               <PracticePanel
                 onOpenBanks={() => navigate("/question-banks")}
                 isPrivileged={Boolean(isPrivileged)}
               />
-            )}
+            </div>
+          )}
 
-            {activePanel === "contests" && (
+          {activePanel === "contests" && (
+            <div className="classroom-admin-panel">
               <ContestPanel
                 contests={classroom.contests}
                 isPrivileged={Boolean(isPrivileged)}
                 onCreateContest={() => setCreateContestOpen(true)}
                 onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
               />
-            )}
+            </div>
+          )}
 
-            {activePanel === "members" && (
+          {activePanel === "members" && (
+            <div className="classroom-admin-panel">
               <MembersPanel
                 classroom={classroom}
                 isPrivileged={Boolean(isPrivileged)}
@@ -347,16 +361,18 @@ const ClassroomDetailScreen: React.FC = () => {
                 onAddMember={() => setAddMembersOpen(true)}
                 onRemoveMember={handleRemoveMember}
               />
-            )}
+            </div>
+          )}
 
-            {activePanel === "settings" && isPrivileged && (
-              <SettingsPanel classroom={classroom} />
-            )}
+          {activePanel === "settings" && isPrivileged && (
+            <SettingsPanel classroom={classroom} onRefresh={refreshAll} />
+          )}
 
-            {activePanel === "settings" && !isPrivileged && (
+          {activePanel === "settings" && !isPrivileged && (
+            <div className="classroom-admin-panel">
               <EmptyBlock icon={Education} message={t("common.noPermission", "你沒有此頁面權限")} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </ClassroomAdminLayout>
 
@@ -456,21 +472,18 @@ const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) =>
             value={String(classroom.memberCount)}
             label={t("classroom.members", "成員")}
             showBorder={false}
-            className="classroom-admin-hero__kpi-card"
           />
           <KpiCard
             icon={Bullhorn}
             value={String(classroom.announcements.length)}
             label={t("classroom.announcements", "公告")}
             showBorder={false}
-            className="classroom-admin-hero__kpi-card"
           />
           <KpiCard
             icon={Trophy}
             value={String(classroom.contests.length)}
             label={t("classroom.contests", "競賽")}
             showBorder={false}
-            className="classroom-admin-hero__kpi-card"
           />
         </div>
       </div>
@@ -690,38 +703,119 @@ const MembersPanel: React.FC<{
   );
 };
 
-const SettingsPanel: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) => {
+const SettingsPanel: React.FC<{
+  classroom: ClassroomDetail;
+  onRefresh: () => Promise<void>;
+}> = ({ classroom, onRefresh }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+
+  const [settingName, setSettingName] = useState(classroom.name);
+  const [settingDescription, setSettingDescription] = useState(classroom.description ?? "");
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    setSettingName(classroom.name);
+    setSettingDescription(classroom.description ?? "");
+  }, [classroom.name, classroom.description]);
+
+  const isDirty = settingName !== classroom.name || settingDescription !== (classroom.description ?? "");
+
+  const handleSave = async () => {
+    setSavingSettings(true);
+    try {
+      await updateClassroom(classroom.id, {
+        name: settingName,
+        description: settingDescription,
+      });
+      showToast({
+        kind: "success",
+        title: t("classroom.settingsSaved", "設定已儲存"),
+      });
+      await onRefresh();
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("classroom.settingsSaveFailed", "儲存設定失敗"),
+        subtitle: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   return (
-    <section className="classroom-admin-section">
-      <div className="classroom-admin-section__header">
-        <div className="classroom-admin-section__title">
-          <Education size={20} />
-          <h3>{t("classroom.tab.settings", "教室設定")}</h3>
-        </div>
-      </div>
-      <div className="classroom-admin-settings">
-        <SettingRow label={t("classroom.name", "教室名稱")} value={classroom.name} />
-        <SettingRow label={t("classroom.owner", "建立者")} value={classroom.ownerUsername} />
-        <SettingRow
-          label={t("classroom.updatedAt", "最後更新")}
-          value={new Date(classroom.updatedAt).toLocaleString()}
-        />
-        <SettingRow
-          label={t("classroom.createdAt", "建立時間")}
-          value={new Date(classroom.createdAt).toLocaleString()}
-        />
-      </div>
-    </section>
+    <SettingsPanelRoot
+      trailing={
+        <>
+          <Section title={t("classroom.basicInfo", "基本資訊")}>
+            <FieldRow label={t("classroom.name", "教室名稱")}>
+              <TextInput
+                id="classroom-settings-name"
+                hideLabel
+                labelText={t("classroom.name", "教室名稱")}
+                value={settingName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettingName(e.target.value)}
+              />
+            </FieldRow>
+            <FieldRow label={t("classroom.description", "教室描述")}>
+              <TextArea
+                id="classroom-settings-description"
+                hideLabel
+                labelText={t("classroom.description", "教室描述")}
+                value={settingDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSettingDescription(e.target.value)}
+                rows={4}
+              />
+            </FieldRow>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+              <Button
+                kind="primary"
+                size="sm"
+                disabled={!isDirty || savingSettings || !settingName.trim()}
+                onClick={() => { void handleSave(); }}
+              >
+                {savingSettings
+                  ? t("common.saving", "儲存中…")
+                  : t("common.save", "儲存")}
+              </Button>
+            </div>
+          </Section>
+
+          <Section title={t("classroom.otherInfo", "其他資訊")}>
+            <FieldRow label={t("classroom.owner", "建立者")}>
+              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+                {classroom.ownerUsername}
+              </span>
+            </FieldRow>
+            <FieldRow label={t("classroom.createdAt", "建立時間")}>
+              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+                {new Date(classroom.createdAt).toLocaleString()}
+              </span>
+            </FieldRow>
+            <FieldRow label={t("classroom.updatedAt", "最後更新")}>
+              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+                {new Date(classroom.updatedAt).toLocaleString()}
+              </span>
+            </FieldRow>
+          </Section>
+        </>
+      }
+    >
+      <h2
+        style={{
+          fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
+          fontWeight: 400,
+          lineHeight: "1.625rem",
+          color: "var(--cds-text-primary)",
+          margin: 0,
+        }}
+      >
+        {t("classroom.tab.settings", "教室設定")}
+      </h2>
+    </SettingsPanelRoot>
   );
 };
-
-const SettingRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="classroom-admin-settings__row">
-    <span className="classroom-admin-settings__label">{label}</span>
-    <span className="classroom-admin-settings__value">{value}</span>
-  </div>
-);
 
 const AnnouncementSection: React.FC<{
   announcements: ClassroomAnnouncement[];

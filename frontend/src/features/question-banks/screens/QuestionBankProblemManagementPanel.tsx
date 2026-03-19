@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   Button,
   ClickableTile,
+  ExpandableSearch,
   Loading,
   Modal,
   MultiSelect,
@@ -10,7 +11,6 @@ import {
   SelectItem,
   Stack,
   Tag,
-  TextArea,
   TextInput,
   Tile,
 } from "@carbon/react";
@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   CheckmarkFilled,
   Download,
-  Edit,
   Filter,
   TrashCan,
   Copy,
@@ -42,6 +41,7 @@ import {
 } from "@/shared/ui/questionVisual";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
+import EmbeddedBankCodingEditor from "@/features/question-banks/components/EmbeddedBankCodingEditor";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import {
   buildQuestionPreviewMeta,
@@ -106,6 +106,9 @@ interface QuestionBankProblemManagementPanelProps {
   onReload: () => Promise<void>;
   viewState: ProblemManagementViewState;
   onViewStateChange: (next: Partial<ProblemManagementViewState>) => void;
+  readOnly?: boolean;
+  myBanks?: QuestionBank[];
+  onClone?: (questionId: string, targetBankId: string) => Promise<void>;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
@@ -118,6 +121,9 @@ const QuestionBankProblemManagementPanel = ({
   onReload,
   viewState,
   onViewStateChange,
+  readOnly = false,
+  myBanks = [],
+  onClone,
 }: QuestionBankProblemManagementPanelProps) => {
   const { t } = useTranslation("common");
   const { showToast } = useToast();
@@ -127,13 +133,11 @@ const QuestionBankProblemManagementPanel = ({
   const [examTypePickerOpen, setExamTypePickerOpen] = useState(false);
   const [examEditSignal, setExamEditSignal] = useState(0);
 
-  const [codingModalOpen, setCodingModalOpen] = useState(false);
-  const [editingCodingQuestion, setEditingCodingQuestion] = useState<BankQuestion | null>(null);
-  const [codingTitle, setCodingTitle] = useState("");
-  const [codingPrompt, setCodingPrompt] = useState("");
-  const [codingDifficulty, setCodingDifficulty] = useState("medium");
-  const [codingTimeLimit, setCodingTimeLimit] = useState("1000");
-  const [codingMemoryLimit, setCodingMemoryLimit] = useState("128");
+  const [creatingCoding, setCreatingCoding] = useState(false);
+
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [cloneTargetBankId, setCloneTargetBankId] = useState("");
+  const [cloning, setCloning] = useState(false);
 
   const [filterState, setFilterState] = useState<QuestionFilterState>({
     keyword: "",
@@ -207,71 +211,25 @@ const QuestionBankProblemManagementPanel = ({
     }
   }, [filteredQuestions, onViewStateChange, selectedQuestion, viewState.mode, viewState.selectedId]);
 
-  const parseNumberInput = (value: string, fallback: number, min = 0): number => {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return fallback;
-    return Math.max(parsed, min);
-  };
-
-  const openCodingEditor = (question?: BankQuestion) => {
-    const target = question || null;
-    setEditingCodingQuestion(target);
-    setCodingTitle(target?.title || "");
-    setCodingPrompt(target?.prompt || "");
-    setCodingDifficulty(target?.difficulty || "medium");
-    setCodingTimeLimit(String(target?.timeLimit ?? 1000));
-    setCodingMemoryLimit(String(target?.memoryLimit ?? 128));
-    setCodingModalOpen(true);
-  };
-
-  const handleSaveCoding = async () => {
-    if (!codingTitle.trim()) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: t("questionBank.validationTitle", "題目標題不可為空"),
-      });
-      return;
-    }
-    if (!codingPrompt.trim()) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: t("questionBank.validationPrompt", "題目敘述不可為空"),
-      });
-      return;
-    }
-
+  const handleCreateCodingQuestion = async () => {
+    if (creatingCoding) return;
+    const maxOrder =
+      questions.length === 0 ? 0 : Math.max(...questions.map((row) => Number(row.order || 0))) + 1;
     const payload: UpsertBankQuestionPayload = {
       questionType: "coding",
-      title: codingTitle.trim(),
-      prompt: codingPrompt.trim(),
-      difficulty: codingDifficulty,
-      timeLimit: parseNumberInput(codingTimeLimit, 1000, 100),
-      memoryLimit: parseNumberInput(codingMemoryLimit, 128, 64),
-      order:
-        editingCodingQuestion?.order ??
-        (questions.length === 0 ? 0 : Math.max(...questions.map((row) => Number(row.order || 0))) + 1),
+      title: "Untitled",
+      order: maxOrder,
     };
 
     try {
-      if (editingCodingQuestion) {
-        await updateQuestion(editingCodingQuestion.id, payload);
-      } else {
-        const created = await createQuestion(bank.id, payload);
-        onViewStateChange({
-          mode: "split",
-          selectedId: created.id,
-        });
-      }
+      setCreatingCoding(true);
+      const created = await createQuestion(bank.id, payload);
       showToast({
         kind: "success",
         title: t("message.success"),
-        subtitle: editingCodingQuestion
-          ? t("questionBank.questionUpdated", "題目已更新")
-          : t("questionBank.questionCreated", "題目已建立"),
+        subtitle: t("questionBank.questionCreated", "題目已建立"),
       });
-      setCodingModalOpen(false);
+      onViewStateChange({ mode: "split", selectedId: created.id });
       await onReload();
     } catch (error: unknown) {
       showToast({
@@ -279,6 +237,8 @@ const QuestionBankProblemManagementPanel = ({
         title: t("message.error"),
         subtitle: getErrorMessage(error, t("message.error")),
       });
+    } finally {
+      setCreatingCoding(false);
     }
   };
 
@@ -428,6 +388,19 @@ const QuestionBankProblemManagementPanel = ({
     }
   };
 
+  const handleCloneToBank = async () => {
+    if (!selectedQuestion || !cloneTargetBankId || !onClone) return;
+    try {
+      setCloning(true);
+      await onClone(selectedQuestion.id, cloneTargetBankId);
+      setCloneModalOpen(false);
+    } catch {
+      // error toast is handled by parent onClone
+    } finally {
+      setCloning(false);
+    }
+  };
+
   const selectedDifficultyItems = difficultyOptions.filter((item) =>
     filterState.difficulty.includes(item.id)
   );
@@ -443,46 +416,61 @@ const QuestionBankProblemManagementPanel = ({
   const toolbar = (
     <div className={styles.toolbarBlock}>
       <div className={styles.toolbarTopRow}>
-        <TextInput
-          id="question-bank-question-search"
-          labelText=""
-          placeholder={t("questionBank.searchQuestion", "搜尋題目...")}
-          value={filterState.keyword}
-          onChange={(event) =>
-            setFilterState((prev) => ({ ...prev, keyword: event.currentTarget.value }))
-          }
-        />
-        <Button
-          kind="ghost"
-          renderIcon={Filter}
-          onClick={() => setShowFilters((value) => !value)}
-        >
-          {showFilters
-            ? t("questionBank.hideFilters", "收合篩選")
-            : t("questionBank.showFilters", "展開篩選")}
-        </Button>
-        {viewState.mode === "split" ? (
+        <div className={styles.toolbarLeft}>
+          <h4 className={styles.toolbarTitle}>
+            {t("page.problemManagement", "題目管理")}
+          </h4>
+        </div>
+        <div className={styles.toolbarRight}>
+          <ExpandableSearch
+            id="question-bank-question-search"
+            size="md"
+            className={styles.toolbarSearch}
+            labelText={t("questionBank.searchQuestion", "搜尋題目")}
+            placeholder={t("questionBank.searchQuestion", "搜尋題目...")}
+            value={filterState.keyword}
+            onChange={(event) =>
+              setFilterState((prev) => ({ ...prev, keyword: (event.target as HTMLInputElement).value || "" }))
+            }
+          />
           <Button
             kind="ghost"
-            renderIcon={ArrowLeft}
-            onClick={() => onViewStateChange({ mode: "gallery", selectedId: null })}
-          >
-            {t("questionBank.backToGallery", "回到畫廊")}
-          </Button>
-        ) : null}
-        <Button
-          kind="primary"
-          renderIcon={Add}
-          onClick={() => {
-            if (bank.category === "exam") {
-              setExamTypePickerOpen(true);
-              return;
-            }
-            openCodingEditor();
-          }}
-        >
-          {t("questionBank.addQuestion", "新增題目")}
-        </Button>
+            size="sm"
+            hasIconOnly
+            renderIcon={Filter}
+            iconDescription={t("questionBank.showFilters", "篩選")}
+            className={`${styles.toolbarAction} ${showFilters ? styles.toolbarActionActive : ""}`}
+            onClick={() => setShowFilters((value) => !value)}
+          />
+          {viewState.mode === "split" ? (
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={ArrowLeft}
+              iconDescription={t("questionBank.backToGallery", "回到畫廊")}
+              className={styles.toolbarAction}
+              onClick={() => onViewStateChange({ mode: "gallery", selectedId: null })}
+            />
+          ) : null}
+          {!readOnly && (
+            <Button
+              kind="primary"
+              size="sm"
+              hasIconOnly
+              renderIcon={Add}
+              iconDescription={t("questionBank.addQuestion", "新增題目")}
+              className={styles.toolbarAction}
+              onClick={() => {
+                if (bank.category === "exam") {
+                  setExamTypePickerOpen(true);
+                  return;
+                }
+                void handleCreateCodingQuestion();
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {showFilters ? (
@@ -591,23 +579,6 @@ const QuestionBankProblemManagementPanel = ({
           )}
         </div>
 
-        <CodingQuestionModal
-          open={codingModalOpen}
-          title={codingTitle}
-          prompt={codingPrompt}
-          difficulty={codingDifficulty}
-          timeLimit={codingTimeLimit}
-          memoryLimit={codingMemoryLimit}
-          editing={Boolean(editingCodingQuestion)}
-          onClose={() => setCodingModalOpen(false)}
-          onTitleChange={setCodingTitle}
-          onPromptChange={setCodingPrompt}
-          onDifficultyChange={setCodingDifficulty}
-          onTimeLimitChange={setCodingTimeLimit}
-          onMemoryLimitChange={setCodingMemoryLimit}
-          onSubmit={handleSaveCoding}
-        />
-
         <ExamTypePickerModal
           open={examTypePickerOpen}
           onClose={() => setExamTypePickerOpen(false)}
@@ -641,99 +612,44 @@ const QuestionBankProblemManagementPanel = ({
           </Tile>
         ) : (
           <div className={styles.detailPane}>
-            <Tile className={styles.detailHeaderTile}>
-              <div className={styles.detailHeaderTop}>
-                <div>
-                  <h3 className={styles.detailTitle}>{getQuestionDisplayTitle(selectedQuestion)}</h3>
-                  <div className={styles.detailTags}>
-                    <Tag type="blue">{selectedQuestion.questionType}</Tag>
-                    {selectedQuestion.questionType === "exam" ? (
-                      <Tag type="purple">{getQuestionTypeLabel(resolveExamQuestionType(selectedQuestion))}</Tag>
-                    ) : (
-                      <Tag type="teal">{selectedQuestion.difficulty || "medium"}</Tag>
-                    )}
-                  </div>
-                </div>
-                <div className={styles.detailActionRow}>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    renderIcon={Edit}
-                    onClick={() => {
-                      if (selectedQuestion.questionType === "exam") {
-                        setExamEditSignal((value) => value + 1);
-                        return;
-                      }
-                      openCodingEditor(selectedQuestion);
-                    }}
-                  >
-                    {t("button.edit", "編輯")}
-                  </Button>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    renderIcon={Copy}
-                    onClick={() => {
-                      void handleDuplicateQuestion(selectedQuestion);
-                    }}
-                  >
-                    {t("button.copy", "複製")}
-                  </Button>
-                  <Button
-                    kind="danger--ghost"
-                    size="sm"
-                    renderIcon={TrashCan}
-                    onClick={() => {
-                      void handleDeleteQuestion(selectedQuestion);
-                    }}
-                  >
-                    {t("button.delete", "刪除")}
-                  </Button>
-                </div>
+            {readOnly && (
+              <div className={styles.detailActionRow}>
+                <Button
+                  kind="primary"
+                  size="sm"
+                  renderIcon={Download}
+                  onClick={() => {
+                    setCloneTargetBankId(myBanks[0]?.id || "");
+                    setCloneModalOpen(true);
+                  }}
+                >
+                  {t("questionBank.cloneToMyBank", "複製到我的題庫")}
+                </Button>
               </div>
-            </Tile>
+            )}
 
             {selectedQuestion.questionType === "exam" ? (
-              <ExamQuestionEditCard
-                question={toExamQuestion(bank.id, selectedQuestion)}
-                index={Number(selectedQuestion.order || 0)}
-                showScoreField={false}
-                onSave={handleSaveExamQuestion}
-                onDelete={(id) => handleDeleteQuestion(byId.get(id) || selectedQuestion)}
-                onDuplicate={(id) => handleDuplicateQuestion(byId.get(id) || selectedQuestion)}
-                startEditingSignal={examEditSignal}
-              />
+              <div className={styles.flatEditorWrap}>
+                <ExamQuestionEditCard
+                  question={toExamQuestion(bank.id, selectedQuestion)}
+                  index={Number(selectedQuestion.order || 0)}
+                  showScoreField={false}
+                  onSave={handleSaveExamQuestion}
+                  onDelete={(id) => handleDeleteQuestion(byId.get(id) || selectedQuestion)}
+                  onDuplicate={(id) => handleDuplicateQuestion(byId.get(id) || selectedQuestion)}
+                  startEditingSignal={examEditSignal}
+                />
+              </div>
             ) : (
-              <Tile className={styles.codingPreviewTile}>
-                <Stack gap={3}>
-                  <p className={styles.previewPrompt}>{selectedQuestion.prompt || t("message.noData", "暫無資料")}</p>
-                  <p className={styles.previewMeta}>
-                    {t("questionBank.timeLimit", "時間限制(ms)")}: {selectedQuestion.timeLimit} ·{" "}
-                    {t("questionBank.memoryLimit", "記憶體限制(MB)")}: {selectedQuestion.memoryLimit}
-                  </p>
-                </Stack>
-              </Tile>
+              <EmbeddedBankCodingEditor
+                bankQuestion={selectedQuestion}
+                bankId={bank.id}
+                onSaved={() => void onReload()}
+              />
             )}
           </div>
         )}
       </AdminSplitLayout>
-
-      <CodingQuestionModal
-        open={codingModalOpen}
-        title={codingTitle}
-        prompt={codingPrompt}
-        difficulty={codingDifficulty}
-        timeLimit={codingTimeLimit}
-        memoryLimit={codingMemoryLimit}
-        editing={Boolean(editingCodingQuestion)}
-        onClose={() => setCodingModalOpen(false)}
-        onTitleChange={setCodingTitle}
-        onPromptChange={setCodingPrompt}
-        onDifficultyChange={setCodingDifficulty}
-        onTimeLimitChange={setCodingTimeLimit}
-        onMemoryLimitChange={setCodingMemoryLimit}
-        onSubmit={handleSaveCoding}
-      />
 
       <ExamTypePickerModal
         open={examTypePickerOpen}
@@ -742,6 +658,37 @@ const QuestionBankProblemManagementPanel = ({
       />
 
       <ConfirmModal {...modalProps} />
+
+      {readOnly && (
+        <Modal
+          open={cloneModalOpen}
+          modalHeading={t("questionBank.cloneToMyBank", "複製到我的題庫")}
+          primaryButtonText={cloning ? t("message.loading", "載入中") : t("button.confirm", "確認")}
+          secondaryButtonText={t("button.cancel", "取消")}
+          onRequestClose={() => setCloneModalOpen(false)}
+          onRequestSubmit={() => { void handleCloneToBank(); }}
+          primaryButtonDisabled={!cloneTargetBankId || cloning}
+          size="sm"
+        >
+          <Stack gap={4}>
+            <p>{t("questionBank.cloneToMyBankDesc", "選擇要複製到的目標題庫：")}</p>
+            <Select
+              id="clone-target-bank"
+              labelText={t("questionBank.targetBank", "目標題庫")}
+              value={cloneTargetBankId}
+              onChange={(e) => setCloneTargetBankId(e.currentTarget.value)}
+            >
+              {myBanks.length === 0 ? (
+                <SelectItem value="" text={t("questionBank.noBank", "尚無題庫")} />
+              ) : (
+                myBanks.map((b) => (
+                  <SelectItem key={b.id} value={b.id} text={b.name} />
+                ))
+              )}
+            </Select>
+          </Stack>
+        </Modal>
+      )}
     </>
   );
 };
@@ -862,6 +809,9 @@ const QuestionListSidebar = ({
           })
         )}
       </div>
+      <div className={styles.listSidebarFooter}>
+        {t("questionBank.questionCount", "共 {{count}} 題", { count: questions.length })}
+      </div>
     </div>
   );
 };
@@ -907,91 +857,6 @@ const ExamTypePickerModal = ({
           );
         })}
       </div>
-    </Modal>
-  );
-};
-
-const CodingQuestionModal = ({
-  open,
-  editing,
-  title,
-  prompt,
-  difficulty,
-  timeLimit,
-  memoryLimit,
-  onClose,
-  onTitleChange,
-  onPromptChange,
-  onDifficultyChange,
-  onTimeLimitChange,
-  onMemoryLimitChange,
-  onSubmit,
-}: {
-  open: boolean;
-  editing: boolean;
-  title: string;
-  prompt: string;
-  difficulty: string;
-  timeLimit: string;
-  memoryLimit: string;
-  onClose: () => void;
-  onTitleChange: (value: string) => void;
-  onPromptChange: (value: string) => void;
-  onDifficultyChange: (value: string) => void;
-  onTimeLimitChange: (value: string) => void;
-  onMemoryLimitChange: (value: string) => void;
-  onSubmit: () => void;
-}) => {
-  const { t } = useTranslation("common");
-
-  return (
-    <Modal
-      open={open}
-      modalHeading={editing ? t("questionBank.editQuestion", "編輯題目") : t("questionBank.addQuestion", "新增題目")}
-      primaryButtonText={editing ? t("button.save", "儲存") : t("button.create", "建立")}
-      secondaryButtonText={t("button.cancel", "取消")}
-      onRequestClose={onClose}
-      onRequestSubmit={onSubmit}
-      primaryButtonDisabled={!title.trim()}
-    >
-      <Stack gap={5}>
-        <TextInput
-          id="coding-question-title"
-          labelText={t("table.title", "標題")}
-          value={title}
-          onChange={(event) => onTitleChange(event.currentTarget.value)}
-        />
-        <TextArea
-          id="coding-question-prompt"
-          labelText={t("questionBank.prompt", "題目敘述")}
-          value={prompt}
-          onChange={(event) => onPromptChange(event.currentTarget.value)}
-        />
-        <Select
-          id="coding-question-difficulty"
-          labelText={t("questionBank.difficulty", "難度")}
-          value={difficulty}
-          onChange={(event) => onDifficultyChange(event.currentTarget.value)}
-        >
-          <SelectItem value="easy" text={t("difficulty.easy", "簡單")} />
-          <SelectItem value="medium" text={t("difficulty.medium", "中等")} />
-          <SelectItem value="hard" text={t("difficulty.hard", "困難")} />
-        </Select>
-        <TextInput
-          id="coding-question-time-limit"
-          type="number"
-          labelText={t("questionBank.timeLimit", "時間限制(ms)")}
-          value={timeLimit}
-          onChange={(event) => onTimeLimitChange(event.currentTarget.value)}
-        />
-        <TextInput
-          id="coding-question-memory-limit"
-          type="number"
-          labelText={t("questionBank.memoryLimit", "記憶體限制(MB)")}
-          value={memoryLimit}
-          onChange={(event) => onMemoryLimitChange(event.currentTarget.value)}
-        />
-      </Stack>
     </Modal>
   );
 };

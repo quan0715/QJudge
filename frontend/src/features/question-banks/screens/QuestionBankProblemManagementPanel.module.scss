@@ -23,20 +23,70 @@
 .toolbarBlock {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-04;
+  background: var(--cds-background);
 }
 
 .toolbarTopRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  gap: layout.$spacing-03;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+}
+
+.toolbarLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-left: 1rem;
+}
+
+.toolbarTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+}
+
+.toolbarRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.toolbarSearch :global(.cds--search) {
+  width: 14rem;
+  height: 2.5rem;
+}
+
+.toolbarAction {
+  flex-shrink: 0;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.toolbarActionActive {
+  color: var(--cds-icon-primary);
+  background: var(--cds-layer-selected-01);
+
+  &:hover {
+    background: var(--cds-layer-selected-hover);
+  }
 }
 
 .filterRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  border-top: 1px solid var(--cds-border-subtle);
 }
 
 .galleryGrid {
@@ -180,12 +230,24 @@
 }
 
 .listSidebarBody {
+  flex: 1;
   overflow-y: auto;
   min-height: 0;
   padding: layout.$spacing-03;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.listSidebarFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-03;
+  border-top: 1px solid var(--cds-border-subtle);
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  flex-shrink: 0;
 }
 
 .listItem {
@@ -241,62 +303,39 @@
 .splitContent {
   align-items: stretch;
   background: var(--cds-layer-01);
-  padding: layout.$spacing-05;
+  padding: 0;
 }
 
 .detailPane {
   width: 100%;
-  max-width: 860px;
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-04;
+  min-height: 0;
 }
 
-.detailHeaderTile {
-  border: 1px solid var(--cds-border-subtle);
-}
+.flatEditorWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
 
-.detailHeaderTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-04;
-}
+  // Remove card border/shadow from exam edit card so content sits flat
+  > div {
+    max-width: none;
 
-.detailTitle {
-  margin: 0;
-  font-size: var(--cds-heading-03-font-size, 1.25rem);
-  color: var(--cds-text-primary);
-}
-
-.detailTags {
-  margin-top: layout.$spacing-03;
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-02;
+    [class*="card"] {
+      max-width: none;
+      border: none;
+      box-shadow: none;
+    }
+  }
 }
 
 .detailActionRow {
   display: inline-flex;
   gap: layout.$spacing-02;
   flex-wrap: wrap;
-}
-
-.codingPreviewTile {
-  border: 1px solid var(--cds-border-subtle);
-}
-
-.previewPrompt {
-  margin: 0;
-  white-space: pre-wrap;
-  color: var(--cds-text-primary);
-  line-height: 1.6;
-}
-
-.previewMeta {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  padding: layout.$spacing-03 layout.$spacing-05;
 }
 
 .typePickerGrid {
@@ -345,16 +384,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .toolbarTopRow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .filterRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .detailHeaderTop {
-    flex-direction: column;
   }
 }
 

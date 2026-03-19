@@ -1,0 +1,96 @@
+import type { ComponentType, ReactNode } from "react";
+import {
+  Header,
+  HeaderGlobalBar,
+  SideNav,
+  SideNavItems,
+  SideNavLink,
+} from "@carbon/react";
+import styles from "./AdminShellLayout.module.scss";
+
+export interface NavItem {
+  id: string;
+  icon: ComponentType<{ size?: number }>;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+export type SideNavMode =
+  | { variant: "rail" }
+  | { variant: "expanded"; width?: string };
+
+export interface AdminShellLayoutProps {
+  headerAriaLabel: string;
+  headerLeft: ReactNode;
+  headerActions: ReactNode;
+  sideNavAriaLabel: string;
+  sideNavMode: SideNavMode;
+  navItems: NavItem[];
+  children: ReactNode;
+  headerZIndex?: number;
+  className?: string;
+  contentClassName?: string;
+}
+
+const AdminShellLayout = ({
+  headerAriaLabel,
+  headerLeft,
+  headerActions,
+  sideNavAriaLabel,
+  sideNavMode,
+  navItems,
+  children,
+  headerZIndex,
+  className,
+  contentClassName,
+}: AdminShellLayoutProps) => {
+  const isRail = sideNavMode.variant === "rail";
+  const sidenavWidth = isRail
+    ? "3rem"
+    : sideNavMode.width ?? "16rem";
+
+  const cssVars = {
+    "--admin-shell-sidenav-width": sidenavWidth,
+    ...(headerZIndex != null && { "--admin-shell-header-z": String(headerZIndex) }),
+  } as React.CSSProperties;
+
+  return (
+    <div
+      className={`${styles.layout}${className ? ` ${className}` : ""}`}
+      style={cssVars}
+    >
+      <Header aria-label={headerAriaLabel} className={styles.header}>
+        {headerLeft}
+        <HeaderGlobalBar>{headerActions}</HeaderGlobalBar>
+      </Header>
+
+      <SideNav
+        aria-label={sideNavAriaLabel}
+        {...(isRail ? { isRail: true } : { expanded: true })}
+        className={`${styles.sidenav}${!isRail ? ` ${styles.sidenavExpanded}` : ""}`}
+      >
+        <SideNavItems>
+          {navItems.map((item) => (
+            <SideNavLink
+              key={item.id}
+              renderIcon={item.icon}
+              isActive={item.isActive}
+              onClick={item.onClick}
+            >
+              {item.label}
+            </SideNavLink>
+          ))}
+        </SideNavItems>
+      </SideNav>
+
+      <main className={styles.content}>
+        <div className={`${styles.contentViewport}${contentClassName ? ` ${contentClassName}` : ""}`}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AdminShellLayout;

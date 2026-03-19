@@ -47,17 +47,6 @@ import {
 import { getQuestionVisualFromInboxItem, type QuestionVisualTone } from "@/shared/ui/questionVisual";
 import styles from "./QuestionBanksScreen.module.scss";
 
-type MockExploreCard = {
-  id: string;
-  name: string;
-  description: string;
-  category: "coding" | "exam";
-  questionCount: number;
-  ownerLabel: string;
-  verified: boolean;
-  downloads: string;
-};
-
 type InboxCategoryFilter = "all" | "coding" | "exam";
 
 const INBOX_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
@@ -176,64 +165,6 @@ const QuestionBanksScreen = () => {
     }
     return String(value);
   };
-
-  const mockExploreCards = useMemo<MockExploreCard[]>(
-    () => [
-      {
-        id: "00000000-0000-4000-8000-000000000001",
-        name: t("questionBank.mockOfficialBank1Name", "演算法入門 - 迭迴"),
-        description: t(
-          "questionBank.mockOfficialBank1Desc",
-          "從遞迴與基礎搜尋開始，逐步建立解題思維。"
-        ),
-        category: "coding",
-        questionCount: 120,
-        ownerLabel: t("questionBank.mockOwnerPlatform", "QJudge Community"),
-        verified: true,
-        downloads: "19.3k",
-      },
-      {
-        id: "00000000-0000-4000-8000-000000000002",
-        name: t("questionBank.mockOfficialBank2Name", "資料結構實作題庫"),
-        description: t(
-          "questionBank.mockOfficialBank2Desc",
-          "以教學進度分層整理的資料結構與實作題。"
-        ),
-        category: "coding",
-        questionCount: 86,
-        ownerLabel: t("questionBank.mockOwnerPlatform", "QJudge Community"),
-        verified: true,
-        downloads: "13.7k",
-      },
-      {
-        id: "00000000-0000-4000-8000-000000000003",
-        name: t("questionBank.mockUserBank1Name", "陳老師 APCS 練習集"),
-        description: t(
-          "questionBank.mockUserBank1Desc",
-          "教室實戰導向，聚焦 APCS 觀念與常見錯誤。"
-        ),
-        category: "coding",
-        questionCount: 34,
-        ownerLabel: t("questionBank.mockOwnerTeacherA", "陳老師"),
-        verified: false,
-        downloads: "4.8k",
-      },
-      {
-        id: "00000000-0000-4000-8000-000000000004",
-        name: t("questionBank.mockUserBank2Name", "林老師段考題庫"),
-        description: t(
-          "questionBank.mockUserBank2Desc",
-          "校內段考題型整理，附評分重點與難度分級。"
-        ),
-        category: "exam",
-        questionCount: 52,
-        ownerLabel: t("questionBank.mockOwnerTeacherB", "林老師"),
-        verified: false,
-        downloads: "7.2k",
-      },
-    ],
-    [t]
-  );
 
   const refreshBanks = async () => {
     try {
@@ -512,46 +443,6 @@ const QuestionBanksScreen = () => {
               </TabPanel>
 
               <TabPanel>
-                <Stack gap={5}>
-                  <Stack gap={3}>
-                    <h4 style={{ margin: 0 }}>
-                      {t("questionBank.mockGalleryTitle", "Mock Card Gallery")}
-                    </h4>
-                    <p style={{ margin: 0, color: "var(--cds-text-secondary)" }}>
-                      {t(
-                        "questionBank.mockGalleryDesc",
-                        "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。"
-                      )}
-                    </p>
-                    <Grid fullWidth>
-                      {mockExploreCards.map((item) => (
-                        <Column key={item.id} lg={4} md={4} sm={4}>
-                          <BankGalleryCard
-                          title={item.name}
-                          category={item.category}
-                          provider={item.ownerLabel}
-                          providerVerified={item.verified}
-                          downloads={item.downloads}
-                        />
-                      </Column>
-                    ))}
-                    </Grid>
-                  </Stack>
-
-                  <Tile>
-                    <Stack gap={2}>
-                      <h5 style={{ margin: 0 }}>
-                        {t("questionBank.exploreOnlyPlatform", "探索題庫目前以 QJudge Community 為主")}
-                      </h5>
-                      <p style={{ margin: 0, color: "var(--cds-text-secondary)" }}>
-                        {t(
-                          "questionBank.exploreOnlyPlatformDesc",
-                          "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。"
-                        )}
-                      </p>
-                    </Stack>
-                  </Tile>
-
                   {exploreBanks.length === 0 ? (
                     <Tile>
                       {t(
@@ -564,17 +455,17 @@ const QuestionBanksScreen = () => {
                       {exploreBanks.map((bank) => (
                         <Column key={bank.id} lg={4} md={4} sm={4}>
                           <BankGalleryCard
-                          title={bank.name}
-                          category={bank.category}
-                          provider={bank.ownerUsername || t("questionBank.mockOwnerPlatform", "QJudge Community")}
-                          providerVerified={bank.verified}
-                          downloads={buildMetric(Math.max(300, bank.questionCount * 96))}
-                        />
-                      </Column>
-                    ))}
+                            title={bank.name}
+                            category={bank.category}
+                            provider={bank.ownerUsername || t("questionBank.mockOwnerPlatform", "QJudge Community")}
+                            providerVerified={bank.verified}
+                            downloads={buildMetric(Math.max(300, bank.questionCount * 96))}
+                            onClick={() => navigate(`/question-banks/${bank.id}?from=explore`)}
+                          />
+                        </Column>
+                      ))}
                     </Grid>
                   )}
-                </Stack>
               </TabPanel>
 
               <TabPanel>

@@ -1,16 +1,3 @@
-.layout {
-  position: fixed;
-  inset: 0;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-  background: var(--cds-background);
-}
-
-.header {
-  z-index: 9500;
-}
-
 .headerLeft {
   display: inline-flex;
   align-items: center;
@@ -20,12 +7,6 @@
 
 .brand {
   flex-shrink: 0;
-}
-
-.classroomTrigger {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
 }
 
 .headerCenter {
@@ -173,39 +154,19 @@
   color: var(--cds-text-secondary);
 }
 
-.header :global(.cds--header__global) {
+.shell :global(.cds--header__global) {
   margin-left: 0;
 }
 
-.sidenav {
-  width: 16rem;
-  border-right: 1px solid var(--cds-border-subtle);
-}
-
-.content {
-  position: absolute;
-  top: 3rem;
-  left: 16rem;
-  right: 0;
-  bottom: 0;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--cds-layer-01);
-}
-
 .contentViewport {
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
   overflow: auto;
 }
 
 @media (max-width: 1056px) {
+  .shell {
+    --admin-shell-sidenav-width: 14rem;
+  }
+
   .classroomTriggerButton {
     max-width: 10.25rem;
     padding: 0 0.5rem;
@@ -213,13 +174,5 @@
 
   .classroomTriggerName {
     max-width: 8rem;
-  }
-
-  .sidenav {
-    width: 14rem;
-  }
-
-  .content {
-    left: 14rem;
   }
 }

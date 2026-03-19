@@ -161,6 +161,14 @@ const findMockQuestion = (questionId: string) => {
   return { bankId, questionIndex, question: questions[questionIndex] };
 };
 
+const getBank = async (bankId: string): Promise<QuestionBank> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/question-banks/${bankId}/`),
+    "Failed to fetch question bank"
+  );
+  return mapQuestionBankDto(data);
+};
+
 const listMine = async (): Promise<QuestionBank[]> => {
   if (USE_MOCK) {
     return [...mockState.mineBanks];
@@ -463,6 +471,7 @@ const ingestInbox = async (params: {
 };
 
 export const questionBankRepository: IQuestionBankRepository = {
+  getBank,
   listMine,
   listExplore,
   create,
@@ -478,6 +487,7 @@ export const questionBankRepository: IQuestionBankRepository = {
 };
 
 export {
+  getBank,
   listMine,
   listExplore,
   create,

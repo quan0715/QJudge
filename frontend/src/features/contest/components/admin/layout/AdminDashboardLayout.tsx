@@ -1,12 +1,4 @@
-import {
-  Header,
-  HeaderName,
-  HeaderGlobalBar,
-  HeaderGlobalAction,
-  SideNav,
-  SideNavItems,
-  SideNavLink,
-} from "@carbon/react";
+import { HeaderGlobalAction, HeaderName } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
   Dashboard,
@@ -24,7 +16,7 @@ import {
   Renew,
 } from "@carbon/icons-react";
 import type { AdminPanelId } from "@/features/contest/modules/types";
-import styles from "./AdminDashboardLayout.module.scss";
+import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
   contestName: string;
@@ -83,13 +75,35 @@ export default function AdminDashboardLayout({
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
 
+  const navItems: NavItem[] = availablePanels
+    .map((id) => {
+      const item = NAV_ITEMS[id];
+      if (!item) return null;
+      const { labelKey, examLabelKey, icon } = item;
+      const label =
+        examMode && examLabelKey
+          ? t(`adminLayout.nav.${examLabelKey}`)
+          : t(`adminLayout.nav.${labelKey}`);
+      return {
+        id,
+        icon,
+        label,
+        isActive: activePanel === id,
+        onClick: () => onPanelChange(id),
+      };
+    })
+    .filter((item): item is NavItem => item != null);
+
   return (
-    <div className={styles.layout}>
-      <Header aria-label={t("adminLayout.title")} className={styles.header}>
+    <AdminShellLayout
+      headerAriaLabel={t("adminLayout.title")}
+      headerLeft={
         <HeaderName href="#" prefix={t("common:header.prefix", "QJudge")}>
           {contestName}
         </HeaderName>
-        <HeaderGlobalBar>
+      }
+      headerActions={
+        <>
           {onRefresh && (
             <HeaderGlobalAction
               aria-label={t("adminLayout.header.refresh")}
@@ -133,40 +147,13 @@ export default function AdminDashboardLayout({
           >
             <Launch size={20} />
           </HeaderGlobalAction>
-        </HeaderGlobalBar>
-      </Header>
-
-      <SideNav
-        aria-label={t("common:header.adminNavigation")}
-        isRail
-        className={styles.sidenav}
-      >
-        <SideNavItems>
-          {availablePanels.map((id) => {
-            const item = NAV_ITEMS[id];
-            if (!item) return null;
-            const { labelKey, examLabelKey, icon: Icon } = item;
-            const label =
-              examMode && examLabelKey
-                ? t(`adminLayout.nav.${examLabelKey}`)
-                : t(`adminLayout.nav.${labelKey}`);
-            return (
-              <SideNavLink
-                key={id}
-                renderIcon={Icon}
-                isActive={activePanel === id}
-                onClick={() => onPanelChange(id)}
-              >
-                {label}
-              </SideNavLink>
-            );
-          })}
-        </SideNavItems>
-      </SideNav>
-
-      <main className={styles.content}>
-        <div className={styles.contentViewport}>{children}</div>
-      </main>
-    </div>
+        </>
+      }
+      sideNavAriaLabel={t("common:header.adminNavigation")}
+      sideNavMode={{ variant: "rail" }}
+      navItems={navItems}
+    >
+      {children}
+    </AdminShellLayout>
   );
 }

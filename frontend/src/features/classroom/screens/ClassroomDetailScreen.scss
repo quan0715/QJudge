@@ -26,14 +26,15 @@
 }
 
 .classroom-admin-hero {
-  background: var(--cds-layer);
+  background: var(--cds-background);
   border-bottom: 1px solid var(--cds-border-subtle);
-  padding: layout.$spacing-05;
+  padding: layout.$spacing-07 layout.$spacing-05;
 }
 
 .classroom-admin-hero__body {
   display: grid;
-  gap: layout.$spacing-04;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 34rem);
+  gap: layout.$spacing-06;
   align-items: start;
   max-width: layout.rem(1200px);
   margin: 0 auto;
@@ -57,9 +58,11 @@
 }
 
 .classroom-admin-hero__title {
-  @include type.type-style("productive-heading-06");
+  font-size: var(--cds-heading-05-font-size, 2rem);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--cds-text-primary);
   margin: 0;
-  line-height: 1.2;
 }
 
 .classroom-admin-hero__desc {
@@ -90,28 +93,18 @@
 }
 
 .classroom-admin-hero__kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
   gap: layout.$spacing-03;
   min-width: 0;
-}
-
-.classroom-admin-hero__kpi-card {
-  background: var(--cds-layer-01);
-  border: 1px solid var(--cds-border-subtle);
-  min-height: layout.rem(104px);
-}
-
-.classroom-admin-hero__kpi-card :global(.kpiValue) {
-  @include type.type-style("productive-heading-04");
 }
 
 .classroom-admin-hero__kpi-skeleton {
   display: grid;
   gap: layout.$spacing-03;
   align-content: start;
-  background: var(--cds-layer-01);
-  border: 1px solid var(--cds-border-subtle);
   padding: layout.$spacing-05;
   min-height: layout.rem(104px);
 }
@@ -314,29 +307,6 @@
   padding: layout.$spacing-03 layout.$spacing-04;
 }
 
-.classroom-admin-settings {
-  display: grid;
-  border-top: 1px solid var(--cds-border-subtle);
-}
-
-.classroom-admin-settings__row {
-  display: grid;
-  grid-template-columns: layout.rem(140px) 1fr;
-  gap: layout.$spacing-04;
-  padding: layout.$spacing-04 0;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.classroom-admin-settings__label {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.classroom-admin-settings__value {
-  @include type.type-style("body-long-01");
-  color: var(--cds-text-primary);
-  word-break: break-word;
-}
 
 .classroom-admin-empty-block {
   display: flex;
@@ -364,8 +334,13 @@
 }
 
 @media (max-width: 1056px) {
+  .classroom-admin-hero__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .classroom-admin-hero__kpi-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .classroom-admin-overview-layout {
@@ -387,7 +362,7 @@
   }
 
   .classroom-admin-hero__kpi-strip {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .classroom-admin-section {

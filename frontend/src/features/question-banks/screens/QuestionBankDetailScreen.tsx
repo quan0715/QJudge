@@ -4,9 +4,12 @@ import { useTranslation } from "react-i18next";
 import { Button, Column, Grid, Loading, Select, SelectItem, Stack, Tag, TextArea, TextInput, Tile } from "@carbon/react";
 import { ArrowLeft, Document } from "@carbon/icons-react";
 import { KpiCard } from "@/shared/ui/dataCard";
+import { SettingsPanelRoot, Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import { useToast } from "@/shared/contexts";
 import type { BankQuestion, BankVisibility, QuestionBank } from "@/core/entities/question-bank.entity";
 import {
+  clone,
+  getBank,
   listMine,
   listQuestions,
   update as updateQuestionBank,
@@ -44,6 +47,8 @@ const QuestionBankDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [bank, setBank] = useState<QuestionBank | null>(null);
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
+  const [isExplore, setIsExplore] = useState(false);
+  const [myBanks, setMyBanks] = useState<QuestionBank[]>([]);
 
   const [settingName, setSettingName] = useState("");
   const [settingDescription, setSettingDescription] = useState("");
@@ -89,15 +94,18 @@ const QuestionBankDetailScreen = () => {
     if (!bankId) return;
     try {
       setLoading(true);
-      const mineBanks = await listMine();
-      const target = mineBanks.find((item) => item.id === bankId) || null;
+      const [target, mine] = await Promise.all([getBank(bankId), listMine()]);
       setBank(target);
+      setMyBanks(mine);
 
-      if (!target) return;
+      const owned = mine.some((item) => item.id === bankId);
+      setIsExplore(!owned);
 
-      setSettingName(target.name);
-      setSettingDescription(target.description || "");
-      setSettingVisibility(target.visibility);
+      if (owned) {
+        setSettingName(target.name);
+        setSettingDescription(target.description || "");
+        setSettingVisibility(target.visibility);
+      }
 
       const rows = await listQuestions(target.id);
       setQuestions(rows);
@@ -162,6 +170,23 @@ const QuestionBankDetailScreen = () => {
     }
   };
 
+  const handleClone = async (questionId: string, targetBankId: string) => {
+    try {
+      await clone(questionId, targetBankId);
+      showToast({
+        kind: "success",
+        title: t("message.success"),
+        subtitle: t("questionBank.questionCloned", "題目已複製到我的題庫"),
+      });
+    } catch (error: unknown) {
+      showToast({
+        kind: "error",
+        title: t("message.error"),
+        subtitle: getErrorMessage(error, t("message.error")),
+      });
+    }
+  };
+
   if (loading && !bank) {
     return (
       <div className={styles.loadingWrap}>
@@ -195,133 +220,171 @@ const QuestionBankDetailScreen = () => {
       bankName={bank.name}
       activePanel={activePanel}
       onPanelChange={handlePanelChange}
-      onBack={() => navigate("/question-banks")}
+      onBack={() => navigate(isExplore ? "/question-banks?tab=explore" : "/question-banks")}
       onRefresh={() => {
         void loadData();
       }}
+      readOnly={isExplore}
     >
       <div className={styles.pageScroll}>
-        <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <div className={styles.heroTopRow}>
-              <div className={styles.heroInfo}>
-                <p className={styles.overline}>{t("page.questionBanks", "題庫")}</p>
-                <h1 className={styles.title}>{bank.name}</h1>
-                <div className={styles.metaRow}>
-                  <Tag type="blue">{bank.category}</Tag>
-                  <Tag type={bank.visibility === "public" ? "green" : "gray"}>
-                    {bank.visibility === "public"
-                      ? t("questionBank.tagPublic", "公開")
-                      : t("questionBank.tagPrivate", "私人")}
-                  </Tag>
-                </div>
-                <p className={styles.description}>{bank.description || t("message.noData", "暫無資料")}</p>
-              </div>
-
-              <div className={styles.kpiStrip}>
-                <KpiCard
-                  icon={Document}
-                  value={String(questions.length)}
-                  label={questionCountLabel}
-                  showBorder={false}
-                  className={styles.kpiCard}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.panelSection}>
-          {activePanel === "overview" ? (
-            <Grid fullWidth className={styles.overviewGrid}>
-              <Column lg={8} md={8} sm={4}>
-                <Tile>
-                  <Stack gap={3}>
-                    <h4 className={styles.panelTitle}>{t("tab.overview", "總覽")}</h4>
-                    <p className={styles.panelDesc}>
-                      {t("questionBank.overviewDescription", "快速檢視題庫題量與題型分佈。")}
-                    </p>
-                  </Stack>
-                </Tile>
-              </Column>
-              <Column lg={8} md={8} sm={4}>
-                <Tile>
-                  <Stack gap={3}>
-                    <h4 className={styles.panelTitle}>{t("questionBank.recentQuestions", "近期題目")}</h4>
-                    {questions.length === 0 ? (
-                      <p className={styles.emptyText}>{t("message.noData", "暫無資料")}</p>
-                    ) : (
-                      <div className={styles.recentList}>
-                        {questions.slice(0, 5).map((question) => (
-                          <div key={question.id} className={styles.recentItem}>
-                            <p className={styles.recentTitle}>{question.title}</p>
-                            <p className={styles.recentMeta}>{question.questionType}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Stack>
-                </Tile>
-              </Column>
-            </Grid>
-          ) : null}
-
-          {activePanel === "problem_management" ? (
-            <QuestionBankProblemManagementPanel
-              bank={bank}
-              questions={questions}
-              loading={loading}
-              onReload={loadData}
-              viewState={{
-                mode: viewMode,
-                selectedId: selectedQuestionId,
-              }}
-              onViewStateChange={syncProblemViewState}
-            />
-          ) : null}
-
-          {activePanel === "settings" ? (
-            <div className={styles.settingsPanel}>
-              <Tile>
-                <Stack gap={5}>
-                  <h4 className={styles.panelTitle}>{t("tab.settings", "設定")}</h4>
-                  <TextInput
-                    id="bank-name-setting"
-                    labelText={t("table.title", "標題")}
-                    value={settingName}
-                    onChange={(event) => setSettingName(event.currentTarget.value)}
-                  />
-                  <TextArea
-                    id="bank-description-setting"
-                    labelText={t("questionBank.description", "描述")}
-                    value={settingDescription}
-                    onChange={(event) => setSettingDescription(event.currentTarget.value)}
-                  />
-                  <Select
-                    id="bank-visibility-setting"
-                    labelText={t("table.visibility", "可見性")}
-                    value={settingVisibility}
-                    onChange={(event) => setSettingVisibility(event.currentTarget.value as BankVisibility)}
-                  >
-                    <SelectItem value="private" text={t("questionBank.tagPrivate", "私人")} />
-                    <SelectItem value="public" text={t("questionBank.tagPublic", "公開")} />
-                  </Select>
-                  <div>
-                    <Button
-                      kind="primary"
-                      disabled={!settingName.trim() || savingSettings}
-                      onClick={() => {
-                        void handleSaveSettings();
-                      }}
-                    >
-                      {savingSettings ? t("button.updating", "更新中...") : t("button.save", "儲存")}
-                    </Button>
+        {activePanel === "overview" && (
+          <>
+            <section className={styles.hero}>
+              <div className={styles.heroInner}>
+                <div className={styles.heroTopRow}>
+                  <div className={styles.heroInfo}>
+                    <p className={styles.overline}>{t("page.questionBanks", "題庫")}</p>
+                    <h1 className={styles.title}>{bank.name}</h1>
+                    <div className={styles.metaRow}>
+                      {isExplore && <Tag type="blue">{t("questionBank.tabs.explore", "探索題庫")}</Tag>}
+                      <Tag type="blue">{bank.category}</Tag>
+                      <Tag type={bank.visibility === "public" ? "green" : "gray"}>
+                        {bank.visibility === "public"
+                          ? t("questionBank.tagPublic", "公開")
+                          : t("questionBank.tagPrivate", "私人")}
+                      </Tag>
+                    </div>
+                    <p className={styles.description}>{bank.description || t("message.noData", "暫無資料")}</p>
                   </div>
-                </Stack>
-              </Tile>
-            </div>
-          ) : null}
-        </section>
+
+                  <div className={styles.kpiStrip}>
+                    <KpiCard
+                      icon={Document}
+                      value={String(questions.length)}
+                      label={questionCountLabel}
+                      showBorder={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.panelSection}>
+              <Grid fullWidth className={styles.overviewGrid}>
+                <Column lg={8} md={8} sm={4}>
+                  <Tile>
+                    <Stack gap={3}>
+                      <h4 className={styles.panelTitle}>{t("tab.overview", "總覽")}</h4>
+                      <p className={styles.panelDesc}>
+                        {t("questionBank.overviewDescription", "快速檢視題庫題量與題型分佈。")}
+                      </p>
+                    </Stack>
+                  </Tile>
+                </Column>
+                <Column lg={8} md={8} sm={4}>
+                  <Tile>
+                    <Stack gap={3}>
+                      <h4 className={styles.panelTitle}>{t("questionBank.recentQuestions", "近期題目")}</h4>
+                      {questions.length === 0 ? (
+                        <p className={styles.emptyText}>{t("message.noData", "暫無資料")}</p>
+                      ) : (
+                        <div className={styles.recentList}>
+                          {questions.slice(0, 5).map((question) => (
+                            <div key={question.id} className={styles.recentItem}>
+                              <p className={styles.recentTitle}>{question.title}</p>
+                              <p className={styles.recentMeta}>{question.questionType}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Stack>
+                  </Tile>
+                </Column>
+              </Grid>
+            </section>
+          </>
+        )}
+
+        {activePanel === "problem_management" && (
+          <QuestionBankProblemManagementPanel
+            bank={bank}
+            questions={questions}
+            loading={loading}
+            onReload={loadData}
+            viewState={{
+              mode: viewMode,
+              selectedId: selectedQuestionId,
+            }}
+            onViewStateChange={syncProblemViewState}
+            readOnly={isExplore}
+            myBanks={isExplore ? myBanks : undefined}
+            onClone={isExplore ? handleClone : undefined}
+          />
+        )}
+
+        {activePanel === "settings" && !isExplore && (
+          <SettingsPanelRoot
+            trailing={
+              <>
+                <Section title={t("questionBank.basicInfo", "基本資訊")}>
+                  <FieldRow
+                    label={t("questionBank.bankName", "題庫名稱")}
+                    description={t("questionBank.bankNameDesc", "顯示在題庫列表和頁首的名稱")}
+                  >
+                    <TextInput
+                      id="bank-name-setting"
+                      labelText=""
+                      hideLabel
+                      value={settingName}
+                      onChange={(event) => setSettingName(event.currentTarget.value)}
+                    />
+                  </FieldRow>
+                  <FieldRow
+                    label={t("questionBank.description", "題庫描述")}
+                    description={t("questionBank.descriptionDesc", "簡短描述，出現在題庫概覽頁面")}
+                  >
+                    <TextArea
+                      id="bank-description-setting"
+                      labelText=""
+                      hideLabel
+                      value={settingDescription}
+                      onChange={(event) => setSettingDescription(event.currentTarget.value)}
+                    />
+                  </FieldRow>
+                  <FieldRow
+                    label={t("questionBank.visibility", "可見性")}
+                    description={t("questionBank.visibilityDesc", "公開題庫可被所有人瀏覽")}
+                  >
+                    <Select
+                      id="bank-visibility-setting"
+                      labelText=""
+                      hideLabel
+                      value={settingVisibility}
+                      onChange={(event) => setSettingVisibility(event.currentTarget.value as BankVisibility)}
+                    >
+                      <SelectItem value="private" text={t("questionBank.tagPrivate", "私人")} />
+                      <SelectItem value="public" text={t("questionBank.tagPublic", "公開")} />
+                    </Select>
+                  </FieldRow>
+                </Section>
+
+                <div style={{ marginTop: "1.5rem" }}>
+                  <Button
+                    kind="primary"
+                    disabled={!settingName.trim() || savingSettings}
+                    onClick={() => {
+                      void handleSaveSettings();
+                    }}
+                  >
+                    {savingSettings ? t("button.updating", "更新中...") : t("button.save", "儲存")}
+                  </Button>
+                </div>
+              </>
+            }
+          >
+            <h2
+              style={{
+                fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
+                fontWeight: 400,
+                lineHeight: "1.625rem",
+                color: "var(--cds-text-primary)",
+                margin: 0,
+              }}
+            >
+              {t("tab.settings", "設定")}
+            </h2>
+          </SettingsPanelRoot>
+        )}
       </div>
     </QuestionBankAdminLayout>
   );

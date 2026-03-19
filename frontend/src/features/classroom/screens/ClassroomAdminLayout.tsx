@@ -1,13 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  Header,
-  HeaderGlobalAction,
-  HeaderGlobalBar,
-  HeaderName,
-  SideNav,
-  SideNavItems,
-  SideNavLink,
-} from "@carbon/react";
+import { HeaderGlobalAction, HeaderName } from "@carbon/react";
 import {
   Dashboard,
   Bullhorn,
@@ -21,6 +13,7 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 import styles from "./ClassroomAdminLayout.module.scss";
 
 export type ClassroomAdminPanelId =
@@ -105,71 +98,86 @@ const ClassroomAdminLayout = ({
     };
   }, [switcherOpen]);
 
+  const navItems: NavItem[] = availablePanels.map((panel) => {
+    const navItem = NAV_ITEMS[panel];
+    return {
+      id: panel,
+      icon: navItem.icon,
+      label: t(`classroom.${navItem.labelKey}`, navItem.fallback),
+      isActive: panel === activePanel,
+      onClick: () => onPanelChange(panel),
+    };
+  });
+
   return (
-    <div className={styles.layout}>
-      <Header aria-label={t("classroom.title", "教室管理")} className={styles.header}>
-        <div className={styles.headerLeft}>
-          <HeaderName
-            href="#"
-            prefix=""
-            onClick={(event) => {
-              event.preventDefault();
-              onGoHome();
-            }}
-            className={styles.brand}
-          >
-            QJudge
-          </HeaderName>
-
-          <div className={styles.switcherHost} ref={switcherHostRef}>
-            <button
-              type="button"
-              className={styles.classroomTriggerButton}
-              aria-haspopup="menu"
-              aria-expanded={switcherOpen}
-              aria-label={t("classroom.switchClassroom", "Switch classroom")}
-              onClick={() => setSwitcherOpen((open) => !open)}
+    <AdminShellLayout
+      headerAriaLabel={t("classroom.title", "教室管理")}
+      headerLeft={
+        <>
+          <div className={styles.headerLeft}>
+            <HeaderName
+              href="#"
+              prefix=""
+              onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                onGoHome();
+              }}
+              className={styles.brand}
             >
-              <span className={styles.classroomTriggerName}>
-                {selectedClassroom?.name ?? classroomName}
-              </span>
-              <Switcher size={16} className={styles.classroomTriggerIcon} />
-            </button>
+              QJudge
+            </HeaderName>
 
-            <div
-              className={`${styles.switcherMenu}${switcherOpen ? ` ${styles.switcherMenuOpen}` : ""}`}
-              role="menu"
-              aria-label={t("classroom.classroomList", "Classroom list")}
-            >
-              <div className={styles.switcherCardList}>
-                {classroomOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`${styles.switcherCard}${
-                      option.id === selectedClassroomId ? ` ${styles.switcherCardActive}` : ""
-                    }`}
-                    onClick={() => {
-                      setSwitcherOpen(false);
-                      onClassroomSwitch(option.id);
-                    }}
-                  >
-                    <span className={styles.switcherCardTitle}>{option.name}</span>
-                    <span className={styles.switcherCardMeta}>
-                      {option.id === selectedClassroomId
-                        ? t("classroom.current", "目前教室")
-                        : t("classroom.switchTo", "切換至此教室")}
-                    </span>
-                  </button>
-                ))}
+            <div className={styles.switcherHost} ref={switcherHostRef}>
+              <button
+                type="button"
+                className={styles.classroomTriggerButton}
+                aria-haspopup="menu"
+                aria-expanded={switcherOpen}
+                aria-label={t("classroom.switchClassroom", "Switch classroom")}
+                onClick={() => setSwitcherOpen((open) => !open)}
+              >
+                <span className={styles.classroomTriggerName}>
+                  {selectedClassroom?.name ?? classroomName}
+                </span>
+                <Switcher size={16} className={styles.classroomTriggerIcon} />
+              </button>
+
+              <div
+                className={`${styles.switcherMenu}${switcherOpen ? ` ${styles.switcherMenuOpen}` : ""}`}
+                role="menu"
+                aria-label={t("classroom.classroomList", "Classroom list")}
+              >
+                <div className={styles.switcherCardList}>
+                  {classroomOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`${styles.switcherCard}${
+                        option.id === selectedClassroomId ? ` ${styles.switcherCardActive}` : ""
+                      }`}
+                      onClick={() => {
+                        setSwitcherOpen(false);
+                        onClassroomSwitch(option.id);
+                      }}
+                    >
+                      <span className={styles.switcherCardTitle}>{option.name}</span>
+                      <span className={styles.switcherCardMeta}>
+                        {option.id === selectedClassroomId
+                          ? t("classroom.current", "目前教室")
+                          : t("classroom.switchTo", "切換至此教室")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className={styles.headerCenter} />
-
-        <HeaderGlobalBar>
+          <div className={styles.headerCenter} />
+        </>
+      }
+      headerActions={
+        <>
           <HeaderGlobalAction
             aria-label={t("common.refresh", "重新整理")}
             tooltipAlignment="end"
@@ -185,39 +193,17 @@ const ClassroomAdminLayout = ({
             <Launch size={20} />
           </HeaderGlobalAction>
           <UserMenu />
-        </HeaderGlobalBar>
-      </Header>
-
-      <SideNav
-        aria-label={t("classroom.title", "教室管理")}
-        expanded
-        className={styles.sidenav}
-        style={{
-          top: "3rem",
-          height: "calc(100dvh - 3rem)",
-        }}
-      >
-        <SideNavItems>
-          {availablePanels.map((panel) => {
-            const navItem = NAV_ITEMS[panel];
-            return (
-              <SideNavLink
-                key={panel}
-                renderIcon={navItem.icon}
-                isActive={panel === activePanel}
-                onClick={() => onPanelChange(panel)}
-              >
-                {t(`classroom.${navItem.labelKey}`, navItem.fallback)}
-              </SideNavLink>
-            );
-          })}
-        </SideNavItems>
-      </SideNav>
-
-      <main className={styles.content}>
-        <div className={styles.contentViewport}>{children}</div>
-      </main>
-    </div>
+        </>
+      }
+      sideNavAriaLabel={t("classroom.title", "教室管理")}
+      sideNavMode={{ variant: "expanded", width: "16rem" }}
+      headerZIndex={9500}
+      className={styles.shell}
+      contentClassName={styles.contentViewport}
+      navItems={navItems}
+    >
+      {children}
+    </AdminShellLayout>
   );
 };
 

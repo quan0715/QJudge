@@ -25,7 +25,7 @@
 .heroInner {
   margin: 0 auto;
   max-width: 1320px;
-  padding: layout.$spacing-07 layout.$spacing-05;
+  padding: 2rem;
 }
 
 .heroTopRow {
@@ -72,12 +72,9 @@
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-}
-
-.kpiCard {
-  min-width: 11rem;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .panelSection {
@@ -132,9 +129,6 @@
   font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
-.settingsPanel {
-  max-width: 780px;
-}
 
 @media (max-width: 1056px) {
   .heroTopRow {
@@ -143,9 +137,5 @@
 
   .kpiStrip {
     justify-content: flex-start;
-  }
-
-  .kpiCard {
-    min-width: 10rem;
   }
 }

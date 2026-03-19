@@ -433,7 +433,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     difficulty = serializers.CharField(source='problem.difficulty', read_only=True)
     label = serializers.CharField(read_only=True)
     score = serializers.SerializerMethodField()
-    max_score = serializers.IntegerField(source='max_score', read_only=True)
+    max_score = serializers.IntegerField(read_only=True)
     source_bank = serializers.SerializerMethodField()
     source_question_id = serializers.IntegerField(read_only=True)
     source_mode = serializers.CharField(read_only=True)

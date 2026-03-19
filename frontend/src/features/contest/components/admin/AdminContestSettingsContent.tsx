@@ -22,7 +22,7 @@ import {
   Section,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import AdminContestSettingsFormSections from "@/features/contest/components/admin/AdminContestSettingsFormSections";
-import s from "@/features/contest/screens/admin/panels/AdminContestSettingsPanel.module.scss";
+import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 
 interface Admin {
   id: string;

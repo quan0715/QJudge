@@ -44,6 +44,7 @@ export interface UpsertBankQuestionPayload {
 }
 
 export interface IQuestionBankRepository {
+  getBank(bankId: string): Promise<QuestionBank>;
   listMine(): Promise<QuestionBank[]>;
   listExplore(): Promise<ExploreBankItem[]>;
   create(payload: CreateQuestionBankPayload): Promise<QuestionBank>;

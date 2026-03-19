@@ -1,16 +1,8 @@
 import type { ReactNode } from "react";
-import {
-  Header,
-  HeaderGlobalAction,
-  HeaderGlobalBar,
-  HeaderName,
-  SideNav,
-  SideNavItems,
-  SideNavLink,
-} from "@carbon/react";
+import { HeaderGlobalAction, HeaderName } from "@carbon/react";
 import { Dashboard, Education, Launch, Renew, Settings } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import styles from "./QuestionBankAdminLayout.module.scss";
+import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 export type QuestionBankAdminPanelId = "overview" | "problem_management" | "settings";
 
@@ -20,6 +12,7 @@ interface QuestionBankAdminLayoutProps {
   onPanelChange: (panel: QuestionBankAdminPanelId) => void;
   onBack: () => void;
   onRefresh: () => void;
+  readOnly?: boolean;
   children: ReactNode;
 }
 
@@ -45,17 +38,33 @@ const QuestionBankAdminLayout = ({
   onPanelChange,
   onBack,
   onRefresh,
+  readOnly = false,
   children,
 }: QuestionBankAdminLayoutProps) => {
   const { t } = useTranslation("common");
 
+  const visibleNavItems = readOnly
+    ? NAV_ITEMS.filter((item) => item.id !== "settings")
+    : NAV_ITEMS;
+
+  const navItems: NavItem[] = visibleNavItems.map((item) => ({
+    id: item.id,
+    icon: item.icon,
+    label: t(item.labelKey, item.fallback),
+    isActive: item.id === activePanel,
+    onClick: () => onPanelChange(item.id),
+  }));
+
   return (
-    <div className={styles.layout}>
-      <Header aria-label={t("questionBank.adminTitle", "題庫管理")} className={styles.header}>
+    <AdminShellLayout
+      headerAriaLabel={t("questionBank.adminTitle", "題庫管理")}
+      headerLeft={
         <HeaderName href="#" prefix={t("header.prefix", "QJudge")}>
           {bankName}
         </HeaderName>
-        <HeaderGlobalBar>
+      }
+      headerActions={
+        <>
           <HeaderGlobalAction
             aria-label={t("action.refresh", "重新整理")}
             tooltipAlignment="end"
@@ -70,36 +79,14 @@ const QuestionBankAdminLayout = ({
           >
             <Launch size={20} />
           </HeaderGlobalAction>
-        </HeaderGlobalBar>
-      </Header>
-
-      <SideNav
-        aria-label={t("questionBank.adminNavigation", "題庫管理導覽")}
-        isRail
-        className={styles.sidenav}
-        style={{
-          top: "3rem",
-          height: "calc(100dvh - 3rem)",
-        }}
-      >
-        <SideNavItems>
-          {NAV_ITEMS.map((item) => (
-            <SideNavLink
-              key={item.id}
-              renderIcon={item.icon}
-              isActive={item.id === activePanel}
-              onClick={() => onPanelChange(item.id)}
-            >
-              {t(item.labelKey, item.fallback)}
-            </SideNavLink>
-          ))}
-        </SideNavItems>
-      </SideNav>
-
-      <main className={styles.content}>
-        <div className={styles.contentViewport}>{children}</div>
-      </main>
-    </div>
+        </>
+      }
+      sideNavAriaLabel={t("questionBank.adminNavigation", "題庫管理導覽")}
+      sideNavMode={{ variant: "rail" }}
+      navItems={navItems}
+    >
+      {children}
+    </AdminShellLayout>
   );
 };
 

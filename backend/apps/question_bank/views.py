@@ -43,6 +43,20 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 .prefetch_related("questions")
             )
 
+        if self.action == "retrieve":
+            return (
+                QuestionBank.objects.filter(
+                    Q(owner=self.request.user, is_archived=False)
+                    | Q(
+                        is_archived=False,
+                        visibility=QuestionBank.Visibility.PUBLIC,
+                        verified=True,
+                    )
+                )
+                .filter(Q(owner=self.request.user) | PLATFORM_BANK_FILTER)
+                .prefetch_related("questions")
+            )
+
         return (
             QuestionBank.objects.filter(
                 owner=self.request.user,
