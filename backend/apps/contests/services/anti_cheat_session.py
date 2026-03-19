@@ -288,17 +288,14 @@ def blacklist_other_tokens(user, current_jti: str) -> int:
 def build_device_conflict_response(contest, participant, request):
     """Return a 409 ``Response`` if the request comes from a different device
     than the one holding the active session.  Returns ``None`` when there is
-    no conflict (or anticheat is disabled).
+    no conflict.
 
-    This is the shared logic previously living only inside
-    ``ExamAnticheatMixin._ensure_active_device_session``.
+    This check applies to ALL exam contests (not just cheat_detection_enabled)
+    because device-session integrity is fundamental to exam fairness.
     """
     from rest_framework.response import Response
     from rest_framework import status as http_status
     from ..models import ExamEvent
-
-    if not getattr(contest, "cheat_detection_enabled", False):
-        return None
 
     device_id = get_device_id(request)
     active = get_active_session(contest.id, participant.user_id)
