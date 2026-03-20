@@ -70,10 +70,10 @@
   },
   "precheck": {
     "title": "考前環境與資格檢查",
-    "description": "為確保考試公平性，請在進入考場前完成以下環境檢測與資格確認。若未通過必要檢查，系統將限制您的作答權限。",
+    "description": "進入考場前請先完成環境檢測。未通過檢測者將無法作答。",
     "entryDevice": {
       "title": "進場裝置",
-      "summary": "本次將以 {{device}} 進入考試（{{mode}}）。",
+      "summary": "進入方式：{{device}} ({{mode}})",
       "sources": "監考來源：{{sources}}",
       "kind": {
         "desktop": "桌機 / 筆電",
@@ -103,8 +103,8 @@
       "status": {
         "passed": "已確認參賽資格",
         "failed": "尚未取得參賽資格",
-        "submittedAllowed": "已有交卷記錄，本場考試允許重複入場",
-        "submittedDenied": "已有交卷記錄，無法重複參加考試",
+        "submittedAllowed": "已有交卷紀錄，本場考試允許重複入場",
+        "submittedDenied": "已有交卷紀錄，不可重複入場",
         "noSubmission": "無交卷記錄"
       },
       "nextStep": "下一步：環境檢查"
@@ -112,11 +112,11 @@
     "environment": {
       "title": "環境檢測",
       "requirements": {
-        "title": "本考場採取嚴格環境限制：",
-        "browser": "僅允許使用最新版 Google Chrome 或 Microsoft Edge。",
-        "permission": "瀏覽器彈出「管理視窗與顯示器」權限時，必須點擊【允許】。",
-        "display": "必須為單一實體螢幕（請拔除外接顯示器）。",
-        "sharing": "畫面分享時必須選擇【整個螢幕 (Entire Screen)】。"
+        "title": "環境要求：",
+        "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
+        "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
+        "display": "限單一螢幕，請務必拔除外接顯示器。",
+        "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。"
       },
       "checks": {
         "monitor": "螢幕數量檢測",
@@ -145,11 +145,11 @@
       }
     },
     "instruction": {
-      "title": "作答說明與規範",
-      "noSwitch": "考試期間請勿切換視窗或分頁，系統將記錄所有離開行為。",
-      "keepFullscreen": "請保持全螢幕模式，退出全螢幕將觸發系統警告。",
-      "autoSave": "作答內容每 2 秒自動儲存，無需手動存檔。",
-      "autoSubmit": "考試時間結束後，系統將自動提交您的作答內容。",
+      "title": "作答規範",
+      "noSwitch": "禁止切換視窗或分頁，違規行為將被全程記錄。",
+      "keepFullscreen": "請維持全螢幕模式，離開將觸發警告。",
+      "autoSave": "作答內容每 2 秒會自動儲存。",
+      "autoSubmit": "考試結束後，系統將自動提交您的作答。",
       "deadline": "考試截止時間：{{time}}",
       "confirmStart": "我已瞭解並確認開始考試"
     },

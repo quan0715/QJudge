@@ -86,6 +86,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   // AbortController for cancelling streaming
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Abort any in-flight stream when the component unmounts to prevent
+  // state updates on an unmounted component and dangling fetch connections.
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
 
@@ -519,6 +525,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsStreaming(true);
       setIsLoading(true);
 
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       try {
         await chatbotRepository.resumeAgentStream(
           currentSessionId,
@@ -557,6 +566,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setIsLoading(false);
             },
           },
+          { signal: abortController.signal },
         );
       } catch (err) {
         console.error("Resume stream error:", err);

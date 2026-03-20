@@ -25,26 +25,14 @@ from ..utils import inline_markdown, render_markdown
 class PaperExamSheetRenderer(BaseRenderer):
     """Render a paper exam sheet (question paper / answer sheet) to PDF."""
 
-    QUESTION_TYPE_LABELS = {
-        "true_false": {"zh": "是非題", "en": "True / False"},
-        "single_choice": {"zh": "單選題", "en": "Single Choice"},
-        "multiple_choice": {"zh": "多選題", "en": "Multiple Choice"},
-        "short_answer": {"zh": "簡答題", "en": "Short Answer"},
-        "essay": {"zh": "問答題", "en": "Essay"},
+    QUESTION_TYPE_ICONS = {
+        "true_false": "⚖",  # Scales for T/F or comparison
+        "single_choice": "◉",
+        "multiple_choice": "☑",
+        "short_answer": "✎",
+        "essay": "📝",
     }
     OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    DEFAULT_INSTRUCTIONS = {
-        "zh": [
-            "請先填寫姓名、學號與班級。",
-            "請依題號順序作答，答案務必清楚可辨識。",
-            "若有計算題，請保留必要計算過程。",
-        ],
-        "en": [
-            "Fill in your name, student ID, and class before answering.",
-            "Answer questions in order and keep your writing legible.",
-            "Show essential calculation steps when applicable.",
-        ],
-    }
 
     def __init__(
         self,
@@ -90,6 +78,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "number": idx,
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
+                    "type_icon": self.QUESTION_TYPE_ICONS.get(q.question_type, ""),
                     "score": q.score,
                     "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "options": self._get_options(q),
@@ -114,42 +103,42 @@ class PaperExamSheetRenderer(BaseRenderer):
             else None
         )
 
+        sheet_title = (
+            f"{self.get_label('exam_paper_official')}（{self.get_label('exam_paper_answer' if self.include_answers else 'exam_paper_question')}）"
+        )
+
         context = {
             "language": self.language,
             "is_chinese": is_zh,
             "include_answers": self.include_answers,
             "contest_name": inline_markdown(self.contest.name),
             "contest_description": self.contest.description or "",
-            "sheet_title": "正式考卷（答案卷）" if (is_zh and self.include_answers) else (
-                "正式考卷（題目卷）" if is_zh else ("Official Exam Paper (Answer Sheet)" if self.include_answers else "Official Exam Paper (Question Paper)")
-            ),
+            "sheet_title": sheet_title,
             "labels": {
-                "candidate_name": "姓名" if is_zh else "Name",
-                "candidate_id": "學號" if is_zh else "Student ID",
-                "candidate_class": "班級" if is_zh else "Class",
-                "exam_time": "考試時段" if is_zh else "Exam Window",
-                "duration": "作答限時" if is_zh else "Time Limit",
-                "total_questions": "題數" if is_zh else "Questions",
-                "total_score": "滿分" if is_zh else "Total Score",
-                "answer_key": "答案總表" if is_zh else "Answer Key",
-                "no_questions": "目前尚未建立題目。" if is_zh else "No questions available.",
-                "points_unit": "分" if is_zh else "pts",
-                "answer": "答案" if is_zh else "Answer",
-                "question_no": "題號" if is_zh else "Question",
-                "score_col": "配分" if is_zh else "Score",
-                "answer_col": "答案" if is_zh else "Answer",
-                "instructions_title": "作答說明" if is_zh else "Instructions",
-                "answer_lines": "作答區" if is_zh else "Answer Area",
-                "choice_marking_hint": "請於答案欄勾選或圈選" if is_zh else "Mark your choice in the answer area",
-                "answer_key_note": "長答題請參考上方各題詳解。" if is_zh else "For long answers, see the detailed answer under each question.",
+                "candidate_name": self.get_label("candidate_name"),
+                "candidate_id": self.get_label("candidate_id"),
+                "candidate_class": self.get_label("candidate_class"),
+                "exam_time": self.get_label("exam_time"),
+                "duration": self.get_label("duration"),
+                "total_questions": self.get_label("total_questions"),
+                "total_score": self.get_label("total_score"),
+                "answer_key": self.get_label("answer_key"),
+                "no_questions": self.get_label("no_questions"),
+                "points_unit": self.get_label("points_unit"),
+                "answer": self.get_label("answer"),
+                "question_no": self.get_label("question_no"),
+                "score_col": self.get_label("score_col"),
+                "answer_col": self.get_label("answer_col"),
+                "instructions_title": self.get_label("instructions_title"),
+                "answer_lines": self.get_label("answer_lines"),
+                "choice_marking_hint": self.get_label("choice_marking_hint"),
+                "answer_key_note": self.get_label("answer_key_note"),
             },
             "instructions": self._build_instructions(),
-            "start_time_str": start_time.strftime("%Y/%m/%d %H:%M") if start_time else ("未設定" if is_zh else "Not set"),
-            "end_time_str": end_time.strftime("%Y/%m/%d %H:%M") if end_time else ("未設定" if is_zh else "Not set"),
+            "start_time_str": start_time.strftime("%Y/%m/%d %H:%M") if start_time else self.get_label("not_set"),
+            "end_time_str": end_time.strftime("%Y/%m/%d %H:%M") if end_time else self.get_label("not_set"),
             "duration_str": (
-                f"{duration_minutes} 分鐘" if (is_zh and duration_minutes is not None) else (
-                    f"{duration_minutes} minutes" if duration_minutes is not None else ("未設定" if is_zh else "Not set")
-                )
+                f"{duration_minutes} {self.get_label('minutes_label')}" if duration_minutes is not None else self.get_label("not_set")
             ),
             "question_count": len(questions),
             "total_score": total_score,
@@ -188,8 +177,7 @@ class PaperExamSheetRenderer(BaseRenderer):
         return re.sub(r"(\d+(?:\.\d+)?)px", scale_px, css)
 
     def _get_question_type_label(self, q_type: str) -> str:
-        labels = self.QUESTION_TYPE_LABELS.get(q_type, {"zh": q_type, "en": q_type})
-        return labels["zh"] if self.is_chinese else labels["en"]
+        return self.get_label(q_type, q_type)
 
     def _get_options(self, question: ExamQuestion) -> list[dict]:
         options = question.options or []
@@ -225,7 +213,7 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     def _format_answer_key_text(self, question: ExamQuestion, answer_text: str) -> str:
         if not answer_text:
-            return "（未設定）" if self.is_chinese else "(Not set)"
+            return f"（{self.get_label('not_set')}）"
 
         question_type = question.question_type
         normalized = " ".join(str(answer_text).split())
@@ -376,8 +364,16 @@ class PaperExamSheetRenderer(BaseRenderer):
         Falls back to locale defaults.
         """
         rules = (self.contest.rules or "").strip()
+        is_zh = self.is_chinese
+        
+        default_instructions = [
+            "請先填寫姓名、學號與班級。" if is_zh else "Fill in your name, student ID, and class before answering.",
+            "請依題號順序作答，答案務必清楚可辨識。" if is_zh else "Answer questions in order and keep your writing legible.",
+            "若有計算題，請保留必要計算過程。" if is_zh else "Show essential calculation steps when applicable.",
+        ]
+
         if not rules:
-            return self.DEFAULT_INSTRUCTIONS["zh" if self.is_chinese else "en"]
+            return default_instructions
 
         instructions: list[str] = []
         for line in rules.splitlines():
@@ -391,7 +387,7 @@ class PaperExamSheetRenderer(BaseRenderer):
         if instructions:
             return instructions[:8]
 
-        return self.DEFAULT_INSTRUCTIONS["zh" if self.is_chinese else "en"]
+        return default_instructions
 
     def _clean_answer_markdown(self, text: str) -> str:
         """

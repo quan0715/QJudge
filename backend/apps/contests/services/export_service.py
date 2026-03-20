@@ -1,6 +1,8 @@
 """Contest export/report service helpers."""
 
 import csv
+from collections import defaultdict
+
 from django.http import HttpResponse
 
 from ..exporters import (
@@ -106,15 +108,110 @@ def build_paper_exam_sheet_response(
     return response
 
 
+def _get_admin_user_ids(contest):
+    """Return a set of user IDs that are owner or co-admin of the contest."""
+    admin_ids = set(contest.admins.values_list('id', flat=True))
+    if contest.owner_id:
+        admin_ids.add(contest.owner_id)
+    return admin_ids
+
+
+def build_paper_exam_results_csv_response(contest):
+    """Generate CSV response for paper-exam results."""
+    from ..models import ExamAnswer, ExamQuestion, ExamQuestionType
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    safe_name = sanitize_filename(contest.name)
+    response['Content-Disposition'] = f'attachment; filename="exam_{contest.id}_{safe_name}_results.csv"'
+
+    questions = list(
+        ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+    )
+    participants = list(
+        contest.registrations
+        .select_related('user')
+        .order_by('rank', '-score', 'joined_at')
+    )
+    answers = ExamAnswer.objects.filter(participant__contest=contest)
+
+    # Build lookup: {participant_id: {question_id: ExamAnswer}}
+    answer_lookup = defaultdict(dict)
+    for ans in answers:
+        answer_lookup[ans.participant_id][ans.question_id] = ans
+
+    admin_user_ids = _get_admin_user_ids(contest)
+    total_questions = len(questions)
+    full_score = sum(q.score for q in questions)
+
+    # Header
+    writer = csv.writer(response)
+    header = ['帳號', '顯示名稱', 'Email', '身份', '考試狀態', '已批改/總題數', '總分', '滿分']
+    for idx, q in enumerate(questions, 1):
+        type_label = ExamQuestionType(q.question_type).label
+        header.append(f'Q{idx} ({type_label}, {q.score}分)')
+    writer.writerow(header)
+
+    # Data rows — collect scores for average calculation
+    score_sums = [0.0] * total_questions
+    score_counts = [0] * total_questions
+    total_score_sum = 0.0
+    participant_count = len(participants)
+
+    for p in participants:
+        display_name = p.nickname or p.user.username
+        status_label = p.get_exam_status_display()
+        role = '管理者' if p.user_id in admin_user_ids else '參賽者'
+        p_answers = answer_lookup.get(p.id, {})
+        graded_count = sum(
+            1 for q in questions
+            if q.id in p_answers and p_answers[q.id].score is not None
+        )
+
+        row = [
+            p.user.username,
+            display_name,
+            p.user.email,
+            role,
+            status_label,
+            f'{graded_count}/{total_questions}',
+            p.score,
+            full_score,
+        ]
+        total_score_sum += p.score
+        for i, q in enumerate(questions):
+            ans = p_answers.get(q.id)
+            if ans is not None and ans.score is not None:
+                row.append(ans.score)
+                score_sums[i] += float(ans.score)
+                score_counts[i] += 1
+            else:
+                row.append('-')
+        writer.writerow(row)
+
+    # Average row
+    avg_row = ['', '', '', '', '', '平均']
+    avg_row.append(f'{total_score_sum / participant_count:.2f}' if participant_count else '-')
+    avg_row.append(full_score)
+    for i in range(total_questions):
+        if score_counts[i] > 0:
+            avg_row.append(f'{score_sums[i] / score_counts[i]:.2f}')
+        else:
+            avg_row.append('-')
+    writer.writerow(avg_row)
+
+    return response
+
+
 def build_contest_results_csv_response(contest, scoreboard_result):
     """Generate CSV response for contest scoreboard results."""
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
     response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
 
+    admin_user_ids = _get_admin_user_ids(contest)
     writer = csv.writer(response)
 
     # Header row
-    header = ['排名', '帳號', '顯示名稱', 'Email', '解題數', '總分', '罰時']
+    header = ['帳號', '顯示名稱', 'Email', '身份', '解題數', '總分', '罰時']
     for problem in scoreboard_result.problems:
         label = problem.get('label') or chr(65 + problem['order'])
         title = problem.get('title') or ''
@@ -122,16 +219,25 @@ def build_contest_results_csv_response(contest, scoreboard_result):
     writer.writerow(header)
 
     # Data rows
-    for item in scoreboard_result.standings:
+    standings = scoreboard_result.standings
+    total_score_sum = 0.0
+    total_solved_sum = 0
+    count = len(standings)
+
+    for item in standings:
+        user_id = item['user'].get('id')
+        role = '管理者' if user_id in admin_user_ids else '參賽者'
         row = [
-            item['rank'],
             item['user'].get('username'),
             item['display_name'],
             item['user'].get('email'),
+            role,
             item['solved'],
             item['total_score'],
             item['time']
         ]
+        total_score_sum += item['total_score']
+        total_solved_sum += item['solved']
         for problem in scoreboard_result.problems:
             p_stat = item['problems'].get(problem['id'], {})
             status_str = p_stat.get('status', '-')
@@ -147,5 +253,13 @@ def build_contest_results_csv_response(contest, scoreboard_result):
             row.append(cell)
 
         writer.writerow(row)
+
+    # Average row
+    avg_row = ['', '', '', '平均']
+    avg_row.append(f'{total_solved_sum / count:.2f}' if count else '-')
+    avg_row.append(f'{total_score_sum / count:.2f}' if count else '-')
+    avg_row.append('')  # penalty — no meaningful average
+    avg_row.extend([''] * len(scoreboard_result.problems))
+    writer.writerow(avg_row)
 
     return response

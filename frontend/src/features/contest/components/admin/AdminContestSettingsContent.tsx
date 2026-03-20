@@ -92,7 +92,6 @@ interface AdminContestSettingsContentProps {
   onRefreshAdmins: () => void;
   onOpenAddAdmin: () => void;
   onRemoveAdmin: (admin: Admin) => void;
-  onExport: () => void;
   onArchive: () => void;
   onOpenPublishToPractice: () => void;
   onDelete: () => void;
@@ -125,7 +124,6 @@ const AdminContestSettingsContent = ({
   onRefreshAdmins,
   onOpenAddAdmin,
   onRemoveAdmin,
-  onExport,
   onArchive,
   onOpenPublishToPractice,
   onDelete,
@@ -237,15 +235,7 @@ const AdminContestSettingsContent = ({
       </DataTable>
     </Section>
 
-    <Section title="匯出 & Danger Zone">
-      <DangerAction
-        title={t("settings.exportResults")}
-        description={t("settings.exportResultsDesc")}
-        buttonLabel={t("settings.exportCSV")}
-        buttonKind="secondary"
-        onClick={onExport}
-      />
-
+    <Section title="Danger Zone">
       <DangerAction
         title={t("settings.archiveContest")}
         description={t("settings.archiveDesc")}

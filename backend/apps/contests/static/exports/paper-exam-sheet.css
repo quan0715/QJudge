@@ -78,17 +78,37 @@
 .question-item {
   page-break-inside: avoid;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
-.question-head {
-  margin-bottom: 6px;
+.question-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.question-number {
+  min-width: 32px;
+  font-weight: 700;
+  font-size: 16px;
   color: #161616;
-  font-weight: 600;
+  padding-top: 2px;
+}
+
+.question-content {
+  flex: 1;
 }
 
 .question-prompt {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.question-metadata {
+  font-size: 13px;
+  color: #525252;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .question-options {
