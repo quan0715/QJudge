@@ -323,6 +323,7 @@ const chatbotRepository: ChatbotRepository = {
     sessionId: string | number,
     decision: "approve" | "reject",
     callbacks: StreamCallbacks,
+    options?: SendMessageOptions,
   ) {
     try {
       const urlSessionId = sessionId.toString();
@@ -339,6 +340,7 @@ const chatbotRepository: ChatbotRepository = {
             "Content-Type": "application/json",
             "X-QJudge-Agent-Contract": "v2",
           },
+          signal: options?.signal,
         }
       );
 

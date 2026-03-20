@@ -39,5 +39,6 @@ export interface ChatbotRepository {
     sessionId: string | number,
     decision: "approve" | "reject",
     callbacks: StreamCallbacks,
+    options?: SendMessageOptions,
   ): Promise<void>;
 }
