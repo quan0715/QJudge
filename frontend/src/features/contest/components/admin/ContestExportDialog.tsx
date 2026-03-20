@@ -7,6 +7,7 @@ import {
   RadioButtonGroup,
   RadioButton,
   Dropdown,
+  Checkbox,
   Button,
   InlineLoading,
 } from "@carbon/react";
@@ -118,6 +119,7 @@ export default function ContestExportDialog({
   // --- Exam-specific ---
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [includeAnswerArea, setIncludeAnswerArea] = useState(true);
 
   // --- Coding-specific ---
   const [language, setLanguage] = useState("zh-TW");
@@ -180,7 +182,8 @@ export default function ContestExportDialog({
           contestId,
           target === "exam-answer" ? "answer" : "question",
           language,
-          scale
+          scale,
+          includeAnswerArea
         );
       } else if (target === "exam-json") {
         const safeName = sanitizeFilename(contest.name);
@@ -308,6 +311,18 @@ export default function ContestExportDialog({
           <p style={{ color: "var(--cds-text-secondary)", marginTop: "1rem" }}>
             目前沒有題目，請先新增題目後再匯出。
           </p>
+        )}
+
+        {isExamTarget && target !== "exam-json" && (
+          <div style={{ marginTop: "1rem" }}>
+            <Checkbox
+              id="include-answer-area"
+              labelText={t("download.includeAnswerArea")}
+              checked={includeAnswerArea}
+              onChange={(_event, { checked }) => setIncludeAnswerArea(checked)}
+              disabled={exporting}
+            />
+          </div>
         )}
 
         {/* Coding test PDF/Markdown options */}

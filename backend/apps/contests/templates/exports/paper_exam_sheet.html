@@ -35,6 +35,7 @@
       </p>
     </section>
 
+    {% if instructions %}
     <section class="instructions">
       <h3>{{ labels.instructions_title }}</h3>
       <ol>
@@ -43,6 +44,7 @@
         {% endfor %}
       </ol>
     </section>
+    {% endif %}
 
     {% if not questions %}
     <p class="empty-notice">{{ labels.no_questions }}</p>
@@ -57,7 +59,7 @@
               {{ q.prompt_html|safe }}
             </div>
             <div class="question-metadata">
-              （{{ q.score }}{{ labels.points_unit }}, {{ q.type_icon }} {{ q.type_label }}）
+              （{{ q.score }}{{ labels.points_unit }}, {{ q.type_label }}）
             </div>
           </div>
         </div>

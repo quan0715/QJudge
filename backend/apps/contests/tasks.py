@@ -587,7 +587,7 @@ def compile_anticheat_video(
                     f"No new raw screenshots for participant={participant_id} "
                     f"module={source_module} session={upload_session_id}; keeping previous SUCCESS"
                 )
-            job.status = EvidenceJobStatus.FAILED
+            job.status = EvidenceJobStatus.NO_DATA
             job.error_message = "No raw screenshots found"
             job.finished_at = timezone.now()
             job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])

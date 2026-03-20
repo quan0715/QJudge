@@ -170,11 +170,13 @@ export const downloadExamPaperFile = async (
   contestId: string,
   mode: "question" | "answer",
   language: string = "zh-TW",
-  scale: number = 1.0
+  scale: number = 1.0,
+  includeAnswerArea: boolean = true
 ): Promise<void> => {
   const params = new URLSearchParams({
     mode,
     language,
+    include_answer_area: includeAnswerArea.toString(),
   });
 
   if (scale !== 1.0) {

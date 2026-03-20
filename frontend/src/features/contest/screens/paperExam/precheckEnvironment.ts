@@ -18,6 +18,7 @@ import {
   clearPrecheckWebcamHandoff,
   peekPrecheckWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
+import { isStreamLive, isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
 
 type TranslateFn = TFunction;
 
@@ -257,15 +258,15 @@ export const runStartPreflightValidation = async (
         clearShareHandoff: true,
       };
     }
-    const track = handoffStream.getVideoTracks?.()[0];
-    if (!track || track.readyState !== "live") {
+    if (!isStreamLive(handoffStream)) {
       return {
         checkId: "shareScreen",
         detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
       };
     }
-    const settings = (track.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
+    const screenTrack = handoffStream.getVideoTracks()[0];
+    const settings = (screenTrack?.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
     if (settings.displaySurface !== "monitor") {
       return {
         checkId: "shareScreen",
@@ -277,8 +278,7 @@ export const runStartPreflightValidation = async (
 
   if (requireWebcam || enableWebcam) {
     const handoffWebcam = peekPrecheckWebcamHandoff();
-    const webcamTrack = handoffWebcam?.getVideoTracks?.()[0];
-    if (!handoffWebcam || !webcamTrack || webcamTrack.readyState !== "live") {
+    if (!isStreamHealthy(handoffWebcam)) {
       return {
         checkId: "webcam",
         detail: t("precheck.environment.errors.webcamFailed", "Webcam 無法使用，請重新授權。"),

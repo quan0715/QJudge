@@ -25,13 +25,6 @@ from ..utils import inline_markdown, render_markdown
 class PaperExamSheetRenderer(BaseRenderer):
     """Render a paper exam sheet (question paper / answer sheet) to PDF."""
 
-    QUESTION_TYPE_ICONS = {
-        "true_false": "⚖",  # Scales for T/F or comparison
-        "single_choice": "◉",
-        "multiple_choice": "☑",
-        "short_answer": "✎",
-        "essay": "📝",
-    }
     OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     def __init__(
@@ -40,10 +33,12 @@ class PaperExamSheetRenderer(BaseRenderer):
         language: str = "zh-TW",
         scale: float = 1.0,
         include_answers: bool = False,
+        include_answer_area: bool = True,
     ):
         super().__init__(contest, language)
         self.scale = max(0.5, min(2.0, scale))
         self.include_answers = include_answers
+        self.include_answer_area = include_answer_area
 
     def export(self) -> BytesIO:
         html = self.render_html()
@@ -78,7 +73,6 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "number": idx,
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
-                    "type_icon": self.QUESTION_TYPE_ICONS.get(q.question_type, ""),
                     "score": q.score,
                     "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "options": self._get_options(q),
@@ -249,6 +243,17 @@ class PaperExamSheetRenderer(BaseRenderer):
     def _build_answer_ui(self, question: ExamQuestion) -> dict:
         question_type = question.question_type
 
+        # If answer area is disabled, return empty state for all types
+        if not self.include_answer_area:
+            return {
+                "show_choice_answer_bar": False,
+                "choice_answer_slots": [],
+                "show_answer_lines": False,
+                "answer_line_indices": [],
+                "answer_line_count": 0,
+                "answer_area_min_height": 0,
+            }
+
         if question_type == "single_choice":
             slots = [opt["letter"] for opt in self._get_options(question)]
             return {
@@ -360,20 +365,11 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     def _build_instructions(self) -> list[str]:
         """
-        Build instructions from contest rules when available.
-        Falls back to locale defaults.
+        Build instructions strictly from contest rules.
         """
         rules = (self.contest.rules or "").strip()
-        is_zh = self.is_chinese
-        
-        default_instructions = [
-            "請先填寫姓名、學號與班級。" if is_zh else "Fill in your name, student ID, and class before answering.",
-            "請依題號順序作答，答案務必清楚可辨識。" if is_zh else "Answer questions in order and keep your writing legible.",
-            "若有計算題，請保留必要計算過程。" if is_zh else "Show essential calculation steps when applicable.",
-        ]
-
         if not rules:
-            return default_instructions
+            return []
 
         instructions: list[str] = []
         for line in rules.splitlines():
@@ -384,10 +380,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             if text:
                 instructions.append(text)
 
-        if instructions:
-            return instructions[:8]
-
-        return default_instructions
+        return instructions[:12]
 
     def _clean_answer_markdown(self, text: str) -> str:
         """

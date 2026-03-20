@@ -466,7 +466,8 @@
     "layoutNormal": "Normal",
     "layoutCompact": "Compact",
     "layoutHint": "Compact mode uses two-column layout for input/output descriptions and reduces spacing to minimize page count.",
-    "generating": "Generating file..."
+    "generating": "Generating file...",
+    "includeAnswerArea": "Include Answer Area"
   },
   "examJson": {
     "importAction": "Import JSON",

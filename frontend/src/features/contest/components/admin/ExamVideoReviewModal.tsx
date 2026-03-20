@@ -36,27 +36,31 @@ interface Props {
 }
 
 type TranslateFn = TFunction<"contest">;
+type JobStatus = "pending" | "running" | "success" | "failed" | "no_data";
+
+interface SessionGroup {
+  uploadSessionId: string;
+  rows: ExamVideoDto[];
+  latestActivityAt: string;
+}
+
+const getEffectiveJobStatus = (video: ExamVideoDto): JobStatus =>
+  (video.job_status || (video.has_video === false ? "pending" : "success")) as JobStatus;
 
 const getJobStatusText = (video: ExamVideoDto, t: TranslateFn): string => {
-  const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as
-    | "pending"
-    | "running"
-    | "success"
-    | "failed";
+  const status = getEffectiveJobStatus(video);
   if (status === "failed") return t("examVideoReview.status.failed", "轉檔失敗");
+  if (status === "no_data") return t("examVideoReview.status.noData", "無畫面");
   if (status === "running") return t("examVideoReview.status.running", "轉檔中");
   if (status === "pending") return t("examVideoReview.status.pending", "待轉檔");
   return t("examVideoReview.status.ready", "可播放");
 };
 
 const getJobTag = (video: ExamVideoDto, t: TranslateFn) => {
-  const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as
-    | "pending"
-    | "running"
-    | "success"
-    | "failed";
+  const status = getEffectiveJobStatus(video);
   const label = getJobStatusText(video, t);
   if (status === "failed") return <Tag type="red">{label}</Tag>;
+  if (status === "no_data") return <Tag type="cool-gray">{label}</Tag>;
   if (status === "running") return <Tag type="blue">{label}</Tag>;
   if (status === "pending") return <Tag type="cool-gray">{label}</Tag>;
   return <Tag type="green">{label}</Tag>;
@@ -181,6 +185,43 @@ const ExamVideoReviewModal: React.FC<Props> = ({
     ],
     [t]
   );
+  const groupedSessions = useMemo<SessionGroup[]>(() => {
+    const bySession = new Map<string, ExamVideoDto[]>();
+    for (const video of videos) {
+      const key = video.upload_session_id || "default";
+      const existing = bySession.get(key);
+      if (existing) {
+        existing.push(video);
+      } else {
+        bySession.set(key, [video]);
+      }
+    }
+
+    const sessions = Array.from(bySession.entries()).map(([uploadSessionId, rows]) => {
+      const sortedRows = [...rows].sort((a, b) =>
+        String(
+          b.last_activity_at || b.job_updated_at || b.updated_at || b.created_at || ""
+        ).localeCompare(
+          String(a.last_activity_at || a.job_updated_at || a.updated_at || a.created_at || "")
+        )
+      );
+      const latestActivityAt = String(
+        sortedRows[0]?.last_activity_at ||
+          sortedRows[0]?.job_updated_at ||
+          sortedRows[0]?.updated_at ||
+          sortedRows[0]?.created_at ||
+          ""
+      );
+      return {
+        uploadSessionId,
+        rows: sortedRows,
+        latestActivityAt,
+      };
+    });
+
+    sessions.sort((a, b) => b.latestActivityAt.localeCompare(a.latestActivityAt));
+    return sessions;
+  }, [videos]);
 
   const reload = useCallback(async () => {
     if (!contestId) return;
@@ -284,7 +325,10 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   };
 
   const pendingVideos = videos.filter(
-    (v) => v.has_video === false && v.job_status !== "running"
+    (v) =>
+      v.has_video === false &&
+      v.job_status !== "running" &&
+      v.job_status !== "no_data"
   );
   const isMutating = compiling || compilingAll || deleting;
 
@@ -404,41 +448,59 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {videos.map((video) => {
-                        const isSelected = video.id === selectedId;
-                        return (
+                      {groupedSessions.flatMap((session) => {
+                        const sessionHeader = (
                           <TableRow
-                            key={video.id}
-                            className={`${styles.tableRow} ${
-                              isSelected ? styles.tableRowSelected : ""
-                            }`}
-                            aria-selected={isSelected}
-                            onClick={() => setSelectedId(video.id)}
+                            key={`session-${session.uploadSessionId}`}
+                            className={styles.sessionRow}
                           >
-                            <TableCell>{video.participant_username}</TableCell>
-                            <TableCell>
-                              {video.source_module === "webcam" ? "webcam" : "screen_share"}
+                            <TableCell colSpan={tableHeaders.length + 1}>
+                              {t("examVideoReview.sessionGroup", "Session {{session}}（{{count}} 個來源）", {
+                                session: session.uploadSessionId,
+                                count: session.rows.length,
+                              })}
                             </TableCell>
-                            <TableCell>
-                              {new Date(
-                                video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
-                              ).toLocaleString()}
-                            </TableCell>
-                            <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
-                            <TableCell>
-                              {video.is_suspected ? (
-                                <Tag type="red">
-                                  {t("examVideoReview.flag.suspected", "疑似")}
-                                </Tag>
-                              ) : (
-                                <Tag type="green">
-                                  {t("examVideoReview.flag.normal", "正常")}
-                                </Tag>
-                              )}
-                            </TableCell>
-                            <TableCell>{getJobTag(video, t)}</TableCell>
                           </TableRow>
                         );
+
+                        const rows = session.rows.map((video) => {
+                          const isSelected = video.id === selectedId;
+                          return (
+                            <TableRow
+                              key={video.id}
+                              className={`${styles.tableRow} ${
+                                isSelected ? styles.tableRowSelected : ""
+                              }`}
+                              aria-selected={isSelected}
+                              onClick={() => setSelectedId(video.id)}
+                            >
+                              <TableCell>{video.participant_username}</TableCell>
+                              <TableCell>
+                                {video.source_module === "webcam" ? "webcam" : "screen_share"}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(
+                                  video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
+                                ).toLocaleString()}
+                              </TableCell>
+                              <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
+                              <TableCell>
+                                {video.is_suspected ? (
+                                  <Tag type="red">
+                                    {t("examVideoReview.flag.suspected", "疑似")}
+                                  </Tag>
+                                ) : (
+                                  <Tag type="green">
+                                    {t("examVideoReview.flag.normal", "正常")}
+                                  </Tag>
+                                )}
+                              </TableCell>
+                              <TableCell>{getJobTag(video, t)}</TableCell>
+                            </TableRow>
+                          );
+                        });
+
+                        return [sessionHeader, ...rows];
                       })}
                     </TableBody>
                   </Table>
@@ -455,6 +517,11 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                               "examVideoReview.preview.failed",
                               "影片轉檔失敗，請稍後重試或查看錯誤訊息。"
                             )
+                          : selectedVideo.job_status === "no_data"
+                            ? t(
+                                "examVideoReview.preview.noData",
+                                "此來源在本次作答沒有收到任何畫面，故不產生影片。"
+                              )
                           : selectedVideo.job_status === "running"
                             ? t(
                                 "examVideoReview.preview.running",

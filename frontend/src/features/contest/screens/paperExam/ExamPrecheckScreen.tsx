@@ -59,6 +59,7 @@ import {
   requestUserMediaVideo,
   supportsUserMediaApi,
 } from "@/features/contest/anticheat/mediaApi";
+import { isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
 import styles from "./ExamPrecheck.module.scss";
 
 const COUNTDOWN_SECONDS = 3;
@@ -178,8 +179,7 @@ const ExamPrecheckScreen: React.FC = () => {
     }
     try {
       const stream = await requestUserMediaVideo();
-      const track = stream.getVideoTracks?.()[0];
-      if (!track || track.readyState !== "live") {
+      if (!isStreamHealthy(stream)) {
         stream.getTracks().forEach((t) => t.stop());
         clearPrecheckWebcamHandoff(true);
         return {

@@ -503,6 +503,80 @@ class ExamAntiCheatTests(APITestCase):
             ).exists()
         )
 
+    def test_end_exam_infers_webcam_only_sources_from_exam_entered_metadata(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "active_sources": ["webcam"],
+                "upload_session_id": "session-webcam-only-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
+        response = self.client.post(
+            end_url,
+            {"upload_session_id": "session-webcam-only-1"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-webcam-only-1",
+                source_module="webcam",
+            ).exists()
+        )
+        self.assertFalse(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-webcam-only-1",
+                source_module="screen_share",
+            ).exists()
+        )
+
+    def test_end_exam_creates_jobs_for_all_active_sources(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "active_sources": ["screen_share", "webcam"],
+                "upload_session_id": "session-multi-source-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
+        response = self.client.post(
+            end_url,
+            {"upload_session_id": "session-multi-source-1"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-multi-source-1",
+                source_module="screen_share",
+            ).exists()
+        )
+        self.assertTrue(
+            ExamEvidenceJob.objects.filter(
+                contest=self.contest,
+                participant=self.participant,
+                upload_session_id="session-multi-source-1",
+                source_module="webcam",
+            ).exists()
+        )
+
     def test_videos_get_does_not_create_missing_jobs(self):
         self.client.force_authenticate(user=self.teacher)
         videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])

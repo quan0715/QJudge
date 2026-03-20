@@ -25,7 +25,9 @@ const translationMap: Record<string, string> = {
   "examVideoReview.status.pending": "待轉檔",
   "examVideoReview.status.running": "轉檔中",
   "examVideoReview.status.failed": "轉檔失敗",
+  "examVideoReview.status.noData": "無畫面",
   "examVideoReview.status.ready": "可播放",
+  "examVideoReview.sessionGroup": "Session {{session}}（{{count}} 個來源）",
   "examVideoReview.flag.suspected": "疑似",
   "examVideoReview.flag.normal": "正常",
   "examVideoReview.preview.failed": "影片轉檔失敗，請稍後重試或查看錯誤訊息。",
@@ -88,7 +90,7 @@ const buildVideo = (
     id: number;
     participant_username: string;
     has_video: boolean;
-    job_status: "pending" | "running" | "success" | "failed";
+    job_status: "pending" | "running" | "success" | "failed" | "no_data";
   }> = {}
 ) => ({
   id: overrides.id ?? 1,
@@ -129,6 +131,7 @@ describe("ExamVideoReviewModal", () => {
       buildVideo({ id: 2, participant_username: "pending-user", has_video: false, job_status: "pending" }),
       buildVideo({ id: 3, participant_username: "running-user", has_video: false, job_status: "running" }),
       buildVideo({ id: 4, participant_username: "failed-user", has_video: false, job_status: "failed" }),
+      buildVideo({ id: 5, participant_username: "no-data-user", has_video: false, job_status: "no_data" }),
     ]);
 
     render(<ExamVideoReviewModal contestId="contest-1" open />);
@@ -138,6 +141,7 @@ describe("ExamVideoReviewModal", () => {
     expect(screen.getAllByText("待轉檔").length).toBeGreaterThan(0);
     expect(screen.getAllByText("轉檔中").length).toBeGreaterThan(0);
     expect(screen.getAllByText("轉檔失敗").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("無畫面").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "全部轉檔 (2)" })).toBeInTheDocument();
   });
 

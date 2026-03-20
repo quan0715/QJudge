@@ -268,10 +268,10 @@ export const resolveDeviceMonitoringPlan = (
   };
 
   const missingRequiredSources: Array<"screen_share" | "webcam"> = [];
-  if (sources.screenShare.required && !sources.screenShare.available) {
+  if (sources.screenShare.required && !sources.screenShare.active) {
     missingRequiredSources.push("screen_share");
   }
-  if (sources.webcam.required && !sources.webcam.available) {
+  if (sources.webcam.required && !sources.webcam.active) {
     missingRequiredSources.push("webcam");
   }
 
@@ -307,6 +307,8 @@ export const resolveDeviceMonitoringPlan = (
   const allowed = !!selected.enabled && missingRequiredSources.length === 0;
   const primarySourceModule: "screen_share" | "webcam" =
     sources.webcam.role === "primary" ? "webcam" : "screen_share";
+  const requiredScreenShareActive = sources.screenShare.required && sources.screenShare.active;
+  const requiredWebcamActive = sources.webcam.required && sources.webcam.active;
 
   return {
     deviceKind,
@@ -316,17 +318,17 @@ export const resolveDeviceMonitoringPlan = (
     detectors,
     enabledDetectors,
     precheck: {
-      requireScreenShare: sources.screenShare.required && sources.screenShare.active,
-      requireWebcam: sources.webcam.required && sources.webcam.active,
-      enableWebcam: sources.webcam.active,
+      requireScreenShare: requiredScreenShareActive,
+      requireWebcam: requiredWebcamActive,
+      enableWebcam: requiredWebcamActive,
       requireFullscreen: detectors.fullscreen,
       requirePwaMode: detectors.pwaMode,
     },
     runtime: {
-      enableScreenShareCapture: sources.screenShare.active,
-      enableWebcamCapture: sources.webcam.active,
-      monitorScreenShareStream: sources.screenShare.active,
-      monitorWebcamStream: sources.webcam.active,
+      enableScreenShareCapture: requiredScreenShareActive,
+      enableWebcamCapture: requiredWebcamActive,
+      monitorScreenShareStream: requiredScreenShareActive,
+      monitorWebcamStream: requiredWebcamActive,
       enableViewportIntegrity: detectors.viewportIntegrity,
     },
     primarySourceModule,

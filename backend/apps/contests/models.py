@@ -720,6 +720,7 @@ class EvidenceJobStatus(models.TextChoices):
     RUNNING = "running", "Running"
     SUCCESS = "success", "Success"
     FAILED = "failed", "Failed"
+    NO_DATA = "no_data", "No Data"
 
 
 class ExamEvidenceJob(models.Model):

@@ -286,7 +286,7 @@ export interface ExamVideoDto {
   created_at: string;
   updated_at: string;
   has_video?: boolean;
-  job_status?: "pending" | "running" | "success" | "failed";
+  job_status?: "pending" | "running" | "success" | "failed" | "no_data";
   job_error_message?: string;
   job_raw_count?: number;
   job_updated_at?: string;

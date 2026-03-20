@@ -19,7 +19,7 @@ interface ExamModalsProps {
   onFullscreenExitCancel?: () => void;
   warningCountdown?: number | null;
   recoveryCountdown?: number | null;
-  recoverySource?: "fullscreen" | "mouse-leave" | null;
+  recoverySource?: string | null;
   onRecoverFullscreen?: () => void;
   screenShareRecoveryCountdown?: number | null;
   isRequestingScreenShare?: boolean;
@@ -296,18 +296,18 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         data-testid="exam-recovery-modal"
         open={recoveryCountdown != null}
         modalHeading={
-          recoverySource === "mouse-leave"
+          recoverySource === "mouse_leave"
             ? t("exam.mouseLeaveRecoveryTitle")
             : t("exam.fullscreenRecoveryTitle")
         }
         primaryButtonText={withButtonTestId(
           "exam-recovery-confirm-btn",
-          recoverySource === "mouse-leave"
+          recoverySource === "mouse_leave"
             ? t("exam.iUnderstand")
             : t("exam.returnToFullscreen")
         )}
-        onRequestSubmit={recoverySource === "mouse-leave" ? undefined : onRecoverFullscreen}
-        onRequestClose={recoverySource === "mouse-leave" ? undefined : onRecoverFullscreen}
+        onRequestSubmit={recoverySource === "mouse_leave" ? undefined : onRecoverFullscreen}
+        onRequestClose={recoverySource === "mouse_leave" ? undefined : onRecoverFullscreen}
         preventCloseOnClickOutside
         danger
         size="sm"
@@ -320,7 +320,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           }}
         >
           <p style={{ margin: 0, color: "var(--cds-text-primary)", lineHeight: 1.5 }}>
-            {recoverySource === "mouse-leave"
+            {recoverySource === "mouse_leave"
               ? t("exam.mouseLeaveRecoveryDesc", { seconds: recoveryCountdown ?? 0 })
               : t("exam.fullscreenRecoveryDesc", { seconds: recoveryCountdown ?? 0 })}
           </p>

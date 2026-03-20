@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from apps.contests.models import (
     ContestActivity,
+    ExamEvent,
     ExamEvidenceJob,
     EvidenceJobStatus,
     ExamStatus,
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from apps.users.models import User
 
 logger = logging.getLogger(__name__)
+VALID_SOURCE_MODULES = ("screen_share", "webcam")
 
 
 def normalize_upload_session_id(upload_session_id: str | None) -> str:
@@ -31,9 +33,69 @@ def normalize_upload_session_id(upload_session_id: str | None) -> str:
 
 def normalize_source_module(source_module: str | None) -> str:
     value = str(source_module or "").strip().lower()
-    if value not in {"screen_share", "webcam"}:
+    if value not in VALID_SOURCE_MODULES:
         return "screen_share"
     return value
+
+
+def parse_source_module(source_module: str | None) -> str | None:
+    value = str(source_module or "").strip().lower()
+    if value not in VALID_SOURCE_MODULES:
+        return None
+    return value
+
+
+def _extract_active_sources_from_exam_entered(metadata: dict | None) -> list[str]:
+    if not isinstance(metadata, dict):
+        return []
+    raw_sources = metadata.get("active_sources")
+    if not isinstance(raw_sources, list):
+        return []
+    out: list[str] = []
+    for item in raw_sources:
+        module = parse_source_module(item if isinstance(item, str) else None)
+        if module and module not in out:
+            out.append(module)
+    return out
+
+
+def resolve_submission_source_modules(
+    participant: "ContestParticipant",
+    upload_session_id: str | None = None,
+    source_module: str | None = None,
+) -> list[str]:
+    """
+    Resolve source modules for evidence jobs at submission time.
+
+    Priority:
+    1) active_sources from latest exam_entered metadata (best representation of runtime enabled modules)
+    2) explicit source_module from client/event
+    3) backward-compatible fallback: screen_share
+    """
+    explicit_module = parse_source_module(source_module)
+
+    target_session_id = normalize_upload_session_id(upload_session_id)
+    inferred_modules: list[str] = []
+    entry_events = ExamEvent.objects.filter(
+        contest=participant.contest,
+        user=participant.user,
+        event_type="exam_entered",
+    ).order_by("-created_at")
+    for entry_event in entry_events:
+        metadata = entry_event.metadata if isinstance(entry_event.metadata, dict) else {}
+        event_session_id = normalize_upload_session_id(metadata.get("upload_session_id"))
+        if event_session_id != target_session_id:
+            continue
+        inferred_modules = _extract_active_sources_from_exam_entered(metadata)
+        if inferred_modules:
+            break
+    if inferred_modules:
+        if explicit_module and explicit_module not in inferred_modules:
+            inferred_modules.append(explicit_module)
+        return inferred_modules
+    if explicit_module:
+        return [explicit_module]
+    return ["screen_share"]
 
 
 def enqueue_compile_video(
@@ -76,6 +138,19 @@ def ensure_evidence_job(
     return job
 
 
+def ensure_evidence_jobs(
+    participant: "ContestParticipant",
+    upload_session_id: str | None,
+    source_module: str | None = None,
+) -> list[ExamEvidenceJob]:
+    session_id = normalize_upload_session_id(upload_session_id)
+    modules = resolve_submission_source_modules(participant, session_id, source_module)
+    jobs: list[ExamEvidenceJob] = []
+    for module in modules:
+        jobs.append(ensure_evidence_job(participant, session_id, module))
+    return jobs
+
+
 def finalize_submission(
     participant: "ContestParticipant",
     *,
@@ -88,11 +163,11 @@ def finalize_submission(
 ) -> str:
     """
     Finalize participant submission in a single idempotent flow.
-    Always records a pending evidence job for monitored exams.
+    Always records pending evidence jobs for monitored exams.
     Video compilation is triggered only by the explicit manual compile endpoint.
     """
     session_id = normalize_upload_session_id(upload_session_id)
-    module = normalize_source_module(source_module)
+    modules = resolve_submission_source_modules(participant, session_id, source_module)
 
     update_fields: list[str] = []
     now = timezone.now()
@@ -113,7 +188,8 @@ def finalize_submission(
     clear_exam_allowed_jti(participant.user_id)
 
     if participant.contest.cheat_detection_enabled:
-        ensure_evidence_job(participant, session_id, module)
+        for module in modules:
+            ensure_evidence_job(participant, session_id, module)
         try:
             enqueue_retain_raw_screenshots(participant.contest_id, participant.user_id)
         except Exception:  # pragma: no cover - defensive guard for external storage/task backend failures

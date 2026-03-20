@@ -219,7 +219,7 @@ export interface ParticipantEvidenceRow {
   uploadSessionId: string;
   sourceModule?: "screen_share" | "webcam";
   hasVideo: boolean;
-  jobStatus: "pending" | "running" | "success" | "failed";
+  jobStatus: "pending" | "running" | "success" | "failed" | "no_data";
   jobErrorMessage: string;
   durationSeconds: number;
   frameCount: number;

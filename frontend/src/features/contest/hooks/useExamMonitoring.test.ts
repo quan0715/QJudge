@@ -49,19 +49,6 @@ describe("useExamMonitoring", () => {
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
 
     expect(addEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
-    expect(addEventListenerSpy).toHaveBeenCalledWith("fullscreenchange", expect.any(Function));
-  });
-
-  it("does not attach fullscreen listener when fullscreen enforcement is disabled", () => {
-    const addEventListenerSpy = vi.spyOn(document, "addEventListener");
-    const onViolation = vi.fn();
-
-    renderHook(() =>
-      useExamMonitoring({ enabled: true, enforceFullscreen: false, onViolation })
-    );
-
-    expect(addEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
-    expect(addEventListenerSpy).not.toHaveBeenCalledWith("fullscreenchange", expect.any(Function));
   });
 
   it("calls onViolation when visibility changes to hidden", () => {
@@ -74,49 +61,7 @@ describe("useExamMonitoring", () => {
     expect(onViolation).toHaveBeenCalledWith("tab_hidden", "exam.tabHidden");
   });
 
-  it("starts fullscreen recovery countdown and records violation only after 3 seconds", () => {
-    const onViolation = vi.fn();
-    const onRecoveryCountdownChange = vi.fn();
-    renderHook(() =>
-      useExamMonitoring({ enabled: true, onViolation, onRecoveryCountdownChange })
-    );
-
-    Object.defineProperty(document, "fullscreenElement", { value: null });
-    document.dispatchEvent(new Event("fullscreenchange"));
-
-    // Wait for 100ms stabilization delay before fullscreen state is read
-    vi.advanceTimersByTime(100);
-
-    expect(onRecoveryCountdownChange).toHaveBeenCalledWith(3, "fullscreen");
-    expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
-
-    vi.advanceTimersByTime(3000);
-    expect(onViolation).toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
-  });
-
-  it("cancels fullscreen violation if user returns to fullscreen within 3 seconds", () => {
-    const onViolation = vi.fn();
-    const onRecoveryCountdownChange = vi.fn();
-    renderHook(() =>
-      useExamMonitoring({ enabled: true, onViolation, onRecoveryCountdownChange })
-    );
-
-    Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
-    document.dispatchEvent(new Event("fullscreenchange"));
-    vi.advanceTimersByTime(100); // stabilization delay
-    vi.advanceTimersByTime(2000);
-
-    Object.defineProperty(document, "fullscreenElement", {
-      value: document.createElement("div"),
-      configurable: true,
-    });
-    document.dispatchEvent(new Event("fullscreenchange"));
-    vi.advanceTimersByTime(100); // stabilization delay
-    vi.advanceTimersByTime(2000);
-
-    expect(onViolation).not.toHaveBeenCalledWith("exit_fullscreen", "exam.exitedFullscreen");
-    expect(onRecoveryCountdownChange).toHaveBeenCalledWith(null, "fullscreen");
-  });
+  // Fullscreen recovery countdown tests moved to useFullscreenMonitoring.test.ts
 
   it("calls onViolation for blur event if no recent interaction", () => {
     const onViolation = vi.fn();

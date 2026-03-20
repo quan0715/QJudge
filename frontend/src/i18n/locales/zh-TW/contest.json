@@ -416,7 +416,8 @@
     "layoutNormal": "一般模式",
     "layoutCompact": "緊縮模式",
     "layoutHint": "緊縮模式將輸入/輸出說明改為雙欄佈局，並減少間距，有效減少頁數。",
-    "generating": "檔案生成中..."
+    "generating": "檔案生成中...",
+    "includeAnswerArea": "包含作答區"
   },
   "examJson": {
     "importAction": "匯入 JSON",

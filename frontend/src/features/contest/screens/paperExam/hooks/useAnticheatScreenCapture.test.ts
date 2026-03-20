@@ -36,6 +36,7 @@ let trackEndedListeners: TrackEndedListener[] = [];
 const createMockHandoffStream = (opts?: { active?: boolean }) => {
   trackEndedListeners = [];
   const mockTrack = {
+    readyState: "live" as MediaStreamTrackState,
     addEventListener: (event: string, listener: TrackEndedListener) => {
       if (event === "ended") trackEndedListeners.push(listener);
     },

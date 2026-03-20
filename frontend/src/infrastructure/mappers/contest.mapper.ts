@@ -590,11 +590,14 @@ const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
 });
 
 const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
+  // Keep API compatibility: unknown status falls back to pending.
+  jobStatus: ["pending", "running", "success", "failed", "no_data"].includes(dto?.job_status)
+    ? dto.job_status
+    : "pending",
   id: Number(dto?.id ?? 0),
   uploadSessionId: dto?.upload_session_id || "default",
   sourceModule: dto?.source_module === "webcam" ? "webcam" : "screen_share",
   hasVideo: !!dto?.has_video,
-  jobStatus: dto?.job_status || "pending",
   jobErrorMessage: dto?.job_error_message || "",
   durationSeconds: Number(dto?.duration_seconds ?? 0),
   frameCount: Number(dto?.frame_count ?? 0),

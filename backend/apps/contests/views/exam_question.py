@@ -271,6 +271,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         mode = request.query_params.get("mode", "question")
         language = request.query_params.get("language", "zh-TW")
         scale = parse_scale(request.query_params.get("scale", "1.0"))
+        include_answer_area = request.query_params.get("include_answer_area", "true").lower() == "true"
 
         try:
             return build_paper_exam_sheet_response(
@@ -278,6 +279,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 mode=mode,
                 language=language,
                 scale=scale,
+                include_answer_area=include_answer_area,
             )
         except ExportValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

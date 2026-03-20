@@ -160,7 +160,37 @@ describe("computeEffectiveRequiredModules", () => {
 
     expect(metadata.device_kind).toBe("desktop");
     expect(metadata.primary_source_module).toBe("screen_share");
-    expect(metadata.active_sources).toEqual(["screen_share", "webcam"]);
+    expect(metadata.active_sources).toEqual(["screen_share"]);
     expect(metadata.is_tablet).toBe(false);
+  });
+
+  it("treats required-but-disabled source as missing", () => {
+    const plan = resolveDeviceMonitoringPlan(
+      {
+        screenShareSupported: true,
+        webcamSupported: true,
+        isTablet: false,
+        isIPadLike: false,
+        isPwaMode: false,
+      },
+      {
+        ...basePolicy,
+        desktop: {
+          ...basePolicy.desktop,
+          sources: {
+            ...basePolicy.desktop.sources,
+            screenShare: {
+              ...basePolicy.desktop.sources.screenShare,
+              enabled: false,
+              required: true,
+            },
+          },
+        },
+      },
+    );
+
+    expect(plan.allowed).toBe(false);
+    expect(plan.missingRequiredSources).toContain("screen_share");
+    expect(plan.runtime.enableScreenShareCapture).toBe(false);
   });
 });
