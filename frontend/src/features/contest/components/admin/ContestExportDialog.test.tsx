@@ -139,7 +139,8 @@ describe("ContestExportDialog", () => {
         "contest-1",
         "answer",
         "zh-TW",
-        1
+        1,
+        true
       );
     });
   });
@@ -165,7 +166,8 @@ describe("ContestExportDialog", () => {
         "contest-1",
         "answer",
         "zh-TW",
-        1
+        1,
+        true
       );
     });
   });
