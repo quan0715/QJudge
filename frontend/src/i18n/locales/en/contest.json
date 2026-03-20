@@ -120,10 +120,10 @@
   },
   "precheck": {
     "title": "Exam Pre-check",
-    "description": "To ensure fairness, please complete the environment and eligibility checks before entering the exam room. Failure to pass necessary checks will restrict your access.",
+    "description": "Please complete environment checks before starting. You cannot enter without passing all checks.",
     "entryDevice": {
       "title": "Entry Device",
-      "summary": "You will enter this exam with {{device}} ({{mode}}).",
+      "summary": "Entry: {{device}} ({{mode}})",
       "sources": "Monitoring sources: {{sources}}",
       "kind": {
         "desktop": "Desktop / Laptop",
@@ -153,8 +153,8 @@
       "status": {
         "passed": "Eligibility confirmed.",
         "failed": "You do not have permission to participate.",
-        "submittedAllowed": "Submission record found, but multiple entries are allowed.",
-        "submittedDenied": "You have already submitted and cannot re-enter.",
+        "submittedAllowed": "Submission record found; re-entry is allowed.",
+        "submittedDenied": "Already submitted; re-entry is not allowed.",
         "noSubmission": "No previous submission found."
       },
       "nextStep": "Next: Environment Check"
@@ -162,11 +162,11 @@
     "environment": {
       "title": "Environment Check",
       "requirements": {
-        "title": "Strict environment restrictions apply:",
-        "browser": "Use only the latest version of Google Chrome or Microsoft Edge.",
-        "permission": "Click [Allow] when the browser requests window and display management permissions.",
-        "display": "A single physical monitor is required (please disconnect external displays).",
-        "sharing": "You must share your [Entire Screen] when prompted."
+        "title": "Environment Requirements:",
+        "browser": "Use latest Google Chrome or Microsoft Edge.",
+        "permission": "Grant \"Window and Display Management\" permission when prompted.",
+        "display": "Single physical monitor required; disconnect external displays.",
+        "sharing": "Please choose \"Entire Screen\" for screen sharing."
       },
       "checks": {
         "monitor": "Display Count",
@@ -195,13 +195,13 @@
       }
     },
     "instruction": {
-      "title": "Exam Instructions",
-      "noSwitch": "Do not switch windows or tabs. All exits will be recorded.",
-      "keepFullscreen": "Maintain fullscreen mode. Exiting will trigger a system warning.",
-      "autoSave": "Your responses are automatically saved every 2 seconds.",
-      "autoSubmit": "The system will automatically submit your work when time expires.",
+      "title": "Exam Rules",
+      "noSwitch": "Window/tab switching is prohibited and will be recorded.",
+      "keepFullscreen": "Maintain fullscreen; exiting will trigger a warning.",
+      "autoSave": "Answers are saved automatically every 2 seconds.",
+      "autoSubmit": "Exam will be submitted automatically when time is up.",
       "deadline": "Deadline: {{time}}",
-      "confirmStart": "I understand and I'm ready to start"
+      "confirmStart": "I understand, start exam"
     },
     "countdown": {
       "starting": "Exam starting soon",

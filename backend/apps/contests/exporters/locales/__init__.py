@@ -53,6 +53,17 @@ REQUIRED_KEYS: Set[str] = {
 
     # OJ environment
     'oj_environment', 'compiler', 'compile_command', 'io_instruction', 'grading',
+
+    # Paper Exam Labels
+    'candidate_name', 'candidate_id', 'candidate_class', 'exam_time',
+    'duration', 'total_questions', 'total_score', 'answer_key',
+    'no_questions', 'points_unit', 'answer', 'question_no',
+    'score_col', 'answer_col', 'instructions_title', 'answer_lines',
+    'choice_marking_hint', 'answer_key_note', 'exam_paper_official',
+    'exam_paper_question', 'exam_paper_answer', 'not_set', 'minutes_label',
+
+    # Question types
+    'true_false', 'single_choice', 'multiple_choice', 'short_answer', 'essay',
 }
 
 

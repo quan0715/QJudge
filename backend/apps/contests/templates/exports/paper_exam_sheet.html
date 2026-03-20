@@ -50,8 +50,17 @@
     <section class="question-list">
       {% for q in questions %}
       <article class="question-item">
-        <div class="question-head">Q{{ q.number }}（{{ q.score }} {{ labels.points_unit }}）[{{ q.type_label }}]</div>
-        <div class="question-prompt markdown-content">{{ q.prompt_html|safe }}</div>
+        <div class="question-row">
+          <div class="question-number">Q{{ q.number }}.</div>
+          <div class="question-content">
+            <div class="question-prompt markdown-content">
+              {{ q.prompt_html|safe }}
+            </div>
+            <div class="question-metadata">
+              （{{ q.score }}{{ labels.points_unit }}, {{ q.type_icon }} {{ q.type_label }}）
+            </div>
+          </div>
+        </div>
         {% if q.options %}
         <ul class="question-options">
           {% for opt in q.options %}
