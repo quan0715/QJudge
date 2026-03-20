@@ -610,7 +610,6 @@ class StudentReportRenderer(BaseRenderer):
 
         # Build grid lines and labels
         h_grid_lines = [{'y': padding_top + (chart_height * i / 4)} for i in range(5)]
-        is_chinese = self.language.startswith('zh')
 
         time_markers = []
         for i in range(5):
@@ -639,7 +638,7 @@ class StudentReportRenderer(BaseRenderer):
             'font_size_small': 10 * scale,
             'h_grid_lines': h_grid_lines, 'time_markers': time_markers,
             'left_labels': left_labels, 'right_labels': right_labels,
-            'x_axis_label': "時間 (時:分)" if is_chinese else "Time (h:mm)",
+            'x_axis_label': self.get_label('time_axis_label'),
             'x_axis_label_x': padding_left + chart_width / 2,
             'x_axis_label_y': height - 5 * scale,
             'solved_area_path': f"M{padding_left},{chart_bottom} L" + " L".join(solved_pts) + f" L{width - padding_right},{chart_bottom} Z" if len(solved_pts) > 1 else '',
@@ -651,8 +650,8 @@ class StudentReportRenderer(BaseRenderer):
             'legend_rect_width': 12 * scale, 'legend_rect_height': 3 * scale,
             'legend_solved_x': padding_left, 'legend_solved_text_x': padding_left + 16 * scale,
             'legend_score_x': padding_left + 80 * scale, 'legend_score_text_x': padding_left + 96 * scale,
-            'solved_label': "解題數" if is_chinese else "Solved",
-            'score_label': "累計分數" if is_chinese else "Score",
+            'solved_label': self.get_label('solved'),
+            'score_label': self.get_label('cumulative_score'),
         }
         return render_to_string('exports/components/cumulative_chart.svg', context)
 

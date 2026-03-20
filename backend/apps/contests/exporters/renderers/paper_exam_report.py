@@ -20,14 +20,6 @@ class PaperExamReportRenderer(BaseRenderer):
     answer comparisons, correct answers, and TA feedback.
     """
 
-    QUESTION_TYPE_LABELS = {
-        'true_false': {'zh': '是非題', 'en': 'True/False'},
-        'single_choice': {'zh': '單選題', 'en': 'Single Choice'},
-        'multiple_choice': {'zh': '多選題', 'en': 'Multiple Choice'},
-        'short_answer': {'zh': '簡答題', 'en': 'Short Answer'},
-        'essay': {'zh': '問答題', 'en': 'Essay'},
-    }
-
     OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     def __init__(self, contest, user, language='zh-TW', scale=1.0):
@@ -59,7 +51,6 @@ class PaperExamReportRenderer(BaseRenderer):
         """Render the full HTML document for PDF conversion."""
         questions = self._get_questions()
         answers_map = self._get_answers_map()
-        is_zh = self.is_chinese
 
         context = {
             'language': self.language,
@@ -73,9 +64,9 @@ class PaperExamReportRenderer(BaseRenderer):
             },
             'base_css': self._get_base_css(),
             'report_css': self._get_report_css(),
-            'score_line': self._render_score_line(questions, answers_map, is_zh),
-            'overview_table': self._render_overview_table(questions, answers_map, is_zh),
-            'question_details': self._render_questions(questions, answers_map, is_zh),
+            'score_line': self._render_score_line(questions, answers_map),
+            'overview_table': self._render_overview_table(questions, answers_map),
+            'question_details': self._render_questions(questions, answers_map),
         }
         return render_to_string('exports/paper_exam_report.html', context)
 
@@ -144,7 +135,7 @@ class PaperExamReportRenderer(BaseRenderer):
     # Score line — inline within header
     # ----------------------------------------------------------------
 
-    def _render_score_line(self, questions, answers_map, is_zh) -> str:
+    def _render_score_line(self, questions, answers_map) -> str:
         """Render score as a single line inside the report header."""
         max_score = sum(q.score for q in questions)
 
@@ -164,8 +155,8 @@ class PaperExamReportRenderer(BaseRenderer):
         correct_rate = (correct_count / graded_count * 100) if graded_count > 0 else 0
         score_display = int(total_score) if total_score == int(total_score) else f"{total_score:.1f}"
 
-        score_label = '總分' if is_zh else 'Score'
-        rate_label = '正確率' if is_zh else 'Correct rate'
+        score_label = self.get_label('total_score')
+        rate_label = self.get_label('correct_rate')
 
         return (
             f'<div class="score-line">'
@@ -175,13 +166,14 @@ class PaperExamReportRenderer(BaseRenderer):
             f'</div>'
         )
 
-    def _render_overview_table(self, questions, answers_map, is_zh) -> str:
+    def _render_overview_table(self, questions, answers_map) -> str:
         """Render a compact per-question overview table."""
-        col_q = '題號' if is_zh else 'No.'
-        col_type = '題型' if is_zh else 'Type'
-        col_status = '狀態' if is_zh else 'Status'
-        col_score = '得分' if is_zh else 'Score'
-        table_title = '逐題總覽' if is_zh else 'Question Overview'
+        col_q = self.get_label('question_no')
+        col_type = self.get_label('type_label', 'Type') # Fallback if missing
+        if col_type == 'Type': col_type = '題型' if self.is_chinese else 'Type'
+        col_status = self.get_label('status_label')
+        col_score = self.get_label('score')
+        table_title = self.get_label('question_overview')
 
         rows = []
         for idx, q in enumerate(questions, 1):
@@ -190,7 +182,7 @@ class PaperExamReportRenderer(BaseRenderer):
             is_graded = ans and ans.score is not None
             status = self._get_question_status(q, ans, has_answer, is_graded)
 
-            type_label = self._get_question_type_label(q.question_type, is_zh)
+            type_label = self.get_label(q.question_type, q.question_type)
 
             if is_graded:
                 score_val = float(ans.score)
@@ -228,21 +220,21 @@ class PaperExamReportRenderer(BaseRenderer):
     # Question rendering
     # ----------------------------------------------------------------
 
-    def _render_questions(self, questions, answers_map, is_zh) -> str:
+    def _render_questions(self, questions, answers_map) -> str:
         """Render per-question detail blocks."""
-        section_label = '逐題詳情' if is_zh else 'Question Details'
+        section_label = self.get_label('problem_details')
         parts = [f'<div class="section-title">{section_label}</div>']
 
         for idx, q in enumerate(questions, 1):
             ans = answers_map.get(q.id)
-            parts.append(self._render_single_question(idx, q, ans, is_zh))
+            parts.append(self._render_single_question(idx, q, ans))
 
         return '\n'.join(parts)
 
-    def _render_single_question(self, idx, question, answer, is_zh):
+    def _render_single_question(self, idx, question, answer):
         """Render a single question block — continuous flow, no card."""
         q_type = question.question_type
-        type_label = self._get_question_type_label(q_type, is_zh)
+        type_label = self.get_label(q_type, q_type)
         has_answer = answer and self._has_answer(answer)
         is_graded = answer and answer.score is not None
 
@@ -261,12 +253,13 @@ class PaperExamReportRenderer(BaseRenderer):
         lines = ['<div class="question-block">']
 
         # Single-line heading: Q1 單選題（3分）       ✔ 正確  3/3
+        points_label = self.get_label('points_unit')
         lines.append('<div class="question-heading">')
         lines.append(
             f'<span class="question-heading-left">'
             f'<span class="question-number">Q{idx}</span>'
             f'<span class="question-type">{type_label}</span>'
-            f'<span class="question-max-score">（{question.score}分）</span>'
+            f'<span class="question-max-score">（{question.score}{points_label}）</span>'
             f'</span>'
         )
         lines.append(
@@ -283,13 +276,13 @@ class PaperExamReportRenderer(BaseRenderer):
         lines.append(f'<div class="question-prompt">{prompt_html}</div>')
 
         if q_type in ('true_false', 'single_choice', 'multiple_choice'):
-            lines.append(self._render_choice_question(question, answer, is_zh))
+            lines.append(self._render_choice_question(question, answer))
         else:
-            lines.append(self._render_subjective_question(question, answer, is_zh))
+            lines.append(self._render_subjective_question(question, answer))
 
         # TA feedback
         if answer and answer.feedback:
-            feedback_label = 'TA 評語' if is_zh else 'TA Feedback'
+            feedback_label = self.get_label('ta_feedback')
             lines.append(
                 f'<div class="feedback-block">'
                 f'<div class="feedback-label">{feedback_label}</div>'
@@ -302,12 +295,10 @@ class PaperExamReportRenderer(BaseRenderer):
 
     def _get_question_status(self, question, answer, has_answer, is_graded):
         """Return status dict: icon, label, status_class, color."""
-        is_zh = self.is_chinese
-
         if not has_answer:
             return {
                 'icon': '⚠',
-                'label': '未作答' if is_zh else 'Unanswered',
+                'label': self.get_label('unanswered'),
                 'status_class': 'status-unanswered',
                 'color': '#8d8d8d',
             }
@@ -315,7 +306,7 @@ class PaperExamReportRenderer(BaseRenderer):
         if not is_graded:
             return {
                 'icon': '…',
-                'label': '待批改' if is_zh else 'Pending',
+                'label': self.get_label('pending'),
                 'status_class': 'status-ungraded',
                 'color': '#8d8d8d',
             }
@@ -324,26 +315,26 @@ class PaperExamReportRenderer(BaseRenderer):
         if score_val >= question.score:
             return {
                 'icon': '✔',
-                'label': '正確' if is_zh else 'Correct',
+                'label': self.get_label('correct'),
                 'status_class': 'status-correct',
                 'color': '#24a148',
             }
         elif score_val > 0:
             return {
                 'icon': '△',
-                'label': '部分正確' if is_zh else 'Partial',
+                'label': self.get_label('partial'),
                 'status_class': 'status-partial',
                 'color': '#eb6200',
             }
         else:
             return {
                 'icon': '✖',
-                'label': '錯誤' if is_zh else 'Wrong',
+                'label': self.get_label('wrong'),
                 'status_class': 'status-wrong',
                 'color': '#da1e28',
             }
 
-    def _render_choice_question(self, question, answer, is_zh):
+    def _render_choice_question(self, question, answer):
         """Render choice options + answer summary line."""
         options = question.options or []
         correct_answer = question.correct_answer
@@ -390,10 +381,10 @@ class PaperExamReportRenderer(BaseRenderer):
             # Right-aligned markers — plain text
             markers = []
             if is_selected:
-                sel_label = '你的選擇' if is_zh else 'Selected'
+                sel_label = self.get_label('your_choice')
                 markers.append(f'<span class="option-marker-text marker-selected">{sel_label}</span>')
             if is_correct:
-                cor_label = '正確' if is_zh else 'Correct'
+                cor_label = self.get_label('correct')
                 markers.append(f'<span class="option-marker-text marker-correct">{cor_label}</span>')
 
             marker_html = f'<span class="option-markers">{"".join(markers)}</span>' if markers else ''
@@ -416,20 +407,20 @@ class PaperExamReportRenderer(BaseRenderer):
         # (unanswered already shown in heading, no need to repeat)
         if has_ans or correct_letters:
             lines.append(self._render_choice_answer_summary(
-                student_letters, correct_letters, student_indices == correct_indices and has_ans, is_zh
+                student_letters, correct_letters, student_indices == correct_indices and has_ans
             ))
 
         return '\n'.join(lines)
 
-    def _render_choice_answer_summary(self, student_letters, correct_letters, is_match, is_zh):
+    def _render_choice_answer_summary(self, student_letters, correct_letters, is_match):
         """Render a compact summary: Your answer: B · Correct answer: D"""
         student_str = ', '.join(sorted(student_letters)) if student_letters else '—'
         correct_str = ', '.join(sorted(correct_letters)) if correct_letters else ''
 
         val_class = 'choice-summary-correct' if is_match else 'choice-summary-wrong'
 
-        your_label = '你的答案' if is_zh else 'Your answer'
-        correct_label = '正確答案' if is_zh else 'Correct answer'
+        your_label = self.get_label('your_answer')
+        correct_label = self.get_label('reference_answer') # or correct_answer
 
         parts = [f'<div class="choice-answer-summary">']
         parts.append(f'{your_label}: <strong class="{val_class}">{student_str}</strong>')
@@ -444,7 +435,7 @@ class PaperExamReportRenderer(BaseRenderer):
             return self.OPTION_LETTERS[idx]
         return str(idx)
 
-    def _render_subjective_question(self, question, answer, is_zh):
+    def _render_subjective_question(self, question, answer):
         """Render subjective question with answer comparison."""
         lines = ['<div class="answer-compare">']
 
@@ -455,7 +446,7 @@ class PaperExamReportRenderer(BaseRenderer):
         # Only show student answer block if they answered
         # (unanswered already shown in heading, no need to repeat)
         if student_text:
-            ans_label = '你的回答' if is_zh else 'Your Answer'
+            ans_label = self.get_label('your_answer')
             lines.append(
                 f'<div class="answer-block answer-block-student">'
                 f'<div class="answer-block-label">{ans_label}</div>'
@@ -464,7 +455,7 @@ class PaperExamReportRenderer(BaseRenderer):
             )
 
         if question.correct_answer:
-            ref_label = '參考答案' if is_zh else 'Reference Answer'
+            ref_label = self.get_label('reference_answer')
             ref_text = question.correct_answer
             ref_html = render_markdown(ref_text) if isinstance(ref_text, str) else str(ref_text)
             lines.append(
@@ -480,13 +471,6 @@ class PaperExamReportRenderer(BaseRenderer):
     # ----------------------------------------------------------------
     # Utility
     # ----------------------------------------------------------------
-
-    def _get_question_type_label(self, q_type, is_zh):
-        lang_key = 'zh' if is_zh else 'en'
-        entry = self.QUESTION_TYPE_LABELS.get(q_type)
-        if entry:
-            return entry.get(lang_key, q_type)
-        return q_type
 
     @staticmethod
     def _has_answer(answer) -> bool:
