@@ -15,7 +15,6 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import {
   archiveContest,
   deleteContest,
-  exportContestResults,
   publishContestProblemsToPractice,
   getContestAdmins,
   addContestAdmin,
@@ -397,11 +396,6 @@ const AdminContestSettingsScreen = () => {
     navigate("/contests");
   };
 
-  const handleExport = async () => {
-    if (!contestId) return;
-    await exportContestResults(contestId);
-  };
-
   useEffect(() => {
     if (!contestId) return;
     void loadAdmins();
@@ -493,7 +487,6 @@ const AdminContestSettingsScreen = () => {
           onRefreshAdmins={() => void loadAdmins()}
           onOpenAddAdmin={() => setAddModalOpen(true)}
           onRemoveAdmin={(admin) => void handleRemoveAdmin(admin)}
-          onExport={() => void handleExport()}
           onArchive={() => void handleArchive()}
           onOpenPublishToPractice={() => setPublishModalOpen(true)}
           onDelete={() => void handleDelete()}

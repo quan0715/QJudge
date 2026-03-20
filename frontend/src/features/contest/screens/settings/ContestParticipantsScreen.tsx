@@ -9,7 +9,7 @@ import {
   Popover,
   PopoverContent,
 } from "@carbon/react";
-import { Add, Filter } from "@carbon/icons-react";
+import { Add, DocumentExport, Filter } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -25,6 +25,7 @@ import {
   addContestParticipant,
   approveTakeover,
   downloadParticipantReport,
+  exportContestResults,
   removeParticipant,
   reopenExam,
   unlockParticipant,
@@ -264,6 +265,23 @@ const ContestParticipantsScreen = () => {
     }
   };
 
+  const handleExportResults = async () => {
+    if (!contestId) return;
+    const confirmed = await confirm({
+      title: t("participants.confirmExport", "確定要匯出參賽者競賽資料？"),
+      confirmLabel: t("settings.exportCSV", "匯出 CSV"),
+      cancelLabel: t("button.cancel", "取消"),
+    });
+    if (!confirmed) return;
+    try {
+      await exportContestResults(contestId);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("participants.exportFailed", "匯出失敗");
+      setNotification({ kind: "error", message });
+    }
+  };
+
   const handleDownloadReport = async () => {
     if (!contestId || !selectedUserId || !dashboard) return;
     try {
@@ -498,6 +516,18 @@ const ContestParticipantsScreen = () => {
                 </PopoverContent>
               </Popover>
             </Layer>
+            <Button
+              kind="ghost"
+              size="md"
+              data-testid="participants-toolbar-export-btn"
+              renderIcon={DocumentExport}
+              iconDescription={t("settings.exportCSV", "匯出 CSV")}
+              tooltipPosition="bottom"
+              tooltipAlignment="center"
+              onClick={() => void handleExportResults()}
+              hasIconOnly
+              className={styles.localToolbarIconButton}
+            />
             <Button
               kind="primary"
               size="md"

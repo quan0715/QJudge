@@ -32,6 +32,7 @@ from ..permissions import (
 from ..services.export_service import (
     ExportValidationError,
     build_contest_download_response,
+    build_paper_exam_results_csv_response,
     build_student_report_response,
     build_contest_results_csv_response,
     parse_scale,
@@ -1018,6 +1019,10 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only accessible by admins and teachers.
         """
         contest = self.get_object()
+
+        if contest.contest_type == 'paper_exam':
+            return build_paper_exam_results_csv_response(contest)
+
         result = ScoreboardService.calculate(
             contest,
             ScoreboardScope(viewer=request.user, mode="export"),
