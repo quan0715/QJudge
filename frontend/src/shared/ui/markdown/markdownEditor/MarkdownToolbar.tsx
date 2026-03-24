@@ -1,8 +1,6 @@
 import React from "react";
 import { IconButton, Tooltip } from "@carbon/react";
 import {
-  Undo,
-  Redo,
   TextBold,
   TextItalic,
   TextStrikethrough,
@@ -25,34 +23,30 @@ interface ToolbarAction {
 }
 
 const TOOLBAR_GROUPS: ToolbarAction[][] = [
-  // Actions
-  [
-    { id: "undo", icon: Undo, label: "復原", action: "undo" },
-    { id: "redo", icon: Redo, label: "重做", action: "redo" },
-  ],
   // Formatting
   [
     { id: "bold", icon: TextBold, label: "粗體", markdown: "**", wrapSelection: true },
     { id: "italic", icon: TextItalic, label: "斜體", markdown: "*", wrapSelection: true },
-    { id: "strike", icon: TextStrikethrough, label: "刪除線", markdown: "~~", wrapSelection: true },
     { id: "code", icon: Code, label: "行內程式碼", markdown: "`", wrapSelection: true },
+    { id: "strike", icon: TextStrikethrough, label: "刪除線", markdown: "~~", wrapSelection: true },
+    { id: "link", icon: Link, label: "插入連結", markdown: "[文字](url)" },
   ],
   // Paragraph
   [
     { id: "bullet-list", icon: ListBulleted, label: "項目符號清單", markdown: "- " },
     { id: "number-list", icon: ListNumbered, label: "編號清單", markdown: "1. " },
     { id: "quote", icon: Quotes, label: "引用", markdown: "> " },
-    { id: "code-block", icon: Code, label: "程式碼區塊", markdown: "```\n" },
   ],
-  // Attachment
+  // Attachment & code block
   [
-    { id: "link", icon: Link, label: "插入連結", markdown: "[文字](url)" },
+    { id: "code-block", icon: Code, label: "程式碼區塊", markdown: "```\n" },
     { id: "image", icon: Image, label: "插入圖片", markdown: "![描述](url)" },
   ],
 ];
 
 interface MarkdownToolbarProps {
   onAction: (action: ToolbarAction) => void;
+  disabled?: boolean;
   disableImage?: boolean;
   imageLabel?: string;
 }
@@ -63,6 +57,7 @@ interface MarkdownToolbarProps {
  */
 export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onAction,
+  disabled = false,
   disableImage = false,
   imageLabel = "插入圖片",
 }) => {
@@ -78,12 +73,12 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
             >
               <IconButton
                 kind="ghost"
-                size="sm"
+                size="md"
                 label={item.id === "image" ? imageLabel : item.label}
                 onClick={() => onAction(item)}
-                disabled={item.id === "image" ? disableImage : false}
+                disabled={disabled || (item.id === "image" ? disableImage : false)}
               >
-                <item.icon size={16} />
+                <item.icon size={20} />
               </IconButton>
             </Tooltip>
           ))}

@@ -17,18 +17,17 @@ vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
 }));
 
 vi.mock("@monaco-editor/react", () => {
-  return {
-    default: ({
-      value,
-      onChange,
-      onMount,
-      beforeMount,
-    }: {
-      value: string;
-      onChange: (value: string) => void;
-      onMount: (editor: any, monaco: any) => void;
-      beforeMount?: (monaco: any) => void;
-    }) => {
+  function MockEditor({
+    value,
+    onChange,
+    onMount,
+    beforeMount,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    onMount: (editor: any, monaco: any) => void;
+    beforeMount?: (monaco: any) => void;
+  }) {
       const valueRef = React.useRef(value || "");
       const containerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -75,9 +74,9 @@ vi.mock("@monaco-editor/react", () => {
         onMount(editor, monaco);
       }, [beforeMount, onChange, onMount]);
 
-      return <div data-testid="monaco-editor-mock" ref={containerRef} />;
-    },
-  };
+    return <div data-testid="monaco-editor-mock" ref={containerRef} />;
+  }
+  return { default: MockEditor };
 });
 
 describe("MarkdownEditor image upload integration", () => {

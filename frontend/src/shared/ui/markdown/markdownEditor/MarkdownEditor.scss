@@ -3,10 +3,14 @@
   flex-direction: column;
   background: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle-01);
+  resize: vertical;
+  overflow: hidden;
 
-  // Inline mode - fills container height
+  // Inline mode - fills parent; resize is handled by the parent wrapper
   &--inline {
     height: 100%;
+    resize: none;
+    overflow: hidden;
   }
 
   // Drag-over visual feedback on the entire editor container
@@ -32,59 +36,37 @@
     overflow: hidden;
   }
 
-  &__tabs {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    flex-direction: column;
-    width: 100%;
-  }
-
-  &__tab-list {
-    flex-shrink: 0;
-  }
-
   &__topbar {
     display: flex;
     align-items: stretch;
-    min-height: 3rem;
+    min-height: 2.5rem;
     background: var(--cds-layer-02);
     border-bottom: 1px solid var(--cds-border-subtle-01);
   }
 
+  &__tabs-nav {
+    flex: 0 0 auto;
+    width: auto !important;
+    min-width: 0;
+  }
+
   &__topbar-toolbar {
     margin-left: auto;
+    flex: 0 0 auto;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     min-height: 100%;
-    overflow: hidden;
   }
 
   &__topbar .markdown-toolbar {
     height: 100%;
-    padding: 0 var(--cds-spacing-03);
+    padding: 0 var(--cds-spacing-05);
     border-bottom: 0;
     background: transparent;
   }
 
   &__topbar .cds--tabs__nav {
     border-bottom: 0;
-  }
-
-  &__tab-panels {
-    display: none;
-  }
-
-  &__tab-panel {
-    display: none;
-  }
-
-  &__active-panel {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    background: var(--cds-layer-01);
   }
 
   &__image-input {
@@ -155,22 +137,27 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
-  padding: var(--cds-spacing-02) var(--cds-spacing-03);
+  gap: var(--cds-spacing-03);
+  padding: var(--cds-spacing-02) var(--cds-spacing-04);
   background: var(--cds-layer-02);
   border-bottom: 1px solid var(--cds-border-subtle-01);
+
+  // Remove Carbon button border in toolbar context (ghost buttons have 2px transparent border)
+  .cds--btn {
+    border: none;
+  }
 
   &__group {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-01);
+    gap: 2px;
   }
 
   &__divider {
     width: 1px;
-    height: 24px;
+    height: 1.25rem;
     background: var(--cds-border-subtle-01);
-    margin: 0 var(--cds-spacing-02);
+    margin: 0 var(--cds-spacing-03);
   }
 }
 
@@ -347,6 +334,7 @@
     padding: var(--cds-spacing-02);
     background-color: var(--cds-field);
     overflow: hidden;
+    resize: vertical;
     transition: outline 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
 
     // Focus state - Carbon style outline

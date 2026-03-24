@@ -182,17 +182,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         return;
       }
 
-      switch (action.action) {
-        case "undo":
-          editor.trigger("keyboard", "undo", null);
-          break;
-        case "redo":
-          editor.trigger("keyboard", "redo", null);
-          break;
-        default:
-          if (action.markdown) {
-            insertText(action.markdown, action.wrapSelection);
-          }
+      if (action.markdown) {
+        insertText(action.markdown, action.wrapSelection);
       }
     },
     [insertText, uploadImage]
@@ -337,9 +328,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   );
 
   const toolbarNode =
-    showToolbar && isEditTabActive ? (
+    showToolbar ? (
       <MarkdownToolbar
         onAction={handleToolbarAction}
+        disabled={supportsPreview && !isEditTabActive}
         disableImage={Boolean(uploadImage && isUploadingImage)}
         imageLabel={
           uploadImage
@@ -363,7 +355,26 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         className="markdown-editor__image-input"
         onChange={handleImageFileInputChange}
       />
-      {!supportsPreview && toolbarNode}
+      {supportsPreview ? (
+        <div className="markdown-editor__topbar">
+          <div className="markdown-editor__tabs-nav">
+            <Tabs
+              selectedIndex={selectedTab}
+              onChange={({ selectedIndex: nextIndex }) => setSelectedTab(nextIndex)}
+            >
+              <TabList aria-label="Markdown editor tabs">
+                <Tab>Edit</Tab>
+                <Tab>Preview</Tab>
+              </TabList>
+            </Tabs>
+          </div>
+          {toolbarNode && (
+            <div className="markdown-editor__topbar-toolbar">{toolbarNode}</div>
+          )}
+        </div>
+      ) : (
+        toolbarNode
+      )}
 
       {(isUploadingImage || imageUploadError) && (
         <div className="markdown-editor__status">
@@ -377,28 +388,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       )}
 
       <div className="markdown-editor__content">
-        {supportsPreview ? (
-          <Tabs
-            className="markdown-editor__tabs"
-            selectedIndex={selectedTab}
-            onChange={({ selectedIndex: nextIndex }) => setSelectedTab(nextIndex)}
-          >
-            <div className="markdown-editor__topbar">
-              <TabList aria-label="Markdown editor tabs" className="markdown-editor__tab-list">
-                <Tab>Edit</Tab>
-                <Tab>Preview</Tab>
-              </TabList>
-              {toolbarNode && (
-                <div className="markdown-editor__topbar-toolbar">{toolbarNode}</div>
-              )}
-            </div>
-            <div className="markdown-editor__active-panel">
-              {selectedTab === 0 ? editorContent : previewContent}
-            </div>
-          </Tabs>
-        ) : (
-          editorContent
-        )}
+        {supportsPreview
+          ? (selectedTab === 0 ? editorContent : previewContent)
+          : editorContent}
       </div>
     </div>
   );
