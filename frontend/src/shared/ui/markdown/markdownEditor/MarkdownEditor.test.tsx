@@ -8,6 +8,10 @@ import {
   type MarkdownImageUploadHandler,
 } from "./MarkdownImageUploadContext";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({
   useTheme: () => ({ theme: "white" }),
 }));

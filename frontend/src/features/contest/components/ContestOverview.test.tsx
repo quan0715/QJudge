@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { ContestOverview } from "./ContestOverview";
@@ -16,12 +15,6 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   downloadMyReport: (...args: unknown[]) => downloadMyReportMock(...args),
-}));
-
-vi.mock("@/shared/layout/SurfaceSection", () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <div data-testid="surface-section">{children}</div>
-  ),
 }));
 
 vi.mock("@/shared/layout/ContainerCard", () => ({
@@ -68,7 +61,6 @@ describe("ContestOverview", () => {
   it("renders sections without ContainerCard wrapper", () => {
     render(<ContestOverview contest={createContest()} maxWidth="1056px" />);
 
-    expect(screen.getByTestId("surface-section")).toBeInTheDocument();
     expect(screen.getByText("overview.contestRules")).toBeInTheDocument();
     expect(screen.getByText("report.title")).toBeInTheDocument();
     expect(screen.queryByTestId("container-card")).not.toBeInTheDocument();
