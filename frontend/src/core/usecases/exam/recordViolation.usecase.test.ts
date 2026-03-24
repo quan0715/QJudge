@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { recordViolationUseCase } from "./recordViolation.usecase";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
+import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn(),
@@ -19,7 +20,7 @@ describe("recordViolation.usecase", () => {
       auto_unlock_at: "2026-02-24T10:00:00Z",
       bypass: true,
       locked: true,
-    } as any);
+    } as ExamEventResponse);
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",
@@ -45,7 +46,7 @@ describe("recordViolation.usecase", () => {
   });
 
   it("returns default success payload when response is not object", async () => {
-    vi.mocked(recordExamEvent).mockResolvedValue(null as any);
+    vi.mocked(recordExamEvent).mockResolvedValue(null);
 
     const result = await recordViolationUseCase({
       contestId: "contest-1",

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { enterExamUseCase, requestFullscreen } from "./enterExam.usecase";
+import type { ExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   startExam: vi.fn(),
@@ -84,7 +85,7 @@ describe("enterExam.usecase", () => {
   });
 
   it("starts exam and navigates dynamically for coding non-exam mode", async () => {
-    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
+    vi.mocked(startExam).mockResolvedValue({ status: "started" });
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
@@ -101,7 +102,7 @@ describe("enterExam.usecase", () => {
   });
 
   it("starts exam and navigates dynamically for paper_exam non-exam mode", async () => {
-    vi.mocked(startExam).mockResolvedValue({ status: "started" } as any);
+    vi.mocked(startExam).mockResolvedValue({ status: "started" });
 
     const result = await enterExamUseCase({
       contestId: "contest-1",
@@ -118,7 +119,7 @@ describe("enterExam.usecase", () => {
   });
 
   it("handles unexpected startExam response", async () => {
-    vi.mocked(startExam).mockResolvedValue({ error: "cannot start" } as any);
+    vi.mocked(startExam).mockResolvedValue({ status: "", error: "cannot start" } as ExamSessionResponse);
 
     const result = await enterExamUseCase({
       contestId: "contest-1",

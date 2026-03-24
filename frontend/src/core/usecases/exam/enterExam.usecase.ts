@@ -58,14 +58,26 @@ export async function enterExamUseCase(
     return {
       success: false,
       status: "error",
-      error: (response as any)?.error || "Failed to start exam",
+      error: response?.error || "Failed to start exam",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    let message = "Failed to start exam";
+    if (typeof error === "object" && error !== null) {
+      const rec = error as Record<string, unknown>;
+      const resp = rec.response as Record<string, unknown> | undefined;
+      const data = resp?.data as Record<string, unknown> | undefined;
+      if (typeof data?.error === "string") {
+        message = data.error;
+      } else if (typeof rec.message === "string") {
+        message = rec.message;
+      }
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
     return {
       success: false,
-      status: "error",
-      error:
-        error?.response?.data?.error || error?.message || "Failed to start exam",
+      status: "error" as const,
+      error: message,
     };
   }
 }
