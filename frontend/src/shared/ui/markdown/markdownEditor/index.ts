@@ -10,3 +10,11 @@ export {
   MarkdownEditorProvider,
   useMarkdownEditor,
 } from "./MarkdownEditorContext";
+export {
+  MarkdownImageUploadProvider,
+  useMarkdownImageUpload,
+} from "./MarkdownImageUploadContext";
+export type {
+  MarkdownImageUploadHandler,
+  MarkdownImageUploadResult,
+} from "./MarkdownImageUploadContext";

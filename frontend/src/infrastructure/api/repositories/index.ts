@@ -10,6 +10,7 @@ export * from "./auth.repository";
 export * from "./announcement.repository";
 export * from "./database.repository";
 export * from "./chatbot.repository";
+export * from "./markdown.repository";
 
 // Classroom Repository (exclude announcement names that conflict with global announcement.repository)
 export {

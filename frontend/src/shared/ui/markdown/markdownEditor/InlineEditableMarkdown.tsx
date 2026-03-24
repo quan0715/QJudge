@@ -154,7 +154,6 @@ export const InlineEditableMarkdown: React.FC<InlineEditableMarkdownProps> = ({
             minHeight={minHeight}
             inline
             showToolbar
-            showPreview={false}
           />
         </div>
       )}

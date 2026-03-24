@@ -24,6 +24,10 @@ export const useTeacherProblems = (params?: UseTeacherProblemsParams) => {
       page,
       page_size: pageSize,
     }),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
   });
 
   const deleteMutation = useMutation({

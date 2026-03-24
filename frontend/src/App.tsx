@@ -40,6 +40,10 @@ import { submissionRoutes } from "@/features/submissions";
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
+import {
+  MarkdownImageUploadProvider,
+} from "@/shared/ui/markdown/markdownEditor";
+import { uploadMarkdownImage } from "@/infrastructure/api/repositories/markdown.repository";
 
 
 // Create a client
@@ -66,6 +70,16 @@ function LegacyContestAdminRedirect({ panel }: { panel?: AdminPanelParam }) {
 }
 
 function App() {
+  const markdownImageUploader = async (file: File) => {
+    const result = await uploadMarkdownImage(file);
+    return {
+      url: result.url,
+      markdown: result.markdown,
+      contentType: result.content_type,
+      size: result.size,
+    };
+  };
+
   return (
     <HelmetProvider>
       <ErrorBoundary>
@@ -74,9 +88,10 @@ function App() {
           <ToastProvider>
             <ContentLanguageProvider>
               <ThemeProvider>
-                <AuthProvider>
-                  <BrowserRouter>
-                    <ApiErrorProvider>
+                <MarkdownImageUploadProvider uploadImage={markdownImageUploader}>
+                  <AuthProvider>
+                    <BrowserRouter>
+                      <ApiErrorProvider>
                       <Routes>
                         {/* Auth Routes - shared AuthLayout for login/register/callback */}
                         <Route element={<AuthLayout />}>
@@ -173,9 +188,10 @@ function App() {
                         {/* Fallback - 404 for unmatched routes */}
                         {fallbackRoute}
                       </Routes>
-                    </ApiErrorProvider>
-                  </BrowserRouter>
-                </AuthProvider>
+                      </ApiErrorProvider>
+                    </BrowserRouter>
+                  </AuthProvider>
+                </MarkdownImageUploadProvider>
               </ThemeProvider>
             </ContentLanguageProvider>
           </ToastProvider>

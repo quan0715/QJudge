@@ -294,7 +294,6 @@ const AdminContestSettingsFormSections = ({
             value={(form.rules as string) || ""}
             onChange={(value) => onChange("rules", value)}
             minHeight="180px"
-            showPreview={false}
           />
         </FieldRow>
 

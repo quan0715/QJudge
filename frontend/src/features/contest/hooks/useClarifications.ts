@@ -13,11 +13,19 @@ import {
 } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
 
-export const useClarifications = (contestId: string) => {
+interface UseClarificationsOptions {
+  pollIntervalMs?: number | null;
+}
+
+export const useClarifications = (
+  contestId: string,
+  options?: UseClarificationsOptions,
+) => {
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const pollIntervalMs = options?.pollIntervalMs ?? null;
 
   const fetchData = useCallback(
     async (showLoading = false) => {
@@ -65,7 +73,7 @@ export const useClarifications = (contestId: string) => {
 
   useInterval(() => {
     fetchData(false);
-  }, contestId ? 30000 : null);
+  }, contestId && pollIntervalMs && pollIntervalMs > 0 ? pollIntervalMs : null);
 
   return {
     clarifications,

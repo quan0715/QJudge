@@ -106,18 +106,6 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
     void refreshAllAdminData();
   }, [autoLoad, contestId, refreshAllAdminData]);
 
-  useEffect(() => {
-    if (!autoLoad || !contestId) return;
-
-    const intervalId = window.setInterval(() => {
-      void refreshOverviewMetrics();
-    }, 30_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [autoLoad, contestId, refreshOverviewMetrics]);
-
   const value = useMemo(
     () => ({
       participants,

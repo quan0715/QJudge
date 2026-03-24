@@ -591,7 +591,6 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               onChange={(val) => setForm((p) => ({ ...p, prompt: val }))}
               placeholder={t("examEditor.promptPlaceholder", "輸入題目敘述（支援 Markdown / LaTeX）")}
               minHeight="200px"
-              showPreview={false}
               disabled={!!frozen}
             />
           </div>

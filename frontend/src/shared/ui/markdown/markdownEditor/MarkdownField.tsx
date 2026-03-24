@@ -38,7 +38,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
   onChange,
   placeholder: _placeholder,
   minHeight = "200px",
-  showPreview = false,
+  showPreview = true,
   helperText,
   disabled = false,
   invalid = false,

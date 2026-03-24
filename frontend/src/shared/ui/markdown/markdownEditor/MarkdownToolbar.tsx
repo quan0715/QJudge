@@ -12,8 +12,6 @@ import {
   Quotes,
   Link,
   Image,
-  View,
-  ViewOff,
 } from "@carbon/icons-react";
 import "./MarkdownEditor.scss";
 
@@ -23,7 +21,7 @@ interface ToolbarAction {
   label: string;
   markdown?: string;
   wrapSelection?: boolean;
-  action?: "undo" | "redo" | "togglePreview";
+  action?: "undo" | "redo";
 }
 
 const TOOLBAR_GROUPS: ToolbarAction[][] = [
@@ -55,30 +53,35 @@ const TOOLBAR_GROUPS: ToolbarAction[][] = [
 
 interface MarkdownToolbarProps {
   onAction: (action: ToolbarAction) => void;
-  showPreview: boolean;
-  onTogglePreview: () => void;
+  disableImage?: boolean;
+  imageLabel?: string;
 }
 
 /**
  * Toolbar following Carbon Text Toolbar Pattern.
- * Groups: Actions | Formatting | Paragraph | Attachment | Preview
+ * Groups: Actions | Formatting | Paragraph | Attachment
  */
 export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onAction,
-  showPreview,
-  onTogglePreview,
+  disableImage = false,
+  imageLabel = "插入圖片",
 }) => {
   return (
     <div className="markdown-toolbar">
       {TOOLBAR_GROUPS.map((group, groupIndex) => (
         <div key={groupIndex} className="markdown-toolbar__group">
           {group.map((item) => (
-            <Tooltip key={item.id} label={item.label} align="bottom">
+            <Tooltip
+              key={item.id}
+              label={item.id === "image" ? imageLabel : item.label}
+              align="bottom"
+            >
               <IconButton
                 kind="ghost"
                 size="sm"
-                label={item.label}
+                label={item.id === "image" ? imageLabel : item.label}
                 onClick={() => onAction(item)}
+                disabled={item.id === "image" ? disableImage : false}
               >
                 <item.icon size={16} />
               </IconButton>
@@ -89,20 +92,6 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
           )}
         </div>
       ))}
-      
-      {/* Preview toggle */}
-      <div className="markdown-toolbar__group markdown-toolbar__group--right">
-        <Tooltip label={showPreview ? "隱藏預覽" : "顯示預覽"} align="bottom">
-          <IconButton
-            kind={showPreview ? "primary" : "ghost"}
-            size="sm"
-            label="切換預覽"
-            onClick={onTogglePreview}
-          >
-            {showPreview ? <ViewOff size={16} /> : <View size={16} />}
-          </IconButton>
-        </Tooltip>
-      </div>
     </div>
   );
 };

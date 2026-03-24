@@ -11,6 +11,7 @@ from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsVi
 urlpatterns = [
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
     path('api/v1/auth/', include('apps.users.urls')),
+    path('api/v1/markdown/', include('apps.core.urls')),
     path('api/v1/problems/', include('apps.problems.urls')),
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
