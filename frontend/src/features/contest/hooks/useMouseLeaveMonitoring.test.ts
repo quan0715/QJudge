@@ -124,4 +124,12 @@ describe("useMouseLeaveMonitoring", () => {
     act(() => { fireMouseLeave(null); });
     expect(result.current.recoveryCountdown).toBeNull();
   });
+
+  it("isTablet=true suppresses mouse-leave trigger", () => {
+    const config = makeConfig({ isTablet: true });
+    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
+
+    act(() => { fireMouseLeave(null); });
+    expect(result.current.recoveryCountdown).toBeNull();
+  });
 });

@@ -68,19 +68,23 @@ def resolve_submission_source_modules(
     Resolve source modules for evidence jobs at submission time.
 
     Priority:
-    1) active_sources from latest exam_entered metadata (best representation of runtime enabled modules)
-    2) explicit source_module from client/event
-    3) backward-compatible fallback: screen_share
+    1) active_sources from latest exam_entered metadata for the same upload_session_id
+    2) active_sources from latest exam_entered metadata (any session)
+    3) explicit source_module from client/event
+    4) backward-compatible fallback: screen_share
     """
     explicit_module = parse_source_module(source_module)
 
     target_session_id = normalize_upload_session_id(upload_session_id)
-    inferred_modules: list[str] = []
-    entry_events = ExamEvent.objects.filter(
-        contest=participant.contest,
-        user=participant.user,
-        event_type="exam_entered",
-    ).order_by("-created_at")
+    entry_events = list(
+        ExamEvent.objects.filter(
+            contest=participant.contest,
+            user=participant.user,
+            event_type="exam_entered",
+        ).order_by("-created_at")
+    )
+
+    # Pass 1: strict session match
     for entry_event in entry_events:
         metadata = entry_event.metadata if isinstance(entry_event.metadata, dict) else {}
         event_session_id = normalize_upload_session_id(metadata.get("upload_session_id"))
@@ -88,11 +92,17 @@ def resolve_submission_source_modules(
             continue
         inferred_modules = _extract_active_sources_from_exam_entered(metadata)
         if inferred_modules:
-            break
-    if inferred_modules:
-        if explicit_module and explicit_module not in inferred_modules:
-            inferred_modules.append(explicit_module)
-        return inferred_modules
+            return inferred_modules
+
+    # Pass 2: fallback to latest entry with valid active_sources.
+    # This prevents creating fake screen_share jobs when submit path has
+    # missing/stale session_id but the active runtime source is known.
+    for entry_event in entry_events:
+        metadata = entry_event.metadata if isinstance(entry_event.metadata, dict) else {}
+        inferred_modules = _extract_active_sources_from_exam_entered(metadata)
+        if inferred_modules:
+            return inferred_modules
+
     if explicit_module:
         return [explicit_module]
     return ["screen_share"]

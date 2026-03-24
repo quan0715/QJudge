@@ -11,21 +11,6 @@ vi.mock("react-i18next", () => ({
 describe("useExamMonitoring", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    // Reset document state
-    Object.defineProperty(document, "visibilityState", {
-      value: "visible",
-      configurable: true,
-    });
-    Object.defineProperty(document, "fullscreenElement", {
-      value: document.createElement("div"), // Mock some element to simulate fullscreen
-      configurable: true,
-    });
-    Object.defineProperty(window.screen, "isExtended", {
-      value: false,
-      configurable: true,
-    });
-    delete (window as { getScreenDetails?: unknown }).getScreenDetails;
-    vi.spyOn(document, "hasFocus").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -39,74 +24,18 @@ describe("useExamMonitoring", () => {
 
     renderHook(() => useExamMonitoring({ enabled: false, onViolation }));
 
-    expect(addEventListenerSpy).not.toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    // ClipboardDetector would add copy/paste/cut listeners
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith("copy", expect.any(Function), expect.anything());
   });
 
-  it("attaches listeners when enabled", () => {
+  it("attaches clipboard listeners when enabled", () => {
     const addEventListenerSpy = vi.spyOn(document, "addEventListener");
     const onViolation = vi.fn();
 
     renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
-  });
-
-  it("calls onViolation when visibility changes to hidden", () => {
-    const onViolation = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-
-    Object.defineProperty(document, "visibilityState", { value: "hidden" });
-    document.dispatchEvent(new Event("visibilitychange"));
-
-    expect(onViolation).toHaveBeenCalledWith("tab_hidden", "exam.tabHidden");
-  });
-
-  // Fullscreen recovery countdown tests moved to useFullscreenMonitoring.test.ts
-
-  it("calls onViolation for blur event if no recent interaction", () => {
-    const onViolation = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-
-    // Simulate no interaction by advancing time
-    vi.advanceTimersByTime(1000); // 1000ms later
-    vi.spyOn(document, "hasFocus").mockReturnValue(false);
-
-    window.dispatchEvent(new Event("blur"));
-
-    vi.advanceTimersByTime(800); // FOCUS_CHECK_DELAY_MS + confirmation window
-
-    expect(onViolation).toHaveBeenCalledWith("window_blur", "exam.windowBlur");
-  });
-
-  it("does not duplicate window_blur right after tab_hidden", () => {
-    const onViolation = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-
-    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
-
-    vi.spyOn(document, "hasFocus").mockReturnValue(false);
-    window.dispatchEvent(new Event("blur"));
-    vi.advanceTimersByTime(1000);
-
-    expect(onViolation).toHaveBeenCalledWith("tab_hidden", "exam.tabHidden");
-    expect(onViolation).not.toHaveBeenCalledWith("window_blur", "exam.windowBlur");
-  });
-
-  it("ignores blur event if there was recent interaction", () => {
-    const onViolation = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-
-    // Simulate interaction
-    document.dispatchEvent(new Event("click"));
-    
-    // Blur right after interaction
-    vi.spyOn(document, "hasFocus").mockReturnValue(false);
-    window.dispatchEvent(new Event("blur"));
-
-    vi.advanceTimersByTime(50); // FOCUS_CHECK_DELAY_MS
-
-    expect(onViolation).not.toHaveBeenCalled();
+    // ClipboardDetector should attach copy listener
+    expect(addEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function));
   });
 
   it("blocks copy and notifies blocked action callback", () => {
@@ -149,120 +78,6 @@ describe("useExamMonitoring", () => {
       "exam.forbiddenContextMenu"
     );
     expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenContextMenu");
-  });
-
-  it("reports multiple displays after 2 consecutive detections (debounce)", async () => {
-    const onViolation = vi.fn();
-    const addEventListener = vi.fn();
-    const removeEventListener = vi.fn();
-
-    Object.defineProperty(window, "getScreenDetails", {
-      configurable: true,
-      value: vi.fn().mockResolvedValue({
-        screens: [{ id: 1 }, { id: 2 }],
-        addEventListener,
-        removeEventListener,
-      }),
-    });
-
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    // First poll — detection count = 1, not yet reported
-    await vi.advanceTimersByTimeAsync(0);
-    expect(onViolation).not.toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-
-    // Second poll — detection count = 2, now reported
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onViolation).toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-  });
-
-  it("reports multiple displays after 2 polls when display is extended", async () => {
-    const onViolation = vi.fn();
-    const addEventListener = vi.fn();
-    const removeEventListener = vi.fn();
-
-    Object.defineProperty(window, "getScreenDetails", {
-      configurable: true,
-      value: vi.fn().mockResolvedValue({
-        screens: [{ id: 1 }],
-        addEventListener,
-        removeEventListener,
-      }),
-    });
-    Object.defineProperty(window.screen, "isExtended", {
-      value: true,
-      configurable: true,
-    });
-
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    // First poll
-    await vi.advanceTimersByTimeAsync(0);
-    expect(onViolation).not.toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-
-    // Second poll
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onViolation).toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-  });
-
-  it("reports multiple displays after 2 polls when API unavailable but screen is extended", async () => {
-    const onViolation = vi.fn();
-    Object.defineProperty(window.screen, "isExtended", {
-      value: true,
-      configurable: true,
-    });
-
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    // First poll — API unavailable, falls back to sync isExtended check, count = 1
-    await vi.advanceTimersByTimeAsync(0);
-    expect(onViolation).not.toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-
-    // Second poll
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onViolation).toHaveBeenCalledWith(
-      "multiple_displays",
-      "exam.multipleDisplaysDetected"
-    );
-  });
-
-  it("reports display_api_degraded warning after 3 consecutive API failures", async () => {
-    const onViolation = vi.fn();
-
-    // API is "supported" but always rejects (simulates permission revoked)
-    Object.defineProperty(window, "getScreenDetails", {
-      configurable: true,
-      value: vi.fn().mockRejectedValue(new Error("Permission denied")),
-    });
-
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation }));
-    // Poll 1
-    await vi.advanceTimersByTimeAsync(0);
-    // Poll 2
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onViolation).not.toHaveBeenCalledWith(
-      "display_api_degraded",
-      expect.any(String)
-    );
-
-    // Poll 3 — threshold reached
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onViolation).toHaveBeenCalledWith(
-      "display_api_degraded",
-      "exam.displayApiDegraded"
-    );
   });
 
   // --- KeyboardShortcutDetector extended tests ---
@@ -332,16 +147,12 @@ describe("useExamMonitoring", () => {
   it("blocks window.open and calls onBlockedAction", () => {
     const onViolation = vi.fn();
     const onBlockedAction = vi.fn();
-    const originalOpen = window.open;
     renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
 
     const result = window.open("https://example.com");
 
     expect(result).toBeNull();
     expect(onBlockedAction).toHaveBeenCalledWith("exam.popupBlocked");
-
-    // Cleanup: window.open is restored by detector stop, but let's verify
-    // it won't affect other tests by unmounting (renderHook cleanup)
   });
 
   it("calls onBlockedAction on enterpictureinpicture event", () => {

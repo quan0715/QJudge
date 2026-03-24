@@ -82,10 +82,18 @@ export const usePaperExamFlow = () => {
 
   const submitExam = async (uploadSessionId?: string) => {
     const id = guardContestId();
-    const sourceModule: "screen_share" | "webcam" = resolveDeviceMonitoringPlan(
+    const monitoringPlan = resolveDeviceMonitoringPlan(
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
-    ).primarySourceModule;
+    );
+    const sourceModule: "screen_share" | "webcam" = monitoringPlan.primarySourceModule;
+    const enabledCaptureModules: Array<"screen_share" | "webcam"> = [];
+    if (monitoringPlan.runtime.enableScreenShareCapture) {
+      enabledCaptureModules.push("screen_share");
+    }
+    if (monitoringPlan.runtime.enableWebcamCapture) {
+      enabledCaptureModules.push("webcam");
+    }
     const moduleRole = "primary";
     setLoading(true);
     setError(null);
@@ -94,6 +102,10 @@ export const usePaperExamFlow = () => {
         reason: "Student submitted paper exam from answering screen",
         source: "paper_exam:submit",
         forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
+        captureOptions: {
+          eventType: "exam_submit_initiated",
+          modules: enabledCaptureModules,
+        },
         metadata: {
           upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
           module: sourceModule,

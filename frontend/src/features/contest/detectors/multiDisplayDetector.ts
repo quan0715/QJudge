@@ -30,6 +30,10 @@ export class MultiDisplayDetector implements ExamDetector {
   private consecutiveApiFailures = 0;
   private apiDegradedReported = false;
 
+  // Pipeline integration: notify when multi-display condition resolves
+  private onResolvedCallback: (() => void) | null = null;
+  private wasMultiDetected = false;
+
   constructor(t: TFunction, displayService?: DisplayCheckService) {
     this.t = t;
     this.displayService = displayService ?? new DisplayCheckService();
@@ -60,6 +64,8 @@ export class MultiDisplayDetector implements ExamDetector {
     }
     this.attachedScreenDetails = null;
     this.onViolation = null;
+    this.onResolvedCallback = null;
+    this.wasMultiDetected = false;
   }
 
   async runCheck(): Promise<CheckResult> {
@@ -75,6 +81,11 @@ export class MultiDisplayDetector implements ExamDetector {
     void this.ensureSingleDisplay();
   }
 
+  /** Register a callback invoked when multi-display condition resolves to single display. */
+  onResolved(cb: () => void): void {
+    this.onResolvedCallback = cb;
+  }
+
   // Fix 5: stable bound reference for screenschange
   private handleScreensChange = () => {
     // screenschange from the API is authoritative — check screenCount directly
@@ -84,8 +95,11 @@ export class MultiDisplayDetector implements ExamDetector {
       // Fix 1: screenCount > 1 from event is definitive, report immediately
       this.consecutiveDetections = EXAM_MONITORING_DISPLAY_CONFIRM_COUNT;
       this.reportViolation();
+    } else if (Array.isArray(screens) && screens.length <= 1) {
+      this.consecutiveDetections = 0;
+      this.checkResolved();
     } else {
-      // trigger a full check for isExtended
+      // screens is undefined/null or non-array — trigger a full check for isExtended
       void this.ensureSingleDisplay();
     }
   };
@@ -150,6 +164,7 @@ export class MultiDisplayDetector implements ExamDetector {
       this.handleDetection();
     } else {
       this.consecutiveDetections = 0;
+      this.checkResolved();
     }
 
     // Fix 4 & 5: attach screenschange event listener
@@ -180,6 +195,14 @@ export class MultiDisplayDetector implements ExamDetector {
     this.consecutiveDetections++;
     if (this.consecutiveDetections >= EXAM_MONITORING_DISPLAY_CONFIRM_COUNT) {
       this.reportViolation();
+      this.wasMultiDetected = true;
+    }
+  }
+
+  private checkResolved(): void {
+    if (this.wasMultiDetected) {
+      this.wasMultiDetected = false;
+      this.onResolvedCallback?.();
     }
   }
 }

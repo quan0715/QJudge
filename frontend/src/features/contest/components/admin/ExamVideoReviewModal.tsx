@@ -38,12 +38,6 @@ interface Props {
 type TranslateFn = TFunction<"contest">;
 type JobStatus = "pending" | "running" | "success" | "failed" | "no_data";
 
-interface SessionGroup {
-  uploadSessionId: string;
-  rows: ExamVideoDto[];
-  latestActivityAt: string;
-}
-
 const getEffectiveJobStatus = (video: ExamVideoDto): JobStatus =>
   (video.job_status || (video.has_video === false ? "pending" : "success")) as JobStatus;
 
@@ -90,6 +84,13 @@ const formatDuration = (seconds: number): string => {
 const getFpsText = (frames: number, duration: number): string => {
   if (!duration || duration <= 0) return "-";
   return `${(frames / duration).toFixed(2)} FPS`;
+};
+
+const formatDateTime = (value?: string | null): string => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
 };
 
 const ExamVideoReviewSkeleton = () => (
@@ -177,51 +178,14 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   const selectedVideoHasVideo = selectedVideo?.has_video === true;
   const tableHeaders = useMemo(
     () => [
-      t("examVideoReview.headers.student", "學生"),
       t("examVideoReview.headers.module", "來源"),
-      t("examVideoReview.headers.updatedAt", "最後更新"),
+      t("examVideoReview.headers.startedAt", "錄製開始"),
+      t("examVideoReview.headers.finishedAt", "錄製結束"),
       t("examVideoReview.headers.duration", "長度"),
       t("examVideoReview.headers.flag", "標記"),
     ],
     [t]
   );
-  const groupedSessions = useMemo<SessionGroup[]>(() => {
-    const bySession = new Map<string, ExamVideoDto[]>();
-    for (const video of videos) {
-      const key = video.upload_session_id || "default";
-      const existing = bySession.get(key);
-      if (existing) {
-        existing.push(video);
-      } else {
-        bySession.set(key, [video]);
-      }
-    }
-
-    const sessions = Array.from(bySession.entries()).map(([uploadSessionId, rows]) => {
-      const sortedRows = [...rows].sort((a, b) =>
-        String(
-          b.last_activity_at || b.job_updated_at || b.updated_at || b.created_at || ""
-        ).localeCompare(
-          String(a.last_activity_at || a.job_updated_at || a.updated_at || a.created_at || "")
-        )
-      );
-      const latestActivityAt = String(
-        sortedRows[0]?.last_activity_at ||
-          sortedRows[0]?.job_updated_at ||
-          sortedRows[0]?.updated_at ||
-          sortedRows[0]?.created_at ||
-          ""
-      );
-      return {
-        uploadSessionId,
-        rows: sortedRows,
-        latestActivityAt,
-      };
-    });
-
-    sessions.sort((a, b) => b.latestActivityAt.localeCompare(a.latestActivityAt));
-    return sessions;
-  }, [videos]);
 
   const reload = useCallback(async () => {
     if (!contestId) return;
@@ -448,59 +412,41 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {groupedSessions.flatMap((session) => {
-                        const sessionHeader = (
+                      {videos.map((video) => {
+                        const isSelected = video.id === selectedId;
+                        return (
                           <TableRow
-                            key={`session-${session.uploadSessionId}`}
-                            className={styles.sessionRow}
+                            key={video.id}
+                            className={`${styles.tableRow} ${
+                              isSelected ? styles.tableRowSelected : ""
+                            }`}
+                            aria-selected={isSelected}
+                            onClick={() => setSelectedId(video.id)}
                           >
-                            <TableCell colSpan={tableHeaders.length + 1}>
-                              {t("examVideoReview.sessionGroup", "Session {{session}}（{{count}} 個來源）", {
-                                session: session.uploadSessionId,
-                                count: session.rows.length,
-                              })}
+                            <TableCell>
+                              {video.source_module === "webcam" ? "webcam" : "screen_share"}
                             </TableCell>
+                            <TableCell>
+                              {formatDateTime(video.recording_started_at)}
+                            </TableCell>
+                            <TableCell>
+                              {formatDateTime(video.recording_finished_at)}
+                            </TableCell>
+                            <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
+                            <TableCell>
+                              {video.is_suspected ? (
+                                <Tag type="red">
+                                  {t("examVideoReview.flag.suspected", "疑似")}
+                                </Tag>
+                              ) : (
+                                <Tag type="green">
+                                  {t("examVideoReview.flag.normal", "正常")}
+                                </Tag>
+                              )}
+                            </TableCell>
+                            <TableCell>{getJobTag(video, t)}</TableCell>
                           </TableRow>
                         );
-
-                        const rows = session.rows.map((video) => {
-                          const isSelected = video.id === selectedId;
-                          return (
-                            <TableRow
-                              key={video.id}
-                              className={`${styles.tableRow} ${
-                                isSelected ? styles.tableRowSelected : ""
-                              }`}
-                              aria-selected={isSelected}
-                              onClick={() => setSelectedId(video.id)}
-                            >
-                              <TableCell>{video.participant_username}</TableCell>
-                              <TableCell>
-                                {video.source_module === "webcam" ? "webcam" : "screen_share"}
-                              </TableCell>
-                              <TableCell>
-                                {new Date(
-                                  video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
-                                ).toLocaleString()}
-                              </TableCell>
-                              <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
-                              <TableCell>
-                                {video.is_suspected ? (
-                                  <Tag type="red">
-                                    {t("examVideoReview.flag.suspected", "疑似")}
-                                  </Tag>
-                                ) : (
-                                  <Tag type="green">
-                                    {t("examVideoReview.flag.normal", "正常")}
-                                  </Tag>
-                                )}
-                              </TableCell>
-                              <TableCell>{getJobTag(video, t)}</TableCell>
-                            </TableRow>
-                          );
-                        });
-
-                        return [sessionHeader, ...rows];
                       })}
                     </TableBody>
                   </Table>
@@ -575,6 +521,18 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                         <div className={styles.metaValue}>
                           {selectedVideo.frame_count.toLocaleString()} 幀 ({getFpsText(selectedVideo.frame_count, selectedVideo.duration_seconds)})
                         </div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.recordingStart", "錄製開始")}
+                        </div>
+                        <div className={styles.metaValue}>{formatDateTime(selectedVideo.recording_started_at)}</div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.recordingEnd", "錄製結束")}
+                        </div>
+                        <div className={styles.metaValue}>{formatDateTime(selectedVideo.recording_finished_at)}</div>
                       </div>
                       <div className={styles.metaItem}>
                         <div className={styles.metaLabel}>

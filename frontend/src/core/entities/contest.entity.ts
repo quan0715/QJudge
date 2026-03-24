@@ -393,7 +393,6 @@ export type AnticheatDetectorKind =
 
 export interface ContestAnticheatSourcePolicy {
   enabled: boolean;
-  required: boolean;
   captureIntervalSeconds: number;
 }
 

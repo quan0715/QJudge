@@ -134,6 +134,10 @@ export function useScreenShareMonitoring({
             reason: "Force submit after screen share recovery timeout",
             source: "exam_mode:screen_share_recovery_timeout",
             forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
+            captureOptions: {
+              eventType: "exam_submit_initiated",
+              modules: ["screen_share"],
+            },
             metadata: {
               upload_session_id: getExamCaptureSessionId(cid) || undefined,
               module: "screen_share",

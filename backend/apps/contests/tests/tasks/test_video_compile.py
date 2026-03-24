@@ -113,6 +113,9 @@ class CompileAnticheatVideoTests(TestCase):
         self.assertEqual(job.status, EvidenceJobStatus.SUCCESS)
         self.assertEqual(job.raw_count, 3)
         self.assertIsNotNone(job.finished_at)
+        self.assertIsNotNone(job.recording_started_at)
+        self.assertIsNotNone(job.recording_finished_at)
+        self.assertLessEqual(job.recording_started_at, job.recording_finished_at)
 
         # Evidence video created
         video = ExamEvidenceVideo.objects.get(
@@ -120,6 +123,8 @@ class CompileAnticheatVideoTests(TestCase):
         )
         self.assertEqual(video.frame_count, 3)
         self.assertEqual(video.size_bytes, 12345)
+        self.assertIsNotNone(video.recording_started_at)
+        self.assertIsNotNone(video.recording_finished_at)
 
         # Raw screenshots preserved (not deleted) for later access
         mock_client.delete_objects.assert_not_called()
@@ -153,6 +158,8 @@ class CompileAnticheatVideoTests(TestCase):
         )
         self.assertEqual(job.status, EvidenceJobStatus.NO_DATA)
         self.assertIn("No raw screenshots", job.error_message)
+        self.assertIsNone(job.recording_started_at)
+        self.assertIsNone(job.recording_finished_at)
 
     # ------------------------------------------------------------------
     # FFmpeg failure → FAILED, raw keys tagged retain
@@ -185,6 +192,8 @@ class CompileAnticheatVideoTests(TestCase):
         )
         self.assertEqual(job.status, EvidenceJobStatus.FAILED)
         self.assertIn("ffmpeg crashed", job.error_message)
+        self.assertIsNotNone(job.recording_started_at)
+        self.assertIsNotNone(job.recording_finished_at)
 
         # Raw files tagged retain
         mock_tag.assert_called_once()

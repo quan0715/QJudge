@@ -103,6 +103,12 @@ export function useViewportMonitoring({
     requestForceSubmit,
     forceSubmitExtras,
   });
+  const pipelineTriggerRef = useRef(pipeline.trigger);
+  const pipelineRecoverRef = useRef(pipeline.recover);
+  useEffect(() => {
+    pipelineTriggerRef.current = pipeline.trigger;
+    pipelineRecoverRef.current = pipeline.recover;
+  }, [pipeline.trigger, pipeline.recover]);
 
   useEffect(() => {
     if (!enabled || examSubmitted) {
@@ -160,7 +166,7 @@ export function useViewportMonitoring({
       if (isTabletRef.current && inputFocused) {
         lastInputFocusedAt = Date.now();
         // If pipeline was interrupted (unlikely race), recover.
-        pipeline.recover("keyboard_input_focused", {
+        pipelineRecoverRef.current("keyboard_input_focused", {
           coverage: 1,
           aspect_delta: 0,
           scale_delta: 0,
@@ -218,15 +224,15 @@ export function useViewportMonitoring({
       };
 
       if (abnormal) {
-        pipeline.trigger(metadata);
+        pipelineTriggerRef.current(metadata);
       } else {
-        pipeline.recover("viewport_integrity_recovered", metadata);
+        pipelineRecoverRef.current("viewport_integrity_recovered", metadata);
       }
     };
 
     const onOrientationChange = () => {
       resetBaseline();
-      pipeline.recover("orientation_change", {
+      pipelineRecoverRef.current("orientation_change", {
         coverage: 1,
         aspect_delta: 0,
         scale_delta: 0,
@@ -249,7 +255,7 @@ export function useViewportMonitoring({
       window.removeEventListener("orientationchange", onOrientationChange);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [enabled, examSubmitted, pipeline]);
+  }, [enabled, examSubmitted]);
 
   return { recoveryCountdown: pipeline.recoveryCountdown };
 }

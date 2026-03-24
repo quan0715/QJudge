@@ -278,6 +278,8 @@ export interface ExamVideoDto {
   duration_seconds: number;
   frame_count: number;
   size_bytes: number;
+  recording_started_at?: string | null;
+  recording_finished_at?: string | null;
   is_suspected: boolean;
   suspected_note: string;
   suspected_by?: number | null;

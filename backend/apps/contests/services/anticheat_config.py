@@ -75,7 +75,6 @@ def normalize_anticheat_device_policy(raw_policy) -> dict:
                 raw_source = {}
             sources[source] = {
                 "enabled": _as_bool(raw_source.get("enabled"), default_source["enabled"]),
-                "required": _as_bool(raw_source.get("required"), default_source["required"]),
                 "capture_interval_seconds": _as_int(
                     raw_source.get("capture_interval_seconds"),
                     default_source["capture_interval_seconds"],

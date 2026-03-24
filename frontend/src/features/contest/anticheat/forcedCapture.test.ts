@@ -24,7 +24,7 @@ describe("forcedCapture", () => {
   });
 
   it("records event with forced-capture metadata when capture succeeds", async () => {
-    registerForcedCaptureHandler("contest-1", vi.fn().mockResolvedValue({
+    registerForcedCaptureHandler("contest-1", "screen_share", vi.fn().mockResolvedValue({
       attempted: true,
       captured: true,
       uploaded: true,
@@ -79,7 +79,7 @@ describe("forcedCapture", () => {
   });
 
   it("returns an unavailable result when the handler throws", async () => {
-    registerForcedCaptureHandler("contest-1", vi.fn().mockRejectedValue(new Error("boom")));
+    registerForcedCaptureHandler("contest-1", "screen_share", vi.fn().mockRejectedValue(new Error("boom")));
 
     const result = await forceCaptureForContest("contest-1", "tab_hidden:test");
 
@@ -91,6 +91,47 @@ describe("forcedCapture", () => {
       errorCode: "boom",
       uploadSessionId: "session-123",
       seq: null,
+      modules: ["screen_share"],
+      module_results: {
+        screen_share: {
+          attempted: false,
+          captured: false,
+          uploaded: false,
+          skipped: "capture_unavailable",
+          errorCode: "boom",
+          uploadSessionId: "session-123",
+          seq: null,
+        },
+      },
     });
+  });
+
+  it("captures requested modules explicitly", async () => {
+    const screenHandler = vi.fn().mockResolvedValue({
+      attempted: true,
+      captured: true,
+      uploaded: false,
+      uploadSessionId: "session-123",
+      seq: 1,
+    });
+    const webcamHandler = vi.fn().mockResolvedValue({
+      attempted: true,
+      captured: true,
+      uploaded: true,
+      uploadSessionId: "session-123",
+      seq: 2,
+    });
+    registerForcedCaptureHandler("contest-1", "screen_share", screenHandler);
+    registerForcedCaptureHandler("contest-1", "webcam", webcamHandler);
+
+    const result = await forceCaptureForContest("contest-1", "submit:test", {
+      modules: ["screen_share", "webcam"],
+      eventType: "exam_submit_initiated",
+    });
+
+    expect(screenHandler).toHaveBeenCalledTimes(1);
+    expect(webcamHandler).toHaveBeenCalledTimes(1);
+    expect(result.uploaded).toBe(true);
+    expect(result.modules).toEqual(["screen_share", "webcam"]);
   });
 });

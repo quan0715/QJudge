@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ExamVideoReviewModal from "./ExamVideoReviewModal";
 
@@ -18,7 +18,10 @@ const translationMap: Record<string, string> = {
   "examVideoReview.bulkCompile": "全部轉檔 ({{count}})",
   "examVideoReview.bulkCompiling": "送出中...",
   "examVideoReview.headers.student": "學生",
+  "examVideoReview.headers.module": "來源",
   "examVideoReview.headers.updatedAt": "最後更新",
+  "examVideoReview.headers.startedAt": "錄製開始",
+  "examVideoReview.headers.finishedAt": "錄製結束",
   "examVideoReview.headers.duration": "長度",
   "examVideoReview.headers.flag": "標記",
   "examVideoReview.headers.jobStatus": "轉檔狀態",
@@ -27,7 +30,7 @@ const translationMap: Record<string, string> = {
   "examVideoReview.status.failed": "轉檔失敗",
   "examVideoReview.status.noData": "無畫面",
   "examVideoReview.status.ready": "可播放",
-  "examVideoReview.sessionGroup": "Session {{session}}（{{count}} 個來源）",
+  "examVideoReview.sessionGroup": "作答場次 {{index}}（{{count}} 個來源）",
   "examVideoReview.flag.suspected": "疑似",
   "examVideoReview.flag.normal": "正常",
   "examVideoReview.preview.failed": "影片轉檔失敗，請稍後重試或查看錯誤訊息。",
@@ -38,6 +41,8 @@ const translationMap: Record<string, string> = {
   "examVideoReview.fields.fileSize": "檔案大小",
   "examVideoReview.fields.duration": "影片長度",
   "examVideoReview.fields.frameCount": "幀數",
+  "examVideoReview.fields.recordingStart": "錄製開始",
+  "examVideoReview.fields.recordingEnd": "錄製結束",
   "examVideoReview.fields.jobStatus": "轉檔狀態",
   "examVideoReview.suspicion.suspected": "疑似作弊",
   "examVideoReview.suspicion.normal": "正常",
@@ -102,6 +107,8 @@ const buildVideo = (
   duration_seconds: 120,
   frame_count: 360,
   size_bytes: 1024,
+  recording_started_at: "2026-03-09T09:58:00Z",
+  recording_finished_at: "2026-03-09T10:00:00Z",
   is_suspected: false,
   suspected_note: "",
   created_at: "2026-03-09T10:00:00Z",
@@ -137,6 +144,8 @@ describe("ExamVideoReviewModal", () => {
     render(<ExamVideoReviewModal contestId="contest-1" open />);
 
     await screen.findByText("影片清單");
+    expect(screen.queryByRole("columnheader", { name: "學生" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/作答場次/)).not.toBeInTheDocument();
     expect(screen.getAllByText("可播放").length).toBeGreaterThan(0);
     expect(screen.getAllByText("待轉檔").length).toBeGreaterThan(0);
     expect(screen.getAllByText("轉檔中").length).toBeGreaterThan(0);
@@ -153,8 +162,9 @@ describe("ExamVideoReviewModal", () => {
 
     render(<ExamVideoReviewModal contestId="contest-1" open />);
 
-    await screen.findByText("pending-user");
-    fireEvent.click(screen.getByText("pending-user"));
+    await screen.findByText("影片清單");
+    const rows = within(screen.getByRole("table")).getAllByRole("row");
+    fireEvent.click(rows[2]);
 
     await waitFor(() => {
       expect(

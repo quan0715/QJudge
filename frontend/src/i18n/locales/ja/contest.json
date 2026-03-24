@@ -121,6 +121,26 @@
   "precheck": {
     "title": "事前チェック",
     "description": "試験前に環境チェックを完了してください。未合格の場合、受験できません。",
+    "entryDevice": {
+      "title": "入場情報",
+      "summary": "入場方法: {{device}} ({{mode}})",
+      "monitoring": "モニタリング",
+      "sources": "モニタリングソース: {{sources}}",
+      "kind": {
+        "desktop": "デスクトップ / ノート PC",
+        "tablet": "タブレット",
+        "ipad": "タブレット (iPad)"
+      },
+      "mode": {
+        "pwa": "PWA モード",
+        "browser": "ブラウザタブモード"
+      },
+      "source": {
+        "screenShare": "画面共有",
+        "webcam": "ウェブカメラ",
+        "none": "モニタリングソースなし"
+      }
+    },
     "backToDashboard": "ダッシュボードに戻る",
     "steps": {
       "eligibility": "資格確認",
@@ -159,7 +179,8 @@
         "checking": "チェック中...",
         "start": "テスト開始",
         "retry": "再テスト",
-        "next": "次へ：開始確認"
+        "next": "次へ：開始確認",
+        "monitorCount": "{{count}} 個のモニター"
       },
       "errors": {
         "browserNotSupported": "お使いのブラウザはディスプレイ管理に対応していません。Chrome または Edge を使用してください。",
@@ -177,10 +198,13 @@
     },
     "instruction": {
       "title": "受験ルール",
-      "noSwitch": "ウィンドウ切替禁止。離脱行為はすべて記録されます。",
-      "keepFullscreen": "全画面を維持してください。解除時は警告が出ます。",
-      "autoSave": "解答内容は 2 秒ごとに自動保存されます。",
-      "autoSubmit": "試験時間が終了すると、システムが自動的に提出します。",
+      "noSwitch": "タブ切替・ウィンドウ フォーカス喪失・マウスのウィンドウ外移動はすべて<b>違反</b>としてリアルタイムで記録されます。",
+      "keepFullscreen": "<b>常に全画面を維持</b>してください。解除するとカウントダウン警告が表示され、違反として記録されます。",
+      "keepPwaMode": "iPad では<b>ホーム画面から起動した PWA</b> で受験してください。離れると違反になります。",
+      "monitoringActive": "画面共有またはカメラが中断すると<b>カウントダウン警告</b>が開始され、復旧しない場合は<b>自動提出</b>されます。",
+      "blockedActions": "コピー・貼り付け・右クリック メニュー・一部のショートカット（新しいタブ、再読み込みなど）は<b>無効化</b>されています。",
+      "autoSave": "解答内容は<b>リアルタイムで自動保存</b>されます。手動保存は不要です。",
+      "autoSubmit": "試験時間終了後、システムが<b>自動的に提出</b>します。",
       "deadline": "終了時刻：{{time}}",
       "confirmStart": "理解しました。試験を開始します"
     },

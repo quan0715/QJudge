@@ -121,6 +121,26 @@
   "precheck": {
     "title": "사전 체크",
     "description": "시험 전 환경 체크를 완료해 주세요. 통과하지 못하면 응시가 제한됩니다.",
+    "entryDevice": {
+      "title": "입장 정보",
+      "summary": "입장 방식: {{device}} ({{mode}})",
+      "monitoring": "모니터링",
+      "sources": "모니터링 소스: {{sources}}",
+      "kind": {
+        "desktop": "데스크톱 / 노트북",
+        "tablet": "태블릿",
+        "ipad": "태블릿 (iPad)"
+      },
+      "mode": {
+        "pwa": "PWA 모드",
+        "browser": "브라우저 탭 모드"
+      },
+      "source": {
+        "screenShare": "화면 공유",
+        "webcam": "웹캠",
+        "none": "모니터링 소스 미사용"
+      }
+    },
     "backToDashboard": "대시보드로 돌아가기",
     "steps": {
       "eligibility": "자격 확인",
@@ -159,7 +179,8 @@
         "checking": "체크 중...",
         "start": "테스트 시작",
         "retry": "재테스트",
-        "next": "다음: 시작 확인"
+        "next": "다음: 시작 확인",
+        "monitorCount": "{{count}}개의 모니터"
       },
       "errors": {
         "browserNotSupported": "사용 중인 브라우저가 디스플레이 관리를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.",
@@ -177,10 +198,13 @@
     },
     "instruction": {
       "title": "응시 규정",
-      "noSwitch": "창 전환 금지. 모든 이탈 행위는 기록됩니다.",
-      "keepFullscreen": "전체 화면을 유지하세요. 해제 시 경고가 발생합니다.",
-      "autoSave": "답안은 2초마다 자동으로 저장됩니다.",
-      "autoSubmit": "시험 시간이 종료되면 시스템에서 자동으로 제출합니다.",
+      "noSwitch": "탭 전환, 창 포커스 이탈, 마우스 창 밖 이동은 모두 <b>위반</b>으로 실시간 기록됩니다.",
+      "keepFullscreen": "<b>항상 전체 화면을 유지</b>하세요. 해제 시 카운트다운 경고가 표시되며 위반으로 기록됩니다.",
+      "keepPwaMode": "iPad에서는 <b>홈 화면에서 실행한 PWA</b>로 응시하세요. 이탈 시 위반으로 기록됩니다.",
+      "monitoringActive": "화면 공유 또는 카메라가 중단되면 <b>카운트다운 경고</b>가 시작되며, 복구하지 않으면 <b>자동 제출</b>됩니다.",
+      "blockedActions": "복사, 붙여넣기, 우클릭 메뉴, 일부 단축키(예: 새 탭, 새로고침)가 <b>비활성화</b>되어 있습니다.",
+      "autoSave": "답안은 <b>실시간으로 자동 저장</b>됩니다. 수동 저장은 필요 없습니다.",
+      "autoSubmit": "시험 시간 종료 후 <b>자동으로 제출</b>됩니다.",
       "deadline": "시험 종료 시각: {{time}}",
       "confirmStart": "이해했습니다. 시험을 시작합니다"
     },

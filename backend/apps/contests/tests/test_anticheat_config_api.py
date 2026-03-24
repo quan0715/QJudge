@@ -70,6 +70,10 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("screen_share", device_policy["desktop"]["sources"])
         self.assertIn("detectors", device_policy["tablet"])
         self.assertIn("viewport_integrity", device_policy["tablet"]["detectors"])
+        self.assertNotIn("required", device_policy["desktop"]["sources"]["screen_share"])
+        self.assertNotIn("required", device_policy["desktop"]["sources"]["webcam"])
+        self.assertNotIn("required", device_policy["tablet"]["sources"]["screen_share"])
+        self.assertNotIn("required", device_policy["tablet"]["sources"]["webcam"])
 
         global_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["global"]}
         contest_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["contest"]}
@@ -84,3 +88,67 @@ class ContestAntiCheatConfigApiTests(APITestCase):
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_legacy_required_field_is_ignored_in_response(self):
+        self.contest.anticheat_device_policy = {
+            "desktop": {
+                "enabled": True,
+                "sources": {
+                    "screen_share": {
+                        "enabled": True,
+                        "required": True,
+                        "capture_interval_seconds": 5,
+                    },
+                    "webcam": {
+                        "enabled": False,
+                        "required": False,
+                        "capture_interval_seconds": 10,
+                    },
+                },
+                "detectors": {
+                    "pwa_mode": False,
+                    "fullscreen": True,
+                    "focus": True,
+                    "tab_visibility": True,
+                    "multi_display": True,
+                    "mouse_leave": True,
+                    "viewport_integrity": False,
+                },
+            },
+            "tablet": {
+                "enabled": True,
+                "sources": {
+                    "screen_share": {
+                        "enabled": False,
+                        "required": False,
+                        "capture_interval_seconds": 5,
+                    },
+                    "webcam": {
+                        "enabled": True,
+                        "required": True,
+                        "capture_interval_seconds": 10,
+                    },
+                },
+                "detectors": {
+                    "pwa_mode": True,
+                    "fullscreen": False,
+                    "focus": True,
+                    "tab_visibility": True,
+                    "multi_display": False,
+                    "mouse_leave": True,
+                    "viewport_integrity": True,
+                },
+            },
+        }
+        self.contest.save(update_fields=["anticheat_device_policy"])
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        desktop_sources = resp.data["device_policy"]["desktop"]["sources"]
+        tablet_sources = resp.data["device_policy"]["tablet"]["sources"]
+        self.assertNotIn("required", desktop_sources["screen_share"])
+        self.assertNotIn("required", desktop_sources["webcam"])
+        self.assertNotIn("required", tablet_sources["screen_share"])
+        self.assertNotIn("required", tablet_sources["webcam"])

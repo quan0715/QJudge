@@ -15,6 +15,10 @@ import {
   setRuntimeWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
 import {
+  registerForcedCaptureHandler,
+  unregisterForcedCaptureHandler,
+} from "@/features/contest/anticheat/forcedCapture";
+import {
   requestUserMediaVideo,
   supportsUserMediaApi,
 } from "@/features/contest/anticheat/mediaApi";
@@ -276,6 +280,14 @@ export const useAnticheatWebcamCapture = ({
     clearPrecheckWebcamHandoff(true);
     clearRuntimeWebcamHandoff(true);
   }, [stopStream]);
+
+  useEffect(() => {
+    if (!contestId) return;
+    registerForcedCaptureHandler(contestId, "webcam", forceCaptureNow);
+    return () => {
+      unregisterForcedCaptureHandler(contestId, "webcam", forceCaptureNow);
+    };
+  }, [contestId, forceCaptureNow]);
 
   useEffect(() => {
     if (!enabled) {

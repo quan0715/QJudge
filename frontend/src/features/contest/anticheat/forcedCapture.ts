@@ -11,8 +11,21 @@ export type ForcedCaptureSkipReason =
   | "stream_unavailable"
   | "capture_unavailable";
 
+export type ForcedCaptureModule = "screen_share" | "webcam";
+
 export interface ForcedCaptureOptions {
   allowStreamRecovery?: boolean;
+  modules?: ForcedCaptureModule[];
+}
+
+export interface ForcedCaptureModuleResult {
+  attempted: boolean;
+  captured: boolean;
+  uploaded: boolean;
+  skipped?: ForcedCaptureSkipReason;
+  errorCode?: string;
+  uploadSessionId: string | null;
+  seq: number | null;
 }
 
 export interface ForcedCaptureResult {
@@ -23,6 +36,8 @@ export interface ForcedCaptureResult {
   errorCode?: string;
   uploadSessionId: string | null;
   seq: number | null;
+  modules?: ForcedCaptureModule[];
+  module_results?: Partial<Record<ForcedCaptureModule, ForcedCaptureModuleResult>>;
 }
 
 export interface RecordExamEventWithCaptureOptions extends RecordExamEventOptions {
@@ -35,7 +50,8 @@ export type ForceCaptureHandler = (
   options?: ForcedCaptureOptions & { eventType?: string }
 ) => Promise<ForcedCaptureResult>;
 
-const captureHandlers = new Map<string, ForceCaptureHandler>();
+const CAPTURE_MODULES: ForcedCaptureModule[] = ["screen_share", "webcam"];
+const captureHandlers = new Map<string, Map<ForcedCaptureModule, ForceCaptureHandler>>();
 
 const unavailableCaptureResult = (
   contestId: string,
@@ -60,25 +76,54 @@ const toForcedCaptureResultLabel = (result: ForcedCaptureResult): string => {
 
 export const registerForcedCaptureHandler = (
   contestId: string,
+  module: ForcedCaptureModule,
   handler: ForceCaptureHandler
 ) => {
   if (!contestId) return;
-  captureHandlers.set(contestId, handler);
+  const moduleHandlers = captureHandlers.get(contestId) ?? new Map<ForcedCaptureModule, ForceCaptureHandler>();
+  moduleHandlers.set(module, handler);
+  captureHandlers.set(contestId, moduleHandlers);
 };
 
 export const unregisterForcedCaptureHandler = (
   contestId: string,
+  module?: ForcedCaptureModule,
   handler?: ForceCaptureHandler
 ) => {
   if (!contestId) return;
-  if (!handler) {
+  if (!module) {
     captureHandlers.delete(contestId);
     return;
   }
-  const current = captureHandlers.get(contestId);
-  if (current === handler) {
+  const moduleHandlers = captureHandlers.get(contestId);
+  if (!moduleHandlers) return;
+  const current = moduleHandlers.get(module);
+  if (!handler || current === handler) {
+    moduleHandlers.delete(module);
+  }
+  if (moduleHandlers.size === 0) {
     captureHandlers.delete(contestId);
   }
+};
+
+const toModuleResult = (result: ForcedCaptureResult): ForcedCaptureModuleResult => ({
+  attempted: result.attempted,
+  captured: result.captured,
+  uploaded: result.uploaded,
+  skipped: result.skipped,
+  errorCode: result.errorCode,
+  uploadSessionId: result.uploadSessionId,
+  seq: result.seq,
+});
+
+const pickPrimaryResult = (results: ForcedCaptureModuleResult[]): ForcedCaptureModuleResult => {
+  const uploaded = results.find((item) => item.uploaded);
+  if (uploaded) return uploaded;
+  const captured = results.find((item) => item.captured);
+  if (captured) return captured;
+  const attempted = results.find((item) => item.attempted);
+  if (attempted) return attempted;
+  return results[0];
 };
 
 export const forceCaptureForContest = async (
@@ -86,19 +131,60 @@ export const forceCaptureForContest = async (
   reason: string,
   options?: ForcedCaptureOptions & { eventType?: string }
 ): Promise<ForcedCaptureResult> => {
-  const handler = captureHandlers.get(contestId);
-  if (!handler) {
+  const moduleHandlers = captureHandlers.get(contestId);
+  if (!moduleHandlers || moduleHandlers.size === 0) {
     return unavailableCaptureResult(contestId);
   }
 
-  try {
-    return await handler(reason, options);
-  } catch (error) {
-    return unavailableCaptureResult(
-      contestId,
-      error instanceof Error && error.message ? error.message : "capture_runtime_error"
-    );
+  const requestedModules =
+    options?.modules?.filter((module): module is ForcedCaptureModule =>
+      CAPTURE_MODULES.includes(module)
+    ) ?? [];
+  const targetModules =
+    requestedModules.length > 0
+      ? requestedModules.filter((module) => moduleHandlers.has(module))
+      : (() => {
+          const preferred = CAPTURE_MODULES.find((module) => moduleHandlers.has(module));
+          return preferred ? [preferred] : [];
+        })();
+
+  if (targetModules.length === 0) {
+    return unavailableCaptureResult(contestId);
   }
+
+  const moduleResults: Partial<Record<ForcedCaptureModule, ForcedCaptureModuleResult>> = {};
+  const settled = await Promise.all(
+    targetModules.map(async (module) => {
+      const handler = moduleHandlers.get(module);
+      if (!handler) return;
+      try {
+        const result = await handler(reason, options);
+        moduleResults[module] = toModuleResult(result);
+      } catch (error) {
+        moduleResults[module] = toModuleResult(
+          unavailableCaptureResult(
+            contestId,
+            error instanceof Error && error.message ? error.message : "capture_runtime_error"
+          )
+        );
+      }
+    })
+  );
+  void settled;
+
+  const nonEmptyResults = targetModules
+    .map((module) => moduleResults[module])
+    .filter((item): item is ForcedCaptureModuleResult => !!item);
+  if (nonEmptyResults.length === 0) {
+    return unavailableCaptureResult(contestId);
+  }
+
+  const primary = pickPrimaryResult(nonEmptyResults);
+  return {
+    ...primary,
+    modules: targetModules,
+    module_results: moduleResults,
+  };
 };
 
 export const buildForcedCaptureMetadata = (
@@ -115,6 +201,8 @@ export const buildForcedCaptureMetadata = (
   ...(result.skipped ? { forced_capture_skipped: result.skipped } : {}),
   ...(result.errorCode ? { forced_capture_error_code: result.errorCode } : {}),
   ...(typeof result.seq === "number" ? { forced_capture_seq: result.seq } : {}),
+  ...(result.modules?.length ? { forced_capture_modules: result.modules } : {}),
+  ...(result.module_results ? { forced_capture_module_results: result.module_results } : {}),
   upload_session_id:
     result.uploadSessionId || getExamCaptureSessionId(contestId) || undefined,
 });

@@ -253,6 +253,75 @@ describe("useViolationPipeline", () => {
     expect(result.current.recoveryCountdown).toBeNull();
   });
 
+  it("pipeline can retrigger after penalized_event escalation", () => {
+    const onViolation = vi.fn();
+    const config = makeConfig({ route: mouseLeaveRoute, onViolation });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    // First trigger → escalation
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(onViolation).toHaveBeenCalledTimes(1);
+    expect(result.current.isInterrupted).toBe(false);
+
+    // Second trigger should work (not be blocked by stale interruptedRef)
+    mockRecordExamEvent.mockClear();
+    act(() => { result.current.trigger(); });
+    expect(result.current.isInterrupted).toBe(true);
+    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "mouse_leave_triggered",
+      expect.objectContaining({ source: "anticheat:mouse_leave" }),
+    );
+
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(onViolation).toHaveBeenCalledTimes(2);
+  });
+
+  it("pipeline can retrigger after log_only escalation", () => {
+    const config = makeConfig({
+      route: webcamRoute,
+      escalationOverride: "log_only" as const,
+    });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    // First trigger → escalation
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(10000); });
+    expect(result.current.isInterrupted).toBe(false);
+
+    // Second trigger should work
+    mockRecordExamEvent.mockClear();
+    act(() => { result.current.trigger(); });
+    expect(result.current.isInterrupted).toBe(true);
+    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "webcam_interrupted",
+      expect.objectContaining({ source: "anticheat:webcam_capture" }),
+    );
+  });
+
+  it("pipeline can retrigger after force_submit escalation", () => {
+    const config = makeConfig();
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    // First trigger → force_submit escalation
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(config.requestForceSubmit).toHaveBeenCalledTimes(1);
+    expect(result.current.isInterrupted).toBe(false);
+
+    // Simulate onFinally callback to clear isSubmittingRef
+    const forceSubmitCall = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    act(() => { forceSubmitCall.onFinally(); });
+
+    // Second trigger should work
+    mockRecordExamEvent.mockClear();
+    act(() => { result.current.trigger(); });
+    expect(result.current.isInterrupted).toBe(true);
+    expect(result.current.recoveryCountdown).toBe(3);
+  });
+
   it("externalCountdown=true skips local timer but records events", () => {
     const config = makeConfig({ externalCountdown: true });
     const { result } = renderHook(() => useViolationPipeline(config));

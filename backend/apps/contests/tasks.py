@@ -13,7 +13,7 @@ from celery import shared_task
 from django.core.cache import cache
 from django.utils import timezone
 from django.db import transaction
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, timezone as dt_timezone
 from django.conf import settings
 from .models import (
     Contest,
@@ -432,6 +432,22 @@ def _extract_ts_from_key(key: str) -> int:
     return int(match.group(1))
 
 
+def _extract_recording_bounds(raw_keys: list[str]) -> tuple[dt | None, dt | None]:
+    timestamps_ms: list[int] = []
+    for key in raw_keys:
+        ts_ms = _extract_ts_from_key(key)
+        if ts_ms > 0:
+            timestamps_ms.append(ts_ms)
+    if not timestamps_ms:
+        return (None, None)
+    start_ms = min(timestamps_ms)
+    end_ms = max(timestamps_ms)
+    return (
+        dt.fromtimestamp(start_ms / 1000, tz=dt_timezone.utc),
+        dt.fromtimestamp(end_ms / 1000, tz=dt_timezone.utc),
+    )
+
+
 def _detect_image_ext(file_path: str) -> str:
     """
     Detect image type by magic bytes.
@@ -589,8 +605,19 @@ def compile_anticheat_video(
                 )
             job.status = EvidenceJobStatus.NO_DATA
             job.error_message = "No raw screenshots found"
+            job.recording_started_at = None
+            job.recording_finished_at = None
             job.finished_at = timezone.now()
-            job.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+            job.save(
+                update_fields=[
+                    "status",
+                    "error_message",
+                    "recording_started_at",
+                    "recording_finished_at",
+                    "finished_at",
+                    "updated_at",
+                ]
+            )
             return "No raw screenshots found"
 
         job.status = EvidenceJobStatus.RUNNING
@@ -599,8 +626,18 @@ def compile_anticheat_video(
         job.finished_at = None
         job.save(update_fields=["status", "started_at", "error_message", "finished_at", "updated_at"])
 
+        recording_started_at, recording_finished_at = _extract_recording_bounds(raw_keys)
         job.raw_count = len(raw_keys)
-        job.save(update_fields=["raw_count", "updated_at"])
+        job.recording_started_at = recording_started_at
+        job.recording_finished_at = recording_finished_at
+        job.save(
+            update_fields=[
+                "raw_count",
+                "recording_started_at",
+                "recording_finished_at",
+                "updated_at",
+            ]
+        )
 
         frame_paths: list[str] = []
         for index, key in enumerate(raw_keys, start=1):
@@ -648,6 +685,9 @@ def compile_anticheat_video(
             ExtraArgs={"ContentType": "video/mp4"},
         )
         size_bytes = os.path.getsize(output_path)
+        # Video is compiled at 1 FPS (-framerate 1), so actual playback
+        # duration equals the frame count, NOT wall-clock elapsed time.
+        duration_seconds = max(1, len(raw_keys))
 
         ExamEvidenceVideo.objects.update_or_create(
             contest=contest,
@@ -658,8 +698,10 @@ def compile_anticheat_video(
                 "bucket": video_bucket,
                 "object_key": video_key,
                 "frame_count": len(raw_keys),
-                "duration_seconds": len(raw_keys),
+                "duration_seconds": duration_seconds,
                 "size_bytes": size_bytes,
+                "recording_started_at": recording_started_at,
+                "recording_finished_at": recording_finished_at,
             },
         )
 

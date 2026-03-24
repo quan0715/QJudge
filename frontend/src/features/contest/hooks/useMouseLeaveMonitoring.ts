@@ -15,6 +15,7 @@ const IME_COMPOSITION_GUARD_MS = 900;
 export interface UseMouseLeaveMonitoringConfig {
   contestId: string;
   enabled: boolean;
+  isTablet?: boolean;
   examSubmitted: boolean;
   recoveryGraceMs?: number;
   cooldownMs?: number;
@@ -31,16 +32,18 @@ const mouseLeaveRoute = VIOLATION_ROUTES_MAP["mouse_leave"];
 export function useMouseLeaveMonitoring({
   contestId,
   enabled,
+  isTablet = false,
   examSubmitted,
   recoveryGraceMs,
   cooldownMs = 3000,
   onViolation,
   requestForceSubmit,
 }: UseMouseLeaveMonitoringConfig): UseMouseLeaveMonitoringReturn {
+  const effectiveEnabled = enabled && !isTablet;
   const pipeline = useViolationPipeline({
     route: mouseLeaveRoute,
     contestId,
-    enabled,
+    enabled: effectiveEnabled,
     examSubmitted,
     recoveryGraceMs,
     moduleRole: "primary",
@@ -53,7 +56,7 @@ export function useMouseLeaveMonitoring({
   const lastTriggerAtRef = useRef(0);
 
   useEffect(() => {
-    if (!enabled || examSubmitted) return;
+    if (!effectiveEnabled || examSubmitted) return;
 
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.relatedTarget !== null) return;
@@ -92,7 +95,7 @@ export function useMouseLeaveMonitoring({
       document.removeEventListener("compositionstart", handleCompositionStart, true);
       document.removeEventListener("compositionend", handleCompositionEnd, true);
     };
-  }, [enabled, examSubmitted, pipeline, cooldownMs]);
+  }, [effectiveEnabled, examSubmitted, pipeline, cooldownMs]);
 
   return { recoveryCountdown: pipeline.recoveryCountdown };
 }

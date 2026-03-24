@@ -20,12 +20,10 @@ def default_anticheat_device_policy():
             "sources": {
                 "screen_share": {
                     "enabled": True,
-                    "required": True,
                     "capture_interval_seconds": 5,
                 },
                 "webcam": {
                     "enabled": False,
-                    "required": False,
                     "capture_interval_seconds": 10,
                 },
             },
@@ -44,12 +42,10 @@ def default_anticheat_device_policy():
             "sources": {
                 "screen_share": {
                     "enabled": False,
-                    "required": False,
                     "capture_interval_seconds": 5,
                 },
                 "webcam": {
                     "enabled": True,
-                    "required": True,
                     "capture_interval_seconds": 10,
                 },
             },
@@ -578,6 +574,13 @@ class ExamEvent(models.Model):
         ('listener_tampered', 'Listener Tampered'),
         ('exit_fullscreen_triggered', 'Exit Fullscreen Triggered'),
         ('mouse_leave_triggered', 'Mouse Leave Triggered'),
+        ('tab_hidden_triggered', 'Tab Hidden Triggered'),
+        ('tab_hidden_restored', 'Tab Hidden Restored'),
+        ('window_blur_triggered', 'Window Blur Triggered'),
+        ('window_blur_restored', 'Window Blur Restored'),
+        ('multi_display_triggered', 'Multi Display Triggered'),
+        ('multi_display_restored', 'Multi Display Restored'),
+        ('display_api_degraded', 'Display API Degraded'),
     ]
     event_type = models.CharField(
         max_length=50,
@@ -745,6 +748,8 @@ class ExamEvidenceJob(models.Model):
         default=EvidenceJobStatus.PENDING,
     )
     raw_count = models.PositiveIntegerField(default=0)
+    recording_started_at = models.DateTimeField(null=True, blank=True)
+    recording_finished_at = models.DateTimeField(null=True, blank=True)
     video_bucket = models.CharField(max_length=128, default="", blank=True)
     video_key = models.CharField(max_length=512, default="", blank=True)
     error_message = models.TextField(default="", blank=True)
@@ -795,6 +800,8 @@ class ExamEvidenceVideo(models.Model):
     duration_seconds = models.PositiveIntegerField(default=0)
     frame_count = models.PositiveIntegerField(default=0)
     size_bytes = models.BigIntegerField(default=0)
+    recording_started_at = models.DateTimeField(null=True, blank=True)
+    recording_finished_at = models.DateTimeField(null=True, blank=True)
     is_suspected = models.BooleanField(default=False)
     suspected_note = models.TextField(default="", blank=True)
     suspected_by = models.ForeignKey(

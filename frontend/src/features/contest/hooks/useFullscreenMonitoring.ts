@@ -48,6 +48,9 @@ export function useFullscreenMonitoring({
     onViolation,
   });
 
+  const pipelineRef = useRef(pipeline);
+  useEffect(() => { pipelineRef.current = pipeline; }, [pipeline]);
+
   const lastVerifyResponseRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -64,9 +67,9 @@ export function useFullscreenMonitoring({
       // Wait for browser to settle fullscreen state
       setTimeout(() => {
         if (isFullscreen()) {
-          pipeline.recover("fullscreen_restored");
+          pipelineRef.current.recover("fullscreen_restored");
         } else {
-          pipeline.trigger();
+          pipelineRef.current.trigger();
         }
       }, FULLSCREEN_SETTLEMENT_MS);
     };
@@ -94,7 +97,7 @@ export function useFullscreenMonitoring({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       clearInterval(verifyTimer);
     };
-  }, [enabled, examSubmitted, pipeline, onViolation]);
+  }, [enabled, examSubmitted, onViolation]);
 
   return { recoveryCountdown: pipeline.recoveryCountdown };
 }

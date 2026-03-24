@@ -72,8 +72,9 @@
     "title": "考前環境與資格檢查",
     "description": "進入考場前請先完成環境檢測。未通過檢測者將無法作答。",
     "entryDevice": {
-      "title": "進場裝置",
+      "title": "進場資訊",
       "summary": "進入方式：{{device}} ({{mode}})",
+      "monitoring": "監考來源",
       "sources": "監考來源：{{sources}}",
       "kind": {
         "desktop": "桌機 / 筆電",
@@ -128,7 +129,8 @@
         "checking": "檢測中...",
         "start": "開始環境測試",
         "retry": "重新測試",
-        "next": "下一步：確認開始"
+        "next": "下一步：確認開始",
+        "monitorCount": "{{count}} 個螢幕"
       },
       "errors": {
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
@@ -146,10 +148,13 @@
     },
     "instruction": {
       "title": "作答規範",
-      "noSwitch": "禁止切換視窗或分頁，違規行為將被全程記錄。",
-      "keepFullscreen": "請維持全螢幕模式，離開將觸發警告。",
-      "autoSave": "作答內容每 2 秒會自動儲存。",
-      "autoSubmit": "考試結束後，系統將自動提交您的作答。",
+      "noSwitch": "切換分頁、視窗失焦或滑鼠移出視窗皆視為<b>違規</b>，系統即時記錄並計入違規次數。",
+      "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕將觸發倒數警告並記為違規。",
+      "keepPwaMode": "iPad 請全程使用<b>主畫面啟動的 PWA 視窗</b>作答，離開將記為違規。",
+      "monitoringActive": "螢幕分享或攝影機中斷將觸發<b>倒數警告</b>，逾時未恢復系統將<b>自動交卷</b>。",
+      "blockedActions": "複製、貼上、右鍵選單及部分快捷鍵（如開新分頁、重新整理）皆<b>已停用</b>。",
+      "autoSave": "作答內容<b>即時自動儲存</b>，無需手動存檔。",
+      "autoSubmit": "考試時間結束後，系統將<b>自動交卷</b>。",
       "deadline": "考試截止時間：{{time}}",
       "confirmStart": "我已瞭解並確認開始考試"
     },
@@ -587,6 +592,12 @@
     "returnToFullscreen": "回到全螢幕",
     "mouseLeaveRecoveryTitle": "滑鼠已離開視窗",
     "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
+    "tabHiddenRecoveryTitle": "偵測到分頁切換",
+    "tabHiddenRecoveryDesc": "請在 {{seconds}} 秒內回到考試分頁，否則將記錄一次違規。",
+    "windowBlurRecoveryTitle": "偵測到離開視窗",
+    "windowBlurRecoveryDesc": "請在 {{seconds}} 秒內回到考試視窗，否則將記錄一次違規。",
+    "multiDisplayRecoveryTitle": "偵測到多螢幕",
+    "multiDisplayRecoveryDesc": "請在 {{seconds}} 秒內中斷外接螢幕，否則將記錄一次違規。",
     "forceSubmitCountdown": "鎖定超過 3 分鐘後將自動交卷",
     "forceSubmittedReason": "因鎖定超過 3 分鐘，系統已自動為您交卷",
     "screenShareLostTitle": "螢幕分享已中斷",
@@ -833,9 +844,13 @@
     "videoCount": "{{count}} 筆",
     "bulkCompile": "全部轉檔 ({{count}})",
     "bulkCompiling": "送出中...",
+    "sessionGroup": "作答場次 {{index}}（{{count}} 個來源）",
     "headers": {
       "student": "學生",
+      "module": "來源",
       "updatedAt": "最後更新",
+      "startedAt": "錄製開始",
+      "finishedAt": "錄製結束",
       "duration": "長度",
       "flag": "標記",
       "jobStatus": "轉檔狀態"
@@ -844,6 +859,7 @@
       "pending": "待轉檔",
       "running": "轉檔中",
       "failed": "轉檔失敗",
+      "noData": "無畫面",
       "ready": "可播放"
     },
     "flag": {
@@ -854,6 +870,7 @@
       "failed": "影片轉檔失敗，請稍後重試或查看錯誤訊息。",
       "running": "影片轉檔中，完成後會自動顯示。",
       "pending": "影片目前為待轉檔，手動送出轉檔後會顯示於此。",
+      "noData": "此來源在本次作答沒有收到任何畫面，故不產生影片。",
       "selectVideo": "請選擇影片"
     },
     "fields": {
@@ -861,6 +878,8 @@
       "fileSize": "檔案大小",
       "duration": "影片長度",
       "frameCount": "幀數",
+      "recordingStart": "錄製開始",
+      "recordingEnd": "錄製結束",
       "jobStatus": "轉檔狀態"
     },
     "suspicion": {

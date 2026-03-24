@@ -92,9 +92,9 @@ class ExamEventsMixin:
                 if isinstance(desktop_sources.get("webcam"), dict)
                 else {}
             )
-            screen_required = bool(screen_share_policy.get("required"))
-            webcam_required = bool(webcam_policy.get("required"))
-            if webcam_required and not screen_required:
+            screen_enabled = bool(screen_share_policy.get("enabled"))
+            webcam_enabled = bool(webcam_policy.get("enabled"))
+            if webcam_enabled and not screen_enabled:
                 return module, self.MODULE_ROLE_PRIMARY
             return module, self.MODULE_ROLE_SECONDARY
 

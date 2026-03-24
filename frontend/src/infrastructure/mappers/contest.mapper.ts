@@ -130,7 +130,7 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
 
   const parseSource = (
     sourceValue: unknown,
-    fallback: { enabled: boolean; required: boolean; captureIntervalSeconds: number }
+    fallback: { enabled: boolean; captureIntervalSeconds: number }
   ) => {
     const source =
       sourceValue && typeof sourceValue === "object" && !Array.isArray(sourceValue)
@@ -138,7 +138,6 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
         : {};
     return {
       enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
-      required: typeof source.required === "boolean" ? source.required : fallback.required,
       captureIntervalSeconds:
         typeof source.capture_interval_seconds === "number"
           ? source.capture_interval_seconds
@@ -821,14 +820,12 @@ export function mapContestUpdateRequestToDto(request: any): any {
             sources: {
               screen_share: {
                 enabled: !!request.anticheatDevicePolicy.desktop?.sources?.screenShare?.enabled,
-                required: !!request.anticheatDevicePolicy.desktop?.sources?.screenShare?.required,
                 capture_interval_seconds:
                   request.anticheatDevicePolicy.desktop?.sources?.screenShare
                     ?.captureIntervalSeconds ?? 5,
               },
               webcam: {
                 enabled: !!request.anticheatDevicePolicy.desktop?.sources?.webcam?.enabled,
-                required: !!request.anticheatDevicePolicy.desktop?.sources?.webcam?.required,
                 capture_interval_seconds:
                   request.anticheatDevicePolicy.desktop?.sources?.webcam?.captureIntervalSeconds ??
                   10,
@@ -850,14 +847,12 @@ export function mapContestUpdateRequestToDto(request: any): any {
             sources: {
               screen_share: {
                 enabled: !!request.anticheatDevicePolicy.tablet?.sources?.screenShare?.enabled,
-                required: !!request.anticheatDevicePolicy.tablet?.sources?.screenShare?.required,
                 capture_interval_seconds:
                   request.anticheatDevicePolicy.tablet?.sources?.screenShare?.captureIntervalSeconds ??
                   5,
               },
               webcam: {
                 enabled: !!request.anticheatDevicePolicy.tablet?.sources?.webcam?.enabled,
-                required: !!request.anticheatDevicePolicy.tablet?.sources?.webcam?.required,
                 capture_interval_seconds:
                   request.anticheatDevicePolicy.tablet?.sources?.webcam?.captureIntervalSeconds ??
                   10,

@@ -207,6 +207,10 @@ export function useViolationPipeline({
                 reason: `Force submit after ${route.id} recovery timeout`,
                 source: `exam_mode:${route.id}_recovery_timeout`,
                 forceCaptureReason: extras?.forceCaptureReason,
+                captureOptions: {
+                  eventType: "exam_submit_initiated",
+                  modules: [extras?.sourceModule ?? defaultSourceModule],
+                },
                 metadata: {
                   upload_session_id: getExamCaptureSessionId(contestIdRef.current) || undefined,
                   module: route.id,
@@ -230,6 +234,10 @@ export function useViolationPipeline({
             },
           }).catch(() => null);
         }
+
+        // Reset interrupted state after escalation so pipeline can retrigger
+        interruptedRef.current = false;
+        setIsInterrupted(false);
       }, effectiveGraceMs);
     },
     [enabled, examSubmitted, externalCountdown, route, checkSuppressed, resolveEscalation],

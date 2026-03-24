@@ -42,6 +42,7 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
@@ -75,12 +76,25 @@ export const useContestExamActions = ({
   onError,
 }: UseContestExamActionsParams) => {
   const submissionProgress = useExamSubmissionProgress();
-  const resolvePrimarySourceModule = useCallback((): "screen_share" | "webcam" => {
+  const resolveMonitoringModules = useCallback((): {
+    primarySourceModule: "screen_share" | "webcam";
+    enabledCaptureModules: ForcedCaptureModule[];
+  } => {
     const plan = resolveDeviceMonitoringPlan(
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
     );
-    return plan.primarySourceModule;
+    const enabledCaptureModules: ForcedCaptureModule[] = [];
+    if (plan.runtime.enableScreenShareCapture) {
+      enabledCaptureModules.push("screen_share");
+    }
+    if (plan.runtime.enableWebcamCapture) {
+      enabledCaptureModules.push("webcam");
+    }
+    return {
+      primarySourceModule: plan.primarySourceModule,
+      enabledCaptureModules,
+    };
   }, [contest?.anticheatDevicePolicy]);
 
   const cleanupExamArtifacts = useCallback((
@@ -161,7 +175,7 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     const uploadSessionId = getExamCaptureSessionId(contest.id);
-    const sourceModule = resolvePrimarySourceModule();
+    const { primarySourceModule: sourceModule, enabledCaptureModules } = resolveMonitoringModules();
 
     const success = await submissionProgress.run({
       handlers: {
@@ -170,6 +184,10 @@ export const useContestExamActions = ({
             reason: "Student initiated exam submission from contest dashboard",
             source: "contest_dashboard:end_exam",
             forceCaptureReason: "exam_submit_initiated:dashboard_submit",
+            captureOptions: {
+              eventType: "exam_submit_initiated",
+              modules: enabledCaptureModules,
+            },
             metadata: {
               upload_session_id: uploadSessionId || undefined,
               module: sourceModule,
@@ -209,7 +227,7 @@ export const useContestExamActions = ({
     onError,
     refreshContest,
     submissionProgress,
-    resolvePrimarySourceModule,
+    resolveMonitoringModules,
   ]);
 
   const handleExit = useCallback(async () => {
@@ -218,7 +236,7 @@ export const useContestExamActions = ({
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
-      const sourceModule = resolvePrimarySourceModule();
+      const { primarySourceModule: sourceModule, enabledCaptureModules } = resolveMonitoringModules();
       let navigateTo = "/contests";
 
       if (shouldEndExam) {
@@ -229,6 +247,10 @@ export const useContestExamActions = ({
                 reason: "Exam auto-submitted because student exited the monitored exam flow",
                 source: "contest_dashboard:exit_exam",
                 forceCaptureReason: "exam_submit_initiated:exit_exam",
+                captureOptions: {
+                  eventType: "exam_submit_initiated",
+                  modules: enabledCaptureModules,
+                },
                 metadata: {
                   upload_session_id: uploadSessionId || undefined,
                   module: sourceModule,
@@ -286,7 +308,7 @@ export const useContestExamActions = ({
     navigate,
     onError,
     submissionProgress,
-    resolvePrimarySourceModule,
+    resolveMonitoringModules,
   ]);
 
   const toggleFullscreen = useCallback(async () => {

@@ -122,8 +122,9 @@
     "title": "Exam Pre-check",
     "description": "Please complete environment checks before starting. You cannot enter without passing all checks.",
     "entryDevice": {
-      "title": "Entry Device",
+      "title": "Entry Info",
       "summary": "Entry: {{device}} ({{mode}})",
+      "monitoring": "Monitoring",
       "sources": "Monitoring sources: {{sources}}",
       "kind": {
         "desktop": "Desktop / Laptop",
@@ -178,7 +179,8 @@
         "checking": "Checking...",
         "start": "Start Test",
         "retry": "Retry Test",
-        "next": "Next: Confirmation"
+        "next": "Next: Confirmation",
+        "monitorCount": "{{count}} monitor(s)"
       },
       "errors": {
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
@@ -196,10 +198,13 @@
     },
     "instruction": {
       "title": "Exam Rules",
-      "noSwitch": "Window/tab switching is prohibited and will be recorded.",
-      "keepFullscreen": "Maintain fullscreen; exiting will trigger a warning.",
-      "autoSave": "Answers are saved automatically every 2 seconds.",
-      "autoSubmit": "Exam will be submitted automatically when time is up.",
+      "noSwitch": "Switching tabs, losing window focus, or moving the mouse outside the window are all <b>violations</b> — recorded in real time.",
+      "keepFullscreen": "Stay in <b>fullscreen at all times</b>; exiting triggers a countdown warning and counts as a violation.",
+      "keepPwaMode": "On iPad, use the <b>home-screen PWA</b> throughout the exam; leaving counts as a violation.",
+      "monitoringActive": "If screen sharing or webcam is interrupted, a <b>countdown warning</b> starts — failure to restore will <b>auto-submit</b> your exam.",
+      "blockedActions": "Copy, paste, right-click menu, and certain shortcuts (e.g. new tab, refresh) are <b>disabled</b>.",
+      "autoSave": "Your answers are <b>auto-saved in real time</b> — no manual saving needed.",
+      "autoSubmit": "The exam will be <b>auto-submitted</b> when time is up.",
       "deadline": "Deadline: {{time}}",
       "confirmStart": "I understand, start exam"
     },
@@ -637,6 +642,12 @@
     "returnToFullscreen": "Return to Fullscreen",
     "mouseLeaveRecoveryTitle": "Mouse left the window",
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
+    "tabHiddenRecoveryTitle": "Tab switch detected",
+    "tabHiddenRecoveryDesc": "Return to the exam tab within {{seconds}} seconds, or this will count as one violation.",
+    "windowBlurRecoveryTitle": "Window focus lost",
+    "windowBlurRecoveryDesc": "Return to the exam window within {{seconds}} seconds, or this will count as one violation.",
+    "multiDisplayRecoveryTitle": "Multiple displays detected",
+    "multiDisplayRecoveryDesc": "Disconnect external displays within {{seconds}} seconds, or this will count as one violation.",
     "forceSubmitCountdown": "Auto-submit after 3 minutes of being locked",
     "forceSubmittedReason": "Locked for over 3 minutes, system auto-submitted",
     "screenShareLostTitle": "Screen Share Interrupted",
@@ -851,9 +862,13 @@
     "videoCount": "{{count}} items",
     "bulkCompile": "Transcode All ({{count}})",
     "bulkCompiling": "Submitting...",
+    "sessionGroup": "Attempt {{index}} ({{count}} sources)",
     "headers": {
       "student": "Student",
+      "module": "Source",
       "updatedAt": "Last Updated",
+      "startedAt": "Recording Start",
+      "finishedAt": "Recording End",
       "duration": "Duration",
       "flag": "Flag",
       "jobStatus": "Transcode Status"
@@ -862,6 +877,7 @@
       "pending": "Pending Transcode",
       "running": "Transcoding",
       "failed": "Transcode Failed",
+      "noData": "No Frames",
       "ready": "Ready"
     },
     "flag": {
@@ -872,6 +888,7 @@
       "failed": "Video transcoding failed. Please retry later or review the error message.",
       "running": "Video is being transcoded and will appear automatically when ready.",
       "pending": "This video is pending transcode. It will appear here after you manually start transcoding.",
+      "noData": "No frames were captured for this source during the attempt, so no video was generated.",
       "selectVideo": "Select a video"
     },
     "fields": {
@@ -879,6 +896,8 @@
       "fileSize": "File Size",
       "duration": "Duration",
       "frameCount": "Frame Count",
+      "recordingStart": "Recording Start",
+      "recordingEnd": "Recording End",
       "jobStatus": "Transcode Status"
     },
     "suspicion": {

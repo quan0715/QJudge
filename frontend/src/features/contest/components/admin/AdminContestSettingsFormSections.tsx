@@ -81,8 +81,8 @@ const AdminContestSettingsFormSections = ({
     desktop: {
       enabled: true,
       sources: {
-        screenShare: { enabled: true, required: true, captureIntervalSeconds: 5 },
-        webcam: { enabled: false, required: false, captureIntervalSeconds: 10 },
+        screenShare: { enabled: true, captureIntervalSeconds: 5 },
+        webcam: { enabled: false, captureIntervalSeconds: 10 },
       },
       detectors: {
         pwaMode: false,
@@ -97,8 +97,8 @@ const AdminContestSettingsFormSections = ({
     tablet: {
       enabled: true,
       sources: {
-        screenShare: { enabled: false, required: false, captureIntervalSeconds: 5 },
-        webcam: { enabled: true, required: true, captureIntervalSeconds: 10 },
+        screenShare: { enabled: false, captureIntervalSeconds: 5 },
+        webcam: { enabled: true, captureIntervalSeconds: 10 },
       },
       detectors: {
         pwaMode: true,
@@ -127,7 +127,6 @@ const AdminContestSettingsFormSections = ({
     const interval = Number(intervalRaw);
     return {
       enabled: typeof sourceObj.enabled === "boolean" ? sourceObj.enabled : fallback.enabled,
-      required: typeof sourceObj.required === "boolean" ? sourceObj.required : fallback.required,
       captureIntervalSeconds:
         Number.isFinite(interval) && interval > 0
           ? Math.floor(interval)
@@ -614,18 +613,6 @@ const AdminContestSettingsFormSections = ({
                                     })
                                   }
                                   size="sm"
-                                />
-                                <Toggle
-                                  id={`settings-${deviceKey}-${sourceKey}-required`}
-                                  labelText={t("settings.anticheat.forceEnable")}
-                                  toggled={sourcePolicy.required}
-                                  onToggle={(checked) =>
-                                    updateDevicePolicy((next) => {
-                                      next[deviceKey].sources[sourceKey].required = checked;
-                                    })
-                                  }
-                                  size="sm"
-                                  disabled={!sourcePolicy.enabled}
                                 />
                                 <div style={{ width: "120px" }}>
                                   <NumberInput

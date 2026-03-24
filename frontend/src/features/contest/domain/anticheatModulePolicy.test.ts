@@ -11,12 +11,10 @@ const basePolicy = {
     sources: {
       screenShare: {
         enabled: true,
-        required: true,
         captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        required: false,
         captureIntervalSeconds: 10,
       },
     },
@@ -35,12 +33,10 @@ const basePolicy = {
     sources: {
       screenShare: {
         enabled: false,
-        required: false,
         captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        required: true,
         captureIntervalSeconds: 10,
       },
     },
@@ -57,7 +53,7 @@ const basePolicy = {
 };
 
 describe("computeEffectiveRequiredModules", () => {
-  it("keeps screen-share as primary on desktop when supported", () => {
+  it("keeps screen-share as primary on desktop when both sources are enabled", () => {
     const result = computeEffectiveRequiredModules(
       {
         screenShareSupported: true,
@@ -69,13 +65,13 @@ describe("computeEffectiveRequiredModules", () => {
       basePolicy
     );
 
-    expect(result.requiredScreenShare).toBe(true);
-    expect(result.requiredWebcam).toBe(false);
+    expect(result.screenShareEnabled).toBe(true);
+    expect(result.webcamEnabled).toBe(true);
     expect(result.roles.screenShare).toBe("primary");
     expect(result.roles.webcam).toBe("secondary");
   });
 
-  it("falls back to required webcam on tablet when screen-share unsupported", () => {
+  it("uses webcam as primary on tablet when screen-share is disabled", () => {
     const result = computeEffectiveRequiredModules(
       {
         screenShareSupported: false,
@@ -87,8 +83,8 @@ describe("computeEffectiveRequiredModules", () => {
       basePolicy
     );
 
-    expect(result.requiredScreenShare).toBe(false);
-    expect(result.requiredWebcam).toBe(true);
+    expect(result.screenShareEnabled).toBe(false);
+    expect(result.webcamEnabled).toBe(true);
     expect(result.roles.webcam).toBe("primary");
     expect(result.roles.screenShare).toBeNull();
   });
@@ -105,8 +101,8 @@ describe("computeEffectiveRequiredModules", () => {
       basePolicy
     );
 
-    expect(result.requiredScreenShare).toBe(false);
-    expect(result.requiredWebcam).toBe(false);
+    expect(result.screenShareEnabled).toBe(false);
+    expect(result.webcamEnabled).toBe(false);
     expect(result.webcamEnabled).toBe(false);
     expect(result.roles.webcam).toBeNull();
   });
@@ -160,14 +156,14 @@ describe("computeEffectiveRequiredModules", () => {
 
     expect(metadata.device_kind).toBe("desktop");
     expect(metadata.primary_source_module).toBe("screen_share");
-    expect(metadata.active_sources).toEqual(["screen_share"]);
+    expect(metadata.active_sources).toEqual(["screen_share", "webcam"]);
     expect(metadata.is_tablet).toBe(false);
   });
 
-  it("treats required-but-disabled source as missing", () => {
+  it("treats enabled-but-unsupported source as missing", () => {
     const plan = resolveDeviceMonitoringPlan(
       {
-        screenShareSupported: true,
+        screenShareSupported: false,
         webcamSupported: true,
         isTablet: false,
         isIPadLike: false,
@@ -181,8 +177,7 @@ describe("computeEffectiveRequiredModules", () => {
             ...basePolicy.desktop.sources,
             screenShare: {
               ...basePolicy.desktop.sources.screenShare,
-              enabled: false,
-              required: true,
+              enabled: true,
             },
           },
         },
@@ -190,7 +185,7 @@ describe("computeEffectiveRequiredModules", () => {
     );
 
     expect(plan.allowed).toBe(false);
-    expect(plan.missingRequiredSources).toContain("screen_share");
+    expect(plan.missingEnabledSources).toContain("screen_share");
     expect(plan.runtime.enableScreenShareCapture).toBe(false);
   });
 });

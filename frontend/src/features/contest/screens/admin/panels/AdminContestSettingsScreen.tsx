@@ -45,7 +45,6 @@ const sanitizeAnticheatPolicy = (
     );
     return {
       enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
-      required: typeof src.required === "boolean" ? src.required : fallback.required,
       captureIntervalSeconds:
         Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : fallback.captureIntervalSeconds,
     };

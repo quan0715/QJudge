@@ -41,6 +41,8 @@ import { useWebcamMonitoring } from "@/features/contest/hooks/useWebcamMonitorin
 import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShareMonitoring";
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
+import { useFocusMonitoring } from "@/features/contest/hooks/useFocusMonitoring";
+import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import { selectPrimaryCountdownFromRegistry } from "@/features/contest/domain/violationRoutes";
 
 interface ExamModeWrapperProps {
@@ -189,18 +191,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const streamMonitorEnabled = policyRequired && !policyUnavailable;
   const screenStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorScreenShareStream;
   const webcamStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorWebcamStream;
-  const monitoringDetectorPolicy = useMemo(
-    () => ({
-      focus: monitoringPlan.detectors.focus,
-      tabVisibility: monitoringPlan.detectors.tabVisibility,
-      multiDisplay: monitoringPlan.detectors.multiDisplay,
-    }),
-    [
-      monitoringPlan.detectors.focus,
-      monitoringPlan.detectors.tabVisibility,
-      monitoringPlan.detectors.multiDisplay,
-    ]
-  );
   const lockedFullscreenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const capture = useAnticheatScreenCapture({
@@ -312,11 +302,33 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const mouseLeave = useMouseLeaveMonitoring({
     contestId,
     enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.mouseLeave,
+    isTablet: capability.isTablet,
     examSubmitted: examStatus === "submitted",
     recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
     cooldownMs: anticheatEffective?.mouseLeaveCooldownMs,
     onViolation: handleViolation,
     requestForceSubmit,
+  });
+
+  const multiDisplay = useMultiDisplayMonitoring({
+    contestId,
+    enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.multiDisplay,
+    examSubmitted: examStatus === "submitted",
+    recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
+    onViolation: handleViolation,
+    requestForceSubmit,
+  });
+
+  const focus = useFocusMonitoring({
+    contestId,
+    enabled: effectiveMonitoringEnabled && (monitoringPlan.detectors.focus || monitoringPlan.detectors.tabVisibility),
+    examSubmitted: examStatus === "submitted",
+    enableFocus: monitoringPlan.detectors.focus,
+    enableTabVisibility: monitoringPlan.detectors.tabVisibility,
+    recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
+    onViolation: handleViolation,
+    requestForceSubmit,
+    onInteraction: multiDisplay.triggerCheck,
   });
 
   const runtimeReauthActive = screenShare.reauth.active;
@@ -345,8 +357,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     m.set("viewport", viewport.recoveryCountdown);
     m.set("fullscreen", fullscreen.recoveryCountdown);
     m.set("mouse_leave", mouseLeave.recoveryCountdown);
+    m.set("tab_hidden", focus.tabHiddenCountdown);
+    m.set("window_blur", focus.windowBlurCountdown);
+    m.set("multiple_displays", multiDisplay.recoveryCountdown);
     return m;
-  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, mouseLeave.recoveryCountdown]);
+  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, mouseLeave.recoveryCountdown, focus.tabHiddenCountdown, focus.windowBlurCountdown, multiDisplay.recoveryCountdown]);
   const primaryCountdown = selectPrimaryCountdownFromRegistry(countdownMap);
 
   const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
@@ -388,20 +403,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
   }, [contestId, webcam]);
 
-  const handleTraceEvent = useCallback((eventType: string, reason: string) => {
-    recordExamEvent(contestId, eventType, {
-      source: "anticheat:trace",
-      metadata: { reason },
-    }).catch(() => null);
-  }, [contestId]);
-
   useExamMonitoring({
     contestId,
     enabled: effectiveMonitoringEnabled,
-    detectorPolicy: monitoringDetectorPolicy,
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
-    onTraceEvent: handleTraceEvent,
   });
 
   useEffect(() => {
@@ -531,6 +537,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               reason: "Exam submitted after fullscreen exit confirmation",
               source: "exam_mode:fullscreen_exit_confirm",
               forceCaptureReason: "exam_submit_initiated:fullscreen_exit_confirm",
+              captureOptions: {
+                eventType: "exam_submit_initiated",
+                modules: [primarySourceModule],
+              },
               metadata: {
                 upload_session_id: getExamCaptureSessionId(contestId) || undefined,
                 module: primarySourceModule,
@@ -638,7 +648,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           warningEventType={warningEventType}
           examState={examState}
           warningCountdown={warningCountdown}
-          recoveryCountdown={primaryCountdown.source === "fullscreen" || primaryCountdown.source === "mouse_leave" ? primaryCountdown.value : null}
+          recoveryCountdown={
+            primaryCountdown.source === "fullscreen" ||
+            primaryCountdown.source === "mouse_leave" ||
+            primaryCountdown.source === "tab_hidden" ||
+            primaryCountdown.source === "window_blur" ||
+            primaryCountdown.source === "multiple_displays"
+              ? primaryCountdown.value
+              : null
+          }
           recoverySource={primaryCountdown.source}
           onRecoverFullscreen={handleRecoverFullscreen}
           onWarningClose={handleWarningClose}

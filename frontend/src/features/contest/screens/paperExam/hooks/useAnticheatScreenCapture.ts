@@ -386,9 +386,9 @@ export const useAnticheatScreenCapture = ({
   // Register forced capture handler for use by recordExamEventWithForcedCapture
   useEffect(() => {
     if (!contestId) return;
-    registerForcedCaptureHandler(contestId, forceCaptureNow);
+    registerForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
     return () => {
-      unregisterForcedCaptureHandler(contestId, forceCaptureNow);
+      unregisterForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
     };
   }, [contestId, forceCaptureNow]);
 

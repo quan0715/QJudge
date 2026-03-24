@@ -109,7 +109,7 @@ class ExamAnticheatMixin:
         items = []
         for i in range(count):
             seq = start_seq + i
-            ts_ms = base_ts + i * 10_000
+            ts_ms = base_ts + i * interval * 1_000
             object_key = build_raw_object_key(
                 contest_id=contest.id,
                 user_id=request.user.id,
