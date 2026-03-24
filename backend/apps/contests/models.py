@@ -252,10 +252,16 @@ class Contest(models.Model):
     
     @property
     def can_download_my_report(self):
+        """Participants can always download their report after submission."""
+        return True
+
+    @property
+    def report_includes_grading(self):
         """
-        Determine if participants can download their own report.
-        For paper exams, results must be published.
-        For coding contests, reports are available immediately after submission.
+        Whether the student report should include grading details
+        (scores, correct answers, TA feedback).
+        For paper exams, only after results are published.
+        For coding contests, always.
         """
         if self.contest_type == 'paper_exam':
             return self.results_published

@@ -1,8 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import type {
   ContestDetail,
   ContestProblemSummary,
@@ -54,18 +52,15 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   };
 
   return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className="cds--row">
-        <div className="cds--col-lg-16">
-          <ContainerCard title={t("problemList")} noPadding>
-            <ProblemTable
-              problems={tableProblems}
-              mode="contest"
-              onRowClick={handleRowClick}
-            />
-          </ContainerCard>
-        </div>
-      </div>
-    </SurfaceSection>
+    <div style={{ maxWidth, margin: maxWidth ? "0 auto" : undefined, padding: "1rem" }}>
+      <h4 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 600, color: "var(--cds-text-primary)" }}>
+        {t("problemList")}
+      </h4>
+      <ProblemTable
+        problems={tableProblems}
+        mode="contest"
+        onRowClick={handleRowClick}
+      />
+    </div>
   );
 };

@@ -5,6 +5,7 @@ import {
   Flag,
   WarningAltFilled,
   Launch,
+  DocumentPdf,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -19,7 +20,7 @@ import {
 } from "@/core/entities/contest.entity";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
-import { updateNickname } from "@/infrastructure/api/repositories";
+import { updateNickname, downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
 import "./ContestHero.css";
 
@@ -92,6 +93,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const [newNickname, setNewNickname] = useState("");
   const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
 
+  // Report download state
+  const [reportDownloading, setReportDownloading] = useState(false);
+
   // Error Modal State
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -99,6 +103,19 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const showError = (msg: string) => {
     setErrorMessage(msg);
     setErrorModalOpen(true);
+  };
+
+  const handleDownloadReport = async () => {
+    if (!contest) return;
+    try {
+      setReportDownloading(true);
+      await downloadMyReport(contest.id.toString());
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t("report.failed");
+      showError(message);
+    } finally {
+      setReportDownloading(false);
+    }
   };
 
   const updateProgress = useCallback(() => {
@@ -230,6 +247,20 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const renderActions = () => {
     // Check if contest has ended (time-based)
     if (isEnded) {
+      const hasSubmitted = contest.examStatus === "submitted" &&
+        (contest.hasJoined || contest.isRegistered);
+      if (hasSubmitted) {
+        return (
+          <Button
+            kind="tertiary"
+            renderIcon={DocumentPdf}
+            disabled={reportDownloading}
+            onClick={handleDownloadReport}
+          >
+            {reportDownloading ? t("report.preparing") : t("report.download")}
+          </Button>
+        );
+      }
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
           {t("hero.examEnded")}
@@ -263,21 +294,22 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         );
 
       case "submitted":
-        // Step 3: Submitted - show finished or allow restart
-        if (contest.allowMultipleJoins) {
-          return (
-            <div style={{ display: "flex", alignItems: "center" }}>
+        // Step 3: Submitted - show download + optional restart
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Button
+              kind="tertiary"
+              renderIcon={DocumentPdf}
+              disabled={reportDownloading}
+              onClick={handleDownloadReport}
+            >
+              {reportDownloading ? t("report.preparing") : t("report.download")}
+            </Button>
+            {contest.allowMultipleJoins && (
               <Button renderIcon={PlayFilled} onClick={handleStartClick}>
                 {t("hero.restartExam")}
               </Button>
-            </div>
-          );
-        }
-        return (
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Button kind="secondary" disabled renderIcon={Flag}>
-              {t("hero.finished")}
-            </Button>
+            )}
           </div>
         );
 

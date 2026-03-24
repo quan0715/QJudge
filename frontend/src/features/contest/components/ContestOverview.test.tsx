@@ -3,22 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { ContestOverview } from "./ContestOverview";
 
-const downloadMyReportMock = vi.fn();
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
   initReactI18next: {
     type: "3rdParty",
     init: () => {},
   },
-}));
-
-vi.mock("@/infrastructure/api/repositories", () => ({
-  downloadMyReport: (...args: unknown[]) => downloadMyReportMock(...args),
-}));
-
-vi.mock("@/shared/layout/ContainerCard", () => ({
-  default: () => <div data-testid="container-card" />,
 }));
 
 const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
@@ -58,11 +48,22 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   }) as ContestDetail;
 
 describe("ContestOverview", () => {
-  it("renders sections without ContainerCard wrapper", () => {
+  it("renders rules and warning without wrapper components", () => {
     render(<ContestOverview contest={createContest()} maxWidth="1056px" />);
 
     expect(screen.getByText("overview.contestRules")).toBeInTheDocument();
-    expect(screen.getByText("report.title")).toBeInTheDocument();
-    expect(screen.queryByTestId("container-card")).not.toBeInTheDocument();
+    expect(screen.getByText("overview.examModeWarning")).toBeInTheDocument();
+  });
+
+  it("hides warning when cheat detection is disabled", () => {
+    render(
+      <ContestOverview
+        contest={createContest({ cheatDetectionEnabled: false })}
+        maxWidth="1056px"
+      />
+    );
+
+    expect(screen.queryByText("overview.examModeWarning")).not.toBeInTheDocument();
+    expect(screen.getByText("overview.contestRules")).toBeInTheDocument();
   });
 });

@@ -56,14 +56,14 @@ def build_contest_download_response(contest, file_format: str, language: str, sc
     return response
 
 
-def build_student_report_response(contest, user, language: str, scale: float):
+def build_student_report_response(contest, user, language: str, scale: float, include_grading: bool = True):
     """Generate downloadable participant report response."""
     REPORT_RENDERERS = {
         'coding': StudentReportRenderer,
         'paper_exam': PaperExamReportRenderer,
     }
     RendererClass = REPORT_RENDERERS.get(contest.contest_type, StudentReportRenderer)
-    exporter = RendererClass(contest, user, language, scale)
+    exporter = RendererClass(contest, user, language, scale, include_grading=include_grading)
     
     pdf_file = exporter.export()
 

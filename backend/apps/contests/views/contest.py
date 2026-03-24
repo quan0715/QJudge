@@ -1159,6 +1159,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 user=user,
                 language=language,
                 scale=scale,
+                include_grading=contest.report_includes_grading,
             )
 
         except Exception as e:

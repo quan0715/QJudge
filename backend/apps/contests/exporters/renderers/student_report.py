@@ -27,7 +27,8 @@ class StudentReportRenderer(BaseRenderer):
         contest,
         user,
         language: str = 'zh-TW',
-        scale: float = 1.0
+        scale: float = 1.0,
+        include_grading: bool = True,
     ):
         super().__init__(contest, language)
         self.user = user

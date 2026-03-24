@@ -1,8 +1,6 @@
 import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
 interface ContestQAScreenProps {
@@ -17,31 +15,21 @@ const ContestQAScreen: React.FC<ContestQAScreenProps> = ({ maxWidth }) => {
   if (!contest) return <div>{t("clarifications.notFound")}</div>;
 
   return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className="cds--grid" style={{ padding: 0 }}>
-        <div className="cds--row">
-          <div className="cds--col-lg-16">
-            <ContainerCard title={t("clarifications.title")}>
-              <p
-                style={{
-                  marginBottom: "1.5rem",
-                  color: "var(--cds-text-secondary)",
-                }}
-              >
-                {t("clarifications.subtitle", { name: contest.name })}
-              </p>
-              <ContestClarifications
-                contestId={contest.id}
-                isTeacherOrAdmin={contest.permissions?.canManageClarifications ?? false}
-                problems={contest.problems}
-                contestStatus={contest.status}
-                contestEndTime={contest.endTime}
-              />
-            </ContainerCard>
-          </div>
-        </div>
-      </div>
-    </SurfaceSection>
+    <div style={{ maxWidth, margin: maxWidth ? "0 auto" : undefined, padding: "1rem" }}>
+      <h4 style={{ margin: "0 0 0.25rem", fontSize: "1rem", fontWeight: 600, color: "var(--cds-text-primary)" }}>
+        {t("clarifications.title")}
+      </h4>
+      <p style={{ marginBottom: "1.5rem", color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
+        {t("clarifications.subtitle", { name: contest.name })}
+      </p>
+      <ContestClarifications
+        contestId={contest.id}
+        isTeacherOrAdmin={contest.permissions?.canManageClarifications ?? false}
+        problems={contest.problems}
+        contestStatus={contest.status}
+        contestEndTime={contest.endTime}
+      />
+    </div>
   );
 };
 
