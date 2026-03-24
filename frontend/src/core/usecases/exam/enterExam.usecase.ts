@@ -62,7 +62,9 @@ export async function enterExamUseCase(
     };
   } catch (error: unknown) {
     let message = "Failed to start exam";
-    if (typeof error === "object" && error !== null) {
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (typeof error === "object" && error !== null) {
       const rec = error as Record<string, unknown>;
       const resp = rec.response as Record<string, unknown> | undefined;
       const data = resp?.data as Record<string, unknown> | undefined;
@@ -71,8 +73,6 @@ export async function enterExamUseCase(
       } else if (typeof rec.message === "string") {
         message = rec.message;
       }
-    } else if (error instanceof Error) {
-      message = error.message;
     }
     return {
       success: false,
