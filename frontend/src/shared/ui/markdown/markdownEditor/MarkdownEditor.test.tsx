@@ -69,6 +69,8 @@ vi.mock("@monaco-editor/react", () => {
           trigger: () => {},
           layout: () => {},
           getDomNode: () => containerRef.current,
+          getContentHeight: () => 220,
+          onDidContentSizeChange: () => ({ dispose: () => {} }),
         };
 
         onMount(editor, monaco);

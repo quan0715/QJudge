@@ -1,5 +1,5 @@
 import React from "react";
-import { IconButton, Tooltip } from "@carbon/react";
+import { IconButton } from "@carbon/react";
 import {
   TextBold,
   TextItalic,
@@ -65,23 +65,23 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
     <div className="markdown-toolbar">
       {TOOLBAR_GROUPS.map((group, groupIndex) => (
         <div key={groupIndex} className="markdown-toolbar__group">
-          {group.map((item) => (
-            <Tooltip
-              key={item.id}
-              label={item.id === "image" ? imageLabel : item.label}
-              align="bottom"
-            >
+          {group.map((item) => {
+            const label = item.id === "image" ? imageLabel : item.label;
+            return (
               <IconButton
+                key={item.id}
                 kind="ghost"
-                size="md"
-                label={item.id === "image" ? imageLabel : item.label}
+                size="sm"
+                label={label}
+                align="bottom"
+                autoAlign
                 onClick={() => onAction(item)}
                 disabled={disabled || (item.id === "image" ? disableImage : false)}
               >
-                <item.icon size={20} />
+                <item.icon size={16} />
               </IconButton>
-            </Tooltip>
-          ))}
+            );
+          })}
           {groupIndex < TOOLBAR_GROUPS.length - 1 && (
             <div className="markdown-toolbar__divider" />
           )}

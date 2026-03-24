@@ -3,7 +3,6 @@ import { Button, InlineNotification } from "@carbon/react";
 import { DocumentPdf } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import styles from "./ContestOverview.module.scss";
@@ -54,8 +53,7 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
   };
 
   return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className={styles.root}>
+    <div className={styles.root} style={{ maxWidth, margin: maxWidth ? "0 auto" : undefined, padding: "1rem" }}>
         {/* Exam Mode Warning */}
         {contest.cheatDetectionEnabled && (
           <InlineNotification
@@ -109,7 +107,6 @@ export const ContestOverview: React.FC<ContestOverviewProps> = ({
             </div>
           </section>
         )}
-      </div>
-    </SurfaceSection>
+    </div>
   );
 };

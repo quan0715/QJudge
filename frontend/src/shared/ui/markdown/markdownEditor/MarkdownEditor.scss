@@ -3,13 +3,11 @@
   flex-direction: column;
   background: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle-01);
-  resize: vertical;
   overflow: hidden;
 
-  // Inline mode - fills parent; resize is handled by the parent wrapper
+  // Inline mode - fills parent
   &--inline {
     height: 100%;
-    resize: none;
     overflow: hidden;
   }
 
@@ -39,15 +37,42 @@
   &__topbar {
     display: flex;
     align-items: stretch;
-    min-height: 2.5rem;
+    height: 2rem; // matches Carbon button sm
     background: var(--cds-layer-02);
     border-bottom: 1px solid var(--cds-border-subtle-01);
   }
 
-  &__tabs-nav {
+  &__tab-group {
+    display: flex;
     flex: 0 0 auto;
-    width: auto !important;
-    min-width: 0;
+  }
+
+  &__tab-btn {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--cds-text-secondary);
+    cursor: pointer;
+    border-right: 1px solid var(--cds-border-subtle-01);
+
+    &:hover {
+      color: var(--cds-text-primary);
+    }
+
+    &--active {
+      background: var(--cds-layer-01);
+      color: var(--cds-text-primary);
+      font-weight: 600;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__topbar-toolbar {
@@ -55,18 +80,13 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    min-height: 100%;
   }
 
   &__topbar .markdown-toolbar {
-    height: 100%;
-    padding: 0 var(--cds-spacing-05);
+    padding: 0 var(--cds-spacing-03);
     border-bottom: 0;
     background: transparent;
-  }
-
-  &__topbar .cds--tabs__nav {
-    border-bottom: 0;
+    gap: var(--cds-spacing-02);
   }
 
   &__image-input {
@@ -99,13 +119,13 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--cds-layer-01);
 
     // Monaco editor container needs to fill
     > div {
       flex: 1;
       min-height: 0;
     }
-
   }
 
   &__preview {
@@ -137,25 +157,25 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-03);
-  padding: var(--cds-spacing-02) var(--cds-spacing-04);
+  gap: var(--cds-spacing-02);
+  padding: 0 var(--cds-spacing-03);
   background: var(--cds-layer-02);
   border-bottom: 1px solid var(--cds-border-subtle-01);
 
-  // Remove Carbon button border in toolbar context (ghost buttons have 2px transparent border)
   .cds--btn {
     border: none;
   }
 
+
   &__group {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0;
   }
 
   &__divider {
     width: 1px;
-    height: 1.25rem;
+    height: 1rem;
     background: var(--cds-border-subtle-01);
     margin: 0 var(--cds-spacing-03);
   }
@@ -333,8 +353,6 @@
     border-bottom: 1px solid var(--cds-border-strong);
     padding: var(--cds-spacing-02);
     background-color: var(--cds-field);
-    overflow: hidden;
-    resize: vertical;
     transition: outline 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
 
     // Focus state - Carbon style outline

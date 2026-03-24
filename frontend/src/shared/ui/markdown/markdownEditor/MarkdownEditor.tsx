@@ -1,7 +1,8 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { Tabs, TabList, Tab } from "@carbon/react";
+import { Edit, View } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { MarkdownToolbar, type ToolbarAction } from "./MarkdownToolbar";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
@@ -43,46 +44,63 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   inline = false,
 }) => {
   const { theme } = useTheme();
+  const { t } = useTranslation("common");
   const uploadImage = useMarkdownImageUpload();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
-  const [selectedTab, setSelectedTab] = useState(0);
+  type EditorTab = "edit" | "preview";
+  const [selectedTab, setSelectedTab] = useState<EditorTab>("edit");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [isDragOverImage, setIsDragOverImage] = useState(false);
   const supportsPreview = initialShowPreview;
 
   useEffect(() => {
-    if (!supportsPreview && selectedTab !== 0) {
-      setSelectedTab(0);
+    if (!supportsPreview && selectedTab !== "edit") {
+      setSelectedTab("edit");
     }
   }, [selectedTab, supportsPreview]);
+
+  const MIN_EDITOR_LINES = 10;
+  const LINE_HEIGHT = 22;
+  const EDITOR_PADDING = 32; // top + bottom padding
+  const minEditorHeight = MIN_EDITOR_LINES * LINE_HEIGHT + EDITOR_PADDING;
 
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
     // Configure markdown language
-    monaco.editor.setTheme(theme === "white" ? "vs" : "markdown-dark");
+    monaco.editor.setTheme(theme === "white" ? "markdown-light" : "markdown-dark");
 
-    // Layout fix
-    setTimeout(() => editor.layout(), 100);
+    // Auto-resize: grow editor height with content, min 10 lines
+    const updateHeight = () => {
+      const contentHeight = editor.getContentHeight();
+      const newHeight = Math.max(contentHeight, minEditorHeight);
+      const domNode = editor.getDomNode();
+      if (domNode) {
+        domNode.style.height = `${newHeight}px`;
+      }
+      editor.layout();
+    };
+    editor.onDidContentSizeChange(updateHeight);
+    updateHeight();
 
     // Font loading handling
     if (document.fonts && "ready" in document.fonts) {
       document.fonts.ready.then(() => {
         monaco.editor.remeasureFonts();
-        editor.layout();
+        updateHeight();
       });
     }
-  }, [theme]);
+  }, [theme, minEditorHeight]);
 
   // Sync theme when toggled after mount
   useEffect(() => {
     if (!monacoRef.current) return;
-    monacoRef.current.editor.setTheme(theme === "white" ? "vs" : "markdown-dark");
+    monacoRef.current.editor.setTheme(theme === "white" ? "markdown-light" : "markdown-dark");
   }, [theme]);
 
   const handleChange = useCallback((newValue: string | undefined) => {
@@ -271,18 +289,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     inline ? "markdown-editor--inline" : "",
     isDragOverImage ? "markdown-editor--dragover" : "",
   ].filter(Boolean).join(" ");
-  const isEditTabActive = !supportsPreview || selectedTab === 0;
+  const isEditTabActive = !supportsPreview || selectedTab === "edit";
 
   const editorContent = (
     <div className="markdown-editor__editor">
       <Editor
         height="100%"
-        theme={theme === "white" ? "vs" : "vs-dark"}
+        theme={theme === "white" ? "markdown-light" : "markdown-dark"}
         language="markdown"
         value={value}
         onChange={handleChange}
         beforeMount={(monaco) => {
-          // Define dark theme
+          monaco.editor.defineTheme("markdown-light", {
+            base: "vs",
+            inherit: true,
+            rules: [],
+            colors: {
+              "editor.background": "#f4f4f4",
+            },
+          });
           monaco.editor.defineTheme("markdown-dark", {
             base: "vs-dark",
             inherit: true,
@@ -291,7 +316,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               { token: "string.link", foreground: "4EC9B0" },
             ],
             colors: {
-              "editor.background": "#161616",
+              "editor.background": "#262626",
               "editor.foreground": "#E0E0E0",
             },
           });
@@ -303,6 +328,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           lineHeight: 22,
           wordWrap: "on",
           scrollBeyondLastLine: false,
+          scrollbar: { vertical: "hidden", horizontal: "hidden", handleMouseWheel: false },
+          overviewRulerLanes: 0,
           automaticLayout: true,
           fontLigatures: false,
           fontFamily: "'IBM Plex Mono', 'JetBrains Mono NL', monospace",
@@ -355,26 +382,35 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         className="markdown-editor__image-input"
         onChange={handleImageFileInputChange}
       />
-      {supportsPreview ? (
-        <div className="markdown-editor__topbar">
-          <div className="markdown-editor__tabs-nav">
-            <Tabs
-              selectedIndex={selectedTab}
-              onChange={({ selectedIndex: nextIndex }) => setSelectedTab(nextIndex)}
+      <div className="markdown-editor__topbar">
+        {supportsPreview && (
+          <div className="markdown-editor__tab-group" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedTab === "edit"}
+              className={`markdown-editor__tab-btn${selectedTab === "edit" ? " markdown-editor__tab-btn--active" : ""}`}
+              onClick={() => { setSelectedTab("edit"); editorRef.current?.focus(); }}
             >
-              <TabList aria-label="Markdown editor tabs">
-                <Tab>Edit</Tab>
-                <Tab>Preview</Tab>
-              </TabList>
-            </Tabs>
+              <Edit size={16} />
+              <span>{t("button.edit")}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedTab === "preview"}
+              className={`markdown-editor__tab-btn${selectedTab === "preview" ? " markdown-editor__tab-btn--active" : ""}`}
+              onClick={() => setSelectedTab("preview")}
+            >
+              <View size={16} />
+              <span>{t("button.preview")}</span>
+            </button>
           </div>
-          {toolbarNode && (
-            <div className="markdown-editor__topbar-toolbar">{toolbarNode}</div>
-          )}
-        </div>
-      ) : (
-        toolbarNode
-      )}
+        )}
+        {toolbarNode && (
+          <div className="markdown-editor__topbar-toolbar">{toolbarNode}</div>
+        )}
+      </div>
 
       {(isUploadingImage || imageUploadError) && (
         <div className="markdown-editor__status">
@@ -389,7 +425,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       <div className="markdown-editor__content">
         {supportsPreview
-          ? (selectedTab === 0 ? editorContent : previewContent)
+          ? (selectedTab === "edit" ? editorContent : previewContent)
           : editorContent}
       </div>
     </div>
