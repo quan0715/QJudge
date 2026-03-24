@@ -301,7 +301,8 @@
     "descriptionPaper": "各問題の解答、得点、およびTAのコメントを含むPDFレポートをダウンロードします",
     "descriptionCoding": "解答統計、ソースコード、および傾向グラフを含むPDFレポートをダウンロードします",
     "download": "レポートをダウンロード",
-    "preparing": "生成中..."
+    "preparing": "生成中...",
+    "language": "レポート言語"
   },
   "delete": {
     "title": "コンテスト削除",
@@ -457,6 +458,9 @@
   "download": {
     "title": "コンテストファイルをダウンロード",
     "downloadBtn": "ダウンロード",
+    "exportType": "エクスポート種類",
+    "selectExportType": "先にエクスポート対象を選択",
+    "settings": "エクスポート設定",
     "description": "コンテスト情報、すべての問題、説明を含む完全なコンテストファイルをダウンロードします。",
     "fileFormat": "ファイル形式",
     "markdown": "Markdown (.md)",
@@ -471,7 +475,8 @@
     "layoutNormal": "通常モード",
     "layoutCompact": "コンパクトモード",
     "layoutHint": "コンパクトモードでは入出力説明を2段組にし、余白を減らしてページ数を削減します。",
-    "generating": "ファイル生成中..."
+    "generating": "ファイル生成中...",
+    "includeAnswerArea": "解答欄を含める"
   },
   "examJson": {
     "importAction": "JSONインポート",

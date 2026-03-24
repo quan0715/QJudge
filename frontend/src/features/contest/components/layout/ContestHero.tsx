@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button, Modal, TextInput } from "@carbon/react";
+import { Button, Modal, TextInput, Select, SelectItem } from "@carbon/react";
 import {
   PlayFilled,
   Flag,
@@ -95,6 +95,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
   // Report download state
   const [reportDownloading, setReportDownloading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportLanguage, setReportLanguage] = useState("zh-TW");
 
   // Error Modal State
   const [errorModalOpen, setErrorModalOpen] = useState(false);
@@ -109,7 +111,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     if (!contest) return;
     try {
       setReportDownloading(true);
-      await downloadMyReport(contest.id.toString());
+      await downloadMyReport(contest.id.toString(), reportLanguage);
+      setShowReportModal(false);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t("report.failed");
       showError(message);
@@ -254,10 +257,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
           <Button
             kind="tertiary"
             renderIcon={DocumentPdf}
-            disabled={reportDownloading}
-            onClick={handleDownloadReport}
+            onClick={() => setShowReportModal(true)}
           >
-            {reportDownloading ? t("report.preparing") : t("report.download")}
+            {t("report.download")}
           </Button>
         );
       }
@@ -300,10 +302,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             <Button
               kind="tertiary"
               renderIcon={DocumentPdf}
-              disabled={reportDownloading}
-              onClick={handleDownloadReport}
+              onClick={() => setShowReportModal(true)}
             >
-              {reportDownloading ? t("report.preparing") : t("report.download")}
+              {t("report.download")}
             </Button>
             {contest.allowMultipleJoins && (
               <Button renderIcon={PlayFilled} onClick={handleStartClick}>
@@ -456,6 +457,32 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             value={newNickname}
             onChange={(e) => setNewNickname(e.target.value)}
           />
+        </div>
+      </Modal>
+
+      {/* Report Download Modal */}
+      <Modal
+        open={showReportModal}
+        modalHeading={t("report.download")}
+        primaryButtonText={reportDownloading ? t("report.preparing") : t("report.download")}
+        secondaryButtonText={tc("button.cancel")}
+        primaryButtonDisabled={reportDownloading}
+        onRequestClose={() => { if (!reportDownloading) setShowReportModal(false); }}
+        onRequestSubmit={handleDownloadReport}
+        size="xs"
+      >
+        <div style={{ marginBottom: "1rem" }}>
+          <Select
+            id="report-language"
+            labelText={t("report.language")}
+            value={reportLanguage}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReportLanguage(e.target.value)}
+          >
+            <SelectItem value="zh-TW" text="繁體中文" />
+            <SelectItem value="en" text="English" />
+            <SelectItem value="ja" text="日本語" />
+            <SelectItem value="ko" text="한국어" />
+          </Select>
         </div>
       </Modal>
 

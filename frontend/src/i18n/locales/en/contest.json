@@ -301,7 +301,8 @@
     "descriptionPaper": "Download PDF report including questions, your responses, scores, and proctor comments.",
     "descriptionCoding": "Download PDF report including stats, source code, and performance trends.",
     "download": "Download Report",
-    "preparing": "Generating..."
+    "preparing": "Generating...",
+    "language": "Report Language"
   },
   "delete": {
     "title": "Delete Contest",
@@ -457,6 +458,9 @@
   "download": {
     "title": "Download Contest File",
     "downloadBtn": "Download",
+    "exportType": "Export Type",
+    "selectExportType": "Select what to export first",
+    "settings": "Export Settings",
     "description": "Download the complete contest file including contest information, all problems, and their descriptions as a PDF-ready package.",
     "fileFormat": "File Format",
     "markdown": "Markdown (.md)",

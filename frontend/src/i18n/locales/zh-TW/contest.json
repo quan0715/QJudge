@@ -251,7 +251,8 @@
     "descriptionPaper": "下載包含逐題作答、得分與 TA 評語的 PDF 報告",
     "descriptionCoding": "下載包含解題統計、程式碼和趨勢圖的 PDF 報告",
     "download": "下載報告",
-    "preparing": "產生中..."
+    "preparing": "產生中...",
+    "language": "報告語言"
   },
   "delete": {
     "title": "刪除競賽",
@@ -407,6 +408,9 @@
   "download": {
     "title": "下載競賽檔案",
     "downloadBtn": "下載",
+    "exportType": "匯出類型",
+    "selectExportType": "先選擇要匯出的檔案類型",
+    "settings": "匯出設定",
     "description": "下載完整的競賽檔案，包含競賽資訊、所有題目和說明，可匯出為 PDF 格式。",
     "fileFormat": "檔案格式",
     "markdown": "Markdown (.md)",

@@ -392,7 +392,7 @@ class PaperExamReportRenderer(BaseRenderer):
                 elif is_correct:
                     css_classes.append('option-correct')
             elif is_selected:
-                css_classes.append('option-correct-selected')
+                css_classes.append('option-selected')
 
             cls_str = ' '.join(css_classes)
 
