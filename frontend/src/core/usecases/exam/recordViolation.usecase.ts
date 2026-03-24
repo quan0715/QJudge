@@ -78,14 +78,14 @@ export async function recordViolationUseCase(
       isLocked: false,
       bypass: false,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
       violationCount: 0,
       maxWarnings: 0,
       isLocked: false,
       bypass: false,
-      error: error?.message || "Failed to record violation",
+      error: error instanceof Error ? error.message : "Failed to record violation",
     };
   }
 }

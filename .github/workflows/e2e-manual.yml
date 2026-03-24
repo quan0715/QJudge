@@ -18,6 +18,9 @@ concurrency:
   group: e2e-manual-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   e2e:
     name: Run E2E Tests
