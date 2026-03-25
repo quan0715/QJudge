@@ -37,10 +37,18 @@ class ClassroomMemberSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ClassroomMember
-        fields = ['user_id', 'username', 'email', 'role', 'joined_at']
+        fields = ['user_id', 'username', 'email', 'avatar_url', 'role', 'joined_at']
+
+    def get_avatar_url(self, obj):
+        try:
+            profile = obj.user.profile
+        except User.profile.RelatedObjectDoesNotExist:
+            return ''
+        return profile.avatar_url or ''
 
 
 class BoundContestSerializer(serializers.ModelSerializer):

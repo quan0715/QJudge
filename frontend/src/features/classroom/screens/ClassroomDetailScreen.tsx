@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Button,
+  Search,
+  Select,
+  SelectItem,
   Tag,
   Modal,
   ClickableTile,
@@ -96,13 +99,15 @@ const ClassroomDetailScreen: React.FC = () => {
     classroom?.currentUserRole === "admin" || classroom?.currentUserRole === "teacher";
   const isMember = Boolean(classroom?.currentUserRole);
 
-  const availablePanels = useMemo<ClassroomAdminPanelId[]>(
-    () =>
-      isPrivileged
-        ? ["overview", "announcements", "contests", "members", "settings"]
-        : ["overview", "announcements", "contests"],
-    [isPrivileged],
-  );
+  const availablePanels = useMemo<ClassroomAdminPanelId[]>(() => {
+    if (isPrivileged) {
+      return ["overview", "announcements", "contests", "members", "settings"];
+    }
+    if (isMember) {
+      return ["overview", "announcements", "contests", "members"];
+    }
+    return ["overview"];
+  }, [isMember, isPrivileged]);
 
   const activePanel = useMemo(
     () => resolveActivePanel(searchParams.get("panel"), availablePanels),
@@ -692,6 +697,31 @@ const MembersPanel: React.FC<{
   onUpdateMemberRole,
 }) => {
   const { t } = useTranslation();
+  const [keyword, setKeyword] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "ta">("all");
+  const studentCount = useMemo(
+    () => classroom.members.filter((member) => member.role === "student").length,
+    [classroom.members],
+  );
+  const taCount = useMemo(
+    () => classroom.members.filter((member) => member.role === "ta").length,
+    [classroom.members],
+  );
+
+  const filteredMembers = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return classroom.members.filter((member) => {
+      const roleMatch = roleFilter === "all" || member.role === roleFilter;
+      if (!roleMatch) return false;
+      if (!normalizedKeyword) return true;
+      return (
+        member.username.toLowerCase().includes(normalizedKeyword) ||
+        member.email.toLowerCase().includes(normalizedKeyword)
+      );
+    });
+  }, [classroom.members, keyword, roleFilter]);
+
+  const hasFilter = keyword.trim().length > 0 || roleFilter !== "all";
   return (
     <>
       {isPrivileged && classroom.inviteCode && (
@@ -716,12 +746,67 @@ const MembersPanel: React.FC<{
             </Button>
           )}
         </div>
-        <MemberTable
-          members={classroom.members}
-          isPrivileged={isPrivileged}
-          onRemove={onRemoveMember}
-          onRoleChange={onUpdateMemberRole}
-        />
+        <div className="classroom-admin-members-summary">
+          <Tag type="teal">{t("classroom.memberTotal", "全部 {{count}} 位", { count: classroom.members.length })}</Tag>
+          <Tag type="cool-gray">{t("classroom.memberStudent", "成員 {{count}} 位", { count: studentCount })}</Tag>
+          <Tag type="purple">{t("classroom.memberTa", "TA {{count}} 位", { count: taCount })}</Tag>
+        </div>
+        <div className="classroom-admin-members-toolbar">
+          <Search
+            id="classroom-member-search"
+            labelText={t("classroom.memberSearch", "搜尋成員")}
+            placeholder={t("classroom.memberSearchPlaceholder", "搜尋 username 或 email")}
+            size="md"
+            value={keyword}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setKeyword(event.target.value)}
+            className="classroom-admin-members-toolbar__search"
+          />
+          <Select
+            id="classroom-member-role-filter"
+            labelText={t("classroom.memberRoleFilter", "角色篩選")}
+            hideLabel
+            value={roleFilter}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+              setRoleFilter(event.target.value as "all" | "student" | "ta")
+            }
+            size="md"
+            className="classroom-admin-members-toolbar__select"
+          >
+            <SelectItem value="all" text={t("classroom.memberRoleAll", "全部角色")} />
+            <SelectItem value="student" text={t("common:user.role.student", "成員")} />
+            <SelectItem value="ta" text={t("common:user.role.ta", "TA")} />
+          </Select>
+          <div className="classroom-admin-members-toolbar__meta">
+            <span>
+              {t("classroom.memberFilteredCount", "顯示 {{count}} / {{total}} 位", {
+                count: filteredMembers.length,
+                total: classroom.members.length,
+              })}
+            </span>
+            {hasFilter && (
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={() => {
+                  setKeyword("");
+                  setRoleFilter("all");
+                }}
+              >
+                {t("common.clearFilter", "清除篩選")}
+              </Button>
+            )}
+          </div>
+        </div>
+        {filteredMembers.length === 0 ? (
+          <EmptyBlock icon={UserMultiple} message={t("classroom.memberNoResult", "找不到符合篩選條件的成員")} compact />
+        ) : (
+          <MemberTable
+            members={filteredMembers}
+            isPrivileged={isPrivileged}
+            onRemove={onRemoveMember}
+            onRoleChange={onUpdateMemberRole}
+          />
+        )}
       </section>
     </>
   );
@@ -788,7 +873,6 @@ const SettingsPanel: React.FC<{
       await updateClassroom(classroom.id, { cover_url: url });
       setCoverPreview(url);
       setCoverUrlInput("");
-      setShowCoverUrlField(false);
       showToast({ kind: "success", title: t("classroom.coverUploaded", "封面圖片已更新") });
       await onRefresh();
     } catch (error) {

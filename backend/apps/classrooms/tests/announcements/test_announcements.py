@@ -63,19 +63,19 @@ def announcement(classroom: Classroom, owner: User) -> ClassroomAnnouncement:
     )
 
 
-def url_list(classroom_id: int) -> str:
+def url_list(classroom_id: str) -> str:
     return f"/api/v1/classrooms/{classroom_id}/announcements/"
 
 
-def url_create(classroom_id: int) -> str:
+def url_create(classroom_id: str) -> str:
     return f"/api/v1/classrooms/{classroom_id}/announcements/create/"
 
 
-def url_update(classroom_id: int, ann_id: int) -> str:
+def url_update(classroom_id: str, ann_id: int) -> str:
     return f"/api/v1/classrooms/{classroom_id}/announcements/{ann_id}/"
 
 
-def url_delete(classroom_id: int, ann_id: int) -> str:
+def url_delete(classroom_id: str, ann_id: int) -> str:
     return f"/api/v1/classrooms/{classroom_id}/announcements/{ann_id}/delete/"
 
 
@@ -89,7 +89,7 @@ class TestListAnnouncements:
         announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=student)
-        resp = api_client.get(url_list(classroom.id))
+        resp = api_client.get(url_list(str(classroom.uuid)))
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data) == 1
         assert resp.data[0]["title"] == "Test Announcement"
@@ -100,7 +100,7 @@ class TestListAnnouncements:
         owner: User, announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=owner)
-        resp = api_client.get(url_list(classroom.id))
+        resp = api_client.get(url_list(str(classroom.uuid)))
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data) == 1
 
@@ -109,14 +109,14 @@ class TestListAnnouncements:
         outsider: User, announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=outsider)
-        resp = api_client.get(url_list(classroom.id))
+        resp = api_client.get(url_list(str(classroom.uuid)))
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_unauthenticated_cannot_list(
         self, api_client: APIClient, classroom: Classroom,
         announcement: ClassroomAnnouncement,
     ) -> None:
-        resp = api_client.get(url_list(classroom.id))
+        resp = api_client.get(url_list(str(classroom.uuid)))
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_pinned_first_ordering(
@@ -128,7 +128,7 @@ class TestListAnnouncements:
             is_pinned=True, created_by=owner,
         )
         api_client.force_authenticate(user=owner)
-        resp = api_client.get(url_list(classroom.id))
+        resp = api_client.get(url_list(str(classroom.uuid)))
         assert resp.data[0]["id"] == pinned.id
         assert resp.data[1]["id"] == announcement.id
 
@@ -142,7 +142,7 @@ class TestCreateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.post(
-            url_create(classroom.id),
+            url_create(str(classroom.uuid)),
             {"title": "New", "content": "Body", "is_pinned": True},
             format="json",
         )
@@ -157,7 +157,7 @@ class TestCreateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=student)
         resp = api_client.post(
-            url_create(classroom.id),
+            url_create(str(classroom.uuid)),
             {"title": "Nope", "content": "x"},
             format="json",
         )
@@ -168,7 +168,7 @@ class TestCreateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=outsider)
         resp = api_client.post(
-            url_create(classroom.id),
+            url_create(str(classroom.uuid)),
             {"title": "Nope", "content": "x"},
             format="json",
         )
@@ -179,7 +179,7 @@ class TestCreateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.post(
-            url_create(classroom.id),
+            url_create(str(classroom.uuid)),
             {"content": "no title"},
             format="json",
         )
@@ -196,7 +196,7 @@ class TestUpdateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.patch(
-            url_update(classroom.id, announcement.id),
+            url_update(str(classroom.uuid), announcement.id),
             {"title": "Updated Title"},
             format="json",
         )
@@ -210,7 +210,7 @@ class TestUpdateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=student)
         resp = api_client.patch(
-            url_update(classroom.id, announcement.id),
+            url_update(str(classroom.uuid), announcement.id),
             {"content": "student edited"},
             format="json",
         )
@@ -223,7 +223,7 @@ class TestUpdateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=outsider)
         resp = api_client.patch(
-            url_update(classroom.id, announcement.id),
+            url_update(str(classroom.uuid), announcement.id),
             {"title": "Hack"},
             format="json",
         )
@@ -235,7 +235,7 @@ class TestUpdateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.patch(
-            url_update(classroom.id, announcement.id),
+            url_update(str(classroom.uuid), announcement.id),
             {"is_pinned": True},
             format="json",
         )
@@ -248,7 +248,7 @@ class TestUpdateAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.patch(
-            url_update(classroom.id, 99999),
+            url_update(str(classroom.uuid), 99999),
             {"title": "x"},
             format="json",
         )
@@ -264,7 +264,7 @@ class TestDeleteAnnouncement:
         owner: User, announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=owner)
-        resp = api_client.delete(url_delete(classroom.id, announcement.id))
+        resp = api_client.delete(url_delete(str(classroom.uuid), announcement.id))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert not ClassroomAnnouncement.objects.filter(pk=announcement.id).exists()
 
@@ -274,7 +274,7 @@ class TestDeleteAnnouncement:
         announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=student)
-        resp = api_client.delete(url_delete(classroom.id, announcement.id))
+        resp = api_client.delete(url_delete(str(classroom.uuid), announcement.id))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
 
     def test_outsider_cannot_delete(
@@ -282,14 +282,14 @@ class TestDeleteAnnouncement:
         outsider: User, announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=outsider)
-        resp = api_client.delete(url_delete(classroom.id, announcement.id))
+        resp = api_client.delete(url_delete(str(classroom.uuid), announcement.id))
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_nonexistent_returns_404(
         self, api_client: APIClient, classroom: Classroom, owner: User,
     ) -> None:
         api_client.force_authenticate(user=owner)
-        resp = api_client.delete(url_delete(classroom.id, 99999))
+        resp = api_client.delete(url_delete(str(classroom.uuid), 99999))
         assert resp.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -302,7 +302,7 @@ class TestDetailIncludesAnnouncements:
         owner: User, announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=owner)
-        resp = api_client.get(f"/api/v1/classrooms/{classroom.id}/")
+        resp = api_client.get(f"/api/v1/classrooms/{classroom.uuid}/")
         assert resp.status_code == status.HTTP_200_OK
         assert "announcements" in resp.data
         assert len(resp.data["announcements"]) == 1
@@ -312,5 +312,5 @@ class TestDetailIncludesAnnouncements:
         self, api_client: APIClient, classroom: Classroom, owner: User,
     ) -> None:
         api_client.force_authenticate(user=owner)
-        resp = api_client.get(f"/api/v1/classrooms/{classroom.id}/")
+        resp = api_client.get(f"/api/v1/classrooms/{classroom.uuid}/")
         assert resp.data["announcements"] == []

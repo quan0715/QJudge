@@ -159,6 +159,39 @@
   }
 }
 
+.classroom-admin-members-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) layout.rem(180px) auto;
+  align-items: end;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-04;
+}
+
+.classroom-admin-members-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+  margin-bottom: layout.$spacing-03;
+}
+
+.classroom-admin-members-toolbar__search {
+  min-width: 0;
+}
+
+.classroom-admin-members-toolbar__select {
+  min-width: layout.rem(160px);
+}
+
+.classroom-admin-members-toolbar__meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+  white-space: nowrap;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
 .classroom-admin-announcement-list {
   display: grid;
   gap: layout.$spacing-02;
@@ -514,6 +547,24 @@
 
   .classroom-admin-todo-list {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .classroom-admin-members-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .classroom-admin-members-summary {
+    margin-bottom: layout.$spacing-02;
+  }
+
+  .classroom-admin-members-toolbar__select {
+    min-width: 0;
+  }
+
+  .classroom-admin-members-toolbar__meta {
+    justify-content: space-between;
+    white-space: normal;
   }
 
   .classroom-admin-section {

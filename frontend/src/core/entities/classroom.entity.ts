@@ -15,6 +15,7 @@ export interface ClassroomMember {
   userId: number;
   username: string;
   email: string;
+  avatarUrl?: string;
   role: "student" | "ta";
   joinedAt: string;
 }

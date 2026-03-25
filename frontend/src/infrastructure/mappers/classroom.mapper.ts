@@ -26,6 +26,7 @@ export function mapClassroomMemberDto(dto: any): ClassroomMember {
     userId: dto.user_id,
     username: dto.username || "",
     email: dto.email || "",
+    avatarUrl: dto.avatar_url || "",
     role: dto.role || "student",
     joinedAt: dto.joined_at || "",
   };

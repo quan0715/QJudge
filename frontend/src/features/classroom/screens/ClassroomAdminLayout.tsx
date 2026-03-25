@@ -3,13 +3,13 @@ import { HeaderGlobalAction, HeaderName } from "@carbon/react";
 import {
   Dashboard,
   Bullhorn,
-  Task,
   Trophy,
   UserMultiple,
   Settings,
-  Launch,
   Renew,
-  Switcher,
+  ChevronDown,
+  Menu,
+  Close,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
@@ -19,7 +19,6 @@ import styles from "./ClassroomAdminLayout.module.scss";
 export type ClassroomAdminPanelId =
   | "overview"
   | "announcements"
-  | "practice"
   | "contests"
   | "members"
   | "settings";
@@ -38,7 +37,6 @@ interface ClassroomAdminLayoutProps {
   onClassroomSwitch: (classroomId: string) => void;
   onPanelChange: (panel: ClassroomAdminPanelId) => void;
   onGoHome: () => void;
-  onBack: () => void;
   onRefresh: () => void;
   children: ReactNode;
 }
@@ -49,7 +47,6 @@ const NAV_ITEMS: Record<
 > = {
   overview: { icon: Dashboard, labelKey: "tab.overview", fallback: "Overview" },
   announcements: { icon: Bullhorn, labelKey: "announcements", fallback: "Announcements" },
-  practice: { icon: Task, labelKey: "practice", fallback: "Practice" },
   contests: { icon: Trophy, labelKey: "contests", fallback: "Contests" },
   members: { icon: UserMultiple, labelKey: "members", fallback: "Members" },
   settings: { icon: Settings, labelKey: "tab.settings", fallback: "Settings" },
@@ -64,12 +61,12 @@ const ClassroomAdminLayout = ({
   onClassroomSwitch,
   onPanelChange,
   onGoHome,
-  onBack,
   onRefresh,
   children,
 }: ClassroomAdminLayoutProps) => {
   const { t } = useTranslation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const switcherHostRef = useRef<HTMLDivElement | null>(null);
 
   const selectedClassroom =
@@ -136,10 +133,13 @@ const ClassroomAdminLayout = ({
                 aria-label={t("classroom.switchClassroom", "Switch classroom")}
                 onClick={() => setSwitcherOpen((open) => !open)}
               >
+                <span className={styles.classroomTriggerLabel}>
+                  {t("classroom.current", "目前教室")}
+                </span>
                 <span className={styles.classroomTriggerName}>
                   {selectedClassroom?.name ?? classroomName}
                 </span>
-                <Switcher size={16} className={styles.classroomTriggerIcon} />
+                <ChevronDown size={16} className={styles.classroomTriggerIcon} />
               </button>
 
               <div
@@ -179,24 +179,28 @@ const ClassroomAdminLayout = ({
       headerActions={
         <>
           <HeaderGlobalAction
+            aria-label={
+              navCollapsed
+                ? t("classroom.expandSideNav", "展開側邊導覽")
+                : t("classroom.collapseSideNav", "收合側邊導覽")
+            }
+            tooltipAlignment="end"
+            onClick={() => setNavCollapsed((prev) => !prev)}
+          >
+            {navCollapsed ? <Menu size={20} /> : <Close size={20} />}
+          </HeaderGlobalAction>
+          <HeaderGlobalAction
             aria-label={t("common.refresh", "重新整理")}
             tooltipAlignment="end"
             onClick={onRefresh}
           >
             <Renew size={20} />
           </HeaderGlobalAction>
-          <HeaderGlobalAction
-            aria-label={t("common.backToClassrooms", "返回教室列表")}
-            tooltipAlignment="end"
-            onClick={onBack}
-          >
-            <Launch size={20} />
-          </HeaderGlobalAction>
           <UserMenu />
         </>
       }
       sideNavAriaLabel={t("classroom.title", "教室管理")}
-      sideNavMode={{ variant: "expanded", width: "16rem" }}
+      sideNavMode={navCollapsed ? { variant: "rail" } : { variant: "expanded", width: "16rem" }}
       headerZIndex={9500}
       className={styles.shell}
       contentClassName={styles.contentViewport}
