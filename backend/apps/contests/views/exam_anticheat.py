@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.conf import settings
+from django.core.cache import cache
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -38,6 +39,11 @@ from .activity import ContestActivityViewSet
 from apps.core.throttles import ExamAnticheatUrlsThrottle
 from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 
+# anticheat_urls is called every ~5 s per student.  Cache the two DB reads
+# (Contest + ContestParticipant) in Redis so Postgres stays idle on this path.
+_ANTICHEAT_CONTEST_TTL = 60        # seconds – contest settings are stable mid-exam
+_ANTICHEAT_PARTICIPANT_TTL = 15    # seconds – short enough to detect submission
+
 
 class ExamAnticheatMixin:
     """Mixin for anticheat URL generation, active sessions, and takeover."""
@@ -70,15 +76,30 @@ class ExamAnticheatMixin:
         throttle_classes=[ExamAnticheatUrlsThrottle],
     )
     def anticheat_urls(self, request, contest_pk=None):
-        contest = get_object_or_404(Contest, id=contest_pk)
-        participant, error_response = validate_exam_operation(
-            contest, request.user, require_in_progress=False
-        )
-        if error_response:
-            return error_response
+        # --- Contest (cached) ---------------------------------------------------
+        contest_cache_key = f"anticheat:contest:{contest_pk}"
+        contest = cache.get(contest_cache_key)
+        if contest is None:
+            contest = get_object_or_404(Contest, id=contest_pk)
+            cache.set(contest_cache_key, contest, _ANTICHEAT_CONTEST_TTL)
+
+        # --- Participant validation (cached) ------------------------------------
+        # validate_exam_operation does a ContestParticipant DB lookup on every
+        # call.  Cache the result to eliminate that query on the hot polling path.
+        participant_cache_key = f"anticheat:participant:{contest_pk}:{request.user.id}"
+        participant = cache.get(participant_cache_key)
         if participant is None:
-            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+            participant, error_response = validate_exam_operation(
+                contest, request.user, require_in_progress=False
+            )
+            if error_response:
+                return error_response
+            if participant is None:
+                return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+            cache.set(participant_cache_key, participant, _ANTICHEAT_PARTICIPANT_TTL)
         if participant.exam_status not in self.MONITORED_STATUSES:
+            # Evict stale cache so the next request re-reads from DB.
+            cache.delete(participant_cache_key)
             return Response(
                 {'error': f'Cannot issue anticheat upload URLs in status: {participant.exam_status}'},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -15,6 +15,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: oj_postgres_dev
+    command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
       POSTGRES_DB: ${DB_NAME:-online_judge}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -31,6 +32,40 @@ services:
         [
           "CMD-SHELL",
           "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PgBouncer – connection pooler (session mode, compatible with SELECT FOR UPDATE)
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    container_name: oj_pgbouncer_dev
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: ${DB_NAME:-online_judge}
+      POSTGRESQL_USERNAME: ${DB_USER:-postgres}
+      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-postgres}
+      PGBOUNCER_PORT: "6432"
+      PGBOUNCER_POOL_MODE: session
+      PGBOUNCER_MAX_CLIENT_CONN: "200"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "20"
+      PGBOUNCER_SERVER_IDLE_TIMEOUT: "600"
+      PGBOUNCER_CLIENT_IDLE_TIMEOUT: "0"
+      PGBOUNCER_SERVER_RESET_QUERY: "DISCARD ALL"
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - oj_network_dev
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 6432 -U ${DB_USER:-postgres}",
         ]
       interval: 10s
       timeout: 5s
@@ -118,6 +153,8 @@ services:
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
@@ -130,6 +167,8 @@ services:
       judge-image:
         condition: service_started
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -152,6 +191,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -162,6 +203,8 @@ services:
       judge-image:
         condition: service_started
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -182,6 +225,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -190,6 +235,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -207,8 +254,13 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    environment:
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy

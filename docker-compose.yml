@@ -4,6 +4,10 @@ services:
     image: postgres:15-alpine
     container_name: oj_postgres
     restart: always
+    # Raise max_connections so pgBouncer's server pool never hits the hard cap.
+    # With pool_size=30 pgBouncer never needs more than ~50 server connections;
+    # 200 gives headroom for migrations, admin tools, and monitoring.
+    command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
       POSTGRES_DB: ${DB_NAME:-online_judge}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -20,6 +24,49 @@ services:
         [
           "CMD-SHELL",
           "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PgBouncer – connection pooler in front of Postgres.
+  # Session mode: fully compatible with SELECT FOR UPDATE and transaction.atomic.
+  # With CONN_MAX_AGE=0 in Django, each request borrows a server connection from
+  # this pool and returns it immediately after the response, so Postgres never
+  # accumulates idle connections from idle Django threads.
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    container_name: oj_pgbouncer
+    restart: always
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: ${DB_NAME:-online_judge}
+      POSTGRESQL_USERNAME: ${DB_USER:-postgres}
+      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-postgres}
+      PGBOUNCER_PORT: "6432"
+      PGBOUNCER_POOL_MODE: session
+      # Accept up to 500 simultaneous client connections (Django threads + Celery).
+      PGBOUNCER_MAX_CLIENT_CONN: "500"
+      # Keep at most 30 real server connections to Postgres per database/user pair.
+      PGBOUNCER_DEFAULT_POOL_SIZE: "30"
+      # Release idle server connections after 10 minutes.
+      PGBOUNCER_SERVER_IDLE_TIMEOUT: "600"
+      # Never forcibly disconnect idle clients (Django manages its own lifecycle).
+      PGBOUNCER_CLIENT_IDLE_TIMEOUT: "0"
+      PGBOUNCER_SERVER_RESET_QUERY: "DISCARD ALL"
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - oj_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 6432 -U ${DB_USER:-postgres}",
         ]
       interval: 10s
       timeout: 5s
@@ -112,6 +159,9 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      # Route all Django DB traffic through pgBouncer (overrides .env DB_HOST/PORT).
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
@@ -129,6 +179,8 @@ services:
       - MARKDOWN_IMAGE_PUBLIC_BASE_URL=${MARKDOWN_IMAGE_PUBLIC_BASE_URL:-}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -153,6 +205,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -161,6 +215,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -190,6 +246,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -198,6 +256,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -226,6 +286,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -234,6 +296,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -259,8 +323,12 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy

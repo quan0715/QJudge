@@ -103,20 +103,103 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
 
 // ── Student API ──
 
-/** Submit or update a single answer (auto-save). */
+// ── Exam Answer Draft (localStorage backup) ──────────────────────────────────
+// Persists each answer locally before the network call.  If the server is
+// temporarily unavailable, the draft survives a page reload and auto-save will
+// retry on the next keystroke.
+
+const DRAFT_PREFIX = "qjudge.exam.draft";
+
+export const saveExamAnswerDraft = (
+  contestId: string,
+  questionId: string,
+  answer: Record<string, unknown>
+): void => {
+  try {
+    localStorage.setItem(
+      `${DRAFT_PREFIX}.${contestId}.${questionId}`,
+      JSON.stringify({ answer, ts: Date.now() })
+    );
+  } catch {
+    // localStorage may be unavailable (private browsing quota exceeded, etc.)
+  }
+};
+
+export const getExamAnswerDraft = (
+  contestId: string,
+  questionId: string
+): Record<string, unknown> | null => {
+  try {
+    const raw = localStorage.getItem(
+      `${DRAFT_PREFIX}.${contestId}.${questionId}`
+    );
+    if (!raw) return null;
+    return (JSON.parse(raw) as { answer: Record<string, unknown> }).answer;
+  } catch {
+    return null;
+  }
+};
+
+export const clearExamAnswerDraft = (
+  contestId: string,
+  questionId: string
+): void => {
+  try {
+    localStorage.removeItem(`${DRAFT_PREFIX}.${contestId}.${questionId}`);
+  } catch {}
+};
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Submit or update a single answer (auto-save) with retry on server errors. */
 export const submitExamAnswer = async (
   contestId: string,
   questionId: string,
   answer: Record<string, unknown>
 ): Promise<ExamAnswer> => {
-  const dto = await requestJson<ExamAnswerDto>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam-answers/submit/`, {
-      question_id: Number(questionId),
-      answer,
-    }),
-    "Failed to save answer"
-  );
-  return mapAnswerDto(dto);
+  // Persist locally before hitting the network so no answer is lost on 5xx.
+  saveExamAnswerDraft(contestId, questionId, answer);
+
+  const MAX_ATTEMPTS = 3;
+  let lastError: Error = new Error("Failed to save answer");
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await httpClient.post(
+        `/api/v1/contests/${contestId}/exam-answers/submit/`,
+        { question_id: Number(questionId), answer }
+      );
+
+      if (response.ok) {
+        const dto = (await response.json()) as ExamAnswerDto;
+        // Answer is safely stored on the server – remove the local draft.
+        clearExamAnswerDraft(contestId, questionId);
+        return mapAnswerDto(dto);
+      }
+
+      // Only retry on transient server errors (5xx).
+      if (response.status < 500 || attempt === MAX_ATTEMPTS) {
+        const text = await response.text().catch(() => "");
+        let msg = "Failed to save answer";
+        try {
+          const data = JSON.parse(text);
+          msg =
+            data?.detail || data?.message || data?.error || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+    } catch (err) {
+      if (attempt === MAX_ATTEMPTS) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        break;
+      }
+    }
+
+    // Exponential back-off: 300 ms, 600 ms between retries.
+    await sleep(300 * attempt);
+  }
+
+  throw lastError;
 };
 
 /** Get all answers for the current student. */

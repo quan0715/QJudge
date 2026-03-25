@@ -84,9 +84,13 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
-        # Keep persistent DB connections short in high-concurrency exam traffic
-        # to reduce long-lived idle connection buildup.
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "15")),
+        # With pgBouncer (session mode) as the connection proxy, Django should
+        # release connections immediately after each request (CONN_MAX_AGE=0).
+        # pgBouncer returns the server connection to its pool and reuses it for
+        # the next request, so there is no penalty for closing from Django's side.
+        # Override via DB_CONN_MAX_AGE env var if running without pgBouncer.
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {
             "connect_timeout": 10,
         },
