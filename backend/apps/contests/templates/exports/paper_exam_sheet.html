@@ -23,11 +23,6 @@
       <p>
         <strong>{{ labels.candidate_name }}：</strong>____________________
         <strong>{{ labels.candidate_id }}：</strong>____________________
-        <strong>{{ labels.candidate_class }}：</strong>____________________
-      </p>
-      <p>
-        <strong>{{ labels.exam_time }}：</strong>{{ start_time_str }} ~ {{ end_time_str }}
-        <strong>{{ labels.duration }}：</strong>{{ duration_str }}
       </p>
       <p>
         <strong>{{ labels.total_questions }}：</strong>{{ question_count }}
@@ -35,39 +30,23 @@
       </p>
     </section>
 
-    {% if instructions %}
-    <section class="instructions">
-      <h3>{{ labels.instructions_title }}</h3>
-      <ol>
-        {% for item in instructions %}
-        <li>{{ item }}</li>
-        {% endfor %}
-      </ol>
-    </section>
-    {% endif %}
-
     {% if not questions %}
     <p class="empty-notice">{{ labels.no_questions }}</p>
     {% else %}
     <section class="question-list">
       {% for q in questions %}
       <article class="question-item">
-        <div class="question-row">
-          <div class="question-number">Q{{ q.number }}.</div>
-          <div class="question-content">
-            <div class="question-prompt markdown-content">
-              {{ q.prompt_html|safe }}
-            </div>
-            <div class="question-metadata">
-              （{{ q.score }}{{ labels.points_unit }}, {{ q.type_label }}）
-            </div>
-          </div>
+        <div class="question-headline">
+          <span class="question-number">Q{{ q.number }}.</span>
+          <span class="question-meta-inline">{{ q.score }}{{ labels.points_unit }} · {{ q.type_label }}</span>
+        </div>
+        <div class="question-prompt markdown-content">
+          {{ q.prompt_html|safe }}
         </div>
         {% if q.options %}
         <ul class="question-options">
           {% for opt in q.options %}
           <li>
-            <span class="choice-select">( )</span>
             <span class="choice-letter">{{ opt.letter }}.</span>
             <span class="choice-text">{{ opt.text }}</span>
           </li>

@@ -4,6 +4,7 @@ import type {
   ProblemUpsertPayload,
   Translation,
 } from "@/core/entities/problem.entity";
+import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
 import type { ProblemFormSchema } from "./problemFormSchema";
 
 const getTranslation = (
@@ -150,13 +151,13 @@ export function formSchemaToApiPayload(
       order: tc.order ?? index,
     })),
     language_configs: data.languageConfigs
-      .filter((lc) => lc.isEnabled)
       .map((lc, index) => ({
-        language: lc.language,
+        language: (lc.language || LANGUAGE_OPTIONS[index]?.id || "").trim(),
         template_code: lc.templateCode,
         is_enabled: lc.isEnabled,
         order: lc.order ?? index,
-      })),
+      }))
+      .filter((lc) => lc.is_enabled && Boolean(lc.language)),
     existing_tag_ids: data.existingTagIds,
     new_tag_names: data.newTagNames,
     forbidden_keywords: data.forbiddenKeywords || [],
@@ -193,8 +194,10 @@ export function yamlToApiPayload(yaml: ProblemYAML): ProblemUpsertPayload {
         is_hidden: tc.is_hidden ?? false,
       })) || [],
     language_configs:
-      yaml.language_configs?.map((lc, index) => ({
-        language: lc.language,
+      yaml.language_configs
+        ?.filter((lc) => Boolean(lc.language?.trim()))
+        .map((lc, index) => ({
+        language: lc.language.trim(),
         template_code: lc.template_code,
         is_enabled: lc.is_enabled ?? true,
         order: lc.order ?? index,

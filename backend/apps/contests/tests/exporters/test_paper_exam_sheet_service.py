@@ -1,6 +1,8 @@
 from io import BytesIO
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from apps.contests.models import Contest
 from apps.contests.models import ExamQuestion
@@ -123,6 +125,7 @@ def test_renderer_uses_choice_specific_answer_bar_for_single_choice(paper_exam_c
     assert "□ B" in html
     assert "question-options" in html
     assert "<ol class=\"question-options\"" not in html
+    assert "( )" not in html
 
 
 @pytest.mark.django_db
@@ -182,6 +185,39 @@ def test_renderer_answer_sheet_does_not_render_student_answer_area(paper_exam_co
 
     assert '<div class="choice-answer-bar">' not in html
     assert '<div class="answer-lines">' not in html
+
+
+@pytest.mark.django_db
+def test_renderer_answer_sheet_choice_answer_text_uses_dot_not_parentheses(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="single_choice",
+        prompt="2 + 2 = ?",
+        options=["3", "4", "5"],
+        correct_answer=1,
+        score=5,
+        order=0,
+    )
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest,
+        question_type="multiple_choice",
+        prompt="Choose two",
+        options=["A", "B", "C"],
+        correct_answer=[0, 2],
+        score=5,
+        order=1,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=paper_exam_contest,
+        language="zh-TW",
+        include_answers=True,
+    ).render_html()
+
+    assert "B. 4" in html
+    assert "A. A, C. C" in html
+    assert "(B) 4" not in html
+    assert "(A) A" not in html
 
 
 @pytest.mark.django_db
@@ -271,7 +307,7 @@ def test_renderer_applies_codehilite_to_prompt_markdown(paper_exam_contest):
 
 
 @pytest.mark.django_db
-def test_renderer_instructions_use_contest_rules_when_present(teacher):
+def test_renderer_does_not_render_instructions_section_even_when_rules_exist(teacher):
     contest = Contest.objects.create(
         name="Rules Driven Contest",
         owner=teacher,
@@ -293,9 +329,10 @@ def test_renderer_instructions_use_contest_rules_when_present(teacher):
         include_answers=False,
     ).render_html()
 
-    assert "先寫姓名" in html
-    assert "不可交頭接耳" in html
-    assert "提前離場需交卷" in html
+    assert "先寫姓名" not in html
+    assert "不可交頭接耳" not in html
+    assert "提前離場需交卷" not in html
+    assert "instructions" not in html
     assert "請依題號順序作答，答案務必清楚可辨識。" not in html
 
 
@@ -317,3 +354,33 @@ def test_renderer_does_not_show_generated_time(paper_exam_contest):
 
     assert "產生時間" not in html
     assert "Generated At" not in html
+
+
+@pytest.mark.django_db
+def test_renderer_hides_class_exam_window_and_time_limit_fields(teacher):
+    now = timezone.now()
+    contest = Contest.objects.create(
+        name="Formal Layout Contest",
+        owner=teacher,
+        contest_type="paper_exam",
+        status="published",
+        start_time=now,
+        end_time=now + timedelta(minutes=1800),
+    )
+    ExamQuestion.objects.create(
+        contest=contest,
+        question_type="essay",
+        prompt="Q",
+        score=5,
+        order=0,
+    )
+
+    html = PaperExamSheetRenderer(
+        contest=contest,
+        language="en",
+        include_answers=False,
+    ).render_html()
+
+    assert "Class" not in html
+    assert "Exam Window" not in html
+    assert "Time Limit" not in html

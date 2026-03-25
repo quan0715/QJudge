@@ -50,12 +50,34 @@ class TestCaseSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
+class LanguageConfigListSerializer(serializers.ListSerializer):
+    """Drop malformed placeholder rows (e.g. language='') before child validation."""
+
+    def to_internal_value(self, data):
+        if not isinstance(data, list):
+            return super().to_internal_value(data)
+
+        cleaned = []
+        for item in data:
+            if not isinstance(item, dict):
+                cleaned.append(item)
+                continue
+            language = str(item.get("language") or "").strip()
+            if not language:
+                continue
+            normalized = dict(item)
+            normalized["language"] = language
+            cleaned.append(normalized)
+        return super().to_internal_value(cleaned)
+
+
 class LanguageConfigSerializer(serializers.ModelSerializer):
     """Serializer for language configuration."""
-    
+
     class Meta:
         model = LanguageConfig
         fields = ['id', 'language', 'template_code', 'is_enabled', 'order']
+        list_serializer_class = LanguageConfigListSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):

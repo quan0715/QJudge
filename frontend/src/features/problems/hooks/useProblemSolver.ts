@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { submitSolution, getSubmission } from "@/infrastructure/api/repositories/submission.repository";
 import { testRun } from "@/infrastructure/api/repositories/problem.repository";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -8,6 +8,7 @@ import {
   LANGUAGE_OPTIONS,
   DEFAULT_TEMPLATES,
 } from "@/features/problems/constants/codeTemplates";
+import { getLanguageConfig } from "@/core/config/language.config";
 import type {
   ResultMode,
   ExecutionState,
@@ -47,6 +48,7 @@ interface UseProblemSolverReturn {
   setCode: (code: string) => void;
   language: string;
   setLanguage: (lang: string) => void;
+  languageOptions: Array<{ id: string; label: string }>;
   
   // Test cases
   testCases: TestCaseItem[];
@@ -89,6 +91,16 @@ export function useProblemSolver({
   
   // Language configs (internal use only for template loading)
   const [languageConfigs, setLanguageConfigs] = useState<{ language: string; templateCode: string; isEnabled: boolean }[]>([]);
+  const languageOptions = useMemo(
+    () =>
+      languageConfigs
+        .filter((cfg) => cfg.isEnabled)
+        .map((cfg) => ({
+          id: cfg.language,
+          label: getLanguageConfig(cfg.language).label,
+        })),
+    [languageConfigs]
+  );
 
   // Test cases
   const [testCases, setTestCases] = useState<TestCaseItem[]>([]);
@@ -105,7 +117,14 @@ export function useProblemSolver({
     setError(null);
 
     // Setup language configs
-    let configs = problem.languageConfigs || [];
+    let configs = (problem.languageConfigs || [])
+      .map((cfg) => ({
+        language: String(cfg.language || "").trim(),
+        templateCode: cfg.templateCode || "",
+        isEnabled: cfg.isEnabled !== false,
+      }))
+      .filter((cfg) => Boolean(cfg.language));
+
     if (configs.length === 0) {
       configs = LANGUAGE_OPTIONS.map((opt) => ({
         language: opt.id,
@@ -116,9 +135,9 @@ export function useProblemSolver({
     setLanguageConfigs(configs);
 
     // Load saved code
-    const targetLang = configs.find((c) => c.language === language)
+    const targetLang = configs.find((c) => c.language === language && c.isEnabled)
       ? language
-      : configs.find((c) => c.isEnabled)?.language || "cpp";
+      : configs.find((c) => c.isEnabled)?.language || configs[0]?.language || "cpp";
     
     setLanguage(targetLang);
 
@@ -127,7 +146,7 @@ export function useProblemSolver({
       setCode(savedCode);
     } else {
       const tmpl = configs.find((c) => c.language === targetLang)?.templateCode;
-      setCode(tmpl || "");
+      setCode(tmpl || DEFAULT_TEMPLATES[targetLang] || "");
     }
 
     // Load test cases
@@ -175,13 +194,17 @@ export function useProblemSolver({
   const handleLanguageChange = useCallback(
     (newLang: string) => {
       if (!problem?.id) return;
+      const selected = languageConfigs.find(
+        (cfg) => cfg.language === newLang && cfg.isEnabled
+      );
+      if (!selected) return;
+
       setLanguage(newLang);
       const savedCode = loadCode(problem.id, newLang, contestId);
       if (savedCode) {
         setCode(savedCode);
       } else {
-        const tmpl = languageConfigs.find((c) => c.language === newLang)?.templateCode;
-        setCode(tmpl || "");
+        setCode(selected.templateCode || DEFAULT_TEMPLATES[newLang] || "");
       }
     },
     [problem?.id, languageConfigs, contestId]
@@ -384,6 +407,7 @@ export function useProblemSolver({
     setCode,
     language,
     setLanguage: handleLanguageChange,
+    languageOptions,
     testCases,
     addTestCase,
     updateTestCase,

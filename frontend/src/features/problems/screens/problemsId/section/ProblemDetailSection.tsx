@@ -65,7 +65,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   // -- State: Code & Language --
   const [activeLanguage, setActiveLanguage] = useState<string>(
-    initialLanguage || "python"
+    initialLanguage || "cpp"
   );
   const [code, setCode] = useState<string>(initialCode);
   const [languageConfigs, setLanguageConfigs] = useState<LanguageConfig[]>([]);
@@ -95,7 +95,14 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
     if (!problem) return;
 
     // 1. Language Configs
-    let configs = problem.languageConfigs || [];
+    let configs = (problem.languageConfigs || [])
+      .map((cfg) => ({
+        language: String(cfg.language || "").trim(),
+        templateCode: cfg.templateCode || "",
+        isEnabled: cfg.isEnabled !== false,
+      }))
+      .filter((cfg) => Boolean(cfg.language));
+
     if (configs.length === 0) {
       configs = LANGUAGE_OPTIONS.map((opt) => ({
         language: opt.id,
@@ -107,8 +114,8 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
     // 2. Select Language
     let targetLang = activeLanguage;
-    if (!configs.find((c) => c.language === targetLang)) {
-      targetLang = configs.find((c) => c.isEnabled)?.language || "python";
+    if (!configs.find((c) => c.language === targetLang && c.isEnabled)) {
+      targetLang = configs.find((c) => c.isEnabled)?.language || configs[0]?.language || "cpp";
       setActiveLanguage(targetLang);
     }
 
@@ -121,7 +128,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
         const tmpl = configs.find(
           (c) => c.language === targetLang
         )?.templateCode;
-        setCode(tmpl || "");
+        setCode(tmpl || DEFAULT_TEMPLATES[targetLang] || "");
       }
     }
 
@@ -164,15 +171,17 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   // -- Language Change Handler --
   const handleLanguageChange = (newLang: string) => {
+    const selected = languageConfigs.find(
+      (cfg) => cfg.language === newLang && cfg.isEnabled
+    );
+    if (!selected) return;
+
     setActiveLanguage(newLang);
     const savedCode = localStorage.getItem(getCodeKey(newLang));
     if (savedCode) {
       setCode(savedCode);
     } else {
-      const tmpl = languageConfigs.find(
-        (c) => c.language === newLang
-      )?.templateCode;
-      setCode(tmpl || "");
+      setCode(selected.templateCode || DEFAULT_TEMPLATES[newLang] || "");
     }
   };
 
