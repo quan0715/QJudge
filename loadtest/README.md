@@ -9,18 +9,23 @@
 ## Quick Start
 
 ```bash
-# 停 dev → 啟動壓測環境 → 種子資料 → 跑測試
-docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
-docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml \
-  exec backend-test python manage.py seed_loadtest_data
+# 首次：安裝 Locust
 pip install -r loadtest/requirements.txt
-cd loadtest && locust -f locustfile.py --users 5 --spawn-rate 5 --run-time 2m --headless --host http://localhost:8002
 
-# Paper exam（不含 /submissions/，模擬 auto-save + contest/info fetch）
-cd loadtest && locust -f locust_paper_exam.py --users 50 --spawn-rate 5 --run-time 3m --headless --host http://localhost:8002
+# 一鍵：啟動 + 種子
+./loadtest/run.sh prepare
 
-# Burst（分流入口，避免 class/tag 汙染）
-cd loadtest && locust -f locust_burst_start.py --users 200 --spawn-rate 200 --run-time 30s --headless --host http://localhost:8002
-cd loadtest && locust -f locust_burst_submit.py --users 200 --spawn-rate 200 --run-time 30s --headless --host http://localhost:8002
-cd loadtest && locust -f locust_burst_end.py --users 200 --spawn-rate 200 --run-time 30s --headless --host http://localhost:8002
+# Paper exam（auto-save + contest/info fetch）
+LOCUST_USERS=50 LOCUST_SPAWN_RATE=5 LOCUST_RUN_TIME=3m ./loadtest/run.sh run-paper
+
+# Coding exam（含 /submissions/）
+LT_CONTEST_NAME="Load Test Coding" LOCUST_USERS=50 LOCUST_SPAWN_RATE=5 LOCUST_RUN_TIME=3m ./loadtest/run.sh run-coding
+
+# Burst（start + submit + end）
+LOCUST_USERS=200 LOCUST_SPAWN_RATE=200 LOCUST_RUN_TIME=30s ./loadtest/run.sh run-burst
+
+# 清理
+./loadtest/run.sh down
+# 若要連 volume 一併清掉
+./loadtest/run.sh down-v
 ```
