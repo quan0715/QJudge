@@ -15,10 +15,7 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
 
 
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    """
-    Save user profile when user is saved.
-    """
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
+# NOTE:
+# Do not auto-save profile on every user save.
+# It can overwrite freshly-synced profile fields (e.g. OAuth avatar) with a stale
+# in-memory related object during login/token issuance flow.

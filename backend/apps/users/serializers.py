@@ -1,6 +1,8 @@
 """
 Serializers for user authentication and profile management.
 """
+from urllib.parse import urlparse
+
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -17,6 +19,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'submission_count',
             'accept_rate',
             'display_name',
+            'avatar_url',
             'preferred_language',
             'preferred_theme',
             'editor_font_size',
@@ -208,6 +211,11 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         required=False,
         allow_blank=True
     )
+    avatar_url = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True
+    )
     preferred_language = serializers.CharField(
         max_length=20,
         required=False
@@ -231,6 +239,16 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         valid_languages = ['zh-TW', 'en', 'ja', 'ko']
         if value not in valid_languages:
             raise serializers.ValidationError(f'無效的語言選擇，請選擇: {", ".join(valid_languages)}')
+        return value
+
+    def validate_avatar_url(self, value):
+        if value == "":
+            return value
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"}:
+            raise serializers.ValidationError("頭像連結僅支援 http/https")
+        if not parsed.netloc:
+            raise serializers.ValidationError("頭像連結格式無效")
         return value
 
 

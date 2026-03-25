@@ -166,6 +166,23 @@ class UserProfile(models.Model):
         default='',
         verbose_name='顯示名稱'
     )
+    AVATAR_SOURCE_CHOICES = [
+        ('manual', 'Manual'),
+        ('oauth', 'OAuth'),
+    ]
+    avatar_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        default='',
+        verbose_name='頭像 URL'
+    )
+    avatar_source = models.CharField(
+        max_length=20,
+        choices=AVATAR_SOURCE_CHOICES,
+        default='manual',
+        verbose_name='頭像來源'
+    )
 
     # Preferences
     preferred_language = models.CharField(

@@ -16,6 +16,7 @@ from .views import (
     UserRoleUpdateView,
     UserStatsView,
     UserPreferencesView,
+    UserAvatarUploadView,
     ChangePasswordView,
     ForgotPasswordView,
     ResetPasswordView,
@@ -49,6 +50,7 @@ urlpatterns = [
     path('me', CurrentUserView.as_view(), name='current-user'),
     path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
     path('me/preferences', UserPreferencesView.as_view(), name='user-preferences'),
+    path('me/avatar/upload', UserAvatarUploadView.as_view(), name='user-avatar-upload'),
     
     # Password management
     path('change-password', ChangePasswordView.as_view(), name='change-password'),
