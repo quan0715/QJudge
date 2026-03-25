@@ -20,13 +20,6 @@
   gap: layout.$spacing-04;
 }
 
-.dashboard-classroom__welcome-profile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: layout.$spacing-03;
-}
-
 .dashboard-classroom__section-header h4 {
   margin: 0;
   @include type.type-style("productive-heading-02");

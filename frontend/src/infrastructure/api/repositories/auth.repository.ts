@@ -24,6 +24,7 @@ import type {
   ResetPasswordRequest,
   SetAPIKeyRequest,
   UpdateAccountProfileRequest,
+  UploadAvatarResponse,
   UsageStatsResponse,
 } from "@/core/entities/auth.entity";
 
@@ -187,6 +188,24 @@ export const updateCurrentUserProfile = async (
     httpClient.patch(`${API_BASE}/me`, data),
     "Failed to update profile"
   );
+};
+
+export const uploadUserAvatar = async (file: File): Promise<UploadAvatarResponse> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await httpClient.request("/api/v1/auth/me/avatar/upload", {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      (errorData?.error?.message as string) ||
+        (errorData?.message as string) ||
+        "Failed to upload avatar"
+    );
+  }
+  return response.json();
 };
 
 export const requestPasswordReset = async (

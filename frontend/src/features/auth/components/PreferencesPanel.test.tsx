@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PreferencesPanel } from "./PreferencesPanel";
 
 const updateDisplayNameMock = vi.fn();
+const updateAvatarMock = vi.fn();
+const uploadAvatarMock = vi.fn();
+const removeAvatarMock = vi.fn();
 const updateAccountProfileMock = vi.fn();
 const requestPasswordResetMock = vi.fn();
 const userState = {
@@ -32,7 +35,11 @@ vi.mock("@/features/auth/hooks/useUserPreferences", () => ({
     language: "zh-TW",
     updateLanguage: vi.fn().mockResolvedValue(undefined),
     displayName: "Tester",
+    avatarUrl: "",
     updateDisplayName: updateDisplayNameMock,
+    updateAvatar: updateAvatarMock,
+    uploadAvatar: uploadAvatarMock,
+    removeAvatar: removeAvatarMock,
     updateAccountProfile: updateAccountProfileMock,
     requestPasswordReset: requestPasswordResetMock,
   }),

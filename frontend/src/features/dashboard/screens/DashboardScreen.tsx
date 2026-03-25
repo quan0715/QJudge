@@ -4,12 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
 import { Add, Education, UserMultiple } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
-import { Avatar } from "@/shared/ui/avatar";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { JoinClassroomModal } from "@/features/classroom/components/JoinClassroomModal";
 import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
@@ -41,7 +39,6 @@ const DashboardScreen = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { avatarUrl, displayName } = useUserPreferences();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +46,7 @@ const DashboardScreen = () => {
   const [createOpen, setCreateOpen] = useState(false);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
-  const welcomeName = displayName?.trim() || user?.username || t("common.user", "使用者");
+  const welcomeName = user?.profile?.display_name?.trim() || user?.username || t("common.user", "使用者");
 
   useEffect(() => {
     let cancelled = false;
@@ -218,15 +215,6 @@ const DashboardScreen = () => {
             <PageHeader
               title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
               subtitle={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
-              extra={
-                <div className="dashboard-classroom__welcome-profile">
-                  <Avatar
-                    name={welcomeName}
-                    url={avatarUrl || undefined}
-                    size="md"
-                  />
-                </div>
-              }
               action={
                 <Stack orientation="horizontal" gap={3}>
                   <Button kind="tertiary" onClick={() => setJoinOpen(true)}>

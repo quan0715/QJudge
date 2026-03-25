@@ -9,6 +9,7 @@ import {
 vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
   getUserPreferences: vi.fn(),
   updateUserPreferences: vi.fn(),
+  uploadUserAvatar: vi.fn(),
   changePassword: vi.fn(),
   updateCurrentUserProfile: vi.fn(),
   requestPasswordReset: vi.fn(),

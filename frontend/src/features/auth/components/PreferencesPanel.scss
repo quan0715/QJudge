@@ -65,6 +65,20 @@
     gap: 0.5rem;
   }
 
+  &__avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  &__avatar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
   &__security-actions {
     display: flex;
     gap: 0.75rem;

@@ -2,6 +2,7 @@ export type ThemePreference = "light" | "dark" | "system";
 
 export interface UserPreferences {
   display_name?: string;
+  avatar_url?: string;
   preferred_language: string;
   preferred_theme: ThemePreference;
   editor_font_size: number;
@@ -74,6 +75,7 @@ export interface ResetPasswordRequest {
 
 export interface UpdatePreferencesRequest {
   display_name?: string;
+  avatar_url?: string;
   preferred_language?: string;
   preferred_theme?: ThemePreference;
   editor_font_size?: number;
@@ -94,6 +96,17 @@ export interface ChangePasswordResponse {
 export interface CurrentUserResponse {
   success: boolean;
   data: User;
+  message?: string;
+}
+
+export interface UploadAvatarResponse {
+  success: boolean;
+  data: {
+    avatar_url: string;
+    content_type: string;
+    size: number;
+    alt?: string;
+  };
   message?: string;
 }
 

@@ -9,7 +9,6 @@ import {
 import {
   Login,
   Logout,
-  UserAvatar,
   Password,
   Edit,
   Code,
@@ -26,6 +25,7 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import { updateNickname } from "@/infrastructure/api/repositories";
 import { ThemeSwitch } from "@/shared/ui/config/ThemeSwitch";
 import { LanguageSwitch } from "@/shared/ui/config/LanguageSwitch";
+import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
 
 interface UserMenuProps {
@@ -47,7 +47,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   const { user, logout } = useAuth();
   const { t } = useTranslation("common");
   const { t: tContest } = useTranslation("contest");
-  const { themePreference, updateTheme, language, updateLanguage } =
+  const { themePreference, updateTheme, language, updateLanguage, avatarUrl, displayName } =
     useUserPreferences();
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
@@ -161,14 +161,22 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         isActive={isExpanded}
         onClick={handleToggle}
       >
-        <UserAvatar size={20} />
+        <Avatar
+          name={displayName?.trim() || user.username || user.email || "User"}
+          url={avatarUrl || undefined}
+          size="sm"
+        />
       </HeaderGlobalAction>
 
       <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>
         <div className="user-menu-container">
           {/* User Info */}
           <div className="user-menu-header">
-            <UserAvatar size={20} />
+            <Avatar
+              name={displayName?.trim() || user.username || user.email || "User"}
+              url={avatarUrl || undefined}
+              size="sm"
+            />
             <span className="user-menu-name">
               {user.username || user.email}
             </span>
@@ -296,6 +304,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           <InlineLoading description={tContest("avatar.saving")} />
         )}
       </Modal>
+
     </>
   );
 };

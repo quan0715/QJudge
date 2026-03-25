@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FormGroup, TextInput, Tag, Button, InlineNotification } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/shared/ui/avatar";
 import { ThemeSwitch } from "@/shared/ui/config/ThemeSwitch";
 import { LanguageSwitch } from "@/shared/ui/config/LanguageSwitch";
 import { ChangePasswordModal } from "@/features/auth/components/ChangePasswordModal";
@@ -55,6 +56,10 @@ export const PreferencesPanel: React.FC = () => {
     updateLanguage,
     displayName,
     updateDisplayName,
+    avatarUrl,
+    updateAvatar,
+    uploadAvatar,
+    removeAvatar,
     updateAccountProfile,
     requestPasswordReset,
   } = useUserPreferences();
@@ -65,6 +70,11 @@ export const PreferencesPanel: React.FC = () => {
   const [displayNameSaveState, setDisplayNameSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [avatarInput, setAvatarInput] = useState(avatarUrl);
+  const [avatarSaveState, setAvatarSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [accountSaveState, setAccountSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -79,6 +89,7 @@ export const PreferencesPanel: React.FC = () => {
   const debounceRef = useRef<number | undefined>(undefined);
   const saveStateResetRef = useRef<number | undefined>(undefined);
   const displayNameRequestIdRef = useRef(0);
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setLocalDisplayName(displayName);
@@ -93,6 +104,12 @@ export const PreferencesPanel: React.FC = () => {
     setAccountSaveState("idle");
     setAccountSaveError(null);
   }, [user?.username, user?.email]);
+
+  useEffect(() => {
+    setAvatarInput(avatarUrl);
+    setAvatarSaveState("idle");
+    setAvatarError(null);
+  }, [avatarUrl]);
 
   const loginMethod = getLoginMethod(user?.auth_provider);
   const canEditAccount = loginMethod.canEditAccount;
@@ -217,6 +234,59 @@ export const PreferencesPanel: React.FC = () => {
     }
   };
 
+  const handleAvatarUrlSave = async () => {
+    setAvatarSaveState("saving");
+    setAvatarError(null);
+    try {
+      await updateAvatar(avatarInput.trim());
+      setAvatarSaveState("saved");
+      setTimeout(() => setAvatarSaveState("idle"), 1200);
+    } catch (error) {
+      setAvatarSaveState("error");
+      setAvatarError(
+        error instanceof Error && error.message
+          ? error.message
+          : t("preferences.avatarSaveFailed", "頭像更新失敗，請重試")
+      );
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    setAvatarSaveState("saving");
+    setAvatarError(null);
+    try {
+      const nextUrl = await uploadAvatar(file);
+      setAvatarInput(nextUrl);
+      setAvatarSaveState("saved");
+      setTimeout(() => setAvatarSaveState("idle"), 1200);
+    } catch (error) {
+      setAvatarSaveState("error");
+      setAvatarError(
+        error instanceof Error && error.message
+          ? error.message
+          : t("preferences.avatarUploadFailed", "頭像上傳失敗，請重試")
+      );
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setAvatarSaveState("saving");
+    setAvatarError(null);
+    try {
+      await removeAvatar();
+      setAvatarInput("");
+      setAvatarSaveState("saved");
+      setTimeout(() => setAvatarSaveState("idle"), 1200);
+    } catch (error) {
+      setAvatarSaveState("error");
+      setAvatarError(
+        error instanceof Error && error.message
+          ? error.message
+          : t("preferences.avatarRemoveFailed", "移除頭像失敗，請重試")
+      );
+    }
+  };
+
   useEffect(
     () => () => {
       window.clearTimeout(debounceRef.current);
@@ -235,6 +305,90 @@ export const PreferencesPanel: React.FC = () => {
 
   return (
     <div className="preferences-panel">
+      <div className="preferences-panel__section">
+        <h3 className="preferences-panel__section-title">
+          {t("preferences.avatar", "頭像")}
+        </h3>
+        <p className="preferences-panel__section-description">
+          {t("preferences.avatarDescription", "可上傳圖片或貼上外部圖片網址")}
+        </p>
+        <div className="preferences-panel__avatar-row">
+          <Avatar
+            name={localDisplayName.trim() || user?.username || "User"}
+            url={avatarUrl || undefined}
+            size="lg"
+          />
+          <div className="preferences-panel__avatar-actions">
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              style={{ display: "none" }}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleAvatarUpload(file);
+                }
+                event.target.value = "";
+              }}
+            />
+            <Button
+              kind="secondary"
+              size="sm"
+              disabled={avatarSaveState === "saving"}
+              onClick={() => avatarFileInputRef.current?.click()}
+            >
+              {t("preferences.avatarUpload", "上傳頭像")}
+            </Button>
+            <Button
+              kind="ghost"
+              size="sm"
+              disabled={avatarSaveState === "saving" || !avatarUrl}
+              onClick={handleAvatarRemove}
+            >
+              {t("preferences.avatarRemove", "移除頭像")}
+            </Button>
+          </div>
+        </div>
+        <FormGroup legendText="">
+          <TextInput
+            id="avatar-url"
+            labelText={t("preferences.avatarUrl", "外部圖片網址")}
+            placeholder="https://example.com/avatar.png"
+            value={avatarInput}
+            onChange={(event) => {
+              setAvatarInput(event.target.value);
+              if (avatarSaveState !== "idle") {
+                setAvatarSaveState("idle");
+                setAvatarError(null);
+              }
+            }}
+          />
+          <div className="preferences-panel__account-actions">
+            <Button
+              kind="secondary"
+              size="sm"
+              disabled={avatarSaveState === "saving" || avatarInput.trim() === (avatarUrl || "")}
+              onClick={handleAvatarUrlSave}
+            >
+              {avatarSaveState === "saving"
+                ? t("preferences.accountSaving", "儲存中...")
+                : t("button.save", "Save")}
+            </Button>
+            {avatarSaveState === "saved" ? (
+              <p className="preferences-panel__display-name-status preferences-panel__display-name-status--success">
+                {t("preferences.avatarSaved", "頭像已更新")}
+              </p>
+            ) : null}
+            {avatarSaveState === "error" ? (
+              <p className="preferences-panel__display-name-status preferences-panel__display-name-status--error">
+                {avatarError || t("preferences.avatarSaveFailed", "頭像更新失敗，請重試")}
+              </p>
+            ) : null}
+          </div>
+        </FormGroup>
+      </div>
+
       <div className="preferences-panel__section">
         <h3 className="preferences-panel__section-title">
           {t("preferences.accountInfo")}
