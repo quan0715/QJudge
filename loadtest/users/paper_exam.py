@@ -115,6 +115,7 @@ class PaperExamUser(HttpUser):
         return resp.status_code == 201 or "Already registered" in msg
 
     def _enter_or_register_contest(self) -> bool:
+        need_register = False
         with self.client.post(
             f"/api/v1/contests/{self.contest_id}/enter/",
             name="/api/v1/contests/[id]/enter/",
@@ -126,9 +127,17 @@ class PaperExamUser(HttpUser):
                 return True
             if resp.status_code == 403 and "Not registered" in msg:
                 resp.success()
+                need_register = True
+            elif resp.status_code == 403 and "left the contest and re-entry is not allowed" in msg:
+                # Keep this request out of failure metrics; start endpoint is the real gate.
+                resp.success()
+                return True
             else:
                 resp.failure(f"enter failed: {resp.status_code} {msg}")
                 return False
+
+        if not need_register:
+            return True
 
         if not self._register_contest():
             return False
@@ -160,6 +169,10 @@ class PaperExamUser(HttpUser):
             # Repeated test runs may hit previously-submitted participants.
             # Treat as skipped user instead of polluting failure rate.
             if resp.status_code == 400 and "already finished this exam" in msg.lower():
+                resp.success()
+                self.exam_started = False
+                return
+            if resp.status_code == 409 and "active for this exam session" in msg.lower():
                 resp.success()
                 self.exam_started = False
                 return

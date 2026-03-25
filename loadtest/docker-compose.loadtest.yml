@@ -7,10 +7,11 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.loadtest
       - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
-      - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-http://localhost:9002}
+      - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=http://localhost:9002
       - ANTICHEAT_S3_ACCESS_KEY=minioadmin
       - ANTICHEAT_S3_SECRET_KEY=minioadmin
-      - ANTICHEAT_S3_BUCKET=anticheat
+      - ANTICHEAT_RAW_BUCKET=anticheat-raw
+      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     depends_on:
       minio-test:
         condition: service_started
@@ -22,6 +23,8 @@ services:
       - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
       - ANTICHEAT_S3_ACCESS_KEY=minioadmin
       - ANTICHEAT_S3_SECRET_KEY=minioadmin
+      - ANTICHEAT_RAW_BUCKET=anticheat-raw
+      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     command: celery -A config worker -l info -Q celery,default,high_priority --concurrency=4
     depends_on:
       minio-test:
@@ -54,8 +57,11 @@ services:
       sh -c "
         sleep 3 &&
         mc alias set local http://minio-test:9000 minioadmin minioadmin &&
-        mc mb --ignore-existing local/anticheat &&
-        mc anonymous set download local/anticheat &&
+        mc mb --ignore-existing local/anticheat-raw &&
+        mc mb --ignore-existing local/anticheat-videos &&
+        mc mb --ignore-existing local/markdown-images &&
+        mc anonymous set download local/anticheat-raw &&
+        mc anonymous set download local/anticheat-videos &&
         echo 'MinIO bucket ready'
       "
     networks:
@@ -83,6 +89,8 @@ services:
       - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
       - ANTICHEAT_S3_ACCESS_KEY=minioadmin
       - ANTICHEAT_S3_SECRET_KEY=minioadmin
+      - ANTICHEAT_RAW_BUCKET=anticheat-raw
+      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     depends_on:
       postgres-test:
         condition: service_healthy
