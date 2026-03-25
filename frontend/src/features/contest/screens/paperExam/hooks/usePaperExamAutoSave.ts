@@ -60,8 +60,7 @@ export function usePaperExamAutoSave({
       }
       return Object.keys(restored).length ? { ...prev, ...restored } : prev;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contestId]);
+  }, [contestId, questionIds, setAnswers]);
 
   const handleAnswerChange = useCallback(
     (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
