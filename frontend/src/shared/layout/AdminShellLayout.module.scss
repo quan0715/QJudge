@@ -18,6 +18,7 @@
   height: calc(100vh - 3rem) !important;
   height: calc(100dvh - 3rem) !important;
   border-right: 1px solid var(--cds-border-subtle);
+  transition: width 180ms ease;
 }
 
 .sidenavExpanded {
@@ -36,6 +37,7 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--cds-layer-01);
+  transition: left 180ms ease;
 }
 
 .contentViewport {

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Modal,
   TextInput,
-  Form,
   InlineNotification,
   DatePicker,
   DatePickerInput,
@@ -21,6 +20,7 @@ interface CreateContestModalProps {
 }
 
 type ContestCreationType = "coding_test" | "exam";
+type CreateContestStep = "select_type" | "configure";
 
 const CreateContestModal: React.FC<CreateContestModalProps> = ({
   open,
@@ -36,8 +36,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   const [durationMinutes, setDurationMinutes] = useState("120");
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
-  const [creationType, setCreationType] =
-    useState<ContestCreationType>("coding_test");
+  const [creationType, setCreationType] = useState<ContestCreationType | null>(null);
+  const [step, setStep] = useState<CreateContestStep>("select_type");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,7 +48,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     setDurationMinutes("120");
     setIsPrivate(false);
     setPassword("");
-    setCreationType("coding_test");
+    setCreationType(null);
+    setStep("select_type");
     setError("");
   };
 
@@ -89,9 +90,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       }).format(computedEndDate)
     : t("createModal.endTimePlaceholder");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !startDate) return;
+  const handleSubmit = async () => {
+    if (!creationType || !name || !startDate) return;
 
     const startDateTime = combineDateTime(startDate, startTime);
     const duration = Number.parseInt(durationMinutes, 10);
@@ -145,28 +145,58 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   };
 
   const isValid =
+    !!creationType &&
     !!name.trim() &&
     !!startDate &&
     Number.parseInt(durationMinutes, 10) > 0 &&
     (!isPrivate || !!password.trim());
 
+  const modalHeading =
+    step === "select_type"
+      ? t("createModal.chooseTypeTitle", "選擇建立類型")
+      : creationType === "exam"
+      ? t("createModal.titleExam")
+      : t("createModal.titleCoding");
+
+  const primaryButtonText =
+    step === "select_type"
+      ? tc("button.next", "下一步")
+      : tc("button.create");
+
+  const secondaryButtonText =
+    step === "select_type"
+      ? tc("button.cancel")
+      : tc("button.back", "返回");
+
   return (
     <Modal
       open={open}
       onRequestClose={handleClose}
-      modalHeading={
-        creationType === "exam"
-          ? t("createModal.titleExam")
-          : t("createModal.titleCoding")
-      }
-      primaryButtonText={tc("button.create")}
-      secondaryButtonText={tc("button.cancel")}
-      onRequestSubmit={handleSubmit}
-      onSecondarySubmit={handleClose}
-      primaryButtonDisabled={!isValid || loading}
+      modalHeading={modalHeading}
+      primaryButtonText={primaryButtonText}
+      secondaryButtonText={secondaryButtonText}
+      onRequestSubmit={() => {
+        if (step === "select_type") {
+          if (creationType) {
+            setStep("configure");
+            setError("");
+          }
+          return;
+        }
+        void handleSubmit();
+      }}
+      onSecondarySubmit={() => {
+        if (step === "configure") {
+          setStep("select_type");
+          setError("");
+          return;
+        }
+        handleClose();
+      }}
+      primaryButtonDisabled={step === "select_type" ? !creationType : !isValid || loading}
       size="lg"
     >
-      <Form onSubmit={handleSubmit}>
+      <>
         {error && (
           <InlineNotification
             kind="error"
@@ -178,144 +208,150 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
           />
         )}
 
-        <div className={styles.typeSelector}>
-          <button
-            type="button"
-            onClick={() => setCreationType("coding_test")}
-            className={`${styles.typeOption} ${
-              creationType === "coding_test" ? styles.typeOptionActive : ""
-            }`}
-            aria-pressed={creationType === "coding_test"}
-          >
-            <Code size={24} />
-            <span className={styles.typeTitle}>{t("createModal.typeCoding")}</span>
-            <span className={styles.typeSubtitle}>{t("createModal.typeCodingDesc")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCreationType("exam")}
-            className={`${styles.typeOption} ${
-              creationType === "exam" ? styles.typeOptionActive : ""
-            }`}
-            aria-pressed={creationType === "exam"}
-          >
-            <Education size={24} />
-            <span className={styles.typeTitle}>{t("createModal.typeExam")}</span>
-            <span className={styles.typeSubtitle}>{t("createModal.typeExamDesc")}</span>
-          </button>
-        </div>
+        {step === "select_type" && (
+          <div className={styles.typeSelector}>
+            <button
+              type="button"
+              onClick={() => setCreationType("coding_test")}
+              className={`${styles.typeOption} ${
+                creationType === "coding_test" ? styles.typeOptionActive : ""
+              }`}
+              aria-pressed={creationType === "coding_test"}
+            >
+              <Code size={24} />
+              <span className={styles.typeTitle}>{t("createModal.typeCoding")}</span>
+              <span className={styles.typeSubtitle}>{t("createModal.typeCodingDesc")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationType("exam")}
+              className={`${styles.typeOption} ${
+                creationType === "exam" ? styles.typeOptionActive : ""
+              }`}
+              aria-pressed={creationType === "exam"}
+            >
+              <Education size={24} />
+              <span className={styles.typeTitle}>{t("createModal.typeExam")}</span>
+              <span className={styles.typeSubtitle}>{t("createModal.typeExamDesc")}</span>
+            </button>
+          </div>
+        )}
 
-        <div className={styles.modeDescription}>
-          <strong>{creationType === "exam" ? t("createModal.modeExam") : t("createModal.modeCoding")}</strong>
-          <p>
-            {creationType === "exam"
-              ? t("createModal.descExam")
-              : t("createModal.descCoding")}
-          </p>
-        </div>
-
-        <TextInput
-          id="contest-name"
-          labelText={
-            creationType === "exam" ? t("createModal.nameExam") : t("createModal.nameCoding")
-          }
-          placeholder={t("placeholder.contestName")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className={styles.nameInput}
-        />
-
-        <div className={styles.formGrid}>
-          <div className={styles.timeFieldsRow}>
-            <div className={styles.fieldBlock}>
-              <DatePicker
-                datePickerType="single"
-                onChange={([date]) => setStartDate(date)}
-                value={startDate ? [startDate] : []}
-                className={styles.dateField}
-              >
-                <DatePickerInput
-                  id="start-date"
-                  labelText={tc("form.startDate")}
-                  placeholder="yyyy/mm/dd"
-                />
-              </DatePicker>
+        {step === "configure" && creationType && (
+          <>
+            <div className={styles.modeDescription}>
+              <strong>{creationType === "exam" ? t("createModal.modeExam") : t("createModal.modeCoding")}</strong>
+              <p>
+                {creationType === "exam"
+                  ? t("createModal.descExam")
+                  : t("createModal.descCoding")}
+              </p>
             </div>
-            <div className={styles.fieldBlock}>
-              <TimePicker
-                id="start-time"
-                labelText={tc("form.startTime")}
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className={styles.timeField}
-              />
-            </div>
-            <div className={styles.fieldBlock}>
-              <TextInput
-                id="duration-minutes"
-                labelText={t("createModal.duration")}
-                type="number"
-                min={1}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
-                placeholder="120"
-                required
-              />
-              <div className={styles.quickDuration}>
-                {[60, 90, 120, 180].map((minutes) => (
-                  <button
-                    key={minutes}
-                    type="button"
-                    onClick={() => setDurationMinutes(String(minutes))}
-                    className={`${styles.quickDurationButton} ${
-                      durationMinutes === String(minutes)
-                        ? styles.quickDurationButtonActive
-                        : ""
-                    }`}
+
+            <TextInput
+              id="contest-name"
+              labelText={
+                creationType === "exam" ? t("createModal.nameExam") : t("createModal.nameCoding")
+              }
+              placeholder={t("placeholder.contestName")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={styles.nameInput}
+            />
+
+            <div className={styles.formGrid}>
+              <div className={styles.timeFieldsRow}>
+                <div className={styles.fieldBlock}>
+                  <DatePicker
+                    datePickerType="single"
+                    onChange={([date]) => setStartDate(date)}
+                    value={startDate ? [startDate] : []}
+                    className={styles.dateField}
                   >
-                    {minutes} {t("createModal.durationUnit")}
-                  </button>
-                ))}
+                    <DatePickerInput
+                      id="start-date"
+                      labelText={tc("form.startDate")}
+                      placeholder="yyyy/mm/dd"
+                    />
+                  </DatePicker>
+                </div>
+                <div className={styles.fieldBlock}>
+                  <TimePicker
+                    id="start-time"
+                    labelText={tc("form.startTime")}
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className={styles.timeField}
+                  />
+                </div>
+                <div className={styles.fieldBlock}>
+                  <TextInput
+                    id="duration-minutes"
+                    labelText={t("createModal.duration")}
+                    type="number"
+                    min={1}
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(e.target.value)}
+                    placeholder="120"
+                    required
+                  />
+                  <div className={styles.quickDuration}>
+                    {[60, 90, 120, 180].map((minutes) => (
+                      <button
+                        key={minutes}
+                        type="button"
+                        onClick={() => setDurationMinutes(String(minutes))}
+                        className={`${styles.quickDurationButton} ${
+                          durationMinutes === String(minutes)
+                            ? styles.quickDurationButtonActive
+                            : ""
+                        }`}
+                      >
+                        {minutes} {t("createModal.durationUnit")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className={styles.endTimeHint}>
-          <div className={styles.endTimeHintTitle}>
-            <Calendar size={16} />
-            <span>{t("createModal.endTime")}</span>
-          </div>
-          <div className={styles.endTimeHintValue}>
-            <Time size={16} />
-            <strong>{computedEndText}</strong>
-          </div>
-        </div>
+            <div className={styles.endTimeHint}>
+              <div className={styles.endTimeHintTitle}>
+                <Calendar size={16} />
+                <span>{t("createModal.endTime")}</span>
+              </div>
+              <div className={styles.endTimeHintValue}>
+                <Time size={16} />
+                <strong>{computedEndText}</strong>
+              </div>
+            </div>
 
-        <div className={styles.privacySection}>
-          <Toggle
-            id="contest-private"
-            labelText={t("createModal.private")}
-            toggled={isPrivate}
-            onToggle={(checked: boolean) => setIsPrivate(checked)}
-            labelA={t("createModal.public")}
-            labelB={t("createModal.privateShort")}
-          />
-          {isPrivate && (
-            <TextInput
-              id="contest-password"
-              labelText={t("hero.passwordLabel")}
-              placeholder={t("hero.passwordPlaceholder")}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          )}
-        </div>
+            <div className={styles.privacySection}>
+              <Toggle
+                id="contest-private"
+                labelText={t("createModal.private")}
+                toggled={isPrivate}
+                onToggle={(checked: boolean) => setIsPrivate(checked)}
+                labelA={t("createModal.public")}
+                labelB={t("createModal.privateShort")}
+              />
+              {isPrivate && (
+                <TextInput
+                  id="contest-password"
+                  labelText={t("hero.passwordLabel")}
+                  placeholder={t("hero.passwordPlaceholder")}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              )}
+            </div>
+          </>
+        )}
 
-      </Form>
+      </>
     </Modal>
   );
 };
