@@ -10,6 +10,7 @@ import random
 import time
 import uuid
 import logging
+import os
 
 import requests as raw_requests
 from locust import HttpUser, task, between, events
@@ -40,6 +41,7 @@ class PaperExamUser(HttpUser):
 
     wait_time = between(2, 5)
     weight = 10
+    contest_password = os.getenv("LT_CONTEST_PASSWORD", "")
 
     def on_start(self):
         self.student_idx = _next_student_index()
@@ -64,7 +66,10 @@ class PaperExamUser(HttpUser):
             logger.error("Contest '%s' not found", D.CONTEST_NAME)
             raise StopUser()
 
-        self._enter_contest()
+        entered = self._enter_or_register_contest()
+        if not entered:
+            logger.error("Cannot start paper-exam user %s — contest enter failed", self.email)
+            raise StopUser()
         self._start_exam()
         if self.exam_started:
             self._refresh_exam_context()
@@ -86,19 +91,80 @@ class PaperExamUser(HttpUser):
                     self.contest_id = c["id"]
                     break
 
-    def _enter_contest(self):
-        self.client.post(
+    @staticmethod
+    def _extract_message(resp) -> str:
+        try:
+            payload = resp.json()
+        except Exception:
+            return (resp.text or "").strip()
+        if isinstance(payload, dict):
+            return str(payload.get("message") or payload.get("error") or "").strip()
+        return str(payload).strip()
+
+    def _register_contest(self) -> bool:
+        payload = {}
+        if self.contest_password:
+            payload["password"] = self.contest_password
+        resp = self.client.post(
+            f"/api/v1/contests/{self.contest_id}/register/",
+            json=payload,
+            name="/api/v1/contests/[id]/register/",
+        )
+        msg = self._extract_message(resp)
+        # Already registered is fine for idempotent setup.
+        return resp.status_code == 201 or "Already registered" in msg
+
+    def _enter_or_register_contest(self) -> bool:
+        with self.client.post(
             f"/api/v1/contests/{self.contest_id}/enter/",
             name="/api/v1/contests/[id]/enter/",
-        )
+            catch_response=True,
+        ) as resp:
+            msg = self._extract_message(resp)
+            if resp.status_code == 200:
+                resp.success()
+                return True
+            if resp.status_code == 403 and "Not registered" in msg:
+                resp.success()
+            else:
+                resp.failure(f"enter failed: {resp.status_code} {msg}")
+                return False
+
+        if not self._register_contest():
+            return False
+
+        with self.client.post(
+            f"/api/v1/contests/{self.contest_id}/enter/",
+            name="/api/v1/contests/[id]/enter/",
+            catch_response=True,
+        ) as retry:
+            msg = self._extract_message(retry)
+            if retry.status_code == 200:
+                retry.success()
+                return True
+            retry.failure(f"enter retry failed: {retry.status_code} {msg}")
+            return False
 
     def _start_exam(self):
-        resp = self.client.post(
+        with self.client.post(
             f"/api/v1/contests/{self.contest_id}/exam/start/",
             name="/api/v1/contests/[id]/exam/start/",
-        )
-        if resp.status_code in (200, 201):
-            self.exam_started = True
+            catch_response=True,
+        ) as resp:
+            msg = self._extract_message(resp)
+            if resp.status_code in (200, 201):
+                self.exam_started = True
+                resp.success()
+                return
+
+            # Repeated test runs may hit previously-submitted participants.
+            # Treat as skipped user instead of polluting failure rate.
+            if resp.status_code == 400 and "already finished this exam" in msg.lower():
+                resp.success()
+                self.exam_started = False
+                return
+
+            resp.failure(f"start failed: {resp.status_code} {msg}")
 
     def _refresh_exam_context(self):
         self.client.get(
