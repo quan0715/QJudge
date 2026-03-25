@@ -190,7 +190,8 @@
       "noDeadline": "未設定截止時間",
       "unansweredWarning": "尚有 {{count}} 題未作答",
       "unansweredSubtitle": "建議先返回作答頁補完答案，再進行交卷。",
-      "questionPreview": "第 {{index}} 題"
+      "questionPreview": "第 {{index}} 題",
+      "markedCount": "{{count}} 題待複查"
     },
     "error": {
       "loadQuestionsFailed": "無法載入考卷題目",
@@ -204,7 +205,8 @@
       "questionList": "題目列表",
       "hideList": "隱藏題目列表",
       "showList": "顯示題目列表",
-      "answeredProgress": "已作答 {{answered}} / {{total}}"
+      "answeredProgress": "已作答 {{answered}} / {{total}}",
+      "markedCount": "{{count}} 題已標記"
     },
     "modes": {
       "single": "逐題模式",
@@ -225,6 +227,9 @@
       "essayPlaceholder": "請詳細作答...",
       "promptEmpty": "（尚未填寫題目敘述）",
       "answerLabel": "作答區"
+    },
+    "mark": {
+      "toggle": "標記待複查"
     }
   },
   "scoreboard": {

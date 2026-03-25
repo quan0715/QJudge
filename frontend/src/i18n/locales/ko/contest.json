@@ -240,7 +240,8 @@
       "noDeadline": "마감 시간 설정 안 됨",
       "unansweredWarning": "아직 답하지 않은 문제가 {{count}}개 있습니다",
       "unansweredSubtitle": "제출하기 전에 모든 문제에 답할 것을 권장합니다.",
-      "questionPreview": "제 {{index}}번 문제"
+      "questionPreview": "제 {{index}}번 문제",
+      "markedCount": "{{count}}개 재확인 필요"
     },
     "error": {
       "loadQuestionsFailed": "시험 문제를 불러오지 못했습니다",
@@ -254,7 +255,8 @@
       "questionList": "문항 목록",
       "hideList": "문항 목록 숨기기",
       "showList": "문항 목록 표시",
-      "answeredProgress": "총 {{total}}문항 중 {{answered}}문항 응답함"
+      "answeredProgress": "총 {{total}}문항 중 {{answered}}문항 응답함",
+      "markedCount": "{{count}}개 표시됨"
     },
     "modes": {
       "single": "한 문항씩 보기",
@@ -275,6 +277,9 @@
       "essayPlaceholder": "상세히 답변해 주세요...",
       "promptEmpty": "(문항 내용이 입력되지 않았습니다)",
       "answerLabel": "답안 작성 영역"
+    },
+    "mark": {
+      "toggle": "재확인 표시"
     }
   },
   "scoreboard": {

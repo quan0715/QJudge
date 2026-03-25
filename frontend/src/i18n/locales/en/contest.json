@@ -240,7 +240,8 @@
       "noDeadline": "No deadline set",
       "unansweredWarning": "{{count}} questions left unanswered",
       "unansweredSubtitle": "It is recommended to complete all questions before submitting.",
-      "questionPreview": "Question {{index}}"
+      "questionPreview": "Question {{index}}",
+      "markedCount": "{{count}} marked for review"
     },
     "error": {
       "loadQuestionsFailed": "Failed to load exam questions",
@@ -254,7 +255,8 @@
       "questionList": "Questions",
       "hideList": "Hide question list",
       "showList": "Show question list",
-      "answeredProgress": "{{answered}} / {{total}} answered"
+      "answeredProgress": "{{answered}} / {{total}} answered",
+      "markedCount": "{{count}} marked"
     },
     "modes": {
       "single": "Single Question",
@@ -275,6 +277,9 @@
       "essayPlaceholder": "Please provide a detailed answer...",
       "promptEmpty": "(No question content provided)",
       "answerLabel": "Answer Area"
+    },
+    "mark": {
+      "toggle": "Mark for review"
     }
   },
   "scoreboard": {

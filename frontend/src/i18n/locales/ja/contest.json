@@ -240,7 +240,8 @@
       "noDeadline": "終了時刻未設定",
       "unansweredWarning": "未解答の問題が {{count}} 問あります",
       "unansweredSubtitle": "すべての問題を解答してから提出することをお勧めします。",
-      "questionPreview": "第 {{index}} 問"
+      "questionPreview": "第 {{index}} 問",
+      "markedCount": "{{count}} 問 要再確認"
     },
     "error": {
       "loadQuestionsFailed": "問題の読み込みに失敗しました",
@@ -254,7 +255,8 @@
       "questionList": "問題リスト",
       "hideList": "問題リストを非表示",
       "showList": "問題リストを表示",
-      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み"
+      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み",
+      "markedCount": "{{count}} 問マーク済み"
     },
     "modes": {
       "single": "1問ずつ表示",
@@ -275,6 +277,9 @@
       "essayPlaceholder": "詳細に回答してください...",
       "promptEmpty": "（問題文が未入力です）",
       "answerLabel": "解答欄"
+    },
+    "mark": {
+      "toggle": "要再確認としてマーク"
     }
   },
   "scoreboard": {

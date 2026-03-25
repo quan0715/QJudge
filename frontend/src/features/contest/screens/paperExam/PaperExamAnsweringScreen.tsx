@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   SendFilled,
   CheckmarkFilled,
+  FlagFilled,
 } from "@carbon/icons-react";
 import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import { usePaperExamFlow } from "./usePaperExamFlow";
@@ -20,6 +21,7 @@ import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import {
   useCountdownTo,
+  usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
   hasExamPrecheckPassed,
@@ -44,6 +46,7 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
@@ -63,6 +66,28 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
+  const questionIds = useMemo(
+    () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
+    [items]
+  );
+  const autoSave = usePaperExamAutoSave({
+    contestId,
+    questionIds,
+    setAnswers,
+  });
+
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const toggleMark = useCallback((id: string) => {
+    setMarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
@@ -74,11 +99,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     forceStopCapture,
   } = useExamCapture();
 
-  const { markDirty, saveIfDirty, flushAll, saveStatus } = usePaperExamSaveOnLeave({
+  const { markDirty, saveIfDirty, flushAll, saveStatus: saveOnLeaveStatus } = usePaperExamSaveOnLeave({
     contestId,
     answers,
     items,
   });
+  const saveStatus = autoSave.saveStatus !== "idle" ? autoSave.saveStatus : saveOnLeaveStatus;
 
   const saveStatusLabel = useMemo(() => {
     if (saveStatus === "idle") return "";
@@ -89,11 +115,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown) => {
-      setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
+      autoSave.handleAnswerChange(questionId, value, questionType);
       markDirty(questionId);
     },
-    [setAnswers, markDirty],
+    [autoSave, markDirty],
   );
 
   const handleBlur = useCallback(
@@ -251,15 +277,18 @@ const PaperExamAnsweringScreen: React.FC = () => {
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}
+          isMarked={markedIds.has(item.data.id)}
+          onToggleMark={toggleMark}
         />
       );
     },
-    [answers, handleAnswerChange, handleBlur]
+    [answers, handleAnswerChange, handleBlur, markedIds, toggleMark]
   );
 
   const totalCount = items.length;
   const answeredCount = answeredIds.size;
   const unansweredCount = Math.max(0, totalCount - answeredCount);
+  const markedCount = markedIds.size;
 
   const openSubmitReview = useCallback(async () => {
     await flushAll();
@@ -322,6 +351,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
       <PaperExamCore
         items={items}
         answeredIds={answeredIds}
+        markedIds={markedIds}
+        onToggleMark={toggleMark}
         styles={styles}
         syncIndex={syncIndex}
         renderItem={renderItem}
@@ -389,6 +420,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
             <Tag type={unansweredCount === 0 ? "green" : "red"}>
               {t("answering.submit.stats", { answered: answeredCount, total: totalCount })}
             </Tag>
+            {markedCount > 0 && (
+              <Tag type="warm-gray">
+                <FlagFilled size={12} style={{ marginRight: "4px", verticalAlign: "middle", color: "var(--cds-support-warning)" }} />
+                {t("answering.submit.markedCount", { count: markedCount })}
+              </Tag>
+            )}
             <Tag type="teal">
               {contest?.endTime
                 ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString() })
@@ -417,6 +454,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             {items.map((item, index) => {
               if (item.kind !== "question") return null;
               const done = answeredIds.has(item.data.id);
+              const marked = markedIds.has(item.data.id);
               const prompt = item.data.prompt || "";
               const preview = prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt;
               return (
@@ -426,9 +464,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
                     padding: "0.5rem 0.75rem",
                     borderBottom: "1px solid var(--cds-border-subtle-00)",
                     color: done ? "var(--cds-text-primary)" : "var(--cds-support-error)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
                   }}
                 >
-                  {t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}
+                  {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
+                  <span>{t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}</span>
                 </div>
               );
             })}

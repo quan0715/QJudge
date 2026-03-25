@@ -41,6 +41,7 @@ function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
 interface PaperExamCoreProps {
   items: ExamItem[];
   answeredIds: Set<string>;
+  markedIds?: Set<string>;
   toolbarLeft: React.ReactNode;
   toolbarCenter?: React.ReactNode;
   renderItem: (item: ExamItem, index: number, mode: ExamViewMode) => React.ReactNode;
@@ -52,6 +53,7 @@ interface PaperExamCoreProps {
 export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   items,
   answeredIds,
+  markedIds,
   toolbarLeft,
   toolbarCenter,
   renderItem,
@@ -246,6 +248,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
               items={items}
               activeIndex={effectiveViewMode === "single" ? effectiveActiveIndex : effectiveAllModeActiveIndex}
               answeredIds={answeredIds}
+              markedIds={markedIds}
               onSelect={effectiveViewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
             />
           )}
