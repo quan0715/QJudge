@@ -33,6 +33,13 @@ from .common import (
 logger = logging.getLogger(__name__)
 
 
+def _login_ip_rate(group, request):
+    # Allow loadtest to disable login IP ratelimit to avoid data pollution.
+    if getattr(settings, "LOADTEST_DISABLE_LOGIN_RATELIMIT", False):
+        return None
+    return "10/m"
+
+
 @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True), name="post")
 @method_decorator(csrf_exempt, name="dispatch")
 class RegisterView(SchemaAPIView):
@@ -69,7 +76,7 @@ class RegisterView(SchemaAPIView):
             )
 
 
-@method_decorator(ratelimit(key="ip", rate="10/m", method="POST", block=True), name="post")
+@method_decorator(ratelimit(key="ip", rate=_login_ip_rate, method="POST", block=True), name="post")
 @method_decorator(csrf_exempt, name="dispatch")
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class LoginView(SchemaAPIView):
