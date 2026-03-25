@@ -18,8 +18,9 @@ class ClassroomListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Classroom
         fields = [
-            'id', 'name', 'description', 'owner_username',
-            'member_count', 'is_archived', 'current_user_role', 'created_at',
+            'id', 'uuid', 'name', 'description', 'owner_username',
+            'member_count', 'is_archived', 'current_user_role',
+            'icon', 'cover_url', 'created_at',
         ]
 
     def get_member_count(self, obj):
@@ -43,12 +44,31 @@ class ClassroomMemberSerializer(serializers.ModelSerializer):
 
 
 class BoundContestSerializer(serializers.ModelSerializer):
-    contest_id = serializers.IntegerField(source='contest.id', read_only=True)
+    contest_id = serializers.UUIDField(source='contest.id', read_only=True)
     contest_name = serializers.CharField(source='contest.name', read_only=True)
+    contest_status = serializers.CharField(source='contest.status', read_only=True)
+    contest_visibility = serializers.CharField(source='contest.visibility', read_only=True)
+    contest_start_time = serializers.DateTimeField(source='contest.start_time', read_only=True)
+    contest_end_time = serializers.DateTimeField(source='contest.end_time', read_only=True)
+    contest_owner_username = serializers.CharField(source='contest.owner.username', read_only=True)
+    participant_count = serializers.SerializerMethodField()
 
     class Meta:
         model = ClassroomContest
-        fields = ['contest_id', 'contest_name', 'bound_at']
+        fields = [
+            'contest_id',
+            'contest_name',
+            'contest_status',
+            'contest_visibility',
+            'contest_start_time',
+            'contest_end_time',
+            'contest_owner_username',
+            'participant_count',
+            'bound_at',
+        ]
+
+    def get_participant_count(self, obj):
+        return obj.contest.registrations.count()
 
 
 class ClassroomAnnouncementSerializer(serializers.ModelSerializer):
@@ -88,10 +108,10 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Classroom
         fields = [
-            'id', 'name', 'description', 'owner_username',
+            'id', 'uuid', 'name', 'description', 'owner_username',
             'member_count', 'is_archived', 'invite_code', 'invite_code_enabled',
-            'current_user_role', 'members', 'contests', 'admins',
-            'announcements', 'created_at', 'updated_at',
+            'current_user_role', 'icon', 'cover_url', 'members', 'contests',
+            'admins', 'announcements', 'created_at', 'updated_at',
         ]
 
     def get_member_count(self, obj):
@@ -137,7 +157,7 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
 class ClassroomCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Classroom
-        fields = ['name', 'description', 'invite_code_enabled']
+        fields = ['name', 'description', 'invite_code_enabled', 'icon', 'cover_url']
 
     def create(self, validated_data):
         from .services import generate_invite_code
@@ -166,5 +186,10 @@ class RemoveMemberSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
 
 
+class UpdateMemberRoleSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    role = serializers.ChoiceField(choices=['student', 'ta'])
+
+
 class BindContestSerializer(serializers.Serializer):
-    contest_id = serializers.IntegerField()
+    contest_id = serializers.UUIDField()

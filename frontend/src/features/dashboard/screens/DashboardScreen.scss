@@ -6,126 +6,6 @@
   padding-bottom: layout.$spacing-08;
 }
 
-.dashboard-classroom__shell {
-  display: grid;
-  grid-template-columns: layout.rem(272px) minmax(0, 1fr);
-  gap: layout.$spacing-05;
-  align-items: start;
-}
-
-.dashboard-classroom__sidenav {
-  position: sticky;
-  top: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
-  min-height: calc(100dvh - layout.$spacing-08);
-  display: flex;
-  flex-direction: column;
-  padding: layout.$spacing-05 layout.$spacing-04 layout.$spacing-04;
-}
-
-.dashboard-classroom__sidenav-section {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  padding-bottom: layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle);
-
-  & + & {
-    margin-top: layout.$spacing-05;
-  }
-}
-
-.dashboard-classroom__sidenav-title {
-  margin: 0;
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.dashboard-classroom__quick-list {
-  display: grid;
-  gap: layout.$spacing-02;
-}
-
-.dashboard-classroom__bank-list {
-  display: grid;
-  gap: layout.$spacing-02;
-}
-
-.dashboard-classroom__quick-skeleton {
-  width: 100%;
-  height: layout.rem(48px);
-}
-
-.dashboard-classroom__quick-item {
-  width: 100%;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--cds-text-primary);
-  text-align: left;
-  padding: layout.$spacing-03;
-  display: grid;
-  gap: layout.$spacing-01;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-    border-color: var(--cds-border-subtle-selected);
-  }
-}
-
-.dashboard-classroom__bank-item {
-  @extend .dashboard-classroom__quick-item;
-}
-
-.dashboard-classroom__quick-item-name {
-  @include type.type-style("body-compact-01");
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dashboard-classroom__quick-item-meta {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.dashboard-classroom__quick-empty {
-  display: grid;
-  gap: layout.$spacing-03;
-
-  p {
-    margin: 0;
-    @include type.type-style("label-01");
-    color: var(--cds-text-secondary);
-  }
-}
-
-.dashboard-classroom__bank-empty {
-  @extend .dashboard-classroom__quick-empty;
-}
-
-.dashboard-classroom__sidenav-link {
-  width: 100%;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--cds-text-primary);
-  text-align: left;
-  padding: layout.$spacing-03;
-  @include type.type-style("body-compact-01");
-  cursor: pointer;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-    border-color: var(--cds-border-subtle-selected);
-  }
-}
-
-.dashboard-classroom__sidenav-bottom {
-  margin-top: auto;
-  padding-top: layout.$spacing-05;
-}
-
 .dashboard-classroom__main {
   min-width: 0;
 }
@@ -138,6 +18,13 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-04;
+}
+
+.dashboard-classroom__welcome-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: layout.$spacing-03;
 }
 
 .dashboard-classroom__section-header h4 {
@@ -177,56 +64,15 @@
   padding: layout.$spacing-04;
   position: relative;
   color: #fff;
-}
-
-.dashboard-classroom__card-banner--emerald {
-  background: linear-gradient(135deg, #0f7d4f 0%, #198038 70%, #0e5c45 100%);
-}
-
-.dashboard-classroom__card-banner--indigo {
-  background: linear-gradient(135deg, #2a3f8f 0%, #3a56c4 70%, #1f2d6e 100%);
-}
-
-.dashboard-classroom__card-banner--violet {
-  background: linear-gradient(135deg, #5a3ec8 0%, #7a57f5 70%, #3f2c8f 100%);
-}
-
-.dashboard-classroom__card-banner--orange {
-  background: linear-gradient(135deg, #b8581b 0%, #eb6200 68%, #8a3d0e 100%);
-}
-
-.dashboard-classroom__card-banner--teal {
-  background: linear-gradient(135deg, #006b6b 0%, #007d79 68%, #004144 100%);
-}
-
-.dashboard-classroom__card-banner--slate {
-  background: linear-gradient(135deg, #33414d 0%, #4d6175 68%, #28323b 100%);
-}
-
-.dashboard-classroom__card-role {
-  display: inline-flex;
-  align-items: center;
-  height: layout.rem(20px);
-  padding: 0 layout.$spacing-03;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.14);
-  @include type.type-style("label-01");
-  letter-spacing: 0.01em;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .dashboard-classroom__card-title {
-  margin: layout.$spacing-03 0 0;
+  margin: 0;
   @include type.type-style("heading-03");
   color: #fff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboard-classroom__card-owner {
-  margin: layout.$spacing-02 0 0;
-  @include type.type-style("label-01");
-  color: rgba(255, 255, 255, 0.84);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,11 +87,14 @@
   border-radius: 50%;
   border: 2px solid var(--cds-layer-01);
   background: var(--cds-layer);
-  color: var(--cds-text-primary);
-  @include type.type-style("heading-compact-01");
+  color: var(--cds-icon-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  svg {
+    fill: currentColor;
+  }
 }
 
 .dashboard-classroom__card-body {
@@ -302,15 +151,6 @@
 }
 
 @media (max-width: 900px) {
-  .dashboard-classroom__shell {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-classroom__sidenav {
-    position: static;
-    min-height: auto;
-  }
-
   .dashboard-classroom__empty {
     flex-direction: column;
     align-items: flex-start;

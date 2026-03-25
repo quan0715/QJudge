@@ -6,6 +6,8 @@ export interface Classroom {
   memberCount: number;
   isArchived: boolean;
   currentUserRole: string | null;
+  icon: string;
+  coverUrl: string;
   createdAt: string;
 }
 
@@ -20,6 +22,12 @@ export interface ClassroomMember {
 export interface BoundContest {
   contestId: string;
   contestName: string;
+  contestStatus: "draft" | "published" | "archived";
+  contestVisibility: "public" | "private";
+  contestStartTime: string;
+  contestEndTime: string;
+  contestOwnerUsername: string;
+  participantCount: number;
   boundAt: string;
 }
 

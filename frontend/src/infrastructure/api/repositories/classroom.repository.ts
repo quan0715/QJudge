@@ -48,13 +48,29 @@ export const createClassroom = async (data: {
 
 export const updateClassroom = async (
   id: string,
-  data: { name?: string; description?: string; invite_code_enabled?: boolean }
+  data: { name?: string; description?: string; invite_code_enabled?: boolean; icon?: string; cover_url?: string }
 ): Promise<Classroom> => {
   const responseData = await requestJson<any>(
     httpClient.patch(`/api/v1/classrooms/${id}/`, data),
     "Failed to update classroom"
   );
   return mapClassroomDto(responseData);
+};
+
+export const uploadClassroomCover = async (
+  id: string,
+  file: File
+): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const data = await requestJson<{ cover_url: string }>(
+    httpClient.request(`/api/v1/classrooms/${id}/upload_cover/`, {
+      method: "POST",
+      body: formData,
+    }),
+    "Failed to upload cover image"
+  );
+  return data.cover_url;
 };
 
 export const deleteClassroom = async (id: string): Promise<void> => {
@@ -100,6 +116,20 @@ export const removeMember = async (
   );
 };
 
+export const updateMemberRole = async (
+  classroomId: string,
+  userId: number,
+  role: "student" | "ta"
+): Promise<void> => {
+  await ensureOk(
+    httpClient.post(`/api/v1/classrooms/${classroomId}/update_member_role/`, {
+      user_id: userId,
+      role,
+    }),
+    "Failed to update member role"
+  );
+};
+
 export const regenerateCode = async (
   classroomId: string
 ): Promise<{ invite_code: string }> => {
@@ -115,7 +145,7 @@ export const bindContest = async (
 ): Promise<{ detail: string }> => {
   return requestJson(
     httpClient.post(`/api/v1/classrooms/${classroomId}/bind_contest/`, {
-      contest_id: Number(contestId),
+      contest_id: contestId,
     }),
     "Failed to bind contest"
   );
@@ -127,7 +157,7 @@ export const unbindContest = async (
 ): Promise<void> => {
   await ensureOk(
     httpClient.post(`/api/v1/classrooms/${classroomId}/unbind_contest/`, {
-      contest_id: Number(contestId),
+      contest_id: contestId,
     }),
     "Failed to unbind contest"
   );

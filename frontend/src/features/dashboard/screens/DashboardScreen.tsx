@@ -4,69 +4,62 @@ import { useTranslation } from "react-i18next";
 import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
 import { Add, Education, UserMultiple } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
+import { Avatar } from "@/shared/ui/avatar";
+import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
-import type { QuestionBank } from "@/core/entities/question-bank.entity";
-import { listMine as listMyQuestionBanks } from "@/infrastructure/api/repositories/questionBank.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { JoinClassroomModal } from "@/features/classroom/components/JoinClassroomModal";
 import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
 import "./DashboardScreen.scss";
 
-const CARD_TONES = ["emerald", "indigo", "violet", "orange", "teal", "slate"] as const;
+const CLASSROOM_BANNER_IMAGES = [
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+] as const;
 
-const getTone = (id: string) => {
+const hashValue = (value: string) => {
   let hash = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    hash = (hash << 5) - hash + id.charCodeAt(i);
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
     hash |= 0;
   }
-  return CARD_TONES[Math.abs(hash) % CARD_TONES.length];
+  return Math.abs(hash);
 };
 
-const getRoleLabel = (role?: string | null) => {
-  if (role === "admin") return "Admin";
-  if (role === "teacher") return "Teacher";
-  if (role === "ta") return "TA";
-  return "Student";
-};
-
-const getInitial = (name: string) => {
-  const trimmed = name.trim();
-  if (!trimmed) return "C";
-  return trimmed.charAt(0).toUpperCase();
-};
+const getClassroomBannerImage = (id: string) =>
+  CLASSROOM_BANNER_IMAGES[hashValue(id) % CLASSROOM_BANNER_IMAGES.length];
 
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { user } = useAuth();
+  const { avatarUrl, displayName } = useUserPreferences();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [myQuestionBanks, setMyQuestionBanks] = useState<QuestionBank[]>([]);
   const [loading, setLoading] = useState(true);
-  const [bankLoading, setBankLoading] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
+  const welcomeName = displayName?.trim() || user?.username || t("common.user", "使用者");
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchClassrooms = async () => {
       setLoading(true);
-      setBankLoading(isTeacherOrAdmin);
       try {
-        const [rows, banks] = await Promise.all([
-          getClassrooms(),
-          isTeacherOrAdmin ? listMyQuestionBanks() : Promise.resolve([]),
-        ]);
+        const rows = await getClassrooms();
         if (!cancelled) {
           setClassrooms(rows);
-          setMyQuestionBanks(banks);
         }
       } catch (error) {
         if (!cancelled) {
@@ -82,7 +75,6 @@ const DashboardScreen = () => {
       } finally {
         if (!cancelled) {
           setLoading(false);
-          setBankLoading(false);
         }
       }
     };
@@ -91,7 +83,7 @@ const DashboardScreen = () => {
     return () => {
       cancelled = true;
     };
-  }, [isTeacherOrAdmin, showToast, t]);
+  }, [showToast, t]);
 
   const refreshClassrooms = async () => {
     setLoading(true);
@@ -181,185 +173,85 @@ const DashboardScreen = () => {
 
     return (
       <div className="dashboard-classroom__grid">
-        {items.map((classroom) => (
-          <ClickableTile
-            key={classroom.id}
-            className="dashboard-classroom__card"
-            onClick={() => navigate(`/classrooms/${classroom.id}`)}
-          >
-            <div
-              className={`dashboard-classroom__card-banner dashboard-classroom__card-banner--${getTone(
-                classroom.id
-              )}`}
+        {items.map((classroom) => {
+          const bannerImage = classroom.coverUrl || getClassroomBannerImage(classroom.id);
+          const CardIcon = getClassroomIcon(classroom.icon);
+          return (
+            <ClickableTile
+              key={classroom.id}
+              className="dashboard-classroom__card"
+              onClick={() => navigate(`/classrooms/${classroom.id}`)}
             >
-              <span className="dashboard-classroom__card-role">
-                {getRoleLabel(classroom.currentUserRole)}
-              </span>
-              <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
-              <p className="dashboard-classroom__card-owner">{classroom.ownerUsername}</p>
-              <div className="dashboard-classroom__card-avatar">{getInitial(classroom.name)}</div>
-            </div>
+              <div
+                className="dashboard-classroom__card-banner"
+                style={{
+                  backgroundImage: `linear-gradient(150deg, rgba(9, 30, 66, 0.18) 0%, rgba(6, 16, 36, 0.78) 72%, rgba(6, 16, 36, 0.92) 100%), url(${bannerImage})`,
+                }}
+              >
+                <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
+                <div className="dashboard-classroom__card-avatar">
+                  <CardIcon size={20} />
+                </div>
+              </div>
 
-            <div className="dashboard-classroom__card-body">
-              <p className="dashboard-classroom__card-description">
-                {classroom.description || t("dashboard.classroomHub.noDescription", "尚未設定教室描述")}
-              </p>
-              <p className="dashboard-classroom__card-meta">
-                <UserMultiple size={14} />
-                {classroom.memberCount} {t("classroom.members", "members")}
-              </p>
-            </div>
-          </ClickableTile>
-        ))}
-      </div>
-    );
-  };
-
-  const renderQuickClassroomSwitch = () => {
-    if (loading) {
-      return (
-        <div className="dashboard-classroom__quick-list">
-          {Array.from({ length: 5 }).map((_, idx) => (
-            <SkeletonPlaceholder key={idx} className="dashboard-classroom__quick-skeleton" />
-          ))}
-        </div>
-      );
-    }
-
-    if (orderedClassrooms.length === 0) {
-      return (
-        <div className="dashboard-classroom__quick-empty">
-          <p>{t("dashboard.classroomHub.quickEmpty", "尚無可切換教室")}</p>
-          <Button kind="ghost" onClick={() => setJoinOpen(true)}>
-            {t("classroom.join", "加入教室")}
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="dashboard-classroom__quick-list">
-        {orderedClassrooms.slice(0, 8).map((classroom) => (
-          <button
-            key={classroom.id}
-            type="button"
-            className="dashboard-classroom__quick-item"
-            onClick={() => navigate(`/classrooms/${classroom.id}`)}
-          >
-            <span className="dashboard-classroom__quick-item-name">{classroom.name}</span>
-            <span className="dashboard-classroom__quick-item-meta">
-              {getRoleLabel(classroom.currentUserRole)} · {classroom.memberCount}
-            </span>
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  const renderQuestionBankList = () => {
-    if (bankLoading) {
-      return (
-        <div className="dashboard-classroom__bank-list">
-          {Array.from({ length: 4 }).map((_, idx) => (
-            <SkeletonPlaceholder key={idx} className="dashboard-classroom__quick-skeleton" />
-          ))}
-        </div>
-      );
-    }
-
-    if (myQuestionBanks.length === 0) {
-      return (
-        <div className="dashboard-classroom__bank-empty">
-          <p>{t("questionBank.emptyMine", "尚無題庫")}</p>
-          <Button kind="ghost" onClick={() => navigate("/question-banks")}>
-            {t("questionBank.createFirst", "前往建立題庫")}
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="dashboard-classroom__bank-list">
-        {myQuestionBanks.map((bank) => (
-          <button
-            key={bank.id}
-            type="button"
-            className="dashboard-classroom__bank-item"
-            onClick={() => navigate(`/question-banks/${bank.id}`)}
-          >
-            <span className="dashboard-classroom__quick-item-name">{bank.name}</span>
-            <span className="dashboard-classroom__quick-item-meta">
-              {bank.category} · {bank.questionCount}
-            </span>
-          </button>
-        ))}
+              <div className="dashboard-classroom__card-body">
+                <p className="dashboard-classroom__card-description">
+                  {classroom.description || t("dashboard.classroomHub.noDescription", "尚未設定教室描述")}
+                </p>
+                <p className="dashboard-classroom__card-meta">
+                  <UserMultiple size={14} />
+                  {classroom.memberCount} {t("classroom.members", "members")}
+                </p>
+              </div>
+            </ClickableTile>
+          );
+        })}
       </div>
     );
   };
 
   return (
     <div className="dashboard-classroom">
-      <div className="dashboard-classroom__shell">
-        <aside className="dashboard-classroom__sidenav" aria-label={t("nav.dashboard", "Dashboard")}>
-          <div className="dashboard-classroom__sidenav-section">
-            <p className="dashboard-classroom__sidenav-title">
-              {t("dashboard.classroomHub.switchTitle", "教室")}
-            </p>
-            {renderQuickClassroomSwitch()}
-          </div>
-
-          {isTeacherOrAdmin ? (
-            <div className="dashboard-classroom__sidenav-section">
-              <p className="dashboard-classroom__sidenav-title">
-                {t("dashboard.classroomHub.bankTitle", "題庫")}
-              </p>
-              {renderQuestionBankList()}
-            </div>
-          ) : null}
-
-          <div className="dashboard-classroom__sidenav-bottom">
-            <button
-              type="button"
-              className="dashboard-classroom__sidenav-link"
-              onClick={() => navigate("/settings")}
-            >
-              {t("nav.settings", "設定")}
-            </button>
-          </div>
-        </aside>
-
-        <section className="dashboard-classroom__main">
-          <Grid fullWidth className="dashboard-classroom__layout">
-            <Column lg={16} md={8} sm={4}>
-              <PageHeader
-                title={t("dashboard.classroomHub.selectTitle", "先選擇教室")}
-                subtitle={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
-                action={
-                  <Stack orientation="horizontal" gap={3}>
-                    <Button kind="tertiary" onClick={() => setJoinOpen(true)}>
-                      {t("classroom.join", "加入教室")}
+      <section className="dashboard-classroom__main">
+        <Grid fullWidth className="dashboard-classroom__layout">
+          <Column lg={16} md={8} sm={4}>
+            <PageHeader
+              title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
+              subtitle={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
+              extra={
+                <div className="dashboard-classroom__welcome-profile">
+                  <Avatar
+                    name={welcomeName}
+                    url={avatarUrl || undefined}
+                    size="md"
+                  />
+                </div>
+              }
+              action={
+                <Stack orientation="horizontal" gap={3}>
+                  <Button kind="tertiary" onClick={() => setJoinOpen(true)}>
+                    {t("classroom.join", "加入教室")}
+                  </Button>
+                  {isTeacherOrAdmin ? (
+                    <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
+                      {t("classroom.create", "建立教室")}
                     </Button>
-                    {isTeacherOrAdmin ? (
-                      <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
-                        {t("classroom.create", "建立教室")}
-                      </Button>
-                    ) : null}
-                  </Stack>
-                }
-              />
-            </Column>
+                  ) : null}
+                </Stack>
+              }
+            />
+          </Column>
 
-            <Column lg={16} md={8} sm={4}>
-              <section className="dashboard-classroom__section">
-                <header className="dashboard-classroom__section-header">
-                  <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
-                </header>
-                {renderClassroomGrid(orderedClassrooms)}
-              </section>
-            </Column>
-          </Grid>
-        </section>
-      </div>
+          <Column lg={16} md={8} sm={4}>
+            <section className="dashboard-classroom__section">
+              <header className="dashboard-classroom__section-header">
+                <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
+              </header>
+              {renderClassroomGrid(orderedClassrooms)}
+            </section>
+          </Column>
+        </Grid>
+      </section>
 
       <JoinClassroomModal
         open={joinOpen}

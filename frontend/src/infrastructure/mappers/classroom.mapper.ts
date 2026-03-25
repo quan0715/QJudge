@@ -8,13 +8,15 @@ import type {
 
 export function mapClassroomDto(dto: any): Classroom {
   return {
-    id: dto.id?.toString() || "",
+    id: dto.uuid?.toString() || dto.id?.toString() || "",
     name: dto.name || "",
     description: dto.description || "",
     ownerUsername: dto.owner_username || "",
     memberCount: dto.member_count ?? 0,
     isArchived: !!dto.is_archived,
     currentUserRole: dto.current_user_role ?? null,
+    icon: dto.icon || "",
+    coverUrl: dto.cover_url || "",
     createdAt: dto.created_at || "",
   };
 }
@@ -33,6 +35,12 @@ export function mapBoundContestDto(dto: any): BoundContest {
   return {
     contestId: dto.contest_id?.toString() || "",
     contestName: dto.contest_name || "",
+    contestStatus: dto.contest_status || "draft",
+    contestVisibility: dto.contest_visibility || "public",
+    contestStartTime: dto.contest_start_time || dto.bound_at || "",
+    contestEndTime: dto.contest_end_time || dto.bound_at || "",
+    contestOwnerUsername: dto.contest_owner_username || "",
+    participantCount: Number(dto.participant_count ?? 0),
     boundAt: dto.bound_at || "",
   };
 }
