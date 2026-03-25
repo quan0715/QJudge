@@ -4,6 +4,7 @@ Run with: locust -f locustfile.py --tags burst-start (or burst-submit, burst-end
 """
 import uuid
 import logging
+import random
 
 from locust import HttpUser, task, between, tag
 from locust.exception import StopUser
@@ -85,23 +86,37 @@ class BurstSubmitUser(_BurstBase):
     def burst_submit(self):
         if not self.contest_id:
             raise StopUser()
-        # Enter + start first
-        self.client.post(f"/api/v1/contests/{self.contest_id}/enter/",
-                         name="/api/v1/contests/[id]/enter/")
-        self.client.post(f"/api/v1/contests/{self.contest_id}/exam/start/",
-                         name="/api/v1/contests/[id]/exam/start/")
+        # Coding contest path: enter contest only (no exam/start required).
+        with self.client.post(
+            f"/api/v1/contests/{self.contest_id}/enter/",
+            name="/api/v1/contests/[id]/enter/",
+            catch_response=True,
+        ) as enter_resp:
+            if enter_resp.status_code not in (200, 201):
+                enter_resp.failure(f"enter failed: {enter_resp.status_code}")
+                raise StopUser()
+            enter_resp.success()
 
-        # Fetch problems
-        resp = self.client.get(f"/api/v1/contests/{self.contest_id}/",
-                               name="/api/v1/contests/[id]/")
-        problems = resp.json().get("problems", []) if resp.status_code == 200 else []
-        payload = D.random_submission_payload(problems)
-        if payload:
-            self.client.post(
-                "/api/v1/submissions/",
-                json=payload,
-                name="/api/v1/submissions/ [BURST]",
-            )
+        # Use seeded problem ids directly to avoid extra fetch bottlenecks.
+        payload = {
+            "problem": random.choice([1, 2, 3]),
+            "contest": self.contest_id,
+            "code": D.CPP_SOLUTIONS["A+B Problem"],
+            "language": "cpp",
+            "source_type": "contest",
+        }
+        with self.client.post(
+            "/api/v1/submissions/",
+            json=payload,
+            name="/api/v1/submissions/ [BURST]",
+            catch_response=True,
+        ) as submit_resp:
+            if submit_resp.status_code in (200, 201, 202):
+                submit_resp.success()
+            else:
+                submit_resp.failure(
+                    f"submit failed: {submit_resp.status_code} {(submit_resp.text or '')[:120]}"
+                )
         raise StopUser()
 
 

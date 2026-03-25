@@ -44,11 +44,18 @@ services:
       DB_NAME: ${DB_NAME:-online_judge}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      # Use plaintext auth inside Docker network so PgBouncer can authenticate
+      # against Postgres even when server-side password hashing is SCRAM.
+      AUTH_TYPE: plain
       POOL_MODE: session
       # Accept up to 500 simultaneous client connections (Django threads + Celery).
       MAX_CLIENT_CONN: "500"
-      # Keep at most 30 real server connections to Postgres per database/user pair.
-      DEFAULT_POOL_SIZE: "30"
+      # Keep at most 50 real server connections to Postgres per database/user pair.
+      DEFAULT_POOL_SIZE: "50"
+      RESERVE_POOL_SIZE: "20"
+      RESERVE_POOL_TIMEOUT: "3"
+      MAX_DB_CONNECTIONS: "150"
+      QUERY_WAIT_TIMEOUT: "120"
       # Release idle server connections after 10 minutes.
       SERVER_IDLE_TIMEOUT: "600"
       # Never forcibly disconnect idle clients (Django manages its own lifecycle).

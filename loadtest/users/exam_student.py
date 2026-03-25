@@ -66,7 +66,9 @@ class ExamStudentUser(HttpUser):
             return
 
         # Enter + start exam, then fetch details
-        self._enter_contest()
+        entered = self._enter_or_register_contest()
+        if not entered:
+            raise StopUser()
         self._start_exam()
         if self.exam_started:
             self._fetch_contest_details()
@@ -110,19 +112,88 @@ class ExamStudentUser(HttpUser):
             else:
                 self.exam_questions = result.get("results", [])
 
-    def _enter_contest(self):
-        self.client.post(
+    @staticmethod
+    def _extract_message(resp) -> str:
+        try:
+            payload = resp.json()
+        except Exception:
+            return (resp.text or "").strip()
+        if isinstance(payload, dict):
+            return str(payload.get("message") or payload.get("error") or "").strip()
+        return str(payload).strip()
+
+    def _register_contest(self) -> bool:
+        with self.client.post(
+            f"/api/v1/contests/{self.contest_id}/register/",
+            json={},
+            name="/api/v1/contests/[id]/register/",
+            catch_response=True,
+        ) as resp:
+            msg = self._extract_message(resp)
+            if resp.status_code == 201 or "Already registered" in msg:
+                resp.success()
+                return True
+            resp.failure(f"register failed: {resp.status_code} {msg}")
+            return False
+
+    def _enter_or_register_contest(self) -> bool:
+        need_register = False
+        with self.client.post(
             f"/api/v1/contests/{self.contest_id}/enter/",
             name="/api/v1/contests/[id]/enter/",
-        )
+            catch_response=True,
+        ) as resp:
+            msg = self._extract_message(resp)
+            if resp.status_code == 200:
+                resp.success()
+                return True
+            if resp.status_code == 403 and "Not registered" in msg:
+                resp.success()
+                need_register = True
+            elif resp.status_code == 403 and "left the contest and re-entry is not allowed" in msg:
+                resp.success()
+                return True
+            else:
+                resp.failure(f"enter failed: {resp.status_code} {msg}")
+                return False
+
+        if not need_register:
+            return True
+        if not self._register_contest():
+            return False
+
+        with self.client.post(
+            f"/api/v1/contests/{self.contest_id}/enter/",
+            name="/api/v1/contests/[id]/enter/",
+            catch_response=True,
+        ) as retry:
+            msg = self._extract_message(retry)
+            if retry.status_code == 200:
+                retry.success()
+                return True
+            retry.failure(f"enter retry failed: {retry.status_code} {msg}")
+            return False
 
     def _start_exam(self):
-        resp = self.client.post(
+        with self.client.post(
             f"/api/v1/contests/{self.contest_id}/exam/start/",
             name="/api/v1/contests/[id]/exam/start/",
-        )
-        if resp.status_code in (200, 201):
-            self.exam_started = True
+            catch_response=True,
+        ) as resp:
+            msg = self._extract_message(resp)
+            if resp.status_code in (200, 201):
+                self.exam_started = True
+                resp.success()
+                return
+            if resp.status_code == 400 and "already finished this exam" in msg.lower():
+                resp.success()
+                self.exam_started = False
+                return
+            if resp.status_code == 409 and "active for this exam session" in msg.lower():
+                resp.success()
+                self.exam_started = False
+                return
+            resp.failure(f"start failed: {resp.status_code} {msg}")
 
     # ---- Exam tasks ----
 

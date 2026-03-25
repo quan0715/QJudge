@@ -4,7 +4,9 @@ import random
 import pathlib
 
 # Contest name created by seed_loadtest_data
-CONTEST_NAME = "Load Test Exam"
+# - Paper exam default: "Load Test Exam"
+# - Coding contest: set LT_CONTEST_NAME="Load Test Coding"
+CONTEST_NAME = os.getenv("LT_CONTEST_NAME", "Load Test Exam")
 
 # Populated at runtime by the first user that fetches the contest list
 CONTEST_ID: int | None = None
@@ -78,8 +80,14 @@ def random_submission_payload(contest_problems: list[dict]) -> dict | None:
     prob = random.choice(contest_problems)
     title = prob.get("title", "")
     code = CPP_SOLUTIONS.get(title, CPP_SOLUTIONS["A+B Problem"])
+    # Contest detail returns both:
+    # - id: contest-problem relation id
+    # - problem_id: real problem pk required by /submissions/
+    problem_pk = prob.get("problem_id") or prob.get("id")
+    if not problem_pk:
+        return None
     return {
-        "problem": prob["id"],
+        "problem": problem_pk,
         "contest": CONTEST_ID,
         "code": code,
         "language": "cpp",

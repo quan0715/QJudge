@@ -80,8 +80,9 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=postgres-test
+      - POSTGRES_HOST=pgbouncer-test
       - POSTGRES_PORT=5432
+      - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
@@ -93,6 +94,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     depends_on:
       postgres-test:
+        condition: service_healthy
+      pgbouncer-test:
         condition: service_healthy
       redis-test:
         condition: service_healthy
@@ -116,14 +119,17 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=postgres-test
+      - POSTGRES_HOST=pgbouncer-test
       - POSTGRES_PORT=5432
+      - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
       - SECRET_KEY=test-secret-key-for-ci-only
     depends_on:
       postgres-test:
+        condition: service_healthy
+      pgbouncer-test:
         condition: service_healthy
       redis-test:
         condition: service_healthy
