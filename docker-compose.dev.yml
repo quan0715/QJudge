@@ -39,23 +39,22 @@ services:
 
   # PgBouncer – connection pooler (session mode, compatible with SELECT FOR UPDATE)
   pgbouncer:
-    image: bitnami/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:v1.24.1-p1
     container_name: oj_pgbouncer_dev
     environment:
-      POSTGRESQL_HOST: postgres
-      POSTGRESQL_PORT: "5432"
-      POSTGRESQL_DATABASE: ${DB_NAME:-online_judge}
-      POSTGRESQL_USERNAME: ${DB_USER:-postgres}
-      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-postgres}
-      PGBOUNCER_PORT: "6432"
-      PGBOUNCER_POOL_MODE: session
-      PGBOUNCER_MAX_CLIENT_CONN: "200"
-      PGBOUNCER_DEFAULT_POOL_SIZE: "20"
-      PGBOUNCER_SERVER_IDLE_TIMEOUT: "600"
-      PGBOUNCER_CLIENT_IDLE_TIMEOUT: "0"
-      PGBOUNCER_SERVER_RESET_QUERY: "DISCARD ALL"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-online_judge}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      POOL_MODE: session
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+      SERVER_IDLE_TIMEOUT: "600"
+      CLIENT_IDLE_TIMEOUT: "0"
+      SERVER_RESET_QUERY: "DISCARD ALL"
     ports:
-      - "6432:6432"
+      - "6432:5432"
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +64,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -h localhost -p 6432 -U ${DB_USER:-postgres}",
+          "pg_isready -h localhost -p 5432 -U ${DB_USER:-postgres}",
         ]
       interval: 10s
       timeout: 5s
@@ -154,7 +153,7 @@ services:
       - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DB_HOST=pgbouncer
-      - DB_PORT=6432
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
@@ -192,7 +191,7 @@ services:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
       - DB_HOST=pgbouncer
-      - DB_PORT=6432
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -226,7 +225,7 @@ services:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
       - DB_HOST=pgbouncer
-      - DB_PORT=6432
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -256,7 +255,7 @@ services:
       - .env
     environment:
       - DB_HOST=pgbouncer
-      - DB_PORT=6432
+      - DB_PORT=5432
     depends_on:
       postgres:
         condition: service_healthy
