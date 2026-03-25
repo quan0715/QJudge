@@ -146,7 +146,9 @@ export const clearExamAnswerDraft = (
 ): void => {
   try {
     localStorage.removeItem(`${DRAFT_PREFIX}.${contestId}.${questionId}`);
-  } catch {}
+  } catch {
+    // Ignore storage errors (quota/private mode); draft cleanup is best-effort.
+  }
 };
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -185,7 +187,9 @@ export const submitExamAnswer = async (
           const data = JSON.parse(text);
           msg =
             data?.detail || data?.message || data?.error || msg;
-        } catch {}
+        } catch {
+          // Keep default error message when response body is not JSON.
+        }
         throw new Error(msg);
       }
     } catch (err) {
