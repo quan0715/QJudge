@@ -352,7 +352,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
         items={items}
         answeredIds={answeredIds}
         markedIds={markedIds}
-        onToggleMark={toggleMark}
         styles={styles}
         syncIndex={syncIndex}
         renderItem={renderItem}
