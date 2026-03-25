@@ -39,6 +39,12 @@ locust -f locustfile.py \
   --users 5 --spawn-rate 5 --run-time 2m \
   --headless --host http://localhost:8002
 
+# 可調整節流參數（預設已安全）
+# export LT_ANTICHEAT_URL_BATCH_SIZE=30
+# export LT_ANTICHEAT_URL_LOW_WATERMARK=8
+# export LT_ANTICHEAT_UPLOAD_INTERVAL_SECONDS=3
+# export LT_HEARTBEAT_INTERVAL_SECONDS=5
+
 # 6. 或用 Web UI 即時觀察
 locust -f locustfile.py --host http://localhost:8002
 # → http://localhost:8089
@@ -92,6 +98,8 @@ locust -f locustfile.py \
   --headless --host http://localhost:8002
 
 # 方案 C：Burst test（200 人同時開考）
+#   需顯式確認高風險模式，避免誤觸打爆服務
+LT_ALLOW_HIGH_RISK_BURST=1 \
 locust -f locustfile.py --tags burst-start \
   --users 200 --spawn-rate 200 \
   --headless --host http://localhost:8002

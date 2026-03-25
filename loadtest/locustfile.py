@@ -11,6 +11,9 @@ Usage:
   # Burst tests
   locust -f locustfile.py --tags burst-start --users 200 --spawn-rate 200 --headless --host http://localhost:8002
 """
+import os
+
+from locust import events
 
 # Main exam lifecycle user
 from users.exam_student import ExamStudentUser  # noqa: F401
@@ -20,3 +23,22 @@ from users.burst import BurstStartUser, BurstSubmitUser, BurstEndUser  # noqa: F
 
 # Stepped load shape (auto ramp-up) — uncomment to enable
 # from shapes import SteppedLoadShape  # noqa: F401
+
+
+@events.test_start.add_listener
+def enforce_safety_limits(environment, **kwargs):
+    """
+    Prevent accidental high-risk runs unless explicitly acknowledged.
+    """
+    options = environment.parsed_options
+    tags = set(options.tags or [])
+    is_burst = any(tag.startswith("burst") for tag in tags)
+
+    # 200 users in burst mode must be explicit to avoid accidental production-like blast.
+    if is_burst and (options.spawn_rate or 0) >= 120:
+        allow = os.getenv("LT_ALLOW_HIGH_RISK_BURST", "0")
+        if allow != "1":
+            raise RuntimeError(
+                "Blocked high-risk burst run (spawn-rate >= 120). "
+                "Set LT_ALLOW_HIGH_RISK_BURST=1 to confirm intentionally."
+            )

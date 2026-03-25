@@ -18,7 +18,7 @@ DATABASES['default'] = {
     'PASSWORD': os.getenv('DB_PASSWORD', ''),
     'HOST': os.getenv('DB_HOST', ''),
     'PORT': os.getenv('DB_PORT', '5432'),
-    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '15')),
     'OPTIONS': {
         'connect_timeout': 10,
         # TCP Keepalive 設置 - 保持連接活躍，防止被防火牆/NAT 中斷

@@ -5,6 +5,7 @@ import logging
 from django.db.models import Max
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.core.cache import cache
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -53,6 +54,8 @@ from apps.problems.services import ProblemService
 from apps.problems.models import Problem
 
 logger = logging.getLogger(__name__)
+CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
+ANTICHEAT_CONFIG_CACHE_TTL_SECONDS = 30
 
 
 class ContestViewSet(viewsets.ModelViewSet):
@@ -178,6 +181,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         user = request.user
+        user_cache_key = user.id if user.is_authenticated else "anon"
+        cache_key = f"contest_detail:{instance.id}:u:{user_cache_key}"
 
         if user.is_authenticated:
             try:
@@ -189,8 +194,14 @@ class ContestViewSet(viewsets.ModelViewSet):
             except ContestParticipant.DoesNotExist:
                 pass
 
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
         serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        payload = serializer.data
+        cache.set(cache_key, payload, timeout=CONTEST_DETAIL_CACHE_TTL_SECONDS)
+        return Response(payload)
 
     @action(
         detail=True,
@@ -201,7 +212,12 @@ class ContestViewSet(viewsets.ModelViewSet):
     def anticheat_config(self, request, pk=None):
         """Return frontend anti-cheat runtime config for this contest."""
         contest = self.get_object()
-        return Response(build_contest_anticheat_config(contest))
+        cache_key = f"contest_anticheat_config:{contest.id}"
+        payload = cache.get(cache_key)
+        if payload is None:
+            payload = build_contest_anticheat_config(contest)
+            cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
+        return Response(payload)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
     def toggle_status(self, request, pk=None):

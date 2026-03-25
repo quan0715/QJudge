@@ -12,6 +12,33 @@ CONTEST_ID: int | None = None
 NUM_STUDENTS = 200
 STUDENT_PASSWORD = "loadtest123"
 
+
+def _get_int_env(name: str, default: int) -> int:
+    raw = os.getenv(name, "")
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except Exception:
+        return default
+
+
+def _get_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name, "")
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except Exception:
+        return default
+
+
+# Safety knobs (can be overridden via env when running Locust)
+ANTICHEAT_URL_BATCH_SIZE = _get_int_env("LT_ANTICHEAT_URL_BATCH_SIZE", 30)
+ANTICHEAT_URL_LOW_WATERMARK = _get_int_env("LT_ANTICHEAT_URL_LOW_WATERMARK", 8)
+ANTICHEAT_UPLOAD_INTERVAL_SECONDS = _get_float_env("LT_ANTICHEAT_UPLOAD_INTERVAL_SECONDS", 3.0)
+HEARTBEAT_INTERVAL_SECONDS = _get_float_env("LT_HEARTBEAT_INTERVAL_SECONDS", 5.0)
+
 # Path to fake screenshot
 FIXTURES_DIR = pathlib.Path(__file__).resolve().parent.parent / "fixtures"
 FAKE_FRAME_PATH = FIXTURES_DIR / "fake_frame.webp"

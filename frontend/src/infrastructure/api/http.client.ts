@@ -65,7 +65,7 @@ const handleUnauthorized = (response: Response): boolean => {
 
 /**
  * Dispatch server error event for global error handling.
- * This event is listened to by ApiErrorContext to navigate to error pages.
+ * This event is listened to by ApiErrorContext to show non-blocking toasts.
  */
 const dispatchServerError = (statusCode: number, message?: string) => {
   window.dispatchEvent(

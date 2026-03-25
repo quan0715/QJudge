@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
+from django.core.cache import cache
 from django_ratelimit.decorators import ratelimit
 import logging
 
@@ -226,6 +227,13 @@ class UserStatsView(SchemaAPIView):
 
     def get(self, request):
         user = request.user
+        cache_key = f"user_stats:v1:{user.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response({
+                'success': True,
+                'data': cached_data
+            })
         from apps.problems.models import Problem
         from apps.submissions.models import Submission
 
@@ -242,17 +250,20 @@ class UserStatsView(SchemaAPIView):
         medium_solved = solved_objs.filter(difficulty='medium').count()
         hard_solved = solved_objs.filter(difficulty='hard').count()
 
+        payload = {
+            'total_solved': easy_solved + medium_solved + hard_solved,
+            'easy_solved': easy_solved,
+            'medium_solved': medium_solved,
+            'hard_solved': hard_solved,
+            'total_easy': total_easy,
+            'total_medium': total_medium,
+            'total_hard': total_hard,
+        }
+        cache.set(cache_key, payload, timeout=30)
+
         return Response({
             'success': True,
-            'data': {
-                'total_solved': easy_solved + medium_solved + hard_solved,
-                'easy_solved': easy_solved,
-                'medium_solved': medium_solved,
-                'hard_solved': hard_solved,
-                'total_easy': total_easy,
-                'total_medium': total_medium,
-                'total_hard': total_hard,
-            }
+            'data': payload
         })
 
 
@@ -269,12 +280,20 @@ class UserPreferencesView(SchemaAPIView):
     def get(self, request):
         """Get current user preferences."""
         user = request.user
+        cache_key = f"user_preferences:v1:{user.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response({
+                'success': True,
+                'data': cached_data
+            })
         
         # Ensure user has a profile
         from ..models import UserProfile
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        
+
         serializer = UserProfileSerializer(profile)
+        cache.set(cache_key, serializer.data, timeout=30)
         return Response({
             'success': True,
             'data': serializer.data
@@ -313,9 +332,10 @@ class UserPreferencesView(SchemaAPIView):
             profile.editor_font_size = validated_data['editor_font_size']
         if 'editor_tab_size' in validated_data:
             profile.editor_tab_size = validated_data['editor_tab_size']
-        
+
         profile.save()
-        
+        cache.delete(f"user_preferences:v1:{user.id}")
+
         # Return updated profile
         profile_serializer = UserProfileSerializer(profile)
         
