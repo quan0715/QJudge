@@ -247,6 +247,14 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 # Frontend URL
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
+# Feature flags
+# Contest ACL role source:
+# - False: legacy contest-scoped owner/co_owner/participant resolution
+# - True: classroom-bound contest resolves role from classroom scope first
+CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
+    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "false").lower() == "true"
+)
+
 # Redis Cache settings
 # Using Django's built-in Redis backend (Django 4.0+)
 CACHES = {

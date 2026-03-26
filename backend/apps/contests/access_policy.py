@@ -5,6 +5,7 @@ This module provides a centralized permission system for contest operations,
 replacing scattered permission checks throughout views.py.
 """
 from rest_framework import permissions, status
+from django.conf import settings
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -105,6 +106,7 @@ BASE_ROLE_PERMISSIONS = {
 BASE_ROLE_PERMISSIONS['admin'] = BASE_ROLE_PERMISSIONS['platform_admin']
 BASE_ROLE_PERMISSIONS['teacher'] = BASE_ROLE_PERMISSIONS['co_owner']
 BASE_ROLE_PERMISSIONS['student'] = BASE_ROLE_PERMISSIONS['participant']
+BASE_ROLE_PERMISSIONS['manager'] = BASE_ROLE_PERMISSIONS['co_owner']
 
 # Restrictions based on contest status
 STATUS_RESTRICTIONS = {
@@ -119,6 +121,76 @@ STATUS_RESTRICTIONS = {
         'error_message': 'Contest has been archived',
     }
 }
+
+
+# ============================================================================
+# Classroom-sourced ACL (Phase definition)
+# ============================================================================
+
+CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
+    'platform_admin': 'platform_admin',
+    'owner': 'owner',
+    'manager': 'manager',
+    'student': 'participant',
+    'outsider': 'outsider',
+    'anonymous': 'anonymous',
+}
+
+
+def _is_classroom_acl_source_enabled() -> bool:
+    """
+    Feature flag for classroom-sourced ACL.
+    Default: disabled to keep backward compatibility while policy is being defined.
+    """
+    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', False))
+
+
+def _get_bound_classroom(contest: Contest):
+    """
+    Return the earliest classroom bound to this contest.
+    Note: current data model allows multiple bindings; policy definition phase picks
+    deterministic first binding until ownership model is fully unified.
+    """
+    return (
+        contest.classroom_bindings.select_related('classroom')
+        .order_by('bound_at')
+        .first()
+    )
+
+
+def _get_classroom_scope_role(user, classroom) -> str:
+    """
+    Canonical classroom scope role for ACL unification.
+
+    Roles: platform_admin | owner | manager | student | outsider | anonymous
+    """
+    if not user or not user.is_authenticated:
+        return 'anonymous'
+    if user.is_staff or user.is_superuser:
+        return 'platform_admin'
+    if classroom.owner_id == user.id:
+        return 'owner'
+    if classroom.admins.filter(pk=user.pk).exists():
+        return 'manager'
+
+    membership = classroom.memberships.filter(user=user).first()
+    if membership:
+        if membership.role == 'ta':
+            return 'manager'
+        return 'student'
+    return 'outsider'
+
+
+def get_effective_contest_scope_role(user, contest: Contest) -> str:
+    """
+    Resolve effective contest scope role with optional classroom-priority branch.
+    """
+    if _is_classroom_acl_source_enabled():
+        binding = _get_bound_classroom(contest)
+        if binding is not None:
+            classroom_scope_role = _get_classroom_scope_role(user, binding.classroom)
+            return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_scope_role, 'outsider')
+    return get_contest_scope_role(user, contest)
 
 
 # ============================================================================
@@ -214,7 +286,7 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         user = request.user
         action = view.action
-        role = get_contest_scope_role(user, contest) if user.is_authenticated else 'anonymous'
+        role = get_effective_contest_scope_role(user, contest) if user.is_authenticated else 'anonymous'
 
         # 1. Check contest status restrictions
         status_error = self._check_contest_status(contest, user, role, action)
@@ -359,7 +431,7 @@ def check_contest_permission(user, contest, permission: str) -> bool:
     if not user or not user.is_authenticated:
         role = 'anonymous'
     else:
-        role = get_contest_scope_role(user, contest)
+        role = get_effective_contest_scope_role(user, contest)
 
     role_permissions = BASE_ROLE_PERMISSIONS.get(role, set())
     return permission in role_permissions
@@ -372,6 +444,6 @@ def get_all_permissions(user, contest) -> set:
     if not user or not user.is_authenticated:
         role = 'anonymous'
     else:
-        role = get_contest_scope_role(user, contest)
+        role = get_effective_contest_scope_role(user, contest)
 
     return BASE_ROLE_PERMISSIONS.get(role, set()).copy()
