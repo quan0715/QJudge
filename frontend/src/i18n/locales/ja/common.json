@@ -3,7 +3,7 @@
     "dashboard": "ダッシュボード",
     "problems": "問題",
     "contests": "コンテスト",
-    "classrooms": "教室",
+    "classrooms": "クラスルーム",
     "submissions": "提出履歴",
     "ranking": "ランキング",
     "documentation": "ドキュメント",
@@ -77,8 +77,8 @@
       "hard": "難しい"
     },
     "classrooms": {
-      "title": "私の教室",
-      "subtitle": "参加している教室"
+      "title": "マイクラスルーム",
+      "subtitle": "参加しているクラスルーム"
     },
     "contests": {
       "title": "近日のコンテスト",
@@ -156,7 +156,6 @@
     "accountInfo": "アカウント情報",
     "username": "ユーザー名",
     "email": "メールアドレス",
-    "role": "権限",
     "displayName": "表示名",
     "displayNameDescription": "プラットフォームで表示される名前を設定します",
     "theme": "テーマ",
@@ -445,5 +444,12 @@
     "loadQuestions": "查看題目",
     "clone": "複製到我的題庫",
     "cloneSuccess": "マイ問題集にコピーされました"
+  },
+  "role": {
+    "student": "学生",
+    "teacher": "教員",
+    "ta": "助教",
+    "admin": "管理者",
+    "adminTA": "管理者 (TA)"
   }
 }

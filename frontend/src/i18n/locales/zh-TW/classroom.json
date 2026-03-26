@@ -47,5 +47,14 @@
         "status": "狀態"
       }
     }
-  }
+  },
+  "memberTotal": "全部 {{count}} 位",
+  "memberStudent": "學生 {{count}} 位",
+  "memberTa": "助教 {{count}} 位",
+  "memberSearch": "搜尋成員",
+  "memberSearchPlaceholder": "搜尋 username 或 email",
+  "memberRoleFilter": "角色篩選",
+  "memberRoleAll": "全部角色",
+  "memberFilteredCount": "顯示 {{count}} / {{total}} 位",
+  "confirmRemoveMemberBody": "您即將移除此成員："
 }

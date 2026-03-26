@@ -78,7 +78,7 @@
     },
     "classrooms": {
       "title": "내 교실",
-      "subtitle": "가입된 교실"
+      "subtitle": "참가 중인 교실"
     },
     "contests": {
       "title": "예정된 대회",
@@ -156,7 +156,6 @@
     "accountInfo": "계정 정보",
     "username": "사용자 이름",
     "email": "이메일",
-    "role": "역할",
     "displayName": "표시 이름",
     "displayNameDescription": "플랫폼에서 표시되는 이름을 설정합니다",
     "theme": "테마",
@@ -356,7 +355,7 @@
     "forbid": "금지"
   },
   "classroom": {
-    "members": "명"
+    "members": "구성원"
   },
   "questionType": {
     "label": {
@@ -445,5 +444,12 @@
     "loadQuestions": "查看題目",
     "clone": "複製到我的題庫",
     "cloneSuccess": "내 문제집으로 복사되었습니다"
+  },
+  "role": {
+    "student": "학생",
+    "teacher": "교사",
+    "ta": "조교",
+    "admin": "관리자",
+    "adminTA": "관리자 (TA)"
   }
 }

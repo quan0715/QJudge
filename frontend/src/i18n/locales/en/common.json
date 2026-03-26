@@ -78,7 +78,7 @@
     },
     "classrooms": {
       "title": "My Classrooms",
-      "subtitle": "Classrooms you have joined"
+      "subtitle": "Joined classrooms"
     },
     "contests": {
       "title": "Upcoming Contests",
@@ -234,7 +234,6 @@
     "accountInfo": "Account Information",
     "username": "Username",
     "email": "Email",
-    "role": "Role",
     "displayName": "Display Name",
     "displayNameDescription": "Set your display name shown on the platform",
     "theme": "Theme",
@@ -434,7 +433,7 @@
     "forbid": "Forbid"
   },
   "classroom": {
-    "members": "members"
+    "members": "Members"
   },
   "questionType": {
     "label": {
@@ -451,5 +450,12 @@
       "short_answer": "Enter a short text answer",
       "essay": "Long-form text answer with optional reference answer"
     }
+  },
+  "role": {
+    "student": "Student",
+    "teacher": "Teacher",
+    "ta": "TA",
+    "admin": "Admin",
+    "adminTA": "Admin (TA)"
   }
 }

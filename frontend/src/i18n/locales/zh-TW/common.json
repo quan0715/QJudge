@@ -240,7 +240,6 @@
     "accountInfo": "帳號資訊",
     "username": "使用者名稱",
     "email": "電子郵件",
-    "role": "角色",
     "displayName": "顯示名稱",
     "displayNameDescription": "設定您在平台上顯示的暱稱",
     "theme": "主題",
@@ -457,5 +456,12 @@
       "short_answer": "輸入簡短文字作為答案",
       "essay": "長篇文字作答，支援參考答案"
     }
+  },
+  "role": {
+    "student": "學生",
+    "teacher": "教師",
+    "ta": "助教",
+    "admin": "管理員",
+    "adminTA": "管理員 (TA)"
   }
 }

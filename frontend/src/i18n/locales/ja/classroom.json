@@ -1,51 +1,60 @@
 {
   "members": {
     "headers": {
-      "username": "Username",
-      "email": "Email",
-      "role": "Role",
-      "joinedAt": "Joined At"
+      "username": "ユーザー名",
+      "email": "メールアドレス",
+      "role": "権限",
+      "joinedAt": "参加日時"
     },
     "actions": {
-      "remove": "Remove"
+      "remove": "削除"
     }
   },
   "announcement": {
     "modal": {
-      "titleCreate": "Post Announcement",
-      "titleEdit": "Edit Announcement",
-      "submitCreate": "Post",
-      "submitEdit": "Save",
-      "submittingCreate": "Posting...",
-      "submittingEdit": "Saving...",
+      "titleCreate": "お知らせを作成",
+      "titleEdit": "お知らせを編集",
+      "submitCreate": "作成",
+      "submitEdit": "保存",
+      "submittingCreate": "作成中...",
+      "submittingEdit": "保存中...",
       "form": {
-        "title": "Title",
-        "titlePlaceholder": "Announcement Title",
-        "pinned": "Pinned",
-        "content": "Content",
-        "contentPlaceholder": "Enter announcement content, Markdown supported...",
-        "yes": "Yes",
-        "no": "No"
+        "title": "タイトル",
+        "titlePlaceholder": "お知らせのタイトル",
+        "pinned": "トップに固定",
+        "content": "内容",
+        "contentPlaceholder": "お知らせの内容を入力してください。Markdown をサポートしています...",
+        "yes": "はい",
+        "no": "いいえ"
       }
     }
   },
   "inviteCode": {
-    "label": "Invite Code",
-    "disabled": "Disabled",
-    "copy": "Copy",
-    "copied": "Copied",
-    "regenerate": "Regenerate"
+    "label": "招待コード",
+    "disabled": "無効",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "regenerate": "再生成"
   },
   "bindContest": {
     "modal": {
-      "title": "Bind Contest",
-      "submit": "Bind",
-      "submitting": "Binding...",
-      "noContests": "No contests available to bind",
+      "title": "コンテストを紐付け",
+      "submit": "紐付け",
+      "submitting": "紐付け中...",
+      "noContests": "利用可能なコンテストがありません",
       "table": {
-        "name": "Contest Name",
-        "status": "Status"
+        "name": "コンテスト名",
+        "status": "ステータス"
       }
     }
-  }
+  },
+  "memberTotal": "合計 {{count}} 名",
+  "memberStudent": "学生 {{count}} 名",
+  "memberTa": "助教 {{count}} 名",
+  "memberSearch": "メンバーを検索",
+  "memberSearchPlaceholder": "ユーザー名またはメールアドレスを検索",
+  "memberRoleFilter": "ロールフィルター",
+  "memberRoleAll": "すべてのロール",
+  "memberFilteredCount": "{{total}} 名中 {{count}} 名を表示",
+  "confirmRemoveMemberBody": "このメンバーを削除しようとしています："
 }

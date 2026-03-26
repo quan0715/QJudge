@@ -1,51 +1,60 @@
 {
   "members": {
     "headers": {
-      "username": "Username",
-      "email": "Email",
-      "role": "Role",
-      "joinedAt": "Joined At"
+      "username": "사용자 이름",
+      "email": "이메일",
+      "role": "역할",
+      "joinedAt": "가입 일시"
     },
     "actions": {
-      "remove": "Remove"
+      "remove": "삭제"
     }
   },
   "announcement": {
     "modal": {
-      "titleCreate": "Post Announcement",
-      "titleEdit": "Edit Announcement",
-      "submitCreate": "Post",
-      "submitEdit": "Save",
-      "submittingCreate": "Posting...",
-      "submittingEdit": "Saving...",
+      "titleCreate": "공지사항 작성",
+      "titleEdit": "공지사항 수정",
+      "submitCreate": "작성",
+      "submitEdit": "저장",
+      "submittingCreate": "작성 중...",
+      "submittingEdit": "저장 중...",
       "form": {
-        "title": "Title",
-        "titlePlaceholder": "Announcement Title",
-        "pinned": "Pinned",
-        "content": "Content",
-        "contentPlaceholder": "Enter announcement content, Markdown supported...",
-        "yes": "Yes",
-        "no": "No"
+        "title": "제목",
+        "titlePlaceholder": "공지사항 제목",
+        "pinned": "공지 고정",
+        "content": "내용",
+        "contentPlaceholder": "공지 내용을 입력하세요. Markdown 지원...",
+        "yes": "예",
+        "no": "아니요"
       }
     }
   },
   "inviteCode": {
-    "label": "Invite Code",
-    "disabled": "Disabled",
-    "copy": "Copy",
-    "copied": "Copied",
-    "regenerate": "Regenerate"
+    "label": "초대 코드",
+    "disabled": "비활성화",
+    "copy": "복사",
+    "copied": "복사됨",
+    "regenerate": "재생성"
   },
   "bindContest": {
     "modal": {
-      "title": "Bind Contest",
-      "submit": "Bind",
-      "submitting": "Binding...",
-      "noContests": "No contests available to bind",
+      "title": "콘테스트 바인딩",
+      "submit": "바인딩",
+      "submitting": "바인딩 중...",
+      "noContests": "바인딩할 수 있는 콘테스트가 없습니다",
       "table": {
-        "name": "Contest Name",
-        "status": "Status"
+        "name": "콘테스트 이름",
+        "status": "상태"
       }
     }
-  }
+  },
+  "memberTotal": "총 {{count}}명",
+  "memberStudent": "학생 {{count}}명",
+  "memberTa": "조교 {{count}}명",
+  "memberSearch": "멤버 검색",
+  "memberSearchPlaceholder": "사용자 이름 또는 이메일 검색",
+  "memberRoleFilter": "역할 필터",
+  "memberRoleAll": "모든 역할",
+  "memberFilteredCount": "{{total}}명 중 {{count}}명 표시",
+  "confirmRemoveMemberBody": "이 멤버를 제거하려고 합니다:"
 }

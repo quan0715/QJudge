@@ -12,11 +12,11 @@
   },
   "announcement": {
     "modal": {
-      "titleCreate": "Post Announcement",
+      "titleCreate": "Create Announcement",
       "titleEdit": "Edit Announcement",
-      "submitCreate": "Post",
+      "submitCreate": "Create",
       "submitEdit": "Save",
-      "submittingCreate": "Posting...",
+      "submittingCreate": "Creating...",
       "submittingEdit": "Saving...",
       "form": {
         "title": "Title",
@@ -41,11 +41,20 @@
       "title": "Bind Contest",
       "submit": "Bind",
       "submitting": "Binding...",
-      "noContests": "No contests available to bind",
+      "noContests": "No available contests",
       "table": {
         "name": "Contest Name",
         "status": "Status"
       }
     }
-  }
+  },
+  "memberTotal": "Total {{count}}",
+  "memberStudent": "Students {{count}}",
+  "memberTa": "TAs {{count}}",
+  "memberSearch": "Search Members",
+  "memberSearchPlaceholder": "Search username or email",
+  "memberRoleFilter": "Role Filter",
+  "memberRoleAll": "All Roles",
+  "memberFilteredCount": "Showing {{count}} / {{total}} members",
+  "confirmRemoveMemberBody": "You are about to remove this member:"
 }
