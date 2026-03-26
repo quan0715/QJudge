@@ -1,0 +1,121 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.image-edit-dialog__trigger {
+  position: relative;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  display: block;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.image-edit-dialog__trigger--cover {
+  width: 100%;
+  height: layout.rem(120px);
+}
+
+.image-edit-dialog__trigger--avatar {
+  width: layout.rem(88px);
+  height: layout.rem(88px);
+  border-radius: 50%;
+}
+
+.image-edit-dialog__empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  padding: layout.$spacing-02;
+
+  span {
+    @include type.type-style("label-01");
+    text-align: center;
+  }
+}
+
+.image-edit-dialog__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 150ms ease;
+
+  svg {
+    fill: #fff;
+  }
+}
+
+.image-edit-dialog__trigger:hover .image-edit-dialog__overlay {
+  opacity: 1;
+}
+
+.image-edit-dialog__modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-03;
+}
+
+.image-edit-dialog__dropzone {
+  width: 100%;
+  min-height: layout.rem(132px);
+  border: 1px dashed var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-02;
+  cursor: pointer;
+  padding: layout.$spacing-04;
+  text-align: center;
+
+  strong {
+    @include type.type-style("heading-compact-01");
+  }
+
+  span {
+    @include type.type-style("body-compact-01");
+    color: var(--cds-text-secondary);
+  }
+}
+
+.image-edit-dialog__dropzone.is-dragging {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-hover);
+}
+
+.image-edit-dialog__dropzone-action {
+  margin-top: layout.$spacing-01;
+  color: var(--cds-link-primary);
+}
+
+.image-edit-dialog__url-row {
+  display: flex;
+  gap: layout.$spacing-03;
+  align-items: flex-start;
+}
+

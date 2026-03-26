@@ -365,78 +365,19 @@
 }
 
 
-// ── Cover thumbnail (hover to edit) ──
-.classroom-cover-thumb {
-  position: relative;
-  width: 100%;
-  height: layout.rem(120px);
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
-  cursor: pointer;
-  overflow: hidden;
-  padding: 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-}
-
-.classroom-cover-thumb__empty {
-  width: 100%;
-  height: 100%;
+.classroom-settings-save-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: layout.$spacing-02;
-  color: var(--cds-text-secondary);
-
-  span {
-    @include type.type-style("label-01");
-  }
+  justify-content: flex-end;
+  margin-top: layout.$spacing-05;
 }
 
-.classroom-cover-thumb__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  opacity: 0;
-  transition: opacity 150ms ease;
-
-  svg {
-    fill: #fff;
-  }
+.classroom-settings-meta-value {
+  @include type.type-style("body-compact-01");
 }
 
-.classroom-cover-thumb:hover .classroom-cover-thumb__overlay {
-  opacity: 1;
-}
-
-// ── Cover edit modal ──
-.classroom-cover-modal {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-  padding-top: layout.$spacing-03;
-}
-
-.classroom-cover-modal__btn {
-  width: 100%;
-  max-width: none;
-  justify-content: center;
-}
-
-.classroom-cover-modal__url-row {
-  display: flex;
-  gap: layout.$spacing-03;
-  align-items: flex-start;
+.classroom-settings-heading {
+  @include type.type-style("productive-heading-04");
+  margin: 0;
 }
 
 // ── Icon picker in settings ──

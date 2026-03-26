@@ -18,12 +18,9 @@ import {
   ArrowRight,
   Bullhorn,
   Calendar,
-  CloudUpload,
-  Edit,
   Education,
   Pin,
   Task,
-  TrashCan,
   Trophy,
   UserMultiple,
 } from "@carbon/icons-react";
@@ -39,6 +36,7 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import { SettingsPanelRoot, Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { ImageEditDialog } from "@/shared/ui/image";
 import {
   getClassroom,
   getClassrooms,
@@ -411,7 +409,6 @@ const ClassroomDetailScreen: React.FC = () => {
             classroomId={classroomId || ""}
             onClose={() => setAddMembersOpen(false)}
             onAdded={() => {
-              setAddMembersOpen(false);
               void fetchClassroomData();
             }}
           />
@@ -427,7 +424,7 @@ const ClassroomDetailScreen: React.FC = () => {
 
       <AnnouncementViewModal
         announcement={viewingAnnouncement}
-        canEdit={isMember}
+        canEdit={Boolean(isPrivileged)}
         onClose={() => setViewingAnnouncement(null)}
         onEdit={() => {
           setEditingAnnouncement(viewingAnnouncement);
@@ -824,10 +821,7 @@ const SettingsPanel: React.FC<{
   const [settingIcon, setSettingIcon] = useState(classroom.icon ?? "");
   const [coverPreview, setCoverPreview] = useState(classroom.coverUrl ?? "");
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [coverUrlInput, setCoverUrlInput] = useState("");
-  const [coverModalOpen, setCoverModalOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const coverInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSettingName(classroom.name);
@@ -859,20 +853,13 @@ const SettingsPanel: React.FC<{
     }
   };
 
-  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) void handleCoverUpload(file);
-    e.target.value = "";
-  };
-
-  const handleCoverUrlSubmit = async () => {
-    const url = coverUrlInput.trim();
+  const handleCoverUrlSubmit = async (urlInput: string) => {
+    const url = urlInput.trim();
     if (!url) return;
     setUploadingCover(true);
     try {
       await updateClassroom(classroom.id, { cover_url: url });
       setCoverPreview(url);
-      setCoverUrlInput("");
       showToast({ kind: "success", title: t("classroom.coverUploaded", "封面圖片已更新") });
       await onRefresh();
     } catch (error) {
@@ -971,85 +958,25 @@ const SettingsPanel: React.FC<{
               </div>
             </FieldRow>
             <FieldRow label={t("classroom.coverImage", "封面圖片")}>
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                hidden
-                onChange={handleCoverFileChange}
+              <ImageEditDialog
+                variant="cover"
+                previewUrl={coverPreview || undefined}
+                alt="classroom cover"
+                emptyLabel={t("classroom.addCover", "新增封面")}
+                modalHeading={t("classroom.editCover", "編輯封面圖片")}
+                urlPlaceholder="https://images.unsplash.com/..."
+                uploadLabel={t("classroom.uploadFile", "上傳圖片")}
+                removeLabel={t("classroom.removeCover", "移除封面")}
+                applyLabel={t("common.apply", "套用")}
+                dropzoneLabel={t("classroom.coverDropzoneTitle", "拖曳封面圖片到此處")}
+                dropzoneHint={t("classroom.coverDropzoneHint", "或點擊這裡選擇圖片檔案")}
+                disabled={uploadingCover || savingSettings}
+                onUpload={handleCoverUpload}
+                onApplyUrl={handleCoverUrlSubmit}
+                onRemove={coverPreview ? handleRemoveCover : undefined}
               />
-              <button
-                type="button"
-                className="classroom-cover-thumb"
-                onClick={() => setCoverModalOpen(true)}
-              >
-                {coverPreview ? (
-                  <img src={coverPreview} alt="cover" />
-                ) : (
-                  <div className="classroom-cover-thumb__empty">
-                    <CloudUpload size={20} />
-                    <span>{t("classroom.addCover", "新增封面")}</span>
-                  </div>
-                )}
-                <div className="classroom-cover-thumb__overlay">
-                  <Edit size={20} />
-                </div>
-              </button>
             </FieldRow>
-
-            <Modal
-              open={coverModalOpen}
-              size="sm"
-              modalHeading={t("classroom.editCover", "編輯封面圖片")}
-              passiveModal
-              onRequestClose={() => { setCoverModalOpen(false); setCoverUrlInput(""); }}
-            >
-              <div className="classroom-cover-modal">
-                <Button
-                  kind="tertiary"
-                  size="md"
-                  renderIcon={CloudUpload}
-                  disabled={uploadingCover}
-                  className="classroom-cover-modal__btn"
-                  onClick={() => { coverInputRef.current?.click(); setCoverModalOpen(false); }}
-                >
-                  {t("classroom.uploadFile", "上傳圖片")}
-                </Button>
-                <div className="classroom-cover-modal__url-row">
-                  <TextInput
-                    id="classroom-cover-url-modal"
-                    hideLabel
-                    labelText="URL"
-                    size="md"
-                    placeholder="https://images.unsplash.com/..."
-                    value={coverUrlInput}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCoverUrlInput(e.target.value)}
-                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") { void handleCoverUrlSubmit(); setCoverModalOpen(false); } }}
-                  />
-                  <Button
-                    kind="primary"
-                    size="md"
-                    disabled={!coverUrlInput.trim() || uploadingCover}
-                    onClick={() => { void handleCoverUrlSubmit(); setCoverModalOpen(false); }}
-                  >
-                    {t("common.apply", "套用")}
-                  </Button>
-                </div>
-                {coverPreview && (
-                  <Button
-                    kind="danger--ghost"
-                    size="md"
-                    renderIcon={TrashCan}
-                    disabled={uploadingCover || savingSettings}
-                    className="classroom-cover-modal__btn"
-                    onClick={() => { void handleRemoveCover(); setCoverModalOpen(false); }}
-                  >
-                    {t("classroom.removeCover", "移除封面")}
-                  </Button>
-                )}
-              </div>
-            </Modal>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+            <div className="classroom-settings-save-row">
               <Button
                 kind="primary"
                 size="sm"
@@ -1065,17 +992,17 @@ const SettingsPanel: React.FC<{
 
           <Section title={t("classroom.otherInfo", "其他資訊")}>
             <FieldRow label={t("classroom.owner", "建立者")}>
-              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+              <span className="classroom-settings-meta-value">
                 {classroom.ownerUsername}
               </span>
             </FieldRow>
             <FieldRow label={t("classroom.createdAt", "建立時間")}>
-              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+              <span className="classroom-settings-meta-value">
                 {new Date(classroom.createdAt).toLocaleString()}
               </span>
             </FieldRow>
             <FieldRow label={t("classroom.updatedAt", "最後更新")}>
-              <span style={{ fontSize: "var(--cds-body-long-01-font-size, 0.875rem)" }}>
+              <span className="classroom-settings-meta-value">
                 {new Date(classroom.updatedAt).toLocaleString()}
               </span>
             </FieldRow>
@@ -1083,15 +1010,7 @@ const SettingsPanel: React.FC<{
         </>
       }
     >
-      <h2
-        style={{
-          fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
-          fontWeight: 400,
-          lineHeight: "1.625rem",
-          color: "var(--cds-text-primary)",
-          margin: 0,
-        }}
-      >
+      <h2 className="classroom-settings-heading">
         {t("classroom.tab.settings", "教室設定")}
       </h2>
     </SettingsPanelRoot>
