@@ -29,31 +29,31 @@
 .classroom-hero-wrapper {
   width: 100%;
   position: relative;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: var(--cds-background-brand);
 }
 
+// Overlay lives on .classroom-hero-and-tabs (covers hero + tabs)
 .classroom-hero-overlay {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0.2) 0%,
-    rgba(0, 0, 0, 0.6) 100%
+    rgba(0, 0, 0, 0.55) 100%
   );
   pointer-events: none;
 }
 
 .classroom-hero-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: layout.$spacing-06;
-  padding: layout.$spacing-09 layout.$spacing-06 layout.$spacing-05;
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: layout.$spacing-07 layout.$spacing-10 layout.$spacing-05;
 }
 
 // Left column: icon → title → description (vertical)
@@ -62,7 +62,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
 }
 
 .classroom-hero-icon {
@@ -77,9 +77,9 @@
 }
 
 .classroom-hero-title {
-  font-size: 2.5rem;
-  font-weight: 300;
-  line-height: 1.2;
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.3;
   letter-spacing: -0.01em;
   color: #fff;
   margin: 0;
@@ -99,21 +99,106 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+// ── Hero + Tabs wrapper ──
+// The tabs sit at the bottom of the hero visually, sharing the same
+// background. When the user scrolls, the tab bar sticks below the navbar.
+.classroom-hero-and-tabs {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--cds-background-brand);
 
+  // Soft shadow at the bottom edge to ease the transition into content
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+  }
+}
 
+// ── Tab bar ──
+// Sits inside the hero cover — all backgrounds must be transparent so the
+// cover image shows through. We override every Carbon state (default,
+// hover, selected, focus, disabled) to avoid any opaque surface leaking.
+.classroom-tabs-bar {
+  position: sticky;
+  top: 3rem;
+  z-index: 3;
+  padding: 0 layout.$spacing-10;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
 
+  .cds--tabs {
+    max-width: 84rem;
+    margin: 0 auto;
+  }
+
+  .cds--tab--list {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  // Reset every nav-item + link to transparent
+  .cds--tabs__nav-item,
+  .cds--tabs__nav-item:hover,
+  .cds--tabs__nav-item--selected,
+  .cds--tabs__nav-item--selected:hover {
+    background-color: transparent !important;
+    border-block-end-color: transparent !important;
+  }
+
+  .cds--tabs__nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    background-color: transparent !important;
+
+    svg { fill: currentColor; }
+
+    &:hover {
+      color: #fff !important;
+    }
+
+    &:focus,
+    &:active {
+      outline-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Selected indicator — blue bottom border (theme-aware)
+  .cds--tabs__nav-item--selected {
+    border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
+  }
+
+  .cds--tabs__nav-item--selected .cds--tabs__nav-link,
+  .cds--tabs__nav-item--selected .cds--tabs__nav-link:hover {
+    color: #fff !important;
+    background-color: transparent !important;
+  }
+
+  .cds--tab-content {
+    display: none;
+  }
+}
+
+// ── Panel content ──
 .classroom-admin-panel {
   width: 100%;
-  max-width: none;
-  margin: 0;
+  max-width: 84rem;
+  margin: 0 auto;
   min-height: 0;
-  padding: layout.$spacing-05 layout.$spacing-06;
+  padding: layout.$spacing-06 layout.$spacing-10;
 }
 
 .classroom-admin-overview-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(layout.rem(280px), 1fr);
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-05;
   align-items: start;
 }
 
@@ -121,23 +206,28 @@
 .classroom-admin-overview-layout__side {
   min-width: 0;
   display: grid;
-  gap: layout.$spacing-03;
+  gap: 0;
 }
 
 .classroom-admin-overview-layout__main > .classroom-admin-section,
 .classroom-admin-overview-layout__side > .classroom-admin-section {
   margin-bottom: 0;
+
+  &:first-child {
+    padding-top: 0;
+  }
 }
 
 .classroom-admin-section {
-  background: var(--cds-layer);
-  padding: layout.$spacing-05;
-  margin-bottom: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-05 0;
+
+  & + & {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
 }
 
 .classroom-admin-section--invite {
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-04 0;
 }
 
 .classroom-admin-section__header {
@@ -146,6 +236,8 @@
   justify-content: space-between;
   gap: layout.$spacing-03;
   margin-bottom: layout.$spacing-03;
+  padding-bottom: layout.$spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .classroom-admin-section__title {
@@ -153,9 +245,15 @@
   align-items: center;
   gap: layout.$spacing-03;
 
+  svg {
+    color: var(--cds-icon-brand, var(--cds-interactive));
+  }
+
   h3 {
-    @include type.type-style("productive-heading-03");
+    @include type.type-style("productive-heading-02");
+    font-weight: 600;
     margin: 0;
+    color: var(--cds-text-primary);
   }
 }
 
@@ -165,6 +263,23 @@
   align-items: end;
   gap: layout.$spacing-03;
   margin-bottom: layout.$spacing-04;
+}
+
+.classroom-admin-member-search {
+  margin-bottom: layout.$spacing-05;
+}
+
+.classroom-admin-member-groups {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.classroom-admin-member-group__title {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 layout.$spacing-03;
 }
 
 .classroom-admin-members-summary {
@@ -194,25 +309,25 @@
 
 .classroom-admin-announcement-list {
   display: grid;
-  gap: layout.$spacing-02;
+  gap: layout.$spacing-03;
 }
 
 .classroom-admin-announcement-card {
   width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: layout.$spacing-03;
   text-align: left;
-  border: 0;
-  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle);
   border-left: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-03 layout.$spacing-04;
+  background: var(--cds-layer);
+  padding: layout.$spacing-04 layout.$spacing-05;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease;
 
   &:hover {
     background: var(--cds-layer-hover);
+    border-color: var(--cds-border-interactive);
   }
 }
 
@@ -220,18 +335,21 @@
   border-left-color: var(--cds-support-warning);
 }
 
-.classroom-admin-announcement-card__title {
+.classroom-admin-announcement-card__head {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-02;
+  gap: layout.$spacing-03;
   min-width: 0;
 
   h4 {
-    @include type.type-style("heading-02");
+    @include type.type-style("heading-compact-02");
     margin: 0;
+    flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--cds-text-primary);
   }
 }
 
@@ -240,19 +358,25 @@
   flex-shrink: 0;
 }
 
-.classroom-admin-announcement-card__meta {
+.classroom-admin-announcement-card__date {
   display: inline-flex;
   align-items: center;
-  gap: layout.$spacing-03;
-  color: var(--cds-text-placeholder);
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
   @include type.type-style("label-01");
   flex-shrink: 0;
+  white-space: nowrap;
+}
 
-  span {
-    display: inline-flex;
-    align-items: center;
-    gap: layout.$spacing-02;
-  }
+.classroom-admin-announcement-card__preview {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+  color: var(--cds-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
 }
 
 .classroom-admin-announcement-view {
@@ -301,7 +425,7 @@
 
   button {
     border: 1px solid var(--cds-border-subtle);
-    background: var(--cds-layer-01);
+    background: var(--cds-layer-02);
     color: var(--cds-text-primary);
     padding: layout.$spacing-03;
     text-align: left;
@@ -431,6 +555,8 @@
   padding: layout.$spacing-05 layout.$spacing-04;
   min-height: layout.rem(140px);
   color: var(--cds-text-secondary);
+  background: var(--cds-layer-02);
+  border: 1px dashed var(--cds-border-subtle);
 }
 
 .classroom-admin-empty-block--compact {
@@ -452,16 +578,19 @@
     align-items: flex-start;
   }
 
-
   .classroom-admin-overview-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 672px) {
+  .classroom-tabs-bar {
+    padding: 0 layout.$spacing-05;
+  }
+
   .classroom-hero-content {
-    padding: layout.$spacing-07 layout.$spacing-04 layout.$spacing-04;
-    gap: layout.$spacing-04;
+    padding: layout.$spacing-05 layout.$spacing-05 layout.$spacing-04;
+    gap: layout.$spacing-03;
   }
 
   .classroom-hero-icon svg {
@@ -477,13 +606,12 @@
     font-size: 1rem;
   }
 
-
   .classroom-admin-page {
     padding: 0;
   }
 
   .classroom-admin-panel {
-    padding: layout.$spacing-04;
+    padding: layout.$spacing-04 layout.$spacing-05;
   }
 
   .classroom-admin-todo-list {
@@ -509,7 +637,7 @@
   }
 
   .classroom-admin-section {
-    padding: layout.$spacing-04;
+    padding: layout.$spacing-04 0;
   }
 
   .classroom-admin-announcement-card {
