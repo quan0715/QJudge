@@ -6,8 +6,9 @@ import json
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
-from apps.users.models import User
+from apps.users.models import User, UserProfile
 from apps.users.services import (
     APIKeyService,
     EmailAuthService,
@@ -41,6 +42,11 @@ class JWTServiceTests(TestCase):
         self.assertIsNotNone(self.user.last_login_at)
 
     def test_get_user_response_data_formats_payload(self):
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        profile.onboarding_completed_at = timezone.now()
+        profile.display_name = "JWT User"
+        profile.save(update_fields=["onboarding_completed_at", "display_name", "updated_at"])
+
         tokens = {"access": "a", "refresh": "r", "expires_in": 3600}
         payload = JWTService.get_user_response_data(self.user, tokens)
 
@@ -49,6 +55,8 @@ class JWTServiceTests(TestCase):
         self.assertEqual(payload["data"]["refresh_token"], "r")
         self.assertEqual(payload["data"]["expires_in"], 3600)
         self.assertEqual(payload["data"]["user"]["email"], self.user.email)
+        self.assertEqual(payload["data"]["user"]["profile"]["display_name"], "JWT User")
+        self.assertIsNotNone(payload["data"]["user"]["profile"]["onboarding_completed_at"])
 
 
 class EmailAuthServiceTests(TestCase):

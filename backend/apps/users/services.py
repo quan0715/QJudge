@@ -5,6 +5,7 @@ import logging
 import secrets
 import json
 import base64
+import hashlib
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -16,9 +17,12 @@ from django.core.cache import cache
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
+from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)
+
+
+TEACHER_ACTIVATION_TTL = timedelta(days=7)
 
 def _extract_avatar_url(raw: dict) -> str:
     """Extract avatar URL from common provider payload variants."""
@@ -93,20 +97,16 @@ class JWTService:
     @staticmethod
     def get_user_response_data(user, tokens):
         """Format user data with tokens for API response."""
+        from .serializers import UserSerializer
+        user = User.objects.select_related("profile").get(pk=user.pk)
+
         return {
             'success': True,
             'data': {
                 'access_token': tokens['access'],
                 'refresh_token': tokens['refresh'],
                 'expires_in': tokens['expires_in'],
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'role': user.role,
-                    'auth_provider': user.auth_provider,
-                    'email_verified': user.email_verified,
-                }
+                'user': UserSerializer(user).data,
             }
         }
 
@@ -202,6 +202,49 @@ class EmailAuthService:
             )
         except User.DoesNotExist:
             return None
+
+    @staticmethod
+    def generate_teacher_activation_token():
+        """Generate a one-time token for teacher activation."""
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hash_teacher_activation_token(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def build_teacher_activation_url(token: str) -> str:
+        return f"{settings.FRONTEND_URL}/teacher-activation?token={token}"
+
+    @staticmethod
+    def get_teacher_activation_invite_by_token(token: str):
+        token = (token or "").strip()
+        if not token:
+            return None
+        digest = EmailAuthService.hash_teacher_activation_token(token)
+        return TeacherActivationInvite.objects.select_related(
+            "created_by",
+            "target_user",
+            "consumed_by",
+        ).filter(token_digest=digest).first()
+
+    @staticmethod
+    def issue_teacher_activation_invite(email: str, created_by: User):
+        normalized_email = email.strip().lower()
+        existing_user = User.objects.filter(email__iexact=normalized_email).first()
+        if existing_user and existing_user.role in {"teacher", "admin"}:
+            raise ValueError("這個帳號目前已具備教師或管理員權限")
+
+        token = EmailAuthService.generate_teacher_activation_token()
+        invite = TeacherActivationInvite.objects.create(
+            email=normalized_email,
+            token_digest=EmailAuthService.hash_teacher_activation_token(token),
+            created_by=created_by,
+            target_user=existing_user,
+            expires_at=timezone.now() + TEACHER_ACTIVATION_TTL,
+        )
+        activation_url = EmailAuthService.build_teacher_activation_url(token)
+        return invite, activation_url
 
 
 # ---------------------------------------------------------------------------
