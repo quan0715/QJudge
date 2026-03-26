@@ -26,42 +26,33 @@ const ROLE_TAG_TYPE: Record<string, "blue" | "green" | "purple"> = {
   admin: "purple",
 };
 
-const TIER_LABELS: Record<string, string> = {
-  free: "免費方案",
-  pro: "個人方案",
-  team: "團隊方案",
-  enterprise: "Enterprise",
-};
-
-const STATUS_MAP: Record<string, { text: string; type: "green" | "blue" | "red" | "gray" }> = {
-  active: { text: "啟用中", type: "green" },
-  trialing: { text: "試用中", type: "blue" },
-  past_due: { text: "付款逾期", type: "red" },
-  canceled: { text: "已取消", type: "gray" },
-  cancelled: { text: "已取消", type: "gray" },
-  expired: { text: "已到期", type: "gray" },
-};
-
 type DeviceType = "mobile" | "tablet" | "desktop";
 
-function parseUA(ua: string) {
-  if (!ua) return { browser: "Unknown", os: "", deviceType: "desktop" as DeviceType };
+function parseUA(ua: string): { browser: string; os: string; deviceType: DeviceType } {
+  if (!ua) return { browser: "Unknown", os: "", deviceType: "desktop" };
+
   let browser = "Unknown";
   if (ua.includes("Firefox")) browser = "Firefox";
   else if (ua.includes("Edg/")) browser = "Edge";
   else if (ua.includes("Chrome")) browser = "Chrome";
   else if (ua.includes("Safari")) browser = "Safari";
+
   let os = "";
   let deviceType: DeviceType = "desktop";
-  if (ua.includes("iPhone") || ua.includes("Android") && ua.includes("Mobile")) {
+  if (ua.includes("iPhone") || (ua.includes("Android") && ua.includes("Mobile"))) {
     os = ua.includes("iPhone") ? "iOS" : "Android";
     deviceType = "mobile";
   } else if (ua.includes("iPad") || ua.includes("Android")) {
     os = ua.includes("iPad") ? "iPadOS" : "Android";
     deviceType = "tablet";
-  } else if (ua.includes("Windows")) { os = "Windows"; }
-  else if (ua.includes("Mac OS")) { os = "macOS"; }
-  else if (ua.includes("Linux")) { os = "Linux"; }
+  } else if (ua.includes("Windows")) {
+    os = "Windows";
+  } else if (ua.includes("Mac OS")) {
+    os = "macOS";
+  } else if (ua.includes("Linux")) {
+    os = "Linux";
+  }
+
   return { browser, os, deviceType };
 }
 
@@ -71,17 +62,17 @@ const DEVICE_ICON = {
   desktop: Laptop,
 } as const;
 
-function formatDate(dateStr: string | null | undefined): string {
+function formatDate(dateStr: string | null | undefined, locale: string): string {
   if (!dateStr) return "-";
-  return new Date(dateStr).toLocaleDateString("zh-TW", {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 }
 
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("zh-TW", {
+function formatDateTime(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleString(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -229,7 +220,16 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
   const { subscription } = useCustomer();
   const [portalLoading, setPortalLoading] = useState(false);
 
-  const statusInfo = STATUS_MAP[status ?? "active"] ?? STATUS_MAP.active;
+  const statusMap: Record<string, { text: string; type: "green" | "blue" | "red" | "gray" }> = {
+    active: { text: t("settings.subscription.status.active", "啟用中"), type: "green" },
+    trialing: { text: t("settings.subscription.status.trialing", "試用中"), type: "blue" },
+    past_due: { text: t("settings.subscription.status.past_due", "付款逾期"), type: "red" },
+    canceled: { text: t("settings.subscription.status.canceled", "已取消"), type: "gray" },
+    cancelled: { text: t("settings.subscription.status.canceled", "已取消"), type: "gray" },
+    expired: { text: t("settings.subscription.status.expired", "已到期"), type: "gray" },
+  };
+
+  const statusInfo = statusMap[status ?? "active"] ?? statusMap.active;
   const canManage = isPaid && status !== "canceled" && status !== "cancelled" && status !== "expired";
 
   const handlePortal = async () => {
@@ -238,7 +238,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
       const res = await createPortalSession();
       window.location.href = res.data.url;
     } catch {
-      showToast({ kind: "error", title: "無法開啟訂閱管理頁面" });
+      showToast({ kind: "error", title: t("settings.subscription.openPortalFailed", "無法開啟訂閱管理頁面") });
       setPortalLoading(false);
     }
   };
@@ -271,6 +271,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
   };
 
   const deviceGroups = groupByDevice(records);
+  const locale = t("common.locale", "zh-TW");
 
   return (
     <div className="settings-panel">
@@ -348,31 +349,31 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
         ) : (
           <>
             <div className="profile-panel__sub-row">
-              <span className="profile-panel__sub-tier">{TIER_LABELS[tier] ?? tier}</span>
+              <span className="profile-panel__sub-tier">{t(`settings.subscription.tier.${tier}`, tier)}</span>
               <Tag type={statusInfo.type} size="sm">{statusInfo.text}</Tag>
             </div>
             <p className="profile-panel__sub-desc">
-              {tier === "free" && "目前使用免費方案，可隨時升級取得更高額度"}
-              {tier === "pro" && "有穩定考試需求的個人用戶"}
-              {tier === "team" && "學校、科系、培訓機構"}
+              {tier === "free" && t("settings.subscription.desc.free", "目前使用免費方案，可隨時升級取得更高額度")}
+              {tier === "pro" && t("settings.subscription.desc.pro", "有穩定考試需求的個人用戶")}
+              {tier === "team" && t("settings.subscription.desc.team", "學校、科系、培訓機構")}
             </p>
             {isTrialing && subscription?.currentPeriodEnd && (
-              <SettingsField label="試用到期日">
-                <span>{formatDate(subscription.currentPeriodEnd)}</span>
+              <SettingsField label={t("settings.subscription.trialEndDate", "試用到期日")}>
+                <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
               </SettingsField>
             )}
             {!isTrialing && subscription?.currentPeriodEnd && (
-              <SettingsField label="目前週期結束">
-                <span>{formatDate(subscription.currentPeriodEnd)}</span>
+              <SettingsField label={t("settings.subscription.periodEndDate", "目前週期結束")}>
+                <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
               </SettingsField>
             )}
             {canManage && (
               <SettingsField
-                label="管理訂閱"
-                description="變更付款方式、取消訂閱或查看發票"
+                label={t("settings.subscription.manage", "管理訂閱")}
+                description={t("settings.subscription.manageDesc", "變更付款方式、取消訂閱或查看發票")}
               >
                 <Button kind="ghost" size="sm" onClick={handlePortal} disabled={portalLoading}>
-                  {portalLoading ? "載入中..." : "管理訂閱"}
+                  {portalLoading ? t("action.processing", "處理中...") : t("settings.subscription.manage", "管理訂閱")}
                 </Button>
               </SettingsField>
             )}
@@ -386,8 +387,8 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
         description={t("profile.devicesDesc", "最近 30 天登入的裝置")}
       >
         <SettingsField
-          label="登出其他裝置"
-          description="登出除了此裝置以外的所有作用中工作階段"
+          label={t("settings.loginRecords.logoutOther", "登出其他裝置")}
+          description={t("settings.loginRecords.logoutOtherDesc", "登出除了此裝置以外的所有作用中工作階段")}
         >
           <Button
             kind="danger--ghost"
@@ -395,7 +396,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
             onClick={handleLogoutOther}
             disabled={loggingOut}
           >
-            {loggingOut ? "登出中..." : "登出其他裝置"}
+            {loggingOut ? t("action.processing", "處理中...") : t("settings.loginRecords.logoutOther", "登出其他裝置")}
           </Button>
         </SettingsField>
         {devLoading ? (
@@ -437,7 +438,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
                       </div>
                     </div>
                     <span className="profile-panel__device-col profile-panel__device-col--time">
-                      {isNow ? t("profile.now", "現在") : formatDateTime(g.lastActive)}
+                      {isNow ? t("profile.now", "現在") : formatDateTime(g.lastActive, locale)}
                     </span>
                     <span className="profile-panel__device-col profile-panel__device-col--ip">
                       {g.ip}

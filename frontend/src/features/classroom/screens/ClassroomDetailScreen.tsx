@@ -21,7 +21,6 @@ import {
   Education,
   Pin,
   Settings,
-  Task,
   Trophy,
   UserMultiple,
 } from "@carbon/icons-react";
@@ -389,10 +388,10 @@ const ClassroomDetailScreen: React.FC = () => {
 type TFn = ReturnType<typeof useTranslation>["t"];
 
 const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: React.ComponentType }> = {
-  overview:      { label: (t) => t("classroom.tab.overview", "Overview"),  icon: Dashboard },
-  announcements: { label: (t) => t("classroom.announcements", "公告"),     icon: Bullhorn },
-  contests:      { label: (t) => t("classroom.contests", "競賽"),          icon: Trophy },
-  members:       { label: (t) => t("classroom.members", "成員"),           icon: UserMultiple },
+  overview:      { label: (t) => t("classroom.tab.overview", "總覽"),      icon: Dashboard },
+  announcements: { label: (t) => t("classroom.tab.announcements", "公告"), icon: Bullhorn },
+  contests:      { label: (t) => t("classroom.tab.contests", "競賽"),      icon: Trophy },
+  members:       { label: (t) => t("classroom.tab.members", "成員"),       icon: UserMultiple },
   settings:      { label: (t) => t("classroom.tab.settings", "設定"),      icon: Settings },
 };
 
@@ -470,6 +469,7 @@ const OverviewPanel: React.FC<{
           onCreateClick={onCreateAnnouncement}
           onView={onViewAnnouncement}
           compactEmpty
+          title={t("classroom.latestAnnouncements", "最新公告")}
         />
         {classroom.announcements.length > 4 && (
           <Button
@@ -488,7 +488,6 @@ const OverviewPanel: React.FC<{
           <section className="classroom-admin-section classroom-admin-section--todo">
             <div className="classroom-admin-section__header">
               <div className="classroom-admin-section__title">
-                <Task size={20} />
                 <h3>{t("classroom.studentTodo", "我的待辦")}</h3>
               </div>
             </div>
@@ -508,8 +507,7 @@ const OverviewPanel: React.FC<{
         <section className="classroom-admin-section">
           <div className="classroom-admin-section__header">
             <div className="classroom-admin-section__title">
-              <Trophy size={20} />
-              <h3>{t("classroom.contests", "競賽")}</h3>
+              <h3>{t("classroom.recentActivities", "近期活動")}</h3>
             </div>
             {canBindContests && (
               <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
@@ -563,7 +561,6 @@ const ContestPanel: React.FC<{
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <Trophy size={20} />
           <h3>{t("classroom.contests", "競賽列表")}</h3>
         </div>
         {canBindContests && (
@@ -639,7 +636,6 @@ const MembersPanel: React.FC<{
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <UserMultiple size={20} />
           <h3>{t("classroom.membersTitle", "成員列表")}</h3>
         </div>
       </div>
@@ -679,14 +675,14 @@ const AnnouncementSection: React.FC<{
   onCreateClick: () => void;
   onView: (announcement: ClassroomAnnouncement) => void;
   compactEmpty?: boolean;
-}> = ({ announcements, isPrivileged, onCreateClick, onView, compactEmpty = false }) => {
+  title?: string;
+}> = ({ announcements, isPrivileged, onCreateClick, onView, compactEmpty = false, title }) => {
   const { t } = useTranslation();
   return (
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <Bullhorn size={20} />
-          <h3>{t("classroom.announcements", "課程公告")}</h3>
+          <h3>{title ?? t("classroom.announcements", "課程公告")}</h3>
         </div>
         {isPrivileged && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateClick}>
@@ -752,12 +748,11 @@ const AnnouncementCard: React.FC<{
   const preview = stripMarkdown(announcement.content);
 
   return (
-    <button
-      type="button"
+    <ClickableTile
+      onClick={onClick}
       className={`classroom-admin-announcement-card${
         announcement.isPinned ? " classroom-admin-announcement-card--pinned" : ""
       }`}
-      onClick={onClick}
     >
       <div className="classroom-admin-announcement-card__head">
         {announcement.isPinned && <Pin size={14} className="classroom-admin-announcement-card__pin" />}
@@ -770,7 +765,7 @@ const AnnouncementCard: React.FC<{
       {preview && (
         <p className="classroom-admin-announcement-card__preview">{preview}</p>
       )}
-    </button>
+    </ClickableTile>
   );
 };
 
