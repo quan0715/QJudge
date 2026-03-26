@@ -19,17 +19,17 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   classroom,
   onRefresh,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
 
   const navItems: SettingsModalNavItem[] = [
     {
       id: "general",
-      label: t("classroom.tab.settings", "教室設定"),
+      label: t("tab.settings", "教室設定"),
       icon: Settings,
     },
     {
       id: "members",
-      label: t("classroom.settingsMembers", "助教管理"),
+      label: t("settingsMembers", "助教管理"),
       icon: UserMultiple,
     },
   ];
@@ -59,7 +59,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
     <SettingsModal
       open={open}
       onRequestClose={onClose}
-      modalHeading={t("classroom.tab.settings", "教室設定")}
+      modalHeading={t("tab.settings", "教室設定")}
       navItems={navItems}
       renderPanel={renderPanel}
     />

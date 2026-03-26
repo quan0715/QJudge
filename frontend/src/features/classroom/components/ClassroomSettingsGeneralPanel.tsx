@@ -22,7 +22,8 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
   classroom,
   onRefresh,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
 
   const [settingName, setSettingName] = useState(classroom.name);
@@ -62,7 +63,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.settingsSaveFailed", "儲存設定失敗"),
+        title: t("settingsSaveFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -110,12 +111,12 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
     try {
       const url = await uploadClassroomCover(classroom.id, file);
       setCoverPreview(url);
-      showToast({ kind: "success", title: t("classroom.coverUploaded", "封面圖片已更新") });
+      showToast({ kind: "success", title: t("coverUploaded") });
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.coverUploadFailed", "上傳封面失敗"),
+        title: t("coverUploadFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -130,12 +131,12 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
     try {
       await updateClassroom(classroom.id, { cover_url: url });
       setCoverPreview(url);
-      showToast({ kind: "success", title: t("classroom.coverUploaded", "封面圖片已更新") });
+      showToast({ kind: "success", title: t("coverUploaded") });
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.coverUploadFailed", "更新封面失敗"),
+        title: t("coverUploadFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -147,12 +148,12 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
     try {
       await updateClassroom(classroom.id, { cover_url: "" });
       setCoverPreview("");
-      showToast({ kind: "success", title: t("classroom.coverRemoved", "封面圖片已移除") });
+      showToast({ kind: "success", title: t("coverRemoved") });
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.coverRemoveFailed", "移除封面失敗"),
+        title: t("coverRemoveFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
@@ -160,27 +161,27 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
 
   return (
     <div className="settings-panel">
-      <SettingsSection title={t("classroom.basicInfo", "基本資訊")}>
-        <SettingsField label={t("classroom.name", "教室名稱")}>
+      <SettingsSection title={t("basicInfo")}>
+        <SettingsField label={t("name")}>
           <TextInput
             id="classroom-settings-name"
             hideLabel
-            labelText={t("classroom.name", "教室名稱")}
+            labelText={t("name")}
             value={settingName}
             onChange={handleNameChange}
           />
         </SettingsField>
-        <SettingsField label={t("classroom.description", "教室描述")} vertical>
+        <SettingsField label={t("description")} vertical>
           <TextArea
             id="classroom-settings-description"
             hideLabel
-            labelText={t("classroom.description", "教室描述")}
+            labelText={t("description")}
             value={settingDescription}
             onChange={handleDescriptionChange}
             rows={4}
           />
         </SettingsField>
-        <SettingsField label={t("classroom.icon", "教室圖示")} vertical>
+        <SettingsField label={t("icon")} vertical>
           <div className="classroom-icon-picker">
             {CLASSROOM_ICON_OPTIONS.map((opt) => {
               const isSelected = settingIcon === opt.key;
@@ -198,19 +199,19 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             })}
           </div>
         </SettingsField>
-        <SettingsField label={t("classroom.coverImage", "封面圖片")} vertical>
+        <SettingsField label={t("coverImage")} vertical>
           <ImageEditDialog
             variant="cover"
             previewUrl={coverPreview || undefined}
             alt="classroom cover"
-            emptyLabel={t("classroom.addCover", "新增封面")}
-            modalHeading={t("classroom.editCover", "編輯封面圖片")}
+            emptyLabel={t("addCover")}
+            modalHeading={t("editCover")}
             urlPlaceholder="https://images.unsplash.com/..."
-            uploadLabel={t("classroom.uploadFile", "上傳圖片")}
-            removeLabel={t("classroom.removeCover", "移除封面")}
-            applyLabel={t("common.apply", "套用")}
-            dropzoneLabel={t("classroom.coverDropzoneTitle", "拖曳封面圖片到此處")}
-            dropzoneHint={t("classroom.coverDropzoneHint", "或點擊這裡選擇圖片檔案")}
+            uploadLabel={t("uploadFile")}
+            removeLabel={t("removeCover")}
+            applyLabel={tc("apply")}
+            dropzoneLabel={t("coverDropzoneTitle")}
+            dropzoneHint={t("coverDropzoneHint")}
             disabled={uploadingCover}
             onUpload={handleCoverUpload}
             onApplyUrl={handleCoverUrlSubmit}
@@ -219,14 +220,14 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
         </SettingsField>
       </SettingsSection>
 
-      <SettingsSection title={t("classroom.otherInfo", "其他資訊")}>
-        <SettingsField label={t("classroom.owner", "建立者")}>
+      <SettingsSection title={t("otherInfo")}>
+        <SettingsField label={t("owner")}>
           <span>{classroom.ownerUsername}</span>
         </SettingsField>
-        <SettingsField label={t("classroom.createdAt", "建立時間")}>
+        <SettingsField label={t("createdAt")}>
           <span>{new Date(classroom.createdAt).toLocaleString()}</span>
         </SettingsField>
-        <SettingsField label={t("classroom.updatedAt", "最後更新")}>
+        <SettingsField label={t("updatedAt")}>
           <span>{new Date(classroom.updatedAt).toLocaleString()}</span>
         </SettingsField>
       </SettingsSection>

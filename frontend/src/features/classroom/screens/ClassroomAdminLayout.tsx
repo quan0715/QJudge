@@ -44,7 +44,7 @@ const ClassroomAdminLayout = ({
   onOpenSettings,
   children,
 }: ClassroomAdminLayoutProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherHostRef = useRef<HTMLDivElement | null>(null);
 
@@ -77,7 +77,7 @@ const ClassroomAdminLayout = ({
   return (
     <div className={styles.shell}>
       <Header
-        aria-label={t("classroom.title", "教室管理")}
+        aria-label={t("title", "教室管理")}
         className={styles.header}
       >
         <div className={styles.headerLeft}>
@@ -99,11 +99,11 @@ const ClassroomAdminLayout = ({
               className={styles.classroomTriggerButton}
               aria-haspopup="menu"
               aria-expanded={switcherOpen}
-              aria-label={t("classroom.switchClassroom", "Switch classroom")}
+              aria-label={t("switchClassroom", "Switch classroom")}
               onClick={() => setSwitcherOpen((open) => !open)}
             >
               <span className={styles.classroomTriggerLabel}>
-                {t("classroom.current", "目前教室")}
+                {t("current", "目前教室")}
               </span>
               <span className={styles.classroomTriggerName}>
                 {selectedClassroom?.name ?? classroomName}
@@ -114,7 +114,7 @@ const ClassroomAdminLayout = ({
             <div
               className={`${styles.switcherMenu}${switcherOpen ? ` ${styles.switcherMenuOpen}` : ""}`}
               role="menu"
-              aria-label={t("classroom.classroomList", "Classroom list")}
+              aria-label={t("classroomList", "Classroom list")}
             >
               <div className={styles.switcherCardList}>
                 {classroomOptions.map((option) => (
@@ -132,8 +132,8 @@ const ClassroomAdminLayout = ({
                     <span className={styles.switcherCardTitle}>{option.name}</span>
                     <span className={styles.switcherCardMeta}>
                       {option.id === selectedClassroomId
-                        ? t("classroom.current", "目前教室")
-                        : t("classroom.switchTo", "切換至此教室")}
+                        ? t("current", "目前教室")
+                        : t("switchTo", "切換至此教室")}
                     </span>
                   </button>
                 ))}
@@ -145,14 +145,14 @@ const ClassroomAdminLayout = ({
         <HeaderGlobalBar>
           {onOpenSettings && (
             <HeaderGlobalAction
-              aria-label={t("classroom.tab.settings", "教室設定")}
+              aria-label={t("tab.settings", "教室設定")}
               tooltipAlignment="end"
               onClick={onOpenSettings}
             >
               <Settings size={20} />
             </HeaderGlobalAction>
           )}
-          <UserMenu compact />
+          <UserMenu />
         </HeaderGlobalBar>
       </Header>
 

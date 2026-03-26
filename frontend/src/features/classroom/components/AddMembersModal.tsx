@@ -94,8 +94,8 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
     } catch (err) {
       showToast({
         kind: "error",
-        title: t("classroom.addMembersFailed", "新增成員失敗"),
-        subtitle: err instanceof Error ? err.message : t("classroom.loadFailedHint", "請稍後再試"),
+        title: t("addMembersFailed", "新增成員失敗"),
+        subtitle: err instanceof Error ? err.message : t("loadFailedHint", "請稍後再試"),
       });
     } finally {
       setSubmitting(false);

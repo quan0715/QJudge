@@ -71,7 +71,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
         title: isEdit
           ? t("announcement.updateFailed", "更新公告失敗")
           : t("announcement.createFailed", "建立公告失敗"),
-        subtitle: err instanceof Error ? err.message : t("classroom.loadFailedHint", "請稍後再試"),
+        subtitle: err instanceof Error ? err.message : t("loadFailedHint", "請稍後再試"),
       });
     } finally {
       setSubmitting(false);

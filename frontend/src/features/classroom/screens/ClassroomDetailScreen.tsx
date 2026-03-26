@@ -65,9 +65,9 @@ const resolveActivePanel = (
 };
 
 const ClassroomDetailScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
-  const navigate = useNavigate();
   const { classroomId } = useParams<{ classroomId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -109,7 +109,7 @@ const ClassroomDetailScreen: React.FC = () => {
       if (!data) {
         showToast({
           kind: "error",
-          title: t("classroom.notFound", "找不到教室"),
+          title: t("notFound", "找不到教室"),
         });
         return;
       }
@@ -117,11 +117,11 @@ const ClassroomDetailScreen: React.FC = () => {
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.loadFailed", "載入教室失敗"),
+        title: t("loadFailed", "載入教室失敗"),
         subtitle:
           error instanceof Error
             ? error.message
-            : t("classroom.loadFailedHint", "請稍後再試"),
+            : t("loadFailedHint", "請稍後再試"),
       });
     } finally {
       setLoading(false);
@@ -135,11 +135,11 @@ const ClassroomDetailScreen: React.FC = () => {
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.switcherLoadFailed", "載入教室清單失敗"),
+        title: t("switcherLoadFailed", "載入教室清單失敗"),
         subtitle:
           error instanceof Error
             ? error.message
-            : t("classroom.loadFailedHint", "請稍後再試"),
+            : t("loadFailedHint", "請稍後再試"),
       });
     }
   }, [showToast, t]);
@@ -196,7 +196,7 @@ const ClassroomDetailScreen: React.FC = () => {
     if (!canBindContests) {
       showToast({
         kind: "error",
-        title: t("classroom.bindContestNoPermission", "你沒有綁定競賽的權限"),
+        title: t("bindContestNoPermission", "你沒有綁定競賽的權限"),
       });
       return;
     }
@@ -204,18 +204,18 @@ const ClassroomDetailScreen: React.FC = () => {
       await bindContest(classroomId, contestId);
       showToast({
         kind: "success",
-        title: t("classroom.createContestSuccess", "已建立競賽並加入教室"),
+        title: t("createContestSuccess", "已建立競賽並加入教室"),
       });
       setCreateContestOpen(false);
       await fetchClassroomData();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.createContestFailed", "建立競賽成功但加入教室失敗"),
+        title: t("createContestFailed", "建立競賽成功但加入教室失敗"),
         subtitle:
           error instanceof Error
             ? error.message
-            : t("classroom.loadFailedHint", "請稍後再試"),
+            : t("loadFailedHint", "請稍後再試"),
       });
     }
   };
@@ -227,18 +227,18 @@ const ClassroomDetailScreen: React.FC = () => {
       await deleteAnnouncement(classroomId, viewingAnnouncement.id);
       showToast({
         kind: "success",
-        title: t("classroom.announcementDeleted", "公告已刪除"),
+        title: t("announcementDeleted", "公告已刪除"),
       });
       setViewingAnnouncement(null);
       await fetchClassroomData();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.announcementDeleteFailed", "刪除公告失敗"),
+        title: t("announcementDeleteFailed", "刪除公告失敗"),
         subtitle:
           error instanceof Error
             ? error.message
-            : t("classroom.loadFailedHint", "請稍後再試"),
+            : t("loadFailedHint", "請稍後再試"),
       });
     }
   };
@@ -249,9 +249,9 @@ const ClassroomDetailScreen: React.FC = () => {
     return (
       <div className="classroom-admin-empty">
         <Education size={48} className="classroom-admin-empty__icon" />
-        <p>{t("classroom.notFound", "找不到教室")}</p>
+        <p>{t("notFound", "找不到教室")}</p>
         <Button kind="tertiary" size="sm" onClick={() => navigate("/dashboard")}>
-          {t("common.backToClassrooms", "返回教室列表")}
+          {tc("backToClassrooms", "返回教室列表")}
         </Button>
       </div>
     );
@@ -278,7 +278,7 @@ const ClassroomDetailScreen: React.FC = () => {
                 selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
                 onChange={handleTabChange}
               >
-                <TabList aria-label={t("classroom.tabs", "教室分頁")}>
+                <TabList aria-label={t("tabs", "教室分頁")}>
                   {availablePanels.map((panel) => (
                     <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
                       {TAB_CONFIG[panel]?.label(t) ?? panel}
@@ -388,11 +388,11 @@ const ClassroomDetailScreen: React.FC = () => {
 type TFn = ReturnType<typeof useTranslation>["t"];
 
 const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: React.ComponentType }> = {
-  overview:      { label: (t) => t("classroom.tab.overview", "總覽"),      icon: Dashboard },
-  announcements: { label: (t) => t("classroom.tab.announcements", "公告"), icon: Bullhorn },
-  contests:      { label: (t) => t("classroom.tab.contests", "競賽"),      icon: Trophy },
-  members:       { label: (t) => t("classroom.tab.members", "成員"),       icon: UserMultiple },
-  settings:      { label: (t) => t("classroom.tab.settings", "設定"),      icon: Settings },
+  overview:      { label: (t) => t("tab.overview", "總覽"),      icon: Dashboard },
+  announcements: { label: (t) => t("tab.announcements", "公告"), icon: Bullhorn },
+  contests:      { label: (t) => t("tab.contests", "競賽"),      icon: Trophy },
+  members:       { label: (t) => t("tab.members", "成員"),       icon: UserMultiple },
+  settings:      { label: (t) => t("tab.settings", "設定"),      icon: Settings },
 };
 
 // ── Hero ──
@@ -408,7 +408,7 @@ const getHeroStyle = (classroom: ClassroomDetail): React.CSSProperties => {
 };
 
 const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
   const normalizedDescription = classroom.description?.trim() ?? "";
   const shouldShowDescription =
     normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
@@ -425,7 +425,7 @@ const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) =>
           {classroom.name}
           {classroom.isArchived && (
             <Tag type="red" size="sm">
-              {t("classroom.archived", "已封存")}
+              {t("archived", "已封存")}
             </Tag>
           )}
         </h1>
@@ -458,7 +458,7 @@ const OverviewPanel: React.FC<{
   onNavigateContest,
   onJumpToPanel,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
 
   return (
     <div className="classroom-admin-overview-layout">
@@ -469,7 +469,7 @@ const OverviewPanel: React.FC<{
           onCreateClick={onCreateAnnouncement}
           onView={onViewAnnouncement}
           compactEmpty
-          title={t("classroom.latestAnnouncements", "最新公告")}
+          title={t("latestAnnouncements", "最新公告")}
         />
         {classroom.announcements.length > 4 && (
           <Button
@@ -478,7 +478,7 @@ const OverviewPanel: React.FC<{
             renderIcon={ArrowRight}
             onClick={() => onJumpToPanel("announcements")}
           >
-            {t("classroom.viewAllAnnouncements", "查看全部公告")}
+            {t("viewAllAnnouncements", "查看全部公告")}
           </Button>
         )}
       </div>
@@ -488,16 +488,16 @@ const OverviewPanel: React.FC<{
           <section className="classroom-admin-section classroom-admin-section--todo">
             <div className="classroom-admin-section__header">
               <div className="classroom-admin-section__title">
-                <h3>{t("classroom.studentTodo", "我的待辦")}</h3>
+                <h3>{t("studentTodo", "我的待辦")}</h3>
               </div>
             </div>
             <div className="classroom-admin-todo-list">
               <button type="button" onClick={() => onJumpToPanel("announcements")}>
-                <span>{t("classroom.announcements", "公告")}</span>
+                <span>{t("announcements", "公告")}</span>
                 <strong>{classroom.announcements.length}</strong>
               </button>
               <button type="button" onClick={() => onJumpToPanel("contests")}>
-                <span>{t("classroom.contests", "競賽")}</span>
+                <span>{t("contests", "競賽")}</span>
                 <strong>{classroom.contests.length}</strong>
               </button>
             </div>
@@ -507,11 +507,11 @@ const OverviewPanel: React.FC<{
         <section className="classroom-admin-section">
           <div className="classroom-admin-section__header">
             <div className="classroom-admin-section__title">
-              <h3>{t("classroom.recentActivities", "近期活動")}</h3>
+              <h3>{t("recentActivities", "近期活動")}</h3>
             </div>
             {canBindContests && (
               <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
-                {t("classroom.createContest", "建立競賽")}
+                {t("createContest", "建立競賽")}
               </Button>
             )}
           </div>
@@ -521,7 +521,7 @@ const OverviewPanel: React.FC<{
             return active.length === 0 ? (
               <EmptyBlock
                 icon={Trophy}
-                message={t("classroom.noActiveContests", "目前沒有進行中或即將開始的競賽")}
+                message={t("noActiveContests", "目前沒有進行中或即將開始的競賽")}
                 compact
               />
             ) : (
@@ -555,23 +555,23 @@ const ContestPanel: React.FC<{
   onCreateContest,
   onNavigateContest,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
 
   return (
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <h3>{t("classroom.contests", "競賽列表")}</h3>
+          <h3>{t("contests", "競賽列表")}</h3>
         </div>
         {canBindContests && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
-            {t("classroom.createContest", "建立競賽")}
+            {t("createContest", "建立競賽")}
           </Button>
         )}
       </div>
 
       {contests.length === 0 ? (
-        <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚未建立競賽")} />
+        <EmptyBlock icon={Trophy} message={t("noContests", "尚未建立競賽")} />
       ) : (
         <div className="classroom-admin-card-grid">
           {contests.map((contest) => (
@@ -592,7 +592,7 @@ const ContestPanel: React.FC<{
 const MembersPanel: React.FC<{
   classroom: ClassroomDetail;
 }> = ({ classroom }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
   const [keyword, setKeyword] = useState("");
 
   const managers: MemberCardData[] = useMemo(() => {
@@ -626,8 +626,8 @@ const MembersPanel: React.FC<{
   );
 
   const groups = [
-    { key: "manager", label: t("classroom.memberGroupTeacher", "教師"), members: filterList(managers) },
-    { key: "member", label: t("classroom.memberGroupStudent", "學生"), members: filterList(members) },
+    { key: "manager", label: t("memberGroupTeacher", "教師"), members: filterList(managers) },
+    { key: "member", label: t("memberGroupStudent", "學生"), members: filterList(members) },
   ];
 
   const totalVisible = groups.reduce((sum, g) => sum + g.members.length, 0);
@@ -636,21 +636,21 @@ const MembersPanel: React.FC<{
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <h3>{t("classroom.membersTitle", "成員列表")}</h3>
+          <h3>{t("membersTitle", "成員列表")}</h3>
         </div>
       </div>
       <div className="classroom-admin-member-search">
         <Search
           id="classroom-member-search"
-          labelText={t("classroom.memberSearch", "搜尋成員")}
-          placeholder={t("classroom.memberSearchPlaceholder", "搜尋 username 或 email")}
+          labelText={t("memberSearch", "搜尋成員")}
+          placeholder={t("memberSearchPlaceholder", "搜尋 username 或 email")}
           size="md"
           value={keyword}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => setKeyword(event.target.value)}
         />
       </div>
       {totalVisible === 0 ? (
-        <EmptyBlock icon={UserMultiple} message={t("classroom.memberNoResult", "找不到符合篩選條件的成員")} compact />
+        <EmptyBlock icon={UserMultiple} message={t("memberNoResult", "找不到符合篩選條件的成員")} compact />
       ) : (
         <div className="classroom-admin-member-groups">
           {groups.map((group) =>
@@ -677,23 +677,23 @@ const AnnouncementSection: React.FC<{
   compactEmpty?: boolean;
   title?: string;
 }> = ({ announcements, isPrivileged, onCreateClick, onView, compactEmpty = false, title }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
   return (
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <h3>{title ?? t("classroom.announcements", "課程公告")}</h3>
+          <h3>{title ?? t("announcements", "課程公告")}</h3>
         </div>
         {isPrivileged && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateClick}>
-            {t("classroom.createAnnouncement", "發佈公告")}
+            {t("createAnnouncement", "發佈公告")}
           </Button>
         )}
       </div>
       {announcements.length === 0 ? (
         <EmptyBlock
           icon={Bullhorn}
-          message={t("classroom.noAnnouncements", "尚無公告")}
+          message={t("noAnnouncements", "尚無公告")}
           compact={compactEmpty}
         />
       ) : (
@@ -776,7 +776,8 @@ const AnnouncementViewModal: React.FC<{
   onEdit: () => void;
   onDelete: () => void;
 }> = ({ announcement, canEdit, onClose, onEdit, onDelete }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   if (!announcement) return null;
@@ -788,8 +789,8 @@ const AnnouncementViewModal: React.FC<{
       onRequestClose={onClose}
       onRequestSubmit={onEdit}
       modalHeading={announcement.title}
-      primaryButtonText={canEdit ? t("common.edit", "Edit") : undefined}
-      secondaryButtonText={canEdit ? t("common.delete", "Delete") : undefined}
+      primaryButtonText={canEdit ? tc("edit", "Edit") : undefined}
+      secondaryButtonText={canEdit ? tc("delete", "Delete") : undefined}
       onSecondarySubmit={() => setConfirmDeleteOpen(true)}
       size="lg"
       danger={false}
@@ -821,9 +822,9 @@ const AnnouncementViewModal: React.FC<{
       open={confirmDeleteOpen}
       size="sm"
       danger
-      modalHeading={t("classroom.confirmDeleteAnnouncementTitle", "Confirm delete announcement")}
-      primaryButtonText={t("common.delete", "Delete")}
-      secondaryButtonText={t("common.cancel", "Cancel")}
+      modalHeading={t("confirmDeleteAnnouncementTitle", "Confirm delete announcement")}
+      primaryButtonText={tc("delete", "Delete")}
+      secondaryButtonText={tc("cancel", "Cancel")}
       onRequestClose={() => setConfirmDeleteOpen(false)}
       onRequestSubmit={() => {
         setConfirmDeleteOpen(false);
@@ -832,7 +833,7 @@ const AnnouncementViewModal: React.FC<{
     >
       <p>
         {t(
-          "classroom.confirmDeleteAnnouncementBody",
+          "confirmDeleteAnnouncementBody",
           "Are you sure to delete this announcement? This action cannot be undone.",
         )}
       </p>

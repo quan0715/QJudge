@@ -48,12 +48,12 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   classroom,
   onRefresh,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
 
   const roleItems = useMemo(
     () => [
-      { id: "all", label: t("classroom.memberRoleAll", "全部角色") },
+      { id: "all", label: t("memberRoleAll") },
       { id: "student", label: tc("role.student") },
       { id: "ta", label: tc("role.ta") },
     ],
@@ -120,9 +120,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
 
   const headers = useMemo(
     () => [
-      { key: "username", header: t("classroom.memberUsername", "使用者") },
-      { key: "email", header: t("classroom.memberEmail", "Email") },
-      { key: "role", header: t("classroom.memberRole", "角色") },
+      { key: "username", header: t("memberUsername") },
+      { key: "email", header: t("memberEmail") },
+      { key: "role", header: t("memberRole") },
       { key: "actions", header: "" },
     ],
     [t],
@@ -149,13 +149,13 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   const handleRegenerateCode = async () => {
     try {
       await regenerateCode(classroom.id);
-      showToast({ kind: "success", title: t("classroom.codeRegenerated", "邀請碼已重置") });
+      showToast({ kind: "success", title: t("codeRegenerated") });
       setRegenerateConfirmOpen(false);
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.codeRegenerateFailed", "重置邀請碼失敗"),
+        title: t("codeRegenerateFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
@@ -164,14 +164,14 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   const handleRemoveMember = async (member: ClassroomMember) => {
     try {
       await removeMember(classroom.id, member.userId);
-      showToast({ kind: "success", title: t("classroom.memberRemoved", "成員已移除") });
+      showToast({ kind: "success", title: t("memberRemoved") });
       setPendingMemberRemoval(null);
       setEditingMember(null);
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.removeMemberFailed", "移除成員失敗"),
+        title: t("removeMemberFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
@@ -180,13 +180,13 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   const handleUpdateMemberRole = async (member: ClassroomMember, role: "student" | "ta") => {
     try {
       await updateMemberRole(classroom.id, member.userId, role);
-      showToast({ kind: "success", title: t("classroom.memberRoleUpdated", "成員角色已更新") });
+      showToast({ kind: "success", title: t("memberRoleUpdated") });
       setEditingMember(null);
       await onRefresh();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("classroom.memberRoleUpdateFailed", "更新成員角色失敗"),
+        title: t("memberRoleUpdateFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
@@ -209,7 +209,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   return (
     <div className="settings-panel">
       {classroom.inviteCode && (
-        <SettingsSection title={t("classroom.inviteCodeSection", "邀請碼")}>
+        <SettingsSection title={t("inviteCodeSection")}>
           <InviteCodeDisplay
             code={classroom.inviteCode}
             enabled={classroom.inviteCodeEnabled}
@@ -218,7 +218,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
         </SettingsSection>
       )}
 
-      <SettingsSection title={t("classroom.membersTitle", "成員列表")}>
+      <SettingsSection title={t("membersTitle")}>
         <DataTable rows={rows} headers={headers} isSortable>
           {({ rows: tableRows, headers: tableHeaders, getTableProps, getHeaderProps, getRowProps, onInputChange }) => (
             <TableContainer>
@@ -230,12 +230,12 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                         onInputChange(event);
                       }
                     }}
-                    placeholder={t("classroom.memberSearchPlaceholder", "搜尋 username 或 email")}
+                    placeholder={t("memberSearchPlaceholder")}
                     persistent
                   />
                   <Dropdown
                     id="settings-member-role-filter"
-                    label={t("classroom.memberRoleFilter", "角色篩選")}
+                    label={t("memberRoleFilter")}
                     titleText=""
                     hideLabel
                     items={roleItems}
@@ -248,7 +248,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                     style={{ minWidth: "8rem" }}
                   />
                   <Button kind="primary" size="lg" renderIcon={Add} onClick={() => setAddMembersOpen(true)}>
-                    {t("classroom.addMembers", "新增成員")}
+                    {t("addMembers")}
                   </Button>
                 </TableToolbarContent>
               </TableToolbar>
@@ -266,7 +266,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   {tableRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={headers.length} style={{ textAlign: "center" }}>
-                        {t("classroom.memberNoResult", "找不到符合篩選條件的成員")}
+                        {t("memberNoResult")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -277,7 +277,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                       const roleValue = isAdmin ? "admin" : ((member?.role ?? "student") as RowRole);
                       const roleTagType = roleValue === "admin" ? "red" : roleValue === "ta" ? "purple" : "teal";
                       const roleLabel = roleValue === "admin"
-                        ? t("classroom.roleAdmin", "管理員")
+                        ? t("roleAdmin")
                         : tc(`role.${roleValue}`);
                       return (
                         <TableRow {...getRowProps({ row })} key={row.id}>
@@ -303,7 +303,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                                       size="sm"
                                       hasIconOnly
                                       renderIcon={Edit}
-                                      iconDescription={t("common.edit", "編輯")}
+                                      iconDescription={tc("edit")}
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         if (member) openEditModal(member);
@@ -342,9 +342,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           open={Boolean(editingMember) && !pendingMemberRemoval}
           onRequestClose={() => setEditingMember(null)}
           onRequestSubmit={handleEditSave}
-          modalHeading={t("classroom.editMember", "編輯成員")}
-          primaryButtonText={t("common.save", "儲存")}
-          secondaryButtonText={t("common.cancel", "取消")}
+          modalHeading={t("editMember")}
+          primaryButtonText={tc("button.save")}
+          secondaryButtonText={tc("button.cancel")}
           size="sm"
         >
           {editingMember && (
@@ -358,7 +358,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
               <Dropdown
                 id="edit-member-role"
                 label=""
-                titleText={t("classroom.memberRole", "角色")}
+                titleText={t("memberRole")}
                 items={localizedRoleItems}
                 itemToString={(item: { id: string; label: string } | null) => item?.label ?? ""}
                 selectedItem={localizedRoleItems.find((r) => r.id === editRole) ?? localizedRoleItems[0]}
@@ -373,7 +373,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   renderIcon={TrashCan}
                   onClick={() => setPendingMemberRemoval(editingMember)}
                 >
-                  {t("classroom.removeMember", "移除成員")}
+                  {t("removeMember")}
                 </Button>
               </div>
             </div>
@@ -388,9 +388,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           open={regenerateConfirmOpen}
           size="sm"
           danger
-          modalHeading={t("classroom.confirmRegenerateCodeTitle", "確認重置邀請碼")}
-          primaryButtonText={t("common.confirm", "確認")}
-          secondaryButtonText={t("common.cancel", "取消")}
+          modalHeading={t("confirmRegenerateCodeTitle")}
+          primaryButtonText={tc("button.confirm")}
+          secondaryButtonText={tc("button.cancel")}
           onRequestClose={() => setRegenerateConfirmOpen(false)}
           onRequestSubmit={() => {
             void handleRegenerateCode();
@@ -399,7 +399,6 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           <p>
             {t(
               "classroom.confirmRegenerateCodeBody",
-              "重置後舊邀請碼會立即失效，尚未加入的學生需改用新邀請碼。",
             )}
           </p>
         </Modal>,
@@ -412,9 +411,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           open={Boolean(pendingMemberRemoval)}
           size="sm"
           danger
-          modalHeading={t("classroom.confirmRemoveMemberTitle", "確認移除此成員")}
-          primaryButtonText={t("classroom.removeMember", "移除成員")}
-          secondaryButtonText={t("common.cancel", "取消")}
+          modalHeading={t("confirmRemoveMemberTitle")}
+          primaryButtonText={t("removeMember")}
+          secondaryButtonText={tc("button.cancel")}
           onRequestClose={() => setPendingMemberRemoval(null)}
           onRequestSubmit={() => {
             if (pendingMemberRemoval) {
@@ -423,7 +422,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           }}
         >
           <p>
-            {t("classroom.confirmRemoveMemberBody", "你即將移除此成員：")}{" "}
+            {t("confirmRemoveMemberBody")}{" "}
             <strong>{pendingMemberRemoval?.username}</strong>
           </p>
         </Modal>,
