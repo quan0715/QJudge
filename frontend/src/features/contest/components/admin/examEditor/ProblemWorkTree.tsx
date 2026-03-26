@@ -13,6 +13,22 @@ const DIFFICULTY_TAG: Record<string, { label: string; color: string }> = {
   hard: { label: "Hard", color: "red" },
 };
 
+const PLACEHOLDER_PROBLEM_TITLE = /^test\s*-\s*q\d+$/i;
+
+const getProblemDisplayTitle = (problem: ContestProblemSummary): string => {
+  const rawTitle = (problem.title || "").trim();
+  if (rawTitle.length > 0 && !PLACEHOLDER_PROBLEM_TITLE.test(rawTitle)) {
+    return rawTitle;
+  }
+  return problem.label ? `Problem ${problem.label}` : "Untitled Problem";
+};
+
+const getSourceModeLabel = (mode?: ContestProblemSummary["sourceMode"]): string | null => {
+  if (mode === "copy") return "Copied";
+  if (mode === "reference") return "Reference";
+  return null;
+};
+
 interface ProblemWorkTreeProps {
   problems: ContestProblemSummary[];
   selectedId: string | null;
@@ -72,7 +88,7 @@ const ProblemTreeItem: React.FC<{
       >
         <span className={styles.itemOrder}>{problem.label}</span>
         <div className={styles.itemInfo}>
-          <span className={styles.itemTitle}>{problem.title}</span>
+          <span className={styles.itemTitle}>{getProblemDisplayTitle(problem)}</span>
           <div className={styles.itemMeta}>
             {problem.difficulty && DIFFICULTY_TAG[problem.difficulty] && (
               <Tag
@@ -86,9 +102,17 @@ const ProblemTreeItem: React.FC<{
               <span className={styles.itemScore}>{problem.maxScore} pt</span>
             )}
           </div>
-          {problem.sourceBank?.name && (
-            <span className={styles.itemSubMeta}>{problem.sourceBank.name}</span>
-          )}
+          <div className={styles.itemSubMeta}>
+            {problem.sourceBank?.name && (
+              <span>{problem.sourceBank.name}</span>
+            )}
+            {getSourceModeLabel(problem.sourceMode) && (
+              <span>
+                {problem.sourceBank?.name ? " · " : ""}
+                {getSourceModeLabel(problem.sourceMode)}
+              </span>
+            )}
+          </div>
         </div>
       </button>
       <div className={styles.scoreEditor}>
