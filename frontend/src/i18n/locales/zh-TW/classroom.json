@@ -135,5 +135,24 @@
   "removeMember": "移除成員",
   "confirmRegenerateCodeTitle": "確認重置邀請碼",
   "confirmRegenerateCodeBody": "重置後舊邀請碼會立即失效，尚未加入的學生需改用新邀請碼。",
-  "confirmRemoveMemberTitle": "確認移除此成員"
+  "confirmRemoveMemberTitle": "確認移除此成員",
+  "addMembersModal": {
+    "title": "新增成員",
+    "subtitle": "先預覽名單，確認後再提交",
+    "confirm": "確認新增",
+    "processing": "處理中...",
+    "usernameLabel": "輸入 username（逗號、換行或分號分隔）",
+    "importCsv": "匯入 CSV",
+    "csvLoaded": "已載入：",
+    "preview": "預覽名單",
+    "hint": "新增後預設為一般成員。若需調整為 TA，請在成員管理頁後續調整角色。",
+    "previewHint": "送出時只會提交可提交名單。結果會在下方顯示明細。",
+    "tagValid": "可提交",
+    "tagDuplicated": "重複",
+    "tagInvalid": "格式錯誤",
+    "resultAdded": "已新增",
+    "resultExists": "已存在",
+    "resultNotFound": "找不到",
+    "personUnit": "人"
+  }
 }

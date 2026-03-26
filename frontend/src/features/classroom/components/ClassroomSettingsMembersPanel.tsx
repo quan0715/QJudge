@@ -398,7 +398,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
         >
           <p>
             {t(
-              "classroom.confirmRegenerateCodeBody",
+              "confirmRegenerateCodeBody",
             )}
           </p>
         </Modal>,

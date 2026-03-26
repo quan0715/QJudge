@@ -27,6 +27,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
   onAdded,
 }) => {
   const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
   const [text, setText] = useState("");
   const [csvName, setCsvName] = useState("");
@@ -115,14 +116,14 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
       open={open}
       onRequestClose={handleClose}
       onRequestSubmit={handleSubmit}
-      modalHeading="新增成員（先預覽再提交）"
-      primaryButtonText={submitting ? "處理中..." : "確認新增"}
+      modalHeading={t("addMembersModal.title")}
+      primaryButtonText={submitting ? t("addMembersModal.processing") : t("addMembersModal.confirm")}
       primaryButtonDisabled={submitting || !preview || preview.valid.length === 0}
-      secondaryButtonText="取消"
+      secondaryButtonText={tc("button.cancel")}
     >
       <TextArea
         id="add-members-textarea"
-        labelText="輸入 username（逗號、換行或分號分隔）"
+        labelText={t("addMembersModal.usernameLabel")}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -138,7 +139,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           size="sm"
           onClick={() => fileInputRef.current?.click()}
         >
-          匯入 CSV
+          {t("addMembersModal.importCsv")}
         </Button>
         <input
           ref={fileInputRef}
@@ -148,29 +149,29 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           className="classroom-add-members__hidden-input"
           onChange={handleFileUpload}
         />
-        {csvName ? <span className="classroom-add-members__csv-name">已載入：{csvName}</span> : null}
+        {csvName ? <span className="classroom-add-members__csv-name">{t("addMembersModal.csvLoaded")}{csvName}</span> : null}
         <Button
           kind="ghost"
           size="sm"
           onClick={() => buildPreview(text)}
           disabled={!text.trim()}
         >
-          預覽名單
+          {t("addMembersModal.preview")}
         </Button>
       </div>
       <p className="classroom-add-members__hint">
-        新增後預設為一般成員。若需調整為 TA，請在成員管理頁後續調整角色。
+        {t("addMembersModal.hint")}
       </p>
 
       {preview && (
         <div className="classroom-add-members__preview">
           <div className="classroom-add-members__preview-tags">
-            <Tag type="green">可提交 {preview.valid.length}</Tag>
-            <Tag type="gray">重複 {preview.duplicated.length}</Tag>
-            <Tag type="red">格式錯誤 {preview.invalid.length}</Tag>
+            <Tag type="green">{t("addMembersModal.tagValid")} {preview.valid.length}</Tag>
+            <Tag type="gray">{t("addMembersModal.tagDuplicated")} {preview.duplicated.length}</Tag>
+            <Tag type="red">{t("addMembersModal.tagInvalid")} {preview.invalid.length}</Tag>
           </div>
           <p className="classroom-add-members__hint classroom-add-members__hint--tight">
-            送出時只會提交「可提交」名單。結果會在下方顯示新增/已存在/找不到明細。
+            {t("addMembersModal.previewHint")}
           </p>
         </div>
       )}
@@ -180,7 +181,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           {result.added.length > 0 && (
             <InlineNotification
               kind="success"
-              title={`已新增 ${result.added.length} 人`}
+              title={`${t("addMembersModal.resultAdded")} ${result.added.length}${t("addMembersModal.personUnit")}`}
               subtitle={result.added.join(", ")}
               lowContrast
               hideCloseButton
@@ -189,7 +190,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           {result.already_exists.length > 0 && (
             <InlineNotification
               kind="info"
-              title={`已存在 ${result.already_exists.length} 人`}
+              title={`${t("addMembersModal.resultExists")} ${result.already_exists.length}${t("addMembersModal.personUnit")}`}
               subtitle={result.already_exists.join(", ")}
               lowContrast
               hideCloseButton
@@ -198,7 +199,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           {result.not_found.length > 0 && (
             <InlineNotification
               kind="warning"
-              title={`找不到 ${result.not_found.length} 人`}
+              title={`${t("addMembersModal.resultNotFound")} ${result.not_found.length}${t("addMembersModal.personUnit")}`}
               subtitle={result.not_found.join(", ")}
               lowContrast
               hideCloseButton

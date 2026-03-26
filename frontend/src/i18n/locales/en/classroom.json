@@ -135,5 +135,24 @@
   "removeMember": "Remove Member",
   "confirmRegenerateCodeTitle": "Confirm Regenerate Invite Code",
   "confirmRegenerateCodeBody": "The old invite code will become invalid immediately.",
-  "confirmRemoveMemberTitle": "Confirm Remove Member"
+  "confirmRemoveMemberTitle": "Confirm Remove Member",
+  "addMembersModal": {
+    "title": "Add Members",
+    "subtitle": "Preview the list before submitting",
+    "confirm": "Confirm Add",
+    "processing": "Processing...",
+    "usernameLabel": "Enter usernames (comma, newline, or semicolon separated)",
+    "importCsv": "Import CSV",
+    "csvLoaded": "Loaded: ",
+    "preview": "Preview List",
+    "hint": "New members default to student role. Adjust to TA in member management afterwards.",
+    "previewHint": "Only valid entries will be submitted. Results show added/existing/not-found breakdown.",
+    "tagValid": "Valid",
+    "tagDuplicated": "Duplicated",
+    "tagInvalid": "Invalid",
+    "resultAdded": "Added",
+    "resultExists": "Already exists",
+    "resultNotFound": "Not found",
+    "personUnit": ""
+  }
 }

@@ -86,5 +86,24 @@
   "studentTodo": "나의 할 일",
   "viewAllAnnouncements": "모든 공지사항 보기",
   "memberGroupStudent": "학생",
-  "memberGroupTeacher": "교사"
+  "memberGroupTeacher": "교사",
+  "addMembersModal": {
+    "title": "멤버 추가",
+    "subtitle": "목록을 미리 보고 제출하세요",
+    "confirm": "추가 확인",
+    "processing": "처리 중...",
+    "usernameLabel": "사용자 이름 입력 (쉼표, 줄바꿈, 세미콜론 구분)",
+    "importCsv": "CSV 가져오기",
+    "csvLoaded": "불러옴: ",
+    "preview": "목록 미리보기",
+    "hint": "추가 후 기본적으로 일반 멤버가 됩니다. TA로 변경하려면 나중에 조정하세요.",
+    "previewHint": "유효한 항목만 제출됩니다. 결과에 추가됨/이미 존재함/찾을 수 없음 내역이 표시됩니다.",
+    "tagValid": "유효",
+    "tagDuplicated": "중복",
+    "tagInvalid": "형식 오류",
+    "resultAdded": "추가됨",
+    "resultExists": "이미 존재",
+    "resultNotFound": "찾을 수 없음",
+    "personUnit": "명"
+  }
 }

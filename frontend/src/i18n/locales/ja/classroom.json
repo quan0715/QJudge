@@ -135,5 +135,24 @@
   "removeMember": "メンバーを削除",
   "confirmRegenerateCodeTitle": "招待コードのリセットの確認",
   "confirmRegenerateCodeBody": "リセットすると古い招待コードは即座に無効になります。まだ参加していない学生は新しい招待コードを使用する必要があります。",
-  "confirmRemoveMemberTitle": "メンバー削除の確認"
+  "confirmRemoveMemberTitle": "メンバー削除の確認",
+  "addMembersModal": {
+    "title": "メンバー追加",
+    "subtitle": "リストをプレビューしてから送信",
+    "confirm": "追加を確認",
+    "processing": "処理中...",
+    "usernameLabel": "ユーザー名を入力（カンマ・改行・セミコロン区切り）",
+    "importCsv": "CSVをインポート",
+    "csvLoaded": "読み込み済み：",
+    "preview": "リストをプレビュー",
+    "hint": "追加後はデフォルトで一般メンバーになります。TAに変更するには後から調整してください。",
+    "previewHint": "有効なエントリのみ送信されます。結果に追加済み/既存/未存在の詳細が表示されます。",
+    "tagValid": "有効",
+    "tagDuplicated": "重複",
+    "tagInvalid": "無効",
+    "resultAdded": "追加済み",
+    "resultExists": "既存",
+    "resultNotFound": "見つからない",
+    "personUnit": "人"
+  }
 }
