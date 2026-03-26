@@ -8,7 +8,10 @@
   },
   "form": {
     "title": "제목",
-    "slug": "URL 슬러그"
+    "slug": "URL 슬러그",
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    }
   },
   "section": {
     "description": "문제 설명",
@@ -139,5 +142,17 @@
       "scalePlaceholder": "비율 선택",
       "description": "백업이나 다른 시스템으로 가져오기 위해 문제 데이터를 YAML 형식으로 내보냅니다."
     }
+  },
+  "hero": {
+    "timeLimit": "時間限制",
+    "memoryLimit": "記憶體限制",
+    "acRate": "通過率",
+    "submissions": "提交次數",
+    "accepted": "通過次數",
+    "score": "配分"
+  },
+  "editor": {
+    "header": "題目編輯器",
+    "selectLanguage": "選擇語言"
   }
 }

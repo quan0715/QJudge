@@ -95,15 +95,23 @@
       "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology",
       "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test.",
       "proctoring": {
-        "fullscreen": "Fullscreen Lock",
+        "fullscreen": "Fullscreen Enforcement",
         "tabSwitch": "Tab Switch Detection",
-        "multiScreen": "Multi-screen Block",
-        "mouseLeave": "Mouse Track",
-        "noCopy": "Copy/Paste Disabled",
-        "video": "Video Evidence",
-        "audio": "Audio Detection",
-        "face": "Face Identity",
-        "ai": "AI Analysis"
+        "multiScreen": "Dual Monitor Blocking",
+        "mouseLeave": "Mouse tracking",
+        "noCopy": "Copy/Paste Protection",
+        "video": "Video Proctoring",
+        "audio": "Audio Monitoring",
+        "face": "Identity Verification",
+        "ai": "AI Proctoring",
+        "videoDesc": "Real-time webcam monitoring to verify student identity and environment.",
+        "screen": "Screen Monitoring",
+        "screenDesc": "Continuous screen capture to prevent unauthorized resources during the exam.",
+        "aiDesc": "Automated detection of suspicious behaviors using advanced vision models.",
+        "fullscreenDesc": "Mandatory fullscreen mode; exiting will trigger a warning or lock.",
+        "tabSwitchDesc": "Real-time detection and logging of browser tab switches.",
+        "multiScreenDesc": "Ensures the student is only using a single authorized monitor.",
+        "noCopyDesc": "Prevents unauthorized content transfer through copy/paste actions."
       }
     },
     "teacher": {

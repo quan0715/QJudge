@@ -9,7 +9,9 @@
     "documentation": "ドキュメント",
     "backToProblemList": "問題一覧に戻る",
     "problemList": "問題一覧",
-    "back": "戻る"
+    "back": "戻る",
+    "problemsLegacy": "題目（舊）",
+    "questionBanks": "題庫"
   },
   "page": {
     "dashboard": "ダッシュボード",
@@ -28,7 +30,9 @@
     "editProblem": "問題を編集",
     "teacherDashboard": "Teacher Dashboard",
     "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management"
+    "contestManagement": "Contest Management",
+    "questionBanks": "題庫",
+    "problemManagementLegacy": "題目管理（舊）"
   },
   "tab": {
     "overview": "概要",
@@ -264,7 +268,22 @@
       "noCode": "認証コードが受信されませんでした。",
       "takeover": "引き継いで古いデバイスをロックする",
       "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
-      "takingOver": "処理中..."
+      "takingOver": "処理中...",
+      "verifyingSession": "同步作業階段中...",
+      "connecting": "連線中...",
+      "pleaseWait": "請稍候",
+      "loadingTitle": "歡迎來到 QJudge",
+      "loadingSubtitle": "正在為您準備專屬的程式舞台",
+      "steps": {
+        "preparing": "冒険を準備中...",
+        "assembling": "ワークスペースを構築中...",
+        "almost": "就快好了，請稍候",
+        "ready": "準備完了！",
+        "verifying": "本人確認を行っています...",
+        "stats": "実績を同期中...",
+        "igniting": "エンジン点火中..."
+      },
+      "finalTouch": "正在進行最後確認..."
     }
   },
   "status": {
@@ -354,5 +373,77 @@
       "short_answer": "短いテキストを入力して回答",
       "essay": "長文テキストで回答（参考解答あり）"
     }
+  },
+  "questionBank": {
+    "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
+    "createBank": "問題集を作成",
+    "editBank": "問題集を編集",
+    "deleteBank": "問題集を削除",
+    "deleteBankConfirmBody": "問題集「{{name}}」を削除してもよろしいですか？",
+    "bankCreated": "問題集が作成されました",
+    "bankUpdated": "問題集が更新されました",
+    "bankDeleted": "問題集が削除されました",
+    "description": "説明",
+    "category": "カテゴリー",
+    "categoryCoding": "プログラミング",
+    "categoryExam": "筆記試験",
+    "prompt": "問題文",
+    "difficulty": "難易度",
+    "score": "得点",
+    "timeLimit": "時間制限(ms)",
+    "memoryLimit": "メモリ制限(MB)",
+    "addQuestion": "問題を追加",
+    "editQuestion": "問題を編集",
+    "deleteQuestion": "問題を削除",
+    "deleteQuestionConfirmBody": "問題「{{title}}」を削除してもよろしいですか？",
+    "questionCreated": "問題が作成されました",
+    "questionUpdated": "問題が更新されました",
+    "questionDeleted": "問題が削除されました",
+    "tabs": {
+      "mine": "マイ問題集",
+      "explore": "探索",
+      "inbox": "問題取り込み"
+    },
+    "inbox": {
+      "title": "問題取り込み",
+      "description": "コンテスト内で一時的に作成された問題を問題集に分類できます。",
+      "targetBank": "対象の問題集",
+      "ingesting": "取り込み中...",
+      "ingestSuccess": "問題集に取り込みました",
+      "selectedCount": "{{count}} 件選択済み"
+    },
+    "emptyMine": "目前沒有題庫，先建立一個我的題庫。",
+    "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
+    "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
+    "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
+    "communityTag": "QJudge Community",
+    "mockOfficialTag": "Community 精選",
+    "mockUserPublicTag": "用戶 Public 題庫",
+    "mockVerifiedTag": "verified",
+    "mockQuestionCount": "{{count}} 題",
+    "mockOwnerLabel": "擁有者",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "陳老師",
+    "mockOwnerTeacherB": "林老師",
+    "mockOfficialBank1Name": "演算法入門 - 迭迴",
+    "mockOfficialBank1Desc": "從遞迴與基礎搜尋開始，逐步建立解題思維。",
+    "mockOfficialBank2Name": "資料結構實作題庫",
+    "mockOfficialBank2Desc": "以教學進度分層整理的資料結構與實作題。",
+    "mockUserBank1Name": "陳老師 APCS 練習集",
+    "mockUserBank1Desc": "教室實戰導向，聚焦 APCS 觀念與常見錯誤。",
+    "mockUserBank2Name": "林老師段考題庫",
+    "mockUserBank2Desc": "校內段考題型整理，附評分重點與難度分級。",
+    "tagMine": "我的題庫",
+    "tagPublic": "公開",
+    "tagPrivate": "私人",
+    "tagUserPublic": "用戶公開",
+    "openBank": "問題集を開く",
+    "bankNotFound": "找不到題庫",
+    "bankNotFoundDesc": "請回題庫列表重新選擇。",
+    "loadQuestions": "查看題目",
+    "clone": "複製到我的題庫",
+    "cloneSuccess": "マイ問題集にコピーされました"
   }
 }

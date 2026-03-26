@@ -9,7 +9,9 @@
     "documentation": "문서",
     "backToProblemList": "문제 목록으로 돌아가기",
     "problemList": "문제 목록",
-    "back": "뒤로"
+    "back": "뒤로",
+    "problemsLegacy": "題目（舊）",
+    "questionBanks": "題庫"
   },
   "page": {
     "dashboard": "대시보드",
@@ -28,7 +30,9 @@
     "editProblem": "문제 편집",
     "teacherDashboard": "Teacher Dashboard",
     "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management"
+    "contestManagement": "Contest Management",
+    "questionBanks": "題庫",
+    "problemManagementLegacy": "題目管理（舊）"
   },
   "tab": {
     "overview": "개요",
@@ -264,7 +268,22 @@
       "noCode": "인증 코드를 받지 못했습니다.",
       "takeover": "인계받고 이전 장치 잠금",
       "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
-      "takingOver": "처리 중..."
+      "takingOver": "처리 중...",
+      "verifyingSession": "同步作業階段中...",
+      "connecting": "連線中...",
+      "pleaseWait": "請稍候",
+      "loadingTitle": "歡迎來到 QJudge",
+      "loadingSubtitle": "正在為您準備專屬的程式舞台",
+      "steps": {
+        "preparing": "모험을 준비 중입니다...",
+        "assembling": "작업 공간을 구성 중입니다...",
+        "almost": "就快好了，請稍候",
+        "ready": "모든 준비가 완료되었습니다!",
+        "verifying": "본인 확인 중입니다...",
+        "stats": "전투 통계를 동기화 중입니다...",
+        "igniting": "엔진 점화 중..."
+      },
+      "finalTouch": "正在進行最後確認..."
     }
   },
   "status": {
@@ -354,5 +373,77 @@
       "short_answer": "짧은 텍스트로 답변 입력",
       "essay": "긴 텍스트로 답변 (참고 답안 지원)"
     }
+  },
+  "questionBank": {
+    "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
+    "createBank": "문제집 만들기",
+    "editBank": "문제집 수정",
+    "deleteBank": "문제집 삭제",
+    "deleteBankConfirmBody": "문제집 \"{{name}}\"을(를) 삭제하시겠습니까?",
+    "bankCreated": "문제집이 생성되었습니다",
+    "bankUpdated": "문제집이 업데이트되었습니다",
+    "bankDeleted": "문제집이 삭제되었습니다",
+    "description": "설명",
+    "category": "카테고리",
+    "categoryCoding": "프로그래밍",
+    "categoryExam": "지필 시험",
+    "prompt": "문제 설명",
+    "difficulty": "난이도",
+    "score": "배점",
+    "timeLimit": "시간 제한(ms)",
+    "memoryLimit": "메모리 제한(MB)",
+    "addQuestion": "문제 추가",
+    "editQuestion": "문제 수정",
+    "deleteQuestion": "문제 삭제",
+    "deleteQuestionConfirmBody": "문제 \"{{title}}\"을(를) 삭제하시겠습니까?",
+    "questionCreated": "문제가 생성되었습니다",
+    "questionUpdated": "문제가 업데이트되었습니다",
+    "questionDeleted": "문제가 삭제되었습니다",
+    "tabs": {
+      "mine": "내 문제집",
+      "explore": "탐색",
+      "inbox": "문제 가져오기"
+    },
+    "inbox": {
+      "title": "문제 가져오기",
+      "description": "대회에서 생성된 임시 문제를 특정 문제집으로 분류할 수 있습니다.",
+      "targetBank": "대상 문제집",
+      "ingesting": "가져오는 중...",
+      "ingestSuccess": "문제집으로 성공적으로 가져왔습니다",
+      "selectedCount": "{{count}}개 선택됨"
+    },
+    "emptyMine": "目前沒有題庫，先建立一個我的題庫。",
+    "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
+    "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
+    "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
+    "communityTag": "QJudge Community",
+    "mockOfficialTag": "Community 精選",
+    "mockUserPublicTag": "用戶 Public 題庫",
+    "mockVerifiedTag": "verified",
+    "mockQuestionCount": "{{count}} 題",
+    "mockOwnerLabel": "擁有者",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "陳老師",
+    "mockOwnerTeacherB": "林老師",
+    "mockOfficialBank1Name": "演算法入門 - 迭迴",
+    "mockOfficialBank1Desc": "從遞迴與基礎搜尋開始，逐步建立解題思維。",
+    "mockOfficialBank2Name": "資料結構實作題庫",
+    "mockOfficialBank2Desc": "以教學進度分層整理的資料結構與實作題。",
+    "mockUserBank1Name": "陳老師 APCS 練習集",
+    "mockUserBank1Desc": "教室實戰導向，聚焦 APCS 觀念與常見錯誤。",
+    "mockUserBank2Name": "林老師段考題庫",
+    "mockUserBank2Desc": "校內段考題型整理，附評分重點與難度分級。",
+    "tagMine": "我的題庫",
+    "tagPublic": "公開",
+    "tagPrivate": "私人",
+    "tagUserPublic": "用戶公開",
+    "openBank": "문제집 열기",
+    "bankNotFound": "找不到題庫",
+    "bankNotFoundDesc": "請回題庫列表重新選擇。",
+    "loadQuestions": "查看題目",
+    "clone": "複製到我的題庫",
+    "cloneSuccess": "내 문제집으로 복사되었습니다"
   }
 }

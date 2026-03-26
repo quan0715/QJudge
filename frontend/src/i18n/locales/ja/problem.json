@@ -8,7 +8,10 @@
   },
   "form": {
     "title": "タイトル",
-    "slug": "URLスラッグ"
+    "slug": "URLスラッグ",
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    }
   },
   "section": {
     "description": "問題文",
@@ -139,5 +142,17 @@
       "scalePlaceholder": "スケールを選択",
       "description": "バックアップや他のシステムへのインポート用に、問題データをYAML形式でエクスポートします。"
     }
+  },
+  "hero": {
+    "timeLimit": "時間限制",
+    "memoryLimit": "記憶體限制",
+    "acRate": "通過率",
+    "submissions": "提交次數",
+    "accepted": "通過次數",
+    "score": "配分"
+  },
+  "editor": {
+    "header": "題目編輯器",
+    "selectLanguage": "選擇語言"
   }
 }

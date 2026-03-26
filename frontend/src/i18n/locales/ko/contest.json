@@ -673,7 +673,13 @@
       "finalizing": "제출을 마무리하는 중",
       "hint": "제출이 완료될 때까지 이 창을 닫지 마세요.",
       "failed": "제출 처리에 실패했습니다. 다시 시도해 주세요."
-    }
+    },
+    "tabHiddenRecoveryTitle": "偵測到分頁切換",
+    "tabHiddenRecoveryDesc": "請在 {{seconds}} 秒內回到考試分頁，否則將記錄一次違規。",
+    "windowBlurRecoveryTitle": "偵測到離開視窗",
+    "windowBlurRecoveryDesc": "請在 {{seconds}} 秒內回到考試視窗，否則將記錄一次違規。",
+    "multiDisplayRecoveryTitle": "偵測到多螢幕",
+    "multiDisplayRecoveryDesc": "請在 {{seconds}} 秒內中斷外接螢幕，否則將記錄一次違規。"
   },
   "createModal": {
     "titleCoding": "Create Coding Test",
@@ -902,13 +908,17 @@
       "updatedAt": "마지막 업데이트",
       "duration": "길이",
       "flag": "표시",
-      "jobStatus": "변환 상태"
+      "jobStatus": "변환 상태",
+      "module": "來源",
+      "startedAt": "錄製開始",
+      "finishedAt": "錄製結束"
     },
     "status": {
       "pending": "변환 대기",
       "running": "변환 중",
       "failed": "변환 실패",
-      "ready": "재생 가능"
+      "ready": "재생 가능",
+      "noData": "無畫面"
     },
     "flag": {
       "suspected": "의심",
@@ -918,14 +928,17 @@
       "failed": "영상 변환에 실패했습니다. 나중에 다시 시도하거나 오류 메시지를 확인하세요.",
       "running": "영상을 변환 중이며 완료되면 자동으로 표시됩니다.",
       "pending": "이 영상은 아직 변환 대기 상태입니다. 수동으로 변환을 시작하면 여기에 표시됩니다.",
-      "selectVideo": "영상을 선택하세요"
+      "selectVideo": "영상을 선택하세요",
+      "noData": "此來源在本次作答沒有收到任何畫面，故不產生影片。"
     },
     "fields": {
       "student": "학생",
       "fileSize": "파일 크기",
       "duration": "영상 길이",
       "frameCount": "프레임 수",
-      "jobStatus": "변환 상태"
+      "jobStatus": "변환 상태",
+      "recordingStart": "錄製開始",
+      "recordingEnd": "錄製結束"
     },
     "suspicion": {
       "suspected": "부정행위 의심",
@@ -950,7 +963,8 @@
       "compileAll": "일괄 변환 시작에 실패했습니다",
       "deleteBlocked": "영상이 현재 처리 중이어서 아직 삭제할 수 없습니다.",
       "delete": "영상 삭제에 실패했습니다"
-    }
+    },
+    "sessionGroup": "作答場次 {{index}}（{{count}} 個來源）"
   },
   "participantsAdmin": {
     "title": "참가자 목록",
@@ -1238,7 +1252,10 @@
     "standardAnswer": "표준 답안",
     "shortAnswerPlaceholder": "단답형 표준 답안 입력 (숫자, 키워드 등)",
     "referenceAnswer": "참고 답안",
-    "referencePlaceholder": "참고 답안 (선택, Markdown 지원)"
+    "referencePlaceholder": "참고 답안 (선택, Markdown 지원)",
+    "importFromBank": "從題庫匯入",
+    "createQuestion": "直接建立新題目",
+    "openBankInbox": "題庫匯入"
   },
   "studentStatus": {
     "title": "학생 상태 분포",
