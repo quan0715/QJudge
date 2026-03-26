@@ -43,7 +43,15 @@ class ContestProblemDTO:
     order: int
     label: str
     problem: ProblemDTO
-    score: int = 0  # Max possible score from test cases
+    max_score: int = 0
+
+    @property
+    def score(self) -> int:
+        """
+        Backward-compatible alias.
+        Export/report logic should prefer `max_score`.
+        """
+        return self.max_score
 
 
 @dataclass

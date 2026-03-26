@@ -99,11 +99,11 @@ class PDFRenderer(BaseRenderer):
         total_score = 0
         for cp in contest_problems:
             problem = cp.problem
-            total_score += cp.score
+            total_score += cp.max_score
             rows.append({
                 'label': problem.label,
                 'title': inline_markdown(problem.title),
-                'score': cp.score,
+                'score': cp.max_score,
             })
 
         context = {

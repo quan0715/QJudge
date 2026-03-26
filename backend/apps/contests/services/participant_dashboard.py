@@ -298,7 +298,7 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
             effective_ac_count += 1
             accepted_problem_ids.add(sub.problem_id)
 
-    max_score = sum(cp.score for cp in contest_problems)
+    max_score = sum(cp.max_score for cp in contest_problems)
     total_problems = len(contest_problems)
     total_score = user_stats.total_score if user_stats else 0
     solved = user_stats.solved if user_stats else 0
@@ -333,7 +333,7 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
         if sub.status == "AC" and sub.problem_id not in solved_problem_ids:
             solved_problem_ids.add(sub.problem_id)
             cumulative_solved += 1
-            cumulative_score += problem.score if problem else sub.score
+            cumulative_score += problem.max_score if problem else sub.score
             cumulative_rows.append(
                 {
                     "created_at": sub.created_at.isoformat(),
@@ -380,7 +380,7 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
             "difficulty": cp.problem.difficulty,
             "status": stat.status if stat else None,
             "score": stat.score if stat else 0,
-            "max_score": stat.max_score if stat else cp.score,
+            "max_score": stat.max_score if stat else cp.max_score,
             "tries": stat.tries if stat else 0,
             "time": stat.time if stat else None,
         }

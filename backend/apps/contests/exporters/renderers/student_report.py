@@ -240,7 +240,7 @@ class StudentReportRenderer(BaseRenderer):
 
         # Calculate AC rate and max score
         ac_rate = (effective_ac_count / effective_submissions * 100) if effective_submissions > 0 else 0
-        max_score = sum(cp.score for cp in contest_problems)
+        max_score = sum(cp.max_score for cp in contest_problems)
 
         # Determine rank label
         is_finished = self.contest.end_time and timezone.now() > self.contest.end_time
@@ -336,7 +336,7 @@ class StudentReportRenderer(BaseRenderer):
 
             status = problem_stat.status if problem_stat else ''
             score = problem_stat.score if problem_stat else 0
-            max_score = problem_stat.max_score if problem_stat else cp.score
+            max_score = problem_stat.max_score if problem_stat else cp.max_score
 
             # Get submission counts
             problem_submissions = [s for s in submissions if s.problem_id == cp.problem_id]
@@ -410,7 +410,7 @@ class StudentReportRenderer(BaseRenderer):
 
             status = problem_stat.status if problem_stat else None
             score = problem_stat.score if problem_stat else 0
-            max_score = problem_stat.max_score if problem_stat else cp.score
+            max_score = problem_stat.max_score if problem_stat else cp.max_score
             tries = problem_stat.tries if problem_stat else 0
 
             # Status-based label
@@ -586,7 +586,7 @@ class StudentReportRenderer(BaseRenderer):
 
         # Get problem scores and calculate cumulative AC
         contest_problems = self.data_service.get_contest_problems()
-        problem_scores = {cp.problem_id: cp.score for cp in contest_problems}
+        problem_scores = {cp.problem_id: cp.max_score for cp in contest_problems}
         start_time = self.contest.start_time or self.contest.created_at
         end_time = self.contest.end_time or timezone.now()
         time_range = (end_time - start_time).total_seconds() or 3600

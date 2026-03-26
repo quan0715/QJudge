@@ -79,7 +79,7 @@ class ContestDataService:
                 order=cp.order,
                 label=self._get_label(cp),
                 problem=problem_dto,
-                score=cp.max_score or 0,
+                max_score=cp.max_score or 0,
             ))
 
         self._problems_cache = result
@@ -163,7 +163,7 @@ class ContestDataService:
             for cp in contest_problems:
                 problem_stats[cp.problem_id] = ProblemStatsDTO(
                     problem_id=cp.problem_id,
-                    max_score=cp.score,
+                    max_score=cp.max_score,
                 )
 
             stats[p.user_id] = UserStandingDTO(
@@ -266,7 +266,7 @@ class ContestDataService:
                 continue
 
             difficulty_data['total'] += 1
-            difficulty_data['max_score'] += cp.score
+            difficulty_data['max_score'] += cp.max_score
 
             # Check user's performance on this problem
             problem_stat = user_problems.get(cp.problem_id)
