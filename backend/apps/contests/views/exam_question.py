@@ -10,10 +10,14 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.services import is_platform_public_bank
+
 from ..models import (
     Contest,
     ExamQuestion,
     ExamStatus,
+    ExamQuestionType,
 )
 from ..serializers import (
     ExamQuestionSerializer,
@@ -62,6 +66,48 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         return None
+
+    def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
+        bank = QuestionBank.objects.filter(uuid=question_bank_id, is_archived=False).first()
+        if not bank:
+            return None, None, "Question bank not found"
+
+        if bank.owner_id != user.id and not is_platform_public_bank(bank):
+            return None, None, "No access to this question bank"
+
+        question = Question.objects.filter(
+            bank=bank,
+            id=question_id,
+            question_type=Question.QuestionType.EXAM,
+        ).first()
+        if not question:
+            return None, None, "Question not found in bank"
+
+        return bank, question, None
+
+    @staticmethod
+    def _normalize_exam_question_type(question: Question) -> str:
+        metadata = question.metadata if isinstance(question.metadata, dict) else {}
+        raw_type = metadata.get("legacy_question_type")
+        if raw_type in {
+            ExamQuestionType.TRUE_FALSE,
+            ExamQuestionType.SINGLE_CHOICE,
+            ExamQuestionType.MULTIPLE_CHOICE,
+            ExamQuestionType.SHORT_ANSWER,
+            ExamQuestionType.ESSAY,
+        }:
+            return raw_type
+
+        correct = question.correct_answer
+        options = question.options if isinstance(question.options, list) else []
+
+        if isinstance(correct, bool):
+            return ExamQuestionType.TRUE_FALSE
+        if isinstance(correct, list):
+            return ExamQuestionType.MULTIPLE_CHOICE
+        if isinstance(correct, int) and options:
+            return ExamQuestionType.SINGLE_CHOICE
+        return ExamQuestionType.ESSAY
 
     def get_serializer_class(self):
         contest = self._get_contest()
@@ -219,6 +265,80 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             many=True,
         )
         return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='import-from-bank')
+    def import_from_bank(self, request, contest_pk=None):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        force = request.query_params.get('force', '').lower() == 'true'
+        frozen_response = self._ensure_not_frozen(contest, force)
+        if frozen_response:
+            return frozen_response
+
+        import_mode = (request.data.get('import_mode') or "copy").lower()
+        if import_mode not in {"copy", "reference"}:
+            return Response({'error': 'Invalid import_mode'}, status=status.HTTP_400_BAD_REQUEST)
+
+        items = request.data.get('items', [])
+        if not isinstance(items, list) or not items:
+            return Response({'error': 'items must be a non-empty list'}, status=status.HTTP_400_BAD_REQUEST)
+
+        current_max_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
+        next_order = (current_max_order if current_max_order is not None else -1) + 1
+        created_rows = []
+
+        with transaction.atomic():
+            for item in items:
+                if not isinstance(item, dict):
+                    return Response({'error': 'Invalid item payload'}, status=status.HTTP_400_BAD_REQUEST)
+
+                question_bank_id = item.get('question_bank_id')
+                question_id = item.get('question_id')
+                if not question_bank_id or question_id is None:
+                    return Response(
+                        {'error': 'Each item requires question_bank_id and question_id'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                bank, bank_question, err = self._resolve_bank_question_for_import(
+                    user=request.user,
+                    question_bank_id=question_bank_id,
+                    question_id=question_id,
+                )
+                if err:
+                    return Response({'error': err}, status=status.HTTP_400_BAD_REQUEST)
+
+                prompt = (bank_question.prompt or bank_question.title or "").strip()
+                if not prompt:
+                    return Response(
+                        {'error': f'Imported question {bank_question.id} has empty prompt/title'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                exam_question = ExamQuestion.objects.create(
+                    contest=contest,
+                    question_type=self._normalize_exam_question_type(bank_question),
+                    prompt=prompt,
+                    options=bank_question.options or [],
+                    correct_answer=bank_question.correct_answer,
+                    score=max(1, int(bank_question.score or 1)),
+                    order=next_order,
+                )
+                created_rows.append(exam_question)
+                next_order += 1
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            f"Imported {len(created_rows)} exam questions from bank ({import_mode})" + (" (force)" if force else ""),
+        )
+
+        serialized = self.get_serializer(
+            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            many=True,
+        )
+        return Response(serialized.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request, contest_pk=None):

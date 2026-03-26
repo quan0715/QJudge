@@ -20,6 +20,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.question_bank.models import Question, QuestionBank
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
 
@@ -623,6 +624,72 @@ class TestIsolation:
         res = api_client.delete(url(contest.id, q.id))
         assert res.status_code == status.HTTP_404_NOT_FOUND
         assert ExamQuestion.objects.filter(id=q.id).exists()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Import From Question Bank
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestImportFromQuestionBank:
+    def test_owner_can_import_exam_questions_from_bank(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Teacher Exam Bank",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        question = Question.objects.create(
+            bank=bank,
+            question_type=Question.QuestionType.EXAM,
+            title="",
+            prompt="2+2 = ?",
+            options=["3", "4"],
+            correct_answer=1,
+            score=4,
+            metadata={"legacy_question_type": "single_choice"},
+        )
+
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {
+                "import_mode": "copy",
+                "items": [
+                    {
+                        "question_bank_id": str(bank.uuid),
+                        "question_id": question.id,
+                    }
+                ],
+            },
+            format="json",
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        rows = ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
+        assert rows.count() == 1
+        assert rows.first().prompt == "2+2 = ?"
+        assert rows.first().question_type == "single_choice"
+        assert rows.first().score == 4
+
+    def test_rejects_invalid_import_mode(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"import_mode": "invalid", "items": []},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_student_cannot_import_from_bank(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"import_mode": "copy", "items": []},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_403_FORBIDDEN
 
 
 # ═══════════════════════════════════════════════════════════════════

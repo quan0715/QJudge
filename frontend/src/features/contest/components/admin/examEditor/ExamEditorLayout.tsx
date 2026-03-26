@@ -18,6 +18,7 @@ import {
   deleteExamQuestion,
   reorderExamQuestions,
   batchImportExamQuestions,
+  importExamQuestionsFromBank,
   type ExamQuestionUpsertPayload,
 } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
@@ -44,78 +45,6 @@ const DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload,
   true_false: { question_type: "true_false", prompt: "New question", score: 5, options: ["True", "False"], correct_answer: true },
   short_answer: { question_type: "short_answer", prompt: "New question", score: 5 },
   essay: { question_type: "essay", prompt: "New question", score: 5 },
-};
-
-const EXAM_TYPES: ExamQuestionType[] = [
-  "single_choice",
-  "multiple_choice",
-  "true_false",
-  "short_answer",
-  "essay",
-];
-
-const resolveImportedExamType = (item: BankImportSelectionItem): ExamQuestionType => {
-  const candidate = item.metadata?.exam_question_type;
-  if (typeof candidate === "string" && EXAM_TYPES.includes(candidate as ExamQuestionType)) {
-    return candidate as ExamQuestionType;
-  }
-  return "single_choice";
-};
-
-const normalizeImportedExamPayload = (
-  item: BankImportSelectionItem,
-  order: number,
-): ExamQuestionUpsertPayload => {
-  const questionType = resolveImportedExamType(item);
-  const prompt = (item.prompt || item.title || "").trim() || "New question";
-  const score = Math.max(1, Number(item.score || 5));
-  const optionsRaw = Array.isArray(item.options) ? item.options.map((row) => String(row)) : [];
-
-  const payload: ExamQuestionUpsertPayload = {
-    question_type: questionType,
-    prompt,
-    score,
-    order,
-  };
-
-  if (questionType === "true_false") {
-    payload.options = ["True", "False"];
-    const answer = item.correctAnswer;
-    if (answer === true || answer === 1 || answer === "1" || answer === "true") {
-      payload.correct_answer = 1;
-    } else if (answer === false || answer === 0 || answer === "0" || answer === "false") {
-      payload.correct_answer = 0;
-    }
-    return payload;
-  }
-
-  if (questionType === "single_choice") {
-    payload.options = optionsRaw.length >= 2 ? optionsRaw : ["Option A", "Option B"];
-    const index = Number(item.correctAnswer);
-    payload.correct_answer =
-      Number.isInteger(index) && index >= 0 && index < payload.options.length ? index : 0;
-    return payload;
-  }
-
-  if (questionType === "multiple_choice") {
-    payload.options = optionsRaw.length >= 2 ? optionsRaw : ["Option A", "Option B"];
-    const indices = Array.isArray(item.correctAnswer)
-      ? item.correctAnswer
-          .map((row) => Number(row))
-          .filter((row) => Number.isInteger(row) && row >= 0 && row < payload.options!.length)
-      : [];
-    payload.correct_answer = indices.length > 0 ? indices : [0];
-    return payload;
-  }
-
-  if (questionType === "short_answer" || questionType === "essay") {
-    if (typeof item.correctAnswer === "string" && item.correctAnswer.trim().length > 0) {
-      payload.correct_answer = item.correctAnswer.trim();
-    }
-    return payload;
-  }
-
-  return payload;
 };
 
 interface ExamEditorLayoutProps {
@@ -236,13 +165,15 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   );
 
   const handleImportFromBank = useCallback(
-    async (items: BankImportSelectionItem[]) => {
+    async (items: BankImportSelectionItem[], importMode: "copy" | "reference") => {
       if (frozen || items.length === 0) return;
-      const baseOrder = questions.length;
-      for (const [index, item] of items.entries()) {
-        const payload = normalizeImportedExamPayload(item, baseOrder + index);
-        await createExamQuestion(contestId, payload);
-      }
+      await importExamQuestionsFromBank(contestId, {
+        import_mode: importMode,
+        items: items.map((item) => ({
+          question_bank_id: item.questionBankId,
+          question_id: item.questionId,
+        })),
+      });
       await loadQuestions();
       showToast({
         kind: "success",
@@ -250,7 +181,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: items.length }),
       });
     },
-    [contestId, frozen, loadQuestions, questions.length, showToast, t],
+    [contestId, frozen, loadQuestions, showToast, t],
   );
 
   // Pre-select first question once loaded
@@ -557,8 +488,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         open={bankImportOpen}
         category="exam"
         onClose={() => setBankImportOpen(false)}
-        onConfirm={async (items) => {
-          await handleImportFromBank(items);
+        onConfirm={async (items, importMode) => {
+          await handleImportFromBank(items, importMode);
         }}
       />
 
