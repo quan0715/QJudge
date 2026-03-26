@@ -9,11 +9,11 @@ import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
 import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
 import { PlansPanel } from "@/features/auth/components/PlansPanel";
 
-const NAV_ITEMS: (SettingsModalNavItem & { adminOnly?: boolean })[] = [
-  { id: "profile", label: "個人檔案", icon: UserAvatar },
-  { id: "preferences", label: "偏好設定", icon: Settings },
-  { id: "apikey", label: "API Key", icon: Password, adminOnly: true },
-  { id: "plans", label: "探索方案", icon: Catalog },
+const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; adminOnly?: boolean })[] = [
+  { id: "profile",     tKey: "settings.tabs.profile",     icon: UserAvatar },
+  { id: "preferences", tKey: "settings.tabs.preferences", icon: Settings },
+  { id: "apikey",      tKey: "settings.tabs.apiKey",      icon: Password, adminOnly: true },
+  { id: "plans",       tKey: "settings.tabs.plans",       icon: Catalog },
 ];
 
 // Memoized panels to prevent re-renders from parent state changes
@@ -29,9 +29,9 @@ export const SettingsDialog: React.FC = () => {
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
-  const navItems: SettingsModalNavItem[] = NAV_ITEMS.map((item) => ({
+  const navItems: SettingsModalNavItem[] = NAV_ITEM_DEFS.map((item) => ({
     ...item,
-    label: t(`settings.tabs.${item.id}`, item.label),
+    label: t(item.tKey),
     hidden: item.adminOnly ? !isTeacherOrAdmin : false,
   }));
 

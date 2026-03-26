@@ -8,10 +8,13 @@
     "classrooms": "Classrooms",
     "submissions": "Submissions",
     "ranking": "Ranking",
-    "documentation": "Documentation",
+    "documentation": "Docs",
     "backToProblemList": "Back to Problems",
     "problemList": "Problem List",
     "back": "Back"
+  },
+  "common": {
+    "locale": "en-US"
   },
   "page": {
     "dashboard": "Dashboard",
@@ -248,12 +251,163 @@
     "passwordChanged": "Password changed successfully",
     "passwordMismatch": "New passwords do not match",
     "wrongPassword": "Current password is incorrect",
-    "oauthUser": "OAuth users cannot change password"
+    "oauthUser": "OAuth users cannot change password",
+    "themeDescription": "Choose your preferred interface theme",
+    "languageDescription": "Choose your preferred interface language",
+    "avatarEmpty": "Add Avatar",
+    "editAvatar": "Edit Avatar",
+    "avatarUpload": "Upload Avatar",
+    "avatarRemove": "Remove Avatar",
+    "avatarDropzoneTitle": "Drag image here",
+    "avatarDropzoneHint": "Or click here to select an image file",
+    "savingDisplayName": "Saving...",
+    "displayNameSaved": "Updated",
+    "displayNameSaveFailed": "Update failed",
+    "role": "Role",
+    "loginMethod": "Login Method"
   },
   "settings": {
     "title": "Settings",
-    "description": "Manage your preferences, API Key and usage statistics",
-    "descriptionStudent": "Manage your preferences"
+    "description": "Manage your preferences, API keys and usage statistics",
+    "descriptionStudent": "Manage your preferences",
+    "tabs": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "apiKey": "API Key",
+      "plans": "Explore Plans",
+      "subscription": "Subscription",
+      "usage": "Usage Stats"
+    },
+    "subscription": {
+      "manage": "Manage Subscription",
+      "manageDesc": "Change payment method, cancel subscription or view invoices",
+      "openPortalFailed": "Failed to open subscription management page",
+      "trialEndDate": "Trial End Date",
+      "periodEndDate": "Current Period End",
+      "tier": {
+        "free": "Free Plan",
+        "pro": "Pro Plan",
+        "team": "Team Plan",
+        "enterprise": "Enterprise"
+      },
+      "status": {
+        "active": "Active",
+        "trialing": "Trialing",
+        "past_due": "Past Due",
+        "canceled": "Canceled",
+        "expired": "Expired"
+      },
+      "desc": {
+        "free": "Currently on Free plan, upgrade for higher limits",
+        "pro": "For individuals with steady exam needs",
+        "team": "For schools, departments, and training centers"
+      }
+    },
+    "loginRecords": {
+      "title": "Device Management",
+      "description": "Devices logged in within the last 30 days",
+      "logoutOther": "Logout Other Devices",
+      "logoutOtherDesc": "Logout from all active sessions except this device",
+      "logoutSuccess": "Logged out from other devices",
+      "logoutError": "Failed to logout from other devices",
+      "empty": "No login records",
+      "deviceName": "Device Name",
+      "lastActive": "Last Active",
+      "current": "This device",
+      "now": "Now"
+    },
+    "apiKey": {
+      "title": "API Key",
+      "description": "Manage your Anthropic API Key for AI features",
+      "empty": "No API Key set. Go to Anthropic Console to create one.",
+      "addKey": "Add API Key",
+      "updateKey": "Update Key",
+      "deleteKey": "Delete Key",
+      "deleteConfirm": "Are you sure you want to delete the API Key? AI features will be unavailable.",
+      "nameLabel": "Name",
+      "statusLabel": "Status",
+      "createdAtLabel": "Created At",
+      "validated": "Validated",
+      "invalid": "Invalid",
+      "active": "Active",
+      "inactive": "Inactive",
+      "modal": {
+        "addTitle": "Add API Key",
+        "updateTitle": "Update API Key",
+        "nameInput": "Name (Optional)",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "helperText": "Your API Key will be stored encrypted",
+        "saveSuccess": "API Key saved successfully!",
+        "deleteSuccess": "API Key deleted"
+      },
+      "usage": {
+        "title": "Usage Statistics",
+        "description": "AI API usage summary and details",
+        "totalTokens": "Total Tokens",
+        "totalRequests": "Total Requests",
+        "totalCost": "Total Cost",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "granularity": "Granularity",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "noData": "No usage data in selected range",
+        "table": {
+          "date": "Date",
+          "requests": "Requests",
+          "inputTokens": "Input Tokens",
+          "outputTokens": "Output Tokens",
+          "cost": "Cost (USD)"
+        }
+      },
+      "error": {
+        "loadFailed": "Failed to load API Key info",
+        "usageLoadFailed": "Failed to load usage data",
+        "inputRequired": "Please enter API Key",
+        "invalidFormat": "Invalid API Key format, should start with 'sk-ant-'",
+        "saveFailed": "Save failed",
+        "deleteFailed": "Delete failed"
+      }
+    },
+    "plans": {
+      "title": "Explore Plans",
+      "description": "All plans include full features, difference is only in limits",
+      "enterpriseTitle": "Need more scale?",
+      "contactUs": "Contact Us",
+      "enterpriseCustom": "for custom Enterprise plans.",
+      "freeTrial": "30 Days Free",
+      "startingTrial": "Start Free Trial",
+      "subscribeNow": "Subscribe Now",
+      "processing": "Processing...",
+      "openCheckoutFailed": "Failed to open checkout page, please try again later",
+      "month": "mo",
+      "features": {
+        "pro": [
+          "Max 200 participants per exam",
+          "500 AI Credits / month",
+          "Unlimited question bank storage",
+          "1 year data retention",
+          "10 GB storage space"
+        ],
+        "team": [
+          "Max 500 participants per exam",
+          "2,000 AI Credits / month",
+          "Unlimited question bank storage",
+          "Up to 10 admins",
+          "50 GB storage space"
+        ]
+      }
+    }
+  },
+  "profile": {
+    "personalInfo": "Personal Information",
+    "devices": "Device Management",
+    "devicesDesc": "Devices logged in within the last 30 days",
+    "deviceName": "Device Name",
+    "lastActive": "Last Active",
+    "now": "Now"
   },
   "table": {
     "title": "Title",

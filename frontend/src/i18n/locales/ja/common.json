@@ -170,7 +170,20 @@
     "passwordChanged": "パスワードが変更されました",
     "passwordMismatch": "新しいパスワードが一致しません",
     "wrongPassword": "現在のパスワードが間違っています",
-    "oauthUser": "OAuthユーザーはパスワードを変更できません"
+    "oauthUser": "OAuthユーザーはパスワードを変更できません",
+    "themeDescription": "お好みのインターフェーステーマを選択してください",
+    "languageDescription": "お好みのインターフェース言語を選択してください",
+    "avatarEmpty": "アバターを追加",
+    "editAvatar": "アバターを編集",
+    "avatarUpload": "アバターをアップロード",
+    "avatarRemove": "アバターを削除",
+    "avatarDropzoneTitle": "ここに画像をドラッグ",
+    "avatarDropzoneHint": "またはここをクリックして画像ファイルを選択",
+    "savingDisplayName": "保存中...",
+    "displayNameSaved": "更新しました",
+    "displayNameSaveFailed": "更新に失敗しました",
+    "role": "役割",
+    "loginMethod": "ログイン方法"
   },
   "settings": {
     "title": "設定",

@@ -265,7 +265,20 @@
     "passwordChanged": "密碼已成功變更",
     "passwordMismatch": "新密碼不一致",
     "wrongPassword": "目前密碼錯誤",
-    "oauthUser": "OAuth 使用者無法變更密碼"
+    "oauthUser": "OAuth 使用者無法變更密碼",
+    "themeDescription": "選擇您偏好的介面主題",
+    "languageDescription": "選擇您偏好的介面語言",
+    "avatarEmpty": "新增頭像",
+    "editAvatar": "編輯頭像",
+    "avatarUpload": "上傳頭像",
+    "avatarRemove": "移除頭像",
+    "avatarDropzoneTitle": "拖曳圖片到此處",
+    "avatarDropzoneHint": "或點擊這裡選擇圖片檔案",
+    "savingDisplayName": "儲存中...",
+    "displayNameSaved": "已更新",
+    "displayNameSaveFailed": "更新失敗",
+    "role": "角色",
+    "loginMethod": "登入方式"
   },
   "settings": {
     "title": "設定",
