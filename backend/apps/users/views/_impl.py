@@ -345,6 +345,8 @@ class UserPreferencesView(SchemaAPIView):
             profile.editor_font_size = validated_data['editor_font_size']
         if 'editor_tab_size' in validated_data:
             profile.editor_tab_size = validated_data['editor_tab_size']
+        if 'onboarding_completed_at' in validated_data:
+            profile.onboarding_completed_at = validated_data['onboarding_completed_at']
 
         profile.save()
         cache.delete(f"user_preferences:v1:{user.id}")

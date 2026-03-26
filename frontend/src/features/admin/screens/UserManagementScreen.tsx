@@ -4,6 +4,7 @@ import {
   Search,
   UserAdmin,
   CheckmarkFilled,
+  Copy,
   TrashCan,
   WarningAlt,
 } from "@carbon/icons-react";
@@ -24,24 +25,39 @@ import {
   InlineNotification,
   Grid,
   Column,
+  Tile,
+  ButtonSet,
 } from "@carbon/react";
-import { searchUsers, updateUserRole, deleteUser } from "@/infrastructure/api/repositories/auth.repository";
-import type { User } from "@/core/entities/auth.entity";
+import {
+  deleteUser,
+  issueTeacherActivationInvite,
+  searchUsers,
+  updateUserRole,
+} from "@/infrastructure/api/repositories/auth.repository";
+import type { ManagedUser } from "@/core/entities/auth.entity";
+import { useCopyText } from "@/shared/hooks";
 
 const UserManagementScreen = () => {
   const { t } = useTranslation("admin");
   const { t: tc } = useTranslation("common");
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newRole, setNewRole] = useState("");
+  const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
+  const [newRole, setNewRole] = useState<ManagedUser["role"]>("student");
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [issuingInvite, setIssuingInvite] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<ManagedUser | null>(null);
+  const [roleFilter, setRoleFilter] = useState<"all" | ManagedUser["role"]>("all");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [latestInviteUrl, setLatestInviteUrl] = useState("");
+  const [latestInviteEmail, setLatestInviteEmail] = useState("");
+  const [latestInviteExpiresAt, setLatestInviteExpiresAt] = useState<string | null>(null);
+  const { isCopied, copy } = useCopyText();
 
   // Load all users on mount
   useEffect(() => {
@@ -107,7 +123,8 @@ const UserManagementScreen = () => {
     }
   };
 
-  const handleRoleChangeClick = (user: User, role: string) => {
+  const handleRoleChangeClick = (user: ManagedUser, role: ManagedUser["role"]) => {
+    if (user.role === role) return;
     setSelectedUser(user);
     setNewRole(role);
     setConfirmModalOpen(true);
@@ -124,7 +141,7 @@ const UserManagementScreen = () => {
         // Update user in list
         setUsers(
           users.map((u) =>
-            u.id === selectedUser.id ? { ...u, role: newRole as any } : u
+            u.id === selectedUser.id ? { ...u, role: newRole } : u
           )
         );
         setConfirmModalOpen(false);
@@ -142,7 +159,7 @@ const UserManagementScreen = () => {
     }
   };
 
-  const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (user: ManagedUser) => {
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
   };
@@ -165,6 +182,39 @@ const UserManagementScreen = () => {
     }
   };
 
+  const handleIssueInvite = async (emailOverride?: string) => {
+    const email = (emailOverride ?? inviteEmail).trim().toLowerCase();
+    if (!email) {
+      setError(t("user.management.activationInvite.emailRequired", "請先輸入要邀請的 Email"));
+      return;
+    }
+
+    setIssuingInvite(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await issueTeacherActivationInvite(email);
+      setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
+      setLatestInviteUrl(response.data.activation_url || "");
+      setLatestInviteEmail(response.data.email);
+      setLatestInviteExpiresAt(response.data.expires_at || null);
+      setInviteEmail(response.data.email);
+      await loadAllUsers();
+    } catch (err: any) {
+      if (err.response?.data?.error?.message) {
+        setError(err.response.data.error.message);
+      } else {
+        setError(
+          err?.message ||
+            t("user.management.activationInvite.failed", "產生教師開通連結失敗")
+        );
+      }
+    } finally {
+      setIssuingInvite(false);
+    }
+  };
+
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       student: t("user.role.student"),
@@ -184,6 +234,28 @@ const UserManagementScreen = () => {
     };
     return labels[provider] || provider;
   };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return t("user.management.notAvailable", "尚無資料");
+    return new Date(value).toLocaleString("zh-TW", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const filteredUsers = users.filter((user) => {
+    if (roleFilter === "all") return true;
+    return user.role === roleFilter;
+  });
+
+  const pendingOnboardingCount = users.filter(
+    (user) => !user.onboarding_completed_at
+  ).length;
+  const teacherCount = users.filter((user) => user.role === "teacher").length;
+  const unverifiedCount = users.filter((user) => !user.email_verified).length;
 
   return (
     <div
@@ -221,7 +293,121 @@ const UserManagementScreen = () => {
               </p>
             </div>
 
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "1rem",
+                marginBottom: "2rem",
+              }}
+            >
+              <Tile>
+                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
+                  {t("user.management.summary.totalUsers", "總使用者")}
+                </p>
+                <strong style={{ fontSize: "1.75rem" }}>{users.length}</strong>
+              </Tile>
+              <Tile>
+                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
+                  {t("user.management.summary.teachers", "已開通教師")}
+                </p>
+                <strong style={{ fontSize: "1.75rem" }}>{teacherCount}</strong>
+              </Tile>
+              <Tile>
+                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
+                  {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
+                </p>
+                <strong style={{ fontSize: "1.75rem" }}>{pendingOnboardingCount}</strong>
+              </Tile>
+              <Tile>
+                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
+                  {t("user.management.summary.unverified", "未驗證 Email")}
+                </p>
+                <strong style={{ fontSize: "1.75rem" }}>{unverifiedCount}</strong>
+              </Tile>
+            </div>
+
             {/* Search Section */}
+            <div
+              className="carbon-panel"
+              style={{
+                padding: "1.5rem",
+                marginBottom: "2rem",
+                backgroundColor: "var(--cds-layer-01)",
+                border: "1px solid var(--cds-border-subtle)",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "var(--cds-heading-03, 1.25rem)",
+                  fontWeight: 400,
+                  marginBottom: "0.5rem",
+                  color: "var(--cds-text-primary)",
+                }}
+              >
+                {t("user.management.activationInvite.title", "教師邀請制開通")}
+              </h2>
+              <p
+                style={{
+                  fontSize: "var(--cds-body-long-01, 0.875rem)",
+                  color: "var(--cds-text-secondary)",
+                  marginBottom: "1rem",
+                }}
+              >
+                {t(
+                  "user.management.activationInvite.description",
+                  "輸入 Email 後產生 activation link。可直接複製連結交給對方，對方登入或註冊後可自行完成 teacher 開通。"
+                )}
+              </p>
+              <div
+                style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}
+              >
+                <div style={{ flex: "1 1 320px" }}>
+                  <TextInput
+                    id="teacher-activation-email"
+                    labelText={t("user.management.activationInvite.emailLabel", "邀請 Email")}
+                    placeholder="teacher@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <Button
+                  kind="primary"
+                  onClick={() => handleIssueInvite()}
+                  disabled={issuingInvite}
+                >
+                  {issuingInvite
+                    ? t("user.management.activationInvite.sending", "產生中...")
+                    : t("user.management.activationInvite.send", "產生開通連結")}
+                </Button>
+                {latestInviteUrl ? (
+                  <Button
+                    kind="ghost"
+                    renderIcon={Copy}
+                    onClick={() => copy(latestInviteUrl)}
+                  >
+                    {isCopied
+                      ? t("user.management.activationInvite.copied", "已複製")
+                      : t("user.management.activationInvite.copy", "複製連結")}
+                  </Button>
+                ) : null}
+              </div>
+              {latestInviteUrl ? (
+                <div style={{ marginTop: "1rem" }}>
+                  <InlineNotification
+                    kind="info"
+                    title={t("user.management.activationInvite.latest", "最近一次邀請")}
+                    subtitle={`${latestInviteEmail} · ${t(
+                      "user.management.activationInvite.expiresAt",
+                      "到期"
+                    )}: ${latestInviteExpiresAt ? formatDateTime(latestInviteExpiresAt) : "—"} · ${latestInviteUrl}`}
+                    lowContrast
+                    hideCloseButton
+                  />
+                </div>
+              ) : null}
+            </div>
+
             <div
               className="carbon-panel"
               style={{
@@ -290,10 +476,43 @@ const UserManagementScreen = () => {
                   />
                 </div>
               )}
+
+              <div style={{ marginTop: "1rem" }}>
+                <ButtonSet>
+                  <Button
+                    kind={roleFilter === "all" ? "primary" : "tertiary"}
+                    size="sm"
+                    onClick={() => setRoleFilter("all")}
+                  >
+                    {t("user.management.filters.all", "全部")}
+                  </Button>
+                  <Button
+                    kind={roleFilter === "student" ? "primary" : "tertiary"}
+                    size="sm"
+                    onClick={() => setRoleFilter("student")}
+                  >
+                    {t("user.role.student")}
+                  </Button>
+                  <Button
+                    kind={roleFilter === "teacher" ? "primary" : "tertiary"}
+                    size="sm"
+                    onClick={() => setRoleFilter("teacher")}
+                  >
+                    {t("user.role.teacher")}
+                  </Button>
+                  <Button
+                    kind={roleFilter === "admin" ? "primary" : "tertiary"}
+                    size="sm"
+                    onClick={() => setRoleFilter("admin")}
+                  >
+                    {t("user.role.admin")}
+                  </Button>
+                </ButtonSet>
+              </div>
             </div>
 
             {/* Results Table */}
-            {users.length > 0 && (
+            {filteredUsers.length > 0 && (
               <div
                 className="carbon-panel"
                 style={{
@@ -310,7 +529,7 @@ const UserManagementScreen = () => {
                     color: "var(--cds-text-primary)",
                   }}
                 >
-                  {t("user.management.searchResults", { count: users.length })}
+                  {t("user.management.searchResults", { count: filteredUsers.length })}
                 </h2>
                 <TableContainer>
                   <Table>
@@ -323,6 +542,9 @@ const UserManagementScreen = () => {
                           {t("user.management.columns.email")}
                         </TableHeader>
                         <TableHeader>
+                          {t("user.management.columns.displayName", "顯示名稱")}
+                        </TableHeader>
+                        <TableHeader>
                           {t("user.management.columns.currentRole")}
                         </TableHeader>
                         <TableHeader>
@@ -332,23 +554,30 @@ const UserManagementScreen = () => {
                           {t("user.management.columns.emailVerified")}
                         </TableHeader>
                         <TableHeader>
+                          {t("user.management.columns.onboarding", "Onboarding")}
+                        </TableHeader>
+                        <TableHeader>
+                          {t("user.management.columns.lastLogin", "最後登入")}
+                        </TableHeader>
+                        <TableHeader>
                           {t("user.management.columns.actions")}
                         </TableHeader>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {users.map((user) => (
+                      {filteredUsers.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.display_name || "—"}</TableCell>
                           <TableCell>
                             <Tag
                               type={
                                 user.role === "admin"
-                                  ? "blue"
+                                  ? "purple"
                                   : user.role === "teacher"
-                                  ? "red"
-                                  : "gray"
+                                  ? "green"
+                                  : "cool-gray"
                               }
                             >
                               {getRoleLabel(user.role)}
@@ -372,13 +601,52 @@ const UserManagementScreen = () => {
                             )}
                           </TableCell>
                           <TableCell>
+                            <Tag type={user.onboarding_completed_at ? "green" : "cool-gray"}>
+                              {user.onboarding_completed_at
+                                ? t("user.management.onboarding.completed", "已完成")
+                                : t("user.management.onboarding.pending", "未完成")}
+                            </Tag>
+                          </TableCell>
+                          <TableCell>{formatDateTime(user.last_login_at)}</TableCell>
+                          <TableCell>
                             <div style={{ display: "flex", gap: "0.5rem" }}>
+                              {user.role === "student" && (
+                                <>
+                                  <Button
+                                    kind="primary"
+                                    size="sm"
+                                    onClick={() => handleIssueInvite(user.email || "")}
+                                    disabled={issuingInvite || !user.email}
+                                  >
+                                    {t("user.management.sendTeacherInvite", "產生開通連結")}
+                                  </Button>
+                                  <Button
+                                    kind="secondary"
+                                    size="sm"
+                                    onClick={() => handleRoleChangeClick(user, "teacher")}
+                                  >
+                                    {t("user.management.activateTeacher", "直接開通教師")}
+                                  </Button>
+                                </>
+                              )}
+                              {user.role === "teacher" && (
+                                <Button
+                                  kind="secondary"
+                                  size="sm"
+                                  onClick={() => handleRoleChangeClick(user, "student")}
+                                >
+                                  {t("user.management.revokeTeacher", "改回學生")}
+                                </Button>
+                              )}
                               <Select
                                 id={`role-select-${user.id}`}
                                 labelText=""
                                 value={user.role}
                                 onChange={(e) =>
-                                  handleRoleChangeClick(user, e.target.value)
+                                  handleRoleChangeClick(
+                                    user,
+                                    e.target.value as ManagedUser["role"]
+                                  )
                                 }
                                 size="sm"
                                 style={{ minWidth: "120px" }}
@@ -443,8 +711,16 @@ const UserManagementScreen = () => {
           })}
         </p>
         {newRole === "admin" && (
-          <p style={{ marginTop: "1rem", color: "var(--cds-link-primary)" }}>
+                        <p style={{ marginTop: "1rem", color: "var(--cds-link-primary)" }}>
             ⓘ {t("user.management.adminPermissionNote")}
+          </p>
+        )}
+        {selectedUser?.role === "student" && newRole === "teacher" && (
+          <p style={{ marginTop: "1rem", color: "var(--cds-text-secondary)" }}>
+            {t(
+              "user.management.teacherActivationNote",
+              "開通為教師後，該使用者即可建立教室與使用教師端管理功能。"
+            )}
           </p>
         )}
       </Modal>

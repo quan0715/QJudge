@@ -83,6 +83,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
+    is_classroom_bound = serializers.SerializerMethodField()
+    bound_classroom_id = serializers.SerializerMethodField()
     is_exam_questions_frozen = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
 
@@ -134,6 +136,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'anonymous_mode_enabled',
             'participant_count',
             'admins',
+            'is_classroom_bound',
+            'bound_classroom_id',
             'results_published',
             'is_exam_questions_frozen',
             'exam_questions_count',
@@ -237,6 +241,22 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         """Get list of admin users for this contest."""
         admins = obj.admins.all()
         return [{'id': u.id, 'username': u.username} for u in admins]
+
+    def _get_primary_classroom_binding(self, obj):
+        return (
+            obj.classroom_bindings.select_related('classroom')
+            .order_by('bound_at')
+            .first()
+        )
+
+    def get_is_classroom_bound(self, obj):
+        return self._get_primary_classroom_binding(obj) is not None
+
+    def get_bound_classroom_id(self, obj):
+        binding = self._get_primary_classroom_binding(obj)
+        if binding is None:
+            return None
+        return str(binding.classroom.uuid)
 
     def get_is_exam_questions_frozen(self, obj):
         """考試題目是否已凍結（有學生開始作答後為 True）"""

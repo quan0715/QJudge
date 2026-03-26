@@ -753,7 +753,39 @@
     "publishPracticeFailed": "公開に失敗しました",
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
-    "joinPassword": "参加パスワード"
+    "joinPassword": "参加パスワード",
+    "warningCooldown": "警告表示時間 (秒)",
+    "anticheat": {
+      "desktopLabel": "デスクトップ / ノート PC 設定",
+      "tabletLabel": "タブレット / iPad 設定",
+      "enabledDesc": "{{device}} 端の不正防止機能が有効",
+      "disabledDesc": "{{device}} 端の制限が無効",
+      "monitoringSources": "監視ソース設定",
+      "securityDetectors": "不正検知メカニズム",
+      "screenShare": "画面共有 (Screen)",
+      "webcam": "ウェブカメラ (Webcam)",
+      "enableMonitoring": "監視を有効にする",
+      "forceEnable": "強制有効",
+      "captureInterval": "キャプチャ間隔 (秒)",
+      "screenShareDesc": "監視証拠として学生の画面をキャプチャする",
+      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする",
+      "detectors": {
+        "fullscreen": "全画面ロック",
+        "fullscreenDesc": "全画面モードを強制し、解除は違反として記録される",
+        "focus": "ウィンドウフォーカス検知",
+        "focusDesc": "試験ウィンドウを離れると違反として記録される",
+        "tabVisibility": "タブ切り替え検知",
+        "tabVisibilityDesc": "ブラウザのタブ切り替えやウィンドウの最小化を禁止する",
+        "multiDisplay": "マルチディスプレイ検知",
+        "multiDisplayDesc": "試験中の外部ディスプレイの使用を禁止する",
+        "mouseLeave": "マウスアウト検知",
+        "mouseLeaveDesc": "マウスが試験ウィンドウから離れると警告を表示する",
+        "pwaMode": "PWA アプリモード",
+        "pwaModeDesc": "独立したアプリモードで実行を強制し、システム環境をロックする",
+        "viewportIntegrity": "ウィンドウ整合性チェック",
+        "viewportIntegrityDesc": "iPad のスプリットビューやスライドオーバーなどの使用を禁止する"
+      }
+    }
   },
   "examStatus": {
     "not_started": "未開始",

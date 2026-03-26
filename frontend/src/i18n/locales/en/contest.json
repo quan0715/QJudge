@@ -759,7 +759,39 @@
     "publishPracticeFailed": "Failed to publish problems",
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
-    "joinPassword": "Join Password"
+    "joinPassword": "Join Password",
+    "warningCooldown": "Warning Cooldown (sec)",
+    "anticheat": {
+      "desktopLabel": "Desktop / Laptop Settings",
+      "tabletLabel": "Tablet / iPad Settings",
+      "enabledDesc": "Anti-cheat mechanism enabled for {{device}}",
+      "disabledDesc": "Restrictions disabled for {{device}}",
+      "monitoringSources": "Monitoring Source Settings",
+      "securityDetectors": "Violation Detection Mechanism",
+      "screenShare": "Screen Monitoring (Screen)",
+      "webcam": "Video Monitoring (Webcam)",
+      "enableMonitoring": "Enable Monitoring",
+      "forceEnable": "Force Enable",
+      "captureInterval": "Capture Interval (sec)",
+      "screenShareDesc": "Capture student screen as monitoring evidence",
+      "webcamDesc": "Capture student webcam as monitoring evidence",
+      "detectors": {
+        "fullscreen": "Fullscreen Lock",
+        "fullscreenDesc": "Force fullscreen mode; exiting will be recorded as a violation",
+        "focus": "Window Focus Detection",
+        "focusDesc": "Leaving the exam window will be recorded as a violation",
+        "tabVisibility": "Tab Switch Detection",
+        "tabVisibilityDesc": "Prevent switching browser tabs or minimizing the window",
+        "multiDisplay": "Multi-display Detection",
+        "multiDisplayDesc": "Prevent using a second physical monitor during the exam",
+        "mouseLeave": "Mouse Leave Detection",
+        "mouseLeaveDesc": "Trigger warning when the mouse leaves the exam window area",
+        "pwaMode": "PWA App Mode",
+        "pwaModeDesc": "Force execution in independent app mode to lock the system environment",
+        "viewportIntegrity": "Window Integrity Check",
+        "viewportIntegrityDesc": "Prevent iPad from using split-screen, slide-over, or small window modes"
+      }
+    }
   },
   "examStatus": {
     "not_started": "Not Started",

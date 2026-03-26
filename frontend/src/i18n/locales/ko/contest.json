@@ -753,7 +753,39 @@
     "publishPracticeFailed": "문제 공개에 실패했습니다",
     "deleteContest": "대회 삭제",
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
-    "joinPassword": "참가 비밀번호"
+    "joinPassword": "참가 비밀번호",
+    "warningCooldown": "경고 표시 시간 (초)",
+    "anticheat": {
+      "desktopLabel": "데스크톱 / 노트북 설정",
+      "tabletLabel": "태블릿 / iPad 설정",
+      "enabledDesc": "{{device}} 기기의 부정행위 방지 기능 활성화됨",
+      "disabledDesc": "{{device}} 기기의 제한 비활성화됨",
+      "monitoringSources": "모니터링 소스 설정",
+      "securityDetectors": "부정행위 감지 메커니즘",
+      "screenShare": "화면 모니터링 (Screen)",
+      "webcam": "웹캠 모니터링 (Webcam)",
+      "enableMonitoring": "모니터링 활성화",
+      "forceEnable": "강제 활성화",
+      "captureInterval": "캡처 간격 (초)",
+      "screenShareDesc": "모니터링 증거로 학생 화면을 캡처합니다",
+      "webcamDesc": "모니터링 증거로 학생 웹캠을 캡처합니다",
+      "detectors": {
+        "fullscreen": "전체 화면 잠금",
+        "fullscreenDesc": "전체 화면 모드를 강제하며, 해제 시 위반으로 기록됩니다",
+        "focus": "윈도우 포커스 감지",
+        "focusDesc": "시험 창을 이탈할 경우 위반으로 기록됩니다",
+        "tabVisibility": "탭 전환 감지",
+        "tabVisibilityDesc": "브라우저 탭 전환 또는 창 최소화를 금지합니다",
+        "multiDisplay": "멀티 디스플레이 감지",
+        "multiDisplayDesc": "시험 중 외부 디스플레이 사용을 금지합니다",
+        "mouseLeave": "마우스 이탈 감지",
+        "mouseLeaveDesc": "마우스가 시험 창 범위를 벗어나면 경고가 발생합니다",
+        "pwaMode": "PWA 앱 모드",
+        "pwaModeDesc": "독립형 앱 모드로 실행을 강제하여 시스템 환경을 잠급니다",
+        "viewportIntegrity": "윈도우 무결성 검사",
+        "viewportIntegrityDesc": "iPad의 스플릿 뷰나 슬라이드 오버 등의 사용을 금지합니다"
+      }
+    }
   },
   "examStatus": {
     "not_started": "미시작",

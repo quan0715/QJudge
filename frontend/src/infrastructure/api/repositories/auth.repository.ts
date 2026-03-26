@@ -19,6 +19,10 @@ import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
   CurrentUserResponse,
+  UserSearchResponse,
+  TeacherActivationIssueResponse,
+  TeacherActivationPreviewResponse,
+  TeacherActivationConsumeResponse,
   ForgotPasswordRequest,
   APIKeyResponse,
   ResetPasswordRequest,
@@ -110,7 +114,7 @@ export const logout = async (): Promise<void> => {
 // User Management (Admin)
 // ============================================================================
 
-export const searchUsers = async (query: string): Promise<any> => {
+export const searchUsers = async (query: string): Promise<UserSearchResponse> => {
   const res = await httpClient.get(
     `/api/v1/auth/search?q=${encodeURIComponent(query)}`
   );
@@ -135,6 +139,35 @@ export const updateUserRole = async (
     throw error;
   }
   return res.json();
+};
+
+export const issueTeacherActivationInvite = async (
+  email: string
+): Promise<TeacherActivationIssueResponse> => {
+  return requestJson<TeacherActivationIssueResponse>(
+    httpClient.post(`/api/v1/auth/teacher-activations`, { email }),
+    "Failed to issue teacher activation invite"
+  );
+};
+
+export const previewTeacherActivationInvite = async (
+  token: string
+): Promise<TeacherActivationPreviewResponse> => {
+  return requestJson<TeacherActivationPreviewResponse>(
+    httpClient.get(
+      `/api/v1/auth/teacher-activations/preview?token=${encodeURIComponent(token)}`
+    ),
+    "Failed to preview teacher activation invite"
+  );
+};
+
+export const consumeTeacherActivationInvite = async (
+  token: string
+): Promise<TeacherActivationConsumeResponse> => {
+  return requestJson<TeacherActivationConsumeResponse>(
+    httpClient.post(`/api/v1/auth/teacher-activations/consume`, { token }),
+    "Failed to consume teacher activation invite"
+  );
 };
 
 export const deleteUser = async (userId: number): Promise<void> => {

@@ -49,6 +49,7 @@ from ..services.participant_state import (
 from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
+from ..services.detail_cache import get_contest_detail_cache_key
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
@@ -88,6 +89,22 @@ class ContestViewSet(viewsets.ModelViewSet):
         if contest.start_time and now < contest.start_time:
             return "upcoming"
         return "running"
+
+    @staticmethod
+    def _is_classroom_managed_contest(contest: Contest) -> bool:
+        return contest.classroom_bindings.exists()
+
+    def _classroom_managed_response(self):
+        return Response(
+            {
+                "error": {
+                    "code": "contest_managed_by_classroom",
+                    "message": "This contest is managed by a classroom. Update members in classroom.",
+                    "type": "permission_denied",
+                }
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     def _build_time_progress(self, contest: Contest, now):
         start_time = contest.start_time
@@ -186,7 +203,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         user = request.user
         user_cache_key = user.id if user.is_authenticated else "anon"
-        cache_key = f"contest_detail:{instance.id}:u:{user_cache_key}"
+        cache_key = get_contest_detail_cache_key(instance.id, str(user_cache_key))
 
         if user.is_authenticated:
             try:
@@ -279,6 +296,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get all admins for this contest.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         admins = contest.admins.all()
         return Response([{'id': u.id, 'username': u.username} for u in admins])
 
@@ -289,6 +308,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can add co-admins.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
 
         username = request.data.get('username')
         if not username:
@@ -332,6 +353,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can remove co-admins.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
 
         user_id = request.data.get('user_id')
         if not user_id:

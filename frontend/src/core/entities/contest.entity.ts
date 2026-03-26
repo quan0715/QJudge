@@ -314,6 +314,8 @@ export type ExamStatusType =
 export interface ContestDetail extends Contest {
   rules?: string;
   ownerUsername?: string;
+  isClassroomBound?: boolean;
+  boundClassroomId?: string | null;
 
   // Contest type
   contestType: ContestType;

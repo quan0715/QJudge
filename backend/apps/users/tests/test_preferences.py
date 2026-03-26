@@ -1,7 +1,10 @@
 """Tests for user preferences endpoints (display_name, theme, language)."""
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -196,3 +199,34 @@ class UserPreferencesViewTestCase(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.avatar_url, "")
         self.assertEqual(profile.avatar_source, "manual")
+
+    def test_patch_onboarding_completed_at(self):
+        self.client.force_authenticate(user=self.user)
+        completed_at = timezone.now().replace(microsecond=0)
+
+        response = self.client.patch(
+            self.url,
+            {"onboarding_completed_at": completed_at.isoformat()},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertIsNotNone(profile.onboarding_completed_at)
+        self.assertEqual(
+            profile.onboarding_completed_at.astimezone(timezone.utc),
+            completed_at.astimezone(timezone.utc),
+        )
+
+    def test_patch_onboarding_completed_at_rejects_future_time(self):
+        self.client.force_authenticate(user=self.user)
+        future_time = (timezone.now() + timedelta(minutes=5)).isoformat()
+
+        response = self.client.patch(
+            self.url,
+            {"onboarding_completed_at": future_time},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

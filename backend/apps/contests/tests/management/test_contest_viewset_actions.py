@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
+from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests import views as contest_views
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
@@ -1117,6 +1118,69 @@ def test_platform_admin_can_archive(
     assert response.status_code == status.HTTP_200_OK
     contest.refresh_from_db()
     assert contest.status == "archived"
+
+
+@pytest.mark.django_db
+def test_classroom_bound_contest_blocks_admin_management_endpoints(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+    other_teacher: User,
+) -> None:
+    classroom = Classroom.objects.create(
+        name="Bound Classroom",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    api_client.force_authenticate(user=owner)
+
+    admins_response = api_client.get(f"/api/v1/contests/{contest.id}/admins/")
+    assert admins_response.status_code == status.HTTP_403_FORBIDDEN
+    assert admins_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+    add_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_admin/",
+        {"username": other_teacher.username},
+        format="json",
+    )
+    assert add_response.status_code == status.HTTP_403_FORBIDDEN
+    assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+    remove_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_admin/",
+        {"user_id": other_teacher.id},
+        format="json",
+    )
+    assert remove_response.status_code == status.HTTP_403_FORBIDDEN
+    assert remove_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+
+@pytest.mark.django_db
+def test_contest_detail_includes_classroom_binding_flags(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+) -> None:
+    api_client.force_authenticate(user=owner)
+    standalone_response = api_client.get(f"/api/v1/contests/{contest.id}/")
+    assert standalone_response.status_code == status.HTTP_200_OK
+    assert standalone_response.data["is_classroom_bound"] is False
+    assert standalone_response.data["bound_classroom_id"] is None
+
+    classroom = Classroom.objects.create(
+        name="Bound Classroom Flags",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+    bound_response = api_client.get(f"/api/v1/contests/{contest.id}/")
+    assert bound_response.status_code == status.HTTP_200_OK
+    assert bound_response.data["is_classroom_bound"] is True
+    assert bound_response.data["bound_classroom_id"] == str(classroom.uuid)
 
 
 # ---------------------------------------------------------------------------

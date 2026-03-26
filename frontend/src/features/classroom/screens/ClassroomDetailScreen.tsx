@@ -95,6 +95,7 @@ const ClassroomDetailScreen: React.FC = () => {
 
   const isPrivileged =
     classroom?.currentUserRole === "admin" || classroom?.currentUserRole === "teacher";
+  const canBindContests = classroom?.currentUserRole === "admin";
   const isMember = Boolean(classroom?.currentUserRole);
 
   const availablePanels = useMemo<ClassroomAdminPanelId[]>(() => {
@@ -264,6 +265,13 @@ const ClassroomDetailScreen: React.FC = () => {
 
   const handleCreateContest = async (contestId?: string) => {
     if (!classroomId || !contestId) return;
+    if (!canBindContests) {
+      showToast({
+        kind: "error",
+        title: t("classroom.bindContestNoPermission", "你沒有綁定競賽的權限"),
+      });
+      return;
+    }
     try {
       await bindContest(classroomId, contestId);
       showToast({
@@ -341,6 +349,7 @@ const ClassroomDetailScreen: React.FC = () => {
             <OverviewPanel
               classroom={classroom}
               isPrivileged={Boolean(isPrivileged)}
+              canBindContests={Boolean(canBindContests)}
               onCreateAnnouncement={() => {
                 setEditingAnnouncement(null);
                 setAnnouncementModalOpen(true);
@@ -370,7 +379,7 @@ const ClassroomDetailScreen: React.FC = () => {
             <div className="classroom-admin-panel">
               <ContestPanel
                 contests={classroom.contests}
-                isPrivileged={Boolean(isPrivileged)}
+                canBindContests={Boolean(canBindContests)}
                 onCreateContest={() => setCreateContestOpen(true)}
                 onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
               />
@@ -412,13 +421,15 @@ const ClassroomDetailScreen: React.FC = () => {
               void fetchClassroomData();
             }}
           />
-          <CreateContestModal
-            open={createContestOpen}
-            onClose={() => setCreateContestOpen(false)}
-            onCreated={(contestId) => {
-              void handleCreateContest(contestId);
-            }}
-          />
+          {canBindContests && (
+            <CreateContestModal
+              open={createContestOpen}
+              onClose={() => setCreateContestOpen(false)}
+              onCreated={(contestId) => {
+                void handleCreateContest(contestId);
+              }}
+            />
+          )}
         </>
       )}
 
@@ -534,6 +545,7 @@ const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) =>
 const OverviewPanel: React.FC<{
   classroom: ClassroomDetail;
   isPrivileged: boolean;
+  canBindContests: boolean;
   onCreateAnnouncement: () => void;
   onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
   onCreateContest: () => void;
@@ -542,6 +554,7 @@ const OverviewPanel: React.FC<{
 }> = ({
   classroom,
   isPrivileged,
+  canBindContests,
   onCreateAnnouncement,
   onViewAnnouncement,
   onCreateContest,
@@ -603,7 +616,7 @@ const OverviewPanel: React.FC<{
                 <Trophy size={20} />
                 <h3>{t("classroom.contests", "競賽")}</h3>
               </div>
-              {isPrivileged && (
+              {canBindContests && (
                 <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
                   {t("classroom.createContest", "建立競賽")}
                 </Button>
@@ -636,12 +649,12 @@ const OverviewPanel: React.FC<{
 
 const ContestPanel: React.FC<{
   contests: BoundContest[];
-  isPrivileged: boolean;
+  canBindContests: boolean;
   onCreateContest: () => void;
   onNavigateContest: (contestId: string) => void;
 }> = ({
   contests,
-  isPrivileged,
+  canBindContests,
   onCreateContest,
   onNavigateContest,
 }) => {
@@ -654,7 +667,7 @@ const ContestPanel: React.FC<{
           <Trophy size={20} />
           <h3>{t("classroom.contests", "競賽列表")}</h3>
         </div>
-        {isPrivileged && (
+        {canBindContests && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
             {t("classroom.createContest", "建立競賽")}
           </Button>

@@ -205,6 +205,7 @@ const AdminContestSettingsScreen = () => {
       : []),
     ...admins.map((admin) => ({ id: admin.id, username: admin.username, role: "co-admin" as const })),
   ];
+  const isClassroomBound = Boolean(contest?.isClassroomBound);
 
   const getState = useCallback(
     (field: string): FieldSaveState | undefined => autoSave.fieldStates[field],
@@ -315,14 +316,18 @@ const AdminContestSettingsScreen = () => {
   );
 
   const loadAdmins = useCallback(async () => {
-    if (!contestId) return;
+    if (!contestId || !contest) return;
+    if (isClassroomBound) {
+      setAdmins([]);
+      return;
+    }
     try {
       const data = await getContestAdmins(contestId);
       setAdmins(data);
     } catch {
       showToast({ kind: "error", title: "無法載入管理員列表" });
     }
-  }, [contestId, showToast]);
+  }, [contestId, contest, isClassroomBound, showToast]);
 
   const handleAddAdmin = async (username: string) => {
     if (!contestId) return;
@@ -396,9 +401,9 @@ const AdminContestSettingsScreen = () => {
   };
 
   useEffect(() => {
-    if (!contestId) return;
+    if (!contestId || !contest) return;
     void loadAdmins();
-  }, [contestId, loadAdmins]);
+  }, [contestId, contest, loadAdmins]);
 
   useEffect(() => {
     if (contestId && initializedContestIdRef.current !== contestId) {
@@ -470,6 +475,7 @@ const AdminContestSettingsScreen = () => {
           endTimeInput={endTimeInput}
           startMeridiem={form.startTime && isPM(form.startTime as string) ? "PM" : "AM"}
           endMeridiem={form.endTime && isPM(form.endTime as string) ? "PM" : "AM"}
+          isClassroomBound={isClassroomBound}
           admins={admins}
           adminRows={adminRows}
           publishing={publishing}

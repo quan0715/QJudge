@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 
+from apps.users.permissions import IsTeacherOrAdmin
 from apps.core.services import (
     build_markdown_image_object_key,
     store_markdown_image,
@@ -35,6 +36,7 @@ from .serializers import (
 )
 from .permissions import IsClassroomOwnerOrAdmin, IsClassroomMember, get_user_role_in_classroom
 from .services import generate_invite_code, sync_classroom_participants, on_member_joined
+from apps.contests.services.detail_cache import bump_contest_detail_cache_version
 
 User = get_user_model()
 
@@ -90,15 +92,20 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'update', 'partial_update', 'destroy',
             'add_members', 'remove_member',
             'update_member_role',
-            'regenerate_code', 'bind_contest', 'unbind_contest',
+            'regenerate_code',
             'create_announcement',
             'update_announcement', 'delete_announcement',
         }
+        platform_admin_actions = {'bind_contest', 'unbind_contest'}
         member_actions = {
             'retrieve', 'list_members',
             'list_announcements',
         }
 
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        if self.action in platform_admin_actions:
+            return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
         if self.action in owner_admin_actions:
             return [permissions.IsAuthenticated(), IsClassroomOwnerOrAdmin()]
         if self.action in member_actions:
@@ -228,7 +235,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
     # ── Bind Contest ─────────────────────────────────────
 
     @action(detail=True, methods=['post'], url_path='bind_contest',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser])
     def bind_contest(self, request, id=None):
         classroom = self.get_object()
         serializer = BindContestSerializer(data=request.data)
@@ -244,6 +251,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             classroom=classroom, contest=contest,
         )
         if created:
+            bump_contest_detail_cache_version(contest.id)
             count = sync_classroom_participants(classroom, contest)
             return Response({
                 'detail': f'Contest bound. {count} participants registered.',
@@ -251,7 +259,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response({'detail': 'Contest already bound.'})
 
     @action(detail=True, methods=['post'], url_path='unbind_contest',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser])
     def unbind_contest(self, request, id=None):
         classroom = self.get_object()
         serializer = BindContestSerializer(data=request.data)
@@ -264,6 +272,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
         if deleted == 0:
             return Response({'detail': 'Binding not found.'}, status=status.HTTP_404_NOT_FOUND)
+        bump_contest_detail_cache_version(serializer.validated_data['contest_id'])
         return Response({'detail': 'Contest unbound.'})
 
     # ── Announcements ────────────────────────────────────
