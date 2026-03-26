@@ -1,5 +1,7 @@
 import React, { useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import { useTranslation } from "react-i18next";
+import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
 import {
   Modal,
   TextArea,
@@ -108,7 +110,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
     onClose();
   };
 
-  return (
+  return ReactDOM.createPortal(
     <Modal
       open={open}
       onRequestClose={handleClose}
@@ -204,6 +206,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           )}
         </div>
       )}
-    </Modal>
-  );
+    </Modal>,
+    getModalPortalRoot(),
+  ) as unknown as React.ReactElement;
 };

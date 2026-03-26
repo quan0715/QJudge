@@ -96,7 +96,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ThemeContext.Provider value={{ theme, preference, setPreference, toggleTheme, setTheme }}>
-      <Theme theme={theme}>{children}</Theme>
+      <Theme theme={theme}>
+        {children}
+        <div id="modal-portal-root" />
+      </Theme>
     </ThemeContext.Provider>
   );
 };
