@@ -239,11 +239,7 @@ class UserRoleUpdateSerializer(serializers.Serializer):
 
 class TeacherActivationInviteCreateSerializer(serializers.Serializer):
     """Serializer for issuing a teacher activation link."""
-
-    email = serializers.EmailField(required=True)
-
-    def validate_email(self, value):
-        return value.strip().lower()
+    pass
 
 
 class TeacherActivationConsumeSerializer(serializers.Serializer):

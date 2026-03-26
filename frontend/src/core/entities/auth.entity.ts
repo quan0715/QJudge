@@ -36,7 +36,7 @@ export interface ManagedUser {
 
 export interface TeacherActivationInvite {
   id: number;
-  email: string;
+  email?: string;
   expires_at: string;
   consumed_at?: string | null;
   created_at: string;
@@ -51,7 +51,6 @@ export interface TeacherActivationInvite {
 
 export interface TeacherActivationPreview extends TeacherActivationInvite {
   requires_login: boolean;
-  email_matches_current_user: boolean;
   current_user_email?: string | null;
   current_user_role?: string | null;
   can_consume: boolean;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, InlineLoading, InlineNotification } from "@carbon/react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { TeacherActivationPreview, User } from "@/core/entities/auth.entity";
@@ -16,7 +16,7 @@ import {
 
 const TeacherActivationScreen = () => {
   const navigate = useNavigate();
-  const { user, setUser, logout } = useAuth();
+  const { user, setUser } = useAuth();
   const [searchParams] = useSearchParams();
   const token = (searchParams.get("token") || "").trim();
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ const TeacherActivationScreen = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [preview, setPreview] = useState<TeacherActivationPreview | null>(null);
+  const autoConsumeAttemptedRef = useRef(false);
 
   const metadata = useMemo(() => {
     if (!token) {
@@ -42,7 +43,7 @@ const TeacherActivationScreen = () => {
     }
     return {
       title: "教師權限開通",
-      subtitle: "使用邀請信中的同一個 Email 登入後，即可完成開通。",
+      subtitle: "透過此連結登入或註冊後，即可完成 teacher 開通。",
       backTo: user ? "/dashboard" : "/login",
     };
   }, [success, token, user]);
@@ -91,6 +92,24 @@ const TeacherActivationScreen = () => {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!user && preview?.status === "pending") {
+      navigate(`/login?teacher_activation_token=${encodeURIComponent(token)}`, {
+        replace: true,
+      });
+    }
+  }, [navigate, preview?.status, token, user]);
+
+  useEffect(() => {
+    if (!user || !token || !preview || preview.status !== "pending" || !preview.can_consume) {
+      autoConsumeAttemptedRef.current = false;
+      return;
+    }
+    if (autoConsumeAttemptedRef.current) return;
+    autoConsumeAttemptedRef.current = true;
+    void handleConsume();
+  }, [preview, token, user]);
+
   const handleConsume = async () => {
     if (!token) return;
     setConsuming(true);
@@ -103,7 +122,7 @@ const TeacherActivationScreen = () => {
       localStorage.setItem("user", JSON.stringify(nextUser));
       window.dispatchEvent(new Event("storage"));
       setSuccess(response.message || "教師權限已開通");
-      navigate(getAuthedLandingPath(nextUser), { replace: true });
+      window.location.href = getAuthedLandingPath(nextUser);
     } catch (err: any) {
       setError(
         err?.message ||
@@ -113,15 +132,6 @@ const TeacherActivationScreen = () => {
     } finally {
       setConsuming(false);
     }
-  };
-
-  const handleSwitchAccount = async () => {
-    clearPendingTeacherActivationToken();
-    if (token) {
-      storePendingTeacherActivationToken(token);
-    }
-    await logout();
-    navigate("/login", { replace: true });
   };
 
   if (loading) {
@@ -142,6 +152,14 @@ const TeacherActivationScreen = () => {
           lowContrast
           hideCloseButton
         />
+      </div>
+    );
+  }
+
+  if (!user && preview?.status === "pending") {
+    return (
+      <div className="auth-form">
+        <InlineLoading description="跳轉至登入頁..." />
       </div>
     );
   }
@@ -171,10 +189,6 @@ const TeacherActivationScreen = () => {
       {preview ? (
         <div className="auth-activation-summary">
           <div>
-            <strong>邀請 Email</strong>
-            <p>{preview.email}</p>
-          </div>
-          <div>
             <strong>有效期限</strong>
             <p>{new Date(preview.expires_at).toLocaleString("zh-TW")}</p>
           </div>
@@ -194,49 +208,42 @@ const TeacherActivationScreen = () => {
       {!user && preview?.status === "pending" ? (
         <>
           <p className="auth-subnote">
-            先使用邀請信中的 Email 登入或註冊，登入後會自動回到這個開通頁面。
+            先透過此連結登入或註冊。登入完成後會自動回到這個頁面並完成 teacher 開通。
           </p>
           <div className="auth-actions auth-actions--stacked">
-            <Button as={Link} to="/login" kind="primary">
+            <Button
+              as={Link}
+              to={`/login?teacher_activation_token=${encodeURIComponent(token)}`}
+              kind="primary"
+            >
               前往登入
             </Button>
-            <Button as={Link} to="/register" kind="secondary">
+            <Button
+              as={Link}
+              to={`/register?teacher_activation_token=${encodeURIComponent(token)}`}
+              kind="secondary"
+            >
               先註冊再開通
             </Button>
           </div>
         </>
       ) : null}
 
-      {user && preview?.status === "pending" && !preview.email_matches_current_user ? (
+      {user && preview?.status === "pending" && consuming ? (
         <>
-          <InlineNotification
-            kind="warning"
-            title="帳號不符"
-            subtitle={`目前登入的是 ${preview.current_user_email || "未知帳號"}，請改用 ${preview.email} 登入。`}
-            lowContrast
-            hideCloseButton
-          />
-          <div className="auth-actions">
-            <Button kind="secondary" onClick={handleSwitchAccount}>
-              切換帳號
-            </Button>
-          </div>
+          <InlineLoading description="開通教師權限中..." />
         </>
       ) : null}
 
-      {user && preview?.status === "pending" && preview.can_consume ? (
+      {user && preview?.status === "pending" && preview.can_consume && !consuming ? (
         <>
           <p className="auth-subnote">
-            目前登入帳號符合邀請 Email。按下方按鈕後，這個帳號會升級為 teacher。
+            目前登入帳號可以使用這個一次性開通連結。若沒有自動完成，可手動重試。
           </p>
           <div className="auth-actions">
-            {consuming ? (
-              <InlineLoading description="開通教師權限中..." />
-            ) : (
-              <Button kind="primary" onClick={handleConsume}>
-                開通教師權限
-              </Button>
-            )}
+            <Button kind="primary" onClick={handleConsume}>
+              重新嘗試開通
+            </Button>
           </div>
         </>
       ) : null}

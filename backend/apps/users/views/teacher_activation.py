@@ -6,16 +6,16 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 
 from ..permissions import IsSuperAdmin
 from ..serializers import (
     TeacherActivationConsumeSerializer,
     TeacherActivationInviteCreateSerializer,
     TeacherActivationInviteSerializer,
-    UserSerializer,
 )
-from ..services import EmailAuthService
-from .common import SchemaAPIView
+from ..services import EmailAuthService, JWTService
+from .common import SchemaAPIView, record_login, token_cookie_response
 
 User = get_user_model()
 
@@ -43,7 +43,6 @@ class TeacherActivationInviteIssueView(SchemaAPIView):
 
         try:
             invite, activation_url = EmailAuthService.issue_teacher_activation_invite(
-                email=serializer.validated_data["email"],
                 created_by=request.user,
             )
         except ValueError as exc:
@@ -62,22 +61,14 @@ class TeacherActivationInviteIssueView(SchemaAPIView):
         payload.update(
             {
                 "activation_url": activation_url,
-                "existing_user": (
-                    {
-                        "id": invite.target_user.id,
-                        "username": invite.target_user.username,
-                        "role": invite.target_user.role,
-                    }
-                    if invite.target_user
-                    else None
-                ),
+                "existing_user": None,
             }
         )
         return Response(
             {
                 "success": True,
                 "data": payload,
-                "message": f"已產生 {invite.email} 的教師開通連結",
+                "message": "已產生教師開通連結",
             },
             status=status.HTTP_201_CREATED,
         )
@@ -119,16 +110,12 @@ class TeacherActivationInvitePreviewView(SchemaAPIView):
         user = request.user if request.user.is_authenticated else None
         invite_data = TeacherActivationInviteSerializer(invite).data
         is_pending = invite_data["status"] == "pending"
-        email_matches = bool(
-            user and user.email and user.email.lower() == invite.email.lower()
-        )
         invite_data.update(
             {
                 "requires_login": user is None,
-                "email_matches_current_user": email_matches,
                 "current_user_email": user.email if user else None,
                 "current_user_role": user.role if user else None,
-                "can_consume": bool(user and is_pending and email_matches),
+                "can_consume": bool(user and is_pending),
             }
         )
         return Response({"success": True, "data": invite_data})
@@ -191,19 +178,6 @@ class TeacherActivationInviteConsumeView(SchemaAPIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        current_email = (request.user.email or "").lower()
-        if current_email != invite.email.lower():
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "INVITE_EMAIL_MISMATCH",
-                        "message": f"請使用 {invite.email} 登入後再開通教師權限",
-                    },
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         with transaction.atomic():
             locked_invite = (
                 type(invite)
@@ -244,15 +218,16 @@ class TeacherActivationInviteConsumeView(SchemaAPIView):
             locked_invite.save(update_fields=["target_user", "consumed_by", "consumed_at", "updated_at"])
 
         user.refresh_from_db()
-        return Response(
-            {
-                "success": True,
-                "data": {
-                    "user": UserSerializer(user).data,
-                    "invite": TeacherActivationInviteSerializer(locked_invite).data,
-                },
-                "message": "教師權限已開通",
-            }
+        tokens = JWTService.generate_tokens(user)
+        access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+        record_login(user, request, login_method="teacher_activation", jti=access_jti)
+        return token_cookie_response(
+            user,
+            tokens,
+            message="教師權限已開通",
+            extra_data={
+                "invite": TeacherActivationInviteSerializer(locked_invite).data,
+            },
         )
 
 

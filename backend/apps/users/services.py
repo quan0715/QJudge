@@ -229,18 +229,13 @@ class EmailAuthService:
         ).filter(token_digest=digest).first()
 
     @staticmethod
-    def issue_teacher_activation_invite(email: str, created_by: User):
-        normalized_email = email.strip().lower()
-        existing_user = User.objects.filter(email__iexact=normalized_email).first()
-        if existing_user and existing_user.role in {"teacher", "admin"}:
-            raise ValueError("這個帳號目前已具備教師或管理員權限")
-
+    def issue_teacher_activation_invite(created_by: User):
         token = EmailAuthService.generate_teacher_activation_token()
         invite = TeacherActivationInvite.objects.create(
-            email=normalized_email,
+            email="",
             token_digest=EmailAuthService.hash_teacher_activation_token(token),
             created_by=created_by,
-            target_user=existing_user,
+            target_user=None,
             expires_at=timezone.now() + TEACHER_ACTIVATION_TTL,
         )
         activation_url = EmailAuthService.build_teacher_activation_url(token)

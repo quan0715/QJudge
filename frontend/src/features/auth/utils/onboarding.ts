@@ -22,10 +22,22 @@ export const clearPendingTeacherActivationToken = (): void => {
   window.sessionStorage.removeItem(TEACHER_ACTIVATION_TOKEN_KEY);
 };
 
-export const getAuthedLandingPath = (user: User | null | undefined): string => {
+export const getTeacherActivationPath = (token: string): string => {
+  const normalized = token.trim();
+  return `/teacher-activation?token=${encodeURIComponent(normalized)}`;
+};
+
+export const getAuthedLandingPath = (
+  user: User | null | undefined,
+  teacherActivationToken?: string | null
+): string => {
+  const explicitToken = teacherActivationToken?.trim();
+  if (explicitToken) {
+    return getTeacherActivationPath(explicitToken);
+  }
   const pendingToken = getPendingTeacherActivationToken();
   if (pendingToken) {
-    return `/teacher-activation?token=${encodeURIComponent(pendingToken)}`;
+    return getTeacherActivationPath(pendingToken);
   }
   return hasCompletedOnboarding(user) ? "/dashboard" : "/onboarding";
 };

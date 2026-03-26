@@ -7,21 +7,32 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { ArrowRight, LogoGithub, Education } from "@carbon/icons-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getOAuthUrl,
   login,
 } from "@/infrastructure/api/repositories/auth.repository";
-import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import {
+  getAuthedLandingPath,
+  storePendingTeacherActivationToken,
+} from "@/features/auth/utils/onboarding";
 
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const pendingTeacherActivationToken = (
+    searchParams.get("teacher_activation_token") || ""
+  ).trim();
+
+  if (pendingTeacherActivationToken) {
+    storePendingTeacherActivationToken(pendingTeacherActivationToken);
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +42,10 @@ const LoginPage = () => {
       const response = await login({ email, password });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        window.location.href = getAuthedLandingPath(response.data.user);
+        window.location.href = getAuthedLandingPath(
+          response.data.user,
+          pendingTeacherActivationToken || null
+        );
       } else {
         setError(t("auth.login.failed"));
       }
@@ -107,7 +121,19 @@ const LoginPage = () => {
 
 
         <div className="auth-oauth-group">
-          <button type="button" className="auth-oauth-btn auth-oauth-btn--sso" onClick={() => navigate("/login/campus-sso")}>
+          <button
+            type="button"
+            className="auth-oauth-btn auth-oauth-btn--sso"
+            onClick={() =>
+              navigate(
+                pendingTeacherActivationToken
+                  ? `/login/campus-sso?teacher_activation_token=${encodeURIComponent(
+                      pendingTeacherActivationToken
+                    )}`
+                  : "/login/campus-sso"
+              )
+            }
+          >
             <Education size={20} className="auth-oauth-btn__icon" />
             <span className="auth-oauth-btn__label">{t("auth.login.ssoLogin", "校園身份驗證登入")}</span>
             <ArrowRight size={20} className="auth-oauth-btn__arrow" />
@@ -126,7 +152,16 @@ const LoginPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.login.noAccount", "還沒有帳號？")}{" "}
-          <Link to="/register" className="auth-link">
+          <Link
+            to={
+              pendingTeacherActivationToken
+                ? `/register?teacher_activation_token=${encodeURIComponent(
+                    pendingTeacherActivationToken
+                  )}`
+                : "/register"
+            }
+            className="auth-link"
+          >
             {t("auth.login.registerNow", "立即註冊")}
           </Link>
         </p>

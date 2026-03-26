@@ -53,9 +53,7 @@ const UserManagementScreen = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<ManagedUser | null>(null);
   const [roleFilter, setRoleFilter] = useState<"all" | ManagedUser["role"]>("all");
-  const [inviteEmail, setInviteEmail] = useState("");
   const [latestInviteUrl, setLatestInviteUrl] = useState("");
-  const [latestInviteEmail, setLatestInviteEmail] = useState("");
   const [latestInviteExpiresAt, setLatestInviteExpiresAt] = useState<string | null>(null);
   const { isCopied, copy } = useCopyText();
 
@@ -182,24 +180,16 @@ const UserManagementScreen = () => {
     }
   };
 
-  const handleIssueInvite = async (emailOverride?: string) => {
-    const email = (emailOverride ?? inviteEmail).trim().toLowerCase();
-    if (!email) {
-      setError(t("user.management.activationInvite.emailRequired", "請先輸入要邀請的 Email"));
-      return;
-    }
-
+  const handleIssueInvite = async () => {
     setIssuingInvite(true);
     setError("");
     setSuccess("");
 
     try {
-      const response = await issueTeacherActivationInvite(email);
+      const response = await issueTeacherActivationInvite();
       setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
       setLatestInviteUrl(response.data.activation_url || "");
-      setLatestInviteEmail(response.data.email);
       setLatestInviteExpiresAt(response.data.expires_at || null);
-      setInviteEmail(response.data.email);
       await loadAllUsers();
     } catch (err: any) {
       if (err.response?.data?.error?.message) {
@@ -356,21 +346,10 @@ const UserManagementScreen = () => {
               >
                 {t(
                   "user.management.activationInvite.description",
-                  "輸入 Email 後產生 activation link。可直接複製連結交給對方，對方登入或註冊後可自行完成 teacher 開通。"
+                  "直接產生一次性 activation link。對方透過此連結登入或註冊後，即可完成 teacher 開通。"
                 )}
               </p>
-              <div
-                style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}
-              >
-                <div style={{ flex: "1 1 320px" }}>
-                  <TextInput
-                    id="teacher-activation-email"
-                    labelText={t("user.management.activationInvite.emailLabel", "邀請 Email")}
-                    placeholder="teacher@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                </div>
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
                 <Button
                   kind="primary"
                   onClick={() => handleIssueInvite()}
@@ -397,7 +376,7 @@ const UserManagementScreen = () => {
                   <InlineNotification
                     kind="info"
                     title={t("user.management.activationInvite.latest", "最近一次邀請")}
-                    subtitle={`${latestInviteEmail} · ${t(
+                    subtitle={`${t(
                       "user.management.activationInvite.expiresAt",
                       "到期"
                     )}: ${latestInviteExpiresAt ? formatDateTime(latestInviteExpiresAt) : "—"} · ${latestInviteUrl}`}
@@ -615,8 +594,8 @@ const UserManagementScreen = () => {
                                   <Button
                                     kind="primary"
                                     size="sm"
-                                    onClick={() => handleIssueInvite(user.email || "")}
-                                    disabled={issuingInvite || !user.email}
+                                    onClick={() => handleIssueInvite()}
+                                    disabled={issuingInvite}
                                   >
                                     {t("user.management.sendTeacherInvite", "產生開通連結")}
                                   </Button>

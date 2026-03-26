@@ -2,7 +2,9 @@ import { useState } from "react";
 import { InlineLoading } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
+import { storePendingTeacherActivationToken } from "@/features/auth/utils/onboarding";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 
 const CAMPUS_PROVIDERS = [
@@ -19,8 +21,16 @@ const CAMPUS_PROVIDERS = [
 const CampusSsoScreen = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const pendingTeacherActivationToken = (
+    searchParams.get("teacher_activation_token") || ""
+  ).trim();
+
+  if (pendingTeacherActivationToken) {
+    storePendingTeacherActivationToken(pendingTeacherActivationToken);
+  }
 
   const isDark = theme === "g100" || theme === "g90";
 

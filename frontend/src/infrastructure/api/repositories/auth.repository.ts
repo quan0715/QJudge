@@ -141,11 +141,9 @@ export const updateUserRole = async (
   return res.json();
 };
 
-export const issueTeacherActivationInvite = async (
-  email: string
-): Promise<TeacherActivationIssueResponse> => {
+export const issueTeacherActivationInvite = async (): Promise<TeacherActivationIssueResponse> => {
   return requestJson<TeacherActivationIssueResponse>(
-    httpClient.post(`/api/v1/auth/teacher-activations`, { email }),
+    httpClient.post(`/api/v1/auth/teacher-activations`, {}),
     "Failed to issue teacher activation invite"
   );
 };

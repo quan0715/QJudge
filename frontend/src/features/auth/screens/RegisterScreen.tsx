@@ -7,16 +7,20 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/infrastructure/api/repositories/auth.repository";
-import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import {
+  getAuthedLandingPath,
+  storePendingTeacherActivationToken,
+} from "@/features/auth/utils/onboarding";
 
 type FieldErrors = Record<string, string[]>;
 
 const RegisterPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +28,13 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const pendingTeacherActivationToken = (
+    searchParams.get("teacher_activation_token") || ""
+  ).trim();
+
+  if (pendingTeacherActivationToken) {
+    storePendingTeacherActivationToken(pendingTeacherActivationToken);
+  }
 
   const getFieldError = (field: string): string | undefined =>
     fieldErrors[field]?.join("、");
@@ -59,7 +70,13 @@ const RegisterPage = () => {
       });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate(getAuthedLandingPath(response.data.user), { replace: true });
+        navigate(
+          getAuthedLandingPath(
+            response.data.user,
+            pendingTeacherActivationToken || null
+          ),
+          { replace: true }
+        );
       } else {
         setError(t("auth.register.failed"));
       }
@@ -143,7 +160,16 @@ const RegisterPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.register.hasAccount")}{" "}
-          <Link to="/login" className="auth-link">
+          <Link
+            to={
+              pendingTeacherActivationToken
+                ? `/login?teacher_activation_token=${encodeURIComponent(
+                    pendingTeacherActivationToken
+                  )}`
+                : "/login"
+            }
+            className="auth-link"
+          >
             {t("auth.register.loginNow")}
           </Link>
         </p>
