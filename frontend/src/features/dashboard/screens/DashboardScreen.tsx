@@ -124,10 +124,15 @@ const DashboardScreen = () => {
   };
 
   const orderedClassrooms = useMemo(() => {
-    const rank: Record<string, number> = { admin: 0, teacher: 1, ta: 2, student: 3 };
+    const rank: Record<string, number> = {
+      platform_admin: 0,
+      owner: 1,
+      manager: 2,
+      member: 3,
+    };
     return [...classrooms].sort((a, b) => {
-      const ra = rank[a.currentUserRole ?? "student"] ?? 99;
-      const rb = rank[b.currentUserRole ?? "student"] ?? 99;
+      const ra = rank[a.currentUserRole ?? "member"] ?? 99;
+      const rb = rank[b.currentUserRole ?? "member"] ?? 99;
       if (ra !== rb) return ra - rb;
       return a.name.localeCompare(b.name);
     });

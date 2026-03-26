@@ -20,7 +20,7 @@ import {
 } from "@carbon/react";
 import { Add, Edit, TrashCan, Trophy } from "@carbon/icons-react";
 import { useTeacherContests } from "../hooks/useTeacherContests";
-import { CreateContestModal } from "../components/modals";
+import CreateContestModal from "@/features/classroom/components/CreateContestModal";
 import {
   getContestState,
   getContestStateColor,

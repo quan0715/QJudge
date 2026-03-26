@@ -8,6 +8,3 @@ export { TeacherProblemsScreen, TeacherContestsScreen } from "./screens";
 
 // Hooks
 export { useTeacherProblems, useTeacherContests } from "./hooks";
-
-// Components
-export { CreateContestModal } from "./components/modals";

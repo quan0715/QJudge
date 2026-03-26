@@ -1,3 +1,9 @@
+export type ClassroomScopeRole =
+  | "platform_admin"
+  | "owner"
+  | "manager"
+  | "member";
+
 export interface Classroom {
   id: string;
   name: string;
@@ -5,7 +11,7 @@ export interface Classroom {
   ownerUsername: string;
   memberCount: number;
   isArchived: boolean;
-  currentUserRole: string | null;
+  currentUserRole: ClassroomScopeRole | null;
   icon: string;
   coverUrl: string;
   createdAt: string;

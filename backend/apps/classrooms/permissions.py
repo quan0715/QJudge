@@ -8,23 +8,23 @@ def get_user_role_in_classroom(user, classroom):
     """
     Determine user's role in a classroom.
 
-    Returns: 'admin' | 'teacher' | 'ta' | 'student' | None
+    Returns: 'platform_admin' | 'owner' | 'manager' | 'member' | None
     """
     if not user or not user.is_authenticated:
         return None
 
     if user.is_staff or user.is_superuser:
-        return 'admin'
+        return 'platform_admin'
 
     if classroom.owner_id == user.id:
-        return 'teacher'
+        return 'owner'
 
     if classroom.admins.filter(pk=user.pk).exists():
-        return 'teacher'
+        return 'manager'
 
     membership = classroom.memberships.filter(user=user).first()
     if membership:
-        return membership.role  # 'student' or 'ta'
+        return 'manager' if membership.role == 'ta' else 'member'
 
     return None
 

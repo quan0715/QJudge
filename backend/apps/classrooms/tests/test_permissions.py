@@ -75,19 +75,19 @@ class TestGetUserRoleInClassroom:
         assert get_user_role_in_classroom(AnonymousUser(), classroom) is None
 
     def test_returns_admin_for_staff(self, staff_user: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(staff_user, classroom) == "admin"
+        assert get_user_role_in_classroom(staff_user, classroom) == "platform_admin"
 
     def test_returns_teacher_for_owner(self, owner: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(owner, classroom) == "teacher"
+        assert get_user_role_in_classroom(owner, classroom) == "owner"
 
     def test_returns_teacher_for_classroom_admin(self, admin_user: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(admin_user, classroom) == "teacher"
+        assert get_user_role_in_classroom(admin_user, classroom) == "manager"
 
     def test_returns_membership_role_for_ta(self, ta_user: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(ta_user, classroom) == "ta"
+        assert get_user_role_in_classroom(ta_user, classroom) == "manager"
 
     def test_returns_membership_role_for_student(self, student_user: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(student_user, classroom) == "student"
+        assert get_user_role_in_classroom(student_user, classroom) == "member"
 
     def test_returns_none_for_outsider(self, outsider_user: User, classroom: Classroom) -> None:
         assert get_user_role_in_classroom(outsider_user, classroom) is None
@@ -163,4 +163,3 @@ class TestIsClassroomMember:
         request = request_factory.get("/")
         request.user = outsider_user
         assert IsClassroomMember().has_object_permission(request, None, classroom) is False
-

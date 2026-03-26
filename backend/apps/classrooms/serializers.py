@@ -132,12 +132,12 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
         return get_user_role_in_classroom(request.user, obj)
 
     def get_invite_code(self, obj):
-        """Only visible to teacher/admin."""
+        """Only visible to classroom managers (or platform admin)."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return None
         role = get_user_role_in_classroom(request.user, obj)
-        if role in ('admin', 'teacher'):
+        if role in ('platform_admin', 'owner', 'manager'):
             return obj.invite_code
         return None
 
