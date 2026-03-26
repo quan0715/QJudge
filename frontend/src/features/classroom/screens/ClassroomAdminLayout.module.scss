@@ -1,3 +1,15 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 9500;
+}
+
 .headerLeft {
   display: inline-flex;
   align-items: center;
@@ -14,11 +26,6 @@
   padding: 0 0.75rem !important;
   line-height: 1;
   box-sizing: border-box;
-}
-
-.headerCenter {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .classroomTriggerName {
@@ -168,19 +175,16 @@
   color: var(--cds-text-secondary);
 }
 
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
 .shell :global(.cds--header__global) {
   margin-left: 0;
 }
 
-.contentViewport {
-  overflow: auto;
-}
-
 @media (max-width: 1056px) {
-  .shell {
-    --admin-shell-sidenav-width: 14rem;
-  }
-
   .classroomTriggerButton {
     max-width: 10.25rem;
     padding: 0 0.5rem;
