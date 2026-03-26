@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.classrooms",
     "apps.ai",  # AI Chat
     "apps.question_bank",
+    "apps.subscriptions",
     "drf_spectacular",
 ]
 
@@ -416,3 +417,10 @@ ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
     "u1hHKL4z-3J1B_Wx_Y9c8r7K2x5nQ8P3vL6M9s0W7Z4f5A6d9eG2hJ5kM8oP1qS4"  # Default dev key (change in production!)
 )
+
+# Recur Payment settings
+RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
+RECUR_SECRET_KEY = os.getenv("RECUR_SECRET_KEY", "")
+RECUR_WEBHOOK_SECRET = os.getenv("RECUR_WEBHOOK_SECRET", "")
+RECUR_PRODUCT_PRO_ID = os.getenv("RECUR_PRODUCT_PRO_ID", "")
+RECUR_PRODUCT_TEAM_ID = os.getenv("RECUR_PRODUCT_TEAM_ID", "")

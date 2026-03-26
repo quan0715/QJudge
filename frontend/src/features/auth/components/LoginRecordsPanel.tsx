@@ -184,16 +184,21 @@ export const LoginRecordsPanel: React.FC = () => {
             <Table {...getTableProps()} size="lg">
               <TableHead>
                 <TableRow>
-                  {tableHeaders.map((h: any) => (
-                    <TableHeader key={h.key} {...getHeaderProps({ header: h })}>
-                      {h.header}
-                    </TableHeader>
-                  ))}
+                  {tableHeaders.map((h: any) => {
+                    const { key: _hk, ...headerProps } = getHeaderProps({ header: h });
+                    return (
+                      <TableHeader key={h.key} {...headerProps}>
+                        {h.header}
+                      </TableHeader>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tableRows.map((row: any) => (
-                  <TableRow key={row.id} {...getRowProps({ row })}>
+                {tableRows.map((row: any) => {
+                  const { key: _rk, ...rowProps } = getRowProps({ row });
+                  return (
+                  <TableRow key={row.id} {...rowProps}>
                     {row.cells.map((cell: any) => (
                       <TableCell key={cell.id}>
                         {cell.info.header === "status" ? (
@@ -211,7 +216,8 @@ export const LoginRecordsPanel: React.FC = () => {
                       </TableCell>
                     ))}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

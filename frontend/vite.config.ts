@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react()],
+    define: {
+      // Forward VITE_ env vars from Docker env_file into import.meta.env
+      // (Vite only reads .env files by default, not process.env)
+      ...(process.env.VITE_RECUR_PUBLISHABLE_KEY && {
+        'import.meta.env.VITE_RECUR_PUBLISHABLE_KEY': JSON.stringify(process.env.VITE_RECUR_PUBLISHABLE_KEY),
+      }),
+    },
     server: {
       host: true, // Listen on all addresses
       allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'q-judge.quan.wtf', 'q-judge-dev.quan.wtf'],

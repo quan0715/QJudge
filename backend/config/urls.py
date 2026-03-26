@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/v1/questions/', include('apps.question_bank.question_urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
+    path('api/v1/subscriptions/', include('apps.subscriptions.urls')),
     # User API Key management
     path('api/v1/users/me/api-key', UserAPIKeyView.as_view(), name='api-key'),
     path('api/v1/users/me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),

@@ -1,0 +1,48 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.subscription-panel {
+  padding: $spacing-05 0;
+
+  &__card {
+    padding: $spacing-06;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+    margin-bottom: $spacing-04;
+  }
+
+  &__plan-name {
+    @include type-style("heading-compact-02");
+    margin: 0;
+  }
+
+  &__details {
+    margin-bottom: $spacing-04;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-03 0;
+    border-bottom: 1px solid $border-subtle-01;
+    @include type-style("body-compact-01");
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    color: $text-helper;
+  }
+
+  &__actions {
+    margin-top: $spacing-04;
+  }
+}

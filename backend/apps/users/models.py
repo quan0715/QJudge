@@ -220,6 +220,12 @@ class UserProfile(models.Model):
         default=4,
         verbose_name='Tab 寬度'
     )
+
+    onboarding_completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='完成 onboarding 時間'
+    )
     
     # Timestamps
     created_at = models.DateTimeField(
@@ -255,6 +261,72 @@ class UserProfile(models.Model):
             self.accept_rate = 0.00
 
         self.save()
+
+
+class TeacherActivationInvite(models.Model):
+    """Invite link that lets a specific email activate teacher access."""
+
+    email = models.EmailField(
+        validators=[EmailValidator()],
+        db_index=True,
+        verbose_name='邀請 Email',
+    )
+    token_digest = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        verbose_name='Token 雜湊',
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='issued_teacher_activation_invites',
+        verbose_name='建立者',
+    )
+    target_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='teacher_activation_invites',
+        null=True,
+        blank=True,
+        verbose_name='目標使用者',
+    )
+    consumed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='consumed_teacher_activation_invites',
+        null=True,
+        blank=True,
+        verbose_name='使用者',
+    )
+    expires_at = models.DateTimeField(
+        verbose_name='過期時間',
+    )
+    consumed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='使用時間',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='建立時間',
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='更新時間',
+    )
+
+    class Meta:
+        db_table = 'teacher_activation_invites'
+        verbose_name = '教師開通邀請'
+        verbose_name_plural = '教師開通邀請'
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['expires_at']),
+        ]
+
+    def __str__(self):
+        return f"Teacher invite for {self.email}"
 
 
 class UserLoginRecord(models.Model):

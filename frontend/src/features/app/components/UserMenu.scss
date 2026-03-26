@@ -1,6 +1,58 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
+// ===== Navbar Trigger =====
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: 0 layout.$spacing-04;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--cds-text-secondary);
+  transition: background-color 150ms;
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+  }
+
+  &--active {
+    background-color: var(--cds-layer-selected-01);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+
+  &__name {
+    @include type.type-style("body-compact-01");
+    color: var(--cds-text-primary);
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__role {
+    @include type.type-style("helper-text-01");
+    color: var(--cds-text-helper);
+  }
+
+  @media (max-width: 672px) {
+    padding: 0 layout.$spacing-03;
+
+    &__text {
+      display: none;
+    }
+  }
+}
+
 .user-menu-container {
   padding: layout.$spacing-05;
   min-width: layout.rem(256px);
@@ -40,6 +92,13 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-05;
+}
+
+// ===== Divider =====
+.user-menu-divider {
+  height: 1px;
+  background: var(--cds-border-subtle);
+  margin: 0 layout.$spacing-03 * -1;
 }
 
 // ===== Link Entry =====

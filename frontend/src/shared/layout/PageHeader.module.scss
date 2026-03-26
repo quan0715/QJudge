@@ -43,4 +43,21 @@
 .actions {
   display: flex;
   gap: var(--cds-spacing-03, 0.5rem);
+  flex-shrink: 0;
+}
+
+@media (max-width: 672px) {
+  .container {
+    margin-top: var(--cds-spacing-07, 2rem);
+    margin-bottom: var(--cds-spacing-05, 1rem);
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
 }

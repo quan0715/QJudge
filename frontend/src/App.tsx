@@ -15,7 +15,8 @@ import ErrorBoundary from "@/features/app/components/ErrorBoundary";
 import {
   guestRoutes,
   oauthCallbackRoute,
-  settingsRoute,
+  onboardingRoute,
+  teacherActivationRoute,
   AuthLayout,
   AuthProvider,
   useAuth,
@@ -23,6 +24,10 @@ import {
   RequireGuest,
   RequireAdmin,
   RequireTeacherOrAdmin,
+  RequirePendingOnboarding,
+  RequireCompletedOnboarding,
+  SettingsDialogProvider,
+  SettingsDialog,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
 import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute } from "@/features/contest";
@@ -32,6 +37,8 @@ import { errorRoutes, fallbackRoute } from "@/features/app";
 import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
+import { checkoutSuccessRoute } from "@/features/pricing";
+import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute } from "@/features/classroom";
 import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
 
@@ -94,6 +101,8 @@ function App() {
               <ThemeProvider>
                 <MarkdownImageUploadProvider uploadImage={markdownImageUploader}>
                   <AuthProvider>
+                    <SettingsDialogProvider>
+                    <RecurProviderBridge>
                     <BrowserRouter>
                       <ApiErrorProvider>
                       <Routes>
@@ -103,6 +112,12 @@ function App() {
                             {guestRoutes}
                           </Route>
                           {oauthCallbackRoute}
+                          {teacherActivationRoute}
+                          <Route element={<RequireAuth />}>
+                            <Route element={<RequirePendingOnboarding />}>
+                              {onboardingRoute}
+                            </Route>
+                          </Route>
                         </Route>
 
                         {/* Public Documentation Routes - no login required, custom layout */}
@@ -111,81 +126,89 @@ function App() {
                         {/* Public Landing Page */}
                         {landingRoute}
 
+                        {/* Public Checkout Success */}
+                        {checkoutSuccessRoute}
+
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>
-                          <Route element={<MainLayout />}>
-                            {dashboardRoute}
-                            {contestListRoute}
-                            {settingsRoute}
-                            <Route
-                              path="/ranking"
-                              element={<div>Ranking Page (Coming Soon)</div>}
-                            />
+                          <Route element={<RequireCompletedOnboarding />}>
+                            <Route element={<MainLayout />}>
+                              {dashboardRoute}
+                              {contestListRoute}
+                              <Route
+                                path="/ranking"
+                                element={<div>Ranking Page (Coming Soon)</div>}
+                              />
+                            </Route>
+
+                            {/* Legacy hidden routes */}
+                            <Route path="/problems" element={<LegacyProblemListRedirect />} />
+                            <Route path="/teacher" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="/teacher/*" element={<Navigate to="/dashboard" replace />} />
+
+                            {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
+                            {problemDetailRoutes}
+
+                            {/* Problem Solve - Full-screen IDE-style solver */}
+                            {problemSolveRoutes}
+
+                            {/* Problem Edit - Full-screen editor (admin/teacher only) */}
+                            {problemEditRoutes}
+
+                            {/* Contest Routes - Outside MainLayout with Custom Header */}
+                            {contestDetailRoutes}
+
+                            {/* Classroom Detail - Standalone classroom admin shell */}
+                            {classroomDetailRoute}
+
+                            {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
+                            {examPrecheckRoute}
                           </Route>
-
-                          {/* Legacy hidden routes */}
-                          <Route path="/problems" element={<LegacyProblemListRedirect />} />
-                          <Route path="/teacher" element={<Navigate to="/dashboard" replace />} />
-                          <Route path="/teacher/*" element={<Navigate to="/dashboard" replace />} />
-
-                          {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
-                          {problemDetailRoutes}
-
-                          {/* Problem Solve - Full-screen IDE-style solver */}
-                          {problemSolveRoutes}
-
-                          {/* Problem Edit - Full-screen editor (admin/teacher only) */}
-                          {problemEditRoutes}
-
-                          {/* Contest Routes - Outside MainLayout with Custom Header */}
-                          {contestDetailRoutes}
-
-                          {/* Classroom Detail - Standalone classroom admin shell */}
-                          {classroomDetailRoute}
-
-                          {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
-                          {examPrecheckRoute}
 
                         </Route>
 
                         {/* Teacher/Admin Routes */}
                         <Route element={<RequireTeacherOrAdmin />}>
-                          <Route element={<MainLayout />}>
-                            {questionBankListRoute}
-                            {/* Redirect old management paths to unified contest view */}
-                            <Route
-                              path="/management/contests/:contestId"
-                              element={<LegacyContestAdminRedirect panel="settings" />}
-                            />
-                            <Route
-                              path="/management/contests/:contestId/settings"
-                              element={<LegacyContestAdminRedirect panel="settings" />}
-                            />
-                            <Route
-                              path="/management/contests/:contestId/problems"
-                              element={<LegacyContestAdminRedirect panel="exam" />}
-                            />
-                            <Route
-                              path="/management/contests/:contestId/participants"
-                              element={<LegacyContestAdminRedirect panel="participants" />}
-                            />
-                            <Route
-                              path="/management/contests/:contestId/logs"
-                              element={<LegacyContestAdminRedirect panel="logs" />}
-                            />
+                          <Route element={<RequireCompletedOnboarding />}>
+                            <Route element={<MainLayout />}>
+                              {questionBankListRoute}
+                              {/* Redirect old management paths to unified contest view */}
+                              <Route
+                                path="/management/contests/:contestId"
+                                element={<LegacyContestAdminRedirect panel="settings" />}
+                              />
+                              <Route
+                                path="/management/contests/:contestId/settings"
+                                element={<LegacyContestAdminRedirect panel="settings" />}
+                              />
+                              <Route
+                                path="/management/contests/:contestId/problems"
+                                element={<LegacyContestAdminRedirect panel="exam" />}
+                              />
+                              <Route
+                                path="/management/contests/:contestId/participants"
+                                element={<LegacyContestAdminRedirect panel="participants" />}
+                              />
+                              <Route
+                                path="/management/contests/:contestId/logs"
+                                element={<LegacyContestAdminRedirect panel="logs" />}
+                              />
+                            </Route>
+
+                            {/* Contest Admin Dashboard - Standalone full page */}
+                            {contestAdminRoute}
+                            {questionBankDetailRoute}
+
+                            {/* Exam Preview - Standalone full page (Demo mode) */}
+                            {examPreviewRoute}
                           </Route>
-
-                          {/* Contest Admin Dashboard - Standalone full page */}
-                          {contestAdminRoute}
-                          {questionBankDetailRoute}
-
-                          {/* Exam Preview - Standalone full page (Demo mode) */}
-                          {examPreviewRoute}
                         </Route>
 
                         {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}
                         <Route element={<RequireAdmin />}>
-                          <Route element={<MainLayout />}>{adminRoutes}</Route>
+                          <Route element={<RequireCompletedOnboarding />}>
+                            <Route element={<MainLayout />}>{adminRoutes}</Route>
+                          </Route>
                         </Route>
 
                         {/* Dev-only Storybook Route */}
@@ -199,6 +222,9 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                     </BrowserRouter>
+                    <SettingsDialog />
+                    </RecurProviderBridge>
+                    </SettingsDialogProvider>
                   </AuthProvider>
                 </MarkdownImageUploadProvider>
               </ThemeProvider>

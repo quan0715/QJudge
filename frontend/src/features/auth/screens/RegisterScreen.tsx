@@ -10,6 +10,7 @@ import { ArrowRight } from "@carbon/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/infrastructure/api/repositories/auth.repository";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 
 type FieldErrors = Record<string, string[]>;
 
@@ -58,7 +59,7 @@ const RegisterPage = () => {
       });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate("/dashboard");
+        navigate(getAuthedLandingPath(response.data.user), { replace: true });
       } else {
         setError(t("auth.register.failed"));
       }

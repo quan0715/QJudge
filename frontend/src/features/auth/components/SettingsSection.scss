@@ -1,0 +1,81 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+// Shared settings panel container
+.settings-panel {
+  padding: $spacing-05 0;
+}
+
+// Section block
+.settings-section {
+  padding: $spacing-05 0;
+  border-bottom: 1px solid $border-subtle-01;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-04;
+  }
+
+  &__title {
+    @include type-style("heading-compact-01");
+    margin: 0 0 $spacing-01;
+  }
+
+  &__desc {
+    @include type-style("helper-text-01");
+    color: $text-helper;
+    margin: 0;
+  }
+
+  &__action {
+    flex-shrink: 0;
+  }
+
+  &__body {
+    // children
+  }
+}
+
+// Field block — horizontal row
+.settings-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-03 0;
+
+  &__label-group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-01;
+    min-width: 0;
+  }
+
+  &__label {
+    @include type-style("body-compact-01");
+    color: $text-primary;
+    font-weight: 600;
+  }
+
+  &__desc {
+    @include type-style("helper-text-01");
+    color: $text-helper;
+  }
+
+  &__value {
+    @include type-style("body-compact-01");
+    text-align: right;
+    flex-shrink: 0;
+  }
+}

@@ -196,18 +196,6 @@ export const GlobalHeader = () => {
                         <Bullhorn size={16} style={{ marginRight: "0.5rem" }} />
                         {t("header.announcements")}
                       </SideNavMenuItem>
-                      <SideNavMenuItem
-                        href="#"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          navigate("/system/environment");
-                          onClickSideNavExpand();
-                        }}
-                        isActive={location.pathname === "/system/environment"}
-                      >
-                        <Settings size={16} style={{ marginRight: "0.5rem" }} />
-                        {t("header.environmentSettings")}
-                      </SideNavMenuItem>
                     </SideNavMenu>
                   </>
                 )}

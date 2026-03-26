@@ -6,7 +6,14 @@ from urllib.parse import urlparse
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, UserLoginRecord, UserProfile, UserAPIKey
+from django.utils import timezone
+from .models import (
+    TeacherActivationInvite,
+    User,
+    UserAPIKey,
+    UserLoginRecord,
+    UserProfile,
+)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -24,6 +31,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'preferred_theme',
             'editor_font_size',
             'editor_tab_size',
+            'onboarding_completed_at',
         ]
         read_only_fields = ['solved_count', 'submission_count', 'accept_rate']
 
@@ -31,7 +39,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user model."""
     profile = UserProfileSerializer(read_only=True)
-    
+    subscription = serializers.SerializerMethodField()
+
+    def get_subscription(self, obj):
+        try:
+            sub = obj.subscription
+            return {"tier": sub.tier, "status": sub.status}
+        except Exception:
+            return {"tier": "free", "status": "active"}
+
     class Meta:
         model = User
         fields = [
@@ -45,6 +61,7 @@ class UserSerializer(serializers.ModelSerializer):
             'date_joined',
             'last_login_at',
             'profile',
+            'subscription',
         ]
         read_only_fields = [
             'id',
@@ -174,6 +191,20 @@ class ResolveConflictSerializer(serializers.Serializer):
 
 class UserSearchSerializer(serializers.ModelSerializer):
     """Serializer for user search results in admin interface."""
+    display_name = serializers.SerializerMethodField()
+    onboarding_completed_at = serializers.SerializerMethodField()
+
+    def get_display_name(self, obj):
+        try:
+            return obj.profile.display_name
+        except UserProfile.DoesNotExist:
+            return ''
+
+    def get_onboarding_completed_at(self, obj):
+        try:
+            return obj.profile.onboarding_completed_at
+        except UserProfile.DoesNotExist:
+            return None
     
     class Meta:
         model = User
@@ -186,6 +217,8 @@ class UserSearchSerializer(serializers.ModelSerializer):
             'email_verified',
             'last_login_at',
             'is_active',
+            'display_name',
+            'onboarding_completed_at',
         ]
         read_only_fields = fields
 
@@ -202,6 +235,46 @@ class UserRoleUpdateSerializer(serializers.Serializer):
         if value not in ['student', 'teacher', 'admin']:
             raise serializers.ValidationError('無效的角色選擇')
         return value
+
+
+class TeacherActivationInviteCreateSerializer(serializers.Serializer):
+    """Serializer for issuing a teacher activation link."""
+
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class TeacherActivationConsumeSerializer(serializers.Serializer):
+    """Serializer for consuming a teacher activation link."""
+
+    token = serializers.CharField(required=True, max_length=255)
+
+
+class TeacherActivationInviteSerializer(serializers.ModelSerializer):
+    """Serializer for teacher activation invite metadata."""
+
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        if obj.consumed_at:
+            return "consumed"
+        if obj.expires_at <= timezone.now():
+            return "expired"
+        return "pending"
+
+    class Meta:
+        model = TeacherActivationInvite
+        fields = [
+            'id',
+            'email',
+            'expires_at',
+            'consumed_at',
+            'created_at',
+            'status',
+        ]
+        read_only_fields = fields
 
 
 class UserPreferencesUpdateSerializer(serializers.Serializer):
@@ -233,6 +306,10 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         choices=[2, 4],
         required=False
     )
+    onboarding_completed_at = serializers.DateTimeField(
+        required=False,
+        allow_null=True
+    )
     
     def validate_preferred_language(self, value):
         """Validate language choice."""
@@ -249,6 +326,11 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("頭像連結僅支援 http/https")
         if not parsed.netloc:
             raise serializers.ValidationError("頭像連結格式無效")
+        return value
+
+    def validate_onboarding_completed_at(self, value):
+        if value and value > timezone.now():
+            raise serializers.ValidationError("完成時間不能晚於現在")
         return value
 
 

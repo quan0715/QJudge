@@ -13,6 +13,7 @@ import {
   getOAuthUrl,
   login,
 } from "@/infrastructure/api/repositories/auth.repository";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -30,7 +31,7 @@ const LoginPage = () => {
       const response = await login({ email, password });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        window.location.href = "/dashboard";
+        window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.login.failed"));
       }

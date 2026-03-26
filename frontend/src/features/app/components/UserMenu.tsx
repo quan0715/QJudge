@@ -9,22 +9,20 @@ import {
 import {
   Login,
   Logout,
-  Password,
   Edit,
   Code,
   Book,
   Settings,
+  UserMultiple,
+  Bullhorn,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContext";
 import { useTranslation } from "react-i18next";
-import { ChangePasswordModal } from "@/features/auth/components/ChangePasswordModal";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
-import type { ThemePreference } from "@/core/entities/auth.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { updateNickname } from "@/infrastructure/api/repositories";
-import { ThemeSwitch } from "@/shared/ui/config/ThemeSwitch";
-import { LanguageSwitch } from "@/shared/ui/config/LanguageSwitch";
 import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
 
@@ -47,12 +45,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   const { user, logout } = useAuth();
   const { t } = useTranslation("common");
   const { t: tContest } = useTranslation("contest");
-  const { themePreference, updateTheme, language, updateLanguage, avatarUrl, displayName } =
+  const { avatarUrl, displayName } =
     useUserPreferences();
+  const { open: openSettings } = useSettingsDialog();
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
-    useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [nickname, setNickname] = useState(contest?.myNickname || "");
   const [nicknameLoading, setNicknameLoading] = useState(false);
@@ -100,19 +97,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     onExpandedChange?.(false);
   };
 
-  const handleChangePasswordClick = () => {
-    setIsExpandedInternal(false);
-    onExpandedChange?.(false);
-    setIsChangePasswordModalOpen(true);
-  };
-
-  const handleThemeChange = async (theme: ThemePreference) => {
-    await updateTheme(theme);
-  };
-
-  const handleLanguageChange = async (lang: string) => {
-    await updateLanguage(lang);
-  };
 
   const handleNicknameUpdate = async () => {
     if (!contest) return;
@@ -140,7 +124,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     return t(`user.role.${role}`);
   };
 
-  const canChangePassword = user?.auth_provider === "email";
 
   if (!user) {
     return (
@@ -155,10 +138,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
   return (
     <>
-      <HeaderGlobalAction
+      <button
         data-testid="user-menu-toggle-btn"
+        type="button"
+        className={`user-menu-trigger ${isExpanded ? "user-menu-trigger--active" : ""}`}
         aria-label={t("header.userMenu")}
-        isActive={isExpanded}
         onClick={handleToggle}
       >
         <Avatar
@@ -166,7 +150,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           url={avatarUrl || undefined}
           size="sm"
         />
-      </HeaderGlobalAction>
+        <span className="user-menu-trigger__text">
+          <span className="user-menu-trigger__name">
+            {displayName?.trim() || user.username || user.email}
+          </span>
+          <span className="user-menu-trigger__role">
+            {getRoleLabel(user.role)}
+          </span>
+        </span>
+      </button>
 
       <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>
         <div className="user-menu-container">
@@ -181,22 +173,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               {user.username || user.email}
             </span>
             <span className="user-menu-role">{getRoleLabel(user.role)}</span>
-          </div>
-
-          {/* Preferences */}
-          <div className="user-menu-fields">
-            <ThemeSwitch
-              value={themePreference as ThemePreference}
-              onChange={handleThemeChange}
-              showLabel
-              testId="user-menu-theme-dropdown"
-            />
-            <LanguageSwitch
-              value={language}
-              onChange={handleLanguageChange}
-              showLabel
-              testId="user-menu-language-dropdown"
-            />
           </div>
 
           {/* Contest nickname */}
@@ -230,7 +206,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             type="button"
             className="user-menu-link"
             onClick={() => {
-              navigate("/settings");
+              openSettings();
               setIsExpandedInternal(false);
               onExpandedChange?.(false);
             }}
@@ -238,6 +214,37 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             <Settings size={16} />
             {t("settings.title")}
           </button>
+
+          {/* Admin Links */}
+          {user.role === "admin" && (
+            <>
+              <div className="user-menu-divider" />
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
+                  navigate("/system/users");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <UserMultiple size={16} />
+                {t("header.userManagement", "用戶管理")}
+              </button>
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
+                  navigate("/management/announcements");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Bullhorn size={16} />
+                {t("header.announcements", "公告管理")}
+              </button>
+            </>
+          )}
 
           {/* Dev Tools */}
           {import.meta.env.DEV && (
@@ -255,18 +262,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             </button>
           )}
 
-          {/* Actions */}
-          {canChangePassword && (
-            <button
-              type="button"
-              className="user-menu-link"
-              onClick={handleChangePasswordClick}
-            >
-              <Password size={16} />
-              {t("user.changePassword")}
-            </button>
-          )}
-
           <button
             type="button"
             className="user-menu-link user-menu-link--danger"
@@ -277,11 +272,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           </button>
         </div>
       </HeaderPanel>
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordModalOpen}
-        onClose={() => setIsChangePasswordModalOpen(false)}
-      />
 
       {/* Nickname Modal */}
       <Modal
