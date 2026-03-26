@@ -203,7 +203,7 @@ class TestUpdateAnnouncement:
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["title"] == "Updated Title"
 
-    def test_student_member_can_update(
+    def test_student_member_cannot_update(
         self, api_client: APIClient, classroom: Classroom,
         student: User, student_member: ClassroomMember,
         announcement: ClassroomAnnouncement,
@@ -214,8 +214,7 @@ class TestUpdateAnnouncement:
             {"content": "student edited"},
             format="json",
         )
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.data["content"] == "student edited"
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_outsider_cannot_update(
         self, api_client: APIClient, classroom: Classroom,
@@ -268,14 +267,14 @@ class TestDeleteAnnouncement:
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert not ClassroomAnnouncement.objects.filter(pk=announcement.id).exists()
 
-    def test_student_member_can_delete(
+    def test_student_member_cannot_delete(
         self, api_client: APIClient, classroom: Classroom,
         student: User, student_member: ClassroomMember,
         announcement: ClassroomAnnouncement,
     ) -> None:
         api_client.force_authenticate(user=student)
         resp = api_client.delete(url_delete(str(classroom.uuid), announcement.id))
-        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_outsider_cannot_delete(
         self, api_client: APIClient, classroom: Classroom,

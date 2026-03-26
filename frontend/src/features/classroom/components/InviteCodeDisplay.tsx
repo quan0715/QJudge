@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Stack, Tag } from "@carbon/react";
 import { Copy, Renew } from "@carbon/icons-react";
+import { useToast } from "@/shared/contexts/ToastContext";
+import "./InviteCodeDisplay.scss";
 
 interface InviteCodeDisplayProps {
   code: string;
@@ -15,36 +17,29 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
   onRegenerate,
 }) => {
   const { t } = useTranslation("classroom");
+  const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("inviteCode.copyFailed", "複製邀請碼失敗"),
+        subtitle: error instanceof Error ? error.message : undefined,
+      });
+    }
   };
 
   return (
-    <div
-      style={{
-        padding: "1rem",
-        background: "var(--cds-layer)",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ fontSize: "0.875rem", color: "var(--cds-text-secondary)" }}>
+    <div className="classroom-invite-code">
+      <span className="classroom-invite-code__label">
         {t("inviteCode.label")}
       </span>
-      <code
-        style={{
-          fontSize: "1.25rem",
-          fontWeight: 600,
-          letterSpacing: "0.2em",
-          fontFamily: "var(--cds-code-01-font-family, monospace)",
-        }}
-      >
+      <code className="classroom-invite-code__value">
         {code}
       </code>
       {!enabled && (

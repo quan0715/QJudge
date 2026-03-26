@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   TextArea,
@@ -7,6 +8,8 @@ import {
   Tag,
 } from "@carbon/react";
 import { addMembers } from "@/infrastructure/api/repositories/classroom.repository";
+import { useToast } from "@/shared/contexts/ToastContext";
+import "./AddMembersModal.scss";
 
 interface AddMembersModalProps {
   open: boolean;
@@ -21,6 +24,8 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
   onClose,
   onAdded,
 }) => {
+  const { t } = useTranslation("classroom");
+  const { showToast } = useToast();
   const [text, setText] = useState("");
   const [csvName, setCsvName] = useState("");
   const [preview, setPreview] = useState<{
@@ -85,7 +90,11 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
         onAdded();
       }
     } catch (err) {
-      console.error(err);
+      showToast({
+        kind: "error",
+        title: t("classroom.addMembersFailed", "新增成員失敗"),
+        subtitle: err instanceof Error ? err.message : t("classroom.loadFailedHint", "請稍後再試"),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +130,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
         rows={5}
         placeholder="student1&#10;student2&#10;student3"
       />
-      <div style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+      <div className="classroom-add-members__actions-row">
         <Button
           kind="tertiary"
           size="sm"
@@ -134,10 +143,10 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           id="add-members-csv-input"
           type="file"
           accept=".csv,text/csv"
-          style={{ display: "none" }}
+          className="classroom-add-members__hidden-input"
           onChange={handleFileUpload}
         />
-        {csvName ? <span style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)" }}>已載入：{csvName}</span> : null}
+        {csvName ? <span className="classroom-add-members__csv-name">已載入：{csvName}</span> : null}
         <Button
           kind="ghost"
           size="sm"
@@ -147,25 +156,25 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           預覽名單
         </Button>
       </div>
-      <p style={{ marginTop: "1rem", marginBottom: 0, fontSize: "0.75rem", color: "var(--cds-text-secondary)" }}>
+      <p className="classroom-add-members__hint">
         新增後預設為一般成員。若需調整為 TA，請在成員管理頁後續調整角色。
       </p>
 
       {preview && (
-        <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div className="classroom-add-members__preview">
+          <div className="classroom-add-members__preview-tags">
             <Tag type="green">可提交 {preview.valid.length}</Tag>
             <Tag type="gray">重複 {preview.duplicated.length}</Tag>
             <Tag type="red">格式錯誤 {preview.invalid.length}</Tag>
           </div>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--cds-text-secondary)" }}>
+          <p className="classroom-add-members__hint classroom-add-members__hint--tight">
             送出時只會提交「可提交」名單。結果會在下方顯示新增/已存在/找不到明細。
           </p>
         </div>
       )}
 
       {result && (
-        <div style={{ marginTop: "1rem" }}>
+        <div className="classroom-add-members__result">
           {result.added.length > 0 && (
             <InlineNotification
               kind="success"

@@ -1,0 +1,6 @@
+@use "@carbon/layout";
+
+.classroom-announcement-modal__form {
+  display: grid;
+  gap: layout.$spacing-05;
+}

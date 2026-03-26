@@ -92,10 +92,11 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'update_member_role',
             'regenerate_code', 'bind_contest', 'unbind_contest',
             'create_announcement',
+            'update_announcement', 'delete_announcement',
         }
         member_actions = {
             'retrieve', 'list_members',
-            'list_announcements', 'update_announcement', 'delete_announcement',
+            'list_announcements',
         }
 
         if self.action in owner_admin_actions:
@@ -286,7 +287,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=['patch'], url_path=r'announcements/(?P<ann_id>\d+)',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
     def update_announcement(self, request, id=None, ann_id=None):
         classroom = self.get_object()
         try:
@@ -301,7 +302,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response(ClassroomAnnouncementSerializer(announcement).data)
 
     @action(detail=True, methods=['delete'], url_path=r'announcements/(?P<ann_id>\d+)/delete',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
     def delete_announcement(self, request, id=None, ann_id=None):
         classroom = self.get_object()
         deleted, _ = classroom.announcements.filter(pk=ann_id).delete()

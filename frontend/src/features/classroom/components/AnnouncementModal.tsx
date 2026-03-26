@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextInput, Toggle } from "@carbon/react";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
+import { useToast } from "@/shared/contexts/ToastContext";
 import {
   createAnnouncement,
   updateAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
+import "./AnnouncementModal.scss";
 
 interface AnnouncementModalProps {
   open: boolean;
@@ -25,6 +27,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   onSaved,
 }) => {
   const { t } = useTranslation("classroom");
+  const { showToast } = useToast();
   const isEdit = !!announcement;
 
   const [title, setTitle] = useState("");
@@ -63,7 +66,13 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       }
       onSaved();
     } catch (err) {
-      console.error(err);
+      showToast({
+        kind: "error",
+        title: isEdit
+          ? t("announcement.updateFailed", "更新公告失敗")
+          : t("announcement.createFailed", "建立公告失敗"),
+        subtitle: err instanceof Error ? err.message : t("classroom.loadFailedHint", "請稍後再試"),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +99,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       secondaryButtonText={t('button.cancel')}
       size="lg"
     >
-      <div style={{ display: "grid", gap: "1rem" }}>
+      <div className="classroom-announcement-modal__form">
         <TextInput
           id="announcement-title"
           labelText={t("announcement.modal.form.title")}

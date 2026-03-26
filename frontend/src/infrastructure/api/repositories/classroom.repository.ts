@@ -30,7 +30,21 @@ export const getClassroom = async (
   id: string
 ): Promise<ClassroomDetail | undefined> => {
   const res = await httpClient.get(`/api/v1/classrooms/${id}/`);
-  if (!res.ok) return undefined;
+  if (res.status === 404) return undefined;
+  if (!res.ok) {
+    let message = `Failed to fetch classroom (${res.status})`;
+    try {
+      const data = await res.json();
+      message =
+        data?.detail ||
+        data?.message ||
+        data?.error ||
+        message;
+    } catch {
+      // keep fallback message
+    }
+    throw new Error(message);
+  }
   const data = await res.json();
   return mapClassroomDetailDto(data);
 };

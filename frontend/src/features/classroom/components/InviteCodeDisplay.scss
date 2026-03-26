@@ -1,0 +1,22 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.classroom-invite-code {
+  padding: layout.$spacing-05;
+  background: var(--cds-layer);
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  flex-wrap: wrap;
+}
+
+.classroom-invite-code__label {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}
+
+.classroom-invite-code__value {
+  @include type.type-style("code-02");
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}

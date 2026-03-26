@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Modal, TextInput, TextArea } from "@carbon/react";
+import { useToast } from "@/shared/contexts/ToastContext";
+import "./CreateClassroomModal.scss";
 
 interface CreateClassroomModalProps {
   open: boolean;
@@ -12,6 +14,7 @@ export const CreateClassroomModal: React.FC<CreateClassroomModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { showToast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +27,11 @@ export const CreateClassroomModal: React.FC<CreateClassroomModalProps> = ({
       setName("");
       setDescription("");
     } catch (err) {
-      console.error(err);
+      showToast({
+        kind: "error",
+        title: "建立教室失敗",
+        subtitle: err instanceof Error ? err.message : "請稍後再試",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -53,7 +60,7 @@ export const CreateClassroomModal: React.FC<CreateClassroomModalProps> = ({
         onChange={(e) => setName(e.target.value)}
         placeholder="例：資料結構 2026 秋"
       />
-      <div style={{ marginTop: "1rem" }}>
+      <div className="classroom-create-modal__description-row">
         <TextArea
           id="classroom-description"
           labelText="描述（選填）"

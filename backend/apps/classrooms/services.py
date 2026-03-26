@@ -4,9 +4,7 @@ Business logic for classrooms.
 import secrets
 import string
 
-from django.db import IntegrityError
-
-from .models import Classroom, ClassroomMember, ClassroomContest
+from .models import Classroom
 
 
 def generate_invite_code():
