@@ -13,6 +13,9 @@
     "problemList": "題目列表",
     "back": "返回"
   },
+  "common": {
+    "locale": "zh-TW"
+  },
   "page": {
     "dashboard": "儀表板",
     "problems": "題目列表",
@@ -233,6 +236,14 @@
     "dark": "深色",
     "system": "跟隨系統"
   },
+  "profile": {
+    "personalInfo": "個人資訊",
+    "devices": "裝置管理",
+    "devicesDesc": "最近 30 天登入的裝置",
+    "deviceName": "裝置名稱",
+    "lastActive": "最後活動",
+    "now": "現在"
+  },
   "preferences": {
     "title": "偏好設定",
     "themeSection": "主題",
@@ -259,7 +270,137 @@
   "settings": {
     "title": "設定",
     "description": "管理您的偏好設定、API Key 和用量統計",
-    "descriptionStudent": "管理您的偏好設定"
+    "descriptionStudent": "管理您的偏好設定",
+    "tabs": {
+      "profile": "個人檔案",
+      "preferences": "偏好設定",
+      "apiKey": "API Key",
+      "plans": "探索方案",
+      "subscription": "訂閱狀態",
+      "usage": "用量統計"
+    },
+    "subscription": {
+      "manage": "管理訂閱",
+      "manageDesc": "變更付款方式、取消訂閱或查看發票",
+      "openPortalFailed": "無法開啟訂閱管理頁面",
+      "trialEndDate": "試用到期日",
+      "periodEndDate": "目前週期結束",
+      "tier": {
+        "free": "免費方案",
+        "pro": "個人方案",
+        "team": "團隊方案",
+        "enterprise": "Enterprise"
+      },
+      "status": {
+        "active": "啟用中",
+        "trialing": "試用中",
+        "past_due": "付款逾期",
+        "canceled": "已取消",
+        "expired": "已到期"
+      },
+      "desc": {
+        "free": "目前使用免費方案，可隨時升級取得更高額度",
+        "pro": "有穩定考試需求的個人用戶",
+        "team": "學校、科系、培訓機構"
+      }
+    },
+    "loginRecords": {
+      "title": "裝置管理",
+      "description": "最近 30 天登入的裝置",
+      "logoutOther": "登出其他裝置",
+      "logoutOtherDesc": "登出除了此裝置以外的所有作用中工作階段",
+      "logoutSuccess": "已登出其他裝置",
+      "logoutError": "登出其他裝置失敗",
+      "empty": "沒有登入紀錄",
+      "deviceName": "裝置名稱",
+      "lastActive": "最後活動",
+      "current": "此裝置",
+      "now": "現在"
+    },
+    "apiKey": {
+      "title": "API Key",
+      "description": "管理您的 Anthropic API Key，用於 AI 功能",
+      "empty": "尚未設定 API Key。前往 Anthropic Console 建立。",
+      "addKey": "新增 API Key",
+      "updateKey": "更新 Key",
+      "deleteKey": "刪除 Key",
+      "deleteConfirm": "確定要刪除 API Key 嗎？刪除後將無法使用 AI 功能。",
+      "nameLabel": "名稱",
+      "statusLabel": "狀態",
+      "createdAtLabel": "建立時間",
+      "validated": "已驗證",
+      "invalid": "未驗證",
+      "active": "啟用中",
+      "inactive": "已停用",
+      "modal": {
+        "addTitle": "新增 API Key",
+        "updateTitle": "更新 API Key",
+        "nameInput": "名稱（選填）",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "helperText": "您的 API Key 將被加密儲存",
+        "saveSuccess": "API Key 已成功儲存！",
+        "deleteSuccess": "API Key 已刪除"
+      },
+      "usage": {
+        "title": "用量統計",
+        "description": "AI API 使用量摘要與明細",
+        "totalTokens": "總 Tokens",
+        "totalRequests": "總請求數",
+        "totalCost": "總費用",
+        "startDate": "開始日期",
+        "endDate": "結束日期",
+        "granularity": "粒度",
+        "daily": "每日",
+        "weekly": "每週",
+        "monthly": "每月",
+        "noData": "所選日期範圍內無用量資料",
+        "table": {
+          "date": "日期",
+          "requests": "請求數",
+          "inputTokens": "輸入 Tokens",
+          "outputTokens": "輸出 Tokens",
+          "cost": "費用 (USD)"
+        }
+      },
+      "error": {
+        "loadFailed": "載入 API Key 資訊失敗",
+        "usageLoadFailed": "載入用量資料失敗",
+        "inputRequired": "請輸入 API Key",
+        "invalidFormat": "無效的 API Key 格式，應以 'sk-ant-' 開頭",
+        "saveFailed": "儲存失敗",
+        "deleteFailed": "刪除失敗"
+      }
+    },
+    "plans": {
+      "title": "探索方案",
+      "description": "所有方案皆包含完整功能，差異僅在用量額度",
+      "enterpriseTitle": "需要更大規模？",
+      "contactUs": "聯繫我們",
+      "enterpriseCustom": "取得 Enterprise 客製方案。",
+      "freeTrial": "30 天免費",
+      "startingTrial": "開始免費試用",
+      "subscribeNow": "立即訂閱",
+      "processing": "處理中...",
+      "openCheckoutFailed": "無法開啟結帳頁面，請稍後再試",
+      "month": "月",
+      "features": {
+        "pro": [
+          "每場考試最多 200 人",
+          "500 AI Credits / 月",
+          "無限題庫儲存",
+          "資料保留 1 年",
+          "10 GB 儲存空間"
+        ],
+        "team": [
+          "每場考試最多 500 人",
+          "2,000 AI Credits / 月",
+          "無限題庫儲存",
+          "10 位管理者",
+          "50 GB 儲存空間"
+        ]
+      }
+    }
   },
   "table": {
     "title": "標題",
