@@ -32,6 +32,7 @@ interface UserMenuProps {
   contestMode?: boolean;
   contest?: ContestDetail | null;
   onContestRefresh?: () => void;
+  compact?: boolean;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
@@ -40,6 +41,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   contestMode = false,
   contest,
   onContestRefresh,
+  compact = false,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -150,14 +152,16 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           url={avatarUrl || undefined}
           size="sm"
         />
-        <span className="user-menu-trigger__text">
-          <span className="user-menu-trigger__name">
-            {displayName?.trim() || user.username || user.email}
+        {!compact && (
+          <span className="user-menu-trigger__text">
+            <span className="user-menu-trigger__name">
+              {displayName?.trim() || user.username || user.email}
+            </span>
+            <span className="user-menu-trigger__role">
+              {getRoleLabel(user.role)}
+            </span>
           </span>
-          <span className="user-menu-trigger__role">
-            {getRoleLabel(user.role)}
-          </span>
-        </span>
+        )}
       </button>
 
       <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>

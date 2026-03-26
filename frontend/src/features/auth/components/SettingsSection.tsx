@@ -28,12 +28,13 @@ export function SettingsSection({ title, description, action, children }: Settin
 interface SettingsFieldProps {
   label?: string;
   description?: string;
+  vertical?: boolean;
   children: ReactNode;
 }
 
-export function SettingsField({ label, description, children }: SettingsFieldProps) {
+export function SettingsField({ label, description, vertical, children }: SettingsFieldProps) {
   return (
-    <div className="settings-field">
+    <div className={`settings-field${vertical ? " settings-field--vertical" : ""}`}>
       {label && (
         <div className="settings-field__label-group">
           <div className="settings-field__label">{label}</div>

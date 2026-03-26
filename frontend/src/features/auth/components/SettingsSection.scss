@@ -53,7 +53,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-03 0;
+  padding: $spacing-04 0;
+
+  & + & {
+    border-top: 1px solid $border-subtle-01;
+  }
 
   &__label-group {
     display: flex;
@@ -77,5 +81,15 @@
     @include type-style("body-compact-01");
     text-align: right;
     flex-shrink: 0;
+  }
+
+  &--vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: $spacing-03;
+
+    .settings-field__value {
+      text-align: left;
+    }
   }
 }
