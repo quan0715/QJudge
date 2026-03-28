@@ -1,0 +1,35 @@
+// Shared card/tile mixins
+// Usage: @use "../../../styles/card-tile" as card;
+
+:root {
+  --qj-card-bg: var(--cds-layer);
+  --qj-card-hover-bg: var(--cds-layer-hover);
+  --qj-card-active-bg: var(--cds-layer-active);
+  --qj-card-border: var(--cds-border-subtle);
+}
+
+@mixin surface {
+  background-color: var(--qj-card-bg);
+  padding: 1rem 1.25rem;
+}
+
+@mixin interactive($override-tile: false) {
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+
+  &:hover {
+    background-color: var(--qj-card-hover-bg);
+  }
+
+  &:active {
+    background-color: var(--qj-card-active-bg);
+  }
+
+  @if $override-tile {
+    &.cds--tile {
+      background-color: var(--qj-card-bg);
+      &:hover { background-color: var(--qj-card-hover-bg); }
+      &:active { background-color: var(--qj-card-active-bg); }
+    }
+  }
+}

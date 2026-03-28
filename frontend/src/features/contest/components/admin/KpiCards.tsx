@@ -15,7 +15,7 @@ import {
   getContestStateColor,
 } from "@/core/entities/contest.entity";
 import { KpiCard } from "@/shared/ui/dataCard";
-import EntityHeroStatsSection from "@/shared/layout/EntityHeroStatsSection";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { resolveOverviewSnapshot } from "./overviewMetrics.utils";
 
 interface KpiCardsProps {
@@ -31,35 +31,38 @@ export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
   const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
 
   return (
-    <EntityHeroStatsSection
-      title={<h1>{contest.name}</h1>}
-      meta={
-        <>
-          <Tag type={getContestStateColor(state)} size="sm">
-            {getContestStateLabel(state)}
-          </Tag>
-          <span>{startDate} → {endDate}</span>
-        </>
+    <QJudgeHeroWidget
+      title={contest.name}
+      badges={
+        <Tag type={getContestStateColor(state)} size="sm">
+          {getContestStateLabel(state)}
+        </Tag>
       }
-      description={contest.description ? <p>{contest.description}</p> : undefined}
-      kpi={
+      metadata={
+        <div>
+          <span>{t("adminOverview.kpi.period", "競賽期間")}</span>
+          <span>{startDate} → {endDate}</span>
+        </div>
+      }
+      description={contest.description}
+      kpiCards={
         <>
           <KpiCard
             icon={UserMultiple}
             value={String(snapshot.onlineNow)}
-            label={t("adminOverview.kpi.onlineNow", "Online Now")}
+            label={t("adminOverview.kpi.onlineNow", "即時在線")}
             showBorder={false}
           />
           <KpiCard
             icon={ChartBar}
             value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
-            label={t("adminOverview.kpi.exams", "Exams")}
+            label={t("adminOverview.kpi.exams", "考試進度")}
             showBorder={false}
           />
           <KpiCard
             icon={Education}
             value={t(`adminOverview.examType.${snapshot.examType}`)}
-            label={t("adminOverview.kpi.examMode", "Exam Mode")}
+            label={t("adminOverview.kpi.examMode", "考試模式")}
             showBorder={false}
           />
         </>

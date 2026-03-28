@@ -12,7 +12,6 @@ export { default as TeacherActivationScreen } from "./screens/TeacherActivationS
 
 // Components
 export { default as AuthLayout } from "./components/layout/AuthLayout";
-export { default as MatrixBackground } from "./components/MatrixBackground";
 export { default as ChangePasswordModal } from "./components/ChangePasswordModal";
 export { default as UserSettingsModal } from "./components/UserSettingsModal";
 export {

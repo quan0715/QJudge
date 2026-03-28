@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, ClickableTile, Column, Grid, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
-import { Add, Education, UserMultiple } from "@carbon/icons-react";
-import { PageHeader } from "@/shared/layout/PageHeader";
+import { Button, ClickableTile, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
+import { Add, Education, UserMultiple, Catalog, Link as LinkIcon } from "@carbon/icons-react";
+import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
+import { listMine } from "@/infrastructure/api/repositories/questionBank.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
+import type { QuestionBank } from "@/core/entities/question-bank.entity";
+import { BankGalleryCard } from "@/features/question-banks/components/BankGalleryCard";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { JoinClassroomModal } from "@/features/classroom/components/JoinClassroomModal";
 import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import "./DashboardScreen.scss";
 
 const CLASSROOM_BANNER_IMAGES = [
@@ -34,6 +38,8 @@ const hashValue = (value: string) => {
 const getClassroomBannerImage = (id: string) =>
   CLASSROOM_BANNER_IMAGES[hashValue(id) % CLASSROOM_BANNER_IMAGES.length];
 
+const MAX_BANK_CARDS = 4;
+
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -41,7 +47,9 @@ const DashboardScreen = () => {
   const { user } = useAuth();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
   const [loading, setLoading] = useState(true);
+  const [banksLoading, setBanksLoading] = useState(true);
   const [joinOpen, setJoinOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -51,36 +59,42 @@ const DashboardScreen = () => {
   useEffect(() => {
     let cancelled = false;
 
-    const fetchClassrooms = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      try {
-        const rows = await getClassrooms();
-        if (!cancelled) {
-          setClassrooms(rows);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          showToast({
-            kind: "error",
-            title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
-            subtitle:
-              error instanceof Error
-                ? error.message
-                : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      if (isTeacherOrAdmin) setBanksLoading(true);
+
+      const results = await Promise.allSettled([
+        getClassrooms(),
+        isTeacherOrAdmin ? listMine() : Promise.resolve([]),
+      ]);
+
+      if (cancelled) return;
+
+      const [classroomResult, bankResult] = results;
+
+      if (classroomResult.status === "fulfilled") {
+        setClassrooms(classroomResult.value);
+      } else {
+        showToast({
+          kind: "error",
+          title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
+          subtitle: t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+        });
       }
+
+      if (bankResult.status === "fulfilled") {
+        setQuestionBanks(bankResult.value);
+      }
+
+      setLoading(false);
+      setBanksLoading(false);
     };
 
-    void fetchClassrooms();
+    void fetchData();
     return () => {
       cancelled = true;
     };
-  }, [showToast, t]);
+  }, [showToast, t, isTeacherOrAdmin]);
 
   const refreshClassrooms = async () => {
     setLoading(true);
@@ -205,6 +219,19 @@ const DashboardScreen = () => {
                   {classroom.memberCount} {t("classroom.members", "members")}
                 </p>
               </div>
+
+              {/* Mobile mini view */}
+              <div className="dashboard-classroom__card-mini-body">
+                <div className="dashboard-classroom__card-mini-icon">
+                  <CardIcon size={16} />
+                </div>
+                <div className="dashboard-classroom__card-mini-info">
+                  <h4>{classroom.name}</h4>
+                  <p>
+                    {classroom.memberCount} {t("classroom.members", "members")}
+                  </p>
+                </div>
+              </div>
             </ClickableTile>
           );
         })}
@@ -212,39 +239,115 @@ const DashboardScreen = () => {
     );
   };
 
+  const renderBankSection = () => {
+    if (!isTeacherOrAdmin) return null;
+
+    return (
+      <section className="dashboard-classroom__section">
+        <header className="dashboard-classroom__section-header">
+          <h4>{t("dashboard.questionBanksSection.title", "我的題庫")}</h4>
+          <button
+            type="button"
+            className="dashboard-classroom__section-header-link"
+            onClick={() => navigate("/question-banks")}
+          >
+            {t("dashboard.questionBanksSection.viewAll", "查看全部")} →
+          </button>
+        </header>
+
+        {banksLoading ? (
+          <div className="dashboard-classroom__bank-grid">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <SkeletonPlaceholder key={idx} className="dashboard-classroom__skeleton" />
+            ))}
+          </div>
+        ) : questionBanks.length === 0 ? (
+          <Tile className="dashboard-classroom__empty-tile">
+            <div className="dashboard-classroom__bank-empty">
+              <Catalog size={32} />
+              <div>
+                <h4>{t("dashboard.questionBanksSection.empty", "尚無題庫")}</h4>
+                <p>{t("dashboard.questionBanksSection.emptyHint", "建立題庫以開始整理題目。")}</p>
+              </div>
+              <Button kind="primary" renderIcon={Add} onClick={() => navigate("/question-banks")}>
+                {t("questionBank.createBank", "建立題庫")}
+              </Button>
+            </div>
+          </Tile>
+        ) : (
+          <div className="dashboard-classroom__bank-grid">
+            {questionBanks.slice(0, MAX_BANK_CARDS).map((bank) => (
+              <BankGalleryCard
+                key={bank.id}
+                title={bank.name}
+                category={bank.category}
+                provider={bank.ownerUsername || welcomeName}
+                providerVerified={bank.verified}
+                downloads={String(bank.questionCount)}
+                onClick={() => navigate(`/question-banks/${bank.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="dashboard-classroom">
-      <section className="dashboard-classroom__main">
-        <Grid fullWidth className="dashboard-classroom__layout">
-          <Column lg={16} md={8} sm={4}>
-            <PageHeader
-              title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
-              subtitle={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
-              action={
-                <Stack orientation="horizontal" gap={3}>
-                  <Button kind="tertiary" onClick={() => setJoinOpen(true)}>
-                    {t("classroom.join", "加入教室")}
-                  </Button>
-                  {isTeacherOrAdmin ? (
-                    <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
-                      {t("classroom.create", "建立教室")}
-                    </Button>
-                  ) : null}
-                </Stack>
-              }
+      <QJudgeHeroWidget
+        title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
+        description={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
+        actions={
+          <div className="dashboard-hero__actions">
+            {isTeacherOrAdmin && (
+              <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
+                {t("classroom.create", "建立教室")}
+              </Button>
+            )}
+            <Button kind="tertiary" renderIcon={LinkIcon} onClick={() => setJoinOpen(true)}>
+              {t("classroom.join", "加入教室")}
+            </Button>
+            {isTeacherOrAdmin && (
+              <Button kind="tertiary" renderIcon={Add} onClick={() => navigate("/question-banks")}>
+                {t("questionBank.createBank", "建立題庫")}
+              </Button>
+            )}
+          </div>
+        }
+        kpiCards={
+          <>
+            <KpiCard
+              icon={Education}
+              value={loading ? "–" : classrooms.length}
+              label={t("dashboard.kpi.classrooms", "教室")}
+              showBorder={false}
             />
-          </Column>
+            {isTeacherOrAdmin && (
+              <KpiCard
+                icon={Catalog}
+                value={banksLoading ? "–" : questionBanks.length}
+                label={t("dashboard.kpi.questionBanks", "題庫")}
+                showBorder
+                onClick={() => navigate("/question-banks")}
+              />
+            )}
+          </>
+        }
+      />
 
-          <Column lg={16} md={8} sm={4}>
-            <section className="dashboard-classroom__section">
-              <header className="dashboard-classroom__section-header">
-                <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
-              </header>
-              {renderClassroomGrid(orderedClassrooms)}
-            </section>
-          </Column>
-        </Grid>
-      </section>
+      {/* Content Sections */}
+      <div className="dashboard-classroom__main">
+        <section className="dashboard-classroom__section">
+          <header className="dashboard-classroom__section-header">
+            <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
+          </header>
+          {renderClassroomGrid(orderedClassrooms)}
+        </section>
+
+        {/* Question Banks (teacher/admin only) */}
+        {renderBankSection()}
+      </div>
 
       <JoinClassroomModal
         open={joinOpen}

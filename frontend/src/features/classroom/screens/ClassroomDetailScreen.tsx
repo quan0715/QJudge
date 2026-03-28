@@ -33,6 +33,7 @@ import type {
 import type { Contest } from "@/core/entities/contest.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
   getClassrooms,
@@ -43,6 +44,7 @@ import { MemberGrid, type MemberCardData } from "../components/MemberTable";
 import { AnnouncementModal } from "../components/AnnouncementModal";
 import CreateContestModal from "@/features/classroom/components/CreateContestModal";
 import ClassroomAdminLayout, { type ClassroomAdminPanelId } from "./ClassroomAdminLayout";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ContestPreviewCard } from "@/features/contest/components/ContestPreviewCard";
 import { getClassroomIcon } from "../constants/classroomIcons";
 import { ClassroomSettingsModal } from "../components/ClassroomSettingsModal";
@@ -68,6 +70,7 @@ const ClassroomDetailScreen: React.FC = () => {
   const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const { classroomId } = useParams<{ classroomId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -259,6 +262,11 @@ const ClassroomDetailScreen: React.FC = () => {
 
   const selectedTabIndex = availablePanels.indexOf(activePanel);
 
+  const HeroIcon = getClassroomIcon(classroom.icon);
+  const normalizedDescription = classroom.description?.trim() ?? "";
+  const shouldShowDescription =
+    normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
+
   return (
     <>
       <ClassroomAdminLayout
@@ -270,10 +278,30 @@ const ClassroomDetailScreen: React.FC = () => {
         onOpenSettings={isPrivileged ? () => setSettingsModalOpen(true) : undefined}
       >
         <div className="classroom-admin-page">
-          <div className="classroom-hero-and-tabs" style={getHeroStyle(classroom)}>
-            {Boolean(classroom.coverUrl) && <div className="classroom-hero-overlay" />}
-            <HeroSection classroom={classroom} />
-            <div className="classroom-tabs-bar">
+          <QJudgeHeroWidget
+            title={
+              <>
+                {classroom.name}
+                {classroom.isArchived && (
+                  <Tag type="red" size="sm">
+                    {t("archived", "已封存")}
+                  </Tag>
+                )}
+              </>
+            }
+            description={shouldShowDescription ? normalizedDescription : undefined}
+            icon={HeroIcon}
+            coverUrl={classroom.coverUrl || undefined}
+            backgroundGradient={DEFAULT_COVER_GRADIENT}
+            kpiCards={
+              <KpiCard
+                icon={UserMultiple}
+                value={classroom.members.length}
+                label={t("classroom.members", "成員")}
+                showBorder={false}
+              />
+            }
+            tabs={
               <Tabs
                 selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
                 onChange={handleTabChange}
@@ -286,8 +314,8 @@ const ClassroomDetailScreen: React.FC = () => {
                   ))}
                 </TabList>
               </Tabs>
-            </div>
-          </div>
+            }
+          />
 
           <div className="classroom-admin-panel">
             {activePanel === "overview" && (
@@ -395,47 +423,8 @@ const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; ico
   settings:      { label: (t) => t("tab.settings", "設定"),      icon: Settings },
 };
 
-// ── Hero ──
-
 const DEFAULT_COVER_GRADIENT =
   "linear-gradient(135deg, #1a3a5c 0%, #0f62fe 50%, #4589ff 100%)";
-
-const getHeroStyle = (classroom: ClassroomDetail): React.CSSProperties => {
-  const hasCover = Boolean(classroom.coverUrl);
-  return hasCover
-    ? { backgroundImage: `url(${classroom.coverUrl})` }
-    : { background: DEFAULT_COVER_GRADIENT };
-};
-
-const HeroSection: React.FC<{ classroom: ClassroomDetail }> = ({ classroom }) => {
-  const { t } = useTranslation("classroom");
-  const normalizedDescription = classroom.description?.trim() ?? "";
-  const shouldShowDescription =
-    normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
-
-  const HeroIcon = getClassroomIcon(classroom.icon);
-
-  return (
-    <div className="classroom-hero-content">
-      <div className="classroom-hero-left">
-        <span className="classroom-hero-icon">
-          <HeroIcon size={32} />
-        </span>
-        <h1 className="classroom-hero-title">
-          {classroom.name}
-          {classroom.isArchived && (
-            <Tag type="red" size="sm">
-              {t("archived", "已封存")}
-            </Tag>
-          )}
-        </h1>
-        {shouldShowDescription && (
-          <p className="classroom-hero-desc">{normalizedDescription}</p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 // ── Overview ──
 
