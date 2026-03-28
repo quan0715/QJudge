@@ -18,11 +18,27 @@
 }
 
 .hero {
+  position: relative;
   border-bottom: 1px solid var(--cds-border-subtle);
   background: var(--cds-background);
+  background-size: cover;
+  background-position: center;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--cds-background) 88%, transparent),
+    color-mix(in srgb, var(--cds-background) 76%, transparent)
+  );
+  pointer-events: none;
 }
 
 .heroInner {
+  position: relative;
+  z-index: 1;
   margin: 0 auto;
   max-width: 1320px;
   padding: 2rem;
@@ -37,6 +53,17 @@
 
 .heroInfo {
   min-width: 0;
+}
+
+.heroIconWrap {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--cds-layer) 85%, transparent);
+  color: var(--cds-icon-primary);
 }
 
 .overline {
@@ -127,6 +154,35 @@
   margin: 0.25rem 0 0;
   color: var(--cds-text-secondary);
   font-size: var(--cds-label-01-font-size, 0.75rem);
+}
+
+.iconPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.iconButton {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cds-layer-01);
+  color: var(--cds-icon-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  border-color: var(--cds-border-interactive);
+}
+
+.iconButtonActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+  color: var(--cds-icon-primary);
 }
 
 

@@ -5,6 +5,7 @@
     "problemsLegacy": "Problems (Legacy)",
     "questionBanks": "Question Banks",
     "contests": "Contests",
+    "marketplace": "Marketplace",
     "classrooms": "Classrooms",
     "submissions": "Submissions",
     "ranking": "Ranking",
@@ -95,6 +96,26 @@
       "title": "Announcements",
       "subtitle": "Latest updates",
       "noAnnouncements": "No announcements"
+    },
+    "kpi": {
+      "classrooms": "Classrooms",
+      "questionBanks": "Question Banks"
+    },
+    "questionBanksSection": {
+      "title": "My Question Banks",
+      "viewAll": "View All",
+      "empty": "No question banks yet.",
+      "emptyHint": "Create a question bank to start organizing your questions."
+    },
+    "classroomHub": {
+      "welcomeBack": "Welcome back",
+      "selectSubtitle": "Select a classroom to enter its main page",
+      "loadFailed": "Failed to load classrooms",
+      "loadFailedHint": "Please try again later",
+      "listTitle": "My Classrooms",
+      "emptyTitle": "No classrooms joined yet",
+      "emptyDesc": "Create a classroom or join one via invite code.",
+      "noDescription": "No description set"
     }
   },
   "questionBank": {
@@ -429,6 +450,11 @@
     }
   },
   "auth": {
+    "logout": {
+      "confirmTitle": "Confirm Logout",
+      "confirmMessage": "Are you sure you want to log out?",
+      "confirmButton": "Log Out"
+    },
     "login": {
       "heroTitle": "A New Exam Experience\nfor the AI Generation",
       "heroSubtitle": "Built for online assessments - from authoring and testing to analysis, all in one place.",

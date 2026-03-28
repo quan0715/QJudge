@@ -2,16 +2,20 @@
   "nav": {
     "dashboard": "대시보드",
     "problems": "문제",
+    "problemsLegacy": "문제 (이전)",
+    "questionBanks": "문제집",
     "contests": "대회",
+    "marketplace": "문제집 마켓",
     "classrooms": "교실",
     "submissions": "제출 기록",
     "ranking": "랭킹",
     "documentation": "문서",
     "backToProblemList": "문제 목록으로 돌아가기",
     "problemList": "문제 목록",
-    "back": "뒤로",
-    "problemsLegacy": "題目（舊）",
-    "questionBanks": "題庫"
+    "back": "뒤로"
+  },
+  "common": {
+    "locale": "ko-KR"
   },
   "page": {
     "dashboard": "대시보드",
@@ -28,11 +32,11 @@
     "createContest": "대회 생성",
     "createProblem": "문제 생성",
     "editProblem": "문제 편집",
-    "teacherDashboard": "Teacher Dashboard",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management",
-    "questionBanks": "題庫",
-    "problemManagementLegacy": "題目管理（舊）"
+    "questionBanks": "문제집",
+    "teacherDashboard": "교사 대시보드",
+    "problemManagement": "문제 관리",
+    "problemManagementLegacy": "문제 관리 (이전)",
+    "contestManagement": "대회 관리"
   },
   "tab": {
     "overview": "개요",
@@ -92,7 +96,111 @@
       "title": "공지사항",
       "subtitle": "최신 공지사항",
       "noAnnouncements": "공지사항이 없습니다"
+    },
+    "kpi": {
+      "classrooms": "교실",
+      "questionBanks": "문제집"
+    },
+    "questionBanksSection": {
+      "title": "내 문제집",
+      "viewAll": "전체 보기",
+      "empty": "아직 문제집이 없습니다.",
+      "emptyHint": "문제집을 만들어 문제를 정리하세요."
+    },
+    "classroomHub": {
+      "welcomeBack": "돌아오신 것을 환영합니다",
+      "selectSubtitle": "교실을 선택하여 메인 페이지로 이동",
+      "loadFailed": "교실 로딩에 실패했습니다",
+      "loadFailedHint": "나중에 다시 시도해주세요",
+      "listTitle": "내 교실",
+      "emptyTitle": "아직 참가한 교실이 없습니다",
+      "emptyDesc": "교실을 만들거나 초대 코드로 참가하세요.",
+      "noDescription": "설명이 설정되지 않았습니다"
     }
+  },
+  "questionBank": {
+    "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
+    "createBank": "문제집 만들기",
+    "editBank": "문제집 수정",
+    "deleteBank": "문제집 삭제",
+    "deleteBankConfirmBody": "문제집 \"{{name}}\"을(를) 삭제하시겠습니까?",
+    "bankCreated": "문제집이 생성되었습니다",
+    "bankUpdated": "문제집이 업데이트되었습니다",
+    "bankDeleted": "문제집이 삭제되었습니다",
+    "description": "설명",
+    "category": "카테고리",
+    "categoryCoding": "프로그래밍",
+    "categoryExam": "지필 시험",
+    "prompt": "문제 설명",
+    "difficulty": "난이도",
+    "score": "배점",
+    "timeLimit": "시간 제한(ms)",
+    "memoryLimit": "메모리 제한(MB)",
+    "addQuestion": "문제 추가",
+    "editQuestion": "문제 수정",
+    "deleteQuestion": "문제 삭제",
+    "deleteQuestionConfirmBody": "문제 \"{{title}}\"을(를) 삭제하시겠습니까?",
+    "questionCreated": "문제가 생성되었습니다",
+    "questionUpdated": "문제가 업데이트되었습니다",
+    "questionDeleted": "문제가 삭제되었습니다",
+    "tabs": {
+      "mine": "내 문제집",
+      "explore": "탐색",
+      "inbox": "문제 가져오기"
+    },
+    "inbox": {
+      "title": "문제 가져오기",
+      "description": "대회에서 생성된 임시 문제를 특정 문제집으로 분류할 수 있습니다.",
+      "coding": "프로그래밍 문제 선택 목록",
+      "exam": "지필 시험 문제 선택 목록",
+      "empty": "현재 선택 가능한 문제가 없습니다.",
+      "fromUnknown": "출처 불명",
+      "targetBank": "대상 문제집",
+      "noCodingBank": "프로그래밍 문제집 없음",
+      "noExamBank": "지필 시험 문제집 없음",
+      "ingesting": "가져오는 중...",
+      "ingestSelected": "선택한 문제 가져오기",
+      "ingestSuccess": "문제집으로 성공적으로 가져왔습니다",
+      "selectAll": "전체 선택",
+      "clearSelection": "선택 해제",
+      "selectedCount": "{{count}}개 선택됨",
+      "filterLabel": "표시 범위",
+      "filterAll": "전체",
+      "currentFilter": "현재 표시 중"
+    },
+    "emptyMine": "문제집이 없습니다. 먼저 내 문제집을 만들어보세요.",
+    "emptyExplore": "탐색 가능한 문제집이 없습니다.",
+    "exploreOnlyPlatform": "탐색은 현재 QJudge Community만 지원합니다",
+    "exploreOnlyPlatformDesc": "Phase1에서는 교사 간 공유가 포함되지 않으며, 커뮤니티에서 검증된 문제집이 중심이 됩니다.",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockGalleryDesc": "UI 목업 미리보기입니다. QJudge Community 카드 예시를 보여줍니다.",
+    "communityTag": "QJudge Community",
+    "mockOfficialTag": "Community 셀렉트",
+    "mockUserPublicTag": "사용자 공개",
+    "mockVerifiedTag": "인증됨",
+    "mockQuestionCount": "{{count}} 문제",
+    "mockOwnerLabel": "소유자",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "진 선생님",
+    "mockOwnerTeacherB": "임 선생님",
+    "mockOfficialBank1Name": "알고리즘 입문 - 재귀",
+    "mockOfficialBank1Desc": "재귀와 기초 탐색을 통해 사고력을 기릅니다.",
+    "mockOfficialBank2Name": "자료구조 구현 문제집",
+    "mockOfficialBank2Desc": "학습 진도에 맞춘 자료구조 구현 문제.",
+    "mockUserBank1Name": "진 선생님의 APCS 연습",
+    "mockUserBank1Desc": "APCS 개념과 자주 틀리는 실수에 초점을 맞춘 연습.",
+    "mockUserBank2Name": "임 선생님의 정기시험 문제집",
+    "mockUserBank2Desc": "교내 정기시험 기출문제. 평가 포인트와 난이도 포함.",
+    "tagMine": "내 문제집",
+    "tagPublic": "공개",
+    "tagPrivate": "비공개",
+    "tagUserPublic": "사용자 공개",
+    "openBank": "문제집 열기",
+    "bankNotFound": "문제집을 찾을 수 없습니다",
+    "bankNotFoundDesc": "문제집 목록으로 돌아가서 다시 선택해주세요.",
+    "loadQuestions": "문제 보기",
+    "clone": "내 문제집으로 복사",
+    "cloneSuccess": "내 문제집으로 복사되었습니다"
   },
   "button": {
     "confirm": "확인",
@@ -170,31 +278,156 @@
     "passwordChanged": "비밀번호가 변경되었습니다",
     "passwordMismatch": "새 비밀번호가 일치하지 않습니다",
     "wrongPassword": "현재 비밀번호가 올바르지 않습니다",
-    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다",
-    "themeDescription": "선호하는 인터페이스 테마를 선택하세요",
-    "languageDescription": "선호하는 인터페이스 언어를 선택하세요",
-    "avatarEmpty": "아바타 추가",
-    "editAvatar": "아바타 편집",
-    "avatarUpload": "아바타 업로드",
-    "avatarRemove": "아바타 삭제",
-    "avatarDropzoneTitle": "여기에 이미지를 드래그하세요",
-    "avatarDropzoneHint": "또는 여기를 클릭하여 이미지 파일 선택",
-    "savingDisplayName": "저장 중...",
-    "displayNameSaved": "업데이트됨",
-    "displayNameSaveFailed": "업데이트 실패",
-    "role": "역할",
-    "loginMethod": "로그인 방법"
+    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다"
   },
   "settings": {
     "title": "설정",
     "description": "환경설정, API Key 및 사용량 통계를 관리합니다",
-    "descriptionStudent": "환경설정을 관리합니다"
+    "descriptionStudent": "환경설정을 관리합니다",
+    "tabs": {
+      "profile": "프로필",
+      "preferences": "환경설정",
+      "apiKey": "API Key",
+      "plans": "요금제",
+      "subscription": "구독 상태",
+      "usage": "사용량 통계"
+    },
+    "subscription": {
+      "manage": "구독 관리",
+      "manageDesc": "결제 수단 변경, 구독 취소 또는 영수증 확인",
+      "openPortalFailed": "구독 관리 페이지를 열 수 없습니다",
+      "trialEndDate": "체험 종료일",
+      "periodEndDate": "현재 기간 종료",
+      "tier": {
+        "free": "무료 요금제",
+        "pro": "개인 요금제",
+        "team": "팀 요금제",
+        "enterprise": "엔터프라이즈"
+      },
+      "status": {
+        "active": "활성",
+        "trialing": "체험 중",
+        "past_due": "결제 연체",
+        "canceled": "취소됨",
+        "expired": "만료됨"
+      },
+      "desc": {
+        "free": "현재 무료 요금제를 사용 중입니다. 언제든지 업그레이드 가능합니다.",
+        "pro": "안정적인 시험 환경을 원하는 개인 사용자용",
+        "team": "학교, 학부, 교육 기관용"
+      }
+    },
+    "loginRecords": {
+      "title": "기기 관리",
+      "description": "최근 30일 이내에 로그인한 기기",
+      "logoutOther": "다른 기기에서 로그아웃",
+      "logoutOtherDesc": "현재 기기를 제외한 모든 활성 세션에서 로그아웃합니다",
+      "logoutSuccess": "다른 기기에서 로그아웃되었습니다",
+      "logoutError": "로그아웃에 실패했습니다",
+      "empty": "로그인 기록이 없습니다",
+      "deviceName": "기기 이름",
+      "lastActive": "마지막 활동",
+      "current": "현재 기기",
+      "now": "지금"
+    },
+    "apiKey": {
+      "title": "API Key",
+      "description": "AI 기능을 위한 Anthropic API Key를 관리합니다",
+      "empty": "API Key가 설정되지 않았습니다. Anthropic Console에서 생성하세요.",
+      "addKey": "API Key 추가",
+      "updateKey": "Key 업데이트",
+      "deleteKey": "Key 삭제",
+      "deleteConfirm": "API Key를 삭제하시겠습니까? AI 기능을 사용할 수 없게 됩니다.",
+      "nameLabel": "이름",
+      "statusLabel": "상태",
+      "createdAtLabel": "생성 시간",
+      "validated": "인증됨",
+      "invalid": "미인증",
+      "active": "활성",
+      "inactive": "비활성",
+      "modal": {
+        "addTitle": "API Key 추가",
+        "updateTitle": "API Key 업데이트",
+        "nameInput": "이름 (선택 사항)",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "helperText": "API Key는 암호화되어 저장됩니다",
+        "saveSuccess": "API Key가 저장되었습니다",
+        "deleteSuccess": "API Key가 삭제되었습니다"
+      },
+      "usage": {
+        "title": "사용량 통계",
+        "description": "AI API 사용량 요약 및 상세 내역",
+        "totalTokens": "총 토큰",
+        "totalRequests": "총 요청 수",
+        "totalCost": "총 비용",
+        "startDate": "시작 날짜",
+        "endDate": "종료 날짜",
+        "granularity": "단위",
+        "daily": "일별",
+        "weekly": "주별",
+        "monthly": "월별",
+        "noData": "선택한 범위에 사용량 데이터가 없습니다",
+        "table": {
+          "date": "날짜",
+          "requests": "요청 수",
+          "inputTokens": "입력 토큰",
+          "outputTokens": "출력 토큰",
+          "cost": "비용 (USD)"
+        }
+      },
+      "error": {
+        "loadFailed": "API Key 정보를 가져오지 못했습니다",
+        "usageLoadFailed": "사용량 데이터를 가져오지 못했습니다",
+        "inputRequired": "API Key를 입력해주세요",
+        "invalidFormat": "형식이 올바르지 않습니다 ('sk-ant-'로 시작해야 함)",
+        "saveFailed": "저장 실패",
+        "deleteFailed": "삭제 실패"
+      }
+    },
+    "plans": {
+      "title": "요금제 둘러보기",
+      "description": "모든 요금제에서 모든 기능을 사용할 수 있습니다. 차이점은 사용량 한도뿐입니다.",
+      "enterpriseTitle": "더 큰 규모가 필요하신가요?",
+      "contactUs": "문의하기",
+      "enterpriseCustom": "엔터프라이즈 맞춤형 요금제를 안내해 드립니다.",
+      "freeTrial": "30일 무료",
+      "startingTrial": "무료 체험 시작",
+      "subscribeNow": "지금 구독하기",
+      "processing": "처리 중...",
+      "month": "월",
+      "openCheckoutFailed": "결제 페이지를 열 수 없습니다. 나중에 다시 시도해주세요.",
+      "features": {
+        "pro": [
+          "시험당 최대 200명",
+          "월 500 AI Credits",
+          "무제한 문제집 저장",
+          "1년 데이터 보관",
+          "10 GB 저장 공간"
+        ],
+        "team": [
+          "시험당 최대 500명",
+          "월 2,000 AI Credits",
+          "무제한 문제집 저장",
+          "최대 10명의 관리자",
+          "50 GB 저장 공간"
+        ]
+      }
+    }
+  },
+  "profile": {
+    "personalInfo": "개인 정보",
+    "devices": "기기 관리",
+    "devicesDesc": "최근 30일 이내에 로그인한 기기",
+    "deviceName": "기기 이름",
+    "lastActive": "마지막 활동",
+    "now": "지금"
   },
   "table": {
     "title": "제목",
     "status": "상태",
     "time": "시간",
-    "visibility": "공개 설정",
+    "visibility": "공개 여부",
     "actions": "작업",
     "private": "비공개 (비밀번호)",
     "public": "공개"
@@ -210,6 +443,11 @@
     }
   },
   "auth": {
+    "logout": {
+      "confirmTitle": "로그아웃 확인",
+      "confirmMessage": "현재 계정에서 로그아웃하시겠습니까?",
+      "confirmButton": "로그아웃"
+    },
     "login": {
       "heroTitle": "AI 세대를 위한 새로운 시험 경험",
       "heroSubtitle": "온라인 테스트를 위한 설계 - 출제부터 시험, 분석까지 한 번에",
@@ -228,59 +466,26 @@
       "submit": "로그인",
       "loading": "로그인 중...",
       "or": "또는 다른 방법으로 로그인",
-      "ssoLogin": "SSO로 로그인",
-      "googleLogin": "Google로 로그인",
-      "githubLogin": "GitHub로 로그인",
+      "ssoLogin": "SSO 로 로그인",
+      "googleLogin": "Google 로 로그인",
+      "githubLogin": "GitHub 로 로그인",
       "noAccount": "계정이 없으신가요?",
       "registerNow": "지금 가입하기",
       "failed": "로그인 실패",
       "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
       "oauthFailed": "로그인을 시작할 수 없습니다"
     },
-    "campusSso": {
-      "title": "캠퍼스 인증",
-      "subtitle": "로그인할 대학교를 선택하세요",
-      "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
-      "backToLogin": "로그인으로 돌아가기",
-      "providers": {
-        "nycu": {
-          "name": "NYCU (국립 양명 교통 대학교)",
-          "description": "대학교 포털 계정을 사용하여 로그인합니다"
-        }
-      }
-    },
-    "register": {
-      "title": "계정 만들기",
-      "subtitle": "QJudge에 가입하여 코딩 여정을 시작하세요",
-      "username": "사용자 이름",
-      "usernamePlaceholder": "사용자 이름 선택",
-      "email": "이메일",
-      "emailPlaceholder": "이메일 입력",
-      "password": "비밀번호",
-      "passwordPlaceholder": "비밀번호 생성",
-      "confirmPassword": "비밀번호 확인",
-      "confirmPasswordPlaceholder": "비밀번호 재입력",
-      "submit": "가입하기",
-      "loading": "가입 중...",
-      "hasAccount": "이미 계정이 있으신가요?",
-      "loginNow": "로그인",
-      "failed": "가입 실패",
-      "failedRetry": "가입 실패, 나중에 다시 시도하세요",
-      "passwordMismatch": "비밀번호가 일치하지 않습니다",
-      "passwordHelper": "최소 8자 이상, 숫자만으로 구성되거나 흔한 비밀번호는 피하십시오.",
-      "passwordTooShort": "비밀번호는 최소 8자 이상이어야 합니다."
-    },
     "callback": {
-      "conflictTitle": "시험 충돌",
-      "errorTitle": "로그인 실패",
-      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
-      "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
       "loading": "본인 확인 중",
       "loadingDesc": "학생 정보를 가져오는 중입니다. 잠시 기다려 주십시오...",
       "noCode": "인증 코드를 받지 못했습니다.",
+      "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
+      "errorTitle": "로그인 실패",
+      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
+      "conflictTitle": "시험 충돌",
       "takeover": "인계받고 이전 장치 잠금",
-      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
       "takingOver": "처리 중...",
+      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
       "verifyingSession": "同步作業階段中...",
       "connecting": "連線中...",
       "pleaseWait": "請稍候",
@@ -296,6 +501,39 @@
         "igniting": "엔진 점화 중..."
       },
       "finalTouch": "正在進行最後確認..."
+    },
+    "campusSso": {
+      "title": " campus 인증",
+      "subtitle": "로그인할 대학교를 선택하세요",
+      "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
+      "backToLogin": "로그인으로 돌아가기",
+      "providers": {
+        "nycu": {
+          "name": "NYCU (국립 양명 교통 대학교)",
+          "description": "대학교 포털 계정을 사용하여 로그인합니다"
+        }
+      }
+    },
+    "register": {
+      "title": "계정 만들기",
+      "subtitle": "QJudge 에 가입하여 코딩 여정을 시작하세요",
+      "username": "사용자 이름",
+      "usernamePlaceholder": "사용자 이름 선택",
+      "email": "이메일",
+      "emailPlaceholder": "이메일 입력",
+      "password": "비밀번호",
+      "passwordPlaceholder": "비밀번호 생성",
+      "confirmPassword": "비밀번호 확인",
+      "confirmPasswordPlaceholder": "비밀번호 재입력",
+      "passwordHelper": "최소 8 자 이상, 숫자만으로 구성되거나 흔한 비밀번호는 피하십시오.",
+      "passwordTooShort": "비밀번호는 최소 8 자 이상이어야 합니다.",
+      "submit": "가입하기",
+      "loading": "가입 중...",
+      "hasAccount": "이미 계정이 있으신가요?",
+      "loginNow": "로그인",
+      "failed": "가입 실패",
+      "failedRetry": "가입 실패, 나중에 다시 시도하세요",
+      "passwordMismatch": "비밀번호가 일치하지 않습니다"
     }
   },
   "status": {
@@ -386,81 +624,9 @@
       "essay": "긴 텍스트로 답변 (참고 답안 지원)"
     }
   },
-  "questionBank": {
-    "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
-    "createBank": "문제집 만들기",
-    "editBank": "문제집 수정",
-    "deleteBank": "문제집 삭제",
-    "deleteBankConfirmBody": "문제집 \"{{name}}\"을(를) 삭제하시겠습니까?",
-    "bankCreated": "문제집이 생성되었습니다",
-    "bankUpdated": "문제집이 업데이트되었습니다",
-    "bankDeleted": "문제집이 삭제되었습니다",
-    "description": "설명",
-    "category": "카테고리",
-    "categoryCoding": "프로그래밍",
-    "categoryExam": "지필 시험",
-    "prompt": "문제 설명",
-    "difficulty": "난이도",
-    "score": "배점",
-    "timeLimit": "시간 제한(ms)",
-    "memoryLimit": "메모리 제한(MB)",
-    "addQuestion": "문제 추가",
-    "editQuestion": "문제 수정",
-    "deleteQuestion": "문제 삭제",
-    "deleteQuestionConfirmBody": "문제 \"{{title}}\"을(를) 삭제하시겠습니까?",
-    "questionCreated": "문제가 생성되었습니다",
-    "questionUpdated": "문제가 업데이트되었습니다",
-    "questionDeleted": "문제가 삭제되었습니다",
-    "tabs": {
-      "mine": "내 문제집",
-      "explore": "탐색",
-      "inbox": "문제 가져오기"
-    },
-    "inbox": {
-      "title": "문제 가져오기",
-      "description": "대회에서 생성된 임시 문제를 특정 문제집으로 분류할 수 있습니다.",
-      "targetBank": "대상 문제집",
-      "ingesting": "가져오는 중...",
-      "ingestSuccess": "문제집으로 성공적으로 가져왔습니다",
-      "selectedCount": "{{count}}개 선택됨"
-    },
-    "emptyMine": "目前沒有題庫，先建立一個我的題庫。",
-    "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
-    "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
-    "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
-    "mockGalleryTitle": "Mock Card Gallery",
-    "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
-    "communityTag": "QJudge Community",
-    "mockOfficialTag": "Community 精選",
-    "mockUserPublicTag": "用戶 Public 題庫",
-    "mockVerifiedTag": "verified",
-    "mockQuestionCount": "{{count}} 題",
-    "mockOwnerLabel": "擁有者",
-    "mockOwnerPlatform": "QJudge Community",
-    "mockOwnerTeacherA": "陳老師",
-    "mockOwnerTeacherB": "林老師",
-    "mockOfficialBank1Name": "演算法入門 - 迭迴",
-    "mockOfficialBank1Desc": "從遞迴與基礎搜尋開始，逐步建立解題思維。",
-    "mockOfficialBank2Name": "資料結構實作題庫",
-    "mockOfficialBank2Desc": "以教學進度分層整理的資料結構與實作題。",
-    "mockUserBank1Name": "陳老師 APCS 練習集",
-    "mockUserBank1Desc": "教室實戰導向，聚焦 APCS 觀念與常見錯誤。",
-    "mockUserBank2Name": "林老師段考題庫",
-    "mockUserBank2Desc": "校內段考題型整理，附評分重點與難度分級。",
-    "tagMine": "我的題庫",
-    "tagPublic": "公開",
-    "tagPrivate": "私人",
-    "tagUserPublic": "用戶公開",
-    "openBank": "문제집 열기",
-    "bankNotFound": "找不到題庫",
-    "bankNotFoundDesc": "請回題庫列表重新選擇。",
-    "loadQuestions": "查看題目",
-    "clone": "複製到我的題庫",
-    "cloneSuccess": "내 문제집으로 복사되었습니다"
-  },
   "role": {
     "student": "학생",
-    "teacher": "교사",
+    "teacher": "교수",
     "ta": "조교",
     "admin": "관리자",
     "adminTA": "관리자 (TA)"

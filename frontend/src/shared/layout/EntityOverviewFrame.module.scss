@@ -1,12 +1,15 @@
 .root {
   height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .section {
   background: var(--cds-background);
   width: 100%;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem 4rem;
+  flex: 1;
 }
 
 .sectionInner {
@@ -38,6 +41,12 @@
 @media (max-width: 980px) {
   .bodyGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1056px) {
+  .section {
+    padding: 1.5rem 2rem;
   }
 }
 

@@ -4,6 +4,7 @@ import {
   HeaderNavigation,
   HeaderMenuItem,
   HeaderGlobalBar,
+  HeaderGlobalAction,
   SkipToContent,
   HeaderMenuButton,
   HeaderContainer,
@@ -20,6 +21,7 @@ import {
   Bullhorn,
   Settings,
   Education,
+  Globe,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -96,6 +98,15 @@ export const GlobalHeader = () => {
               ))}
             </HeaderNavigation>
             <HeaderGlobalBar>
+              {isTeacherOrAdmin && (
+                <HeaderGlobalAction
+                  aria-label={t("nav.marketplace", "Marketplace")}
+                  tooltipAlignment="end"
+                  onClick={() => navigate("/marketplace")}
+                >
+                  <Globe size={20} />
+                </HeaderGlobalAction>
+              )}
               <UserMenu />
             </HeaderGlobalBar>
 
@@ -137,6 +148,18 @@ export const GlobalHeader = () => {
                       isActive={location.pathname.startsWith("/question-banks")}
                     >
                       {t("nav.questionBanks", "Question Banks")}
+                    </SideNavLink>
+                    <SideNavLink
+                      renderIcon={Globe}
+                      href="#"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        navigate("/marketplace");
+                        onClickSideNavExpand();
+                      }}
+                      isActive={location.pathname.startsWith("/marketplace")}
+                    >
+                      {t("nav.marketplace", "Marketplace")}
                     </SideNavLink>
                     <SideNavLink
                       renderIcon={Trophy}

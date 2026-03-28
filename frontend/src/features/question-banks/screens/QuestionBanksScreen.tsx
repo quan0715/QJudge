@@ -12,7 +12,6 @@ import {
   TabPanel,
   Loading,
   Tile,
-  ClickableTile,
   Stack,
   Modal,
   TextInput,
@@ -22,16 +21,12 @@ import {
 } from "@carbon/react";
 import {
   Add,
-  Code,
-  CheckmarkFilled,
   Download,
-  Document,
 } from "@carbon/icons-react";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { useToast } from "@/shared/contexts";
+import { useAuth } from "@/features/auth";
 import type {
-  BankCategory,
-  ExploreBankItem,
   QuestionBank,
   QuestionInboxItem,
   QuestionInboxSummary,
@@ -40,10 +35,11 @@ import {
   create as createQuestionBank,
   ingestInbox,
   listInbox,
-  listExplore,
   listMine,
+  listReviewQueue,
 } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getQuestionVisualFromInboxItem, type QuestionVisualTone } from "@/shared/ui/questionVisual";
+import { BankGalleryCard } from "@/features/question-banks/components/BankGalleryCard";
 import styles from "./QuestionBanksScreen.module.scss";
 
 type InboxCategoryFilter = "all" | "coding" | "exam";
@@ -57,75 +53,16 @@ const INBOX_ICON_TONE_CLASS_MAP: Record<QuestionVisualTone, string> = {
   essay: styles.iconToneEssay,
 };
 
-interface BankGalleryCardProps {
-  title: string;
-  provider: string;
-  category: BankCategory;
-  providerVerified?: boolean;
-  downloads?: string;
-  onClick?: () => void;
-}
-
-const BankGalleryCard = ({
-  title,
-  provider,
-  category,
-  providerVerified = false,
-  downloads = "0",
-  onClick,
-}: BankGalleryCardProps) => {
-  const CardIcon = category === "exam" ? Document : Code;
-  const iconToneClass = category === "exam" ? styles.iconToneExam : styles.iconToneCoding;
-  const content = (
-    <>
-      <div className={styles.cover}>
-        <span className={styles.coverBadge}>QJudge Community</span>
-      </div>
-
-      <div className={styles.body}>
-        <div className={styles.titleRow}>
-          <div className={`${styles.iconWrap} ${iconToneClass}`}>
-            <CardIcon size={16} />
-          </div>
-          <div className={styles.titleContent}>
-            <div className={styles.titleLine}>
-              <h4 className={styles.title}>{title}</h4>
-              {providerVerified ? (
-                <CheckmarkFilled size={16} className={styles.verifiedIcon} />
-              ) : null}
-            </div>
-            <p className={styles.providerMetaRow}>
-              <span className={styles.provider}>by {provider}</span>
-              <span className={styles.metaItem}>
-                <Download size={12} aria-hidden />
-                {downloads}
-              </span>
-            </p>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  if (onClick) {
-    return (
-      <ClickableTile onClick={onClick} className={`${styles.galleryCard} ${styles.clickableCard}`}>
-        {content}
-      </ClickableTile>
-    );
-  }
-
-  return <Tile className={styles.galleryCard}>{content}</Tile>;
-};
-
 const QuestionBanksScreen = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const [mineBanks, setMineBanks] = useState<QuestionBank[]>([]);
-  const [exploreBanks, setExploreBanks] = useState<ExploreBankItem[]>([]);
+  const [reviewQueueBanks, setReviewQueueBanks] = useState<QuestionBank[]>([]);
   const [inbox, setInbox] = useState<QuestionInboxSummary>({
     coding: [],
     exam: [],
@@ -163,14 +100,18 @@ const QuestionBanksScreen = () => {
   const refreshBanks = async () => {
     try {
       setLoading(true);
-      const [mine, explore, inboxRows] = await Promise.all([
+      const [mine, inboxRows] = await Promise.all([
         listMine(),
-        listExplore(),
         listInbox(),
       ]);
       setMineBanks(mine);
-      setExploreBanks(explore);
       setInbox(inboxRows);
+      if (isAdmin) {
+        const queueRows = await listReviewQueue();
+        setReviewQueueBanks(queueRows);
+      } else {
+        setReviewQueueBanks([]);
+      }
     } catch (err: any) {
       showToast({
         kind: "error",
@@ -184,24 +125,24 @@ const QuestionBanksScreen = () => {
 
   useEffect(() => {
     void refreshBanks();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "explore") {
+    if (tab === "inbox") {
       setActiveTabIndex(1);
       return;
     }
-    if (tab === "inbox") {
+    if (isAdmin && tab === "review") {
       setActiveTabIndex(2);
       return;
     }
     if (inboxFilter !== "all") {
-      setActiveTabIndex(2);
+      setActiveTabIndex(1);
       return;
     }
     setActiveTabIndex(0);
-  }, [inboxFilter, searchParams]);
+  }, [inboxFilter, isAdmin, searchParams]);
 
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
     const nextIndex = selectedIndex;
@@ -212,10 +153,10 @@ const QuestionBanksScreen = () => {
         next.delete("tab");
         next.delete("category");
       } else if (nextIndex === 1) {
-        next.set("tab", "explore");
-        next.delete("category");
-      } else {
         next.set("tab", "inbox");
+      } else if (isAdmin && nextIndex === 2) {
+        next.set("tab", "review");
+        next.delete("category");
       }
       return next;
     });
@@ -390,7 +331,7 @@ const QuestionBanksScreen = () => {
             title={t("page.questionBanks", "題庫")}
             subtitle={t(
               "questionBank.subtitle",
-              "以教室化為中心管理我的題庫與探索題庫"
+              "以教室化為中心管理我的題庫與收編題目"
             )}
             action={
               <Button
@@ -408,11 +349,16 @@ const QuestionBanksScreen = () => {
         <Column lg={16} md={8} sm={4}>
           <Tabs selectedIndex={activeTabIndex} onChange={handleTabChange}>
             <TabList aria-label="question bank tabs">
-              <Tab>{t("questionBank.tabs.mine", "我的題庫")}</Tab>
-              <Tab>{t("questionBank.tabs.explore", "探索題庫")}</Tab>
-              <Tab>{t("questionBank.tabs.inbox", "收編題目")}</Tab>
-            </TabList>
-            <TabPanels>
+            <Tab>{t("questionBank.tabs.mine", "我的題庫")}</Tab>
+            <Tab>{t("questionBank.tabs.inbox", "收編題目")}</Tab>
+            {isAdmin && (
+              <Tab>
+                {t("questionBank.tabs.review", "送審佇列")}
+                {reviewQueueBanks.length > 0 ? ` (${reviewQueueBanks.length})` : ""}
+              </Tab>
+            )}
+          </TabList>
+          <TabPanels>
               <TabPanel>
                 {mineBanks.length === 0 ? (
                   <Tile>
@@ -434,32 +380,6 @@ const QuestionBanksScreen = () => {
                     ))}
                   </Grid>
                 )}
-              </TabPanel>
-
-              <TabPanel>
-                  {exploreBanks.length === 0 ? (
-                    <Tile>
-                      {t(
-                        "questionBank.emptyExplore",
-                        "探索題庫目前僅平台提供；暫無可探索內容。"
-                      )}
-                    </Tile>
-                  ) : (
-                    <Grid fullWidth>
-                      {exploreBanks.map((bank) => (
-                        <Column key={bank.id} lg={4} md={4} sm={4}>
-                          <BankGalleryCard
-                            title={bank.name}
-                            category={bank.category}
-                            provider={bank.ownerUsername || t("questionBank.mockOwnerPlatform", "QJudge Community")}
-                            providerVerified={bank.verified}
-                            downloads={buildMetric(Math.max(300, bank.questionCount * 96))}
-                            onClick={() => navigate(`/question-banks/${bank.id}?from=explore`)}
-                          />
-                        </Column>
-                      ))}
-                    </Grid>
-                  )}
               </TabPanel>
 
               <TabPanel>
@@ -574,10 +494,34 @@ const QuestionBanksScreen = () => {
                     </div>
                   )}
                 </Stack>
+            </TabPanel>
+            {isAdmin && (
+              <TabPanel>
+                {reviewQueueBanks.length === 0 ? (
+                  <Tile>
+                    {t("questionBank.emptyReviewQueue", "目前沒有待審核題庫。")}
+                  </Tile>
+                ) : (
+                  <Grid fullWidth>
+                    {reviewQueueBanks.map((bank) => (
+                      <Column key={bank.id} lg={4} md={4} sm={4}>
+                        <BankGalleryCard
+                          title={bank.name}
+                          category={bank.category}
+                          provider={bank.ownerUsername || "-"}
+                          providerVerified={bank.verified}
+                          downloads={buildMetric(Math.max(1, bank.questionCount))}
+                          onClick={() => navigate(`/question-banks/${bank.id}?panel=settings`)}
+                        />
+                      </Column>
+                    ))}
+                  </Grid>
+                )}
               </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Column>
+            )}
+          </TabPanels>
+        </Tabs>
+      </Column>
       </Grid>
 
       <Modal

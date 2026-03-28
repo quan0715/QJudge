@@ -1,30 +1,62 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
+// Must match QJudgeHeroWidget .inner padding-inline ($spacing-10)
+$dashboard-padding-inline: layout.$spacing-10;
+
 .dashboard-classroom {
-  padding-top: layout.$spacing-06;
   padding-bottom: layout.$spacing-08;
 }
 
+// ── Hero action buttons ──
+.dashboard-hero__actions {
+  display: flex;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+}
+
+// ── Main content area ──
 .dashboard-classroom__main {
   min-width: 0;
+  padding: layout.$spacing-05 $dashboard-padding-inline 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
 }
 
-.dashboard-classroom__layout {
-  row-gap: layout.$spacing-05;
-}
-
+// ── Sections ──
 .dashboard-classroom__section {
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-04;
 }
 
-.dashboard-classroom__section-header h4 {
-  margin: 0;
-  @include type.type-style("productive-heading-02");
+.dashboard-classroom__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h4 {
+    margin: 0;
+    @include type.type-style("productive-heading-02");
+  }
 }
 
+.dashboard-classroom__section-header-link {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-link-primary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Classroom card grid ──
 .dashboard-classroom__grid {
   display: grid;
   gap: layout.$spacing-04;
@@ -37,7 +69,7 @@
 }
 
 .dashboard-classroom__card {
-  min-height: layout.rem(224px);
+  min-height: 0;
   border: 1px solid var(--cds-border-subtle);
   padding: 0;
   overflow: hidden;
@@ -47,8 +79,8 @@
 
   &:hover {
     border-color: var(--cds-border-interactive);
-    box-shadow: 0 layout.rem(8px) layout.rem(20px) rgba(0, 0, 0, 0.18);
-    transform: translateY(layout.rem(-2px));
+    box-shadow: 0 layout.rem(6px) layout.rem(14px) rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
   }
 }
 
@@ -75,10 +107,10 @@
   position: absolute;
   right: layout.$spacing-04;
   bottom: layout.rem(-18px);
-  width: layout.rem(36px);
-  height: layout.rem(36px);
-  border-radius: 50%;
-  border: 2px solid var(--cds-layer-01);
+  width: layout.rem(44px);
+  height: layout.rem(44px);
+  border-radius: 4px;
+  border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer);
   color: var(--cds-icon-primary);
   display: inline-flex;
@@ -95,7 +127,6 @@
   flex-direction: column;
   gap: layout.$spacing-03;
   padding: layout.rem(26px) layout.$spacing-04 layout.$spacing-04;
-  min-height: layout.rem(96px);
 }
 
 .dashboard-classroom__card-description {
@@ -120,6 +151,13 @@
   text-overflow: ellipsis;
 }
 
+// ── Mini card (mobile, no banner) ──
+// Hidden by default; shown on small screens
+.dashboard-classroom__card-mini-body {
+  display: none;
+}
+
+// ── Empty states ──
 .dashboard-classroom__empty-tile {
   border: 1px solid var(--cds-border-subtle);
 }
@@ -128,7 +166,7 @@
   display: flex;
   align-items: center;
   gap: layout.$spacing-04;
-  min-height: layout.rem(144px);
+  min-height: layout.rem(100px);
   color: var(--cds-text-secondary);
 
   h4 {
@@ -143,7 +181,107 @@
   }
 }
 
-@media (max-width: 900px) {
+// ── Question bank grid ──
+.dashboard-classroom__bank-grid {
+  display: grid;
+  gap: layout.$spacing-04;
+  grid-template-columns: repeat(auto-fill, minmax(layout.rem(260px), 1fr));
+}
+
+.dashboard-classroom__bank-empty {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-05;
+  color: var(--cds-text-secondary);
+
+  h4 {
+    margin: 0;
+    @include type.type-style("productive-heading-01");
+    color: var(--cds-text-primary);
+  }
+
+  p {
+    margin: layout.$spacing-02 0 0;
+    @include type.type-style("body-short-01");
+  }
+}
+
+// ── Mobile: mini card view ──
+@media (max-width: 672px) {
+  $mobile-padding: layout.$spacing-05;
+
+  .dashboard-classroom__main {
+    padding: layout.$spacing-04 $mobile-padding 0;
+  }
+
+  // Switch to mini cards: hide banner, show inline mini body
+  .dashboard-classroom__card-banner {
+    display: none;
+  }
+
+  .dashboard-classroom__card-avatar {
+    display: none;
+  }
+
+  .dashboard-classroom__card-body {
+    display: none;
+  }
+
+  .dashboard-classroom__card-mini-body {
+    display: flex;
+    align-items: center;
+    gap: layout.$spacing-03;
+    padding: layout.$spacing-03 layout.$spacing-04;
+  }
+
+  .dashboard-classroom__card-mini-icon {
+    flex-shrink: 0;
+    width: layout.rem(32px);
+    height: layout.rem(32px);
+    border-radius: 4px;
+    background: var(--cds-layer-accent-01);
+    color: var(--cds-icon-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { fill: currentColor; }
+  }
+
+  .dashboard-classroom__card-mini-info {
+    min-width: 0;
+    flex: 1;
+
+    h4 {
+      margin: 0;
+      @include type.type-style("body-compact-01");
+      font-weight: 500;
+      color: var(--cds-text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    p {
+      margin: 0;
+      @include type.type-style("label-01");
+      color: var(--cds-text-secondary);
+    }
+  }
+
+  .dashboard-classroom__grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .dashboard-classroom__empty {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 673px) {
   .dashboard-classroom__empty {
     flex-direction: column;
     align-items: flex-start;

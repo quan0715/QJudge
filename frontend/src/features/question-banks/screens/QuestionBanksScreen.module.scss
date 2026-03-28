@@ -1,10 +1,14 @@
 /* ── Bank gallery cards (explore / mine tabs) ── */
+/* Mirrors the classroom preview card layout from DashboardScreen */
 
 .galleryCard {
-  height: 100%;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--cds-border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .clickableCard {
@@ -13,71 +17,84 @@
 
 .clickableCard:hover {
   border-color: var(--cds-border-interactive);
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
 }
 
-.cover {
-  aspect-ratio: 16 / 6.2;
-  min-height: 118px;
+.banner {
+  min-height: 7.25rem;
+  padding: 1rem;
+  position: relative;
+  color: #fff;
   background-image:
-    linear-gradient(140deg, rgba(10, 14, 24, 0.62), rgba(16, 28, 48, 0.55)),
+    linear-gradient(150deg, rgba(9, 30, 66, 0.18) 0%, rgba(6, 16, 36, 0.78) 72%, rgba(6, 16, 36, 0.92) 100%),
     url("./community-cover.jpg");
   background-size: cover;
   background-position: center 40%;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  padding: 0.55rem 0.68rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
 }
 
-.coverBadge {
-  font-size: 0.64rem;
-  letter-spacing: 0.01em;
-  padding: 0.14rem 0.42rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.56);
-  color: #f8fafc;
+.bannerTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.body {
-  padding: 0.74rem 0.78rem 0.82rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.titleRow {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.titleContent {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.titleLine {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-}
-
-.iconWrap {
-  width: 1.36rem;
-  height: 1.36rem;
-  border-radius: 999px;
+.bannerAvatar {
+  position: absolute;
+  right: 1rem;
+  bottom: -1.125rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  color: var(--cds-icon-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--cds-icon-secondary);
-  background: var(--cds-layer-hover);
-  border: 1px solid var(--cds-border-subtle);
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.625rem 1rem 1rem;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--cds-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.verifiedIcon {
+  color: #0f62fe;
   flex-shrink: 0;
 }
 
-/* ── Shared icon tone classes ── */
+.meta {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+/* ── Shared icon tone classes (used by inbox cards) ── */
 
 .iconToneCoding {
   color: var(--cds-link-primary);
@@ -105,43 +122,6 @@
 
 .iconToneEssay {
   color: var(--cds-support-error);
-}
-
-.title {
-  margin: 0;
-  font-size: 0.83rem;
-  line-height: 1.25;
-  font-weight: 500;
-}
-
-.provider {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: 0.7rem;
-  line-height: 1.3;
-  font-weight: 400;
-}
-
-.verifiedIcon {
-  color: #0f62fe;
-  flex-shrink: 0;
-}
-
-.providerMetaRow {
-  margin: 0.12rem 0 0;
-  display: flex;
-  align-items: center;
-  gap: 0.28rem;
-  color: var(--cds-text-secondary);
-  font-size: 0.69rem;
-  line-height: 1.3;
-  white-space: nowrap;
-}
-
-.metaItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
 }
 
 /* ── Inbox tab ── */

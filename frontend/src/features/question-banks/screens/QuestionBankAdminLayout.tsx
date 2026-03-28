@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
 import { HeaderGlobalAction, HeaderName } from "@carbon/react";
-import { Dashboard, Education, Launch, Renew, Settings } from "@carbon/icons-react";
+import { Dashboard, Education, Launch, Settings } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
-export type QuestionBankAdminPanelId = "overview" | "problem_management" | "settings";
+export type QuestionBankAdminPanelId = "overview" | "problem_management";
 
 interface QuestionBankAdminLayoutProps {
   bankName: string;
   activePanel: QuestionBankAdminPanelId;
   onPanelChange: (panel: QuestionBankAdminPanelId) => void;
   onBack: () => void;
-  onRefresh: () => void;
+  onOpenSettings: () => void;
   readOnly?: boolean;
   children: ReactNode;
 }
@@ -29,7 +29,6 @@ const NAV_ITEMS: Array<{
     labelKey: "page.problemManagement",
     fallback: "題目管理",
   },
-  { id: "settings", icon: Settings, labelKey: "tab.settings", fallback: "設定" },
 ];
 
 const QuestionBankAdminLayout = ({
@@ -37,7 +36,7 @@ const QuestionBankAdminLayout = ({
   activePanel,
   onPanelChange,
   onBack,
-  onRefresh,
+  onOpenSettings,
   readOnly = false,
   children,
 }: QuestionBankAdminLayoutProps) => {
@@ -65,13 +64,15 @@ const QuestionBankAdminLayout = ({
       }
       headerActions={
         <>
-          <HeaderGlobalAction
-            aria-label={t("action.refresh", "重新整理")}
-            tooltipAlignment="end"
-            onClick={onRefresh}
-          >
-            <Renew size={20} />
-          </HeaderGlobalAction>
+          {!readOnly && (
+            <HeaderGlobalAction
+              aria-label={t("tab.settings", "設定")}
+              tooltipAlignment="end"
+              onClick={onOpenSettings}
+            >
+              <Settings size={20} />
+            </HeaderGlobalAction>
+          )}
           <HeaderGlobalAction
             aria-label={t("questionBank.backToBanks", "回到題庫列表")}
             tooltipAlignment="end"

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Button, Modal, TextInput } from "@carbon/react";
-import { CloudUpload, Edit, TrashCan } from "@carbon/icons-react";
+import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
 import "./ImageEditDialog.scss";
 
 type ImageEditVariant = "avatar" | "cover";
@@ -93,6 +93,10 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
       >
         {previewUrl ? (
           <img src={previewUrl} alt={alt} />
+        ) : variant === "avatar" ? (
+          <div className="image-edit-dialog__empty">
+            <UserAvatar size={24} />
+          </div>
         ) : (
           <div className="image-edit-dialog__empty">
             <CloudUpload size={20} />

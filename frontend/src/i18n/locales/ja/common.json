@@ -2,16 +2,20 @@
   "nav": {
     "dashboard": "ダッシュボード",
     "problems": "問題",
+    "problemsLegacy": "問題 (旧)",
+    "questionBanks": "問題集",
     "contests": "コンテスト",
+    "marketplace": "問題集マーケット",
     "classrooms": "クラスルーム",
     "submissions": "提出履歴",
     "ranking": "ランキング",
     "documentation": "ドキュメント",
     "backToProblemList": "問題一覧に戻る",
     "problemList": "問題一覧",
-    "back": "戻る",
-    "problemsLegacy": "題目（舊）",
-    "questionBanks": "題庫"
+    "back": "戻る"
+  },
+  "common": {
+    "locale": "ja-JP"
   },
   "page": {
     "dashboard": "ダッシュボード",
@@ -28,11 +32,11 @@
     "createContest": "コンテストを作成",
     "createProblem": "問題を新規作成",
     "editProblem": "問題を編集",
-    "teacherDashboard": "Teacher Dashboard",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management",
-    "questionBanks": "題庫",
-    "problemManagementLegacy": "題目管理（舊）"
+    "questionBanks": "問題集",
+    "teacherDashboard": "教師ダッシュボード",
+    "problemManagement": "問題管理",
+    "problemManagementLegacy": "問題管理 (旧)",
+    "contestManagement": "コンテスト管理"
   },
   "tab": {
     "overview": "概要",
@@ -92,7 +96,111 @@
       "title": "お知らせ",
       "subtitle": "最新のお知らせ",
       "noAnnouncements": "お知らせはありません"
+    },
+    "kpi": {
+      "classrooms": "クラスルーム",
+      "questionBanks": "問題集"
+    },
+    "questionBanksSection": {
+      "title": "マイ問題集",
+      "viewAll": "すべて表示",
+      "empty": "問題集がまだありません。",
+      "emptyHint": "問題集を作成して問題を整理しましょう。"
+    },
+    "classroomHub": {
+      "welcomeBack": "おかえりなさい",
+      "selectSubtitle": "クラスルームを選択してメインページに移動",
+      "loadFailed": "クラスルームの読み込みに失敗しました",
+      "loadFailedHint": "後でもう一度お試しください",
+      "listTitle": "マイクラスルーム",
+      "emptyTitle": "まだクラスルームに参加していません",
+      "emptyDesc": "クラスルームを作成するか、招待コードで参加してください。",
+      "noDescription": "説明が設定されていません"
     }
+  },
+  "questionBank": {
+    "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
+    "createBank": "問題集を作成",
+    "editBank": "問題集を編集",
+    "deleteBank": "問題集を削除",
+    "deleteBankConfirmBody": "問題集「{{name}}」を削除してもよろしいですか？",
+    "bankCreated": "問題集が作成されました",
+    "bankUpdated": "問題集が更新されました",
+    "bankDeleted": "問題集が削除されました",
+    "description": "説明",
+    "category": "カテゴリー",
+    "categoryCoding": "プログラミング",
+    "categoryExam": "筆記試験",
+    "prompt": "問題文",
+    "difficulty": "難易度",
+    "score": "得点",
+    "timeLimit": "時間制限(ms)",
+    "memoryLimit": "メモリ制限(MB)",
+    "addQuestion": "問題を追加",
+    "editQuestion": "問題を編集",
+    "deleteQuestion": "問題を削除",
+    "deleteQuestionConfirmBody": "問題「{{title}}」を削除してもよろしいですか？",
+    "questionCreated": "問題が作成されました",
+    "questionUpdated": "問題が更新されました",
+    "questionDeleted": "問題が削除されました",
+    "tabs": {
+      "mine": "マイ問題集",
+      "explore": "探索",
+      "inbox": "問題取り込み"
+    },
+    "inbox": {
+      "title": "問題取り込み",
+      "description": "コンテスト内で一時的に作成された問題を問題集に分類できます。",
+      "coding": "プログラミング問題選択リスト",
+      "exam": "筆記試験問題選択リスト",
+      "empty": "現在、選択可能な問題はありません。",
+      "fromUnknown": "ソース不明",
+      "targetBank": "対象の問題集",
+      "noCodingBank": "プログラミング問題集なし",
+      "noExamBank": "筆記試験問題集なし",
+      "ingesting": "取り込み中...",
+      "ingestSelected": "選択した問題を取り込む",
+      "ingestSuccess": "問題集に取り込みました",
+      "selectAll": "すべて選択",
+      "clearSelection": "選択を解除",
+      "selectedCount": "{{count}} 件選択済み",
+      "filterLabel": "表示範囲",
+      "filterAll": "すべて",
+      "currentFilter": "現在表示中"
+    },
+    "emptyMine": "問題集がありません。まずはマイ問題集を作成しましょう。",
+    "emptyExplore": "探索可能な問題集はありません。",
+    "exploreOnlyPlatform": "探索は現在 QJudge Community のみ対応しています",
+    "exploreOnlyPlatformDesc": "Phase1 では教員間の共有は含まれず、Community の検証済み問題集が中心となります。",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockGalleryDesc": "UI モックのプレビューです。QJudge Community のカード例を示します。",
+    "communityTag": "QJudge Community",
+    "mockOfficialTag": "Community セレクト",
+    "mockUserPublicTag": "ユーザー公開",
+    "mockVerifiedTag": "認証済み",
+    "mockQuestionCount": "{{count}} 問",
+    "mockOwnerLabel": "所有者",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "陳先生",
+    "mockOwnerTeacherB": "林先生",
+    "mockOfficialBank1Name": "アルゴリズム入門 - 再帰",
+    "mockOfficialBank1Desc": "再帰と基礎的な探索から、思考力を養います。",
+    "mockOfficialBank2Name": "データ構造実装問題集",
+    "mockOfficialBank2Desc": "学習の進捗に合わせたデータ構造の実装問題。",
+    "mockUserBank1Name": "陳先生の APCS 演習",
+    "mockUserBank1Desc": "APCS の概念とよくある間違いに焦点を当てた演習。",
+    "mockUserBank2Name": "林先生の定期試験問題集",
+    "mockUserBank2Desc": "校内定期試験の過去問。評価ポイントと難易度付き。",
+    "tagMine": "マイ問題集",
+    "tagPublic": "公開",
+    "tagPrivate": "プライベート",
+    "tagUserPublic": "ユーザー公開",
+    "openBank": "問題集を開く",
+    "bankNotFound": "問題集が見つかりません",
+    "bankNotFoundDesc": "問題集一覧に戻って再選択してください。",
+    "loadQuestions": "問題を見る",
+    "clone": "マイ問題集にコピー",
+    "cloneSuccess": "マイ問題集にコピーされました"
   },
   "button": {
     "confirm": "確認",
@@ -166,29 +274,154 @@
     "changePassword": "パスワード変更",
     "currentPassword": "現在のパスワード",
     "newPassword": "新しいパスワード",
-    "confirmPassword": "新しいパスワード（確認）",
+    "confirmPassword": "新しいパスワード (確認)",
     "passwordChanged": "パスワードが変更されました",
     "passwordMismatch": "新しいパスワードが一致しません",
     "wrongPassword": "現在のパスワードが間違っています",
-    "oauthUser": "OAuthユーザーはパスワードを変更できません",
-    "themeDescription": "お好みのインターフェーステーマを選択してください",
-    "languageDescription": "お好みのインターフェース言語を選択してください",
-    "avatarEmpty": "アバターを追加",
-    "editAvatar": "アバターを編集",
-    "avatarUpload": "アバターをアップロード",
-    "avatarRemove": "アバターを削除",
-    "avatarDropzoneTitle": "ここに画像をドラッグ",
-    "avatarDropzoneHint": "またはここをクリックして画像ファイルを選択",
-    "savingDisplayName": "保存中...",
-    "displayNameSaved": "更新しました",
-    "displayNameSaveFailed": "更新に失敗しました",
-    "role": "役割",
-    "loginMethod": "ログイン方法"
+    "oauthUser": "OAuth ユーザーはパスワードを変更できません"
   },
   "settings": {
     "title": "設定",
     "description": "設定、API Key、使用量統計を管理します",
-    "descriptionStudent": "設定を管理します"
+    "descriptionStudent": "設定を管理します",
+    "tabs": {
+      "profile": "プロフィール",
+      "preferences": "基本設定",
+      "apiKey": "API Key",
+      "plans": "プラン",
+      "subscription": "購読状況",
+      "usage": "利用統計"
+    },
+    "subscription": {
+      "manage": "購読を管理",
+      "manageDesc": "支払い方法の変更、解約、請求書の確認",
+      "openPortalFailed": "管理ページの起動に失敗しました",
+      "trialEndDate": "試用終了日",
+      "periodEndDate": "現在の期間終了",
+      "tier": {
+        "free": "無料プラン",
+        "pro": "プロプラン",
+        "team": "チームプラン",
+        "enterprise": "エンタープライズ"
+      },
+      "status": {
+        "active": "有効",
+        "trialing": "試用中",
+        "past_due": "支払い遅延",
+        "canceled": "解約済み",
+        "expired": "期限切れ"
+      },
+      "desc": {
+        "free": "現在は無料プランです。いつでもアップグレード可能です。",
+        "pro": "安定した試験環境を求める個人ユーザー向け",
+        "team": "学校、学部、トレーニング機関向け"
+      }
+    },
+    "loginRecords": {
+      "title": "デバイス管理",
+      "description": "過去30日間のログイン履歴",
+      "logoutOther": "他デバイスからログアウト",
+      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
+      "logoutSuccess": "他デバイスからログアウトしました",
+      "logoutError": "ログアウトに失敗しました",
+      "empty": "履歴がありません",
+      "deviceName": "デバイス名",
+      "lastActive": "最終アクティビティ",
+      "current": "現在のデバイス",
+      "now": "現在"
+    },
+    "apiKey": {
+      "title": "API Key",
+      "description": "AI機能用の Anthropic API Key を管理します",
+      "empty": "API Key が設定されていません。Anthropic Console で作成してください。",
+      "addKey": "API Key を追加",
+      "updateKey": "Key を更新",
+      "deleteKey": "Key を削除",
+      "deleteConfirm": "API Key を削除してもよろしいですか？ AI機能が利用できなくなります。",
+      "nameLabel": "名前",
+      "statusLabel": "ステータス",
+      "createdAtLabel": "作成日時",
+      "validated": "検証済み",
+      "invalid": "未検証",
+      "active": "有効",
+      "inactive": "無効",
+      "modal": {
+        "addTitle": "API Key を追加",
+        "updateTitle": "API Key を更新",
+        "nameInput": "名前 (任意)",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "helperText": "API Key は暗号化して保存されます",
+        "saveSuccess": "API Key を保存しました",
+        "deleteSuccess": "API Key を削除しました"
+      },
+      "usage": {
+        "title": "利用統計",
+        "description": "AI API の利用状況サマリーと詳細",
+        "totalTokens": "総トークン数",
+        "totalRequests": "総リクエスト数",
+        "totalCost": "総費用",
+        "startDate": "開始日",
+        "endDate": "終了日",
+        "granularity": "粒度",
+        "daily": "日次",
+        "weekly": "週次",
+        "monthly": "月次",
+        "noData": "選択された範囲に利用データはありません",
+        "table": {
+          "date": "日付",
+          "requests": "リクエスト数",
+          "inputTokens": "入力トークン",
+          "outputTokens": "出力トークン",
+          "cost": "費用 (USD)"
+        }
+      },
+      "error": {
+        "loadFailed": "API Key 情報の取得に失敗しました",
+        "usageLoadFailed": "利用データの取得に失敗しました",
+        "inputRequired": "API Key を入力してください",
+        "invalidFormat": "形式が正しくありません ('sk-ant-' で始まっている必要があります)",
+        "saveFailed": "保存に失敗しました",
+        "deleteFailed": "削除に失敗しました"
+      }
+    },
+    "plans": {
+      "title": "プランを見る",
+      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
+      "enterpriseTitle": "より大規模な利用をお考えですか？",
+      "contactUs": "お問い合わせ",
+      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
+      "freeTrial": "30日間無料",
+      "startingTrial": "無料試用を開始",
+      "subscribeNow": "今すぐ購読",
+      "processing": "処理中...",
+      "month": "月",
+      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
+      "features": {
+        "pro": [
+          "試験あたり最大 200 人",
+          "500 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "1 年間のデータ保持",
+          "10 GB のストレージ容量"
+        ],
+        "team": [
+          "試験あたり最大 500 人",
+          "2,000 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "最大 10 人の管理者",
+          "50 GB のストレージ容量"
+        ]
+      }
+    }
+  },
+  "profile": {
+    "personalInfo": "個人情報",
+    "devices": "デバイス管理",
+    "devicesDesc": "過去30日間のログイン履歴",
+    "deviceName": "デバイス名",
+    "lastActive": "最終アクティビティ",
+    "now": "現在"
   },
   "table": {
     "title": "タイトル",
@@ -196,7 +429,7 @@
     "time": "時間",
     "visibility": "公開設定",
     "actions": "操作",
-    "private": "非公開（パスワード）",
+    "private": "非公開 (パスワード)",
     "public": "公開"
   },
   "user": {
@@ -206,12 +439,17 @@
       "student": "学生",
       "teacher": "教員",
       "admin": "管理者",
-      "adminTA": "管理者（TA）"
+      "adminTA": "管理者 (TA)"
     }
   },
   "auth": {
+    "logout": {
+      "confirmTitle": "ログアウトの確認",
+      "confirmMessage": "現在のアカウントからログアウトしますか？",
+      "confirmButton": "ログアウト"
+    },
     "login": {
-      "heroTitle": "AI世代の新しい試験体験",
+      "heroTitle": "AI 世代の新しい試験体験",
       "heroSubtitle": "オンラインテスト専用設計 - 出題から試験、分析までワンストップで完結",
       "feature1Title": "秒速の採点",
       "feature1Desc": "リアルタイムなフィードバック",
@@ -228,59 +466,26 @@
       "submit": "ログイン",
       "loading": "ログイン中...",
       "or": "または、他の方法でログイン",
-      "ssoLogin": "SSOでログイン",
-      "googleLogin": "Googleでログイン",
-      "githubLogin": "GitHubでログイン",
+      "ssoLogin": "SSO でログイン",
+      "googleLogin": "Google でログイン",
+      "githubLogin": "GitHub でログイン",
       "noAccount": "アカウントをお持ちでない方は",
       "registerNow": "新規登録",
       "failed": "ログインに失敗しました",
       "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
       "oauthFailed": "ログインを開始できませんでした"
     },
-    "campusSso": {
-      "title": "キャンパス認証",
-      "subtitle": "ログインする大学を選択してください",
-      "redirecting": "ログインページにリダイレクト中...",
-      "backToLogin": "ログインに戻る",
-      "providers": {
-        "nycu": {
-          "name": "NYCU (国立陽明交通大学)",
-          "description": "大学のポータルアカウントを使用してログインします"
-        }
-      }
-    },
-    "register": {
-      "title": "アカウント作成",
-      "subtitle": "QJudgeに参加して、プログラミングの旅を始めましょう",
-      "username": "ユーザー名",
-      "usernamePlaceholder": "ユーザー名を選択",
-      "email": "メールアドレス",
-      "emailPlaceholder": "メールアドレスを入力",
-      "password": "パスワード",
-      "passwordPlaceholder": "パスワードを作成",
-      "confirmPassword": "パスワード確認",
-      "confirmPasswordPlaceholder": "パスワードを再入力",
-      "submit": "登録",
-      "loading": "登録中...",
-      "hasAccount": "すでにアカウントをお持ちの方は",
-      "loginNow": "ログイン",
-      "failed": "登録に失敗しました",
-      "failedRetry": "登録に失敗しました。後でもう一度お試しください",
-      "passwordMismatch": "パスワードが一致しません",
-      "passwordHelper": "少なくとも8文字で、数字のみや一般的なパスワードは避けてください。",
-      "passwordTooShort": "パスワードは少なくとも8文字である必要があります。"
-    },
     "callback": {
-      "conflictTitle": "試験の競合",
-      "errorTitle": "ログイン失敗",
-      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
-      "failed": "ログインに失敗しました。もう一度お試しください。",
       "loading": "本人確認中",
       "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
       "noCode": "認証コードが受信されませんでした。",
+      "failed": "ログインに失敗しました。もう一度お試しください。",
+      "errorTitle": "ログイン失敗",
+      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
+      "conflictTitle": "試験の競合",
       "takeover": "引き継いで古いデバイスをロックする",
-      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
       "takingOver": "処理中...",
+      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
       "verifyingSession": "同步作業階段中...",
       "connecting": "連線中...",
       "pleaseWait": "請稍候",
@@ -296,6 +501,39 @@
         "igniting": "エンジン点火中..."
       },
       "finalTouch": "正在進行最後確認..."
+    },
+    "campusSso": {
+      "title": "キャンパス認証",
+      "subtitle": "ログインする大学を選択してください",
+      "redirecting": "ログインページにリダイレクト中...",
+      "backToLogin": "ログインに戻る",
+      "providers": {
+        "nycu": {
+          "name": "NYCU (国立陽明交通大学)",
+          "description": "大学のポータルアカウントを使用してログインします"
+        }
+      }
+    },
+    "register": {
+      "title": "アカウント作成",
+      "subtitle": "QJudge に参加して、プログラミングの旅を始めましょう",
+      "username": "ユーザー名",
+      "usernamePlaceholder": "ユーザー名を選択",
+      "email": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワードを作成",
+      "confirmPassword": "パスワード確認",
+      "confirmPasswordPlaceholder": "パスワードを再入力",
+      "passwordHelper": "少なくとも 8 文字で、数字のみや一般的なパスワードは避けてください。",
+      "passwordTooShort": "パスワードは少なくとも 8 文字である必要があります。",
+      "submit": "登録",
+      "loading": "登録中...",
+      "hasAccount": "すでにアカウントをお持ちの方は",
+      "loginNow": "ログイン",
+      "failed": "登録に失敗しました",
+      "failedRetry": "登録に失敗しました。後でもう一度お試しください",
+      "passwordMismatch": "パスワードが一致しません"
     }
   },
   "status": {
@@ -380,83 +618,11 @@
     },
     "description": {
       "true_false": "文が正しいか正しくないか判断",
-      "single_choice": "複数の選択肢から1つの正解を選択",
+      "single_choice": "複数の選択肢から 1 つの正解を選択",
       "multiple_choice": "複数の選択肢から複数の正解を選択",
       "short_answer": "短いテキストを入力して回答",
-      "essay": "長文テキストで回答（参考解答あり）"
+      "essay": "長文テキストで回答 (参考解答あり)"
     }
-  },
-  "questionBank": {
-    "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
-    "createBank": "問題集を作成",
-    "editBank": "問題集を編集",
-    "deleteBank": "問題集を削除",
-    "deleteBankConfirmBody": "問題集「{{name}}」を削除してもよろしいですか？",
-    "bankCreated": "問題集が作成されました",
-    "bankUpdated": "問題集が更新されました",
-    "bankDeleted": "問題集が削除されました",
-    "description": "説明",
-    "category": "カテゴリー",
-    "categoryCoding": "プログラミング",
-    "categoryExam": "筆記試験",
-    "prompt": "問題文",
-    "difficulty": "難易度",
-    "score": "得点",
-    "timeLimit": "時間制限(ms)",
-    "memoryLimit": "メモリ制限(MB)",
-    "addQuestion": "問題を追加",
-    "editQuestion": "問題を編集",
-    "deleteQuestion": "問題を削除",
-    "deleteQuestionConfirmBody": "問題「{{title}}」を削除してもよろしいですか？",
-    "questionCreated": "問題が作成されました",
-    "questionUpdated": "問題が更新されました",
-    "questionDeleted": "問題が削除されました",
-    "tabs": {
-      "mine": "マイ問題集",
-      "explore": "探索",
-      "inbox": "問題取り込み"
-    },
-    "inbox": {
-      "title": "問題取り込み",
-      "description": "コンテスト内で一時的に作成された問題を問題集に分類できます。",
-      "targetBank": "対象の問題集",
-      "ingesting": "取り込み中...",
-      "ingestSuccess": "問題集に取り込みました",
-      "selectedCount": "{{count}} 件選択済み"
-    },
-    "emptyMine": "目前沒有題庫，先建立一個我的題庫。",
-    "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
-    "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
-    "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
-    "mockGalleryTitle": "Mock Card Gallery",
-    "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
-    "communityTag": "QJudge Community",
-    "mockOfficialTag": "Community 精選",
-    "mockUserPublicTag": "用戶 Public 題庫",
-    "mockVerifiedTag": "verified",
-    "mockQuestionCount": "{{count}} 題",
-    "mockOwnerLabel": "擁有者",
-    "mockOwnerPlatform": "QJudge Community",
-    "mockOwnerTeacherA": "陳老師",
-    "mockOwnerTeacherB": "林老師",
-    "mockOfficialBank1Name": "演算法入門 - 迭迴",
-    "mockOfficialBank1Desc": "從遞迴與基礎搜尋開始，逐步建立解題思維。",
-    "mockOfficialBank2Name": "資料結構實作題庫",
-    "mockOfficialBank2Desc": "以教學進度分層整理的資料結構與實作題。",
-    "mockUserBank1Name": "陳老師 APCS 練習集",
-    "mockUserBank1Desc": "教室實戰導向，聚焦 APCS 觀念與常見錯誤。",
-    "mockUserBank2Name": "林老師段考題庫",
-    "mockUserBank2Desc": "校內段考題型整理，附評分重點與難度分級。",
-    "tagMine": "我的題庫",
-    "tagPublic": "公開",
-    "tagPrivate": "私人",
-    "tagUserPublic": "用戶公開",
-    "openBank": "問題集を開く",
-    "bankNotFound": "找不到題庫",
-    "bankNotFoundDesc": "請回題庫列表重新選擇。",
-    "loadQuestions": "查看題目",
-    "clone": "複製到我的題庫",
-    "cloneSuccess": "マイ問題集にコピーされました"
   },
   "role": {
     "student": "学生",

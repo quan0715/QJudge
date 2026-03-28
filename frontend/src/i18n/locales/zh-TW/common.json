@@ -5,6 +5,7 @@
     "problemsLegacy": "題目（舊）",
     "questionBanks": "題庫",
     "contests": "競賽",
+    "marketplace": "題庫市集",
     "classrooms": "教室",
     "submissions": "提交紀錄",
     "ranking": "排行榜",
@@ -95,6 +96,26 @@
       "title": "公告",
       "subtitle": "最新公告",
       "noAnnouncements": "目前沒有公告"
+    },
+    "kpi": {
+      "classrooms": "教室",
+      "questionBanks": "題庫"
+    },
+    "questionBanksSection": {
+      "title": "我的題庫",
+      "viewAll": "查看全部",
+      "empty": "尚無題庫",
+      "emptyHint": "建立題庫以開始整理題目。"
+    },
+    "classroomHub": {
+      "welcomeBack": "歡迎回來",
+      "selectSubtitle": "選一個教室，直接進入教室主頁",
+      "loadFailed": "載入教室失敗",
+      "loadFailedHint": "請稍後再試",
+      "listTitle": "我的教室",
+      "emptyTitle": "尚未加入任何教室",
+      "emptyDesc": "先建立教室或透過邀請碼加入教室。",
+      "noDescription": "尚未設定教室描述"
     }
   },
   "questionBank": {
@@ -435,6 +456,11 @@
     }
   },
   "auth": {
+    "logout": {
+      "confirmTitle": "確認登出",
+      "confirmMessage": "確定要登出目前帳號嗎？",
+      "confirmButton": "登出"
+    },
     "login": {
       "heroTitle": "AI 世代的全新考試體驗",
       "heroSubtitle": "專為線上測驗打造 - 從出題、考試到分析，一站式完成",
