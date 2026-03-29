@@ -24,6 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Storybook
+storybook-static/
+iframe.html
+runtime.js
+
 # Playwright
 /test-results/
 /playwright-report/
