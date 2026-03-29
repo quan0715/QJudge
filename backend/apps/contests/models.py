@@ -137,6 +137,43 @@ class Contest(models.Model):
         help_text='coding: 程式題; paper_exam: 紙筆題考試'
     )
 
+    DELIVERY_MODE_CHOICES = [
+        ('exam', 'Exam'),
+        ('practice', 'Practice'),
+    ]
+    delivery_mode = models.CharField(
+        max_length=12,
+        choices=DELIVERY_MODE_CHOICES,
+        default='exam',
+        db_index=True,
+        verbose_name='交付模式',
+        help_text='exam: 正式考試流程; practice: 教室練習/作業流程',
+    )
+
+    # Contest-level question edit lock (production safeguard)
+    class QuestionEditLockTrigger(models.TextChoices):
+        CODING_SUBMISSION = 'coding_submission', 'Coding Submission'
+        EXAM_ANSWER = 'exam_answer', 'Exam Answer'
+
+    question_edit_locked = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name='題目編輯已鎖定',
+        help_text='任一學生正式作答後鎖定整場競賽題目編輯',
+    )
+    question_edit_locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='題目鎖定時間',
+    )
+    question_edit_lock_trigger = models.CharField(
+        max_length=32,
+        choices=QuestionEditLockTrigger.choices,
+        null=True,
+        blank=True,
+        verbose_name='題目鎖定觸發來源',
+    )
+
     # Cheat detection settings
     cheat_detection_enabled = models.BooleanField(
         default=False,
@@ -282,7 +319,7 @@ class ContestProblem(models.Model):
     max_score = models.PositiveIntegerField(default=100, verbose_name='題目配分')
     source_bank_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫 UUID')
     source_bank_name = models.CharField(max_length=255, blank=True, default='', verbose_name='來源題庫名稱')
-    source_question_id = models.PositiveIntegerField(null=True, blank=True, verbose_name='來源題庫題目 ID')
+    source_question_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫題目 UUID')
 
     class SourceMode(models.TextChoices):
         MANUAL = "manual", "Manual"
@@ -331,6 +368,8 @@ class ExamQuestion(models.Model):
     Configurable exam question for paper-style contests.
     """
 
+    id = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
+
     contest = models.ForeignKey(
         Contest,
         on_delete=models.CASCADE,
@@ -358,6 +397,15 @@ class ExamQuestion(models.Model):
     )
     score = models.PositiveIntegerField(default=1, verbose_name='配分')
     order = models.IntegerField(default=0, verbose_name='排序')
+    source_bank_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫 UUID')
+    source_bank_name = models.CharField(max_length=255, blank=True, default='', verbose_name='來源題庫名稱')
+    source_question_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫題目 UUID')
+    source_mode = models.CharField(
+        max_length=20,
+        choices=ContestProblem.SourceMode.choices,
+        default=ContestProblem.SourceMode.MANUAL,
+        verbose_name='來源模式',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
 
@@ -365,7 +413,7 @@ class ExamQuestion(models.Model):
         db_table = 'exam_questions'
         verbose_name = '考卷題目'
         verbose_name_plural = '考卷題目'
-        ordering = ['order', 'id']
+        ordering = ['order', 'created_at']
         indexes = [
             models.Index(fields=['contest', 'order']),
         ]
@@ -392,6 +440,12 @@ class ExamStatus(models.TextChoices):
     LOCKED = 'locked', '已鎖定'
     LOCKED_TAKEOVER = 'locked_takeover', '接管鎖定'
     SUBMITTED = 'submitted', '已交卷'
+
+
+class AssignmentState(models.TextChoices):
+    UNACCEPTED = 'unaccepted', '未接受'
+    ACCEPTED = 'accepted', '已接受'
+    SUBMITTED = 'submitted', '已提交'
 
 
 class ContestParticipant(models.Model):
@@ -444,6 +498,24 @@ class ContestParticipant(models.Model):
         default=ExamStatus.NOT_STARTED,
         verbose_name='考試狀態',
         help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/接管鎖定/已交卷'
+    )
+    assignment_state = models.CharField(
+        max_length=20,
+        choices=AssignmentState.choices,
+        default=AssignmentState.ACCEPTED,
+        db_index=True,
+        verbose_name='作業狀態',
+        help_text='practice 模式使用：未接受/已接受/已提交',
+    )
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='接受時間',
+    )
+    submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='作業提交時間',
     )
     
     @property

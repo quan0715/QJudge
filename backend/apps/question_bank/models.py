@@ -16,6 +16,12 @@ class QuestionBank(models.Model):
         PRIVATE = "private", "Private"
         PUBLIC = "public", "Public"
 
+    class ReviewStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending Review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -27,6 +33,8 @@ class QuestionBank(models.Model):
     )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
+    icon = models.CharField(max_length=32, blank=True, default="")
+    cover_url = models.URLField(blank=True, default="")
     category = models.CharField(
         max_length=20,
         choices=Category.choices,
@@ -40,6 +48,22 @@ class QuestionBank(models.Model):
         db_index=True,
     )
     verified = models.BooleanField(default=False, db_index=True)
+    review_status = models.CharField(
+        max_length=20,
+        choices=ReviewStatus.choices,
+        default=ReviewStatus.DRAFT,
+        db_index=True,
+    )
+    review_note = models.TextField(blank=True, default="")
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_question_banks",
+    )
     is_archived = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -50,6 +74,7 @@ class QuestionBank(models.Model):
         indexes = [
             models.Index(fields=["owner", "category"]),
             models.Index(fields=["visibility", "verified"]),
+            models.Index(fields=["review_status", "visibility", "verified"]),
         ]
 
     def __str__(self):
@@ -62,7 +87,7 @@ class Question(models.Model):
         CODING = "coding", "Coding"
         EXAM = "exam", "Exam"
 
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     bank = models.ForeignKey(
         QuestionBank,
         on_delete=models.CASCADE,
@@ -115,7 +140,7 @@ class Question(models.Model):
 
     class Meta:
         db_table = "questions"
-        ordering = ["order", "id"]
+        ordering = ["order", "created_at"]
         indexes = [
             models.Index(fields=["bank", "order"]),
             models.Index(fields=["question_type"]),

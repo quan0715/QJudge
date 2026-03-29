@@ -143,7 +143,7 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
         "memory_limit": problem.memory_limit,
         "created_by": created_by or problem.created_by,
         "metadata": {
-            "legacy_problem_id": problem.id,
+            "legacy_problem_id": str(problem.id),
             "display_id": problem.display_id,
             "visibility": problem.visibility,
         },
@@ -151,7 +151,9 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
 
     existing = Question.objects.filter(
         bank=bank,
-        metadata__legacy_problem_id=problem.id,
+    ).filter(
+        Q(metadata__legacy_problem_id=str(problem.id))
+        | Q(metadata__legacy_problem_id=problem.legacy_int_id)
     ).first()
 
     if existing:
@@ -185,15 +187,16 @@ def upsert_exam_question_into_bank(
         "order": exam_question.order,
         "created_by": created_by or exam_question.contest.owner,
         "metadata": {
-            "legacy_exam_question_id": exam_question.id,
-            "legacy_contest_id": exam_question.contest_id,
+            "legacy_exam_question_id": str(exam_question.id),
+            "legacy_contest_id": str(exam_question.contest_id),
             "legacy_question_type": exam_question.question_type,
         },
     }
 
     existing = Question.objects.filter(
         bank=bank,
-        metadata__legacy_exam_question_id=exam_question.id,
+    ).filter(
+        Q(metadata__legacy_exam_question_id=str(exam_question.id))
     ).first()
 
     if existing:
@@ -223,7 +226,7 @@ def clone_question_to_bank(source_question: Question, target_bank: QuestionBank,
         created_by=user,
         metadata={
             **(source_question.metadata or {}),
-            "cloned_from_question_id": source_question.id,
+            "cloned_from_question_id": str(source_question.id),
             "cloned_from_bank_id": str(source_question.bank.uuid),
             "cloned_from_bank_pk": source_question.bank_id,
         },
@@ -243,11 +246,14 @@ def clone_question_to_bank(source_question: Question, target_bank: QuestionBank,
 
 
 def is_platform_public_bank(bank: QuestionBank) -> bool:
-    if bank.visibility != QuestionBank.Visibility.PUBLIC or not bank.verified or bank.is_archived:
+    if (
+        bank.visibility != QuestionBank.Visibility.PUBLIC
+        or not bank.verified
+        or bank.review_status != QuestionBank.ReviewStatus.APPROVED
+        or bank.is_archived
+    ):
         return False
-    if bank.owner_id is None:
-        return True
-    return bool(bank.owner.is_staff or getattr(bank.owner, "role", None) == "admin")
+    return True
 
 
 def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> ExamReconstructibilityResult:
@@ -267,15 +273,19 @@ def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> Ex
     return ExamReconstructibilityResult(True)
 
 
-def _get_synced_ids(metadata_key: str) -> set[int]:
+def _get_synced_ids(metadata_key: str) -> set[str]:
     """Return the set of legacy source IDs already ingested into any bank."""
-    return {
-        v
-        for v in Question.objects.filter(
-            **{f"metadata__{metadata_key}__isnull": False}
-        ).values_list(f"metadata__{metadata_key}", flat=True)
-        if v is not None
-    }
+    resolved: set[str] = set()
+    for value in Question.objects.filter(
+        **{f"metadata__{metadata_key}__isnull": False}
+    ).values_list(f"metadata__{metadata_key}", flat=True):
+        if value is None:
+            continue
+        try:
+            resolved.add(str(UUID(str(value))))
+        except (TypeError, ValueError):
+            continue
+    return resolved
 
 
 def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:
@@ -301,7 +311,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         result["coding"] = [
             {
                 "source_type": "problem",
-                "source_id": row.id,
+                "source_id": str(row.id),
                 "title": row.title,
                 "contest_id": row.created_in_contest_id,
                 "contest_name": row.created_in_contest.name if row.created_in_contest_id else "",
@@ -317,6 +327,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             ExamQuestion.objects.filter(
                 Q(contest__owner=user) | Q(contest__admins=user)
             )
+            .filter(source_bank_id__isnull=True)
             .exclude(id__in=synced)
             .select_related("contest")
             .order_by("-updated_at", "-id")
@@ -325,7 +336,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         result["exam"] = [
             {
                 "source_type": "exam_question",
-                "source_id": row.id,
+                "source_id": str(row.id),
                 "title": (row.prompt or "").replace("\n", " ").strip()[:60] or f"Q{(row.order or 0) + 1}",
                 "contest_id": row.contest_id,
                 "contest_name": row.contest.name,
@@ -357,10 +368,10 @@ def ingest_question_bank_inbox_items(
         raise ValueError("No items selected")
 
     normalized_items = []
-    seen: set[tuple[str, int]] = set()
+    seen: set[tuple[str, str]] = set()
     for item in items:
         source_type = item["source_type"]
-        source_id = int(item["source_id"])
+        source_id = str(item["source_id"])
         key = (source_type, source_id)
         if key in seen:
             continue
@@ -376,8 +387,8 @@ def ingest_question_bank_inbox_items(
         if invalid:
             raise ValueError("Exam bank can only ingest exam questions")
 
-    ingested_question_ids: list[int] = []
-    moved_question_ids: list[int] = []
+    ingested_question_ids: list[str] = []
+    moved_question_ids: list[str] = []
 
     with transaction.atomic():
         for item in normalized_items:
@@ -390,7 +401,8 @@ def ingest_question_bank_inbox_items(
                     raise ValueError(f"Problem {source_id} not found")
 
                 existing = Question.objects.filter(
-                    metadata__legacy_problem_id=source.id,
+                    Q(metadata__legacy_problem_id=str(source.id))
+                    | Q(metadata__legacy_problem_id=source.legacy_int_id)
                 ).select_related("bank").first()
                 if existing:
                     if existing.bank.owner_id != user.id:
@@ -399,12 +411,12 @@ def ingest_question_bank_inbox_items(
                         existing.bank = target_bank
                         existing.order = target_bank.questions.count()
                         existing.save(update_fields=["bank", "order", "updated_at"])
-                        moved_question_ids.append(existing.id)
-                    ingested_question_ids.append(existing.id)
+                        moved_question_ids.append(str(existing.id))
+                    ingested_question_ids.append(str(existing.id))
                     continue
 
                 question = upsert_problem_into_bank(problem=source, bank=target_bank, created_by=user)
-                ingested_question_ids.append(question.id)
+                ingested_question_ids.append(str(question.id))
                 continue
 
             source = (
@@ -416,7 +428,7 @@ def ingest_question_bank_inbox_items(
                 raise ValueError(f"Exam question {source_id} not found")
 
             existing = Question.objects.filter(
-                metadata__legacy_exam_question_id=source.id,
+                Q(metadata__legacy_exam_question_id=str(source.id))
             ).select_related("bank").first()
             if existing:
                 if existing.bank.owner_id != user.id:
@@ -425,8 +437,8 @@ def ingest_question_bank_inbox_items(
                     existing.bank = target_bank
                     existing.order = target_bank.questions.count()
                     existing.save(update_fields=["bank", "order", "updated_at"])
-                    moved_question_ids.append(existing.id)
-                ingested_question_ids.append(existing.id)
+                    moved_question_ids.append(str(existing.id))
+                ingested_question_ids.append(str(existing.id))
                 continue
 
             question = upsert_exam_question_into_bank(
@@ -434,7 +446,7 @@ def ingest_question_bank_inbox_items(
                 bank=target_bank,
                 created_by=user,
             )
-            ingested_question_ids.append(question.id)
+            ingested_question_ids.append(str(question.id))
 
     return {
         "target_bank_id": str(target_bank.uuid),
