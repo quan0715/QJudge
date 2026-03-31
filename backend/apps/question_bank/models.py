@@ -204,6 +204,13 @@ class QuestionVersion(models.Model):
 
 
 class Question(models.Model):
+    """
+    DEPRECATED — Legacy bank question adapter.
+
+    New code should read from QuestionBankMembership + QuestionAsset.payload
+    directly. This model is kept as a materialized read cache and will be
+    removed once all read paths migrate to pure asset projection.
+    """
     class QuestionType(models.TextChoices):
         CODING = "coding", "Coding"
         EXAM = "exam", "Exam"
@@ -423,6 +430,12 @@ class ContestQuestionBinding(models.Model):
 
 
 class QuestionCodingExt(models.Model):
+    """
+    DEPRECATED — Legacy coding extension for Question adapter.
+
+    Coding data (translations, test_cases, language_configs, keywords) is now
+    stored in QuestionAsset.payload. This model is kept as a materialized cache.
+    """
     question = models.OneToOneField(
         Question,
         on_delete=models.CASCADE,
