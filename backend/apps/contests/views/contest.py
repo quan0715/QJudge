@@ -1238,9 +1238,12 @@ class ContestViewSet(viewsets.ModelViewSet):
     )
     def publish_problem_to_practice(self, request, pk=None, problem_id=None):
         """
-        Publish a single contest problem into a standalone legacy problem copy.
+        Publish a single contest problem into a standalone practice copy.
         Only allowed when contest is archived.
+        Lookup by coding_problem_id or binding_id via ContestQuestionBinding.
         """
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
         contest = self.get_object()
 
         if contest.status != 'archived':
@@ -1250,22 +1253,26 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            normalized_problem_id = self._normalize_uuid(problem_id, field_name="problem_id")
+            normalized_id = self._normalize_uuid(problem_id, field_name="problem_id")
         except DRFValidationError as exc:
             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            contest_problem = ContestProblem.objects.get(
+        binding = (
+            ContestQuestionBinding.objects.filter(
                 contest=contest,
-                problem_id=normalized_problem_id
+                binding_type=QuestionAsset.AssetType.CODING,
+                coding_problem_id=normalized_id,
             )
-            problem = contest_problem.problem
-        except ContestProblem.DoesNotExist:
+            .select_related('coding_problem')
+            .first()
+        )
+        if not binding or not binding.coding_problem:
             return Response(
                 {'message': 'Problem not found in this contest'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        problem = binding.coding_problem
         if not problem.question_asset_id:
             from apps.question_bank.question_assets import sync_problem_question_asset
             sync_problem_question_asset(problem=problem, actor=request.user)
@@ -1288,9 +1295,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         )
 
         ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'other',
+            contest, request.user, 'other',
             f"Published problem {problem.title or problem.id} to practice",
         )
 
@@ -1310,8 +1315,11 @@ class ContestViewSet(viewsets.ModelViewSet):
     )
     def publish_problems_to_practice(self, request, pk=None):
         """
-        Clone archived contest problems into standalone legacy problem copies.
+        Clone archived contest problems into standalone practice copies.
+        Reads from ContestQuestionBinding as primary source.
         """
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
         contest = self.get_object()
 
         if contest.status != 'archived':
@@ -1326,24 +1334,34 @@ class ContestViewSet(viewsets.ModelViewSet):
         if problem_ids:
             try:
                 problem_ids = [
-                    self._normalize_uuid(problem_id, field_name="problem_ids")
-                    for problem_id in problem_ids
+                    self._normalize_uuid(pid, field_name="problem_ids")
+                    for pid in problem_ids
                 ]
             except DRFValidationError as exc:
                 return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
-        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem')
+
+        bindings = (
+            ContestQuestionBinding.objects.filter(
+                contest=contest,
+                binding_type=QuestionAsset.AssetType.CODING,
+            )
+            .select_related('coding_problem')
+        )
         if problem_ids:
-            contest_problems = contest_problems.filter(problem_id__in=problem_ids)
+            bindings = bindings.filter(coding_problem_id__in=problem_ids)
 
         created_problem_ids = []
         skipped_problem_ids = []
 
-        for contest_problem in contest_problems:
-            problem = contest_problem.problem
+        for binding in bindings:
+            problem = binding.coding_problem
+            if not problem:
+                continue
             if not problem.question_asset_id:
                 from apps.question_bank.question_assets import sync_problem_question_asset
                 sync_problem_question_asset(problem=problem, actor=request.user)
                 problem.refresh_from_db(fields=["question_asset", "question_version"])
+
             exists = Problem.objects.filter(
                 question_asset=problem.question_asset,
                 created_by=request.user,
@@ -1361,9 +1379,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         if created_problem_ids:
             ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                "other",
+                contest, request.user, "other",
                 "Published contest problems to practice",
             )
 
