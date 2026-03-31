@@ -54,6 +54,14 @@ class Submission(models.Model):
         related_name='submissions',
         verbose_name='考試'
     )
+    contest_question_binding = models.ForeignKey(
+        'question_bank.ContestQuestionBinding',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submissions',
+        verbose_name='競賽題目綁定',
+    )
     # Content
     SOURCE_TYPE_CHOICES = [
         ('practice', 'Practice'),
