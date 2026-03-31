@@ -10,6 +10,16 @@ from .export_service import (
     build_student_report_response,
     parse_scale,
 )
+from .question_edit_lock import (
+    ContestQuestionEditLocked,
+    LOCKED_ERROR_CODE,
+    LOCKED_ERROR_MESSAGE,
+    ensure_contest_question_editable,
+    lock_contest_question_editing,
+    maybe_lock_from_coding_submission,
+    maybe_lock_from_exam_answer,
+    is_non_empty_exam_answer,
+)
 
 __all__ = [
     "ExportValidationError",
@@ -18,4 +28,12 @@ __all__ = [
     "build_paper_exam_sheet_response",
     "build_student_report_response",
     "parse_scale",
+    "ContestQuestionEditLocked",
+    "LOCKED_ERROR_CODE",
+    "LOCKED_ERROR_MESSAGE",
+    "ensure_contest_question_editable",
+    "lock_contest_question_editing",
+    "maybe_lock_from_coding_submission",
+    "maybe_lock_from_exam_answer",
+    "is_non_empty_exam_answer",
 ]

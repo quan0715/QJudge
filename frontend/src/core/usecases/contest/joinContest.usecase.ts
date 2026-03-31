@@ -67,10 +67,10 @@ export async function joinContestUseCase(
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error?.message || "Failed to join contest",
+      error: error instanceof Error ? error.message : "Failed to join contest",
     };
   }
 }

@@ -20,7 +20,7 @@ import { View, Renew } from "@carbon/icons-react";
 export interface SubmissionRow {
   id: string;
   status: string;
-  problem_id?: number;
+  problem_id?: string;
   problem_title?: string;
   username?: string;
   userId?: string; // For permission check

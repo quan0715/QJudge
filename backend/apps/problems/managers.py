@@ -18,22 +18,15 @@ class ProblemQuerySet(models.QuerySet):
         action: Optional[str],
         tag_slugs: Optional[Iterable[str]] = None,
     ) -> "ProblemQuerySet":
-        if scope == "manage":
-            if not user or not user.is_authenticated:
-                return self.none()
-            if user.is_staff or getattr(user, "role", "") == "admin":
-                return self
-            if getattr(user, "role", "") == "teacher":
-                return self.filter(created_by=user)
+        if not user or not user.is_authenticated:
             return self.none()
 
-        if user and user.is_authenticated and (
-            user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]
-        ):
-            if action != "list":
-                return self
-
-        queryset = self.filter(visibility='public')
+        if user.is_staff or getattr(user, "role", "") == "admin":
+            queryset = self
+        elif getattr(user, "role", "") == "teacher":
+            queryset = self.filter(created_by=user)
+        else:
+            return self.none()
 
         if user and user.is_authenticated:
             from apps.submissions.models import Submission

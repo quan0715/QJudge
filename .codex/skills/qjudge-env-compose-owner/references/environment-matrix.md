@@ -7,11 +7,11 @@
 
 ## 主要 service 對照
 
-| env | backend | frontend | ai-service | postgres | redis | celery |
-| --- | --- | --- | --- | --- | --- | --- |
-| main | `backend` | `frontend` | `ai-service` | `postgres` | `redis` | `celery` / `celery-high` / `celery-beat` |
-| dev | `backend` | `frontend` | `ai-service` | `postgres` | `redis` | `celery` / `celery-beat` |
-| test | `backend-test` | `frontend-test` | N/A | `postgres-test` | `redis-test` | `celery-test` |
+| env | backend | frontend | storybook | ai-service | postgres | redis | celery |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| main | `backend` | `frontend` | N/A | `ai-service` | `postgres` | `redis` | `celery` / `celery-high` / `celery-beat` |
+| dev | `backend` | `frontend` | `storybook` | `ai-service` | `postgres` | `redis` | `celery` / `celery-beat` |
+| test | `backend-test` | `frontend-test` | N/A | N/A | `postgres-test` | `redis-test` | `celery-test` |
 
 > 注意：compose `exec` 請用 **service 名稱**（例如 `backend-test`），不是 container name。
 
@@ -23,6 +23,8 @@
 
 # dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
+./scripts/dev/check-dev-services.sh
 
 # test
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d --build
@@ -47,6 +49,9 @@
 # lint
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run lint
 
+# storybook build
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T storybook npm run build-storybook
+
 # unit tests
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run test
 
@@ -58,6 +63,7 @@
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f backend
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test logs -f backend-test
 ```
 

@@ -134,13 +134,6 @@
     }
   }
 
-  &__section-title {
-    font-size: var(--cds-heading-03-font-size);
-    font-weight: var(--cds-heading-03-font-weight);
-    color: var(--cds-text-primary);
-    margin-bottom: layout.$spacing-05;
-  }
-
   // States
   &__loading,
   &__error {

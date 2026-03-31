@@ -104,3 +104,14 @@
   @include type.type-style("label-01");
   color: var(--cds-text-helper);
 }
+
+.itemMarked {
+  background-color: rgba(255, 214, 0, 0.15);
+}
+
+.summaryMarked {
+  @include type.type-style("label-01");
+  color: var(--cds-support-warning);
+  display: block;
+  margin-top: layout.$spacing-02;
+}

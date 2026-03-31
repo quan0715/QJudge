@@ -4,13 +4,15 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
 import type { ReactNode } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useToast } from "./ToastContext";
 
 interface ApiErrorContextType {
   /**
-   * Handle server error (5xx) - navigates to error page
+   * Handle server error (5xx) - shows toast without hard redirect
    */
   handleServerError: (statusCode: number, message?: string) => void;
   /**
@@ -34,6 +36,13 @@ interface ApiError {
   timestamp: string;
 }
 
+const isExamCriticalRoute = (pathname: string): boolean => {
+  if (!pathname.startsWith("/contests/")) return false;
+  if (pathname.includes("/solve")) return true;
+  if (pathname.includes("/exam-precheck")) return true;
+  return false;
+};
+
 const ApiErrorContext = createContext<ApiErrorContextType | undefined>(
   undefined
 );
@@ -43,9 +52,11 @@ interface ApiErrorProviderProps {
 }
 
 export const ApiErrorProvider = ({ children }: ApiErrorProviderProps) => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   const [error, setError] = useState<ApiError | null>(null);
+  const lastServerToastAtRef = useRef(0);
+  const SERVER_TOAST_THROTTLE_MS = 5000;
 
   const handleServerError = useCallback(
     (statusCode: number, message?: string) => {
@@ -57,17 +68,21 @@ export const ApiErrorProvider = ({ children }: ApiErrorProviderProps) => {
       };
       setError(errorData);
 
-      // Navigate to server error page with state
-      navigate("/error", {
-        state: {
-          statusCode,
-          message,
-          timestamp: errorData.timestamp,
-        },
-        replace: true,
+      const now = Date.now();
+      if (now - lastServerToastAtRef.current < SERVER_TOAST_THROTTLE_MS) {
+        return; // Avoid toast storms when many requests fail simultaneously
+      }
+      lastServerToastAtRef.current = now;
+
+      const isExamRoute = isExamCriticalRoute(location.pathname);
+      showToast({
+        kind: "error",
+        title: isExamRoute ? "連線暫時異常，系統會自動重試" : `伺服器錯誤 (${statusCode})`,
+        subtitle: message || (isExamRoute ? "請留在此頁面繼續作答，不需重新登入。" : "請稍後再試。"),
+        timeout: isExamRoute ? 5000 : 4000,
       });
     },
-    [navigate]
+    [location.pathname, showToast]
   );
 
   const handleNotFound = useCallback(() => {
@@ -77,21 +92,15 @@ export const ApiErrorProvider = ({ children }: ApiErrorProviderProps) => {
       timestamp: new Date().toLocaleString(),
     };
     setError(errorData);
-
-    navigate("/not-found", { replace: true });
-  }, [navigate]);
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Clear error when navigating away from error pages
+  // Clear stale error state when route changes
   useEffect(() => {
-    if (
-      error &&
-      location.pathname !== "/error" &&
-      location.pathname !== "/not-found"
-    ) {
+    if (error) {
       setError(null);
     }
   }, [location.pathname, error]);

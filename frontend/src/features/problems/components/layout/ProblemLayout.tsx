@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import {
   Header,
@@ -10,16 +11,23 @@ import {
 import { Home } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { SideMenu } from "@/features/app/components/SideMenu";
+import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 
 const ProblemLayout = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
 
   return (
     <div
       style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
     >
       <Header aria-label="Problem Platform">
+        <SideMenuToggle
+          isOpen={sideMenuOpen}
+          onClick={() => setSideMenuOpen((o) => !o)}
+        />
         <HeaderName
           href="#"
           prefix="NYCU"
@@ -43,13 +51,15 @@ const ProblemLayout = () => {
           >
             <Home size={20} />
           </HeaderGlobalAction>
-
-          {/* User Menu - contains theme and language settings */}
           <UserMenu />
         </HeaderGlobalBar>
+
+        <SideMenu
+          isOpen={sideMenuOpen}
+          onClose={() => setSideMenuOpen(false)}
+        />
       </Header>
 
-      {/* Main Content - Account for fixed header height */}
       <div
         style={{
           flex: 1,

@@ -68,7 +68,7 @@ const DocsHeader: React.FC = () => {
   return (
     <HeaderContainer
       render={() => (
-        <Header aria-label="QJudge Documentation">
+        <Header aria-label="Documentation">
           <HeaderMenuButton
             aria-label={tDocs("nav.menu", "選單")}
             onClick={() => setIsSideNavExpanded(!isSideNavExpanded)}

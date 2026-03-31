@@ -1,158 +1,158 @@
 {
-  "management": {
-    "description": "管理您建立的題目",
-    "problemCount": "共 {{count}} 道題目"
-  },
   "button": {
     "create": "建立"
   },
-  "form": {
-    "title": "標題",
-    "slug": "網址代碼",
-    "placeholder": {
-      "title": "請輸入題目名稱"
-    }
-  },
-  "section": {
-    "description": "題目描述",
-    "inputDescription": "輸入說明",
-    "outputDescription": "輸出說明",
-    "sampleTestCases": "範例測試",
-    "hint": "提示",
-    "codeRestrictions": "程式碼限制",
-    "requiredKeywords": "必須包含的關鍵字：",
-    "forbiddenKeywords": "禁止使用的關鍵字："
-  },
-  "sample": {
-    "example": "範例 {{index}}",
-    "input": "輸入",
-    "output": "輸出",
-    "empty": "(空)"
-  },
-  "list": {
-    "title": "解題 / Problem Solving",
-    "subtitle": "探索各種難度的演算法挑戰，提升你的程式設計能力。",
-    "searchPlaceholder": "搜尋題目...",
-    "noResults": "找不到符合條件的題目",
-    "tryAdjustFilters": "請嘗試調整篩選條件",
-    "totalLoaded": "已載入全部 {{count}} 題",
-    "acrRate": "通過率"
-  },
-  "filter": {
-    "status": "狀態",
-    "solved": "已解決",
-    "unsolved": "未解決",
-    "difficulty": "難度",
-    "tags": "標籤",
-    "noTags": "沒有可用標籤"
-  },
-  "tabs": {
-    "description": "題目描述",
-    "code": "程式碼",
-    "submissions": "提交紀錄",
-    "stats": "統計"
-  },
-  "modal": {
-    "confirmSubmit": "確認提交",
-    "submitting": "提交中...",
-    "submitConfirmTitle": "確認提交解答？",
-    "submitConfirmMessage": "此操作將會評測所有隱藏測試案例。",
-    "createTitle": "建立題目",
-    "createSuccess": "題目建立成功！",
-    "createError": "建立失敗，請稍後再試",
-    "confirmDelete": "確認刪除",
-    "deleteConfirmMessage": "確定要刪除題目「{{title}}」嗎？此操作無法復原。"
-  },
-  "import": {
-    "modalTitle": "從 YAML 匯入題目",
-    "populateFormTitle": "匯入 YAML 覆寫表單",
-    "applyToForm": "套用到表單",
-    "importProblem": "匯入題目",
-    "close": "關閉",
-    "cancel": "取消",
-    "uploadDesc": "上傳或貼上 YAML 檔案，將會覆寫目前表單中的內容。",
-    "uploadDescCreate": "上傳包含題目定義、測試案例和元數據的 YAML 文件。",
-    "viewFormat": "查看格式規範 →",
-    "uploadYAML": "上傳 YAML 文件",
-    "uploadHelperText": "最大文件大小為 5MB。僅支援 .yaml 或 .yml 文件。",
-    "chooseFile": "選擇文件",
-    "pasteYAML": "直接貼上 YAML 內容",
-    "pastePlaceholder": "在此貼上您的 YAML 內容...",
-    "parsing": "解析中...",
-    "parsingDesc": "請稍候，正在驗證您的文件",
-    "validationError": "驗證錯誤",
-    "validationErrorDesc": "在 YAML 文件中發現 {{count}} 個錯誤",
-    "importSuccess": "匯入成功",
-    "importSuccessDesc": "題目已成功創建，正在跳轉到題目預覽...",
-    "importFailed": "匯入失敗",
-    "preview": "預覽",
-    "timeLimit": "時間限制",
-    "memoryLimit": "記憶體限制",
-    "testCases": "測試案例",
-    "translations": "翻譯",
-    "codeTemplates": "程式語言模板",
-    "cases": "個",
-    "samples": "範例",
-    "languages": "個語言"
-  },
   "difficulty": {
     "easy": "簡單",
-    "medium": "中等",
-    "hard": "困難"
+    "hard": "困難",
+    "medium": "中等"
   },
   "edit": {
-    "sections": {
-      "basicInfo": "基本資訊",
-      "content": "題目內容",
-      "testCases": "測試案例",
-      "languageSettings": "語言設定"
-    },
     "actions": {
-      "import": "匯入",
-      "export": "匯出",
-      "preview": "預覽",
-      "save": "儲存",
+      "back": "返回",
       "delete": "刪除",
-      "back": "返回"
+      "export": "匯出",
+      "import": "匯入",
+      "preview": "預覽",
+      "save": "儲存"
+    },
+    "exportModal": {
+      "cancel": "取消",
+      "description": "將題目資料匯出為 YAML 格式，可用於備份或匯入至其他系統。",
+      "scaleLabel": "縮放比例",
+      "scalePlaceholder": "選擇縮放比例",
+      "submit": "匯出",
+      "title": "匯出題目"
     },
     "messages": {
+      "deleteFailed": "刪除失敗",
+      "deleteSuccess": "刪除成功",
+      "deleteSuccessDetail": "正在跳轉...",
+      "exportSuccess": "YAML 匯出成功",
+      "exportSuccessDetail": "檔案已下載",
       "importSuccess": "匯入成功",
       "importSuccessDetail": "YAML 資料已匯入並儲存",
       "importSuccessSaveFailed": "匯入成功，但自動儲存失敗",
-      "deleteSuccess": "刪除成功",
-      "deleteSuccessDetail": "正在跳轉...",
-      "deleteFailed": "刪除失敗",
-      "exportSuccess": "YAML 匯出成功",
-      "exportSuccessDetail": "檔案已下載",
       "loadFailed": "無法載入題目資料",
-      "notFound": "題目不存在",
       "noPermission": "您沒有編輯題目的權限",
-      "noPermissionTitle": "權限不足"
+      "noPermissionTitle": "權限不足",
+      "notFound": "題目不存在"
+    },
+    "sections": {
+      "basicInfo": "基本資訊",
+      "content": "題目內容",
+      "languageSettings": "語言設定",
+      "testCases": "測試案例"
     },
     "status": {
-      "public": "題目已公開",
+      "hidden": "題目已隱藏",
       "private": "題目已設為私有",
-      "hidden": "題目已隱藏"
-    },
-    "exportModal": {
-      "title": "匯出題目",
-      "submit": "匯出",
-      "cancel": "取消",
-      "scaleLabel": "縮放比例",
-      "scalePlaceholder": "選擇縮放比例",
-      "description": "將題目資料匯出為 YAML 格式，可用於備份或匯入至其他系統。"
+      "public": "題目已公開"
     }
-  },
-  "hero": {
-    "timeLimit": "時間限制",
-    "memoryLimit": "記憶體限制",
-    "acRate": "通過率",
-    "submissions": "提交次數",
-    "accepted": "通過次數",
-    "score": "配分"
   },
   "editor": {
     "header": "題目編輯器",
     "selectLanguage": "選擇語言"
+  },
+  "filter": {
+    "difficulty": "難度",
+    "noTags": "沒有可用標籤",
+    "solved": "已解決",
+    "status": "狀態",
+    "tags": "標籤",
+    "unsolved": "未解決"
+  },
+  "form": {
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    },
+    "slug": "網址代碼",
+    "title": "標題"
+  },
+  "hero": {
+    "acRate": "通過率",
+    "accepted": "通過次數",
+    "memoryLimit": "記憶體限制",
+    "score": "配分",
+    "submissions": "提交次數",
+    "timeLimit": "時間限制"
+  },
+  "import": {
+    "applyToForm": "套用到表單",
+    "cancel": "取消",
+    "cases": "個",
+    "chooseFile": "選擇文件",
+    "close": "關閉",
+    "codeTemplates": "程式語言模板",
+    "importFailed": "匯入失敗",
+    "importProblem": "匯入題目",
+    "importSuccess": "匯入成功",
+    "importSuccessDesc": "題目已成功創建，正在跳轉到題目預覽...",
+    "languages": "個語言",
+    "memoryLimit": "記憶體限制",
+    "modalTitle": "從 YAML 匯入題目",
+    "parsing": "解析中...",
+    "parsingDesc": "請稍候，正在驗證您的文件",
+    "pastePlaceholder": "在此貼上您的 YAML 內容...",
+    "pasteYAML": "直接貼上 YAML 內容",
+    "populateFormTitle": "匯入 YAML 覆寫表單",
+    "preview": "預覽",
+    "samples": "範例",
+    "testCases": "測試案例",
+    "timeLimit": "時間限制",
+    "translations": "翻譯",
+    "uploadDesc": "上傳或貼上 YAML 檔案，將會覆寫目前表單中的內容。",
+    "uploadDescCreate": "上傳包含題目定義、測試案例和元數據的 YAML 文件。",
+    "uploadHelperText": "最大文件大小為 5MB。僅支援 .yaml 或 .yml 文件。",
+    "uploadYAML": "上傳 YAML 文件",
+    "validationError": "驗證錯誤",
+    "validationErrorDesc": "在 YAML 文件中發現 {{count}} 個錯誤",
+    "viewFormat": "查看格式規範 →"
+  },
+  "list": {
+    "acrRate": "通過率",
+    "noResults": "找不到符合條件的題目",
+    "searchPlaceholder": "搜尋題目...",
+    "subtitle": "探索各種難度的演算法挑戰，提升你的程式設計能力。",
+    "title": "解題 / Problem Solving",
+    "totalLoaded": "已載入全部 {{count}} 題",
+    "tryAdjustFilters": "請嘗試調整篩選條件"
+  },
+  "management": {
+    "description": "管理您建立的題目",
+    "problemCount": "共 {{count}} 道題目"
+  },
+  "modal": {
+    "confirmDelete": "確認刪除",
+    "confirmSubmit": "確認提交",
+    "createError": "建立失敗，請稍後再試",
+    "createSuccess": "題目建立成功！",
+    "createTitle": "建立題目",
+    "deleteConfirmMessage": "確定要刪除題目「{{title}}」嗎？此操作無法復原。",
+    "submitConfirmMessage": "此操作將會評測所有隱藏測試案例。",
+    "submitConfirmTitle": "確認提交解答？",
+    "submitting": "提交中..."
+  },
+  "sample": {
+    "empty": "(空)",
+    "example": "範例 {{index}}",
+    "input": "輸入",
+    "output": "輸出"
+  },
+  "section": {
+    "codeRestrictions": "程式碼限制",
+    "description": "題目描述",
+    "forbiddenKeywords": "禁止使用的關鍵字：",
+    "hint": "提示",
+    "inputDescription": "輸入說明",
+    "outputDescription": "輸出說明",
+    "requiredKeywords": "必須包含的關鍵字：",
+    "sampleTestCases": "範例測試"
+  },
+  "tabs": {
+    "code": "程式碼",
+    "description": "題目描述",
+    "stats": "統計",
+    "submissions": "提交紀錄"
   }
 }

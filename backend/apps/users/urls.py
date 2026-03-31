@@ -14,8 +14,12 @@ from .views import (
     CurrentUserView,
     UserSearchView,
     UserRoleUpdateView,
+    TeacherActivationInviteIssueView,
+    TeacherActivationInvitePreviewView,
+    TeacherActivationInviteConsumeView,
     UserStatsView,
     UserPreferencesView,
+    UserAvatarUploadView,
     ChangePasswordView,
     ForgotPasswordView,
     ResetPasswordView,
@@ -49,6 +53,7 @@ urlpatterns = [
     path('me', CurrentUserView.as_view(), name='current-user'),
     path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
     path('me/preferences', UserPreferencesView.as_view(), name='user-preferences'),
+    path('me/avatar/upload', UserAvatarUploadView.as_view(), name='user-avatar-upload'),
     
     # Password management
     path('change-password', ChangePasswordView.as_view(), name='change-password'),
@@ -67,4 +72,7 @@ urlpatterns = [
     # User management (admin only)
     path('search', UserSearchView.as_view(), name='user-search'),
     path('<int:pk>/role', UserRoleUpdateView.as_view(), name='user-role-update'),
+    path('teacher-activations', TeacherActivationInviteIssueView.as_view(), name='teacher-activation-issue'),
+    path('teacher-activations/preview', TeacherActivationInvitePreviewView.as_view(), name='teacher-activation-preview'),
+    path('teacher-activations/consume', TeacherActivationInviteConsumeView.as_view(), name='teacher-activation-consume'),
 ]

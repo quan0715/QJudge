@@ -56,8 +56,8 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   initialScoreboardData,
   onRefresh,
 }) => {
-  const params = useParams<{ contestId: string }>();
-  const contestId = propContestId || params.contestId;
+  const params = useParams<{ contestId?: string; labId?: string }>();
+  const contestId = propContestId || params.contestId || params.labId;
 
   // Core state
   const [contest, setContest] = useState<ContestDetail | null>(
@@ -167,12 +167,13 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [contestId, initialContest, fetchContest]);
 
-  // Fetch standings when contest is loaded, ONLY if initialScoreboardData was NOT provided
-  useEffect(() => {
-    if (contest?.id && initialScoreboardData === undefined) {
-      void fetchStandings();
-    }
-  }, [contest?.id, initialScoreboardData, fetchStandings]);
+  // TODO: Standings 資料量大（127+ 人完整排行榜），overview 頁面不需要。
+  // 改為 lazy load — 只在進入 standings 面板時由該面板自行呼叫 refreshStandings()。
+  // useEffect(() => {
+  //   if (contest?.id && initialScoreboardData === undefined) {
+  //     void fetchStandings();
+  //   }
+  // }, [contest?.id, initialScoreboardData, fetchStandings]);
 
   const value = useMemo(
     () => ({

@@ -282,3 +282,52 @@ def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
 
     assert submission.source_type == "contest"
     judge_mock.assert_called_once_with(args=[submission.id], queue="high_priority")
+
+
+# ---------------------------------------------------------------------------
+# Tests: Contest question edit lock trigger
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_student_formal_contest_submission_locks_question_editing(judge_mock: Mock) -> None:
+    teacher = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+    contest = ContestFactory(owner=teacher)
+    problem = ProblemFactory(created_by=teacher)
+    ContestParticipantFactory(contest=contest, user=student)
+
+    SubmissionService.create_and_dispatch(
+        user=student,
+        data={
+            "problem": problem,
+            "language": "python",
+            "code": "print('ok')",
+            "contest": contest,
+        },
+    )
+
+    contest.refresh_from_db()
+    assert contest.question_edit_locked is True
+    assert contest.question_edit_lock_trigger == Contest.QuestionEditLockTrigger.CODING_SUBMISSION
+    assert contest.question_edit_locked_at is not None
+
+
+@pytest.mark.django_db
+def test_privileged_contest_submission_does_not_lock_question_editing(judge_mock: Mock) -> None:
+    owner = UserFactory(role="teacher")
+    contest = ContestFactory(owner=owner)
+    problem = ProblemFactory(created_by=owner)
+
+    SubmissionService.create_and_dispatch(
+        user=owner,
+        data={
+            "problem": problem,
+            "language": "python",
+            "code": "print('owner test')",
+            "contest": contest,
+        },
+    )
+
+    contest.refresh_from_db()
+    assert contest.question_edit_locked is False
+    assert contest.question_edit_lock_trigger in (None, "")

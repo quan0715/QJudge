@@ -24,6 +24,8 @@ interface ContestAdminContextType {
   participants: ContestParticipant[];
   examEvents: ExamEvent[];
   overviewMetrics: ContestOverviewMetrics | null;
+  /** True only during the first automatic load; false once data has arrived at least once. */
+  initialLoading: boolean;
   isRefreshing: boolean;
   isOverviewRefreshing: boolean;
   refreshAdminData: () => Promise<void>;
@@ -53,6 +55,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
   const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
   const [overviewMetrics, setOverviewMetrics] =
     useState<ContestOverviewMetrics | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
 
@@ -103,26 +106,15 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
   useEffect(() => {
     if (!autoLoad || !contestId) return;
-    void refreshAllAdminData();
+    void refreshAllAdminData().finally(() => setInitialLoading(false));
   }, [autoLoad, contestId, refreshAllAdminData]);
-
-  useEffect(() => {
-    if (!autoLoad || !contestId) return;
-
-    const intervalId = window.setInterval(() => {
-      void refreshOverviewMetrics();
-    }, 30_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [autoLoad, contestId, refreshOverviewMetrics]);
 
   const value = useMemo(
     () => ({
       participants,
       examEvents,
       overviewMetrics,
+      initialLoading,
       isRefreshing,
       isOverviewRefreshing,
       refreshAdminData,
@@ -133,6 +125,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
       participants,
       examEvents,
       overviewMetrics,
+      initialLoading,
       isRefreshing,
       isOverviewRefreshing,
       refreshAdminData,

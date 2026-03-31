@@ -14,7 +14,6 @@ from pathlib import Path
 
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
-from django.utils import timezone
 
 from apps.contests.models import ExamQuestion
 
@@ -25,13 +24,6 @@ from ..utils import inline_markdown, render_markdown
 class PaperExamSheetRenderer(BaseRenderer):
     """Render a paper exam sheet (question paper / answer sheet) to PDF."""
 
-    QUESTION_TYPE_ICONS = {
-        "true_false": "⚖",  # Scales for T/F or comparison
-        "single_choice": "◉",
-        "multiple_choice": "☑",
-        "short_answer": "✎",
-        "essay": "📝",
-    }
     OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     def __init__(
@@ -40,10 +32,12 @@ class PaperExamSheetRenderer(BaseRenderer):
         language: str = "zh-TW",
         scale: float = 1.0,
         include_answers: bool = False,
+        include_answer_area: bool = True,
     ):
         super().__init__(contest, language)
         self.scale = max(0.5, min(2.0, scale))
         self.include_answers = include_answers
+        self.include_answer_area = include_answer_area
 
     def export(self) -> BytesIO:
         html = self.render_html()
@@ -78,7 +72,6 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "number": idx,
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
-                    "type_icon": self.QUESTION_TYPE_ICONS.get(q.question_type, ""),
                     "score": q.score,
                     "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "options": self._get_options(q),
@@ -95,14 +88,6 @@ class PaperExamSheetRenderer(BaseRenderer):
                 }
             )
 
-        start_time = timezone.localtime(self.contest.start_time) if self.contest.start_time else None
-        end_time = timezone.localtime(self.contest.end_time) if self.contest.end_time else None
-        duration_minutes = (
-            int((self.contest.end_time - self.contest.start_time).total_seconds() / 60)
-            if self.contest.start_time and self.contest.end_time
-            else None
-        )
-
         sheet_title = (
             f"{self.get_label('exam_paper_official')}（{self.get_label('exam_paper_answer' if self.include_answers else 'exam_paper_question')}）"
         )
@@ -117,9 +102,6 @@ class PaperExamSheetRenderer(BaseRenderer):
             "labels": {
                 "candidate_name": self.get_label("candidate_name"),
                 "candidate_id": self.get_label("candidate_id"),
-                "candidate_class": self.get_label("candidate_class"),
-                "exam_time": self.get_label("exam_time"),
-                "duration": self.get_label("duration"),
                 "total_questions": self.get_label("total_questions"),
                 "total_score": self.get_label("total_score"),
                 "answer_key": self.get_label("answer_key"),
@@ -129,17 +111,10 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "question_no": self.get_label("question_no"),
                 "score_col": self.get_label("score_col"),
                 "answer_col": self.get_label("answer_col"),
-                "instructions_title": self.get_label("instructions_title"),
                 "answer_lines": self.get_label("answer_lines"),
                 "choice_marking_hint": self.get_label("choice_marking_hint"),
                 "answer_key_note": self.get_label("answer_key_note"),
             },
-            "instructions": self._build_instructions(),
-            "start_time_str": start_time.strftime("%Y/%m/%d %H:%M") if start_time else self.get_label("not_set"),
-            "end_time_str": end_time.strftime("%Y/%m/%d %H:%M") if end_time else self.get_label("not_set"),
-            "duration_str": (
-                f"{duration_minutes} {self.get_label('minutes_label')}" if duration_minutes is not None else self.get_label("not_set")
-            ),
             "question_count": len(questions),
             "total_score": total_score,
             "questions": question_rows,
@@ -248,6 +223,17 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     def _build_answer_ui(self, question: ExamQuestion) -> dict:
         question_type = question.question_type
+
+        # If answer area is disabled, return empty state for all types
+        if not self.include_answer_area:
+            return {
+                "show_choice_answer_bar": False,
+                "choice_answer_slots": [],
+                "show_answer_lines": False,
+                "answer_line_indices": [],
+                "answer_line_count": 0,
+                "answer_area_min_height": 0,
+            }
 
         if question_type == "single_choice":
             slots = [opt["letter"] for opt in self._get_options(question)]
@@ -358,37 +344,6 @@ class PaperExamSheetRenderer(BaseRenderer):
             return line_count * 30 + 24
         return line_count * 32 + 24
 
-    def _build_instructions(self) -> list[str]:
-        """
-        Build instructions from contest rules when available.
-        Falls back to locale defaults.
-        """
-        rules = (self.contest.rules or "").strip()
-        is_zh = self.is_chinese
-        
-        default_instructions = [
-            "請先填寫姓名、學號與班級。" if is_zh else "Fill in your name, student ID, and class before answering.",
-            "請依題號順序作答，答案務必清楚可辨識。" if is_zh else "Answer questions in order and keep your writing legible.",
-            "若有計算題，請保留必要計算過程。" if is_zh else "Show essential calculation steps when applicable.",
-        ]
-
-        if not rules:
-            return default_instructions
-
-        instructions: list[str] = []
-        for line in rules.splitlines():
-            text = line.strip()
-            if not text:
-                continue
-            text = re.sub(r"^\s*(?:[-*•]|\d+\.)\s*", "", text).strip()
-            if text:
-                instructions.append(text)
-
-        if instructions:
-            return instructions[:8]
-
-        return default_instructions
-
     def _clean_answer_markdown(self, text: str) -> str:
         """
         Remove placeholder-only lines that come from old answer templates
@@ -438,7 +393,7 @@ class PaperExamSheetRenderer(BaseRenderer):
         if idx is None or idx < 0 or idx >= len(options):
             return str(answer)
         letter = self.OPTION_LETTERS[idx] if idx < len(self.OPTION_LETTERS) else str(idx + 1)
-        return f"({letter}) {options[idx]}"
+        return f"{letter}. {options[idx]}"
 
     def _format_multiple_choice(self, answer, options: list) -> str:
         if not isinstance(answer, list):
@@ -450,7 +405,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 chunks.append(str(item))
                 continue
             letter = self.OPTION_LETTERS[idx] if idx < len(self.OPTION_LETTERS) else str(idx + 1)
-            chunks.append(f"({letter}) {options[idx]}")
+            chunks.append(f"{letter}. {options[idx]}")
         return ", ".join(chunks)
 
     @staticmethod

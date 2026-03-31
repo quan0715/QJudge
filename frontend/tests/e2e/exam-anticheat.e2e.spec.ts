@@ -45,10 +45,10 @@ async function getScreenShareRecoveryGraceMs(page: Page, contestId: string): Pro
   expect(resp.ok()).toBeTruthy();
   const payload = await resp.json();
   const value = payload?.effective?.screen_share_recovery_grace_ms;
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return value;
-  }
-  return 10_000;
+  expect(typeof value).toBe("number");
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThan(0);
+  return value as number;
 }
 
 async function getMonitoringRecoveryGraceMs(page: Page, contestId: string): Promise<number> {
@@ -59,10 +59,10 @@ async function getMonitoringRecoveryGraceMs(page: Page, contestId: string): Prom
   expect(resp.ok()).toBeTruthy();
   const payload = await resp.json();
   const value = payload?.effective?.monitoring_recovery_grace_ms;
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return value;
-  }
-  return 3_000;
+  expect(typeof value).toBe("number");
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThan(0);
+  return value as number;
 }
 
 async function getWarningTimeoutSeconds(page: Page, contestId: string): Promise<number> {
@@ -73,10 +73,10 @@ async function getWarningTimeoutSeconds(page: Page, contestId: string): Promise<
   expect(resp.ok()).toBeTruthy();
   const payload = await resp.json();
   const value = payload?.effective?.warning_timeout_seconds;
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return Math.floor(value);
-  }
-  return 30;
+  expect(typeof value).toBe("number");
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThan(0);
+  return Math.floor(value as number);
 }
 
 type ExamEventRow = {

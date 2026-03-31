@@ -1,0 +1,59 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 9500;
+}
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+// ── Breadcrumb ──
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  height: 3rem;
+  padding: 0 0.25rem;
+  margin: 0;
+
+  :global(.cds--breadcrumb-item) {
+    margin-right: 0;
+  }
+
+  :global(.cds--link) {
+    color: var(--cds-text-secondary);
+    font-size: 0.875rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--cds-link-primary-hover);
+    }
+  }
+
+  :global(.cds--breadcrumb-item--current) {
+    color: var(--cds-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+// ── Content area ──
+
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
+.shell :global(.cds--header__global) {
+  margin-left: 0;
+}

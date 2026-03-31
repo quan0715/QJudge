@@ -3,9 +3,15 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from django.core.cache import cache
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestActivity, ContestParticipant, ExamStatus
+from apps.contests.services.anti_cheat_session import (
+    _exam_allowed_jti_key,
+    active_session_key,
+    heartbeat_key,
+)
 from apps.contests.services.participant_state import (
     admin_update_participant,
     get_auto_unlock_at,
@@ -180,3 +186,38 @@ def test_reopen_participant_exam_clears_submit_reason_and_lock_metadata(
         action_type="reopen_exam",
         details="Reopened for student",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_admin_update_participant_to_not_started_clears_attempt_and_runtime_keys(
+    contest: Contest,
+    teacher: User,
+    student: User,
+) -> None:
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.IN_PROGRESS,
+        started_at=timezone.now() - timedelta(minutes=10),
+        left_at=timezone.now() - timedelta(minutes=1),
+        submit_reason="some reason",
+    )
+    cache.set(active_session_key(contest.id, student.id), {"device_id": "dev-1"}, timeout=300)
+    cache.set(heartbeat_key(contest.id, student.id), timezone.now().isoformat(), timeout=300)
+    cache.set(_exam_allowed_jti_key(student.id), "jti-1", timeout=300)
+
+    admin_update_participant(
+        participant,
+        exam_status=ExamStatus.NOT_STARTED,
+        activity_user=teacher,
+        activity_details="Admin reset participant to not_started",
+    )
+
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.NOT_STARTED
+    assert participant.started_at is None
+    assert participant.left_at is None
+    assert participant.submit_reason == ""
+    assert cache.get(active_session_key(contest.id, student.id)) is None
+    assert cache.get(heartbeat_key(contest.id, student.id)) is None
+    assert cache.get(_exam_allowed_jti_key(student.id)) is None

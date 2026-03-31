@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 
 interface ProblemLinkProps {
   problemId: string;
-  displayId?: string;
   title?: string;
   contestId?: string;
   children?: React.ReactNode;
@@ -16,7 +15,6 @@ interface ProblemLinkProps {
  */
 const ProblemLink = ({
   problemId,
-  displayId,
   title,
   contestId,
   children,
@@ -25,11 +23,10 @@ const ProblemLink = ({
 }: ProblemLinkProps) => {
   // Determine the correct route
   const to = contestId
-    ? `/contests/${contestId}/problems/${displayId || problemId}`
-    : `/problems/${displayId || problemId}`;
+    ? `/contests/${contestId}/problems/${problemId}`
+    : `/problems/${problemId}`;
 
-  // Display text: use children if provided, otherwise title, otherwise displayId/problemId
-  const displayText = children || title || displayId || `Problem ${problemId}`;
+  const displayText = children || title || `Problem ${problemId}`;
 
   return (
     <Link

@@ -1,6 +1,7 @@
 """
 Models for classrooms.
 """
+import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -11,6 +12,13 @@ class Classroom(models.Model):
     """
     A classroom represents a course (e.g. "Data Structures 2026 Fall").
     """
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        db_index=True,
+        verbose_name='UUID',
+    )
     name = models.CharField(max_length=255, verbose_name='名稱')
     description = models.TextField(blank=True, verbose_name='描述')
     owner = models.ForeignKey(
@@ -33,6 +41,17 @@ class Classroom(models.Model):
     invite_code_enabled = models.BooleanField(
         default=True,
         verbose_name='邀請碼啟用',
+    )
+    icon = models.CharField(
+        max_length=32,
+        blank=True,
+        default='',
+        verbose_name='圖示',
+    )
+    cover_url = models.URLField(
+        blank=True,
+        default='',
+        verbose_name='封面圖片 URL',
     )
     is_archived = models.BooleanField(
         default=False,

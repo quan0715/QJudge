@@ -13,10 +13,13 @@ import {
   getOAuthUrl,
   login,
 } from "@/infrastructure/api/repositories/auth.repository";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import { PendingActionBanner, usePendingActions } from "@/features/auth/pending-actions";
 
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { buildAuthLink } = usePendingActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +33,7 @@ const LoginPage = () => {
       const response = await login({ email, password });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        window.location.href = "/dashboard";
+        window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.login.failed"));
       }
@@ -70,6 +73,7 @@ const LoginPage = () => {
   return (
     <>
       <Form onSubmit={handleLogin} className="auth-form">
+        <PendingActionBanner />
         <TextInput
           id="email"
           labelText={t("auth.login.email", "Email")}
@@ -106,7 +110,11 @@ const LoginPage = () => {
 
 
         <div className="auth-oauth-group">
-          <button type="button" className="auth-oauth-btn auth-oauth-btn--sso" onClick={() => navigate("/login/campus-sso")}>
+          <button
+            type="button"
+            className="auth-oauth-btn auth-oauth-btn--sso"
+            onClick={() => navigate(buildAuthLink("/login/campus-sso"))}
+          >
             <Education size={20} className="auth-oauth-btn__icon" />
             <span className="auth-oauth-btn__label">{t("auth.login.ssoLogin", "校園身份驗證登入")}</span>
             <ArrowRight size={20} className="auth-oauth-btn__arrow" />
@@ -125,7 +133,7 @@ const LoginPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.login.noAccount", "還沒有帳號？")}{" "}
-          <Link to="/register" className="auth-link">
+          <Link to={buildAuthLink("/register")} className="auth-link">
             {t("auth.login.registerNow", "立即註冊")}
           </Link>
         </p>

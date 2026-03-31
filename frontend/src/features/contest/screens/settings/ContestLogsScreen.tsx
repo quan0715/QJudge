@@ -13,7 +13,7 @@ import {
   Renew,
   WarningAlt,
   Policy,
-  WatsonHealthAiStatusFailed,
+  WarningFilled,
   ImageSearch,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -429,7 +429,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   const kpiItems = [
     { key: "critical", icon: WarningAlt, color: "#da1e28", label: t("logs.kpi.critical", "高風險事件"), count: kpiCounts.critical, filterable: true },
     { key: "violation", icon: Policy, color: "#ff832b", label: t("logs.kpi.violation", "計罰違規"), count: kpiCounts.violation, filterable: true },
-    { key: "heartbeatTimeout", icon: WatsonHealthAiStatusFailed, color: "#0f62fe", label: t("logs.kpi.heartbeatTimeout", "心跳逾時"), count: kpiCounts.heartbeatTimeout, filterable: false },
+    { key: "heartbeatTimeout", icon: WarningFilled, color: "#0f62fe", label: t("logs.kpi.heartbeatTimeout", "心跳逾時"), count: kpiCounts.heartbeatTimeout, filterable: false },
     { key: "degraded", icon: ImageSearch, color: "#8a3ffc", label: t("logs.kpi.degraded", "證據異常"), count: kpiCounts.degraded, filterable: false },
   ] as const;
 

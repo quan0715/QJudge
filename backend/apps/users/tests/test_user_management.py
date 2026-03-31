@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
+from apps.users.models import UserProfile
 
 User = get_user_model()
 
@@ -41,11 +42,16 @@ class UserManagementTests(APITestCase):
 
     def test_admin_search_users(self):
         """Test admin searching users"""
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        profile.display_name = "Student Display"
+        profile.save()
         self.client.force_authenticate(user=self.admin)
         url = reverse('users:user-search') + '?q=user'
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(len(response.data['data']) >= 1)
+        self.assertEqual(response.data['data'][0]['display_name'], 'Student Display')
+        self.assertIn('onboarding_completed_at', response.data['data'][0])
 
     def test_admin_update_user_role(self):
         """Test admin updating user role"""

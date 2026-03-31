@@ -5,6 +5,8 @@ import type { Difficulty } from "./problem.entity";
 export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
 export type ContestType = "coding" | "paper_exam";
+export type ContestDeliveryMode = "exam" | "practice";
+export type AssignmentState = "unaccepted" | "accepted" | "submitted";
 // Violation events (from ExamEvent model)
 export type ExamViolationType =
   | "tab_hidden"
@@ -79,7 +81,14 @@ export interface ContestProblemSummary {
   label: string; // A, B, C...
   title: string;
   order?: number;
-  score?: number; // Problem score/points
+  score?: number; // Backward-compatible alias (same as maxScore)
+  maxScore?: number; // Contest-level score/points
+  sourceBank?: {
+    id: string;
+    name: string;
+  } | null;
+  sourceQuestionId?: string | null;
+  sourceMode?: "manual" | "copy" | "reference";
   userStatus?: SubmissionStatus;
   difficulty?: Difficulty;
 }
@@ -96,6 +105,7 @@ export interface ContestParticipant {
   joinedAt: string;
   // Primary state field
   examStatus: ExamStatusType;
+  assignmentState?: AssignmentState | null;
   // Legacy fields removed
   lockReason?: string;
   violationCount: number;
@@ -219,7 +229,7 @@ export interface ParticipantEvidenceRow {
   uploadSessionId: string;
   sourceModule?: "screen_share" | "webcam";
   hasVideo: boolean;
-  jobStatus: "pending" | "running" | "success" | "failed";
+  jobStatus: "pending" | "running" | "success" | "failed" | "no_data";
   jobErrorMessage: string;
   durationSeconds: number;
   frameCount: number;
@@ -285,6 +295,7 @@ export interface Contest {
   endTime: string;
   status: ContestStatus;
   visibility: ContestVisibility;
+  deliveryMode?: ContestDeliveryMode;
   password?: string;
   organizer?: string;
 
@@ -307,14 +318,18 @@ export type ExamStatusType =
 export interface ContestDetail extends Contest {
   rules?: string;
   ownerUsername?: string;
+  isClassroomBound?: boolean;
+  boundClassroomId?: string | null;
 
   // Contest type
   contestType: ContestType;
+  deliveryMode: ContestDeliveryMode;
 
   // Cheat detection
   cheatDetectionEnabled: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
+  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest: boolean;
 
   // Anonymous mode
@@ -330,7 +345,12 @@ export interface ContestDetail extends Contest {
   // Results
   resultsPublished: boolean;
 
-  // Exam freeze
+  // Contest-level question edit lock
+  questionEditLocked?: boolean;
+  questionEditLockedAt?: string | null;
+  questionEditLockTrigger?: "coding_submission" | "exam_answer" | null;
+
+  // Legacy alias (kept for backward compatibility)
   isExamQuestionsFrozen?: boolean;
   examQuestionsCount: number;
 
@@ -342,6 +362,9 @@ export interface ContestDetail extends Contest {
   lockReason?: string;
   submitReason?: string;
   examStatus?: ExamStatusType; // Primary state field
+  assignmentState?: AssignmentState | null;
+  acceptedAt?: string | null;
+  submittedAt?: string | null;
   autoUnlockAt?: string; // Auto-unlock time when locked
 
   // SSoT computed flags from backend
@@ -393,7 +416,6 @@ export type AnticheatDetectorKind =
 
 export interface ContestAnticheatSourcePolicy {
   enabled: boolean;
-  required: boolean;
   captureIntervalSeconds: number;
 }
 
@@ -425,6 +447,7 @@ export interface ContestAnticheatEffectiveConfig {
   captureIntervalSeconds: number;
   captureUploadMaxRetries: number;
   warningTimeoutSeconds: number;
+  screenShareRecoveryGraceMs: number;
   forcedCaptureCooldownMs: number;
   forcedCaptureP1CooldownMs: number;
   eventFeedAggregationWindowSeconds: number;
@@ -434,7 +457,6 @@ export interface ContestAnticheatEffectiveConfig {
   incidentScreenshotCategories: string[];
   monitoringRecoveryGraceMs: number;
   mouseLeaveCooldownMs: number;
-  screenShareRecoveryGraceMs: number;
   webcamRecoveryGraceMs: number;
   webcamCaptureIntervalSeconds: number;
   multiDisplayCheckIntervalMs: number;
@@ -470,6 +492,7 @@ export interface ContestAnticheatConfig {
     | "autoUnlockMinutes"
     | "contestType"
     | "warningTimeoutSeconds"
+    | "screenShareRecoveryGraceMs"
     | "anticheatDevicePolicy"
   >;
   effective: ContestAnticheatEffectiveConfig;
@@ -505,7 +528,7 @@ export interface ScoreboardData {
   contestId: string;
   contestName: string;
   problems: Array<{
-    id: number;
+    id: string;
     label: string;
     problemId: string;
     title?: string | null;
@@ -552,6 +575,12 @@ export interface ExamQuestion {
   correctAnswer?: unknown;
   score: number;
   order: number;
+  sourceBank?: {
+    id: string;
+    name: string;
+  } | null;
+  sourceQuestionId?: string | null;
+  sourceMode?: "manual" | "copy" | "reference";
   createdAt: string;
   updatedAt: string;
 }
@@ -600,6 +629,7 @@ export interface ContestUpdateRequest {
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
+  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;

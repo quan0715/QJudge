@@ -27,7 +27,7 @@ export { default as ContestScoreboard } from "./ContestScoreboard";
 
 // Preview Components
 export { default as ContestPreviewCard } from "./ContestPreviewCard";
-export { AnnouncementsSection } from "./AnnouncementsSection";
+export { AnnouncementSectionLayout } from "./AnnouncementSectionLayout";
 export { DiscussionsSection } from "./DiscussionsSection";
 
 // Solver Components (contest-specific)

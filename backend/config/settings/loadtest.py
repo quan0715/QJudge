@@ -14,6 +14,11 @@ CELERY_TASK_EAGER_PROPAGATES = False
 # --- Rate limiting enabled (test real throttle behaviour) ---
 RATELIMIT_ENABLE = True
 
+# Disable only login IP ratelimit in loadtest by default to avoid test data pollution.
+LOADTEST_DISABLE_LOGIN_RATELIMIT = os.getenv(
+    "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"
+) == "1"
+
 # --- MinIO / Anticheat (pointing to minio-test container) ---
 ANTICHEAT_S3_ENDPOINT_URL = os.getenv(
     'ANTICHEAT_S3_ENDPOINT_URL', 'http://minio-test:9000'

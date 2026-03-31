@@ -29,16 +29,17 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const usePaperExamFlow = () => {
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, labId } = useParams<{ contestId?: string; labId?: string }>();
+  const resolvedContestId = contestId || labId;
   const { contest, refreshContest, loading: contextLoading } = useContest();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const guardContestId = (): string => {
-    if (!contestId) {
+    if (!resolvedContestId) {
       throw new Error("Contest ID is missing");
     }
-    return contestId;
+    return resolvedContestId;
   };
 
   const clearError = () => setError(null);
@@ -64,13 +65,17 @@ export const usePaperExamFlow = () => {
     setLoading(true);
     setError(null);
     try {
-      clearExamCaptureSessionId(id);
-      resetAnticheatOrchestrator(id);
+      if (contest?.cheatDetectionEnabled) {
+        clearExamCaptureSessionId(id);
+        resetAnticheatOrchestrator(id);
+      }
       // 考試模式只需 startExam，不需 enterContest
       // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
       await startExam(id);
       await refreshContest();
-      syncAnticheatPhaseWithExamStatus(id, "in_progress");
+      if (contest?.cheatDetectionEnabled) {
+        syncAnticheatPhaseWithExamStatus(id, "in_progress");
+      }
       return true;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "無法開始考試"));
@@ -82,25 +87,39 @@ export const usePaperExamFlow = () => {
 
   const submitExam = async (uploadSessionId?: string) => {
     const id = guardContestId();
-    const sourceModule: "screen_share" | "webcam" = resolveDeviceMonitoringPlan(
+    const monitoringPlan = resolveDeviceMonitoringPlan(
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
-    ).primarySourceModule;
+    );
+    const sourceModule: "screen_share" | "webcam" = monitoringPlan.primarySourceModule;
+    const enabledCaptureModules: Array<"screen_share" | "webcam"> = [];
+    if (monitoringPlan.runtime.enableScreenShareCapture) {
+      enabledCaptureModules.push("screen_share");
+    }
+    if (monitoringPlan.runtime.enableWebcamCapture) {
+      enabledCaptureModules.push("webcam");
+    }
     const moduleRole = "primary";
     setLoading(true);
     setError(null);
     try {
-      await recordExamEventWithForcedCapture(id, "exam_submit_initiated", {
-        reason: "Student submitted paper exam from answering screen",
-        source: "paper_exam:submit",
-        forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
-        metadata: {
-          upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
-          module: sourceModule,
-          module_role: moduleRole,
-        },
-      }).catch(() => null);
-      beginAnticheatTermination(id);
+      if (contest?.cheatDetectionEnabled) {
+        await recordExamEventWithForcedCapture(id, "exam_submit_initiated", {
+          reason: "Student submitted paper exam from answering screen",
+          source: "paper_exam:submit",
+          forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
+          captureOptions: {
+            eventType: "exam_submit_initiated",
+            modules: enabledCaptureModules,
+          },
+          metadata: {
+            upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+            module: sourceModule,
+            module_role: moduleRole,
+          },
+        }).catch(() => null);
+        beginAnticheatTermination(id);
+      }
       const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
         source_module: sourceModule,
@@ -109,20 +128,24 @@ export const usePaperExamFlow = () => {
         throw new Error("Exam submission did not complete");
       }
     } catch (err: unknown) {
-      syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
+      if (contest?.cheatDetectionEnabled) {
+        syncAnticheatPhaseWithExamStatus(id, contest?.examStatus || "in_progress");
+      }
       setError(getErrorMessage(err, "交卷失敗"));
       setLoading(false);
       return false;
     }
     await refreshContest();
     clearExamCaptureSessionId(id);
-    markAnticheatTerminal(id);
+    if (contest?.cheatDetectionEnabled) {
+      markAnticheatTerminal(id);
+    }
     setLoading(false);
     return true;
   };
 
   return {
-    contestId,
+    contestId: resolvedContestId,
     contest,
     loading: loading || contextLoading,
     error,

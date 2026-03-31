@@ -7,7 +7,7 @@ COPY package.json ./
 
 # Install dependencies (ci is faster and more deterministic)
 # Using npm install without lock file for cross-platform compatibility
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Source is volume-mounted in dev, no COPY . needed
 EXPOSE 5173

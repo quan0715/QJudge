@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   SendFilled,
   CheckmarkFilled,
+  FlagFilled,
 } from "@carbon/icons-react";
 import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import { usePaperExamFlow } from "./usePaperExamFlow";
@@ -20,6 +21,7 @@ import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import {
   useCountdownTo,
+  usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
   hasExamPrecheckPassed,
@@ -31,10 +33,16 @@ import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import {
+  getClassroomContestDashboardPath,
+  getClassroomContestPrecheckPath,
   getContestDashboardPath,
   shouldRouteToPrecheck,
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomLabDashboardPath,
+  isClassroomLabRouteContext,
+} from "@/features/classroom/domain/labRoutePolicy";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
@@ -44,12 +52,49 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
+  const { classroomId, contestId: routeContestId, labId } = useParams<{
+    classroomId?: string;
+    contestId?: string;
+    labId?: string;
+  }>();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const labContext = isClassroomLabRouteContext({ classroomId, labId })
+    ? { classroomId, labId }
+    : null;
+  const classroomContestContext =
+    !labContext && classroomId && routeContestId
+      ? { classroomId, contestId: routeContestId }
+      : null;
+  const dashboardPath =
+    labContext
+      ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+      : classroomContestContext
+        ? getClassroomContestDashboardPath(
+            classroomContestContext.classroomId!,
+            classroomContestContext.contestId!,
+          )
+      : contestId
+        ? getContestDashboardPath(contestId)
+        : "";
+  const precheckPath =
+    !contestId
+      ? ""
+      : labContext
+        ? dashboardPath
+        : classroomContestContext
+          ? getClassroomContestPrecheckPath(
+              classroomContestContext.classroomId!,
+              classroomContestContext.contestId!,
+            )
+        : getContestPrecheckPath(contestId);
+  const shouldRequirePrecheck =
+    !labContext && contest?.deliveryMode !== "practice";
   const capability = useMemo(() => detectAnticheatCapability(), []);
   const monitoringPlan = useMemo(
     () => resolveDeviceMonitoringPlan(capability, contest?.anticheatDevicePolicy),
@@ -63,6 +108,28 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
+  const questionIds = useMemo(
+    () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
+    [items]
+  );
+  const autoSave = usePaperExamAutoSave({
+    contestId,
+    questionIds,
+    setAnswers,
+  });
+
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const toggleMark = useCallback((id: string) => {
+    setMarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
@@ -74,11 +141,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     forceStopCapture,
   } = useExamCapture();
 
-  const { markDirty, saveIfDirty, flushAll, saveStatus } = usePaperExamSaveOnLeave({
+  const { markDirty, saveIfDirty, flushAll, saveStatus: saveOnLeaveStatus } = usePaperExamSaveOnLeave({
     contestId,
     answers,
     items,
   });
+  const saveStatus = autoSave.saveStatus !== "idle" ? autoSave.saveStatus : saveOnLeaveStatus;
 
   const saveStatusLabel = useMemo(() => {
     if (saveStatus === "idle") return "";
@@ -89,11 +157,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown) => {
-      setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
+      autoSave.handleAnswerChange(questionId, value, questionType);
       markDirty(questionId);
     },
-    [setAnswers, markDirty],
+    [autoSave, markDirty],
   );
 
   const handleBlur = useCallback(
@@ -180,12 +248,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
     if (
-      shouldRouteToPrecheck({
+      shouldRequirePrecheck && shouldRouteToPrecheck({
         contest,
         precheckPassed,
       })
     ) {
-      navigate(getContestPrecheckPath(contestId), { replace: true });
+      navigate(precheckPath, { replace: true });
       return;
     }
 
@@ -197,13 +265,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
       }
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
-  }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
+  }, [contest, contestId, forceStopCapture, navigate, precheckPassed, precheckPath, shouldRequirePrecheck]);
 
   useEffect(() => {
     if (
       !contestId ||
       !contest ||
       contest.contestType !== "paper_exam" ||
+      !contest.cheatDetectionEnabled ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
       hasLoggedExamEntryRef.current
@@ -251,15 +320,18 @@ const PaperExamAnsweringScreen: React.FC = () => {
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}
+          isMarked={markedIds.has(item.data.id)}
+          onToggleMark={toggleMark}
         />
       );
     },
-    [answers, handleAnswerChange, handleBlur]
+    [answers, handleAnswerChange, handleBlur, markedIds, toggleMark]
   );
 
   const totalCount = items.length;
   const answeredCount = answeredIds.size;
   const unansweredCount = Math.max(0, totalCount - answeredCount);
+  const markedCount = markedIds.size;
 
   const openSubmitReview = useCallback(async () => {
     await flushAll();
@@ -273,9 +345,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setIsSubmittingExam(false);
     if (!success) return;
     setShowSubmitReview(false);
-    navigate(getContestDashboardPath(contestId));
+    navigate(dashboardPath);
   }, [
     contestId,
+    dashboardPath,
     isSubmittingExam,
     navigate,
     runSubmitWithProgress,
@@ -291,7 +364,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         <Button
           kind="primary"
           data-testid="paper-exam-finish-back-dashboard-btn"
-          onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
+          onClick={() => dashboardPath && navigate(dashboardPath)}
           style={{ marginTop: "1rem" }}
         >
           {t("answering.finish.backToDashboard")}
@@ -322,6 +395,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
       <PaperExamCore
         items={items}
         answeredIds={answeredIds}
+        markedIds={markedIds}
         styles={styles}
         syncIndex={syncIndex}
         renderItem={renderItem}
@@ -334,7 +408,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
               hasIconOnly
               renderIcon={ChevronLeft}
               iconDescription={t("answering.finish.backToDashboard")}
-              onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
+              onClick={() => dashboardPath && navigate(dashboardPath)}
             />
             <span className={styles.title}>{contest?.name ?? t("common:page.contests")}</span>
           </>
@@ -389,6 +463,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
             <Tag type={unansweredCount === 0 ? "green" : "red"}>
               {t("answering.submit.stats", { answered: answeredCount, total: totalCount })}
             </Tag>
+            {markedCount > 0 && (
+              <Tag type="warm-gray">
+                <FlagFilled size={12} style={{ marginRight: "4px", verticalAlign: "middle", color: "var(--cds-support-warning)" }} />
+                {t("answering.submit.markedCount", { count: markedCount })}
+              </Tag>
+            )}
             <Tag type="teal">
               {contest?.endTime
                 ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString() })
@@ -417,6 +497,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             {items.map((item, index) => {
               if (item.kind !== "question") return null;
               const done = answeredIds.has(item.data.id);
+              const marked = markedIds.has(item.data.id);
               const prompt = item.data.prompt || "";
               const preview = prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt;
               return (
@@ -426,9 +507,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
                     padding: "0.5rem 0.75rem",
                     borderBottom: "1px solid var(--cds-border-subtle-00)",
                     color: done ? "var(--cds-text-primary)" : "var(--cds-support-error)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
                   }}
                 >
-                  {t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}
+                  {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
+                  <span>{t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}</span>
                 </div>
               );
             })}

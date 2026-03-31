@@ -41,12 +41,12 @@ urlpatterns = [
         name="ai-internal-pending-action-detail",
     ),
     path(
-        "internal/problems/<int:problem_id>/context",
+        "internal/problems/<uuid:problem_id>/context",
         InternalProblemContextView.as_view(),
         name="ai-internal-problem-context",
     ),
     path(
-        "internal/problems/<int:problem_id>/test-cases",
+        "internal/problems/<uuid:problem_id>/test-cases",
         InternalTestCasesView.as_view(),
         name="ai-internal-test-cases",
     ),

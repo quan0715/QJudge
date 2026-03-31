@@ -118,6 +118,63 @@ describe("ContestExportDialog", () => {
     });
   });
 
+  it("requires selecting export target before showing settings and enabling export", () => {
+    render(
+      <ContestExportDialog
+        open
+        onClose={vi.fn()}
+        contest={buildContest()}
+        contestId="contest-1"
+      />
+    );
+
+    expect(screen.queryByText("download.settings")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "匯出" })).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText("Markdown — 題目匯出為 Markdown 檔案"));
+
+    expect(screen.getByText("download.settings")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "匯出" })).not.toBeDisabled();
+  });
+
+  it("shows language and includeAnswerArea only for exam-question target", async () => {
+    getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
+
+    render(
+      <ContestExportDialog
+        open
+        onClose={vi.fn()}
+        contest={buildContest({ contestType: "paper_exam", cheatDetectionEnabled: true, problems: [] })}
+        contestId="contest-1"
+      />
+    );
+
+    await screen.findByLabelText("題目卷 — 僅包含題目與選項");
+    fireEvent.click(screen.getByLabelText("題目卷 — 僅包含題目與選項"));
+
+    expect(screen.getByText("download.language")).toBeInTheDocument();
+    expect(screen.getByLabelText("download.includeAnswerArea")).toBeInTheDocument();
+  });
+
+  it("hides includeAnswerArea for exam-answer target", async () => {
+    getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
+
+    render(
+      <ContestExportDialog
+        open
+        onClose={vi.fn()}
+        contest={buildContest({ contestType: "paper_exam", cheatDetectionEnabled: true, problems: [] })}
+        contestId="contest-1"
+      />
+    );
+
+    await screen.findByLabelText("答案卷 — 包含題目、選項與正確答案");
+    fireEvent.click(screen.getByLabelText("答案卷 — 包含題目、選項與正確答案"));
+
+    expect(screen.getByText("download.language")).toBeInTheDocument();
+    expect(screen.queryByLabelText("download.includeAnswerArea")).not.toBeInTheDocument();
+  });
+
   it("exports answer pdf when answer target is selected", async () => {
     getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
 
@@ -139,7 +196,8 @@ describe("ContestExportDialog", () => {
         "contest-1",
         "answer",
         "zh-TW",
-        1
+        1,
+        true
       );
     });
   });
@@ -165,7 +223,8 @@ describe("ContestExportDialog", () => {
         "contest-1",
         "answer",
         "zh-TW",
-        1
+        1,
+        true
       );
     });
   });

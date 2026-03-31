@@ -1,0 +1,303 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+// ── Base container ──
+.heroContainer {
+  position: relative;
+  z-index: 0; // Create stacking context so inner z-index values stay contained
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  overflow: hidden;
+  flex-shrink: 0; // Prevent hero from being compressed in flex layouts
+}
+
+// Dark variant (with cover image or gradient)
+.heroDark {
+  background-color: var(--cds-background-brand, #0f62fe);
+  color: #fff;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+  }
+}
+
+// Plain variant (no background, standard theme colors)
+.heroPlain {
+  background-color: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  color: var(--cds-text-primary);
+
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+.inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  margin: 0 auto;
+  padding: layout.$spacing-07 layout.$spacing-10;
+}
+
+
+.breadcrumbRow {
+  margin-bottom: layout.$spacing-06;
+
+  .heroDark & {
+    :global(.cds--breadcrumb-item),
+    :global(.cds--breadcrumb-link) {
+      color: rgba(255, 255, 255, 0.7) !important;
+      &:hover { color: #fff !important; }
+    }
+    :global(.cds--breadcrumb-item--current) {
+      color: #fff !important;
+    }
+  }
+}
+
+.mainRow {
+  display: flex;
+  justify-content: space-between;
+  gap: layout.$spacing-07;
+}
+
+.heroDark .mainRow {
+  align-items: flex-end;
+}
+
+.heroPlain .mainRow {
+  align-items: center;
+}
+
+.infoCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.iconWrapper {
+  margin-bottom: layout.$spacing-03;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  svg { fill: currentColor; }
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-04;
+}
+
+// ── Title: dark vs plain ──
+.title {
+  font-weight: 400;
+  margin: 0 0 layout.$spacing-03;
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+}
+
+.heroDark .title {
+  @include type.type-style("heading-05");
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.heroPlain .title {
+  @include type.type-style("heading-05");
+  color: var(--cds-text-primary);
+}
+
+// ── Description: dark vs plain ──
+.description {
+  @include type.type-style("body-compact-01");
+  max-width: 48rem;
+}
+
+.heroDark .description {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin-bottom: layout.$spacing-03;
+}
+
+.heroPlain .description {
+  color: var(--cds-text-secondary);
+}
+
+.metadataRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-06;
+  @include type.type-style("label-01");
+
+  .heroDark & { color: rgba(255, 255, 255, 0.75); }
+  .heroPlain & { color: var(--cds-text-secondary); }
+}
+
+.sideCol {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: layout.$spacing-06;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  margin-top: layout.$spacing-05;
+}
+
+// ── KPI grid ──
+.kpiGrid {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+// Override KpiCard tokens inside dark hero — text-only, no backdrop
+.heroDark .kpiGrid {
+  [class*="kpiIcon"] {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  [class*="kpiValue"] {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  [class*="kpiLabel"] {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  [class*="kpiBorder"] {
+    border-left-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.progressBarRow {
+  margin-top: layout.$spacing-06;
+  width: 100%;
+}
+
+// ── Tabs bar ──
+.tabsBar {
+  position: sticky;
+  top: 3rem;
+  z-index: 10;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  .tabsInner {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 layout.$spacing-10;
+  }
+}
+
+// Dark variant: glass overlay on top of cover image/gradient
+.heroDark .tabsBar {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  :global(.cds--tabs__nav-item) {
+    background-color: transparent !important;
+    border-block-end-color: transparent !important;
+  }
+
+  :global(.cds--tabs__nav-link) {
+    color: rgba(255, 255, 255, 0.7) !important;
+    background-color: transparent !important;
+    &:hover { color: #fff !important; }
+  }
+
+  :global(.cds--tabs__nav-item--selected) {
+    border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
+    :global(.cds--tabs__nav-link) { color: #fff !important; }
+  }
+}
+
+// Plain variant: standard Carbon tab styling
+.heroPlain .tabsBar {
+  background: var(--cds-background);
+
+  :global(.cds--tabs__nav-item) {
+    background-color: transparent !important;
+  }
+
+  :global(.cds--tabs__nav-link) {
+    color: var(--cds-text-secondary) !important;
+    background-color: transparent !important;
+    &:hover { color: var(--cds-text-primary) !important; }
+  }
+
+  :global(.cds--tabs__nav-item--selected) {
+    border-block-end: 2px solid var(--cds-border-interactive) !important;
+    :global(.cds--tabs__nav-link) { color: var(--cds-text-primary) !important; }
+  }
+}
+
+// ── Responsive ──
+@media (max-width: 1056px) {
+  .inner {
+    padding: layout.$spacing-06 layout.$spacing-07;
+  }
+  .heroDark .mainRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: layout.$spacing-05;
+  }
+
+  .heroDark .sideCol {
+    width: 100%;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 672px) {
+  .inner {
+    padding: layout.$spacing-05 layout.$spacing-05;
+  }
+
+  .tabsBar .tabsInner {
+    padding: 0 layout.$spacing-05 !important;
+  }
+
+  // Hide KPIs on small screens instead of wrapping
+  .kpiGrid {
+    display: none;
+  }
+
+  .heroPlain .mainRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: layout.$spacing-04;
+  }
+
+  .heroPlain .sideCol {
+    width: 100%;
+    align-items: flex-start;
+  }
+}

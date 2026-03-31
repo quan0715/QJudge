@@ -19,8 +19,6 @@ export interface AnticheatCapability {
 export interface EffectiveAnticheatModules {
   screenShareEnabled: boolean;
   webcamEnabled: boolean;
-  requiredScreenShare: boolean;
-  requiredWebcam: boolean;
   roles: {
     screenShare: "primary" | "secondary" | null;
     webcam: "primary" | "secondary" | null;
@@ -30,11 +28,10 @@ export interface EffectiveAnticheatModules {
 export interface DeviceMonitoringPlan {
   deviceKind: AnticheatDeviceKind;
   allowed: boolean;
-  missingRequiredSources: Array<"screen_share" | "webcam">;
+  missingEnabledSources: Array<"screen_share" | "webcam">;
   sources: {
     screenShare: {
       enabled: boolean;
-      required: boolean;
       captureIntervalSeconds: number;
       available: boolean;
       active: boolean;
@@ -42,7 +39,6 @@ export interface DeviceMonitoringPlan {
     };
     webcam: {
       enabled: boolean;
-      required: boolean;
       captureIntervalSeconds: number;
       available: boolean;
       active: boolean;
@@ -93,12 +89,10 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     sources: {
       screenShare: {
         enabled: true,
-        required: true,
         captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: false,
-        required: false,
         captureIntervalSeconds: 10,
       },
     },
@@ -117,12 +111,10 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     sources: {
       screenShare: {
         enabled: false,
-        required: false,
         captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        required: true,
         captureIntervalSeconds: 10,
       },
     },
@@ -203,33 +195,22 @@ export const computeEffectiveRequiredModules = (
     selectedDevicePolicy.sources.screenShare.enabled && capability.screenShareSupported;
   const webcamEnabled = selectedDevicePolicy.sources.webcam.enabled && capability.webcamSupported;
 
-  const requiredScreenShare = selectedDevicePolicy.sources.screenShare.required && screenShareEnabled;
-  const requiredWebcam = selectedDevicePolicy.sources.webcam.required && webcamEnabled;
-
   const roles: EffectiveAnticheatModules["roles"] = {
     screenShare: null,
     webcam: null,
   };
-  if (requiredScreenShare) {
+  if (screenShareEnabled) {
     roles.screenShare = "primary";
     if (webcamEnabled) {
-      roles.webcam = requiredWebcam ? "primary" : "secondary";
+      roles.webcam = "secondary";
     }
-  } else if (requiredWebcam) {
+  } else if (webcamEnabled) {
     roles.webcam = "primary";
-    if (screenShareEnabled) {
-      roles.screenShare = "secondary";
-    }
-  } else {
-    if (screenShareEnabled) roles.screenShare = "secondary";
-    if (webcamEnabled) roles.webcam = "secondary";
   }
 
   return {
     screenShareEnabled,
     webcamEnabled,
-    requiredScreenShare,
-    requiredWebcam,
     roles,
   };
 };
@@ -245,7 +226,6 @@ export const resolveDeviceMonitoringPlan = (
   const sources = {
     screenShare: {
       enabled: !!selected.sources.screenShare.enabled,
-      required: !!selected.sources.screenShare.required,
       captureIntervalSeconds: Math.max(
         1,
         Math.floor(selected.sources.screenShare.captureIntervalSeconds || 5)
@@ -256,7 +236,6 @@ export const resolveDeviceMonitoringPlan = (
     },
     webcam: {
       enabled: !!selected.sources.webcam.enabled,
-      required: !!selected.sources.webcam.required,
       captureIntervalSeconds: Math.max(
         1,
         Math.floor(selected.sources.webcam.captureIntervalSeconds || 10)
@@ -267,27 +246,21 @@ export const resolveDeviceMonitoringPlan = (
     },
   };
 
-  const missingRequiredSources: Array<"screen_share" | "webcam"> = [];
-  if (sources.screenShare.required && !sources.screenShare.available) {
-    missingRequiredSources.push("screen_share");
+  const missingEnabledSources: Array<"screen_share" | "webcam"> = [];
+  if (sources.screenShare.enabled && !sources.screenShare.active) {
+    missingEnabledSources.push("screen_share");
   }
-  if (sources.webcam.required && !sources.webcam.available) {
-    missingRequiredSources.push("webcam");
+  if (sources.webcam.enabled && !sources.webcam.active) {
+    missingEnabledSources.push("webcam");
   }
 
-  if (sources.screenShare.required && sources.screenShare.active) {
+  if (sources.screenShare.active) {
     sources.screenShare.role = "primary";
     if (sources.webcam.active) {
-      sources.webcam.role = sources.webcam.required ? "primary" : "secondary";
+      sources.webcam.role = "secondary";
     }
-  } else if (sources.webcam.required && sources.webcam.active) {
+  } else if (sources.webcam.active) {
     sources.webcam.role = "primary";
-    if (sources.screenShare.active) {
-      sources.screenShare.role = "secondary";
-    }
-  } else {
-    if (sources.screenShare.active) sources.screenShare.role = "secondary";
-    if (sources.webcam.active) sources.webcam.role = "secondary";
   }
 
   const detectors = {
@@ -304,29 +277,31 @@ export const resolveDeviceMonitoringPlan = (
     (key) => detectors[key]
   );
 
-  const allowed = !!selected.enabled && missingRequiredSources.length === 0;
+  const allowed = !!selected.enabled && missingEnabledSources.length === 0;
   const primarySourceModule: "screen_share" | "webcam" =
-    sources.webcam.role === "primary" ? "webcam" : "screen_share";
+    sources.webcam.active && !sources.screenShare.active ? "webcam" : "screen_share";
+  const screenShareActive = sources.screenShare.active;
+  const webcamActive = sources.webcam.active;
 
   return {
     deviceKind,
     allowed,
-    missingRequiredSources,
+    missingEnabledSources,
     sources,
     detectors,
     enabledDetectors,
     precheck: {
-      requireScreenShare: sources.screenShare.required && sources.screenShare.active,
-      requireWebcam: sources.webcam.required && sources.webcam.active,
-      enableWebcam: sources.webcam.active,
+      requireScreenShare: screenShareActive,
+      requireWebcam: webcamActive,
+      enableWebcam: webcamActive,
       requireFullscreen: detectors.fullscreen,
       requirePwaMode: detectors.pwaMode,
     },
     runtime: {
-      enableScreenShareCapture: sources.screenShare.active,
-      enableWebcamCapture: sources.webcam.active,
-      monitorScreenShareStream: sources.screenShare.active,
-      monitorWebcamStream: sources.webcam.active,
+      enableScreenShareCapture: screenShareActive,
+      enableWebcamCapture: webcamActive,
+      monitorScreenShareStream: screenShareActive,
+      monitorWebcamStream: webcamActive,
       enableViewportIntegrity: detectors.viewportIntegrity,
     },
     primarySourceModule,

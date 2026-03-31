@@ -1,93 +1,93 @@
 {
-  "page": {
-    "title": "Documentation",
-    "subtitle": "Learn how to use the QJudge platform"
-  },
   "badge": {
     "aiGenerated": "AI Generated"
   },
+  "feedback": {
+    "helpful": "Helpful",
+    "notHelpful": "Needs improvement",
+    "thanks": "Thanks for your feedback!",
+    "title": "Was this page helpful?"
+  },
+  "message": {
+    "loadError": "Failed to load document",
+    "loading": "Loading documentation...",
+    "notFound": "Document not found"
+  },
   "nav": {
+    "back": "Back",
+    "items": {
+      "admin-overview": "Admin Features",
+      "common-errors": "Common Errors",
+      "contest-extension-architecture": "Contest Extension Architecture Guide",
+      "contests": "Joining Contests",
+      "contributing": "Contributing",
+      "create-exam": "Create Exam & Questions",
+      "dev-setup": "Development Setup",
+      "e2e-testing": "E2E Testing Guide",
+      "exam-grading": "Exam Grading & Results",
+      "exam-json-import-export": "Exam JSON Import/Export",
+      "exam-precheck-anticheat": "Exam Pre-check and Anti-Cheat Sequence",
+      "exam-proctoring": "Proctoring & Interventions",
+      "exam-statistics": "Exam Statistics & Review",
+      "judge-system": "Judge System",
+      "overview": "Platform Overview",
+      "problem-import": "YAML Problem Import",
+      "quick-start": "Quick Start",
+      "student-exam-guide": "Student Exam Guide",
+      "submission": "Code Submission",
+      "supported-languages": "Supported Languages",
+      "teacher-overview": "Teacher Overview"
+    },
+    "lastUpdated": "Last updated",
+    "onThisPage": "On this page",
     "productLabel": "Documentation",
     "searchPlaceholder": "Search docs...",
-    "onThisPage": "On this page",
-    "lastUpdated": "Last updated",
-    "back": "Back",
     "sections": {
+      "admin-guide": "Admin Guide",
+      "developer-guide": "Developer Guide",
       "getting-started": "Getting Started",
-      "user-guide": "User Guide",
       "reference": "Reference",
       "teacher-guide": "Teacher Guide",
-      "admin-guide": "Admin Guide",
-      "developer-guide": "Developer Guide"
-    },
-    "items": {
-      "overview": "Platform Overview",
-      "quick-start": "Quick Start",
-      "submission": "Code Submission",
-      "contests": "Joining Contests",
-      "student-exam-guide": "Student Exam Guide",
-      "judge-system": "Judge System",
-      "common-errors": "Common Errors",
-      "supported-languages": "Supported Languages",
-      "teacher-overview": "Teacher Overview",
-      "create-exam": "Create Exam & Questions",
-      "exam-grading": "Exam Grading & Results",
-      "exam-statistics": "Exam Statistics & Review",
-      "exam-proctoring": "Proctoring & Interventions",
-      "exam-json-import-export": "Exam JSON Import/Export",
-      "problem-import": "YAML Problem Import",
-      "admin-overview": "Admin Features",
-      "contributing": "Contributing",
-      "contest-extension-architecture": "Contest Extension Architecture Guide",
-      "exam-precheck-anticheat": "Exam Pre-check and Anti-Cheat Sequence",
-      "dev-setup": "Development Setup",
-      "e2e-testing": "E2E Testing Guide"
+      "user-guide": "User Guide"
     }
   },
+  "page": {
+    "subtitle": "Learn how to use the platform",
+    "title": "Documentation"
+  },
   "quickLinks": {
-    "student": {
-      "tag": "Student",
-      "title": "Solve Problems",
-      "description": "Learn how to browse problems, write code and submit for evaluation"
+    "admin": {
+      "description": "Manage users, permissions and system configuration",
+      "tag": "Admin",
+      "title": "System Administration"
     },
     "contestant": {
+      "description": "Understand contest rules, scoring systems and troubleshooting",
       "tag": "Contest",
-      "title": "Join Contests",
-      "description": "Understand contest rules, scoring systems and troubleshooting"
-    },
-    "teacher": {
-      "tag": "Teacher",
-      "title": "Manage Contests",
-      "description": "Create contests, manage problems and view student statistics"
-    },
-    "admin": {
-      "tag": "Admin",
-      "title": "System Administration",
-      "description": "Manage users, permissions and system configuration"
+      "title": "Join Contests"
     },
     "developer": {
+      "description": "Set up development environment and learn contribution workflow",
       "tag": "Developer",
-      "title": "Contribute Code",
-      "description": "Set up development environment and learn contribution workflow"
+      "title": "Contribute Code"
+    },
+    "student": {
+      "description": "Learn how to browse problems, write code and submit for evaluation",
+      "tag": "Student",
+      "title": "Solve Problems"
+    },
+    "teacher": {
+      "description": "Create contests, manage problems and view student statistics",
+      "tag": "Teacher",
+      "title": "Manage Contests"
     }
   },
   "search": {
     "label": "Search docs",
-    "placeholder": "Search documentation...",
-    "searching": "Searching...",
+    "matches": "matches",
     "noResults": "No results found",
+    "placeholder": "Search documentation...",
     "resultsCount": "Found {{count}} results",
-    "matches": "matches"
-  },
-  "feedback": {
-    "title": "Was this page helpful?",
-    "helpful": "Helpful",
-    "notHelpful": "Needs improvement",
-    "thanks": "Thanks for your feedback!"
-  },
-  "message": {
-    "loading": "Loading documentation...",
-    "notFound": "Document not found",
-    "loadError": "Failed to load document"
+    "searching": "Searching..."
   }
 }

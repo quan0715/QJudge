@@ -9,19 +9,19 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ContestActivity, ContestProblem, ExamStatus
+from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests import views as contest_views
 from apps.contests.views import contest as contest_view_module
-from apps.problems.models import Problem
+from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
 from apps.users.models import User, UserProfile
 
 
 def _create_problem(title: str, owner: User, **kwargs) -> Problem:
-    visibility = kwargs.pop("visibility", "private")
     return Problem.objects.create(
         title=title,
         slug=f"{title.lower().replace(' ', '-')}-{uuid4().hex[:8]}",
-        visibility=visibility,
         created_by=owner,
         **kwargs,
     )
@@ -563,12 +563,273 @@ def test_add_problem_returns_404_when_problem_id_not_found(
 
     response = api_client.post(
         f"/api/v1/contests/{contest.id}/add_problem/",
-        {"problem_id": 999999},
+        {"problem_id": str(uuid4())},
         format="json",
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data["error"] == "Problem not found"
+
+
+@pytest.mark.django_db
+def test_add_problem_returns_400_when_problem_id_is_not_uuid(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {"problem_id": "not-a-uuid"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "problem_id" in response.data
+
+
+@pytest.mark.django_db
+def test_add_problem_supports_question_bank_copy(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    platform_admin = User.objects.create_user(
+        username="platform_admin_for_bank_import",
+        email="platform_admin_for_bank_import@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Official Coding Bank",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    question = Question.objects.create(
+        bank=bank,
+        question_type=Question.QuestionType.CODING,
+        title="Bank Coding Question",
+        prompt="Use source problem",
+        score=100,
+        metadata={},
+    )
+    QuestionCodingExt.objects.create(
+        question=question,
+        translations=[
+            {
+                "language": "zh-TW",
+                "title": "Bank Coding Question",
+                "description": "desc",
+                "input_description": "in",
+                "output_description": "out",
+                "hint": "",
+            }
+        ],
+        test_cases=[
+            {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 100, "order": 0},
+        ],
+        language_configs=[],
+        forbidden_keywords=[],
+        required_keywords=[],
+    )
+
+    api_client.force_authenticate(user=owner)
+
+    copied = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {
+            "question_bank_id": str(bank.uuid),
+            "question_id": question.id,
+            "max_score": 45,
+        },
+        format="json",
+    )
+    assert copied.status_code == status.HTTP_201_CREATED
+
+    copied_cp = contest.contest_problems.get(source_question_id=question.id)
+    assert copied_cp.problem.title == "Bank Coding Question"
+    assert copied_cp.max_score == 45
+    assert copied_cp.source_question_id == question.id
+    assert copied_cp.source_mode == "copy"
+    assert str(copied_cp.source_bank_id) == str(bank.uuid)
+    assert copied_cp.source_bank_name == bank.name
+
+
+@pytest.mark.django_db
+def test_add_problem_materializes_coding_ext_when_bank_question_has_no_source_problem(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    platform_admin = User.objects.create_user(
+        username="platform_admin_for_materialize",
+        email="platform_admin_for_materialize@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Official Coding Bank Materialize",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    question = Question.objects.create(
+        bank=bank,
+        question_type=Question.QuestionType.CODING,
+        title="Materialized Coding Question",
+        prompt="prompt",
+        difficulty="easy",
+        score=100,
+    )
+    QuestionCodingExt.objects.create(
+        question=question,
+        translations=[
+            {
+                "language": "zh-TW",
+                "title": "Materialized Coding Question",
+                "description": "desc",
+                "input_description": "in",
+                "output_description": "out",
+                "hint": "",
+            }
+        ],
+        test_cases=[
+            {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 40, "order": 0},
+            {"input_data": "2", "output_data": "2", "is_sample": False, "weight_percent": 60, "order": 1},
+        ],
+        language_configs=[],
+        forbidden_keywords=[],
+        required_keywords=[],
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {
+            "question_bank_id": str(bank.uuid),
+            "question_id": question.id,
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    contest_problem = contest.contest_problems.latest("id")
+    assert contest_problem.source_question_id == question.id
+    assert contest_problem.source_mode == "copy"
+    weights = list(contest_problem.problem.test_cases.order_by("order").values_list("weight_percent", flat=True))
+    assert weights == [40, 60]
+
+
+@pytest.mark.django_db
+def test_update_contest_problem_score_action(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    problem = _create_problem("Score Update", owner)
+    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        {"max_score": 35},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    contest_problem.refresh_from_db()
+    assert contest_problem.max_score == 35
+
+    invalid = api_client.patch(
+        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        {"max_score": 0},
+        format="json",
+    )
+    assert invalid.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_contest_problem_retrieve_prefers_contest_problem_id(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    problem = _create_problem("Retrieve via contest problem id", owner)
+    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert str(response.data["contest_problem_id"]) == str(contest_problem.id)
+    assert response.data["id"] == str(problem.id)
+
+
+@pytest.mark.django_db
+def test_contest_problem_destroy_accepts_legacy_problem_id_fallback(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    problem = _create_problem("Destroy via legacy problem id", owner)
+    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{problem.id}/")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ContestProblem.objects.filter(id=contest_problem.id).exists()
+
+
+@pytest.mark.django_db
+def test_contest_question_mutations_blocked_when_question_edit_locked(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    contest.question_edit_locked = True
+    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
+    contest.question_edit_locked_at = timezone.now()
+    contest.save(
+        update_fields=[
+            "question_edit_locked",
+            "question_edit_lock_trigger",
+            "question_edit_locked_at",
+        ]
+    )
+    problem = _create_problem("Locked Contest Problem", owner)
+    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+
+    api_client.force_authenticate(user=owner)
+
+    add_resp = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_problem/",
+        {"title": "Should Fail"},
+        format="json",
+    )
+    assert add_resp.status_code == status.HTTP_409_CONFLICT
+    assert "CONTEST_QUESTION_EDIT_LOCKED" in str(add_resp.data)
+
+    reorder_resp = api_client.post(
+        f"/api/v1/contests/{contest.id}/reorder_problems/",
+        {"orders": [{"id": contest_problem.id, "order": 0}]},
+        format="json",
+    )
+    assert reorder_resp.status_code == status.HTTP_409_CONFLICT
+    assert "CONTEST_QUESTION_EDIT_LOCKED" in str(reorder_resp.data)
+
+    score_resp = api_client.patch(
+        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        {"max_score": 30},
+        format="json",
+    )
+    assert score_resp.status_code == status.HTTP_409_CONFLICT
+    assert "CONTEST_QUESTION_EDIT_LOCKED" in str(score_resp.data)
 
 
 @pytest.mark.django_db
@@ -603,6 +864,32 @@ def test_reorder_problems_updates_and_normalizes_order(
 
 
 @pytest.mark.django_db
+def test_contest_detail_exposes_question_edit_lock_fields(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    locked_at = timezone.now()
+    contest.question_edit_locked = True
+    contest.question_edit_locked_at = locked_at
+    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
+    contest.save(
+        update_fields=[
+            "question_edit_locked",
+            "question_edit_locked_at",
+            "question_edit_lock_trigger",
+        ]
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.get(f"/api/v1/contests/{contest.id}/")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["question_edit_locked"] is True
+    assert response.data["question_edit_lock_trigger"] == "coding_submission"
+    assert response.data["question_edit_locked_at"] is not None
+
+
+@pytest.mark.django_db
 def test_publish_problem_to_practice_not_found_and_already_published(
     api_client: APIClient,
     owner: User,
@@ -615,24 +902,27 @@ def test_publish_problem_to_practice_not_found_and_already_published(
     source_problem = _create_problem(
         "Publish Source",
         owner,
-        created_in_contest=archived_contest,
     )
     archived_contest.contest_problems.create(problem=source_problem, order=0)
     api_client.force_authenticate(user=owner)
 
     not_found = api_client.post(
-        f"/api/v1/contests/{archived_contest.id}/problems/999999/publish/",
+        f"/api/v1/contests/{archived_contest.id}/problems/{uuid4()}/publish/",
         {},
         format="json",
     )
     assert not_found.status_code == status.HTTP_404_NOT_FOUND
 
+    from apps.question_bank.question_assets import sync_problem_question_asset
+
+    sync_problem_question_asset(problem=source_problem, actor=owner)
+    source_problem.refresh_from_db(fields=["question_asset", "question_version"])
+
     _create_problem(
         "Published Copy",
         owner,
-        visibility="public",
-        origin_problem=source_problem,
-        created_in_contest=archived_contest,
+        question_asset=source_problem.question_asset,
+        question_version=source_problem.question_version,
     )
     already_published = api_client.post(
         f"/api/v1/contests/{archived_contest.id}/problems/{source_problem.id}/publish/",
@@ -641,6 +931,28 @@ def test_publish_problem_to_practice_not_found_and_already_published(
     )
     assert already_published.status_code == status.HTTP_400_BAD_REQUEST
     assert already_published.data["message"] == "Problem already published to practice"
+
+
+@pytest.mark.django_db
+def test_publish_problem_to_practice_returns_400_when_problem_id_is_not_uuid(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    archived_contest = Contest.objects.create(
+        name="Archived Contest For Invalid UUID",
+        owner=owner,
+        status="archived",
+    )
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(
+        f"/api/v1/contests/{archived_contest.id}/problems/not-a-uuid/publish/",
+        {},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "problem_id" in response.data
 
 
 @pytest.mark.django_db
@@ -657,23 +969,19 @@ def test_publish_problems_to_practice_accepts_string_problem_ids(
     source_problem = _create_problem(
         "Bulk Source",
         owner,
-        created_in_contest=archived_contest,
     )
     archived_contest.contest_problems.create(problem=source_problem, order=0)
 
     from apps.problems import services as problem_services
 
-    created_ids: list[int] = []
+    created_ids: list[str] = []
 
     def _clone_problem_to_practice(**kwargs):
         copied = _create_problem(
             "Bulk Copy",
             owner,
-            visibility="public",
-            created_in_contest=archived_contest,
-            origin_problem=source_problem,
         )
-        created_ids.append(copied.id)
+        created_ids.append(str(copied.id))
         return copied
 
     monkeypatch.setattr(
@@ -923,6 +1231,69 @@ def test_platform_admin_can_archive(
     assert response.status_code == status.HTTP_200_OK
     contest.refresh_from_db()
     assert contest.status == "archived"
+
+
+@pytest.mark.django_db
+def test_classroom_bound_contest_blocks_admin_management_endpoints(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+    other_teacher: User,
+) -> None:
+    classroom = Classroom.objects.create(
+        name="Bound Classroom",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    api_client.force_authenticate(user=owner)
+
+    admins_response = api_client.get(f"/api/v1/contests/{contest.id}/admins/")
+    assert admins_response.status_code == status.HTTP_403_FORBIDDEN
+    assert admins_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+    add_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_admin/",
+        {"username": other_teacher.username},
+        format="json",
+    )
+    assert add_response.status_code == status.HTTP_403_FORBIDDEN
+    assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+    remove_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_admin/",
+        {"user_id": other_teacher.id},
+        format="json",
+    )
+    assert remove_response.status_code == status.HTTP_403_FORBIDDEN
+    assert remove_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+
+@pytest.mark.django_db
+def test_contest_detail_includes_classroom_binding_flags(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+) -> None:
+    api_client.force_authenticate(user=owner)
+    standalone_response = api_client.get(f"/api/v1/contests/{contest.id}/")
+    assert standalone_response.status_code == status.HTTP_200_OK
+    assert standalone_response.data["is_classroom_bound"] is False
+    assert standalone_response.data["bound_classroom_id"] is None
+
+    classroom = Classroom.objects.create(
+        name="Bound Classroom Flags",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+    bound_response = api_client.get(f"/api/v1/contests/{contest.id}/")
+    assert bound_response.status_code == status.HTTP_200_OK
+    assert bound_response.data["is_classroom_bound"] is True
+    assert bound_response.data["bound_classroom_id"] == str(classroom.uuid)
 
 
 # ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ import ProblemLink from "@/features/problems/components/ProblemLink";
 import { formatDate } from "@/shared/utils/format";
 import type { SubmissionDetail, TestResult } from "@/core/entities/submission.entity";
 import { DifficultyBadge } from "@/shared/ui/tag";
-import { InfoCard } from "@/shared/ui/dataCard";
+import { KpiCard } from "@/shared/ui/dataCard";
 import { TestResultList, TestResultDetail } from "@/shared/ui/submission";
 import { getLanguageConfig } from "@/core/config/language.config";
 import { getStatusConfig } from "@/core/config/status.config";
@@ -230,9 +230,6 @@ const SubmissionDetailModal = ({
                   {submission.problem ? (
                     <ProblemLink
                       problemId={submission.problem.id}
-                      displayId={
-                        submission.problem.displayId || submission.problem.id
-                      }
                       title={submission.problem.title}
                       contestId={contestId}
                     />
@@ -266,31 +263,39 @@ const SubmissionDetailModal = ({
                 borderTop: "1px solid var(--cds-border-subtle-01)",
               }}
             >
-              <InfoCard
-                title="提交狀態"
+              <KpiCard
+                label="提交狀態"
                 value={getStatusConfig(submission.status).label}
-                description={`本次繳交狀態`}
+                description="本次繳交狀態"
                 valueStyle={{
                   color: getStatusConfig(submission.status).color,
                 }}
+                showBorder={false}
+                outline
               />
-              <InfoCard
-                title="得分"
+              <KpiCard
+                label="得分"
                 value={submission.score || 0}
                 unit="分"
-                description={`題目總得分`}
+                description="題目總得分"
+                showBorder={false}
+                outline
               />
-              <InfoCard
-                title="執行時間"
+              <KpiCard
+                label="執行時間"
                 value={submission.execTime || 0}
                 unit="ms"
-                description={`題目總執行時間`}
+                description="題目總執行時間"
+                showBorder={false}
+                outline
               />
-              <InfoCard
-                title="記憶體使用"
+              <KpiCard
+                label="記憶體使用"
                 value={submission.memoryUsage || 0}
                 unit="MB"
-                description={`題目總記憶體使用`}
+                description="題目總記憶體使用"
+                showBorder={false}
+                outline
               />
             </div>
 

@@ -1,5 +1,4 @@
 import { Route } from "react-router";
-import { Navigate } from "react-router-dom";
 import ContestListScreen from "./screens/ContestListScreen";
 import ContestLayout from "./components/layout/ContestLayout";
 import { ContestProvider } from "./contexts/ContestContext";
@@ -24,11 +23,6 @@ export const contestListRoute = (
 export const contestDetailRoutes = (
   <Route path="/contests/:contestId" element={<ContestLayout />}>
     <Route index element={<ContestDashboardScreen />} />
-    {/* Legacy route redirects to new query param structure */}
-    <Route path="problems" element={<Navigate to="../?tab=problems" replace />} />
-    <Route path="submissions" element={<Navigate to="../?tab=submissions" replace />} />
-    <Route path="standings" element={<Navigate to="../?tab=standings" replace />} />
-    <Route path="clarifications" element={<Navigate to="../?tab=clarifications" replace />} />
     {/* Unified solving entry */}
     <Route path="solve" element={<ContestSolveScreen />} />
     <Route path="solve/:problemId" element={<ContestSolveScreen />} />
@@ -62,6 +56,53 @@ export const examPreviewRoute = (
 export const examPrecheckRoute = (
   <Route
     path="/contests/:contestId/exam-precheck"
+    element={
+      <ContestProvider>
+        <ExamPrecheckScreen />
+      </ContestProvider>
+    }
+  />
+);
+
+// ── Classroom-scoped contest routes (/classrooms/:classroomId/contests/:contestId) ──
+
+/**
+ * Classroom Contest Detail 路由（需在 RequireAuth 內使用，有獨立 Layout）
+ */
+export const classroomContestDetailRoutes = (
+  <Route path="/classrooms/:classroomId/contest/:contestId" element={<ContestLayout />}>
+    <Route index element={<ContestDashboardScreen />} />
+    <Route path="solve" element={<ContestSolveScreen />} />
+    <Route path="solve/:problemId" element={<ContestSolveScreen />} />
+  </Route>
+);
+
+/**
+ * Classroom Contest Admin Dashboard — 獨立全頁面
+ */
+export const classroomContestAdminRoute = (
+  <Route
+    path="/classrooms/:classroomId/contest/:contestId/admin"
+    element={<AdminDashboardScreen />}
+  />
+);
+
+/**
+ * Classroom Exam Preview — 獨立全頁面
+ */
+export const classroomExamPreviewRoute = (
+  <Route
+    path="/classrooms/:classroomId/contest/:contestId/exam-preview"
+    element={<StudentExamDemoScreen />}
+  />
+);
+
+/**
+ * Classroom Exam Precheck — 獨立全頁面
+ */
+export const classroomExamPrecheckRoute = (
+  <Route
+    path="/classrooms/:classroomId/contest/:contestId/exam-precheck"
     element={
       <ContestProvider>
         <ExamPrecheckScreen />

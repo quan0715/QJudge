@@ -18,6 +18,7 @@ import {
   clearPrecheckWebcamHandoff,
   peekPrecheckWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
+import { isStreamLive, isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
 
 type TranslateFn = TFunction;
 
@@ -257,15 +258,15 @@ export const runStartPreflightValidation = async (
         clearShareHandoff: true,
       };
     }
-    const track = handoffStream.getVideoTracks?.()[0];
-    if (!track || track.readyState !== "live") {
+    if (!isStreamLive(handoffStream)) {
       return {
         checkId: "shareScreen",
         detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
       };
     }
-    const settings = (track.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
+    const screenTrack = handoffStream.getVideoTracks()[0];
+    const settings = (screenTrack?.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
     if (settings.displaySurface !== "monitor") {
       return {
         checkId: "shareScreen",
@@ -277,8 +278,7 @@ export const runStartPreflightValidation = async (
 
   if (requireWebcam || enableWebcam) {
     const handoffWebcam = peekPrecheckWebcamHandoff();
-    const webcamTrack = handoffWebcam?.getVideoTracks?.()[0];
-    if (!handoffWebcam || !webcamTrack || webcamTrack.readyState !== "live") {
+    if (!isStreamHealthy(handoffWebcam)) {
       return {
         checkId: "webcam",
         detail: t("precheck.environment.errors.webcamFailed", "Webcam 無法使用，請重新授權。"),
@@ -431,7 +431,11 @@ export const runEnvChecks = async ({
         return;
       }
 
-      await finalizeCheck("singleMonitor", "pass", t("precheck.eligibility.status.passed"));
+      await finalizeCheck(
+        "singleMonitor",
+        "pass",
+        t("precheck.environment.status.monitorCount", { count: 1 })
+      );
 
       markRunning("shareScreen", t("precheck.environment.requirements.sharing"));
       const shareResult = await requestMonitorScreenShare();
@@ -457,7 +461,7 @@ export const runEnvChecks = async ({
         await failShareAndBlock(t("precheck.environment.errors.notMonitor"));
         return;
       }
-      await finalizeCheck("shareScreen", "pass", t("precheck.environment.checks.sharing"));
+      await finalizeCheck("shareScreen", "pass");
     } else {
       clearPrecheckScreenShareHandoff(true);
     }
@@ -482,7 +486,7 @@ export const runEnvChecks = async ({
           t("precheck.environment.status.optionalSkipped", "Webcam 未啟用（可選）")
         );
       } else {
-        await finalizeCheck("webcam", "pass", t("precheck.environment.checks.webcam", "Webcam"));
+        await finalizeCheck("webcam", "pass");
       }
     } else {
       clearPrecheckWebcamHandoff(true);
@@ -521,7 +525,7 @@ export const runEnvChecks = async ({
           "requestFullscreen timeout"
         );
         if (enteredFullscreen && isFullscreen()) {
-          await finalizeCheck("fullscreen", "pass", t("common:status.success"));
+          await finalizeCheck("fullscreen", "pass");
         } else {
           await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenFailed"));
           const depMsg = t("precheck.environment.errors.dependencyPrefix", {
@@ -551,7 +555,7 @@ export const runEnvChecks = async ({
       await finalizeCheck("interaction", "fail", t("precheck.environment.errors.interactionFailed"));
       return;
     }
-    await finalizeCheck("interaction", "pass", t("common:status.success"));
+    await finalizeCheck("interaction", "pass");
   } finally {
     setEnvTestDone(true);
     setEnvTestRunning(false);

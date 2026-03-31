@@ -53,7 +53,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
             </div>
           ) : participants.length === 0 ? (
             <div className={styles.emptyState}>
-              {t("participantsDashboard.emptyList", "目前沒有符合條件的參賽者")}
+              {t("dashboard.emptyList", "目前沒有符合條件的參賽者")}
             </div>
           ) : (
             participants.map((participant) => {
@@ -99,7 +99,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
                         {t("participants.headers.score", "分數")} <strong>{participant.score ?? 0}</strong>
                       </span>
                       <span>
-                        {t("participantsDashboard.violations", "違規")} {participant.violationCount}
+                        {t("dashboard.violations", "違規")} {participant.violationCount}
                       </span>
                     </div>
                   </div>

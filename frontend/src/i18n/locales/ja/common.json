@@ -1,325 +1,207 @@
 {
-  "nav": {
-    "dashboard": "ダッシュボード",
-    "problems": "問題",
-    "contests": "コンテスト",
-    "classrooms": "教室",
-    "submissions": "提出履歴",
-    "ranking": "ランキング",
-    "documentation": "ドキュメント",
-    "backToProblemList": "問題一覧に戻る",
-    "problemList": "問題一覧",
-    "back": "戻る"
+  "action": {
+    "adding": "追加中...",
+    "deleting": "削除中...",
+    "downloading": "ダウンロード中...",
+    "exporting": "エクスポート中...",
+    "importing": "インポート中...",
+    "pleaseWait": "お待ちください",
+    "processing": "処理中...",
+    "refresh": "更新",
+    "refreshing": "更新中...",
+    "syncing": "同期中...",
+    "uploading": "アップロード中...",
+    "viewProblem": "問題を見る"
   },
-  "page": {
-    "dashboard": "ダッシュボード",
-    "problems": "問題一覧",
-    "problemDetail": "問題詳細",
-    "contests": "コンテスト一覧",
-    "contestDetail": "コンテスト詳細",
-    "submissions": "提出履歴",
-    "login": "ログイン",
-    "register": "登録",
-    "userManagement": "ユーザー管理",
-    "announcements": "お知らせ管理",
-    "environment": "環境設定",
-    "createContest": "コンテストを作成",
-    "createProblem": "問題を新規作成",
-    "editProblem": "問題を編集",
-    "teacherDashboard": "Teacher Dashboard",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management"
-  },
-  "tab": {
-    "overview": "概要",
-    "problems": "問題",
-    "submissions": "提出履歴",
-    "standings": "順位表",
-    "clarifications": "質問",
-    "settings": "設定",
-    "description": "問題文",
-    "solver": "解答"
-  },
-  "header": {
-    "platform": "QJudge プラットフォーム",
-    "prefix": "陽明交通大学",
-    "menu": "メニュー",
-    "sideNav": "サイドナビゲーション",
-    "userMenu": "ユーザーメニュー",
-    "problemManagement": "問題管理",
-    "createContest": "コンテスト作成",
-    "userManagement": "ユーザー管理",
-    "announcements": "お知らせ管理",
-    "environmentSettings": "環境設定",
-    "teacherDashboard": "教師ダッシュボード",
-    "systemSettings": "システム設定",
-    "contestManagement": "コンテスト管理",
-    "mainNavigation": "メインナビゲーション",
-    "contestNavigation": "コンテストナビゲーション",
-    "adminNavigation": "管理ナビゲーション"
-  },
-  "dashboard": {
-    "welcomeBack": "おかえりなさい、{{name}}",
-    "subtitle": "NYCU Online Judge",
-    "stats": {
-      "title": "解答統計",
-      "problems": "問",
-      "solvedCount": "/ {{total}} 解決済み",
-      "noStats": "統計データを読み込めません"
+  "auth": {
+    "callback": {
+      "conflictTitle": "試験の競合",
+      "connecting": "連線中...",
+      "errorTitle": "ログイン失敗",
+      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
+      "failed": "ログインに失敗しました。もう一度お試しください。",
+      "finalTouch": "正在進行最後確認...",
+      "loading": "本人確認中",
+      "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
+      "loadingSubtitle": "あなた専用のプログラミングステージを準備中...",
+      "loadingTitle": "プログラミング評価プラットフォームへようこそ",
+      "noCode": "認証コードが受信されませんでした。",
+      "pleaseWait": "請稍候",
+      "steps": {
+        "almost": "就快好了，請稍候",
+        "assembling": "ワークスペースを構築中...",
+        "igniting": "エンジン点火中...",
+        "preparing": "冒険を準備中...",
+        "ready": "準備完了！",
+        "stats": "実績を同期中...",
+        "verifying": "本人確認を行っています..."
+      },
+      "takeover": "引き継いで古いデバイスをロックする",
+      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
+      "takingOver": "処理中...",
+      "verifyingSession": "同步作業階段中..."
     },
-    "difficulty": {
-      "easy": "簡単",
-      "medium": "普通",
-      "hard": "難しい"
+    "campusSso": {
+      "backToLogin": "ログインに戻る",
+      "providers": {
+        "nycu": {
+          "description": "大学のポータルアカウントを使用してログインします",
+          "name": "NYCU (国立陽明交通大学)"
+        }
+      },
+      "redirecting": "ログインページにリダイレクト中...",
+      "subtitle": "ログインする大学を選択してください",
+      "title": "キャンパス認証"
     },
-    "classrooms": {
-      "title": "私の教室",
-      "subtitle": "参加している教室"
+    "login": {
+      "email": "メールアドレス",
+      "emailPlaceholder": "student@example.com",
+      "failed": "ログインに失敗しました",
+      "feature1Desc": "リアルタイムなフィードバック",
+      "feature1Title": "秒速の採点",
+      "feature2Desc": "柔軟な評価",
+      "feature2Title": "多彩な問題形式",
+      "feature3Desc": "学習分析",
+      "feature3Title": "成長の追跡",
+      "githubLogin": "GitHub でログイン",
+      "googleLogin": "Google でログイン",
+      "heroSubtitle": "オンラインテスト専用設計 - 出題から試験、分析までワンストップで完結",
+      "heroTitle": "AI 世代の新しい試験体験",
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "loading": "ログイン中...",
+      "noAccount": "アカウントをお持ちでない方は",
+      "oauthFailed": "ログインを開始できませんでした",
+      "or": "または、他の方法でログイン",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "registerNow": "新規登録",
+      "ssoLogin": "SSO でログイン",
+      "submit": "ログイン",
+      "subtitle": "おかえりなさい、アカウントにログインしてください",
+      "title": "ログイン"
     },
-    "contests": {
-      "title": "近日のコンテスト",
-      "noContests": "近日のコンテストはありません",
-      "upcoming": "開催予定",
-      "ongoing": "開催中のコンテストのみ表示",
-      "ended": "終了",
-      "participated": "参加済み"
+    "logout": {
+      "confirmButton": "ログアウト",
+      "confirmMessage": "現在のアカウントからログアウトしますか？",
+      "confirmTitle": "ログアウトの確認"
     },
-    "announcements": {
-      "title": "お知らせ",
-      "subtitle": "最新のお知らせ",
-      "noAnnouncements": "お知らせはありません"
+    "register": {
+      "confirmPassword": "パスワード確認",
+      "confirmPasswordPlaceholder": "パスワードを再入力",
+      "email": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力",
+      "failed": "登録に失敗しました",
+      "failedRetry": "登録に失敗しました。後でもう一度お試しください",
+      "hasAccount": "すでにアカウントをお持ちの方は",
+      "loading": "登録中...",
+      "loginNow": "ログイン",
+      "password": "パスワード",
+      "passwordHelper": "少なくとも 8 文字で、数字のみや一般的なパスワードは避けてください。",
+      "passwordMismatch": "パスワードが一致しません",
+      "passwordPlaceholder": "パスワードを作成",
+      "passwordTooShort": "パスワードは少なくとも 8 文字である必要があります。",
+      "submit": "登録",
+      "subtitle": "プラットフォームに参加して、プログラミングの旅を始めましょう",
+      "title": "アカウント作成",
+      "username": "ユーザー名",
+      "usernamePlaceholder": "ユーザー名を選択"
+    },
+    "pendingAction": {
+      "classroomJoinSubtitle": "まずログインまたは登録してください。完了後、自動的にクラスルームに参加します。",
+      "classroomJoinTitle": "クラスルームに参加",
+      "teacherActivationSubtitle": "まずログインまたは登録してください。完了後、自動的に教師権限が有効になります。",
+      "teacherActivationTitle": "教師権限の有効化"
     }
   },
   "button": {
-    "confirm": "確認",
+    "archive": "アーカイブ",
+    "back": "戻る",
     "cancel": "キャンセル",
-    "save": "保存",
+    "clear": "クリア",
+    "close": "閉じる",
+    "confirm": "確認",
+    "create": "新規作成",
     "delete": "削除",
     "edit": "編集",
-    "close": "閉じる",
-    "back": "戻る",
-    "submit": "提出",
-    "create": "新規作成",
-    "logout": "ログアウト",
     "login": "ログイン",
+    "logout": "ログアウト",
+    "preview": "プレビュー",
+    "previous": "前へ",
     "register": "登録",
-    "archive": "アーカイブ",
-    "updating": "更新中...",
+    "save": "保存",
     "search": "検索",
     "searching": "検索中...",
-    "clear": "クリア",
-    "previous": "前へ"
+    "submit": "提出",
+    "updating": "更新中..."
   },
-  "message": {
-    "loading": "読み込み中...",
-    "error": "エラーが発生しました",
-    "success": "操作が完了しました",
-    "noData": "データがありません",
-    "notFound": "リソースが見つかりません",
-    "comingSoon": "近日公開",
-    "saveFailed": "保存に失敗しました",
-    "deleteFailed": "削除に失敗しました"
+  "classroom": {
+    "members": "メンバー"
+  },
+  "common": {
+    "locale": "ja-JP"
+  },
+  "dashboard": {
+    "announcements": {
+      "noAnnouncements": "お知らせはありません",
+      "subtitle": "最新のお知らせ",
+      "title": "お知らせ"
+    },
+    "classroomHub": {
+      "emptyDesc": "クラスルームを作成するか、招待リンクで参加してください。",
+      "emptyTitle": "まだクラスルームに参加していません",
+      "listTitle": "マイクラスルーム",
+      "loadFailed": "クラスルームの読み込みに失敗しました",
+      "loadFailedHint": "後でもう一度お試しください",
+      "noDescription": "説明が設定されていません",
+      "selectSubtitle": "クラスルームを選択してメインページに移動",
+      "welcomeBack": "おかえりなさい"
+    },
+    "classrooms": {
+      "subtitle": "参加しているクラスルーム",
+      "title": "マイクラスルーム"
+    },
+    "contests": {
+      "ended": "終了",
+      "noContests": "近日のコンテストはありません",
+      "ongoing": "開催中のコンテストのみ表示",
+      "participated": "参加済み",
+      "title": "近日のコンテスト",
+      "upcoming": "開催予定"
+    },
+    "difficulty": {
+      "easy": "簡単",
+      "hard": "難しい",
+      "medium": "普通"
+    },
+    "kpi": {
+      "classrooms": "クラスルーム",
+      "questionBanks": "問題集"
+    },
+    "questionBanksSection": {
+      "empty": "問題集がまだありません。",
+      "emptyHint": "問題集を作成して問題を整理しましょう。",
+      "showLess": "收起",
+      "showMore": "顯示更多",
+      "title": "マイ問題集",
+      "viewAll": "すべて表示"
+    },
+    "stats": {
+      "noStats": "統計データを読み込めません",
+      "problems": "問",
+      "solvedCount": "/ {{total}} 解決済み",
+      "title": "解題統計"
+    },
+    "subtitle": "Online Judge",
+    "welcomeBack": "おかえりなさい、{{name}}さん"
+  },
+  "difficulty": {
+    "easy": "簡単",
+    "hard": "難しい",
+    "medium": "普通"
   },
   "error": {
     "title": "エラー",
     "validationFailed": "検証に失敗しました"
-  },
-  "pagination": {
-    "previous": "前へ",
-    "next": "次へ",
-    "itemsPerPage": "表示件数"
-  },
-  "language": {
-    "title": "言語",
-    "switchTo": "言語を切り替え",
-    "switchedTitle": "言語が変更されました",
-    "switchedTo": "{{language}}に切り替えました",
-    "selectLanguage": "言語を選択"
-  },
-  "theme": {
-    "title": "テーマ",
-    "switchToLight": "ライトモードに切り替え",
-    "switchToDark": "ダークモードに切り替え",
-    "light": "ライト",
-    "dark": "ダーク",
-    "system": "システム"
-  },
-  "preferences": {
-    "title": "設定",
-    "themeSection": "テーマ",
-    "languageSection": "言語",
-    "accountInfo": "アカウント情報",
-    "username": "ユーザー名",
-    "email": "メールアドレス",
-    "role": "権限",
-    "displayName": "表示名",
-    "displayNameDescription": "プラットフォームで表示される名前を設定します",
-    "theme": "テーマ",
-    "language": "言語",
-    "editor": "エディター設定",
-    "editorFontSize": "フォントサイズ",
-    "editorTabSize": "タブ幅",
-    "changePassword": "パスワード変更",
-    "currentPassword": "現在のパスワード",
-    "newPassword": "新しいパスワード",
-    "confirmPassword": "新しいパスワード（確認）",
-    "passwordChanged": "パスワードが変更されました",
-    "passwordMismatch": "新しいパスワードが一致しません",
-    "wrongPassword": "現在のパスワードが間違っています",
-    "oauthUser": "OAuthユーザーはパスワードを変更できません"
-  },
-  "settings": {
-    "title": "設定",
-    "description": "設定、API Key、使用量統計を管理します",
-    "descriptionStudent": "設定を管理します"
-  },
-  "table": {
-    "title": "タイトル",
-    "status": "状態",
-    "time": "時間",
-    "visibility": "公開設定",
-    "actions": "操作",
-    "private": "非公開（パスワード）",
-    "public": "公開"
-  },
-  "user": {
-    "preferences": "設定",
-    "changePassword": "パスワード変更",
-    "role": {
-      "student": "学生",
-      "teacher": "教員",
-      "admin": "管理者",
-      "adminTA": "管理者（TA）"
-    }
-  },
-  "auth": {
-    "login": {
-      "heroTitle": "AI世代の新しい試験体験",
-      "heroSubtitle": "オンラインテスト専用設計 - 出題から試験、分析までワンストップで完結",
-      "feature1Title": "秒速の採点",
-      "feature1Desc": "リアルタイムなフィードバック",
-      "feature2Title": "多彩な問題形式",
-      "feature2Desc": "柔軟な評価",
-      "feature3Title": "成長の追跡",
-      "feature3Desc": "学習分析",
-      "title": "ログイン",
-      "subtitle": "おかえりなさい、アカウントにログインしてください",
-      "email": "メールアドレス",
-      "emailPlaceholder": "student@example.com",
-      "password": "パスワード",
-      "passwordPlaceholder": "パスワードを入力",
-      "submit": "ログイン",
-      "loading": "ログイン中...",
-      "or": "または、他の方法でログイン",
-      "ssoLogin": "SSOでログイン",
-      "googleLogin": "Googleでログイン",
-      "githubLogin": "GitHubでログイン",
-      "noAccount": "アカウントをお持ちでない方は",
-      "registerNow": "新規登録",
-      "failed": "ログインに失敗しました",
-      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
-      "oauthFailed": "ログインを開始できませんでした"
-    },
-    "campusSso": {
-      "title": "キャンパス認証",
-      "subtitle": "ログインする大学を選択してください",
-      "redirecting": "ログインページにリダイレクト中...",
-      "backToLogin": "ログインに戻る",
-      "providers": {
-        "nycu": {
-          "name": "NYCU (国立陽明交通大学)",
-          "description": "大学のポータルアカウントを使用してログインします"
-        }
-      }
-    },
-    "register": {
-      "title": "アカウント作成",
-      "subtitle": "QJudgeに参加して、プログラミングの旅を始めましょう",
-      "username": "ユーザー名",
-      "usernamePlaceholder": "ユーザー名を選択",
-      "email": "メールアドレス",
-      "emailPlaceholder": "メールアドレスを入力",
-      "password": "パスワード",
-      "passwordPlaceholder": "パスワードを作成",
-      "confirmPassword": "パスワード確認",
-      "confirmPasswordPlaceholder": "パスワードを再入力",
-      "submit": "登録",
-      "loading": "登録中...",
-      "hasAccount": "すでにアカウントをお持ちの方は",
-      "loginNow": "ログイン",
-      "failed": "登録に失敗しました",
-      "failedRetry": "登録に失敗しました。後でもう一度お試しください",
-      "passwordMismatch": "パスワードが一致しません",
-      "passwordHelper": "少なくとも8文字で、数字のみや一般的なパスワードは避けてください。",
-      "passwordTooShort": "パスワードは少なくとも8文字である必要があります。"
-    },
-    "callback": {
-      "conflictTitle": "試験の競合",
-      "errorTitle": "ログイン失敗",
-      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
-      "failed": "ログインに失敗しました。もう一度お試しください。",
-      "loading": "本人確認中",
-      "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
-      "noCode": "認証コードが受信されませんでした。",
-      "takeover": "引き継いで古いデバイスをロックする",
-      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
-      "takingOver": "処理中..."
-    }
-  },
-  "status": {
-    "public": "公開",
-    "private": "非公開",
-    "draft": "下書き",
-    "published": "公開済み",
-    "archived": "アーカイブ済み",
-    "hidden": "非表示",
-    "active": "有効",
-    "inactive": "無効",
-    "connected": "接続済み",
-    "disconnected": "未接続",
-    "enabled": "有効",
-    "disabled": "無効",
-    "solved": "解決済み",
-    "pending": "実行待ち",
-    "success": "成功",
-    "failed": "失敗",
-    "notPassed": "未通過",
-    "missing": "未完了"
-  },
-  "action": {
-    "adding": "追加中...",
-    "deleting": "削除中...",
-    "uploading": "アップロード中...",
-    "downloading": "ダウンロード中...",
-    "importing": "インポート中...",
-    "exporting": "エクスポート中...",
-    "syncing": "同期中...",
-    "processing": "処理中...",
-    "pleaseWait": "お待ちください",
-    "refreshing": "更新中...",
-    "refresh": "更新",
-    "viewProblem": "問題を見る"
-  },
-  "difficulty": {
-    "easy": "簡単",
-    "medium": "普通",
-    "hard": "難しい"
-  },
-  "form": {
-    "title": "タイトル",
-    "name": "名前",
-    "description": "説明",
-    "author": "作成者",
-    "createdAt": "作成日時",
-    "updatedAt": "更新日時",
-    "startTime": "開始時刻",
-    "endTime": "終了時刻",
-    "startDate": "開始日",
-    "endDate": "終了日",
-    "startDateTime": "開始日時",
-    "endDateTime": "終了日時",
-    "password": "パスワード",
-    "visibility": "公開設定"
   },
   "filter": {
     "all": "すべて",
@@ -327,31 +209,466 @@
     "search": "検索",
     "searchPlaceholder": "検索..."
   },
-  "toggle": {
-    "on": "オン",
-    "off": "オフ",
-    "show": "表示",
-    "hide": "非表示",
-    "allow": "許可",
-    "forbid": "禁止"
+  "form": {
+    "author": "作成者",
+    "createdAt": "作成日時",
+    "description": "説明",
+    "endDate": "終了日",
+    "endDateTime": "終了日時",
+    "endTime": "終了時刻",
+    "name": "名前",
+    "password": "パスワード",
+    "startDate": "開始日",
+    "startDateTime": "開始日時",
+    "startTime": "開始時刻",
+    "title": "タイトル",
+    "updatedAt": "更新日時",
+    "visibility": "公開設定"
   },
-  "classroom": {
-    "members": "メンバー"
+  "header": {
+    "adminNavigation": "管理ナビゲーション",
+    "announcements": "お知らせ管理",
+    "contestManagement": "コンテスト管理",
+    "contestNavigation": "コンテストナビゲーション",
+    "createContest": "コンテスト作成",
+    "environmentSettings": "環境設定",
+    "mainNavigation": "メインナビゲーション",
+    "menu": "メニュー",
+    "platform": "プログラミング評価プラットフォーム",
+    "prefix": "システム",
+    "problemManagement": "問題管理",
+    "reviewQueue": "送審佇列",
+    "sideNav": "サイドナビゲーション",
+    "systemSettings": "システム設定",
+    "teacherDashboard": "教師ダッシュボード",
+    "userManagement": "ユーザー管理",
+    "userMenu": "ユーザーメニュー"
+  },
+  "image": {
+    "galleryTab": "圖庫",
+    "linkTab": "連結",
+    "uploadTab": "上傳"
+  },
+  "language": {
+    "selectLanguage": "言語を選択",
+    "switchTo": "言語を切り替え",
+    "switchedTitle": "言語が変更されました",
+    "switchedTo": "{{language}}に切り替えました",
+    "title": "言語"
+  },
+  "message": {
+    "comingSoon": "近日公開",
+    "deleteFailed": "削除に失敗しました",
+    "error": "エラーが発生しました",
+    "loading": "読み込み中...",
+    "noData": "データがありません",
+    "notFound": "リソースが見つかりません",
+    "saveFailed": "保存に失敗しました",
+    "success": "操作が完了しました"
+  },
+  "nav": {
+    "back": "戻る",
+    "backToProblemList": "問題一覧に戻る",
+    "classrooms": "クラスルーム",
+    "contests": "コンテスト",
+    "dashboard": "ダッシュボード",
+    "documentation": "ドキュメント",
+    "marketplace": "問題集マーケット",
+    "problemList": "問題一覧",
+    "problems": "問題",
+    "problemsLegacy": "問題 (旧)",
+    "questionBanks": "問題集",
+    "ranking": "ランキング",
+    "submissions": "提出履歴"
+  },
+  "page": {
+    "announcements": "お知らせ管理",
+    "contestDetail": "コンテスト詳細",
+    "contestManagement": "コンテスト管理",
+    "contests": "コンテスト一覧",
+    "createContest": "コンテストを作成",
+    "createProblem": "問題を新規作成",
+    "dashboard": "ダッシュボード",
+    "editProblem": "問題を編集",
+    "environment": "環境設定",
+    "login": "ログイン",
+    "problemDetail": "問題詳細",
+    "problemManagement": "問題管理",
+    "problemManagementLegacy": "問題管理 (旧)",
+    "problems": "問題一覧",
+    "questionBanks": "問題集",
+    "register": "登録",
+    "submissions": "提出履歴",
+    "teacherDashboard": "教師ダッシュボード",
+    "userManagement": "ユーザー管理"
+  },
+  "pagination": {
+    "itemsPerPage": "表示件数",
+    "next": "次へ",
+    "previous": "前へ"
+  },
+  "preferences": {
+    "accountInfo": "アカウント情報",
+    "avatarDropzoneHint": "またはここをクリックして画像ファイルを選択してください",
+    "avatarDropzoneTitle": "画像をここにドラッグ＆ドロップ",
+    "avatarEmpty": "アバターを追加",
+    "avatarRemove": "アバターを削除",
+    "avatarUpload": "アバターをアップロード",
+    "changePassword": "パスワード変更",
+    "confirmPassword": "新しいパスワード (確認)",
+    "currentPassword": "現在のパスワード",
+    "displayName": "表示名",
+    "displayNameDescription": "プラットフォームで表示される名前を設定します",
+    "displayNameSaveFailed": "更新失敗",
+    "displayNameSaved": "更新されました",
+    "editAvatar": "アバターを編集",
+    "editor": "エディター設定",
+    "editorFontSize": "フォントサイズ",
+    "editorTabSize": "タブ幅",
+    "email": "メールアドレス",
+    "language": "言語",
+    "languageDescription": "優先する表示言語を選択してください",
+    "languageSection": "言語",
+    "loginMethod": "ログイン方法",
+    "newPassword": "新しいパスワード",
+    "oauthUser": "OAuth ユーザーはパスワードを変更できません",
+    "passwordChanged": "パスワードが変更されました",
+    "passwordMismatch": "新しいパスワードが一致しません",
+    "role": "ロール",
+    "savingDisplayName": "保存中...",
+    "theme": "テーマ",
+    "themeDescription": "優先するインターフェーステーマを選択してください",
+    "themeSection": "テーマ",
+    "title": "設定",
+    "username": "ユーザー名",
+    "wrongPassword": "現在のパスワードが間違っています"
+  },
+  "profile": {
+    "deviceName": "デバイス名",
+    "devices": "デバイス管理",
+    "devicesDesc": "過去30日間のログイン履歴",
+    "lastActive": "最終アクティビティ",
+    "now": "現在",
+    "personalInfo": "個人情報"
+  },
+  "questionBank": {
+    "addQuestion": "問題を追加",
+    "bankCreated": "問題集が作成されました",
+    "bankDeleted": "問題集が削除されました",
+    "bankNotFound": "問題集が見つかりません",
+    "bankNotFoundDesc": "問題集一覧に戻って再選択してください。",
+    "bankUpdated": "問題集が更新されました",
+    "category": "カテゴリー",
+    "categoryCoding": "プログラミング",
+    "categoryExam": "筆記試験",
+    "clone": "マイ問題集にコピー",
+    "cloneSuccess": "マイ問題集にコピーされました",
+    "communityTag": "QJudge Community",
+    "createBank": "問題集を作成",
+    "deleteBank": "問題集を削除",
+    "deleteBankConfirmBody": "問題集「{{name}}」を削除してもよろしいですか？",
+    "deleteQuestion": "問題を削除",
+    "deleteQuestionConfirmBody": "問題「{{title}}」を削除してもよろしいですか？",
+    "description": "説明",
+    "difficulty": "難易度",
+    "editBank": "問題集を編集",
+    "editQuestion": "問題を編集",
+    "emptyExplore": "探索可能な問題集はありません。",
+    "emptyMine": "問題集がありません。まずはマイ問題集を作成しましょう。",
+    "exploreOnlyPlatform": "探索は現在 QJudge Community のみ対応しています",
+    "exploreOnlyPlatformDesc": "Phase1 では教員間の共有は含まれず、Community の検証済み問題集が中心となります。",
+    "importFromInbox": "匯入草稿",
+    "inbox": {
+      "clearSelection": "選択を解除",
+      "coding": "プログラミング問題選択リスト",
+      "currentFilter": "現在表示中",
+      "description": "コンテスト内で一時的に作成された問題を問題集に分類できます。",
+      "empty": "現在、選択可能な問題はありません。",
+      "exam": "筆記試験問題選択リスト",
+      "filterAll": "すべて",
+      "filterLabel": "表示範囲",
+      "fromUnknown": "ソース不明",
+      "ingestSelected": "選択した問題を取り込む",
+      "ingestSuccess": "問題集に取り込みました",
+      "ingesting": "取り込み中...",
+      "noCodingBank": "プログラミング問題集なし",
+      "noExamBank": "筆記試験問題集なし",
+      "selectAll": "すべて選択",
+      "selectedCount": "{{count}} 件選択済み",
+      "targetBank": "対象の問題集",
+      "title": "問題取り込み"
+    },
+    "loadQuestions": "問題を見る",
+    "memoryLimit": "メモリ制限(MB)",
+    "mockGalleryDesc": "UI モックのプレビューです。QJudge Community のカード例を示します。",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockOfficialBank1Desc": "再帰と基礎的な探索から、思考力を養います。",
+    "mockOfficialBank1Name": "アルゴリズム入門 - 再帰",
+    "mockOfficialBank2Desc": "学習の進捗に合わせたデータ構造の実装問題。",
+    "mockOfficialBank2Name": "データ構造実装問題集",
+    "mockOfficialTag": "Community セレクト",
+    "mockOwnerLabel": "所有者",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "陳先生",
+    "mockOwnerTeacherB": "林先生",
+    "mockQuestionCount": "{{count}} 問",
+    "mockUserBank1Desc": "APCS の概念とよくある間違いに焦点を当てた演習。",
+    "mockUserBank1Name": "陳先生の APCS 演習",
+    "mockUserBank2Desc": "校内定期試験の過去問。評価ポイントと難易度付き。",
+    "mockUserBank2Name": "林先生の定期試験問題集",
+    "mockUserPublicTag": "ユーザー公開",
+    "mockVerifiedTag": "認証済み",
+    "openBank": "問題集を開く",
+    "prompt": "問題文",
+    "questionCreated": "問題が作成されました",
+    "questionDeleted": "問題が削除されました",
+    "questionUpdated": "問題が更新されました",
+    "allTypes": "全ての題型",
+    "sortOrder": "デフォルト順",
+    "sortType": "題型別",
+    "sortNewest": "最新更新順",
+    "sortOldest": "最古更新順",
+    "usedInContests": "{{count}} 件の試験",
+    "saveToBank": {
+      "desc": "將「{{title}}」收錄到題庫：",
+      "success": "已收錄到題庫",
+      "title": "收錄到題庫"
+    },
+    "score": "得点",
+    "selectTargetBank": "選擇目標題庫",
+    "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
+    "tabs": {
+      "explore": "探索",
+      "inbox": "問題取り込み",
+      "mine": "マイ問題集"
+    },
+    "tagMine": "マイ問題集",
+    "tagPrivate": "プライベート",
+    "tagPublic": "公開",
+    "tagUserPublic": "ユーザー公開",
+    "timeLimit": "時間制限(ms)"
   },
   "questionType": {
-    "label": {
-      "true_false": "○×問題",
-      "single_choice": "単一選択",
-      "multiple_choice": "複数選択",
-      "short_answer": "短答",
-      "essay": "記述"
-    },
     "description": {
-      "true_false": "文が正しいか正しくないか判断",
-      "single_choice": "複数の選択肢から1つの正解を選択",
+      "essay": "長文テキストで回答 (参考解答あり)",
       "multiple_choice": "複数の選択肢から複数の正解を選択",
       "short_answer": "短いテキストを入力して回答",
-      "essay": "長文テキストで回答（参考解答あり）"
+      "single_choice": "複数の選択肢から 1 つの正解を選択",
+      "true_false": "文が正しいか正しくないか判断"
+    },
+    "label": {
+      "essay": "記述",
+      "multiple_choice": "複数選択",
+      "short_answer": "短答",
+      "single_choice": "単一選択",
+      "true_false": "○×問題"
+    }
+  },
+  "role": {
+    "admin": "管理者",
+    "adminTA": "管理者 (TA)",
+    "student": "学生",
+    "ta": "助教",
+    "teacher": "教員"
+  },
+  "settings": {
+    "apiKey": {
+      "active": "有効",
+      "addKey": "API Key を追加",
+      "createdAtLabel": "作成日時",
+      "deleteConfirm": "API Key を削除してもよろしいですか？ AI機能が利用できなくなります。",
+      "deleteKey": "Key を削除",
+      "description": "AI機能用の Anthropic API Key を管理します",
+      "empty": "API Key が設定されていません。Anthropic Console で作成してください。",
+      "error": {
+        "deleteFailed": "削除に失敗しました",
+        "inputRequired": "API Key を入力してください",
+        "invalidFormat": "形式が正しくありません ('sk-ant-' で始まっている必要があります)",
+        "loadFailed": "API Key 情報の取得に失敗しました",
+        "saveFailed": "保存に失敗しました",
+        "usageLoadFailed": "利用データの取得に失敗しました"
+      },
+      "inactive": "無効",
+      "invalid": "未検証",
+      "modal": {
+        "addTitle": "API Key を追加",
+        "deleteSuccess": "API Key を削除しました",
+        "helperText": "API Key は暗号化して保存されます",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "nameInput": "名前 (任意)",
+        "saveSuccess": "API Key を保存しました",
+        "updateTitle": "API Key を更新"
+      },
+      "nameLabel": "名前",
+      "statusLabel": "ステータス",
+      "title": "API Key",
+      "updateKey": "Key を更新",
+      "usage": {
+        "daily": "日次",
+        "description": "AI API の利用状況サマリーと詳細",
+        "endDate": "終了日",
+        "granularity": "粒度",
+        "monthly": "月次",
+        "noData": "選択された範囲に利用データはありません",
+        "startDate": "開始日",
+        "table": {
+          "cost": "費用 (USD)",
+          "date": "日付",
+          "inputTokens": "入力トークン",
+          "outputTokens": "出力トークン",
+          "requests": "リクエスト数"
+        },
+        "title": "利用統計",
+        "totalCost": "総費用",
+        "totalRequests": "総リクエスト数",
+        "totalTokens": "総トークン数",
+        "weekly": "週次"
+      },
+      "validated": "検証済み"
+    },
+    "description": "設定、API Key、使用量統計を管理します",
+    "descriptionStudent": "設定を管理します",
+    "loginRecords": {
+      "current": "現在のデバイス",
+      "description": "過去30日間のログイン履歴",
+      "deviceName": "デバイス名",
+      "empty": "履歴がありません",
+      "lastActive": "最終アクティビティ",
+      "logoutError": "ログアウトに失敗しました",
+      "logoutOther": "他デバイスからログアウト",
+      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
+      "logoutSuccess": "他デバイスからログアウトしました",
+      "now": "現在",
+      "title": "デバイス管理"
+    },
+    "plans": {
+      "contactUs": "お問い合わせ",
+      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
+      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
+      "enterpriseTitle": "より大規模な利用をお考えですか？",
+      "features": {
+        "pro": [
+          "試験あたり最大 200 人",
+          "500 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "1 年間のデータ保持",
+          "10 GB のストレージ容量"
+        ],
+        "team": [
+          "試験あたり最大 500 人",
+          "2,000 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "最大 10 人の管理者",
+          "50 GB のストレージ容量"
+        ]
+      },
+      "freeTrial": "30日間無料",
+      "month": "月",
+      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
+      "processing": "処理中...",
+      "startingTrial": "無料試用を開始",
+      "subscribeNow": "今すぐ購読",
+      "title": "プランを見る"
+    },
+    "subscription": {
+      "desc": {
+        "free": "現在は無料プランです。いつでもアップグレード可能です。",
+        "pro": "安定した試験環境を求める個人ユーザー向け",
+        "team": "学校、学部、トレーニング機関向け"
+      },
+      "manage": "購読を管理",
+      "manageDesc": "支払い方法の変更、解約、請求書の確認",
+      "openPortalFailed": "管理ページの起動に失敗しました",
+      "periodEndDate": "現在の期間終了",
+      "status": {
+        "active": "有効",
+        "canceled": "解約済み",
+        "expired": "期限切れ",
+        "past_due": "支払い遅延",
+        "trialing": "試用中"
+      },
+      "tier": {
+        "enterprise": "エンタープライズ",
+        "free": "無料プラン",
+        "pro": "プロプラン",
+        "team": "チームプラン"
+      },
+      "trialEndDate": "試用終了日"
+    },
+    "tabs": {
+      "apiKey": "API Key",
+      "plans": "プラン",
+      "preferences": "基本設定",
+      "profile": "プロフィール",
+      "subscription": "購読状況",
+      "usage": "利用統計"
+    },
+    "title": "設定"
+  },
+  "status": {
+    "active": "有効",
+    "archived": "アーカイブ済み",
+    "connected": "接続済み",
+    "disabled": "無効",
+    "disconnected": "未接続",
+    "draft": "下書き",
+    "enabled": "有効",
+    "failed": "失敗",
+    "hidden": "非表示",
+    "inactive": "無効",
+    "missing": "未完了",
+    "notPassed": "未通過",
+    "pending": "実行待ち",
+    "private": "非公開",
+    "public": "公開",
+    "published": "公開済み",
+    "solved": "解決済み",
+    "success": "成功"
+  },
+  "tab": {
+    "clarifications": "質問",
+    "description": "問題文",
+    "overview": "概要",
+    "problems": "問題",
+    "settings": "設定",
+    "solver": "解答",
+    "standings": "順位表",
+    "submissions": "提出履歴"
+  },
+  "table": {
+    "actions": "操作",
+    "private": "非公開 (パスワード)",
+    "public": "公開",
+    "status": "状態",
+    "time": "時間",
+    "title": "タイトル",
+    "visibility": "公開設定"
+  },
+  "theme": {
+    "dark": "ダーク",
+    "light": "ライト",
+    "switchToDark": "ダークモードに切り替え",
+    "switchToLight": "ライトモードに切り替え",
+    "system": "システム",
+    "title": "テーマ"
+  },
+  "toggle": {
+    "allow": "許可",
+    "forbid": "禁止",
+    "hide": "非表示",
+    "off": "オフ",
+    "on": "オン",
+    "show": "表示"
+  },
+  "user": {
+    "changePassword": "パスワード変更",
+    "preferences": "設定",
+    "role": {
+      "admin": "管理者",
+      "adminTA": "管理者 (TA)",
+      "student": "学生",
+      "teacher": "教員"
     }
   }
 }

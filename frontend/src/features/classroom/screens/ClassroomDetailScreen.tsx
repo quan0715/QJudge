@@ -1,517 +1,772 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  Grid,
-  Column,
   Button,
+  Search,
   Tag,
   Modal,
-  SkeletonText,
-  SkeletonPlaceholder,
   ClickableTile,
+  SkeletonPlaceholder,
+  SkeletonText,
   Tabs,
   TabList,
   Tab,
-  TabPanels,
-  TabPanel,
 } from "@carbon/react";
 import {
-  ArrowLeft,
   Add,
-  TrashCan,
-  // Edit as EditIcon,
-  Trophy,
-  Bullhorn,
-  UserMultiple,
-  Calendar,
-  Education,
   ArrowRight,
+  Bullhorn,
+  Calendar,
+  Dashboard,
+  Education,
   Pin,
+  Settings,
+  Trophy,
+  UserMultiple,
 } from "@carbon/icons-react";
+import type {
+  Classroom,
+  ClassroomAnnouncement,
+  ClassroomDetail,
+  BoundContest,
+} from "@/core/entities/classroom.entity";
+import type { Contest } from "@/core/entities/contest.entity";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { useToast } from "@/shared/contexts/ToastContext";
+import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
-  removeMember,
-  regenerateCode,
-  unbindContest,
+  getClassrooms,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
-import type { ClassroomDetail, ClassroomAnnouncement, BoundContest } from "@/core/entities/classroom.entity";
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import { InviteCodeDisplay } from "../components/InviteCodeDisplay";
-import { MemberTable } from "../components/MemberTable";
-import { AddMembersModal } from "../components/AddMembersModal";
-import { BindContestModal } from "../components/BindContestModal";
+import { MemberGrid, type MemberCardData } from "../components/MemberTable";
 import { AnnouncementModal } from "../components/AnnouncementModal";
+import CreateContestModal from "@/features/classroom/components/CreateContestModal";
+import ClassroomAdminLayout, { type ClassroomAdminPanelId } from "./ClassroomAdminLayout";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
+import { ContestPreviewCard } from "@/features/contest/components/ContestPreviewCard";
+import { getClassroomIcon } from "../constants/classroomIcons";
+import { ClassroomSettingsModal } from "../components/ClassroomSettingsModal";
 import "./ClassroomDetailScreen.scss";
 
-// ── Component ──────────────────────────────────────────
+const PANEL_ALIAS: Record<string, ClassroomAdminPanelId> = {
+  announcement: "announcements",
+  contest: "contests",
+  member: "members",
+};
+
+const resolveActivePanel = (
+  value: string | null,
+  availablePanels: ClassroomAdminPanelId[],
+): ClassroomAdminPanelId => {
+  const normalized = value ? (PANEL_ALIAS[value] ?? value) : "overview";
+  return availablePanels.includes(normalized as ClassroomAdminPanelId)
+    ? (normalized as ClassroomAdminPanelId)
+    : "overview";
+};
 
 const ClassroomDetailScreen: React.FC = () => {
-  const { t } = useTranslation();
-  const { classroomId } = useParams<{ classroomId: string }>();
+  const { t } = useTranslation("classroom");
+  const { showToast } = useToast();
   const navigate = useNavigate();
+  const { classroomId } = useParams<{ classroomId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [classroom, setClassroom] = useState<ClassroomDetail | null>(null);
+  const [classroomOptions, setClassroomOptions] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addMembersOpen, setAddMembersOpen] = useState(false);
-  const [bindContestOpen, setBindContestOpen] = useState(false);
+
+  const [createContestOpen, setCreateContestOpen] = useState(false);
   const [viewingAnnouncement, setViewingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
 
   const isPrivileged =
-    classroom?.currentUserRole === "admin" ||
-    classroom?.currentUserRole === "teacher";
+    classroom?.currentUserRole === "platform_admin" ||
+    classroom?.currentUserRole === "owner" ||
+    classroom?.currentUserRole === "manager";
+  const isMember = Boolean(classroom?.currentUserRole);
 
-  const isMember = !!classroom?.currentUserRole;
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const availablePanels = useMemo<ClassroomAdminPanelId[]>(() => {
+    if (isPrivileged || isMember) {
+      return ["overview", "announcements", "contests", "members"];
+    }
+    return ["overview"];
+  }, [isMember, isPrivileged]);
+
+  const activePanel = useMemo(
+    () => resolveActivePanel(searchParams.get("panel"), availablePanels),
+    [searchParams, availablePanels],
+  );
+
+  const fetchClassroomData = useCallback(async () => {
     if (!classroomId) return;
     try {
       setLoading(true);
       const data = await getClassroom(classroomId);
-      if (data) setClassroom(data);
-    } catch (err) {
-      console.error("Failed to fetch classroom", err);
+      if (!data) {
+        showToast({
+          kind: "error",
+          title: t("notFound", "找不到教室"),
+        });
+        return;
+      }
+      setClassroom(data);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("loadFailed", "載入教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("loadFailedHint", "請稍後再試"),
+      });
     } finally {
       setLoading(false);
     }
-  }, [classroomId]);
+  }, [classroomId, showToast, t]);
+
+  const fetchClassroomOptions = useCallback(async () => {
+    try {
+      const rows = await getClassrooms();
+      setClassroomOptions(rows);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("switcherLoadFailed", "載入教室清單失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("loadFailedHint", "請稍後再試"),
+      });
+    }
+  }, [showToast, t]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([fetchClassroomData(), fetchClassroomOptions()]);
+  }, [fetchClassroomData, fetchClassroomOptions]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    void refreshAll();
+  }, [refreshAll]);
 
-  const handleRemoveMember = async (userId: number) => {
-    if (!classroomId) return;
-    await removeMember(classroomId, userId);
-    fetchData();
+  useEffect(() => {
+    const panelParam = searchParams.get("panel");
+    const normalized = resolveActivePanel(panelParam, availablePanels);
+    if ((panelParam === null && normalized === "overview") || panelParam === normalized) {
+      return;
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (normalized === "overview") {
+        next.delete("panel");
+      } else {
+        next.set("panel", normalized);
+      }
+      return next;
+    });
+  }, [availablePanels, searchParams, setSearchParams]);
+
+  const handlePanelChange = (panel: ClassroomAdminPanelId) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (panel === "overview") {
+        next.delete("panel");
+      } else {
+        next.set("panel", panel);
+      }
+      return next;
+    });
   };
 
-  const handleRegenerateCode = async () => {
-    if (!classroomId) return;
-    await regenerateCode(classroomId);
-    fetchData();
+  const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
+    const panel = availablePanels[selectedIndex];
+    if (panel) handlePanelChange(panel);
   };
 
-  // const handleDeleteAnnouncement = async (annId: string) => {
-  //   if (!classroomId) return;
-  //   await deleteAnnouncement(classroomId, annId);
-  //   fetchData();
-  // };
-
-  const handleUnbindContest = async (contestId: string) => {
-    if (!classroomId) return;
-    await unbindContest(classroomId, contestId);
-    fetchData();
+  const handleClassroomSwitch = (targetId: string) => {
+    if (!targetId || targetId === classroomId) return;
+    navigate(`/classrooms/${targetId}`);
   };
 
-  // ── Skeleton ───────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="classroom-detail">
-        <Grid fullWidth className="classroom-detail__grid">
-          <Column lg={16} md={8} sm={4}>
-            <div className="classroom-detail__hero">
-              <SkeletonText heading width="40%" />
-              <SkeletonText width="60%" />
-            </div>
-            <div className="classroom-detail__stats">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="classroom-detail__stat-chip">
-                  <SkeletonPlaceholder style={{ width: 48, height: 48 }} />
-                </div>
-              ))}
-            </div>
-          </Column>
-          <Column lg={10} md={8} sm={4}>
-            <SkeletonText heading width="30%" />
-            <SkeletonPlaceholder style={{ height: 200 }} />
-          </Column>
-          <Column lg={6} md={8} sm={4}>
-            <SkeletonText heading width="30%" />
-            <SkeletonText paragraph lineCount={6} />
-          </Column>
-        </Grid>
-      </div>
-    );
-  }
+  const handleCreateContest = async (contestId?: string) => {
+    if (!contestId) return;
+    showToast({
+      kind: "success",
+      title: t("createContestSuccess", "已建立考試"),
+    });
+    setCreateContestOpen(false);
+    await fetchClassroomData();
+    const targetClassroomId = classroomId || classroom?.id;
+    if (targetClassroomId) {
+      navigate(getClassroomContestDashboardPath(targetClassroomId, contestId));
+    }
+  };
+
+  const handleDeleteAnnouncement = async () => {
+    if (!classroomId) return;
+    try {
+      if (!viewingAnnouncement) return;
+      await deleteAnnouncement(classroomId, viewingAnnouncement.id);
+      showToast({
+        kind: "success",
+        title: t("announcementDeleted"),
+      });
+      setViewingAnnouncement(null);
+      await fetchClassroomData();
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("announcementDeleteFailed"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("loadFailedHint", "請稍後再試"),
+      });
+    }
+  };
+
+  if (loading && !classroom) return <ClassroomSkeleton />;
 
   if (!classroom) {
     return (
-      <div className="classroom-detail">
-        <div className="classroom-detail__empty">
-          <Education size={48} className="classroom-detail__empty-icon" />
-          <p>{t("classroom.notFound", "找不到教室")}</p>
-          <Button kind="tertiary" size="sm" onClick={() => navigate("/classrooms")}>
-            {t("common.back", "返回教室列表")}
-          </Button>
-        </div>
+      <div className="classroom-admin-empty">
+        <Education size={48} className="classroom-admin-empty__icon" />
+        <p>{t("notFound", "找不到教室")}</p>
+        <Button kind="tertiary" size="sm" onClick={() => navigate("/dashboard")}>
+          {t("backToClassrooms")}
+        </Button>
       </div>
     );
   }
 
+  const selectedTabIndex = availablePanels.indexOf(activePanel);
+
+  const HeroIcon = getClassroomIcon(classroom.icon) as React.ComponentType<{
+    size: number;
+    className?: string;
+  }>;
+  const normalizedDescription = classroom.description?.trim() ?? "";
+  const shouldShowDescription =
+    normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
+
   return (
-    <div className="classroom-detail">
-      <Grid fullWidth className="classroom-detail__grid">
-        {/* ── Back button ─────────────────────────────── */}
-        <Column lg={16} md={8} sm={4}>
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={ArrowLeft}
-            onClick={() => navigate("/classrooms")}
-          >
-            {t("common.backToClassrooms", "返回教室列表")}
-          </Button>
-        </Column>
-
-        {/* ── Hero Banner ─────────────────────────────── */}
-        <Column lg={16} md={8} sm={4}>
-          <div className="classroom-detail__hero">
-            <div className="classroom-detail__hero-top">
-              <Education size={28} className="classroom-detail__hero-icon" />
-              <h1 className="classroom-detail__hero-title">{classroom.name}</h1>
-            </div>
-            {classroom.description && (
-              <p className="classroom-detail__hero-desc">{classroom.description}</p>
-            )}
-            <div className="classroom-detail__hero-meta">
-              <Tag type="blue" size="sm">{classroom.currentUserRole}</Tag>
-              <Tag type="outline" size="sm">{classroom.ownerUsername}</Tag>
-              {classroom.isArchived && (
-                <Tag type="red" size="sm">{t("classroom.archived", "已封存")}</Tag>
-              )}
-            </div>
-          </div>
-        </Column>
-
-        {/* ── Stat Chips ──────────────────────────────── */}
-        <Column lg={16} md={8} sm={4}>
-          <div className="classroom-detail__stats">
-            <div className="classroom-detail__stat-chip">
-              <UserMultiple size={24} className="classroom-detail__stat-icon" />
-              <div>
-                <p className="classroom-detail__stat-value">{classroom.memberCount}</p>
-                <p className="classroom-detail__stat-label">{t("classroom.members", "成員")}</p>
-              </div>
-            </div>
-            <div className="classroom-detail__stat-chip">
-              <Trophy size={24} className="classroom-detail__stat-icon" />
-              <div>
-                <p className="classroom-detail__stat-value">{classroom.contests.length}</p>
-                <p className="classroom-detail__stat-label">{t("classroom.contestCount", "競賽")}</p>
-              </div>
-            </div>
-            <div className="classroom-detail__stat-chip">
-              <Bullhorn size={24} className="classroom-detail__stat-icon" />
-              <div>
-                <p className="classroom-detail__stat-value">{classroom.announcements.length}</p>
-                <p className="classroom-detail__stat-label">{t("classroom.announcementCount", "公告")}</p>
-              </div>
-            </div>
-          </div>
-        </Column>
-
-        {/* ── Main Content — Tabbed View ──────────────── */}
-        <Column lg={16} md={8} sm={4}>
-          <Tabs>
-            <TabList aria-label="Classroom sections">
-              <Tab>{t("classroom.tabOverview", "總覽")}</Tab>
-              <Tab>{t("classroom.tabContests", "競賽")}</Tab>
-              <Tab>{t("classroom.tabMembers", "成員")}</Tab>
-            </TabList>
-            <TabPanels>
-              {/* ── Tab: 總覽 ──────────────────────────── */}
-              <TabPanel>
-                <Grid fullWidth>
-                  {/* Announcements */}
-                  <Column lg={10} md={8} sm={4}>
-                    <AnnouncementSection
-                      announcements={classroom.announcements}
-                      isPrivileged={!!isPrivileged}
-                      onCreateClick={() => { setEditingAnnouncement(null); setAnnouncementModalOpen(true); }}
-                      onView={setViewingAnnouncement}
-                    />
-                  </Column>
-
-                  {/* Quick Glance: Contests */}
-                  <Column lg={6} md={8} sm={4}>
-                    <div className="classroom-detail__section">
-                      <div className="classroom-detail__section-header">
-                        <div className="classroom-detail__section-title">
-                          <Trophy size={20} className="classroom-detail__section-icon" />
-                          <h3>{t("classroom.recentContests", "最近競賽")}</h3>
-                        </div>
-                      </div>
-                      {classroom.contests.length === 0 ? (
-                        <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚無競賽")} />
-                      ) : (
-                        <div style={{ display: "grid", gap: "0.5rem" }}>
-                          {classroom.contests.slice(0, 3).map((c) => (
-                            <ContestMiniCard
-                              key={c.contestId}
-                              contest={c}
-                              onClick={() => navigate(`/contests/${c.contestId}`)}
-                            />
-                          ))}
-                          {classroom.contests.length > 3 && (
-                            <Button
-                              kind="ghost"
-                              size="sm"
-                              renderIcon={ArrowRight}
-                              onClick={() => {/* switch to contest tab */}}
-                            >
-                              {t("classroom.viewAll", "查看全部")} ({classroom.contests.length})
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Column>
-                </Grid>
-              </TabPanel>
-
-              {/* ── Tab: 競賽 ──────────────────────────── */}
-              <TabPanel>
-                <div className="classroom-detail__section">
-                  <div className="classroom-detail__section-header">
-                    <div className="classroom-detail__section-title">
-                      <Trophy size={20} className="classroom-detail__section-icon" />
-                      <h3>{t("classroom.contests", "競賽列表")}</h3>
-                    </div>
-                    {isPrivileged && (
-                      <Button
-                        kind="ghost"
-                        size="sm"
-                        renderIcon={Add}
-                        onClick={() => setBindContestOpen(true)}
-                      >
-                        {t("classroom.bindContest", "綁定競賽")}
-                      </Button>
-                    )}
-                  </div>
-                  {classroom.contests.length === 0 ? (
-                    <EmptyBlock icon={Trophy} message={t("classroom.noContests", "尚未綁定競賽")} />
-                  ) : (
-                    <div className="classroom-detail__card-grid">
-                      {classroom.contests.map((c) => (
-                        <ContestCard
-                          key={c.contestId}
-                          contest={c}
-                          isPrivileged={!!isPrivileged}
-                          onNavigate={() => navigate(`/contests/${c.contestId}`)}
-                          onUnbind={() => handleUnbindContest(c.contestId)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </TabPanel>
-
-              {/* ── Tab: 成員 ──────────────────────────── */}
-              <TabPanel>
-                {/* Invite Code — 僅 teacher/admin 可見 */}
-                {isPrivileged && classroom.inviteCode && (
-                  <div className="classroom-detail__invite-inline">
-                    <InviteCodeDisplay
-                      code={classroom.inviteCode}
-                      enabled={classroom.inviteCodeEnabled}
-                      onRegenerate={handleRegenerateCode}
-                    />
-                  </div>
+    <>
+      <ClassroomAdminLayout
+        classroomName={classroom.name}
+        classroomOptions={classroomOptions.map((row) => ({ id: row.id, name: row.name, icon: row.icon }))}
+        selectedClassroomId={classroomId || classroom.id}
+        onClassroomSwitch={handleClassroomSwitch}
+        onGoHome={() => navigate("/dashboard")}
+        onOpenSettings={isPrivileged ? () => setSettingsModalOpen(true) : undefined}
+      >
+        <div className="classroom-admin-page">
+          <QJudgeHeroWidget
+            title={
+              <>
+                {classroom.name}
+                {classroom.isArchived && (
+                  <Tag type="red" size="sm">
+                    {t("archived", "已封存")}
+                  </Tag>
                 )}
+              </>
+            }
+            description={shouldShowDescription ? normalizedDescription : undefined}
+            icon={HeroIcon}
+            coverUrl={classroom.coverUrl || undefined}
 
-                <div className="classroom-detail__section">
-                  <div className="classroom-detail__section-header">
-                    <div className="classroom-detail__section-title">
-                      <UserMultiple size={20} className="classroom-detail__section-icon" />
-                      <h3>{t("classroom.membersTitle", "成員列表")}</h3>
-                    </div>
-                    {isPrivileged && (
-                      <Button
-                        kind="ghost"
-                        size="sm"
-                        renderIcon={Add}
-                        onClick={() => setAddMembersOpen(true)}
-                      >
-                        {t("classroom.addMembers", "新增成員")}
-                      </Button>
-                    )}
-                  </div>
-                  <MemberTable
-                    members={classroom.members}
-                    isPrivileged={!!isPrivileged}
-                    onRemove={handleRemoveMember}
-                  />
-                </div>
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Column>
-      </Grid>
+            kpiCards={
+              <KpiCard
+                icon={UserMultiple}
+                value={classroom.members.length}
+                label={t("classroom.members", "成員")}
+                showBorder={false}
+              />
+            }
+            tabs={
+              <Tabs
+                selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
+                onChange={handleTabChange}
+              >
+                <TabList aria-label={t("tabs", "教室分頁")}>
+                  {availablePanels.map((panel) => (
+                    <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
+                      {TAB_CONFIG[panel]?.label(t) ?? panel}
+                    </Tab>
+                  ))}
+                </TabList>
+              </Tabs>
+            }
+          />
 
-      {/* ── Modals ────────────────────────────────────── */}
+          <div className="classroom-admin-panel">
+            {activePanel === "overview" && (
+              <OverviewPanel
+                classroom={classroom}
+                isPrivileged={Boolean(isPrivileged)}
+                onCreateAnnouncement={() => {
+                  setEditingAnnouncement(null);
+                  setAnnouncementModalOpen(true);
+                }}
+                onViewAnnouncement={setViewingAnnouncement}
+                onCreateExam={() => setCreateContestOpen(true)}
+                onNavigateExam={(contestId) =>
+                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
+                }
+                onJumpToPanel={handlePanelChange}
+              />
+            )}
+
+            {activePanel === "announcements" && (
+              <AnnouncementSection
+                announcements={classroom.announcements}
+                isPrivileged={Boolean(isPrivileged)}
+                onCreateClick={() => {
+                  setEditingAnnouncement(null);
+                  setAnnouncementModalOpen(true);
+                }}
+                onView={setViewingAnnouncement}
+              />
+            )}
+
+            {activePanel === "contests" && (
+              <ContestPanel
+                exams={classroom.contests}
+                canBindContests={Boolean(isPrivileged)}
+                onCreateExam={() => setCreateContestOpen(true)}
+                onNavigateExam={(contestId) =>
+                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
+                }
+              />
+            )}
+
+            {activePanel === "members" && (
+              <MembersPanel classroom={classroom} />
+            )}
+
+          </div>
+        </div>
+      </ClassroomAdminLayout>
+
       {isPrivileged && (
         <>
-          <AddMembersModal
-            open={addMembersOpen}
-            classroomId={classroomId!}
-            onClose={() => setAddMembersOpen(false)}
-            onAdded={() => { setAddMembersOpen(false); fetchData(); }}
+          <CreateContestModal
+            open={createContestOpen}
+            onClose={() => setCreateContestOpen(false)}
+            classroomId={classroom.id}
+            onCreated={(contestId) => {
+              void handleCreateContest(contestId);
+            }}
           />
-          <BindContestModal
-            open={bindContestOpen}
-            classroomId={classroomId!}
-            boundContestIds={classroom.contests.map((c) => c.contestId)}
-            onClose={() => setBindContestOpen(false)}
-            onBound={() => { setBindContestOpen(false); fetchData(); }}
+          <ClassroomSettingsModal
+            open={settingsModalOpen}
+            onClose={() => setSettingsModalOpen(false)}
+            classroom={classroom}
+            onRefresh={refreshAll}
           />
         </>
       )}
 
-      {/* View announcement modal — all members */}
       <AnnouncementViewModal
         announcement={viewingAnnouncement}
-        canEdit={isMember}
+        canEdit={Boolean(isPrivileged)}
         onClose={() => setViewingAnnouncement(null)}
         onEdit={() => {
           setEditingAnnouncement(viewingAnnouncement);
           setViewingAnnouncement(null);
           setAnnouncementModalOpen(true);
         }}
-        onDelete={async () => {
-          if (viewingAnnouncement && classroomId) {
-            await deleteAnnouncement(classroomId, viewingAnnouncement.id);
-            setViewingAnnouncement(null);
-            fetchData();
-          }
+        onDelete={() => {
+          void handleDeleteAnnouncement();
         }}
       />
 
-      {/* Edit/Create announcement modal — all members */}
       <AnnouncementModal
         open={announcementModalOpen}
-        classroomId={classroomId!}
+        classroomId={classroomId || ""}
         announcement={editingAnnouncement}
         onClose={() => setAnnouncementModalOpen(false)}
-        onSaved={() => { setAnnouncementModalOpen(false); fetchData(); }}
+        onSaved={() => {
+          setAnnouncementModalOpen(false);
+          void fetchClassroomData();
+        }}
       />
+    </>
+  );
+};
+
+// ── Tab config ──
+
+type TFn = ReturnType<typeof useTranslation>["t"];
+
+const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: any }> = {
+  overview:      { label: (t) => t("tab.overview", "總覽"),      icon: Dashboard },
+  announcements: { label: (t) => t("tab.announcements"), icon: Bullhorn },
+  contests:      { label: (t) => t("tab.contests", "活動"),      icon: Trophy },
+  members:       { label: (t) => t("tab.members", "成員"),       icon: UserMultiple },
+  settings:      { label: (t) => t("tab.settings", "設定"),      icon: Settings },
+};
+
+
+
+// ── Overview ──
+
+const OverviewPanel: React.FC<{
+  classroom: ClassroomDetail;
+  isPrivileged: boolean;
+  onCreateAnnouncement: () => void;
+  onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
+  onCreateExam: () => void;
+  onNavigateExam: (contestId: string) => void;
+  onJumpToPanel: (panel: ClassroomAdminPanelId) => void;
+}> = ({
+  classroom,
+  isPrivileged,
+  onCreateAnnouncement,
+  onViewAnnouncement,
+  onCreateExam,
+  onNavigateExam,
+  onJumpToPanel,
+}) => {
+  const { t } = useTranslation("classroom");
+  const activeExams = classroom.contests.filter((row) => row.contestStatus === "published");
+  const recentActivities = [...activeExams]
+    .sort((left, right) => {
+      const leftTime = getActivityTimestamp(left);
+      const rightTime = getActivityTimestamp(right);
+      return rightTime.localeCompare(leftTime);
+    })
+    .slice(0, 3);
+
+  return (
+    <div className="classroom-admin-overview-layout">
+      <div className="classroom-admin-overview-layout__main">
+        <AnnouncementSection
+          announcements={classroom.announcements.slice(0, 4)}
+          isPrivileged={isPrivileged}
+          onCreateClick={onCreateAnnouncement}
+          onView={onViewAnnouncement}
+          compactEmpty
+          title={t("latestAnnouncements")}
+        />
+        {classroom.announcements.length > 4 && (
+          <Button
+            kind="ghost"
+            size="sm"
+            renderIcon={ArrowRight}
+            onClick={() => onJumpToPanel("announcements")}
+          >
+            {t("viewAllAnnouncements")}
+          </Button>
+        )}
+      </div>
+
+      <div className="classroom-admin-overview-layout__side">
+        {!isPrivileged && (
+          <section className="classroom-admin-section classroom-admin-section--todo">
+            <div className="classroom-admin-section__header">
+              <div className="classroom-admin-section__title">
+                <h3>{t("studentTodo", "我的待辦")}</h3>
+              </div>
+            </div>
+            <div className="classroom-admin-todo-list">
+              <button type="button" onClick={() => onJumpToPanel("announcements")}>
+                <span>{t("announcements")}</span>
+                <strong>{classroom.announcements.length}</strong>
+              </button>
+              <button type="button" onClick={() => onJumpToPanel("contests")}>
+                <span>{t("contests", "考試")}</span>
+                <strong>{classroom.contests.length}</strong>
+              </button>
+            </div>
+          </section>
+        )}
+
+        <section className="classroom-admin-section">
+          <div className="classroom-admin-section__header">
+            <div className="classroom-admin-section__title">
+              <h3>{t("recentActivities", "近期活動")}</h3>
+            </div>
+            {isPrivileged && (
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+                  {t("createContest", "建立考試")}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {recentActivities.length === 0 ? (
+            <EmptyBlock
+              icon={Trophy}
+              message={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
+              compact
+            />
+          ) : (
+            <div className="classroom-admin-card-grid">
+              {recentActivities.map((activity) => (
+                <ContestCard
+                  key={activity.contestId}
+                  contest={activity}
+                  onNavigate={() => onNavigateExam(activity.contestId)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 };
 
-// ── Sub-Components ─────────────────────────────────────
+// ── Contests panel ──
 
-/** Contest full card for grid */
-const ContestCard: React.FC<{
-  contest: BoundContest;
-  isPrivileged: boolean;
-  onNavigate: () => void;
-  onUnbind: () => void;
-}> = ({ contest, isPrivileged, onNavigate, onUnbind }) => (
-  <ClickableTile onClick={onNavigate} className="classroom-detail__contest-card">
-    <div className="classroom-detail__contest-card-header">
-      <h4 className="classroom-detail__contest-card-name">{contest.contestName}</h4>
-      <Tag type="cyan" size="sm">
-        <Trophy size={12} /> Contest
-      </Tag>
-    </div>
-    <div className="classroom-detail__contest-card-meta">
-      <span className="classroom-detail__contest-card-meta-item">
-        <Calendar size={14} />
-        {new Date(contest.boundAt).toLocaleDateString()}
-      </span>
-    </div>
-    {isPrivileged && (
-      <Button
-        kind="ghost"
-        size="sm"
-        hasIconOnly
-        renderIcon={TrashCan}
-        iconDescription="Unbind"
-        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onUnbind(); }}
-        style={{ position: "absolute", top: "0.5rem", right: "0.5rem" }}
-      />
-    )}
-  </ClickableTile>
-);
+const ContestPanel: React.FC<{
+  exams: BoundContest[];
+  canBindContests: boolean;
+  onCreateExam: () => void;
+  onNavigateExam: (contestId: string) => void;
+}> = ({
+  exams,
+  canBindContests,
+  onCreateExam,
+  onNavigateExam,
+}) => {
+  const { t } = useTranslation("classroom");
 
-/** Mini contest card for overview sidebar */
-const ContestMiniCard: React.FC<{
-  contest: BoundContest;
-  onClick: () => void;
-}> = ({ contest, onClick }) => (
-  <ClickableTile onClick={onClick} style={{ padding: "0.75rem 1rem" }}>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <span style={{ fontWeight: 500 }}>{contest.contestName}</span>
-      <ArrowRight size={16} style={{ color: "var(--cds-icon-secondary)" }} />
-    </div>
-  </ClickableTile>
-);
+  return (
+    <div className="classroom-admin-overview-layout">
+      <section className="classroom-admin-section">
+        <div className="classroom-admin-section__header">
+          <div className="classroom-admin-section__title">
+            <h3>{t("contests", "考試與競賽")}</h3>
+          </div>
+          {canBindContests && (
+            <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+              {t("createContest", "建立考試")}
+            </Button>
+          )}
+        </div>
 
-/** Announcements section */
+        {exams.length === 0 ? (
+          <EmptyBlock icon={Trophy} message={t("noExamContests", "尚未建立考試或競賽")} />
+        ) : (
+          <div className="classroom-admin-card-grid">
+            {exams.map((contest) => (
+              <ContestCard
+                key={contest.contestId}
+                contest={contest}
+                onNavigate={() => onNavigateExam(contest.contestId)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+// ── Members panel ──
+
+const MembersPanel: React.FC<{
+  classroom: ClassroomDetail;
+}> = ({ classroom }) => {
+  const { t } = useTranslation("classroom");
+  const [keyword, setKeyword] = useState("");
+
+  const managers: MemberCardData[] = useMemo(() => {
+    const owner: MemberCardData = { key: "owner", username: classroom.ownerUsername, role: "owner" };
+    const adminCards: MemberCardData[] = classroom.admins
+      .filter((a) => a.username !== classroom.ownerUsername)
+      .map((a) => ({ key: `admin-${a.id}`, username: a.username, role: "manager" }));
+    const taCards: MemberCardData[] = classroom.members
+      .filter((m) => m.role === "ta")
+      .map((m) => ({ key: `ta-${m.userId}`, username: m.username, email: m.email, avatarUrl: m.avatarUrl, role: "manager" as const }));
+    return [owner, ...adminCards, ...taCards];
+  }, [classroom.ownerUsername, classroom.admins, classroom.members]);
+
+  const reservedUserIds = useMemo(
+    () => new Set(classroom.admins.map((a) => a.id)),
+    [classroom.admins],
+  );
+
+  const members: MemberCardData[] = useMemo(
+    () =>
+      classroom.members
+        .filter(
+          (m) =>
+            m.role === "student" &&
+            !reservedUserIds.has(m.userId) &&
+            m.username !== classroom.ownerUsername,
+        )
+        .map((m) => ({ key: `student-${m.userId}`, username: m.username, email: m.email, avatarUrl: m.avatarUrl, role: "member" as const })),
+    [classroom.members, classroom.ownerUsername, reservedUserIds],
+  );
+
+  const filterList = useCallback(
+    (list: MemberCardData[]) => {
+      const q = keyword.trim().toLowerCase();
+      if (!q) return list;
+      return list.filter(
+        (m) => m.username.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q),
+      );
+    },
+    [keyword],
+  );
+
+  const groups = [
+    { key: "manager", label: t("memberGroupTeacher", "教師"), members: filterList(managers) },
+    { key: "member", label: t("memberGroupStudent", "學生"), members: filterList(members) },
+  ];
+
+  const totalVisible = groups.reduce((sum, g) => sum + g.members.length, 0);
+
+  return (
+    <section className="classroom-admin-section">
+      <div className="classroom-admin-section__header">
+        <div className="classroom-admin-section__title">
+          <h3>{t("membersTitle", "成員列表")}</h3>
+        </div>
+      </div>
+      <div className="classroom-admin-member-search">
+        <Search
+          id="classroom-member-search"
+          labelText={t("memberSearch", "搜尋成員")}
+          placeholder={t("memberSearchPlaceholder", "搜尋 username 或 email")}
+          size="md"
+          value={keyword}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setKeyword(event.target.value)}
+        />
+      </div>
+      {totalVisible === 0 ? (
+        <EmptyBlock icon={UserMultiple} message={t("memberNoResult", "找不到符合篩選條件的成員")} compact />
+      ) : (
+        <div className="classroom-admin-member-groups">
+          {groups.map((group) =>
+            group.members.length > 0 ? (
+              <div key={group.key} className="classroom-admin-member-group">
+                <h4 className="classroom-admin-member-group__title">{group.label}</h4>
+                <MemberGrid members={group.members} />
+              </div>
+            ) : null,
+          )}
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ── Shared sub-components ──
+
 const AnnouncementSection: React.FC<{
   announcements: ClassroomAnnouncement[];
   isPrivileged: boolean;
   onCreateClick: () => void;
-  onView: (a: ClassroomAnnouncement) => void;
-}> = ({ announcements, isPrivileged, onCreateClick, onView }) => {
-  const { t } = useTranslation();
-
+  onView: (announcement: ClassroomAnnouncement) => void;
+  compactEmpty?: boolean;
+  title?: string;
+}> = ({ announcements, isPrivileged, onCreateClick, onView, compactEmpty = false, title }) => {
+  const { t } = useTranslation("classroom");
   return (
-    <div className="classroom-detail__section">
-      <div className="classroom-detail__section-header">
-        <div className="classroom-detail__section-title">
-          <Bullhorn size={20} className="classroom-detail__section-icon" />
-          <h3>{t("classroom.announcements", "課程公告")}</h3>
+    <section className="classroom-admin-section">
+      <div className="classroom-admin-section__header">
+        <div className="classroom-admin-section__title">
+          <h3>{title ?? t("announcements")}</h3>
         </div>
         {isPrivileged && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateClick}>
-            {t("classroom.createAnnouncement", "發佈公告")}
+            {t("createAnnouncement")}
           </Button>
         )}
       </div>
       {announcements.length === 0 ? (
-        <EmptyBlock icon={Bullhorn} message={t("classroom.noAnnouncements", "尚無公告")} />
+        <EmptyBlock
+          icon={Bullhorn}
+          message={t("noAnnouncements")}
+          compact={compactEmpty}
+        />
       ) : (
-        <div className="classroom-detail__announcement-list">
-          {announcements.map((a) => (
-            <AnnouncementCard key={a.id} announcement={a} onClick={() => onView(a)} />
+        <div className="classroom-admin-announcement-list">
+          {announcements.map((announcement) => (
+            <AnnouncementCard
+              key={announcement.id}
+              announcement={announcement}
+              onClick={() => onView(announcement)}
+            />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 };
 
-/** Title-only announcement card */
+const ContestCard: React.FC<{
+  contest: BoundContest;
+  onNavigate: () => void;
+}> = ({ contest, onNavigate }) => {
+  const contestCardData: Contest = {
+    id: contest.contestId,
+    name: contest.contestName,
+    description: contest.contestDescription,
+    startTime: contest.contestStartTime || contest.boundAt,
+    endTime: contest.contestEndTime || contest.boundAt,
+    status: contest.contestStatus,
+    visibility: contest.contestVisibility,
+    deliveryMode: contest.deliveryMode,
+    organizer: undefined,
+    hasJoined: true,
+    isRegistered: true,
+    participantCount: contest.participantCount,
+  };
+
+  return <ContestPreviewCard contest={contestCardData} onSelect={onNavigate} />;
+};
+
+const getActivityTimestamp = (contest: BoundContest): string =>
+  contest.contestStartTime || contest.boundAt;
+
+
+const stripMarkdown = (md: string, maxLen = 120): string => {
+  const plain = md
+    .replace(/[#*_~`>\-![\]()]/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+  return plain.length > maxLen ? `${plain.slice(0, maxLen)}…` : plain;
+};
+
 const AnnouncementCard: React.FC<{
   announcement: ClassroomAnnouncement;
   onClick: () => void;
-}> = ({ announcement: a, onClick }) => (
-  <div
-    className={`classroom-detail__ann-card${a.isPinned ? " classroom-detail__ann-card--pinned" : ""}`}
-    onClick={onClick}
-  >
-    <div className="classroom-detail__ann-card-title">
-      {a.isPinned && <Pin size={14} className="classroom-detail__ann-card-pin" />}
-      <h4>{a.title}</h4>
-    </div>
-    <div className="classroom-detail__ann-card-meta">
-      {a.createdByUsername && (
-        <Tag type="high-contrast" size="sm">{a.createdByUsername}</Tag>
-      )}
-      <span className="classroom-detail__ann-card-date">
-        <Calendar size={12} />
-        {new Date(a.createdAt).toLocaleDateString()}
-      </span>
-    </div>
-  </div>
-);
+}> = ({ announcement, onClick }) => {
+  const preview = stripMarkdown(announcement.content);
 
-/** Read-only announcement detail modal */
+  return (
+    <ClickableTile
+      onClick={onClick}
+      className={`classroom-admin-announcement-card${
+        announcement.isPinned ? " classroom-admin-announcement-card--pinned" : ""
+      }`}
+    >
+      <div className="classroom-admin-announcement-card__head">
+        {announcement.isPinned && <Pin size={14} className="classroom-admin-announcement-card__pin" />}
+        <h4>{announcement.title}</h4>
+        <span className="classroom-admin-announcement-card__date">
+          <Calendar size={12} />
+          {new Date(announcement.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+      {preview && (
+        <p className="classroom-admin-announcement-card__preview">{preview}</p>
+      )}
+    </ClickableTile>
+  );
+};
+
 const AnnouncementViewModal: React.FC<{
   announcement: ClassroomAnnouncement | null;
   canEdit: boolean;
@@ -519,49 +774,98 @@ const AnnouncementViewModal: React.FC<{
   onEdit: () => void;
   onDelete: () => void;
 }> = ({ announcement, canEdit, onClose, onEdit, onDelete }) => {
+  const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   if (!announcement) return null;
   return (
+    <>
     <Modal
       open
       passiveModal={!canEdit}
       onRequestClose={onClose}
       onRequestSubmit={onEdit}
       modalHeading={announcement.title}
-      primaryButtonText={canEdit ? "編輯" : undefined}
-      secondaryButtonText={canEdit ? "刪除" : undefined}
-      onSecondarySubmit={onDelete}
+      primaryButtonText={canEdit ? tc("button.edit") : undefined}
+      secondaryButtonText={canEdit ? tc("button.delete") : undefined}
+      onSecondarySubmit={() => setConfirmDeleteOpen(true)}
       size="lg"
       danger={false}
     >
-      <div className="classroom-detail__ann-view">
-        <div className="classroom-detail__ann-view-meta">
+      <div className="classroom-admin-announcement-view">
+        <div className="classroom-admin-announcement-view__meta">
           {announcement.isPinned && (
-            <Tag type="red" size="sm"><Pin size={12} /> 置頂</Tag>
+            <Tag type="red" size="sm">
+              <Pin size={12} /> 置頂
+            </Tag>
           )}
           {announcement.createdByUsername && (
-            <Tag type="high-contrast" size="sm">{announcement.createdByUsername}</Tag>
+            <Tag type="high-contrast" size="sm">
+              {announcement.createdByUsername}
+            </Tag>
           )}
-          <span className="classroom-detail__ann-card-date">
+          <span>
             <Calendar size={12} />
             {new Date(announcement.createdAt).toLocaleDateString()}
           </span>
         </div>
-        <div className="classroom-detail__ann-view-body">
+        <div className="classroom-admin-announcement-view__body">
           <MarkdownRenderer>{announcement.content}</MarkdownRenderer>
         </div>
       </div>
     </Modal>
+
+    <Modal
+      open={confirmDeleteOpen}
+      size="sm"
+      danger
+      modalHeading={t("confirmDeleteAnnouncementTitle")}
+      primaryButtonText={tc("button.delete")}
+      secondaryButtonText={tc("button.cancel")}
+      onRequestClose={() => setConfirmDeleteOpen(false)}
+      onRequestSubmit={() => {
+        setConfirmDeleteOpen(false);
+        onDelete();
+      }}
+    >
+      <p>
+        {t("confirmDeleteAnnouncementBody")}
+      </p>
+      <p><strong>{announcement.title}</strong></p>
+    </Modal>
+    </>
   );
 };
 
-/** Empty state block */
 const EmptyBlock: React.FC<{
   icon: React.ComponentType<{ size: number; className?: string }>;
   message: string;
-}> = ({ icon: Icon, message }) => (
-  <div className="classroom-detail__empty">
-    <Icon size={32} className="classroom-detail__empty-icon" />
+  compact?: boolean;
+}> = ({ icon: Icon, message, compact = false }) => (
+  <div className={`classroom-admin-empty-block${compact ? " classroom-admin-empty-block--compact" : ""}`}>
+    <Icon size={28} className="classroom-admin-empty-block__icon" />
     <p>{message}</p>
+  </div>
+);
+
+const ClassroomSkeleton = () => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      backgroundColor: "var(--cds-background)",
+    }}
+  >
+    <div style={{ minHeight: "12.5rem", position: "relative", overflow: "hidden" }}>
+      <SkeletonPlaceholder style={{ width: "100%", height: "12.5rem" }} />
+    </div>
+    <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <SkeletonText heading width="40%" />
+      <SkeletonText width="70%" />
+      <SkeletonText width="55%" />
+    </div>
   </div>
 );
 

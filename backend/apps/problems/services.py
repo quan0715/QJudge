@@ -1,60 +1,39 @@
 from django.db import transaction
-from .models import Problem, ProblemTranslation, TestCase, LanguageConfig
-import re
+from django.utils.text import slugify
+
+from .models import CodingProblem, Problem, ProblemTranslation, TestCase, LanguageConfig, Tag
 import uuid
+
+
+# ── Content vs Execution field classification ──
+# Content fields (owned by QuestionAsset): title, difficulty, translations, tags
+# Execution fields (owned by Problem/CodingProblem): slug, time_limit, memory_limit,
+#   test_cases, language_configs, forbidden_keywords, required_keywords
+
+CONTENT_FIELDS = {"title", "difficulty"}
+EXECUTION_FIELDS = {
+    "slug", "time_limit", "memory_limit",
+    "forbidden_keywords", "required_keywords", "order",
+}
+
+
+def _split_content_execution(validated_data: dict) -> tuple[dict, dict]:
+    """Split validated_data into content fields (for Asset) and execution fields (for Problem)."""
+    content = {}
+    execution = {}
+    for k, v in validated_data.items():
+        if k in CONTENT_FIELDS:
+            content[k] = v
+        else:
+            execution[k] = v
+    # Execution also needs content fields for backward compat (Problem still has them)
+    execution.update(content)
+    return content, execution
+
 
 class ProblemService:
     @staticmethod
-    def generate_contest_problem_id() -> str:
-        """
-        為競賽題目生成下一個可用的 Q 編號（Q001, Q002...）
-        """
-        from django.db.models import Max
-        
-        # 找出所有 Q 開頭的 display_id
-        contest_problems = Problem.objects.filter(
-            display_id__startswith='Q'
-        ).values_list('display_id', flat=True)
-        
-        if not contest_problems:
-            return 'Q001'
-        
-        # 提取數字並找到最大值
-        numbers = []
-        for pid in contest_problems:
-            match = re.match(r'Q(\d+)', pid)
-            if match:
-                numbers.append(int(match.group(1)))
-        
-        next_num = max(numbers) + 1 if numbers else 1
-        return f'Q{next_num:03d}'
-    
-    @staticmethod
-    def generate_practice_problem_id() -> str:
-        """
-        為練習題生成下一個可用的 P 編號（P001, P002...）
-        """
-        from django.db.models import Max
-        
-        # 找出所有 P 開頭的 display_id
-        practice_problems = Problem.objects.filter(
-            display_id__startswith='P'
-        ).values_list('display_id', flat=True)
-        
-        if not practice_problems:
-            return 'P001'
-        
-        # 提取數字並找到最大值
-        numbers = []
-        for pid in practice_problems:
-            match = re.match(r'P(\d+)', pid)
-            if match:
-                numbers.append(int(match.group(1)))
-        
-        next_num = max(numbers) + 1 if numbers else 1
-        return f'P{next_num:03d}'
-    @staticmethod
-    def _clone_related(source_problem: Problem, new_problem: Problem) -> None:
+    def _clone_related(source_problem: CodingProblem, new_problem: CodingProblem) -> None:
         translations = source_problem.translations.all()
         for trans in translations:
             ProblemTranslation.objects.create(
@@ -75,6 +54,7 @@ class ProblemService:
                 output_data=tc.output_data,
                 is_sample=tc.is_sample,
                 score=tc.score,
+                weight_percent=tc.weight_percent,
                 order=tc.order,
                 is_hidden=tc.is_hidden
             )
@@ -93,62 +73,296 @@ class ProblemService:
             new_problem.tags.set(source_problem.tags.all())
 
     @staticmethod
+    def _ensure_unique_slug(base_slug: str, *, current_problem_id=None) -> str:
+        base_slug = base_slug or "problem"
+        slug = base_slug
+        while CodingProblem.objects.filter(slug=slug).exclude(id=current_problem_id).exists():
+            slug = f"{base_slug}-{uuid.uuid4().hex[:8]}"
+        return slug
+
+    @staticmethod
+    def build_slug_from_title(title: str | None) -> str:
+        raw_title = (title or "problem").strip().lower()
+        slug_base = ''.join(c if c.isalnum() or c in '-_' else '-' for c in raw_title).strip('-')
+        if not slug_base:
+            slug_base = f"problem-{uuid.uuid4().hex[:8]}"
+        return ProblemService._ensure_unique_slug(slug_base)
+
+    @staticmethod
+    def resolve_tags(*, existing_tag_ids=None, new_tag_names=None):
+        if existing_tag_ids is None and new_tag_names is None:
+            return None
+
+        all_tags = []
+
+        if existing_tag_ids:
+            existing_tags = Tag.objects.filter(id__in=existing_tag_ids)
+            all_tags.extend(existing_tags)
+
+        if new_tag_names:
+            unique_names = set()
+            for name in new_tag_names:
+                cleaned_name = str(name or "").strip()
+                if cleaned_name:
+                    unique_names.add(cleaned_name)
+
+            for name in unique_names:
+                tag_slug = slugify(name)
+                if not tag_slug:
+                    tag_slug = f"tag-{uuid.uuid4().hex[:8]}"
+
+                tag, _ = Tag.objects.get_or_create(
+                    slug=tag_slug,
+                    defaults={'name': name}
+                )
+                all_tags.append(tag)
+
+        return all_tags
+
+    @staticmethod
+    def replace_related(
+        problem: CodingProblem,
+        *,
+        translations_data=None,
+        test_cases_data=None,
+        language_configs_data=None,
+    ) -> None:
+        if translations_data is not None:
+            problem.translations.all().delete()
+            for trans_data in translations_data:
+                ProblemTranslation.objects.create(problem=problem, **trans_data)
+
+        if test_cases_data is not None:
+            problem.test_cases.all().delete()
+            for tc_data in test_cases_data:
+                TestCase.objects.create(problem=problem, **tc_data)
+
+        if language_configs_data is not None:
+            problem.language_configs.all().delete()
+            for lc_data in language_configs_data:
+                LanguageConfig.objects.create(problem=problem, **lc_data)
+
+    @staticmethod
     @transaction.atomic
-    def clone_problem(source_problem: Problem, contest, created_by) -> Problem:
+    def create_problem_adapter(
+        *,
+        validated_data,
+        translations_data=None,
+        test_cases_data=None,
+        language_configs_data=None,
+        existing_tag_ids=None,
+        new_tag_names=None,
+    ) -> CodingProblem:
+        from apps.question_bank.question_assets import (
+            write_coding_content_to_asset,
+            sync_asset_to_problem,
+        )
+
+        translations_data = translations_data or []
+        test_cases_data = test_cases_data or []
+        language_configs_data = language_configs_data or []
+
+        if not validated_data.get('slug'):
+            validated_data['slug'] = ProblemService.build_slug_from_title(validated_data.get('title'))
+
+        # 1. Resolve content for Asset
+        title = validated_data.get("title", "")
+        difficulty = validated_data.get("difficulty", "medium")
+        owner = validated_data.get("created_by")
+
+        # Pick prompt from translations
+        prompt = ""
+        if translations_data:
+            prompt = translations_data[0].get("description", "")
+
+        # 2. Write content to QuestionAsset first (source of truth)
+        question_asset, question_version = write_coding_content_to_asset(
+            owner=owner,
+            title=title,
+            prompt=prompt,
+            difficulty=difficulty,
+            translations=translations_data,
+            time_limit=validated_data.get("time_limit", 1000),
+            memory_limit=validated_data.get("memory_limit", 128),
+            test_cases=[dict(tc) for tc in test_cases_data],
+            language_configs=[dict(lc) for lc in language_configs_data],
+            forbidden_keywords=validated_data.get("forbidden_keywords", []),
+            required_keywords=validated_data.get("required_keywords", []),
+            actor=owner,
+        )
+
+        # 3. Create CodingProblem with Asset link
+        validated_data["question_asset"] = question_asset
+        validated_data["question_version"] = question_version
+        problem = CodingProblem.objects.create(**validated_data)
+
+        # 4. Create execution-related objects
+        ProblemService.replace_related(
+            problem,
+            translations_data=translations_data,
+            test_cases_data=test_cases_data,
+            language_configs_data=language_configs_data,
+        )
+
+        tags = ProblemService.resolve_tags(
+            existing_tag_ids=existing_tag_ids,
+            new_tag_names=new_tag_names,
+        )
+        if tags is not None:
+            problem.tags.set(tags)
+
+        # 5. Backward compat: sync asset back to problem local fields
+        sync_asset_to_problem(question_asset=question_asset, problem=problem)
+
+        return problem
+
+    @staticmethod
+    @transaction.atomic
+    def update_problem_adapter(
+        instance: CodingProblem,
+        *,
+        validated_data,
+        translations_data=None,
+        test_cases_data=None,
+        language_configs_data=None,
+        existing_tag_ids=None,
+        new_tag_names=None,
+    ) -> CodingProblem:
+        from apps.question_bank.question_assets import (
+            write_coding_content_to_asset,
+            sync_asset_to_problem,
+        )
+
+        if 'slug' in validated_data and not validated_data.get('slug'):
+            title_base = instance.title
+            if translations_data:
+                title_base = translations_data[0].get('title', instance.title)
+            validated_data['slug'] = ProblemService.build_slug_from_title(title_base)
+
+        # 1. Update Problem's local execution fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        ProblemService.replace_related(
+            instance,
+            translations_data=translations_data if translations_data else None,
+            test_cases_data=test_cases_data if test_cases_data else None,
+            language_configs_data=language_configs_data if language_configs_data else None,
+        )
+
+        tags = ProblemService.resolve_tags(
+            existing_tag_ids=existing_tag_ids,
+            new_tag_names=new_tag_names,
+        )
+        if tags is not None:
+            instance.tags.set(tags)
+
+        # 2. Write content to QuestionAsset (source of truth)
+        title = validated_data.get("title", instance.title)
+        difficulty = validated_data.get("difficulty", instance.difficulty)
+        owner = instance.created_by
+
+        prompt = ""
+        effective_translations = translations_data if translations_data else list(
+            instance.translations.values(
+                "language", "title", "description",
+                "input_description", "output_description", "hint",
+            )
+        )
+        if effective_translations:
+            first = effective_translations[0]
+            prompt = first.get("description", "") if isinstance(first, dict) else ""
+
+        effective_test_cases = test_cases_data if test_cases_data else list(
+            instance.test_cases.values(
+                "input_data", "output_data", "is_sample",
+                "score", "weight_percent", "order", "is_hidden",
+            )
+        )
+        effective_lang_configs = language_configs_data if language_configs_data else list(
+            instance.language_configs.values(
+                "language", "template_code", "is_enabled", "order",
+            )
+        )
+
+        question_asset, question_version = write_coding_content_to_asset(
+            owner=owner,
+            title=title,
+            prompt=prompt,
+            difficulty=difficulty,
+            translations=effective_translations,
+            time_limit=instance.time_limit,
+            memory_limit=instance.memory_limit,
+            test_cases=effective_test_cases,
+            language_configs=effective_lang_configs,
+            forbidden_keywords=instance.forbidden_keywords or [],
+            required_keywords=instance.required_keywords or [],
+            legacy_problem_id=str(instance.id),
+            existing_asset=instance.question_asset,
+            actor=owner,
+        )
+
+        # 3. Backward compat: sync asset back to problem local fields
+        sync_asset_to_problem(question_asset=question_asset, problem=instance)
+
+        return instance
+
+    @staticmethod
+    @transaction.atomic
+    def clone_problem(source_problem: CodingProblem, contest, created_by) -> CodingProblem:
         """
         Clone a problem for a specific contest.
+        Source problem must already have a QuestionAsset (guaranteed by Phase 0).
         """
-        
-        # Generate Q number for contest problem
-        display_id = ProblemService.generate_contest_problem_id()
-        
-        # 1. Clone Problem instance
-        new_problem = Problem.objects.create(
+        if not source_problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            sync_problem_question_asset(problem=source_problem, actor=created_by)
+
+        new_problem = CodingProblem.objects.create(
             title=f"{source_problem.title} (Copy)",
-            slug=f"{source_problem.slug}-{contest.id}-copy", # Ensure unique slug
-            display_id=display_id,
+            slug=f"{source_problem.slug}-{contest.id}-copy",
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
-            visibility='private',
-            created_in_contest=contest,
-            created_by=created_by
+            created_by=created_by,
+            question_asset=source_problem.question_asset,
+            question_version=source_problem.question_version,
         )
-        
-        # Handle slug uniqueness better if needed
-        if Problem.objects.filter(slug=new_problem.slug).exclude(id=new_problem.id).exists():
+
+        if CodingProblem.objects.filter(slug=new_problem.slug).exclude(id=new_problem.id).exists():
             new_problem.slug = f"{source_problem.slug}-{contest.id}-{uuid.uuid4().hex[:8]}"
             new_problem.save()
 
         ProblemService._clone_related(source_problem, new_problem)
-            
+
         return new_problem
 
     @staticmethod
     @transaction.atomic
     def clone_problem_to_practice(
-        source_problem: Problem,
+        source_problem: CodingProblem,
         *,
-        source_contest,
         created_by,
-    ) -> Problem:
+    ) -> CodingProblem:
         """
-        Clone a contest problem into the practice library.
+        Clone a contest problem into a standalone legacy problem adapter.
+        Source problem must already have a QuestionAsset.
         """
-        display_id = ProblemService.generate_practice_problem_id()
+        if not source_problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            sync_problem_question_asset(problem=source_problem, actor=created_by)
         slug = f"{source_problem.slug}-practice-{uuid.uuid4().hex[:8]}"
 
-        new_problem = Problem.objects.create(
+        new_problem = CodingProblem.objects.create(
             title=source_problem.title,
             slug=slug,
-            display_id=display_id,
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
-            visibility='public',
-            created_in_contest=source_contest,
-            origin_problem=source_problem,
             created_by=created_by,
+            question_asset=source_problem.question_asset,
+            question_version=source_problem.question_version,
         )
 
         ProblemService._clone_related(source_problem, new_problem)
@@ -156,23 +370,33 @@ class ProblemService:
 
     @staticmethod
     @transaction.atomic
-    def create_contest_problem(contest, created_by, title="New Problem") -> Problem:
+    def create_contest_problem(contest, created_by, title="New Problem") -> CodingProblem:
         """
         Create a new empty problem for a contest.
-        Uses new fields: visibility='private', created_in_contest=contest
+        Creates the QuestionAsset first (source of truth), then the Problem.
         """
-        # Generate Q number for contest problem
-        display_id = ProblemService.generate_contest_problem_id()
+        from apps.question_bank.question_assets import (
+            write_coding_content_to_asset,
+            sync_asset_to_problem,
+        )
         slug = f"contest-{contest.id}-problem-{uuid.uuid4().hex[:8]}"
-        
-        problem = Problem.objects.create(
+
+        question_asset, question_version = write_coding_content_to_asset(
+            owner=created_by,
+            title=title,
+            prompt="",
+            difficulty="medium",
+            translations=[],
+            actor=created_by,
+        )
+
+        problem = CodingProblem.objects.create(
             title=title,
             slug=slug,
-            display_id=display_id,
             difficulty='medium',
-            visibility='private',  # Contest problems are private by default
-            created_in_contest=contest,  # Track the source contest
-            created_by=created_by
+            created_by=created_by,
+            question_asset=question_asset,
+            question_version=question_version,
         )
-        
+        sync_asset_to_problem(question_asset=question_asset, problem=problem)
         return problem

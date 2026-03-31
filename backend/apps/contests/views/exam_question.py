@@ -1,19 +1,28 @@
 """ContestExamQuestionViewSet."""
 import logging
+from uuid import UUID
 
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+
+from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.question_assets import (
+    ensure_contest_binding_for_exam_question,
+    ensure_question_asset_for_bank_question,
+)
+from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 
 from ..models import (
     Contest,
     ExamQuestion,
     ExamStatus,
+    ExamQuestionType,
 )
 from ..serializers import (
     ExamQuestionSerializer,
@@ -26,6 +35,7 @@ from ..services.export_service import (
     build_paper_exam_sheet_response,
     parse_scale,
 )
+from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
 
 logger = logging.getLogger(__name__)
@@ -41,6 +51,13 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+    @staticmethod
+    def _normalize_uuid(value, *, field_name: str) -> str:
+        try:
+            return str(UUID(str(value)))
+        except (TypeError, ValueError):
+            raise DRFValidationError({field_name: "Must be a valid UUID."})
+
     def _get_contest(self):
         contest_pk = self.kwargs.get('contest_pk')
         return get_object_or_404(Contest, pk=contest_pk)
@@ -52,16 +69,73 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if not self._is_admin(contest):
             raise PermissionDenied('Only contest owner/admin can manage exam questions')
 
-    def _ensure_not_frozen(self, contest, force=False):
-        """檢查考試題目是否已凍結（有學生開始作答後禁止修改/刪除/排序）"""
-        if force:
-            return
-        if contest.has_exam_started():
-            return Response(
-                {'error': '考試已有學生開始作答，題目已凍結。如需強制修改請加 ?force=true 參數。'},
-                status=status.HTTP_400_BAD_REQUEST
+    def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
+        try:
+            normalized_bank_uuid = self._normalize_uuid(
+                question_bank_id, field_name="question_bank_id"
             )
-        return None
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
+        if not bank:
+            return (
+                None,
+                None,
+                Response({"error": "Question bank not found"}, status=status.HTTP_404_NOT_FOUND),
+            )
+
+        if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
+            return (
+                None,
+                None,
+                Response({"error": "No access to this question bank"}, status=status.HTTP_403_FORBIDDEN),
+            )
+
+        try:
+            normalized_question_uuid = self._normalize_uuid(
+                question_id, field_name="question_id"
+            )
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        question = Question.objects.filter(
+            bank=bank,
+            id=normalized_question_uuid,
+            question_type=Question.QuestionType.EXAM,
+        ).first()
+        if not question:
+            return (
+                None,
+                None,
+                Response({"error": "Question not found in bank"}, status=status.HTTP_404_NOT_FOUND),
+            )
+
+        return bank, question, None
+
+    @staticmethod
+    def _normalize_exam_question_type(question: Question) -> str:
+        metadata = question.metadata if isinstance(question.metadata, dict) else {}
+        raw_type = metadata.get("legacy_question_type")
+        if raw_type in {
+            ExamQuestionType.TRUE_FALSE,
+            ExamQuestionType.SINGLE_CHOICE,
+            ExamQuestionType.MULTIPLE_CHOICE,
+            ExamQuestionType.SHORT_ANSWER,
+            ExamQuestionType.ESSAY,
+        }:
+            return raw_type
+
+        correct = question.correct_answer
+        options = question.options if isinstance(question.options, list) else []
+
+        if isinstance(correct, bool):
+            return ExamQuestionType.TRUE_FALSE
+        if isinstance(correct, list):
+            return ExamQuestionType.MULTIPLE_CHOICE
+        if isinstance(correct, int) and options:
+            return ExamQuestionType.SINGLE_CHOICE
+        return ExamQuestionType.ESSAY
 
     def get_serializer_class(self):
         contest = self._get_contest()
@@ -114,12 +188,25 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(self.request.user, "id", None),
+            action="exam_question.create",
+        )
         if 'order' not in self.request.data:
             last_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
             serializer.save(contest=contest, order=(last_order if last_order is not None else -1) + 1)
+            ensure_contest_binding_for_exam_question(
+                exam_question=serializer.instance,
+                actor=self.request.user,
+            )
             return
 
         serializer.save(contest=contest)
+        ensure_contest_binding_for_exam_question(
+            exam_question=serializer.instance,
+            actor=self.request.user,
+        )
 
         ContestActivityViewSet.log_activity(
             contest,
@@ -131,26 +218,32 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        force = self.request.query_params.get('force', '').lower() == 'true'
-        frozen_response = self._ensure_not_frozen(contest, force)
-        if frozen_response:
-            raise PermissionDenied(frozen_response.data['error'])
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(self.request.user, "id", None),
+            action="exam_question.update",
+        )
         serializer.save()
+        ensure_contest_binding_for_exam_question(
+            exam_question=serializer.instance,
+            actor=self.request.user,
+        )
 
         ContestActivityViewSet.log_activity(
             contest,
             self.request.user,
             'update_problem',
-            f"Updated exam question #{serializer.instance.id}" + (" (force)" if force else "")
+            f"Updated exam question #{serializer.instance.id}"
         )
 
     def perform_destroy(self, instance):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        force = self.request.query_params.get('force', '').lower() == 'true'
-        frozen_response = self._ensure_not_frozen(contest, force)
-        if frozen_response:
-            raise PermissionDenied(frozen_response.data['error'])
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(self.request.user, "id", None),
+            action="exam_question.delete",
+        )
         question_id = instance.id
         instance.delete()
 
@@ -158,7 +251,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             contest,
             self.request.user,
             'update_problem',
-            f"Deleted exam question #{question_id}" + (" (force)" if force else "")
+            f"Deleted exam question #{question_id}"
         )
 
     @action(detail=False, methods=['post'], url_path='batch-import')
@@ -166,10 +259,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         """Delete all existing questions and create new ones in a single transaction."""
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        force = request.query_params.get('force', '').lower() == 'true'
-        frozen_response = self._ensure_not_frozen(contest, force)
-        if frozen_response:
-            return frozen_response
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="exam_question.batch_import",
+        )
 
         questions_data = request.data.get('questions', [])
         if not isinstance(questions_data, list):
@@ -211,7 +305,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             contest,
             request.user,
             'update_problem',
-            f"Batch imported {len(created)} exam questions" + (" (force)" if force else ""),
+            f"Batch imported {len(created)} exam questions",
         )
 
         result_serializer = self.get_serializer(
@@ -220,14 +314,103 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         )
         return Response(result_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'], url_path='import-from-bank')
+    def import_from_bank(self, request, contest_pk=None):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="exam_question.import_from_bank",
+        )
+
+        import_mode = "copy"
+
+        items = request.data.get('items', [])
+        if not isinstance(items, list) or not items:
+            return Response({'error': 'items must be a non-empty list'}, status=status.HTTP_400_BAD_REQUEST)
+
+        current_max_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
+        next_order = (current_max_order if current_max_order is not None else -1) + 1
+        created_rows = []
+
+        with transaction.atomic():
+            for item in items:
+                if not isinstance(item, dict):
+                    return Response({'error': 'Invalid item payload'}, status=status.HTTP_400_BAD_REQUEST)
+
+                question_bank_id = item.get('question_bank_id')
+                question_id = item.get('question_id')
+                if not question_bank_id or question_id is None:
+                    return Response(
+                        {'error': 'Each item requires question_bank_id and question_id'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                bank, bank_question, err = self._resolve_bank_question_for_import(
+                    user=request.user,
+                    question_bank_id=question_bank_id,
+                    question_id=question_id,
+                )
+                if err:
+                    return err
+
+                prompt = (bank_question.prompt or bank_question.title or "").strip()
+                if not prompt:
+                    return Response(
+                        {'error': f'Imported question {bank_question.id} has empty prompt/title'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                exam_question = ExamQuestion.objects.create(
+                    contest=contest,
+                    question_type=self._normalize_exam_question_type(bank_question),
+                    prompt=prompt,
+                    options=bank_question.options or [],
+                    correct_answer=bank_question.correct_answer,
+                    score=max(1, int(bank_question.score or 1)),
+                    order=next_order,
+                    source_bank_id=bank.uuid,
+                    source_bank_name=bank.name,
+                    source_question_id=bank_question.id,
+                    source_mode=import_mode,
+                )
+                question_asset, question_version = ensure_question_asset_for_bank_question(
+                    question=bank_question,
+                    actor=request.user,
+                )
+                exam_question.question_asset = question_asset
+                exam_question.question_version = question_version
+                exam_question.save(update_fields=["question_asset", "question_version", "updated_at"])
+                ensure_contest_binding_for_exam_question(
+                    exam_question=exam_question,
+                    actor=request.user,
+                )
+                created_rows.append(exam_question)
+                next_order += 1
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            f"Imported {len(created_rows)} exam questions from bank",
+        )
+
+        serialized = self.get_serializer(
+            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            many=True,
+        )
+        return Response(serialized.data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        force = request.query_params.get('force', '').lower() == 'true'
-        frozen_response = self._ensure_not_frozen(contest, force)
-        if frozen_response:
-            return frozen_response
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="exam_question.reorder",
+        )
 
         orders = request.data.get('orders', [])
         if not isinstance(orders, list) or not orders:
@@ -271,6 +454,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         mode = request.query_params.get("mode", "question")
         language = request.query_params.get("language", "zh-TW")
         scale = parse_scale(request.query_params.get("scale", "1.0"))
+        include_answer_area = request.query_params.get("include_answer_area", "true").lower() == "true"
 
         try:
             return build_paper_exam_sheet_response(
@@ -278,6 +462,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 mode=mode,
                 language=language,
                 scale=scale,
+                include_answer_area=include_answer_area,
             )
         except ExportValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

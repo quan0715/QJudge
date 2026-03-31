@@ -1,51 +1,179 @@
 {
-  "members": {
-    "headers": {
-      "username": "Username",
-      "email": "Email",
-      "role": "Role",
-      "joinedAt": "Joined At"
-    },
-    "actions": {
-      "remove": "Remove"
-    }
+  "addCover": "커버 추가",
+  "addMembers": "멤버 추가",
+  "addMembersFailed": "멤버 추가에 실패했습니다",
+  "addMembersModal": {
+    "confirm": "추가 확인",
+    "csvLoaded": "불러옴: ",
+    "hint": "추가 후 기본적으로 일반 멤버가 됩니다. TA로 변경하려면 나중에 조정하세요.",
+    "importCsv": "CSV 가져오기",
+    "personUnit": "명",
+    "preview": "목록 미리보기",
+    "previewHint": "유효한 항목만 제출됩니다. 결과에 추가됨/이미 존재함/찾을 수 없음 내역이 표시됩니다.",
+    "processing": "처리 중...",
+    "resultAdded": "추가됨",
+    "resultExists": "이미 존재",
+    "resultNotFound": "찾을 수 없음",
+    "subtitle": "목록을 미리 보고 제출하세요",
+    "tagDuplicated": "중복",
+    "tagInvalid": "형식 오류",
+    "tagValid": "유효",
+    "title": "멤버 추가",
+    "usernameLabel": "사용자 이름 입력 (쉼표, 줄바꿈, 세미콜론 구분)"
   },
   "announcement": {
+    "createFailed": "공지 생성에 실패했습니다",
     "modal": {
-      "titleCreate": "Post Announcement",
-      "titleEdit": "Edit Announcement",
-      "submitCreate": "Post",
-      "submitEdit": "Save",
-      "submittingCreate": "Posting...",
-      "submittingEdit": "Saving...",
       "form": {
-        "title": "Title",
-        "titlePlaceholder": "Announcement Title",
-        "pinned": "Pinned",
-        "content": "Content",
-        "contentPlaceholder": "Enter announcement content, Markdown supported...",
-        "yes": "Yes",
-        "no": "No"
-      }
-    }
+        "content": "내용",
+        "contentPlaceholder": "공지 내용을 입력하세요. Markdown 지원...",
+        "no": "아니요",
+        "pinned": "공지 고정",
+        "title": "제목",
+        "titlePlaceholder": "공지사항 제목",
+        "yes": "예"
+      },
+      "submitCreate": "작성",
+      "submitEdit": "저장",
+      "submittingCreate": "작성 중...",
+      "submittingEdit": "저장 중...",
+      "titleCreate": "공지사항 작성",
+      "titleEdit": "공지사항 수정"
+    },
+    "updateFailed": "공지 수정에 실패했습니다"
   },
-  "inviteCode": {
-    "label": "Invite Code",
-    "disabled": "Disabled",
-    "copy": "Copy",
-    "copied": "Copied",
-    "regenerate": "Regenerate"
-  },
+  "announcementDeleteFailed": "공지사항 삭제에 실패했습니다",
+  "announcementDeleted": "공지사항이 삭제되었습니다",
+  "announcements": "공지사항",
+  "archived": "보관됨",
+  "backToClassrooms": "교실 목록으로 돌아가기",
+  "basicInfo": "기본 정보",
   "bindContest": {
     "modal": {
-      "title": "Bind Contest",
-      "submit": "Bind",
-      "submitting": "Binding...",
-      "noContests": "No contests available to bind",
+      "noContests": "바인딩할 수 있는 콘테스트가 없습니다",
+      "submit": "바인딩",
+      "submitting": "바인딩 중...",
       "table": {
-        "name": "Contest Name",
-        "status": "Status"
-      }
+        "name": "콘테스트 이름",
+        "status": "상태"
+      },
+      "title": "콘테스트 바인딩"
     }
-  }
+  },
+  "bindContestNoPermission": "콘테스트를 연결할 권한이 없습니다",
+  "classroomList": "교실 목록",
+  "codeRegenerateFailed": "초대 링크 재생성 실패",
+  "codeRegenerated": "초대 링크가 재생성되었습니다",
+  "confirmDeleteAnnouncementBody": "이 공지사항을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "confirmDeleteAnnouncementTitle": "공지사항 삭제 확인",
+  "confirmRegenerateCodeBody": "재생성하면 기존 초대 코드는 즉시 무효화됩니다. 아직 가입하지 않은 학생은 새 코드를 사용해야 합니다.",
+  "confirmRegenerateCodeTitle": "초대 코드 재생성 확인",
+  "confirmRegenerateLinkBody": "재생성하면 기존 초대 링크는 즉시 무효화됩니다. 아직 가입하지 않은 학생은 새 링크를 사용해야 합니다.",
+  "confirmRegenerateLinkTitle": "초대 링크 재생성 확인",
+  "confirmRemoveMemberBody": "이 멤버를 제거하려고 합니다:",
+  "confirmRemoveMemberTitle": "멤버 제거 확인",
+  "contests": "콘테스트",
+  "coverDropzoneHint": "또는 여기를 클릭하여 파일을 선택하세요",
+  "coverDropzoneTitle": "여기에 커버 이미지를 드롭하세요",
+  "coverImage": "커버 이미지",
+  "coverRemoveFailed": "커버 제거 실패",
+  "coverRemoved": "커버 이미지가 제거되었습니다",
+  "coverUploadFailed": "커버 업로드 실패",
+  "coverUploaded": "커버 이미지가 업데이트되었습니다",
+  "createAnnouncement": "공지사항 작성",
+  "createContest": "콘테스트 만들기",
+  "createContestFailed": "콘테스트는 생성되었지만 교실 추가에 실패했습니다",
+  "createContestSuccess": "콘테스트가 생성되어 교실에 추가되었습니다",
+  "createdAt": "생성 일시",
+  "current": "현재 교실",
+  "description": "설명",
+  "editCover": "커버 이미지 편집",
+  "editMember": "멤버 편집",
+  "icon": "아이콘",
+  "inviteCode": {
+    "copied": "복사됨",
+    "copy": "복사",
+    "disabled": "비활성화",
+    "label": "초대 코드",
+    "regenerate": "재생성"
+  },
+  "inviteCodeSection": "초대 코드",
+  "inviteLink": {
+    "copied": "복사됨",
+    "copy": "링크 복사",
+    "copyFailed": "초대 링크 복사에 실패했습니다",
+    "disabled": "비활성화",
+    "label": "초대 링크",
+    "regenerate": "재생성"
+  },
+  "inviteLinkSection": "초대 링크",
+  "joinLink": {
+    "backToDashboard": "대시보드로 돌아가기",
+    "errorTitle": "교실에 참여할 수 없습니다",
+    "invalidLink": "잘못된 초대 링크",
+    "joinFailed": "교실 참여에 실패했습니다",
+    "joining": "교실에 참여하는 중..."
+  },
+  "latestAnnouncements": "최신 공지사항",
+  "loadFailed": "교실 불러오기 실패",
+  "loadFailedHint": "잠시 후 다시 시도해 주세요",
+  "memberEmail": "이메일",
+  "memberFilteredCount": "{{total}}명 중 {{count}}명 표시",
+  "memberGroupStudent": "학생",
+  "memberGroupTeacher": "교사",
+  "memberNoResult": "조건에 맞는 멤버를 찾을 수 없습니다",
+  "memberRemoved": "멤버가 제거되었습니다",
+  "memberRole": "역할",
+  "memberRoleAll": "모든 역할",
+  "memberRoleFilter": "역할 필터",
+  "memberRoleUpdateFailed": "멤버 역할 업데이트 실패",
+  "memberRoleUpdated": "멤버 역할이 업데이트되었습니다",
+  "memberSearch": "멤버 검색",
+  "memberSearchPlaceholder": "사용자 이름 또는 이메일 검색",
+  "memberStudent": "학생 {{count}}명",
+  "memberTa": "조교 {{count}}명",
+  "memberTotal": "총 {{count}}명",
+  "memberUsername": "사용자 이름",
+  "members": {
+    "actions": {
+      "remove": "삭제"
+    },
+    "headers": {
+      "email": "이메일",
+      "joinedAt": "가입 일시",
+      "role": "역할",
+      "username": "사용자 이름"
+    }
+  },
+  "membersTitle": "멤버 목록",
+  "name": "클래스 이름",
+  "noActiveContests": "진행 중이거나 예정된 콘테스트가 없습니다",
+  "noAnnouncements": "아직 공지사항이 없습니다",
+  "noContests": "아직 콘테스트가 없습니다",
+  "notFound": "교실을 찾을 수 없습니다",
+  "otherInfo": "기타 정보",
+  "owner": "생성자",
+  "recentActivities": "최근 활동",
+  "removeCover": "커버 제거",
+  "removeMember": "멤버 제거",
+  "removeMemberFailed": "멤버 제거 실패",
+  "roleAdmin": "관리자",
+  "settingsMembers": "조교 관리",
+  "settingsSaveFailed": "설정 저장 실패",
+  "studentTodo": "나의 할 일",
+  "switchClassroom": "교실 전환",
+  "switchTo": "이 교실로 전환",
+  "switcherLoadFailed": "교실 목록 불러오기 실패",
+  "tab": {
+    "announcements": "공지사항",
+    "contests": "콘테스트",
+    "members": "멤버",
+    "overview": "개요",
+    "settings": "설정"
+  },
+  "tabs": "교실 탭",
+  "title": "교실 관리",
+  "updatedAt": "최근 수정",
+  "uploadFile": "이미지 업로드",
+  "viewAllAnnouncements": "모든 공지사항 보기"
 }

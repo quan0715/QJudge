@@ -5,8 +5,6 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
@@ -142,10 +140,10 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
   );
 
   return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className="cds--row">
-        <div className="cds--col-lg-16">
-          <ContainerCard title={t("paperExamProblems.title")}>
+    <div style={{ maxWidth, margin: maxWidth ? "0 auto" : undefined, padding: "1rem" }}>
+      <h4 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 600, color: "var(--cds-text-primary)" }}>
+        {t("paperExamProblems.title")}
+      </h4>
             {canOpenAnswering && (
               <InlineNotification
                 kind="info"
@@ -251,10 +249,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                 style={{ marginTop: "1rem" }}
               />
             )}
-          </ContainerCard>
-        </div>
-      </div>
-    </SurfaceSection>
+    </div>
   );
 };
 

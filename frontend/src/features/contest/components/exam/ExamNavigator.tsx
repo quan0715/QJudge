@@ -7,6 +7,7 @@ interface ExamNavigatorProps {
   items: ExamItem[];
   activeIndex: number;
   answeredIds: Set<string>;
+  markedIds?: Set<string>;
   onSelect: (index: number) => void;
 }
 
@@ -14,6 +15,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   items,
   activeIndex,
   answeredIds,
+  markedIds,
   onSelect,
 }) => {
   const { t } = useTranslation("contest");
@@ -21,6 +23,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
     const id = item.kind === "coding" ? item.data.id : item.data.id;
     return answeredIds.has(id);
   }).length;
+  const markedCount = markedIds?.size ?? 0;
 
   const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
@@ -43,6 +46,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
               const id = item.kind === "coding" ? item.data.id : item.data.id;
               const isActive = index === activeIndex;
               const isAnswered = answeredIds.has(id);
+              const isMarked = markedIds?.has(id) ?? false;
 
               const typeLabel =
                 item.kind === "coding"
@@ -66,7 +70,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                     if (el) itemRefs.current.set(index, el);
                     else itemRefs.current.delete(index);
                   }}
-                  className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+                  className={`${styles.item} ${isActive ? styles.itemActive : ""} ${isMarked ? styles.itemMarked : ""}`}
                   onClick={() => onSelect(index)}
                   aria-current={isActive ? "true" : undefined}
                 >
@@ -89,6 +93,11 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
         <span className={styles.summaryText}>
           {t("answering.navigation.answeredProgress", { answered: answeredCount, total: items.length })}
         </span>
+        {markedCount > 0 && (
+          <span className={styles.summaryMarked}>
+            {t("answering.navigation.markedCount", { count: markedCount })}
+          </span>
+        )}
       </div>
     </nav>
   );

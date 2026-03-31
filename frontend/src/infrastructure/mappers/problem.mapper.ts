@@ -1,4 +1,8 @@
-import type { Problem, ProblemDetail, Tag } from "@/core/entities/problem.entity";
+import type {
+  Problem,
+  ProblemDetail,
+  Tag,
+} from "@/core/entities/problem.entity";
 
 export function mapTagDto(dto: any): Tag {
   return {
@@ -17,7 +21,6 @@ export function mapProblemDto(dto: any): Problem {
   const problemId = dto.problem_id ?? dto.id;
   return {
     id: problemId?.toString() || "",
-    displayId: dto.display_id,
     title: dto.title || "",
     difficulty: dto.difficulty || "medium",
     acceptanceRate: dto.acceptance_rate || 0,
@@ -30,18 +33,7 @@ export function mapProblemDto(dto: any): Problem {
     ceCount: dto.ce_count || 0,
     createdBy: dto.created_by,
     tags: Array.isArray(dto.tags) ? dto.tags.map(mapTagDto) : [],
-
-    visibility: dto.visibility || 'private',
     isSolved: !!dto.is_solved,
-
-    createdInContest: dto.created_in_contest
-      ? {
-          id: dto.created_in_contest.id?.toString(),
-          title: dto.created_in_contest.title,
-          startTime: dto.created_in_contest.start_time,
-          endTime: dto.created_in_contest.end_time,
-        }
-      : null,
 
     createdAt: dto.created_at,
   };

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
+import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
 
 import {
   ContestProvider,
@@ -49,7 +50,8 @@ const resolveActivePanel = (
 };
 
 const AdminDashboardInner = () => {
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
+  const classroomName = useClassroomName(classroomId);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -89,11 +91,18 @@ const AdminDashboardInner = () => {
   const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
 
   const handleBack = () => {
-    navigate(`/contests/${contestId}`);
+    navigate(
+      classroomId
+        ? `/classrooms/${classroomId}/contest/${contestId}`
+        : `/contests/${contestId}`,
+    );
   };
 
   const handlePreview = () => {
-    window.open(`/contests/${contestId}/exam-preview`, "_blank");
+    const previewPath = classroomId
+      ? `/classrooms/${classroomId}/contest/${contestId}/exam-preview`
+      : `/contests/${contestId}/exam-preview`;
+    window.open(previewPath, "_blank");
   };
 
   const handlePanelChange = (panel: AdminPanelId) => {
@@ -173,7 +182,10 @@ const AdminDashboardInner = () => {
 
   return (
     <AdminDashboardLayout
+      contestId={contestId || ""}
       contestName={contest?.name || "Loading..."}
+      classroomId={classroomId}
+      classroomName={classroomName}
       activePanel={activePanel}
       availablePanels={availablePanels}
       examMode={isExamMode}

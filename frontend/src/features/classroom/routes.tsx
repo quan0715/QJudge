@@ -1,13 +1,19 @@
-import { Route } from "react-router";
-import ClassroomListScreen from "./screens/ClassroomListScreen";
+import { Route } from "react-router-dom";
 import ClassroomDetailScreen from "./screens/ClassroomDetailScreen";
+import ClassroomJoinScreen from "./screens/ClassroomJoinScreen";
 
 /**
- * Classroom routes (RequireAuth + MainLayout)
+ * Classroom Detail Route (RequireAuth + Standalone admin shell)
  */
-export const classroomRoutes = (
+export const classroomDetailRoute = (
   <>
-    <Route path="/classrooms" element={<ClassroomListScreen />} />
     <Route path="/classrooms/:classroomId" element={<ClassroomDetailScreen />} />
   </>
+);
+
+/**
+ * Classroom Join Route — link-based invitation landing page
+ */
+export const classroomJoinRoute = (
+  <Route path="/classrooms/join/:code" element={<ClassroomJoinScreen />} />
 );

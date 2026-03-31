@@ -22,6 +22,7 @@ import {
   clearRuntimeScreenShareHandoff,
 } from "@/features/contest/anticheat/screenShareHandoffStore";
 import { getAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
+import { isStreamLive } from "@/features/contest/anticheat/mediaStreamHealth";
 
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 import type {
@@ -94,6 +95,7 @@ export const useAnticheatScreenCapture = ({
   // Reactive stream status — ExamModeWrapper watches this for stream loss detection
   const [streamActive, setStreamActive] = useState(false);
   const hasCaptureSessionRef = useRef(false);
+  const initialCaptureAttemptedRef = useRef(false);
   const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
   const onScreenShareLostRef = useRef(onScreenShareLost);
   onScreenShareLostRef.current = onScreenShareLost;
@@ -129,7 +131,7 @@ export const useAnticheatScreenCapture = ({
   );
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
-    if (streamRef.current?.active) {
+    if (isStreamLive(streamRef.current)) {
       hasCaptureSessionRef.current = true;
       return streamRef.current;
     }
@@ -139,7 +141,7 @@ export const useAnticheatScreenCapture = ({
     const handoff =
       consumePrecheckScreenShareHandoff() ??
       consumeRuntimeScreenShareHandoff();
-    if (handoff?.active) {
+    if (handoff && isStreamLive(handoff)) {
       handoff.getVideoTracks()[0]?.addEventListener("ended", () => {
         if (streamRef.current === handoff) {
           streamRef.current = null;
@@ -195,7 +197,7 @@ export const useAnticheatScreenCapture = ({
         // Fallback: detect stream loss if the ended event didn't fire.
         // If stream was previously live but now acquireStream returns null,
         // the user has stopped sharing.
-        if (streamWasLiveRef.current && !streamRef.current?.active) {
+        if (streamWasLiveRef.current && !isStreamLive(streamRef.current)) {
           handleDetectedScreenShareLoss();
         }
         return;
@@ -325,7 +327,7 @@ export const useAnticheatScreenCapture = ({
     const blob = await captureFrameBlob();
     if (!blob) {
       // Fallback: detect stream loss if the ended event didn't fire
-      if (streamWasLiveRef.current && !streamRef.current?.active) {
+      if (streamWasLiveRef.current && !isStreamLive(streamRef.current)) {
         handleDetectedScreenShareLoss();
       }
       return {
@@ -384,9 +386,9 @@ export const useAnticheatScreenCapture = ({
   // Register forced capture handler for use by recordExamEventWithForcedCapture
   useEffect(() => {
     if (!contestId) return;
-    registerForcedCaptureHandler(contestId, forceCaptureNow);
+    registerForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
     return () => {
-      unregisterForcedCaptureHandler(contestId, forceCaptureNow);
+      unregisterForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
     };
   }, [contestId, forceCaptureNow]);
 
@@ -395,6 +397,7 @@ export const useAnticheatScreenCapture = ({
     if (!enabled) {
       if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
+      initialCaptureAttemptedRef.current = false;
       return;
     }
     hasCaptureSessionRef.current = true;
@@ -408,6 +411,20 @@ export const useAnticheatScreenCapture = ({
       if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
     };
   }, [enabled, intervalMs, captureAndQueue, flushPendingUploads]);
+
+  // Best effort: capture one frame immediately when source becomes enabled.
+  useEffect(() => {
+    if (!enabled) {
+      initialCaptureAttemptedRef.current = false;
+      return;
+    }
+    if (initialCaptureAttemptedRef.current) return;
+    initialCaptureAttemptedRef.current = true;
+    void (async () => {
+      await captureAndQueue();
+      await flushPendingUploads();
+    })();
+  }, [enabled, captureAndQueue, flushPendingUploads]);
 
   // Stream lifecycle — stop only on true -> false transition.
   // This avoids killing precheck handoff stream during initial mount while
@@ -454,7 +471,7 @@ export const useAnticheatScreenCapture = ({
   useEffect(() => {
     if (!monitorStream || enabled) return; // skip if capture interval already handles this
     const healthCheck = setInterval(() => {
-      const alive = streamRef.current?.active ?? false;
+      const alive = isStreamLive(streamRef.current);
       const wasLive = streamWasLiveRef.current;
       if (wasLive && !alive) {
         handleDetectedScreenShareLoss();

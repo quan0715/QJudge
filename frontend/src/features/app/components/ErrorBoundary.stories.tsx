@@ -1,25 +1,25 @@
 import React from "react";
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import ErrorBoundary, { type ErrorBoundaryProps } from "./ErrorBoundary";
 
-const storyModule: StoryModule<ErrorBoundaryProps> = {
-  meta: {
+const meta: Meta<typeof ErrorBoundary> = {
     title: "shared/ui/app/ErrorBoundary",
     component: ErrorBoundary as React.ComponentType<ErrorBoundaryProps>,
-    category: "shared",
-    description: "Error Boundary 基本示例，展示預設 fallback。",
-    defaultArgs: {},
+    
+    args: {},
+  
+  parameters: {
+    docs: { description: { component: 'Error Boundary 基本示例，展示預設 fallback。' } },
   },
-  stories: [
-    {
-      name: "Default",
-      render: () => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  render: () => (
         <ErrorBoundary>
           <div>內容</div>
         </ErrorBoundary>
       ),
-    },
-  ],
 };
-
-export default storyModule;

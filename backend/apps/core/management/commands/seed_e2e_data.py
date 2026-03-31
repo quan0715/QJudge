@@ -116,8 +116,7 @@ class Command(BaseCommand):
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'public',
-                'display_id': 'P001',
+                'visibility': 'private',
                 'order': 1
             }
         )
@@ -189,8 +188,7 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'public',
-                'display_id': 'P002',
+                'visibility': 'private',
                 'order': 2
             }
         )
@@ -242,8 +240,7 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'public',
-                'display_id': 'P003',
+                'visibility': 'private',
                 'order': 3
             }
         )

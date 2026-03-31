@@ -73,10 +73,41 @@
   width: 100%;
 
   textarea {
-    min-height: 160px;
+    min-height: 120px;
+    resize: none;
+    overflow: hidden;
   }
 }
 
 .shortInput {
-  max-width: 520px;
+  width: 100%;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.markBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  background: none;
+  border: none;
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--cds-text-helper);
+  @include type.type-style("label-01");
+  transition: color 100ms;
+
+  &:hover {
+    color: var(--cds-support-warning);
+    background-color: var(--cds-layer-hover-01);
+  }
+}
+
+.markBtnActive {
+  color: var(--cds-support-warning);
 }

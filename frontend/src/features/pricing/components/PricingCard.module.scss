@@ -1,0 +1,105 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-05;
+  height: 100%;
+  background: $layer-01;
+  border: 1px solid $border-subtle-01;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+
+  &:hover:not(.current) {
+    border-color: $border-interactive;
+    background: $layer-hover-01;
+
+    .cta {
+      opacity: 1;
+    }
+  }
+}
+
+.highlighted {
+  // no extra border — highlight is expressed via the CTA button kind
+}
+
+.current {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.top {
+  margin-bottom: $spacing-04;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  margin-bottom: $spacing-02;
+}
+
+.name {
+  @include type-style("heading-04");
+  font-weight: 300;
+}
+
+.badge {
+  // inherits Tag styling
+}
+
+.description {
+  @include type-style("helper-text-01");
+  color: $text-helper;
+  margin: 0;
+}
+
+.priceSection {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: $spacing-05;
+}
+
+.price {
+  @include type-style("body-compact-01");
+  font-weight: 400;
+  color: $text-secondary;
+}
+
+.period {
+  @include type-style("body-compact-01");
+  color: $text-helper;
+  margin-left: 2px;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 $spacing-05;
+  flex: 1;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: 3px 0;
+  @include type-style("body-compact-01");
+  color: $text-secondary;
+  font-size: 0.8125rem;
+}
+
+.checkIcon {
+  color: $support-success;
+  flex-shrink: 0;
+}
+
+.cta {
+  align-self: flex-start;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}

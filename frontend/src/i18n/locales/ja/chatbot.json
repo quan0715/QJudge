@@ -1,69 +1,69 @@
 {
+  "approval": {
+    "confirm": "Confirm Action",
+    "preview": "Preview Changes",
+    "title": "Approval Required"
+  },
   "errors": {
-    "loadSessionsFailed": "Failed to load chat history",
+    "aiServiceUnavailable": "Sorry, AI service is temporarily unavailable. Please try again later.",
+    "cancelActionFailed": "Failed to cancel action",
+    "confirmActionFailed": "Failed to confirm action, please try again",
+    "createBackendSessionFailed": "Failed to establish connection, please try again later",
     "createSessionFailed": "Failed to create new conversation",
     "deleteSessionFailed": "Failed to delete conversation",
+    "loadSessionsFailed": "Failed to load chat history",
     "renameSessionFailed": "Failed to rename conversation",
-    "sendMessageFailed": "Failed to send message",
-    "createBackendSessionFailed": "Failed to establish connection, please try again later",
-    "aiServiceUnavailable": "Sorry, AI service is temporarily unavailable. Please try again later.",
-    "resumeAgentFailed": "Failed to resume agent execution",
-    "confirmActionFailed": "Failed to confirm action, please try again",
-    "cancelActionFailed": "Failed to cancel action",
-    "submitAnswerFailed": "Failed to submit answer",
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
+    "resumeAgentFailed": "Failed to resume agent execution",
+    "sendMessageFailed": "Failed to send message",
+    "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
   },
-  "widget": {
-    "expandLabel": "Expand Qgent TA",
-    "chatbotTitle": "Qgent TA",
-    "newChat": "New Chat",
-    "inputPlaceholder": "Type a message...",
-    "thinking": "Thinking...",
-    "sessions": "Chat History",
-    "rename": "Rename",
-    "delete": "Delete",
-    "addChat": "New Chat",
-    "collapse": "Collapse Panel",
-    "newChatLabel": "New Chat",
-    "renameModal": {
-      "title": "Rename Chat",
-      "label": "New Name",
-      "placeholder": "Enter new chat name"
-    },
-    "deleteModal": {
-      "title": "Confirm Delete",
-      "submitting": "Deleting...",
-      "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
-      "undoWarning": "This action cannot be undone."
-    }
-  },
   "prompts": {
+    "checkCompleteness": "Check problem completeness",
+    "checkCompletenessPrompt": "Please check the completeness of this problem, including descriptions, test cases, and constraints.",
     "designTestCases": "Help me design test cases",
     "designTestCasesPrompt": "Please help me design test cases for this problem, including edge cases and special conditions.",
     "generateDescription": "Generate description examples",
     "generateDescriptionPrompt": "Please help me generate description examples for this problem to make it easier for students to understand.",
-    "checkCompleteness": "Check problem completeness",
-    "checkCompletenessPrompt": "Please check the completeness of this problem, including descriptions, test cases, and constraints.",
-    "optimizeDifficulty": "Optimize difficulty settings",
-    "optimizeDifficultyPrompt": "Please evaluate and suggest if the difficulty setting for this problem is appropriate.",
     "howToDesign": "How to design a good problem?",
     "howToDesignPrompt": "Please teach me how to design a good programming problem?",
+    "optimizeDifficulty": "Optimize difficulty settings",
+    "optimizeDifficultyPrompt": "Please evaluate and suggest if the difficulty setting for this problem is appropriate.",
     "testCaseSkills": "Test case design skills",
     "testCaseSkillsPrompt": "Please share techniques and best practices for test case design."
   },
-  "welcome": {
-    "title": "How can I help you?",
-    "subtitle": "Assisting with: {{title}}"
-  },
-  "approval": {
-    "title": "Approval Required",
-    "confirm": "Confirm Action",
-    "preview": "Preview Changes"
-  },
   "userInput": {
-    "title": "Question",
+    "cancel": "Skip",
     "submit": "Submit Answer",
-    "cancel": "Skip"
+    "title": "Question"
+  },
+  "welcome": {
+    "subtitle": "Assisting with: {{title}}",
+    "title": "How can I help you?"
+  },
+  "widget": {
+    "addChat": "New Chat",
+    "chatbotTitle": "Qgent TA",
+    "collapse": "Collapse Panel",
+    "delete": "Delete",
+    "deleteModal": {
+      "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
+      "submitting": "Deleting...",
+      "title": "Confirm Delete",
+      "undoWarning": "This action cannot be undone."
+    },
+    "expandLabel": "Expand Qgent TA",
+    "inputPlaceholder": "Type a message...",
+    "newChat": "New Chat",
+    "newChatLabel": "New Chat",
+    "rename": "Rename",
+    "renameModal": {
+      "label": "New Name",
+      "placeholder": "Enter new chat name",
+      "title": "Rename Chat"
+    },
+    "sessions": "Chat History",
+    "thinking": "Thinking..."
   }
 }

@@ -54,7 +54,7 @@ export interface IContestProblemRepository {
   getContestProblems(contestId: string): Promise<ContestProblemSummary[]>;
   getContestProblem(
     contestId: string,
-    problemLabel: string
+    contestProblemId: string
   ): Promise<ProblemDetail | undefined>;
   addProblemToContest(
     contestId: string,
@@ -212,6 +212,7 @@ export interface ContestUpdatePayload {
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
+  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
   anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;

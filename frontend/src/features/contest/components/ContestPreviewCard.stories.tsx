@@ -1,5 +1,5 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { ContestPreviewCard, type ContestPreviewCardProps } from "./ContestPreviewCard";
+import type { Meta, StoryObj } from "@storybook/react";
+import { ContestPreviewCard } from "./ContestPreviewCard";
 import type { Contest } from "@/core/entities/contest.entity";
 
 const sampleContest = (override: Partial<Contest> = {}): Contest => ({
@@ -16,47 +16,62 @@ const sampleContest = (override: Partial<Contest> = {}): Contest => ({
   ...override,
 });
 
-const storyModule: StoryModule<ContestPreviewCardProps> = {
-  meta: {
+const meta: Meta<typeof ContestPreviewCard> = {
     title: "features/contest/ContestPreviewCard",
     component: ContestPreviewCard,
-    category: "features",
-    description: "競賽預覽卡片：顯示狀態、時間、主辦、參與狀態。",
-    defaultArgs: {
+    
+    args: {
       contest: sampleContest(),
     },
     argTypes: {
       contest: {
         control: "object",
-        label: "Contest",
-        description: "競賽資料",
+                description: "競賽資料",
       },
       onSelect: {
         control: "text",
-        label: "onSelect",
-        description: "點擊卡片的處理函數",
+                description: "點擊卡片的處理函數",
         defaultValue: "() => {}",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: '競賽預覽卡片：顯示狀態、時間、主辦、參與狀態。' } },
   },
-  stories: [
-    {
-      name: "Default",
-      render: (args) => <ContestPreviewCard {...args} />,
-      code: `<ContestPreviewCard contest={contest} onSelect={console.log} />`,
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<ContestPreviewCard contest={contest} onSelect={console.log} />` },
     },
-    {
-      name: "Registered",
-      render: () => (
+  },
+  render: (args) => <ContestPreviewCard contest={args.contest ?? sampleContest()} {...args} />,
+};
+
+export const Registered: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<ContestPreviewCard contest={{ ...contest, isRegistered: true }} />` },
+    },
+  },
+  render: () => (
         <ContestPreviewCard
           contest={sampleContest({ isRegistered: true })}
         />
       ),
-      code: `<ContestPreviewCard contest={{ ...contest, isRegistered: true }} />`,
+};
+
+export const Past: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<ContestPreviewCard contest={pastContest} />` },
     },
-    {
-      name: "Past",
-      render: () => (
+  },
+  render: () => (
         <ContestPreviewCard
           contest={sampleContest({
             startTime: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
@@ -65,9 +80,4 @@ const storyModule: StoryModule<ContestPreviewCardProps> = {
           })}
         />
       ),
-      code: `<ContestPreviewCard contest={pastContest} />`,
-    },
-  ],
 };
-
-export default storyModule;

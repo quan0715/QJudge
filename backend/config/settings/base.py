@@ -36,9 +36,11 @@ INSTALLED_APPS = [
     "apps.submissions",
     "apps.contests",
     "apps.announcements",
-    "apps.labs",
+    "apps.labs",  # migration stub only; runtime lab product now uses contests
     "apps.classrooms",
     "apps.ai",  # AI Chat
+    "apps.question_bank",
+    "apps.subscriptions",
     "drf_spectacular",
 ]
 
@@ -84,7 +86,13 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+        # With pgBouncer (session mode) as the connection proxy, Django should
+        # release connections immediately after each request (CONN_MAX_AGE=0).
+        # pgBouncer returns the server connection to its pool and reuses it for
+        # the next request, so there is no penalty for closing from Django's side.
+        # Override via DB_CONN_MAX_AGE env var if running without pgBouncer.
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {
             "connect_timeout": 10,
         },
@@ -216,6 +224,7 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "x-device-id",
 ]
 
 # CSRF Trusted Origins (for POST/PATCH/DELETE requests)
@@ -239,6 +248,14 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
 # Frontend URL
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# Feature flags
+# Contest ACL role source:
+# - False: legacy contest-scoped owner/co_owner/participant resolution
+# - True: classroom-bound contest resolves role from classroom scope first
+CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
+    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "false").lower() == "true"
+)
 
 # Redis Cache settings
 # Using Django's built-in Redis backend (Django 4.0+)
@@ -376,6 +393,18 @@ ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
+# Markdown image storage — reuses the same MinIO instance as anticheat
+MARKDOWN_IMAGE_S3_ENDPOINT_URL = ANTICHEAT_S3_ENDPOINT_URL
+MARKDOWN_IMAGE_S3_REGION = ANTICHEAT_S3_REGION
+MARKDOWN_IMAGE_S3_ACCESS_KEY = ANTICHEAT_S3_ACCESS_KEY
+MARKDOWN_IMAGE_S3_SECRET_KEY = ANTICHEAT_S3_SECRET_KEY
+MARKDOWN_IMAGE_S3_BUCKET = os.getenv("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
+MARKDOWN_IMAGE_MAX_BYTES = int(os.getenv("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
+MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
+    "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
+    os.getenv("FRONTEND_URL", ""),
+).strip()
+
 # HMAC secret for internal API authentication between ai-service and backend
 AI_SERVICE_HMAC_SECRET = os.getenv("HMAC_SECRET", "")
 
@@ -389,3 +418,10 @@ ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
     "u1hHKL4z-3J1B_Wx_Y9c8r7K2x5nQ8P3vL6M9s0W7Z4f5A6d9eG2hJ5kM8oP1qS4"  # Default dev key (change in production!)
 )
+
+# Recur Payment settings
+RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
+RECUR_SECRET_KEY = os.getenv("RECUR_SECRET_KEY", "")
+RECUR_WEBHOOK_SECRET = os.getenv("RECUR_WEBHOOK_SECRET", "")
+RECUR_PRODUCT_PRO_ID = os.getenv("RECUR_PRODUCT_PRO_ID", "")
+RECUR_PRODUCT_TEAM_ID = os.getenv("RECUR_PRODUCT_TEAM_ID", "")

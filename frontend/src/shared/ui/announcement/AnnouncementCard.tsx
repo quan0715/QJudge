@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, ClickableTile } from "@carbon/react";
 import { TrashCan } from "@carbon/icons-react";
-import type { Announcement } from "@/infrastructure/api/repositories/announcement.repository";
+import type { Announcement } from "@/core/entities/announcement.entity";
 import styles from "./AnnouncementCard.module.scss";
 
 export interface AnnouncementCardProps {

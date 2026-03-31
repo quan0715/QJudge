@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Link, Outlet, useParams } from "react-router-dom";
 import {
+  Breadcrumb,
+  BreadcrumbItem,
   Header,
-  HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
   Modal,
@@ -31,11 +32,20 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
-import { getContestAnsweringEntryPath } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomContestDashboardPath,
+  getClassroomContestSolvePath,
+  getContestAnsweringEntryPath,
+  getContestDashboardPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
+import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
+import { SideMenu } from "@/features/app/components/SideMenu";
+import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 import styles from "./ContestLayout.module.scss";
 
 const ContestLayout = () => {
+  const { classroomId } = useParams<{ classroomId?: string }>();
   const {
     contestId,
     contest,
@@ -56,9 +66,23 @@ const ContestLayout = () => {
     navigate,
     } = useContestLayoutState();
 
+    const classroomName = useClassroomName(classroomId);
     const { t } = useTranslation("contest");
     const { t: tc } = useTranslation("common");
+  const dashboardPath =
+    classroomId && contestId
+      ? getClassroomContestDashboardPath(classroomId, contestId)
+      : contestId
+        ? getContestDashboardPath(contestId)
+        : "/contests";
+  const adminPath =
+    classroomId && contestId
+      ? `${dashboardPath}/admin`
+      : contestId
+        ? `/contests/${contestId}/admin`
+        : "/contests";
 
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
@@ -78,7 +102,11 @@ const ContestLayout = () => {
 
   const handleGoToAnswering = () => {
     if (!contestId || !contest) return;
-    navigate(getContestAnsweringEntryPath(contestId, contest));
+    navigate(
+      classroomId
+        ? getClassroomContestSolvePath(classroomId, contestId)
+        : getContestAnsweringEntryPath(contestId, contest),
+    );
   };
 
   const {
@@ -198,7 +226,7 @@ const ContestLayout = () => {
           />
         }
         stickyHeader={
-          contest ? <ContestTabs contest={contest} maxWidth="1056px" /> : undefined
+            contest ? <ContestTabs contest={contest} maxWidth="1056px" /> : undefined
         }
       >
         {outletContent}
@@ -233,19 +261,44 @@ const ContestLayout = () => {
       ) : (
         <div className={styles.root}>
           <Header aria-label={t("header.contestPlatform")}>
-            <HeaderName
-              href={`/contests/${contestId}`}
-              prefix={tc("header.prefix")}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/contests/${contestId}`);
-              }}
-            >
-              {contest?.name || t("mode")}
-            </HeaderName>
+            <SideMenuToggle
+              isOpen={sideMenuOpen}
+              onClick={() => setSideMenuOpen((o) => !o)}
+            />
+            <div className={styles.headerBrand}>
+              <Link to="/dashboard" className={styles.headerBrandLink}>
+                {tc("header.prefix")}
+              </Link>
+              <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+                {classroomId ? (
+                  <>
+                    <BreadcrumbItem>
+                      <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem>
+                      <Link to={`/classrooms/${classroomId}`}>
+                        {classroomName || tc("nav.classrooms", "教室")}
+                      </Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isCurrentPage>
+                      {contest?.name || t("mode")}
+                    </BreadcrumbItem>
+                  </>
+                ) : (
+                  <>
+                    <BreadcrumbItem>
+                      <Link to="/contests">{tc("nav.contests")}</Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isCurrentPage>
+                      {contest?.name || t("mode")}
+                    </BreadcrumbItem>
+                  </>
+                )}
+              </Breadcrumb>
+            </div>
 
             <HeaderNavigation aria-label={tc("header.contestNavigation")}>
-              {showContestTimer && (
+              {showContestTimer && !classroomId && (
                 <div className={styles.headerTimerDisplay}>
                   <Time size={16} />
                   <span>
@@ -277,7 +330,7 @@ const ContestLayout = () => {
                 <HeaderGlobalAction
                   aria-label={t("admin")}
                   tooltipAlignment="center"
-                  onClick={() => navigate(`/contests/${contestId}/admin`)}
+                  onClick={() => navigate(adminPath)}
                 >
                   <Settings size={20} />
                 </HeaderGlobalAction>
@@ -308,6 +361,11 @@ const ContestLayout = () => {
                 {t("exit")}
               </Button>
             </HeaderGlobalBar>
+
+            <SideMenu
+              isOpen={sideMenuOpen}
+              onClose={() => setSideMenuOpen(false)}
+            />
           </Header>
 
           <ExamModeMonitorModal

@@ -1,18 +1,14 @@
-import type { StoryModule, Story } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "@carbon/react";
 import { Edit } from "@carbon/icons-react";
-import { AnnouncementCard, type AnnouncementCardProps } from "./AnnouncementCard";
-import type { Announcement } from "@/infrastructure/api/repositories/announcement.repository";
+import { AnnouncementCard } from "./AnnouncementCard";
+import type { Announcement } from "@/core/entities/announcement.entity";
 
 const mockAnnouncement: Announcement = {
   id: 1,
-  title: "系統維護公告",
-  content:
-    "親愛的使用者，系統將於 2024/01/15 00:00 至 06:00 進行例行維護，届時服務將暫時停止。維護完成後將自動恢復服務，造成不便敬請見諒。",
-  author: {
-    username: "admin",
-    role: "admin",
-  },
+  title: "\u7cfb\u7d71\u7dad\u8b77\u516c\u544a",
+  content: "\u89aa\u611b\u7684\u4f7f\u7528\u8005\uff0c\u7cfb\u7d71\u5c07\u65bc 2024/01/15 00:00 \u81f3 06:00 \u9032\u884c\u4f8b\u884c\u7dad\u8b77\uff0c\u5c46\u6642\u670d\u52d9\u5c07\u66ab\u6642\u505c\u6b62\u3002\u7dad\u8b77\u5b8c\u6210\u5f8c\u5c07\u81ea\u52d5\u5fa9\u5fa9\u670d\u52d9\uff0c\u9020\u6210\u4e0d\u4fbf\u656c\u8acb\u898b\u8ad2\u3002",
+  author: { username: "admin", role: "admin" },
   visible: true,
   created_at: "2024-01-10T10:00:00Z",
   updated_at: "2024-01-10T10:00:00Z",
@@ -21,127 +17,62 @@ const mockAnnouncement: Announcement = {
 const longContentAnnouncement: Announcement = {
   ...mockAnnouncement,
   id: 2,
-  title: "重要：競賽規則更新",
-  content:
-    "各位參賽者好，為了提供更公平的競賽環境，我們將於下個月起實施新的競賽規則。主要變更包括：1. 每道題目的時間限制將統一調整為 2 秒。2. 記憶體限制統一調整為 256MB。3. 新增部分分數機制，讓更多努力得到認可。4. 增加測試資料的多樣性，確保解答的正確性。5. 調整排名計算方式，除了正確性外，也會考量提交時間和嘗試次數。請各位參賽者提前熟悉新規則，如有任何問題歡迎透過系統提問功能聯繫我們。",
+  title: "\u91cd\u8981\uff1a\u7af6\u8cfd\u898f\u5247\u66f4\u65b0",
+  content: "\u5404\u4f4d\u53c3\u8cfd\u8005\u597d\uff0c\u70ba\u4e86\u63d0\u4f9b\u66f4\u516c\u5e73\u7684\u7af6\u8cfd\u74b0\u5883\uff0c\u6211\u5011\u5c07\u65bc\u4e0b\u500b\u6708\u8d77\u5be6\u65bd\u65b0\u7684\u7af6\u8cfd\u898f\u5247\u3002\u4e3b\u8981\u8b8a\u66f4\u5305\u62ec\uff1a1. \u6bcf\u9053\u984c\u76ee\u7684\u6642\u9593\u9650\u5236\u5c07\u7d71\u4e00\u8abf\u6574\u70ba 2 \u79d2\u3002",
 };
 
-const meta: StoryModule<AnnouncementCardProps>["meta"] = {
+const meta: Meta<typeof AnnouncementCard> = {
   title: "shared/ui/announcement/AnnouncementCard",
   component: AnnouncementCard,
-  category: "shared",
-  description: "系統公告卡片，支援內容截斷與操作按鈕。",
-  defaultArgs: {
+  args: {
     announcement: mockAnnouncement,
     maxContentLength: 200,
   },
   argTypes: {
-    maxContentLength: {
-      control: "number" as const,
-      label: "Max Content Length",
-      description: "內容截斷長度",
-    },
-    canDelete: {
-      control: "boolean" as const,
-      label: "Can Delete",
-      description: "是否顯示刪除按鈕",
-    },
-    createdBy: {
-      control: "text" as const,
-      label: "Created By",
-      description: "覆蓋作者顯示名稱",
-    },
+    maxContentLength: { control: "number", description: "\u5167\u5bb9\u622a\u65b7\u9577\u5ea6" },
+    canDelete: { control: "boolean", description: "\u662f\u5426\u986f\u793a\u522a\u9664\u6309\u9215" },
+    createdBy: { control: "text", description: "\u8986\u84cb\u4f5c\u8005\u986f\u793a\u540d\u7a31" },
+  },
+  parameters: {
+    docs: { description: { component: "\u7cfb\u7d71\u516c\u544a\u5361\u7247\uff0c\u652f\u63f4\u5167\u5bb9\u622a\u65b7\u8207\u64cd\u4f5c\u6309\u9215\u3002" } },
   },
 };
 
-const stories: Story<AnnouncementCardProps>[] = [
-  {
-    name: "Default",
-    render: (args) => <AnnouncementCard {...args} />,
-  },
-  {
-    name: "Clickable",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        onClick={() => console.log("Card clicked")}
-      />
-    ),
-  },
-  {
-    name: "With Delete Button",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        canDelete
-        onDelete={(id: number | string) =>
-          console.log("Delete announcement:", id)
-        }
-      />
-    ),
-  },
-  {
-    name: "With Custom Actions",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        canDelete
-        onDelete={(id: number | string) =>
-          console.log("Delete announcement:", id)
-        }
-        actions={
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={Edit}
-            hasIconOnly
-            iconDescription="編輯公告"
-            onClick={() => console.log("Edit clicked")}
-          />
-        }
-      />
-    ),
-  },
-  {
-    name: "Long Content",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        announcement={longContentAnnouncement}
-        maxContentLength={200}
-      />
-    ),
-  },
-  {
-    name: "No Truncation",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        announcement={longContentAnnouncement}
-        maxContentLength={0}
-      />
-    ),
-  },
-  {
-    name: "Custom Date Format",
-    render: (args) => (
-      <AnnouncementCard
-        {...args}
-        formatDate={(dateStr: string) =>
-          new Date(dateStr).toLocaleDateString("zh-TW", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        }
-      />
-    ),
-  },
-];
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-const storyModule: StoryModule<AnnouncementCardProps> = {
-  meta,
-  stories,
+export const Default: Story = {};
+
+export const Clickable: Story = {
+  args: { onClick: () => console.log("Card clicked") },
 };
 
-export default storyModule;
+export const WithDeleteButton: Story = {
+  args: { canDelete: true, onDelete: (id: number | string) => console.log("Delete:", id) },
+};
+
+export const WithCustomActions: Story = {
+  render: (args) => (
+    <AnnouncementCard
+      announcement={mockAnnouncement}
+      {...args}
+      canDelete
+      onDelete={(id) => console.log("Delete:", id)}
+      actions={
+        <Button kind="ghost" size="sm" renderIcon={Edit} hasIconOnly iconDescription="\u7de8\u8f2f\u516c\u544a" onClick={() => console.log("Edit clicked")} />
+      }
+    />
+  ),
+};
+
+export const LongContent: Story = {
+  render: (args) => (
+    <AnnouncementCard {...args} announcement={longContentAnnouncement} maxContentLength={200} />
+  ),
+};
+
+export const NoTruncation: Story = {
+  render: (args) => (
+    <AnnouncementCard {...args} announcement={longContentAnnouncement} maxContentLength={0} />
+  ),
+};

@@ -1,325 +1,207 @@
 {
-  "nav": {
-    "dashboard": "대시보드",
-    "problems": "문제",
-    "contests": "대회",
-    "classrooms": "교실",
-    "submissions": "제출 기록",
-    "ranking": "랭킹",
-    "documentation": "문서",
-    "backToProblemList": "문제 목록으로 돌아가기",
-    "problemList": "문제 목록",
-    "back": "뒤로"
+  "action": {
+    "adding": "추가 중...",
+    "deleting": "삭제 중...",
+    "downloading": "다운로드 중...",
+    "exporting": "내보내는 중...",
+    "importing": "가져오는 중...",
+    "pleaseWait": "잠시만 기다려주세요",
+    "processing": "처리 중...",
+    "refresh": "새로고침",
+    "refreshing": "새로고침 중...",
+    "syncing": "동기화 중...",
+    "uploading": "업로드 중...",
+    "viewProblem": "문제 보기"
   },
-  "page": {
-    "dashboard": "대시보드",
-    "problems": "문제 목록",
-    "problemDetail": "문제 상세",
-    "contests": "대회 목록",
-    "contestDetail": "대회 상세",
-    "submissions": "제출 기록",
-    "login": "로그인",
-    "register": "회원가입",
-    "userManagement": "사용자 관리",
-    "announcements": "공지 관리",
-    "environment": "환경 설정",
-    "createContest": "대회 생성",
-    "createProblem": "문제 생성",
-    "editProblem": "문제 편집",
-    "teacherDashboard": "Teacher Dashboard",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management"
-  },
-  "tab": {
-    "overview": "개요",
-    "problems": "문제",
-    "submissions": "제출 기록",
-    "standings": "순위",
-    "clarifications": "질문",
-    "settings": "설정",
-    "description": "문제 설명",
-    "solver": "풀이"
-  },
-  "header": {
-    "platform": "QJudge 플랫폼",
-    "prefix": "양명교통대학",
-    "menu": "메뉴",
-    "sideNav": "사이드 탐색",
-    "userMenu": "사용자 메뉴",
-    "problemManagement": "문제 관리",
-    "createContest": "대회 생성",
-    "userManagement": "사용자 관리",
-    "announcements": "공지 관리",
-    "environmentSettings": "환경 설정",
-    "teacherDashboard": "교사 대시보드",
-    "systemSettings": "시스템 설정",
-    "contestManagement": "대회 관리",
-    "mainNavigation": "메인 탐색",
-    "contestNavigation": "대회 탐색",
-    "adminNavigation": "관리 탐색"
-  },
-  "dashboard": {
-    "welcomeBack": "환영합니다, {{name}}",
-    "subtitle": "NYCU Online Judge",
-    "stats": {
-      "title": "풀이 통계",
-      "problems": "문제",
-      "solvedCount": "/ {{total}} 해결됨",
-      "noStats": "통계 데이터를 불러올 수 없습니다"
+  "auth": {
+    "callback": {
+      "conflictTitle": "시험 충돌",
+      "connecting": "연결 중...",
+      "errorTitle": "로그인 실패",
+      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
+      "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
+      "finalTouch": "마지막 확인 중...",
+      "loading": "본인 확인 중",
+      "loadingDesc": "학생 정보를 가져오는 중입니다. 잠시 기다려 주십시오...",
+      "loadingSubtitle": "당신만을 위한 프로그래밍 무대를 준비 중입니다",
+      "loadingTitle": "프로그래밍 평가 플랫폼에 오신 것을 환영합니다",
+      "noCode": "인증 코드를 받지 못했습니다.",
+      "pleaseWait": "잠시만 기다려주세요",
+      "steps": {
+        "almost": "就快好了，請稍候",
+        "assembling": "작업 공간을 구성 중입니다...",
+        "igniting": "엔진 점화 중...",
+        "preparing": "모험을 준비 중입니다...",
+        "ready": "모든 준비가 완료되었습니다!",
+        "stats": "전투 통계를 동기화 중입니다...",
+        "verifying": "본인 확인 중입니다..."
+      },
+      "takeover": "인계받고 이전 장치 잠금",
+      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
+      "takingOver": "처리 중...",
+      "verifyingSession": "同步作業階段中..."
     },
-    "difficulty": {
-      "easy": "쉬움",
-      "medium": "보통",
-      "hard": "어려움"
+    "campusSso": {
+      "backToLogin": "로그인으로 돌아가기",
+      "providers": {
+        "nycu": {
+          "description": "대학교 포털 계정을 사용하여 로그인합니다",
+          "name": "NYCU (국립 양명 교통 대학교)"
+        }
+      },
+      "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
+      "subtitle": "로그인할 대학교를 선택하세요",
+      "title": " campus 인증"
     },
-    "classrooms": {
-      "title": "내 교실",
-      "subtitle": "가입된 교실"
+    "login": {
+      "email": "이메일",
+      "emailPlaceholder": "student@example.com",
+      "failed": "로그인 실패",
+      "feature1Desc": "실시간 피드백",
+      "feature1Title": "즉각적인 채점",
+      "feature2Desc": "유연한 평가",
+      "feature2Title": "다양한 문제 유형",
+      "feature3Desc": "학습 분석",
+      "feature3Title": "성장 추적",
+      "githubLogin": "GitHub 로 로그인",
+      "googleLogin": "Google 로 로그인",
+      "heroSubtitle": "온라인 테스트를 위한 설계 - 출제부터 시험, 분석까지 한 번에",
+      "heroTitle": "AI 세대를 위한 새로운 시험 경험",
+      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+      "loading": "로그인 중...",
+      "noAccount": "계정이 없으신가요?",
+      "oauthFailed": "로그인을 시작할 수 없습니다",
+      "or": "또는 다른 방법으로 로그인",
+      "password": "비밀번호",
+      "passwordPlaceholder": "비밀번호 입력",
+      "registerNow": "지금 가입하기",
+      "ssoLogin": "SSO 로 로그인",
+      "submit": "로그인",
+      "subtitle": "환영합니다, 계정에 로그인하세요",
+      "title": "로그인"
     },
-    "contests": {
-      "title": "예정된 대회",
-      "noContests": "예정된 대회가 없습니다",
-      "upcoming": "예정",
-      "ongoing": "진행 중인 대회만 표시",
-      "ended": "종료",
-      "participated": "참가함"
+    "logout": {
+      "confirmButton": "로그아웃",
+      "confirmMessage": "현재 계정에서 로그아웃하시겠습니까?",
+      "confirmTitle": "로그아웃 확인"
     },
-    "announcements": {
-      "title": "공지사항",
-      "subtitle": "최신 공지사항",
-      "noAnnouncements": "공지사항이 없습니다"
+    "register": {
+      "confirmPassword": "비밀번호 확인",
+      "confirmPasswordPlaceholder": "비밀번호 재입력",
+      "email": "이메일",
+      "emailPlaceholder": "이메일 입력",
+      "failed": "가입 실패",
+      "failedRetry": "가입 실패, 나중에 다시 시도하세요",
+      "hasAccount": "이미 계정이 있으신가요?",
+      "loading": "가입 중...",
+      "loginNow": "로그인",
+      "password": "비밀번호",
+      "passwordHelper": "최소 8 자 이상, 숫자만으로 구성되거나 흔한 비밀번호는 피하십시오.",
+      "passwordMismatch": "비밀번호가 일치하지 않습니다",
+      "passwordPlaceholder": "비밀번호 생성",
+      "passwordTooShort": "비밀번호는 최소 8 자 이상이어야 합니다.",
+      "submit": "가입하기",
+      "subtitle": "플랫폼에 가입하여 코딩 여정을 시작하세요",
+      "title": "계정 만들기",
+      "username": "사용자 이름",
+      "usernamePlaceholder": "사용자 이름 선택"
+    },
+    "pendingAction": {
+      "classroomJoinSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교실에 참여합니다.",
+      "classroomJoinTitle": "교실 참여",
+      "teacherActivationSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교사 권한이 활성화됩니다.",
+      "teacherActivationTitle": "교사 권한 활성화"
     }
   },
   "button": {
-    "confirm": "확인",
+    "archive": "보관",
+    "back": "뒤로",
     "cancel": "취소",
-    "save": "저장",
+    "clear": "초기화",
+    "close": "닫기",
+    "confirm": "확인",
+    "create": "생성",
     "delete": "삭제",
     "edit": "편집",
-    "close": "닫기",
-    "back": "뒤로",
-    "submit": "제출",
-    "create": "생성",
-    "logout": "로그아웃",
     "login": "로그인",
+    "logout": "로그아웃",
+    "preview": "미리보기",
+    "previous": "이전 단계",
     "register": "회원가입",
-    "archive": "보관",
-    "updating": "업데이트 중...",
+    "save": "저장",
     "search": "검색",
     "searching": "검색 중...",
-    "clear": "초기화",
-    "previous": "이전 단계"
+    "submit": "제출",
+    "updating": "업데이트 중..."
   },
-  "message": {
-    "loading": "로딩 중...",
-    "error": "오류가 발생했습니다",
-    "success": "작업이 완료되었습니다",
-    "noData": "데이터가 없습니다",
-    "notFound": "리소스를 찾을 수 없습니다",
-    "comingSoon": "출시 예정",
-    "saveFailed": "저장 실패",
-    "deleteFailed": "삭제 실패"
+  "classroom": {
+    "members": "구성원"
+  },
+  "common": {
+    "locale": "ko-KR"
+  },
+  "dashboard": {
+    "announcements": {
+      "noAnnouncements": "공지사항이 없습니다",
+      "subtitle": "최신 공지사항",
+      "title": "공지사항"
+    },
+    "classroomHub": {
+      "emptyDesc": "교실을 만들거나 초대 링크로 참가하세요.",
+      "emptyTitle": "아직 참가한 교실이 없습니다",
+      "listTitle": "내 교실",
+      "loadFailed": "교실 로딩에 실패했습니다",
+      "loadFailedHint": "나중에 다시 시도해주세요",
+      "noDescription": "설명이 설정되지 않았습니다",
+      "selectSubtitle": "교실을 선택하여 메인 페이지로 이동",
+      "welcomeBack": "돌아오신 것을 환영합니다"
+    },
+    "classrooms": {
+      "subtitle": "참가 중인 교실",
+      "title": "내 교실"
+    },
+    "contests": {
+      "ended": "종료",
+      "noContests": "예정된 대회가 없습니다",
+      "ongoing": "진행 중인 대회만 표시",
+      "participated": "참가함",
+      "title": "예정된 대회",
+      "upcoming": "예정"
+    },
+    "difficulty": {
+      "easy": "쉬움",
+      "hard": "어려움",
+      "medium": "보통"
+    },
+    "kpi": {
+      "classrooms": "교실",
+      "questionBanks": "문제집"
+    },
+    "questionBanksSection": {
+      "empty": "아직 문제집이 없습니다.",
+      "emptyHint": "문제집을 만들어 문제를 정리하세요.",
+      "showLess": "收起",
+      "showMore": "顯示更多",
+      "title": "내 문제집",
+      "viewAll": "전체 보기"
+    },
+    "stats": {
+      "noStats": "통계 데이터를 불러올 수 없습니다",
+      "problems": "문제",
+      "solvedCount": "/ {{total}} 해결됨",
+      "title": "문제 풀이 통계"
+    },
+    "subtitle": "Online Judge",
+    "welcomeBack": "환영합니다, {{name}}님"
+  },
+  "difficulty": {
+    "easy": "쉬움",
+    "hard": "어려움",
+    "medium": "보통"
   },
   "error": {
     "title": "오류",
     "validationFailed": "검증 실패"
-  },
-  "pagination": {
-    "previous": "이전",
-    "next": "다음",
-    "itemsPerPage": "페이지당 항목 수"
-  },
-  "language": {
-    "title": "언어",
-    "switchTo": "언어 전환",
-    "switchedTitle": "언어가 변경되었습니다",
-    "switchedTo": "{{language}}로 전환되었습니다",
-    "selectLanguage": "언어 선택"
-  },
-  "theme": {
-    "title": "테마",
-    "switchToLight": "라이트 모드로 전환",
-    "switchToDark": "다크 모드로 전환",
-    "light": "라이트",
-    "dark": "다크",
-    "system": "시스템"
-  },
-  "preferences": {
-    "title": "환경설정",
-    "themeSection": "테마",
-    "languageSection": "언어",
-    "accountInfo": "계정 정보",
-    "username": "사용자 이름",
-    "email": "이메일",
-    "role": "역할",
-    "displayName": "표시 이름",
-    "displayNameDescription": "플랫폼에서 표시되는 이름을 설정합니다",
-    "theme": "테마",
-    "language": "언어",
-    "editor": "에디터 설정",
-    "editorFontSize": "글꼴 크기",
-    "editorTabSize": "탭 너비",
-    "changePassword": "비밀번호 변경",
-    "currentPassword": "현재 비밀번호",
-    "newPassword": "새 비밀번호",
-    "confirmPassword": "새 비밀번호 확인",
-    "passwordChanged": "비밀번호가 변경되었습니다",
-    "passwordMismatch": "새 비밀번호가 일치하지 않습니다",
-    "wrongPassword": "현재 비밀번호가 올바르지 않습니다",
-    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다"
-  },
-  "settings": {
-    "title": "설정",
-    "description": "환경설정, API Key 및 사용량 통계를 관리합니다",
-    "descriptionStudent": "환경설정을 관리합니다"
-  },
-  "table": {
-    "title": "제목",
-    "status": "상태",
-    "time": "시간",
-    "visibility": "공개 설정",
-    "actions": "작업",
-    "private": "비공개 (비밀번호)",
-    "public": "공개"
-  },
-  "user": {
-    "preferences": "환경설정",
-    "changePassword": "비밀번호 변경",
-    "role": {
-      "student": "학생",
-      "teacher": "교수",
-      "admin": "관리자",
-      "adminTA": "관리자 (TA)"
-    }
-  },
-  "auth": {
-    "login": {
-      "heroTitle": "AI 세대를 위한 새로운 시험 경험",
-      "heroSubtitle": "온라인 테스트를 위한 설계 - 출제부터 시험, 분석까지 한 번에",
-      "feature1Title": "즉각적인 채점",
-      "feature1Desc": "실시간 피드백",
-      "feature2Title": "다양한 문제 유형",
-      "feature2Desc": "유연한 평가",
-      "feature3Title": "성장 추적",
-      "feature3Desc": "학습 분석",
-      "title": "로그인",
-      "subtitle": "환영합니다, 계정에 로그인하세요",
-      "email": "이메일",
-      "emailPlaceholder": "student@example.com",
-      "password": "비밀번호",
-      "passwordPlaceholder": "비밀번호 입력",
-      "submit": "로그인",
-      "loading": "로그인 중...",
-      "or": "또는 다른 방법으로 로그인",
-      "ssoLogin": "SSO로 로그인",
-      "googleLogin": "Google로 로그인",
-      "githubLogin": "GitHub로 로그인",
-      "noAccount": "계정이 없으신가요?",
-      "registerNow": "지금 가입하기",
-      "failed": "로그인 실패",
-      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
-      "oauthFailed": "로그인을 시작할 수 없습니다"
-    },
-    "campusSso": {
-      "title": "캠퍼스 인증",
-      "subtitle": "로그인할 대학교를 선택하세요",
-      "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
-      "backToLogin": "로그인으로 돌아가기",
-      "providers": {
-        "nycu": {
-          "name": "NYCU (국립 양명 교통 대학교)",
-          "description": "대학교 포털 계정을 사용하여 로그인합니다"
-        }
-      }
-    },
-    "register": {
-      "title": "계정 만들기",
-      "subtitle": "QJudge에 가입하여 코딩 여정을 시작하세요",
-      "username": "사용자 이름",
-      "usernamePlaceholder": "사용자 이름 선택",
-      "email": "이메일",
-      "emailPlaceholder": "이메일 입력",
-      "password": "비밀번호",
-      "passwordPlaceholder": "비밀번호 생성",
-      "confirmPassword": "비밀번호 확인",
-      "confirmPasswordPlaceholder": "비밀번호 재입력",
-      "submit": "가입하기",
-      "loading": "가입 중...",
-      "hasAccount": "이미 계정이 있으신가요?",
-      "loginNow": "로그인",
-      "failed": "가입 실패",
-      "failedRetry": "가입 실패, 나중에 다시 시도하세요",
-      "passwordMismatch": "비밀번호가 일치하지 않습니다",
-      "passwordHelper": "최소 8자 이상, 숫자만으로 구성되거나 흔한 비밀번호는 피하십시오.",
-      "passwordTooShort": "비밀번호는 최소 8자 이상이어야 합니다."
-    },
-    "callback": {
-      "conflictTitle": "시험 충돌",
-      "errorTitle": "로그인 실패",
-      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
-      "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
-      "loading": "본인 확인 중",
-      "loadingDesc": "학생 정보를 가져오는 중입니다. 잠시 기다려 주십시오...",
-      "noCode": "인증 코드를 받지 못했습니다.",
-      "takeover": "인계받고 이전 장치 잠금",
-      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
-      "takingOver": "처리 중..."
-    }
-  },
-  "status": {
-    "public": "공개",
-    "private": "비공개",
-    "draft": "초안",
-    "published": "게시됨",
-    "archived": "보관됨",
-    "hidden": "숨김",
-    "active": "활성",
-    "inactive": "비활성",
-    "connected": "연결됨",
-    "disconnected": "연결 안 됨",
-    "enabled": "활성화됨",
-    "disabled": "비활성화됨",
-    "solved": "해결됨",
-    "pending": "대기 중",
-    "success": "성공",
-    "failed": "실패",
-    "notPassed": "통과하지 못함",
-    "missing": "누락됨"
-  },
-  "action": {
-    "adding": "추가 중...",
-    "deleting": "삭제 중...",
-    "uploading": "업로드 중...",
-    "downloading": "다운로드 중...",
-    "importing": "가져오는 중...",
-    "exporting": "내보내는 중...",
-    "syncing": "동기화 중...",
-    "processing": "처리 중...",
-    "pleaseWait": "잠시만 기다려주세요",
-    "refreshing": "새로고침 중...",
-    "refresh": "새로고침",
-    "viewProblem": "문제 보기"
-  },
-  "difficulty": {
-    "easy": "쉬움",
-    "medium": "보통",
-    "hard": "어려움"
-  },
-  "form": {
-    "title": "제목",
-    "name": "이름",
-    "description": "설명",
-    "author": "작성자",
-    "createdAt": "생성 시간",
-    "updatedAt": "수정 시간",
-    "startTime": "시작 시간",
-    "endTime": "종료 시간",
-    "startDate": "시작 날짜",
-    "endDate": "종료 날짜",
-    "startDateTime": "시작 일시",
-    "endDateTime": "종료 일시",
-    "password": "비밀번호",
-    "visibility": "공개 여부"
   },
   "filter": {
     "all": "전체",
@@ -327,31 +209,466 @@
     "search": "검색",
     "searchPlaceholder": "검색..."
   },
-  "toggle": {
-    "on": "켜기",
-    "off": "끄기",
-    "show": "표시",
-    "hide": "숨기기",
-    "allow": "허용",
-    "forbid": "금지"
+  "form": {
+    "author": "작성자",
+    "createdAt": "생성 시간",
+    "description": "설명",
+    "endDate": "종료 날짜",
+    "endDateTime": "종료 일시",
+    "endTime": "종료 시간",
+    "name": "이름",
+    "password": "비밀번호",
+    "startDate": "시작 날짜",
+    "startDateTime": "시작 일시",
+    "startTime": "시작 시간",
+    "title": "제목",
+    "updatedAt": "수정 시간",
+    "visibility": "공개 여부"
   },
-  "classroom": {
-    "members": "명"
+  "header": {
+    "adminNavigation": "관리 탐색",
+    "announcements": "공지 관리",
+    "contestManagement": "대회 관리",
+    "contestNavigation": "대회 탐색",
+    "createContest": "대회 생성",
+    "environmentSettings": "환경 설정",
+    "mainNavigation": "기본 탐색",
+    "menu": "메뉴",
+    "platform": "프로그래밍 평가 플랫폼",
+    "prefix": "시스템",
+    "problemManagement": "문제 관리",
+    "reviewQueue": "送審佇列",
+    "sideNav": "사이드 탐색",
+    "systemSettings": "시스템 설정",
+    "teacherDashboard": "교사 대시보드",
+    "userManagement": "사용자 관리",
+    "userMenu": "사용자 메뉴"
+  },
+  "image": {
+    "galleryTab": "圖庫",
+    "linkTab": "連結",
+    "uploadTab": "上傳"
+  },
+  "language": {
+    "selectLanguage": "언어 선택",
+    "switchTo": "언어 전환",
+    "switchedTitle": "언어가 변경되었습니다",
+    "switchedTo": "{{language}}로 전환되었습니다",
+    "title": "언어"
+  },
+  "message": {
+    "comingSoon": "출시 예정",
+    "deleteFailed": "삭제 실패",
+    "error": "오류가 발생했습니다",
+    "loading": "로딩 중...",
+    "noData": "데이터가 없습니다",
+    "notFound": "리소스를 찾을 수 없습니다",
+    "saveFailed": "저장 실패",
+    "success": "작업이 완료되었습니다"
+  },
+  "nav": {
+    "back": "뒤로",
+    "backToProblemList": "문제 목록으로 돌아가기",
+    "classrooms": "교실",
+    "contests": "대회",
+    "dashboard": "대시보드",
+    "documentation": "문서",
+    "marketplace": "문제집 마켓",
+    "problemList": "문제 목록",
+    "problems": "문제",
+    "problemsLegacy": "문제 (이전)",
+    "questionBanks": "문제집",
+    "ranking": "랭킹",
+    "submissions": "제출 기록"
+  },
+  "page": {
+    "announcements": "공지 관리",
+    "contestDetail": "대회 상세",
+    "contestManagement": "대회 관리",
+    "contests": "대회 목록",
+    "createContest": "대회 생성",
+    "createProblem": "문제 생성",
+    "dashboard": "대시보드",
+    "editProblem": "문제 편집",
+    "environment": "환경 설정",
+    "login": "로그인",
+    "problemDetail": "문제 상세",
+    "problemManagement": "문제 관리",
+    "problemManagementLegacy": "문제 관리 (이전)",
+    "problems": "문제 목록",
+    "questionBanks": "문제집",
+    "register": "회원가입",
+    "submissions": "제출 기록",
+    "teacherDashboard": "교사 대시보드",
+    "userManagement": "사용자 관리"
+  },
+  "pagination": {
+    "itemsPerPage": "페이지당 항목 수",
+    "next": "다음",
+    "previous": "이전"
+  },
+  "preferences": {
+    "accountInfo": "계정 정보",
+    "avatarDropzoneHint": "또는 여기를 클릭하여 이미지 파일을 선택하세요",
+    "avatarDropzoneTitle": "여기에 이미지 드래그 앤 드롭",
+    "avatarEmpty": "아바타 추가",
+    "avatarRemove": "아바타 삭제",
+    "avatarUpload": "아바타 업로드",
+    "changePassword": "비밀번호 변경",
+    "confirmPassword": "새 비밀번호 확인",
+    "currentPassword": "현재 비밀번호",
+    "displayName": "표시 이름",
+    "displayNameDescription": "플랫폼에서 표시되는 이름을 설정합니다",
+    "displayNameSaveFailed": "업데이트 실패",
+    "displayNameSaved": "업데이트됨",
+    "editAvatar": "아바타 수정",
+    "editor": "에디터 설정",
+    "editorFontSize": "글꼴 크기",
+    "editorTabSize": "탭 너비",
+    "email": "이메일",
+    "language": "언어",
+    "languageDescription": "선호하는 표시 언어를 선택하세요",
+    "languageSection": "언어",
+    "loginMethod": "로그인 방법",
+    "newPassword": "새 비밀번호",
+    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다",
+    "passwordChanged": "비밀번호가 변경되었습니다",
+    "passwordMismatch": "새 비밀번호가 일치하지 않습니다",
+    "role": "역할",
+    "savingDisplayName": "저장 중...",
+    "theme": "테마",
+    "themeDescription": "선호하는 인터페이스 테마를 선택하세요",
+    "themeSection": "테마",
+    "title": "환경설정",
+    "username": "사용자 이름",
+    "wrongPassword": "현재 비밀번호가 올바르지 않습니다"
+  },
+  "profile": {
+    "deviceName": "기기 이름",
+    "devices": "기기 관리",
+    "devicesDesc": "최근 30일 이내에 로그인한 기기",
+    "lastActive": "마지막 활동",
+    "now": "지금",
+    "personalInfo": "개인 정보"
+  },
+  "questionBank": {
+    "addQuestion": "문제 추가",
+    "bankCreated": "문제집이 생성되었습니다",
+    "bankDeleted": "문제집이 삭제되었습니다",
+    "bankNotFound": "문제집을 찾을 수 없습니다",
+    "bankNotFoundDesc": "문제집 목록으로 돌아가서 다시 선택해주세요.",
+    "bankUpdated": "문제집이 업데이트되었습니다",
+    "category": "카테고리",
+    "categoryCoding": "프로그래밍",
+    "categoryExam": "지필 시험",
+    "clone": "내 문제집으로 복사",
+    "cloneSuccess": "내 문제집으로 복사되었습니다",
+    "communityTag": "QJudge Community",
+    "createBank": "문제집 만들기",
+    "deleteBank": "문제집 삭제",
+    "deleteBankConfirmBody": "문제집 \"{{name}}\"을(를) 삭제하시겠습니까?",
+    "deleteQuestion": "문제 삭제",
+    "deleteQuestionConfirmBody": "문제 \"{{title}}\"을(를) 삭제하시겠습니까?",
+    "description": "설명",
+    "difficulty": "난이도",
+    "editBank": "문제집 수정",
+    "editQuestion": "문제 수정",
+    "emptyExplore": "탐색 가능한 문제집이 없습니다.",
+    "emptyMine": "문제집이 없습니다. 먼저 내 문제집을 만들어보세요.",
+    "exploreOnlyPlatform": "탐색은 현재 QJudge Community만 지원합니다",
+    "exploreOnlyPlatformDesc": "Phase1에서는 교사 간 공유가 포함되지 않으며, 커뮤니티에서 검증된 문제집이 중심이 됩니다.",
+    "importFromInbox": "匯入草稿",
+    "inbox": {
+      "clearSelection": "선택 해제",
+      "coding": "프로그래밍 문제 선택 목록",
+      "currentFilter": "현재 표시 중",
+      "description": "대회에서 생성된 임시 문제를 특정 문제집으로 분류할 수 있습니다.",
+      "empty": "현재 선택 가능한 문제가 없습니다.",
+      "exam": "지필 시험 문제 선택 목록",
+      "filterAll": "전체",
+      "filterLabel": "표시 범위",
+      "fromUnknown": "출처 불명",
+      "ingestSelected": "선택한 문제 가져오기",
+      "ingestSuccess": "문제집으로 성공적으로 가져왔습니다",
+      "ingesting": "가져오는 중...",
+      "noCodingBank": "프로그래밍 문제집 없음",
+      "noExamBank": "지필 시험 문제집 없음",
+      "selectAll": "전체 선택",
+      "selectedCount": "{{count}}개 선택됨",
+      "targetBank": "대상 문제집",
+      "title": "문제 가져오기"
+    },
+    "loadQuestions": "문제 보기",
+    "memoryLimit": "메모리 제한(MB)",
+    "mockGalleryDesc": "UI 목업 미리보기입니다. QJudge Community 카드 예시를 보여줍니다.",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockOfficialBank1Desc": "재귀와 기초 탐색을 통해 사고력을 기릅니다.",
+    "mockOfficialBank1Name": "알고리즘 입문 - 재귀",
+    "mockOfficialBank2Desc": "학습 진도에 맞춘 자료구조 구현 문제.",
+    "mockOfficialBank2Name": "자료구조 구현 문제집",
+    "mockOfficialTag": "Community 셀렉트",
+    "mockOwnerLabel": "소유자",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "진 선생님",
+    "mockOwnerTeacherB": "임 선생님",
+    "mockQuestionCount": "{{count}} 문제",
+    "mockUserBank1Desc": "APCS 개념과 자주 틀리는 실수에 초점을 맞춘 연습.",
+    "mockUserBank1Name": "진 선생님의 APCS 연습",
+    "mockUserBank2Desc": "교내 정기시험 기출문제. 평가 포인트와 난이도 포함.",
+    "mockUserBank2Name": "임 선생님의 정기시험 문제집",
+    "mockUserPublicTag": "사용자 공개",
+    "mockVerifiedTag": "인증됨",
+    "openBank": "문제집 열기",
+    "prompt": "문제 설명",
+    "questionCreated": "문제가 생성되었습니다",
+    "questionDeleted": "문제가 삭제되었습니다",
+    "questionUpdated": "문제가 업데이트되었습니다",
+    "allTypes": "전체 유형",
+    "sortOrder": "기본 순서",
+    "sortType": "유형별",
+    "sortNewest": "최신 업데이트",
+    "sortOldest": "오래된 업데이트",
+    "usedInContests": "시험 {{count}}건",
+    "saveToBank": {
+      "desc": "將「{{title}}」收錄到題庫：",
+      "success": "已收錄到題庫",
+      "title": "收錄到題庫"
+    },
+    "score": "배점",
+    "selectTargetBank": "選擇目標題庫",
+    "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
+    "tabs": {
+      "explore": "탐색",
+      "inbox": "문제 가져오기",
+      "mine": "내 문제집"
+    },
+    "tagMine": "내 문제집",
+    "tagPrivate": "비공개",
+    "tagPublic": "공개",
+    "tagUserPublic": "사용자 공개",
+    "timeLimit": "시간 제한(ms)"
   },
   "questionType": {
-    "label": {
-      "true_false": "O/X 문제",
-      "single_choice": "단일 선택",
-      "multiple_choice": "다중 선택",
-      "short_answer": "단답형",
-      "essay": "서술형"
-    },
     "description": {
-      "true_false": "문장이 맞는지 틀린지 판단",
-      "single_choice": "여러 옵션에서 하나의 정답을 선택",
+      "essay": "긴 텍스트로 답변 (참고 답안 지원)",
       "multiple_choice": "여러 옵션에서 여러 정답을 선택",
       "short_answer": "짧은 텍스트로 답변 입력",
-      "essay": "긴 텍스트로 답변 (참고 답안 지원)"
+      "single_choice": "여러 옵션에서 하나의 정답을 선택",
+      "true_false": "문장이 맞는지 틀린지 판단"
+    },
+    "label": {
+      "essay": "서술형",
+      "multiple_choice": "다중 선택",
+      "short_answer": "단답형",
+      "single_choice": "단일 선택",
+      "true_false": "O/X 문제"
+    }
+  },
+  "role": {
+    "admin": "관리자",
+    "adminTA": "관리자 (TA)",
+    "student": "학생",
+    "ta": "조교",
+    "teacher": "교수"
+  },
+  "settings": {
+    "apiKey": {
+      "active": "활성",
+      "addKey": "API Key 추가",
+      "createdAtLabel": "생성 시간",
+      "deleteConfirm": "API Key를 삭제하시겠습니까? AI 기능을 사용할 수 없게 됩니다.",
+      "deleteKey": "Key 삭제",
+      "description": "AI 기능을 위한 Anthropic API Key를 관리합니다",
+      "empty": "API Key가 설정되지 않았습니다. Anthropic Console에서 생성하세요.",
+      "error": {
+        "deleteFailed": "삭제 실패",
+        "inputRequired": "API Key를 입력해주세요",
+        "invalidFormat": "형식이 올바르지 않습니다 ('sk-ant-'로 시작해야 함)",
+        "loadFailed": "API Key 정보를 가져오지 못했습니다",
+        "saveFailed": "저장 실패",
+        "usageLoadFailed": "사용량 데이터를 가져오지 못했습니다"
+      },
+      "inactive": "비활성",
+      "invalid": "미인증",
+      "modal": {
+        "addTitle": "API Key 추가",
+        "deleteSuccess": "API Key가 삭제되었습니다",
+        "helperText": "API Key는 암호화되어 저장됩니다",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "nameInput": "이름 (선택 사항)",
+        "saveSuccess": "API Key가 저장되었습니다",
+        "updateTitle": "API Key 업데이트"
+      },
+      "nameLabel": "이름",
+      "statusLabel": "상태",
+      "title": "API Key",
+      "updateKey": "Key 업데이트",
+      "usage": {
+        "daily": "일별",
+        "description": "AI API 사용량 요약 및 상세 내역",
+        "endDate": "종료 날짜",
+        "granularity": "단위",
+        "monthly": "월별",
+        "noData": "선택한 범위에 사용량 데이터가 없습니다",
+        "startDate": "시작 날짜",
+        "table": {
+          "cost": "비용 (USD)",
+          "date": "날짜",
+          "inputTokens": "입력 토큰",
+          "outputTokens": "출력 토큰",
+          "requests": "요청 수"
+        },
+        "title": "사용량 통계",
+        "totalCost": "총 비용",
+        "totalRequests": "총 요청 수",
+        "totalTokens": "총 토큰",
+        "weekly": "주별"
+      },
+      "validated": "인증됨"
+    },
+    "description": "환경설정, API Key 및 사용량 통계를 관리합니다",
+    "descriptionStudent": "환경설정을 관리합니다",
+    "loginRecords": {
+      "current": "현재 기기",
+      "description": "최근 30일 이내에 로그인한 기기",
+      "deviceName": "기기 이름",
+      "empty": "로그인 기록이 없습니다",
+      "lastActive": "마지막 활동",
+      "logoutError": "로그아웃에 실패했습니다",
+      "logoutOther": "다른 기기에서 로그아웃",
+      "logoutOtherDesc": "현재 기기를 제외한 모든 활성 세션에서 로그아웃합니다",
+      "logoutSuccess": "다른 기기에서 로그아웃되었습니다",
+      "now": "지금",
+      "title": "기기 관리"
+    },
+    "plans": {
+      "contactUs": "문의하기",
+      "description": "모든 요금제에서 모든 기능을 사용할 수 있습니다. 차이점은 사용량 한도뿐입니다.",
+      "enterpriseCustom": "엔터프라이즈 맞춤형 요금제를 안내해 드립니다.",
+      "enterpriseTitle": "더 큰 규모가 필요하신가요?",
+      "features": {
+        "pro": [
+          "시험당 최대 200명",
+          "월 500 AI Credits",
+          "무제한 문제집 저장",
+          "1년 데이터 보관",
+          "10 GB 저장 공간"
+        ],
+        "team": [
+          "시험당 최대 500명",
+          "월 2,000 AI Credits",
+          "무제한 문제집 저장",
+          "최대 10명의 관리자",
+          "50 GB 저장 공간"
+        ]
+      },
+      "freeTrial": "30일 무료",
+      "month": "월",
+      "openCheckoutFailed": "결제 페이지를 열 수 없습니다. 나중에 다시 시도해주세요.",
+      "processing": "처리 중...",
+      "startingTrial": "무료 체험 시작",
+      "subscribeNow": "지금 구독하기",
+      "title": "요금제 둘러보기"
+    },
+    "subscription": {
+      "desc": {
+        "free": "현재 무료 요금제를 사용 중입니다. 언제든지 업그레이드 가능합니다.",
+        "pro": "안정적인 시험 환경을 원하는 개인 사용자용",
+        "team": "학교, 학부, 교육 기관용"
+      },
+      "manage": "구독 관리",
+      "manageDesc": "결제 수단 변경, 구독 취소 또는 영수증 확인",
+      "openPortalFailed": "구독 관리 페이지를 열 수 없습니다",
+      "periodEndDate": "현재 기간 종료",
+      "status": {
+        "active": "활성",
+        "canceled": "취소됨",
+        "expired": "만료됨",
+        "past_due": "결제 연체",
+        "trialing": "체험 중"
+      },
+      "tier": {
+        "enterprise": "엔터프라이즈",
+        "free": "무료 요금제",
+        "pro": "개인 요금제",
+        "team": "팀 요금제"
+      },
+      "trialEndDate": "체험 종료일"
+    },
+    "tabs": {
+      "apiKey": "API Key",
+      "plans": "요금제",
+      "preferences": "환경설정",
+      "profile": "프로필",
+      "subscription": "구독 상태",
+      "usage": "사용량 통계"
+    },
+    "title": "설정"
+  },
+  "status": {
+    "active": "활성",
+    "archived": "보관됨",
+    "connected": "연결됨",
+    "disabled": "비활성화됨",
+    "disconnected": "연결 안 됨",
+    "draft": "초안",
+    "enabled": "활성화됨",
+    "failed": "실패",
+    "hidden": "숨김",
+    "inactive": "비활성",
+    "missing": "누락됨",
+    "notPassed": "통과하지 못함",
+    "pending": "대기 중",
+    "private": "비공개",
+    "public": "공개",
+    "published": "게시됨",
+    "solved": "해결됨",
+    "success": "성공"
+  },
+  "tab": {
+    "clarifications": "질문",
+    "description": "문제 설명",
+    "overview": "개요",
+    "problems": "문제",
+    "settings": "설정",
+    "solver": "풀이",
+    "standings": "순위",
+    "submissions": "제출 기록"
+  },
+  "table": {
+    "actions": "작업",
+    "private": "비공개 (비밀번호)",
+    "public": "공개",
+    "status": "상태",
+    "time": "시간",
+    "title": "제목",
+    "visibility": "공개 여부"
+  },
+  "theme": {
+    "dark": "다크",
+    "light": "라이트",
+    "switchToDark": "다크 모드로 전환",
+    "switchToLight": "라이트 모드로 전환",
+    "system": "시스템",
+    "title": "테마"
+  },
+  "toggle": {
+    "allow": "허용",
+    "forbid": "금지",
+    "hide": "숨기기",
+    "off": "끄기",
+    "on": "켜기",
+    "show": "표시"
+  },
+  "user": {
+    "changePassword": "비밀번호 변경",
+    "preferences": "환경설정",
+    "role": {
+      "admin": "관리자",
+      "adminTA": "관리자 (TA)",
+      "student": "학생",
+      "teacher": "교수"
     }
   }
 }

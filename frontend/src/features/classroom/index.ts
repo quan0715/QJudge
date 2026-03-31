@@ -1,1 +1,1 @@
-export { classroomRoutes } from "./routes";
+export { classroomDetailRoute, classroomJoinRoute } from "./routes";

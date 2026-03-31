@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -34,6 +34,8 @@ import {
   setPrecheckWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
 import {
+  getClassroomContestDashboardPath,
+  getClassroomContestSolvePath,
   getPostPrecheckPath,
   getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
@@ -59,6 +61,7 @@ import {
   requestUserMediaVideo,
   supportsUserMediaApi,
 } from "@/features/contest/anticheat/mediaApi";
+import { isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
 import styles from "./ExamPrecheck.module.scss";
 
 const COUNTDOWN_SECONDS = 3;
@@ -66,6 +69,7 @@ const COUNTDOWN_SECONDS = 3;
 const ExamPrecheckScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
+  const { classroomId } = useParams<{ classroomId?: string }>();
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
   const { config: anticheatConfig } = useContestAnticheatConfig(contestId);
@@ -98,13 +102,19 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const getPostPrecheckRoute = useCallback(() => {
     if (!contestId) return "";
-    return getPostPrecheckPath(contestId, contest);
-  }, [contest, contestId]);
+    return classroomId
+      ? getClassroomContestSolvePath(classroomId, contestId)
+      : getPostPrecheckPath(contestId, contest);
+  }, [classroomId, contest, contestId]);
 
   const handleBackToDashboard = useCallback(() => {
     if (!contestId) return;
-    navigate(getContestDashboardPath(contestId));
-  }, [contestId, navigate]);
+    navigate(
+      classroomId
+        ? getClassroomContestDashboardPath(classroomId, contestId)
+        : getContestDashboardPath(contestId),
+    );
+  }, [classroomId, contestId, navigate]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>(() => createEligibilityChecks(t));
@@ -178,8 +188,7 @@ const ExamPrecheckScreen: React.FC = () => {
     }
     try {
       const stream = await requestUserMediaVideo();
-      const track = stream.getVideoTracks?.()[0];
-      if (!track || track.readyState !== "live") {
+      if (!isStreamHealthy(stream)) {
         stream.getTracks().forEach((t) => t.stop());
         clearPrecheckWebcamHandoff(true);
         return {
@@ -264,7 +273,7 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const runEnvironmentChecks = useCallback(async () => {
     if (!monitoringPlan.allowed) {
-      const firstMissing = monitoringPlan.missingRequiredSources[0];
+      const firstMissing = monitoringPlan.missingEnabledSources[0];
       const detail =
         firstMissing === "screen_share"
           ? t("precheck.environment.errors.browserNotSupported")
@@ -303,7 +312,7 @@ const ExamPrecheckScreen: React.FC = () => {
     capability.isPwaMode,
     envTestRunning,
     monitoringPlan.allowed,
-    monitoringPlan.missingRequiredSources,
+    monitoringPlan.missingEnabledSources,
     monitoringPlan.precheck.enableWebcam,
     monitoringPlan.precheck.requirePwaMode,
     monitoringPlan.precheck.requireScreenShare,
@@ -319,7 +328,7 @@ const ExamPrecheckScreen: React.FC = () => {
   const handleStart = useCallback(async () => {
     setStartGuardError(null);
     if (!monitoringPlan.allowed) {
-      const firstMissing = monitoringPlan.missingRequiredSources[0];
+      const firstMissing = monitoringPlan.missingEnabledSources[0];
       const detail =
         firstMissing === "screen_share"
           ? t("precheck.environment.errors.browserNotSupported")
@@ -352,7 +361,7 @@ const ExamPrecheckScreen: React.FC = () => {
   }, [
     capability.isPwaMode,
     monitoringPlan.allowed,
-    monitoringPlan.missingRequiredSources,
+    monitoringPlan.missingEnabledSources,
     monitoringPlan.precheck.requireScreenShare,
     monitoringPlan.precheck.requireWebcam,
     monitoringPlan.precheck.requirePwaMode,
@@ -467,37 +476,6 @@ const ExamPrecheckScreen: React.FC = () => {
         <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1.5rem" }}>
           {t("precheck.description")}
         </p>
-        <Tile style={{ marginBottom: "1.5rem" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
-                {t("precheck.entryDevice.title", "進場裝置")}
-              </div>
-              <div style={{ color: "var(--cds-text-secondary)" }}>
-                {t(
-                  "precheck.entryDevice.summary",
-                  "本次將以 {{device}} 進入考試（{{mode}}）。",
-                  { device: entryDeviceLabel, mode: entryModeLabel }
-                )}
-              </div>
-            </div>
-            <Tag type="blue">{entryDeviceLabel}</Tag>
-          </div>
-          <div style={{ color: "var(--cds-text-secondary)", marginTop: "0.5rem" }}>
-            {t("precheck.entryDevice.sources", "監考來源：{{sources}}", {
-              sources: entrySourceLabel,
-            })}
-          </div>
-        </Tile>
-
         <ProgressIndicator currentIndex={currentStep} spaceEqually style={{ marginBottom: "2rem" }}>
           <ProgressStep label={t("precheck.steps.eligibility")} />
           <ProgressStep label={t("precheck.steps.environment")} />
@@ -534,6 +512,22 @@ const ExamPrecheckScreen: React.FC = () => {
                   <CursorIcon size={20} /> {t("precheck.eligibility.title")}
                 </h4>
                 {renderCheckList(checks)}
+                <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--cds-border-subtle)" }}>
+                  <div style={{ fontWeight: 600, marginBottom: "0.75rem" }}>
+                    {t("precheck.entryDevice.title", "進場資訊")}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Tag type="blue" size="sm">
+                      {entryDeviceLabel}
+                    </Tag>
+                    <Tag type="cyan" size="sm">
+                      {entryModeLabel}
+                    </Tag>
+                    <Tag type="purple" size="sm">
+                      {t("precheck.entryDevice.monitoring")}: {entrySourceLabel}
+                    </Tag>
+                  </div>
+                </div>
               </Tile>
               <div className={styles.navRowEnd}>
                 <Button
@@ -559,12 +553,12 @@ const ExamPrecheckScreen: React.FC = () => {
                   {t("precheck.environment.deviceUnsupported.title", "不支援此裝置")}
                 </h4>
                 <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1rem", lineHeight: 1.6 }}>
-                  {monitoringPlan.missingRequiredSources.length > 0
+                  {monitoringPlan.missingEnabledSources.length > 0
                     ? t(
                         "precheck.environment.deviceUnsupported.missingCapabilities",
                         "本考試需要 {{sources}}，但此裝置或瀏覽器不支援。請換用支援的裝置或瀏覽器後重試。",
                         {
-                          sources: monitoringPlan.missingRequiredSources
+                          sources: monitoringPlan.missingEnabledSources
                             .map((s) =>
                               s === "screen_share"
                                 ? t("precheck.entryDevice.source.screenShare", "螢幕畫面")
@@ -671,20 +665,26 @@ const ExamPrecheckScreen: React.FC = () => {
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>{t("precheck.instruction.title")}</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
-                  <li>{t("precheck.instruction.noSwitch")}</li>
-                  <li>
-                    {skipFullscreenCheck
-                      ? t(
-                          "precheck.instruction.keepPwaMode",
-                          "iPad 請全程使用主畫面啟動的 PWA 視窗作答。"
-                        )
-                      : t("precheck.instruction.keepFullscreen")}
-                  </li>
-                  <li>{t("precheck.instruction.autoSave")}</li>
-                  <li>{t("precheck.instruction.autoSubmit")}</li>
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.noSwitch") }} />
+                  <li
+                    dangerouslySetInnerHTML={{
+                      __html: skipFullscreenCheck
+                        ? t("precheck.instruction.keepPwaMode")
+                        : t("precheck.instruction.keepFullscreen"),
+                    }}
+                  />
+                  {(monitoringPlan.precheck.requireScreenShare ||
+                    monitoringPlan.precheck.requireWebcam) && (
+                    <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.monitoringActive") }} />
+                  )}
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.blockedActions") }} />
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSave") }} />
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSubmit") }} />
                   {contest?.endTime && (
                     <li>
-                      {t("precheck.instruction.deadline", { time: new Date(contest.endTime).toLocaleString() })}
+                      {t("precheck.instruction.deadline", {
+                        time: new Date(contest.endTime).toLocaleString(),
+                      })}
                     </li>
                   )}
                 </ul>

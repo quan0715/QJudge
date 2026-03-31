@@ -3,6 +3,9 @@ Authentication services for different auth providers.
 """
 import logging
 import secrets
+import json
+import base64
+import hashlib
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -10,12 +13,67 @@ from urllib.parse import urlencode
 import requests
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
+from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)
+
+
+TEACHER_ACTIVATION_TTL = timedelta(days=7)
+
+def _extract_avatar_url(raw: dict) -> str:
+    """Extract avatar URL from common provider payload variants."""
+    candidates = [
+        raw.get("avatar_url"),
+        raw.get("avatarUrl"),
+        raw.get("picture"),
+        raw.get("photo"),
+        raw.get("photo_url"),
+        raw.get("photoUrl"),
+        raw.get("image_url"),
+        raw.get("imageUrl"),
+    ]
+
+    image_obj = raw.get("image")
+    if isinstance(image_obj, dict):
+        candidates.extend(
+            [
+                image_obj.get("url"),
+                image_obj.get("href"),
+            ]
+        )
+
+    picture_obj = raw.get("picture")
+    if isinstance(picture_obj, dict):
+        candidates.extend(
+            [
+                picture_obj.get("url"),
+                picture_obj.get("href"),
+            ]
+        )
+
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+    return ""
+
+
+def _decode_jwt_payload_without_verify(token: str) -> dict:
+    """Decode JWT payload without signature verification (for profile hints only)."""
+    try:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return {}
+        payload_part = parts[1]
+        padding = "=" * (-len(payload_part) % 4)
+        decoded = base64.urlsafe_b64decode(payload_part + padding)
+        parsed = json.loads(decoded.decode("utf-8"))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
 
 
 class JWTService:
@@ -39,20 +97,16 @@ class JWTService:
     @staticmethod
     def get_user_response_data(user, tokens):
         """Format user data with tokens for API response."""
+        from .serializers import UserSerializer
+        user = User.objects.select_related("profile").get(pk=user.pk)
+
         return {
             'success': True,
             'data': {
                 'access_token': tokens['access'],
                 'refresh_token': tokens['refresh'],
                 'expires_in': tokens['expires_in'],
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'role': user.role,
-                    'auth_provider': user.auth_provider,
-                    'email_verified': user.email_verified,
-                }
+                'user': UserSerializer(user).data,
             }
         }
 
@@ -149,6 +203,44 @@ class EmailAuthService:
         except User.DoesNotExist:
             return None
 
+    @staticmethod
+    def generate_teacher_activation_token():
+        """Generate a one-time token for teacher activation."""
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hash_teacher_activation_token(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def build_teacher_activation_url(token: str) -> str:
+        return f"{settings.FRONTEND_URL}/teacher-activation?token={token}"
+
+    @staticmethod
+    def get_teacher_activation_invite_by_token(token: str):
+        token = (token or "").strip()
+        if not token:
+            return None
+        digest = EmailAuthService.hash_teacher_activation_token(token)
+        return TeacherActivationInvite.objects.select_related(
+            "created_by",
+            "target_user",
+            "consumed_by",
+        ).filter(token_digest=digest).first()
+
+    @staticmethod
+    def issue_teacher_activation_invite(created_by: User):
+        token = EmailAuthService.generate_teacher_activation_token()
+        invite = TeacherActivationInvite.objects.create(
+            email="",
+            token_digest=EmailAuthService.hash_teacher_activation_token(token),
+            created_by=created_by,
+            target_user=None,
+            expires_at=timezone.now() + TEACHER_ACTIVATION_TTL,
+        )
+        activation_url = EmailAuthService.build_teacher_activation_url(token)
+        return invite, activation_url
+
 
 # ---------------------------------------------------------------------------
 # OAuth provider registry & base class
@@ -206,6 +298,32 @@ class BaseOAuthService(ABC):
         email = user_info.get('email')
         username = user_info.get('username') or ''
         oauth_id = user_info.get('oauth_id') or ''
+        oauth_avatar_url = user_info.get('avatar_url') or ''
+        if not oauth_avatar_url and cls.provider_name == 'github' and oauth_id:
+            oauth_avatar_url = f"https://avatars.githubusercontent.com/u/{oauth_id}"
+        logger.info(
+            "oauth profile sync provider=%s has_avatar=%s avatar_source_candidate=%s",
+            cls.provider_name,
+            bool(oauth_avatar_url),
+            user_info.get('avatar_source') or '',
+        )
+
+        def _sync_oauth_avatar(target_user: User) -> None:
+            if not oauth_avatar_url:
+                logger.info("oauth avatar skip provider=%s reason=no_avatar", cls.provider_name)
+                return
+            from .models import UserProfile
+
+            profile, _ = UserProfile.objects.get_or_create(user=target_user)
+            # Do not override user-managed avatar.
+            if profile.avatar_source == 'manual' and profile.avatar_url:
+                logger.info("oauth avatar skip provider=%s reason=manual_locked", cls.provider_name)
+                return
+            profile.avatar_url = oauth_avatar_url
+            profile.avatar_source = 'oauth'
+            profile.save(update_fields=['avatar_url', 'avatar_source', 'updated_at'])
+            cache.delete(f"user_preferences:v1:{target_user.id}")
+            logger.info("oauth avatar synced provider=%s user_id=%s", cls.provider_name, target_user.id)
 
         if email:
             try:
@@ -216,6 +334,7 @@ class BaseOAuthService(ABC):
                     user.oauth_id = oauth_id
                 user.email_verified = True
                 user.save()
+                _sync_oauth_avatar(user)
                 return user
             except User.DoesNotExist:
                 pass
@@ -237,6 +356,7 @@ class BaseOAuthService(ABC):
             email_verified=True,
             is_active=True,
         )
+        _sync_oauth_avatar(user)
         return user
 
     # ---- internal helpers ----
@@ -283,7 +403,7 @@ class BaseOAuthService(ABC):
     @classmethod
     @abstractmethod
     def _parse_user_info(cls, raw: dict) -> dict:
-        """Return ``{'username': str, 'email': str, 'oauth_id': str}``."""
+        """Return ``{'username': str, 'email': str, 'oauth_id': str, 'avatar_url': str}``."""
         ...
 
 
@@ -306,6 +426,7 @@ class NYCUOAuthService(BaseOAuthService):
             'username': raw.get('username'),
             'email': raw.get('email'),
             'oauth_id': raw.get('sub') or raw.get('id'),
+            'avatar_url': _extract_avatar_url(raw),
         }
 
 
@@ -324,6 +445,7 @@ class GitHubOAuthService(BaseOAuthService):
             'username': raw.get('login'),
             'email': raw.get('email'),
             'oauth_id': str(raw.get('id', '')),
+            'avatar_url': _extract_avatar_url(raw),
         }
 
     @classmethod
@@ -368,12 +490,124 @@ class GoogleOAuthService(BaseOAuthService):
     default_scope = 'openid email profile'
 
     @classmethod
+    def exchange_code(cls, code: str, redirect_uri: str) -> dict:
+        """Exchange code and merge profile hints from id_token when userinfo is incomplete."""
+        try:
+            resp = requests.post(
+                getattr(settings, cls.token_url_setting),
+                data={
+                    'grant_type': 'authorization_code',
+                    'code': code,
+                    'redirect_uri': redirect_uri,
+                    'client_id': getattr(settings, cls.client_id_setting),
+                    'client_secret': getattr(settings, cls.client_secret_setting),
+                },
+                headers={'Accept': 'application/json'},
+                timeout=(5, 15),
+            )
+        except requests.RequestException as exc:
+            raise Exception('Failed to connect to OAuth token endpoint') from exc
+
+        if resp.status_code != 200:
+            raise Exception('Failed to exchange authorization code')
+
+        token_data = resp.json()
+        access_token = token_data.get('access_token')
+        if not access_token:
+            raise Exception('Failed to exchange authorization code')
+
+        user_info = cls._fetch_user_info(access_token)
+        id_token_claims = _decode_jwt_payload_without_verify(str(token_data.get("id_token", "")))
+        logger.warning(
+            "google oauth token received has_id_token=%s userinfo_keys=%s id_token_claim_keys=%s",
+            bool(token_data.get("id_token")),
+            sorted(list(user_info.keys())),
+            sorted(list(id_token_claims.keys())),
+        )
+
+        if not user_info.get("email"):
+            user_info["email"] = id_token_claims.get("email")
+        if not user_info.get("oauth_id"):
+            user_info["oauth_id"] = id_token_claims.get("sub")
+        if not user_info.get("username"):
+            user_info["username"] = id_token_claims.get("name") or (user_info.get("email") or "").split("@")[0]
+        if not user_info.get("avatar_url"):
+            user_info["avatar_url"] = id_token_claims.get("picture") or ""
+
+        id_token = str(token_data.get("id_token", ""))
+
+        if not user_info.get("avatar_url") and id_token:
+            # Some Google projects expose picture more reliably through tokeninfo.
+            try:
+                tokeninfo_resp = requests.get(
+                    "https://oauth2.googleapis.com/tokeninfo",
+                    params={"id_token": id_token},
+                    timeout=(5, 15),
+                )
+                if tokeninfo_resp.status_code == 200:
+                    tokeninfo_raw = tokeninfo_resp.json()
+                    user_info["avatar_url"] = _extract_avatar_url(tokeninfo_raw) or user_info.get("avatar_url", "")
+                    if not user_info.get("email"):
+                        user_info["email"] = tokeninfo_raw.get("email")
+                    if not user_info.get("username"):
+                        user_info["username"] = tokeninfo_raw.get("name") or (user_info.get("email") or "").split("@")[0]
+                    if not user_info.get("oauth_id"):
+                        user_info["oauth_id"] = tokeninfo_raw.get("sub")
+                logger.warning(
+                    "google oauth tokeninfo status=%s has_avatar=%s keys=%s",
+                    tokeninfo_resp.status_code,
+                    bool(user_info.get("avatar_url")),
+                    sorted(list((tokeninfo_resp.json() if tokeninfo_resp.status_code == 200 else {}).keys())),
+                )
+            except requests.RequestException:
+                logger.warning("google oauth tokeninfo fetch failed")
+
+        if not user_info.get("avatar_url"):
+            # Fallback for accounts where configured userinfo endpoint omits picture.
+            try:
+                alt_resp = requests.get(
+                    "https://openidconnect.googleapis.com/v1/userinfo",
+                    headers={'Authorization': f"Bearer {access_token}"},
+                    timeout=(5, 15),
+                )
+                if alt_resp.status_code == 200:
+                    alt_raw = alt_resp.json()
+                    user_info["avatar_url"] = _extract_avatar_url(alt_raw) or user_info.get("avatar_url", "")
+                    if not user_info.get("email"):
+                        user_info["email"] = alt_raw.get("email")
+                    if not user_info.get("username"):
+                        user_info["username"] = alt_raw.get("name") or (user_info.get("email") or "").split("@")[0]
+                    if not user_info.get("oauth_id"):
+                        user_info["oauth_id"] = alt_raw.get("sub")
+                logger.warning(
+                    "google oauth alt_userinfo status=%s has_avatar=%s keys=%s",
+                    alt_resp.status_code,
+                    bool(user_info.get("avatar_url")),
+                    sorted(list((alt_resp.json() if alt_resp.status_code == 200 else {}).keys())),
+                )
+            except requests.RequestException:
+                logger.warning("google oauth alt_userinfo fetch failed")
+
+        logger.warning(
+            "google oauth final profile has_avatar=%s has_email=%s has_sub=%s",
+            bool(user_info.get("avatar_url")),
+            bool(user_info.get("email")),
+            bool(user_info.get("oauth_id")),
+        )
+
+        return {
+            'access_token': access_token,
+            'user_info': user_info,
+        }
+
+    @classmethod
     def _parse_user_info(cls, raw: dict) -> dict:
         name = raw.get('name') or raw.get('email', '').split('@')[0]
         return {
             'username': name,
             'email': raw.get('email'),
             'oauth_id': raw.get('sub'),
+            'avatar_url': _extract_avatar_url(raw),
         }
 
 

@@ -75,7 +75,6 @@ def normalize_anticheat_device_policy(raw_policy) -> dict:
                 raw_source = {}
             sources[source] = {
                 "enabled": _as_bool(raw_source.get("enabled"), default_source["enabled"]),
-                "required": _as_bool(raw_source.get("required"), default_source["required"]),
                 "capture_interval_seconds": _as_int(
                     raw_source.get("capture_interval_seconds"),
                     default_source["capture_interval_seconds"],
@@ -144,6 +143,10 @@ def build_contest_anticheat_config(contest) -> dict:
         "auto_unlock_minutes": int(contest.auto_unlock_minutes or 0),
         "contest_type": str(contest.contest_type or "coding"),
         "warning_timeout_seconds": max(1, int(contest.warning_timeout_seconds or 20)),
+        "screen_share_recovery_grace_ms": max(
+            1,
+            int(getattr(contest, "screen_share_recovery_grace_ms", 0) or SCREEN_SHARE_RECOVERY_GRACE_MS),
+        ),
         "anticheat_device_policy": device_policy,
     }
 
@@ -242,6 +245,10 @@ def build_contest_anticheat_config(contest) -> dict:
             {
                 "key": "warning_timeout_seconds",
                 "description": "Seconds before warning modal close action becomes available",
+            },
+            {
+                "key": "screen_share_recovery_grace_ms",
+                "description": "Screen-share reauth grace before force submit",
             },
             {
                 "key": "anticheat_device_policy",

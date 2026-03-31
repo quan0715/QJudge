@@ -1,14 +1,10 @@
 import { Button } from "@carbon/react";
 import {
-  Boolean as BooleanIcon,
-  Checkbox as CheckboxIcon,
   ChevronLeft,
   ChevronRight,
-  Document,
-  Pen,
-  RadioButton as RadioButtonIcon,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import type { QuestionProgress } from "./gradingTypes";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
@@ -21,14 +17,6 @@ interface QuestionSidebarScreenProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
-
-const QUESTION_TYPE_ICON = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: BooleanIcon,
-  short_answer: Pen,
-  essay: Document,
-} as const;
 
 const getProgressRingColor = (progressPercent: number) => {
   if (progressPercent >= 100) return "var(--cds-support-success)";
@@ -109,7 +97,7 @@ export default function QuestionSidebarScreen({
         {orderedQuestions.map((q) => {
           const isActive = q.questionId === selectedQuestionId;
           const statusClass = getStatusClass(q);
-          const TypeIcon = QUESTION_TYPE_ICON[q.questionType];
+          const TypeIcon = EXAM_QUESTION_TYPE_ICON[q.questionType];
           return (
             <div
               key={q.questionId}

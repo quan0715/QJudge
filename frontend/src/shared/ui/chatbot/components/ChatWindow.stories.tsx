@@ -1,6 +1,6 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { ChatWindow, type ChatWindowProps } from "./ChatWindow";
-import { WelcomeScreen } from "./WelcomeScreen";
+import type { Meta, StoryObj } from "@storybook/react";
+import { ChatWindow } from "./ChatWindow";
+import { WelcomeScreen as WelcomeScreenComponent } from "./WelcomeScreen";
 
 /**
  * ChatWindow Storybook Stories
@@ -11,20 +11,26 @@ import { WelcomeScreen } from "./WelcomeScreen";
  * 因此展示基本組件狀態而不直接包裝 ChatWindow
  */
 
-const storyModule: StoryModule<ChatWindowProps> = {
-  meta: {
+const meta: Meta<typeof ChatWindow> = {
     title: "shared/ui/chatbot/ChatWindow",
     component: ChatWindow,
-    category: "features",
-    description:
-      "聊天窗口組件 - 展示訊息列表、會話切換、歡迎屏幕等功能。" +
-      "注：完整功能需要與 useChatbot hook 整合，此處展示 UI 結構。",
+    
+  
+  parameters: {
+    docs: { description: { component: '聊天窗口組件 - 展示訊息列表、會話切換、歡迎屏幕等功能。" +\n      "注：完整功能需要與 useChatbot hook 整合，此處展示 UI 結構。' } },
   },
-  stories: [
-    {
-      name: "Welcome Screen",
-      description: "初始狀態 - 歡迎屏幕（無訊息時顯示）",
-      render: () => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const WelcomeScreen: Story = {
+  parameters: {
+    docs: {
+      description: { story: '初始狀態 - 歡迎屏幕（無訊息時顯示）' },
+    },
+  },
+  render: () => (
         <div
           style={{
             width: "420px",
@@ -46,7 +52,7 @@ const storyModule: StoryModule<ChatWindowProps> = {
               justifyContent: "center",
             }}
           >
-            <WelcomeScreen
+            <WelcomeScreenComponent
               title="我能為您做什麼？"
               subtitle="我是 Qgent TA，可以幫助您解決程式問題、優化代碼和學習演算法。"
               suggestedPrompts={[]}
@@ -54,11 +60,16 @@ const storyModule: StoryModule<ChatWindowProps> = {
           </div>
         </div>
       ),
+
+};
+
+export const ComponentHierarchy: Story = {
+  parameters: {
+    docs: {
+      description: { story: 'ChatWindow 組件結構說明' },
     },
-    {
-      name: "Component Hierarchy",
-      description: "ChatWindow 組件結構說明",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             padding: "2rem",
@@ -113,11 +124,15 @@ const storyModule: StoryModule<ChatWindowProps> = {
           </ul>
         </div>
       ),
+};
+
+export const SessionManagementInfo: Story = {
+  parameters: {
+    docs: {
+      description: { story: '會話管理說明' },
     },
-    {
-      name: "Session Management Info",
-      description: "會話管理說明",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             padding: "2rem",
@@ -154,8 +169,4 @@ const storyModule: StoryModule<ChatWindowProps> = {
           </div>
         </div>
       ),
-    },
-  ],
 };
-
-export default storyModule;

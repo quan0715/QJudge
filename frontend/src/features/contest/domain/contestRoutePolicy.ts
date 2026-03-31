@@ -20,8 +20,18 @@ const trimTrailingSlash = (path: string): string =>
 export const getContestDashboardPath = (contestId: string): string =>
   `/contests/${contestId}`;
 
+export const getClassroomContestDashboardPath = (
+  classroomId: string,
+  contestId: string,
+): string => `/classrooms/${classroomId}/contest/${contestId}`;
+
 export const getContestPrecheckPath = (contestId: string): string =>
   `/contests/${contestId}/exam-precheck`;
+
+export const getClassroomContestPrecheckPath = (
+  classroomId: string,
+  contestId: string,
+): string => `/classrooms/${classroomId}/contest/${contestId}/exam-precheck`;
 
 export const getContestSolveRootPath = (
   contestId: string,
@@ -34,6 +44,16 @@ export const getContestSolveRootPath = (
 
 export const getContestSolvePath = (contestId: string, problemId: string): string =>
   `/contests/${contestId}/solve/${problemId}`;
+
+export const getClassroomContestSolvePath = (
+  classroomId: string,
+  contestId: string,
+  problemId?: string,
+): string => {
+  const base = `/classrooms/${classroomId}/contest/${contestId}/solve`;
+  if (!problemId) return base;
+  return `${base}/${problemId}`;
+};
 
 export const getFirstContestProblemId = (contest: ContestRouteTarget): string | undefined => {
   if (!contest?.problems?.length) return undefined;

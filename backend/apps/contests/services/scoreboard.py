@@ -3,10 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
-from django.db.models import Sum
-
-from apps.contests.models import Contest, ContestParticipant, ContestProblem, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.permissions import get_user_role_in_contest
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
 from apps.users.serializers import UserSerializer
@@ -39,25 +38,32 @@ class ScoreboardService:
         use_export_display = user_scope.mode == "export"
         status_default: Optional[str] = "-" if user_scope.mode == "export" else None
 
-        contest_problems = (
-            ContestProblem.objects.filter(contest=contest)
-            .select_related("problem")
+        bindings = (
+            ContestQuestionBinding.objects.filter(
+                contest=contest,
+                binding_type=QuestionAsset.AssetType.CODING,
+            )
+            .select_related("coding_problem", "question_asset")
             .order_by("order")
-            .annotate(problem_score_sum=Sum("problem__test_cases__score"))
         )
         max_score_by_problem = {
-            cp.problem_id: cp.problem_score_sum or 0 for cp in contest_problems
+            str(b.coding_problem_id): b.score or 0
+            for b in bindings
+            if b.coding_problem_id
         }
 
         problems_data = [
             {
-                "id": cp.problem_id,
-                "title": cp.problem.title if show_problem_details else None,
-                "order": cp.order,
-                "label": cp.label,
-                "score": max_score_by_problem.get(cp.problem_id, 0),
+                "id": str(b.coding_problem_id) if b.coding_problem_id else str(b.question_asset_id),
+                "title": (
+                    b.coding_problem.title if show_problem_details and b.coding_problem else
+                    b.question_asset.title if show_problem_details and b.question_asset else None
+                ),
+                "order": b.order,
+                "label": b.label,
+                "score": b.score or 0,
             }
-            for cp in contest_problems
+            for b in bindings
         ]
 
         participants = ContestParticipant.objects.filter(contest=contest).select_related("user")
@@ -95,19 +101,20 @@ class ScoreboardService:
                 "problems": {},
             }
 
-            for cp in contest_problems:
-                stats[participant.user.id]["problems"][cp.problem_id] = {
+            for b in bindings:
+                problem_key = str(b.coding_problem_id) if b.coding_problem_id else str(b.question_asset_id)
+                stats[participant.user.id]["problems"][problem_key] = {
                     "status": status_default,
                     "tries": 0,
                     "time": 0,
                     "pending": False,
                     "score": 0,
-                    "max_score": max_score_by_problem.get(cp.problem_id, 0),
+                    "max_score": max_score_by_problem.get(problem_key, 0),
                 }
 
         for submission in submissions:
             user_id = submission.user.id
-            problem_id = submission.problem.id
+            problem_id = str(submission.problem_id)
 
             if user_id not in stats:
                 continue

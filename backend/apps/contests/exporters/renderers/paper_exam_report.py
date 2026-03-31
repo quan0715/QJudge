@@ -22,10 +22,11 @@ class PaperExamReportRenderer(BaseRenderer):
 
     OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    def __init__(self, contest, user, language='zh-TW', scale=1.0):
+    def __init__(self, contest, user, language='zh-TW', scale=1.0, include_grading=True):
         super().__init__(contest, language)
         self.user = user
         self.scale = max(0.5, min(2.0, scale))
+        self.include_grading = include_grading
         self._questions_cache = None
         self._answers_cache = None
         self._participant_cache = None
@@ -64,7 +65,7 @@ class PaperExamReportRenderer(BaseRenderer):
             },
             'base_css': self._get_base_css(),
             'report_css': self._get_report_css(),
-            'score_line': self._render_score_line(questions, answers_map),
+            'score_line': self._render_score_line(questions, answers_map) if self.include_grading else '',
             'overview_table': self._render_overview_table(questions, answers_map),
             'question_details': self._render_questions(questions, answers_map),
         }
@@ -180,38 +181,52 @@ class PaperExamReportRenderer(BaseRenderer):
             ans = answers_map.get(q.id)
             has_answer = ans and self._has_answer(ans)
             is_graded = ans and ans.score is not None
-            status = self._get_question_status(q, ans, has_answer, is_graded)
 
             type_label = self.get_label(q.question_type, q.question_type)
 
-            if is_graded:
-                score_val = float(ans.score)
-                score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
-                score_display = f'{score_str} / {q.score}'
+            if self.include_grading:
+                status = self._get_question_status(q, ans, has_answer, is_graded)
+                if is_graded:
+                    score_val = float(ans.score)
+                    score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
+                    score_display = f'{score_str} / {q.score}'
+                else:
+                    score_display = f'- / {q.score}'
+                status_cell = (
+                    f'<td class="overview-cell overview-cell-status">'
+                    f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
+                    f'<td class="overview-cell overview-cell-score" style="color:{status["color"]}">'
+                    f'{score_display}</td>'
+                )
             else:
-                score_display = f'- / {q.score}'
+                answered_icon = '✔' if has_answer else '—'
+                answered_label = self.get_label('answered') if has_answer else self.get_label('unanswered')
+                status_cell = (
+                    f'<td class="overview-cell overview-cell-status">'
+                    f'<span class="status-text">{answered_icon} {answered_label}</span></td>'
+                )
 
-            # Overview uses icon-only for compact scanning
             rows.append(
                 f'<tr class="overview-row">'
                 f'<td class="overview-cell overview-cell-q">Q{idx}</td>'
                 f'<td class="overview-cell overview-cell-type">{type_label}</td>'
-                f'<td class="overview-cell overview-cell-status">'
-                f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
-                f'<td class="overview-cell overview-cell-score" style="color:{status["color"]}">'
-                f'{score_display}</td>'
+                f'{status_cell}'
                 f'</tr>'
             )
+
+        # Build header columns
+        header_cols = (
+            f'<th class="overview-th">{col_q}</th>'
+            f'<th class="overview-th">{col_type}</th>'
+            f'<th class="overview-th">{col_status}</th>'
+        )
+        if self.include_grading:
+            header_cols += f'<th class="overview-th overview-th-score">{col_score}</th>'
 
         return (
             f'<div class="section-title">{table_title}</div>'
             f'<table class="overview-table">'
-            f'<thead><tr>'
-            f'<th class="overview-th">{col_q}</th>'
-            f'<th class="overview-th">{col_type}</th>'
-            f'<th class="overview-th">{col_status}</th>'
-            f'<th class="overview-th overview-th-score">{col_score}</th>'
-            f'</tr></thead>'
+            f'<thead><tr>{header_cols}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody>'
             f'</table>'
         )
@@ -238,21 +253,8 @@ class PaperExamReportRenderer(BaseRenderer):
         has_answer = answer and self._has_answer(answer)
         is_graded = answer and answer.score is not None
 
-        status = self._get_question_status(question, answer, has_answer, is_graded)
-
-        # Score display
-        if is_graded:
-            score_val = float(answer.score)
-            score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
-            score_display = f'{score_str} / {question.score}'
-            score_color = status['color']
-        else:
-            score_display = f'- / {question.score}'
-            score_color = '#8d8d8d'
-
         lines = ['<div class="question-block">']
 
-        # Single-line heading: Q1 單選題（3分）       ✔ 正確  3/3
         points_label = self.get_label('points_unit')
         lines.append('<div class="question-heading">')
         lines.append(
@@ -262,13 +264,25 @@ class PaperExamReportRenderer(BaseRenderer):
             f'<span class="question-max-score">（{question.score}{points_label}）</span>'
             f'</span>'
         )
-        lines.append(
-            f'<span class="question-heading-right">'
-            f'<span class="status-text {status["status_class"]}">{status["icon"]} {status["label"]}</span>'
-            f'&nbsp;&nbsp;'
-            f'<span class="question-earned" style="color:{score_color}">{score_display}</span>'
-            f'</span>'
-        )
+
+        if self.include_grading:
+            status = self._get_question_status(question, answer, has_answer, is_graded)
+            if is_graded:
+                score_val = float(answer.score)
+                score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
+                score_display = f'{score_str} / {question.score}'
+                score_color = status['color']
+            else:
+                score_display = f'- / {question.score}'
+                score_color = '#8d8d8d'
+            lines.append(
+                f'<span class="question-heading-right">'
+                f'<span class="status-text {status["status_class"]}">{status["icon"]} {status["label"]}</span>'
+                f'&nbsp;&nbsp;'
+                f'<span class="question-earned" style="color:{score_color}">{score_display}</span>'
+                f'</span>'
+            )
+
         lines.append('</div>')
 
         # Prompt
@@ -280,8 +294,8 @@ class PaperExamReportRenderer(BaseRenderer):
         else:
             lines.append(self._render_subjective_question(question, answer))
 
-        # TA feedback
-        if answer and answer.feedback:
+        # TA feedback — only when grading is included
+        if self.include_grading and answer and answer.feedback:
             feedback_label = self.get_label('ta_feedback')
             lines.append(
                 f'<div class="feedback-block">'
@@ -337,7 +351,6 @@ class PaperExamReportRenderer(BaseRenderer):
     def _render_choice_question(self, question, answer):
         """Render choice options + answer summary line."""
         options = question.options or []
-        correct_answer = question.correct_answer
 
         # Normalize student selection to set of int indices
         student_indices = set()
@@ -349,13 +362,15 @@ class PaperExamReportRenderer(BaseRenderer):
                 else:
                     student_indices = {sel}
 
-        # Normalize correct answer to set of int indices
+        # Correct answers — only used when grading is included
         correct_indices = set()
-        if correct_answer is not None:
-            if isinstance(correct_answer, list):
-                correct_indices = set(correct_answer)
-            else:
-                correct_indices = {correct_answer}
+        if self.include_grading:
+            correct_answer = question.correct_answer
+            if correct_answer is not None:
+                if isinstance(correct_answer, list):
+                    correct_indices = set(correct_answer)
+                else:
+                    correct_indices = {correct_answer}
 
         has_ans = bool(student_indices)
 
@@ -369,21 +384,23 @@ class PaperExamReportRenderer(BaseRenderer):
             is_correct = i in correct_indices
 
             css_classes = ['option-row']
-            if is_selected and is_correct:
-                css_classes.append('option-correct-selected')
-            elif is_selected and not is_correct:
-                css_classes.append('option-wrong-selected')
-            elif is_correct:
-                css_classes.append('option-correct')
+            if self.include_grading:
+                if is_selected and is_correct:
+                    css_classes.append('option-correct-selected')
+                elif is_selected and not is_correct:
+                    css_classes.append('option-wrong-selected')
+                elif is_correct:
+                    css_classes.append('option-correct')
+            elif is_selected:
+                css_classes.append('option-selected')
 
             cls_str = ' '.join(css_classes)
 
-            # Right-aligned markers — plain text
             markers = []
             if is_selected:
                 sel_label = self.get_label('your_choice')
                 markers.append(f'<span class="option-marker-text marker-selected">{sel_label}</span>')
-            if is_correct:
+            if self.include_grading and is_correct:
                 cor_label = self.get_label('correct')
                 markers.append(f'<span class="option-marker-text marker-correct">{cor_label}</span>')
 
@@ -399,16 +416,19 @@ class PaperExamReportRenderer(BaseRenderer):
 
         lines.append('</div>')
 
-        # Convert indices to letters for summary display
         student_letters = {self._index_to_letter(idx) for idx in student_indices}
-        correct_letters = {self._index_to_letter(idx) for idx in correct_indices}
 
-        # Answer summary line: "你的答案: B · 正確答案: D"
-        # (unanswered already shown in heading, no need to repeat)
-        if has_ans or correct_letters:
-            lines.append(self._render_choice_answer_summary(
-                student_letters, correct_letters, student_indices == correct_indices and has_ans
-            ))
+        if self.include_grading:
+            correct_letters = {self._index_to_letter(idx) for idx in correct_indices}
+            if has_ans or correct_letters:
+                lines.append(self._render_choice_answer_summary(
+                    student_letters, correct_letters, student_indices == correct_indices and has_ans
+                ))
+        elif has_ans:
+            # Answer-only mode: just show what the student picked
+            your_label = self.get_label('your_answer')
+            student_str = ', '.join(sorted(student_letters))
+            lines.append(f'<div class="choice-answer-summary">{your_label}: <strong>{student_str}</strong></div>')
 
         return '\n'.join(lines)
 
@@ -443,8 +463,6 @@ class PaperExamReportRenderer(BaseRenderer):
         if answer and answer.answer:
             student_text = answer.answer.get('text', '')
 
-        # Only show student answer block if they answered
-        # (unanswered already shown in heading, no need to repeat)
         if student_text:
             ans_label = self.get_label('your_answer')
             lines.append(
@@ -454,7 +472,8 @@ class PaperExamReportRenderer(BaseRenderer):
                 f'</div>'
             )
 
-        if question.correct_answer:
+        # Reference answer — only when grading is included
+        if self.include_grading and question.correct_answer:
             ref_label = self.get_label('reference_answer')
             ref_text = question.correct_answer
             ref_html = render_markdown(ref_text) if isinstance(ref_text, str) else str(ref_text)

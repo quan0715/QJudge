@@ -7,11 +7,13 @@ import {
   updateUserPreferences,
   changePassword as changePasswordApi,
   updateCurrentUserProfile,
+  uploadUserAvatar as uploadUserAvatarApi,
   requestPasswordReset as requestPasswordResetApi,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type {
   ThemePreference,
   UserPreferences,
+  UserProfile,
   ChangePasswordRequest,
   UpdatePreferencesRequest,
   UpdateAccountProfileRequest,
@@ -56,6 +58,10 @@ export interface UseUserPreferencesReturn {
   // Display name
   displayName: string;
   updateDisplayName: (name: string) => Promise<void>;
+  avatarUrl: string;
+  updateAvatar: (url: string) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string>;
+  removeAvatar: () => Promise<void>;
 
   // Password
   changePassword: (data: ChangePasswordRequest) => Promise<void>;
@@ -77,6 +83,15 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const resolvedDisplayName =
+    (preferences?.display_name && preferences.display_name.trim()) ||
+    user?.profile?.display_name ||
+    "";
+  const resolvedAvatarUrl =
+    (preferences?.avatar_url && preferences.avatar_url.trim()) ||
+    user?.profile?.avatar_url ||
+    "";
+
   // Derive effectiveTheme from ThemeContext's resolved theme
   const effectiveTheme: "light" | "dark" =
     theme === "g100" || theme === "g90" ? "dark" : "light";
@@ -95,6 +110,23 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       );
     },
     [setPreference]
+  );
+
+  const syncAuthUserProfile = useCallback(
+    (nextProfile: Partial<UserProfile>) => {
+      if (!user) return;
+      const nextUser = {
+        ...user,
+        profile: {
+          ...(user.profile || {}),
+          ...nextProfile,
+        },
+      };
+      setUser(nextUser as any);
+      localStorage.setItem("user", JSON.stringify(nextUser));
+      window.dispatchEvent(new Event("storage"));
+    },
+    [user, setUser]
   );
 
   // Load preferences from backend when user is logged in
@@ -304,14 +336,69 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
             globalPreferencesCache = next;
             return next;
           });
+          syncAuthUserProfile({ display_name: name });
         } catch (err) {
           console.error("Failed to update display name:", err);
           throw err;
         }
       }
     },
-    [user, contentLanguage, preference]
+    [user, contentLanguage, preference, syncAuthUserProfile]
   );
+
+  const updateAvatar = useCallback(
+    async (url: string) => {
+      if (!user) {
+        throw new Error("Must be logged in to update avatar");
+      }
+      await updateUserPreferences({ avatar_url: url });
+      setPreferences((prev) => {
+        const base =
+          prev ??
+          globalPreferencesCache ?? {
+            preferred_language: contentLanguage,
+            preferred_theme: preference,
+            editor_font_size: 12,
+            editor_tab_size: 4 as 2 | 4,
+          };
+        const next = { ...base, avatar_url: url };
+        globalPreferencesCache = next;
+        return next;
+      });
+      syncAuthUserProfile({ avatar_url: url });
+    },
+    [user, contentLanguage, preference, syncAuthUserProfile]
+  );
+
+  const uploadAvatar = useCallback(
+    async (file: File) => {
+      if (!user) {
+        throw new Error("Must be logged in to upload avatar");
+      }
+      const response = await uploadUserAvatarApi(file);
+      const url = response.data.avatar_url;
+      setPreferences((prev) => {
+        const base =
+          prev ??
+          globalPreferencesCache ?? {
+            preferred_language: contentLanguage,
+            preferred_theme: preference,
+            editor_font_size: 12,
+            editor_tab_size: 4 as 2 | 4,
+          };
+        const next = { ...base, avatar_url: url };
+        globalPreferencesCache = next;
+        return next;
+      });
+      syncAuthUserProfile({ avatar_url: url });
+      return url;
+    },
+    [user, contentLanguage, preference, syncAuthUserProfile]
+  );
+
+  const removeAvatar = useCallback(async () => {
+    await updateAvatar("");
+  }, [updateAvatar]);
 
   // Change password
   const changePassword = useCallback(
@@ -359,8 +446,12 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     editorFontSize: preferences?.editor_font_size ?? 12,
     editorTabSize: preferences?.editor_tab_size ?? 4,
     updateEditorSettings,
-    displayName: preferences?.display_name ?? user?.profile?.display_name ?? '',
+    displayName: resolvedDisplayName,
+    avatarUrl: resolvedAvatarUrl,
     updateDisplayName,
+    updateAvatar,
+    uploadAvatar,
+    removeAvatar,
     changePassword,
     requestPasswordReset,
     updateAccountProfile,

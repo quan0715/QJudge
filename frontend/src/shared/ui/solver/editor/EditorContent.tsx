@@ -3,7 +3,7 @@ import { Button, Tooltip } from "@carbon/react";
 import { Settings, FitToScreen } from "@carbon/icons-react";
 import { QJudgeEditor } from "@/shared/ui/editor/QJudgeEditor";
 import { EditorSettingsModal } from "@/shared/ui/editor/EditorSettingsModal";
-import { LanguageSelector } from "./LanguageSelector";
+import { LanguageSelector, type LanguageOption } from "./LanguageSelector";
 import { LANGUAGE_OPTIONS } from "@/core/config/language.config";
 import type { EditorSettings } from "@/shared/ui/editor/EditorSettingsModal";
 import "./EditorContent.scss";
@@ -17,6 +17,8 @@ interface EditorContentProps {
   onCodeChange: (code: string) => void;
   /** Callback when language changes */
   onLanguageChange: (lang: string) => void;
+  /** Allowed language options for current problem */
+  languageOptions?: LanguageOption[];
   /** Editor font size */
   fontSize?: number;
   /** Editor tab size */
@@ -32,6 +34,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
   language,
   onCodeChange,
   onLanguageChange,
+  languageOptions,
   fontSize = 12,
   tabSize = 4,
   onEditorSettingsChange,
@@ -49,7 +52,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
       <div className="editor-content__toolbar">
         <div className="editor-content__toolbar-left">
           <LanguageSelector
-            languages={LANGUAGE_OPTIONS}
+            languages={languageOptions && languageOptions.length > 0 ? languageOptions : LANGUAGE_OPTIONS}
             selectedLanguage={language}
             onLanguageChange={onLanguageChange}
           />

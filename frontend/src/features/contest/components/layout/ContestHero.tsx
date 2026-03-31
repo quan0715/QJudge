@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button, Modal, TextInput } from "@carbon/react";
+import { Button, Modal, TextInput, Select, SelectItem } from "@carbon/react";
 import {
   PlayFilled,
   Flag,
   WarningAltFilled,
   Launch,
+  DocumentPdf,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -19,7 +20,7 @@ import {
 } from "@/core/entities/contest.entity";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
-import { updateNickname } from "@/infrastructure/api/repositories";
+import { updateNickname, downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
 import "./ContestHero.css";
 
@@ -92,6 +93,11 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const [newNickname, setNewNickname] = useState("");
   const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
 
+  // Report download state
+  const [reportDownloading, setReportDownloading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportLanguage, setReportLanguage] = useState("zh-TW");
+
   // Error Modal State
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -99,6 +105,20 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const showError = (msg: string) => {
     setErrorMessage(msg);
     setErrorModalOpen(true);
+  };
+
+  const handleDownloadReport = async () => {
+    if (!contest) return;
+    try {
+      setReportDownloading(true);
+      await downloadMyReport(contest.id.toString(), reportLanguage);
+      setShowReportModal(false);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t("report.failed");
+      showError(message);
+    } finally {
+      setReportDownloading(false);
+    }
   };
 
   const updateProgress = useCallback(() => {
@@ -230,6 +250,19 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const renderActions = () => {
     // Check if contest has ended (time-based)
     if (isEnded) {
+      const hasSubmitted = contest.examStatus === "submitted" &&
+        (contest.hasJoined || contest.isRegistered);
+      if (hasSubmitted) {
+        return (
+          <Button
+            kind="tertiary"
+            renderIcon={DocumentPdf}
+            onClick={() => setShowReportModal(true)}
+          >
+            {t("report.download")}
+          </Button>
+        );
+      }
       return (
         <Button kind="secondary" disabled renderIcon={Flag}>
           {t("hero.examEnded")}
@@ -263,21 +296,21 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         );
 
       case "submitted":
-        // Step 3: Submitted - show finished or allow restart
-        if (contest.allowMultipleJoins) {
-          return (
-            <div style={{ display: "flex", alignItems: "center" }}>
+        // Step 3: Submitted - show download + optional restart
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Button
+              kind="tertiary"
+              renderIcon={DocumentPdf}
+              onClick={() => setShowReportModal(true)}
+            >
+              {t("report.download")}
+            </Button>
+            {contest.allowMultipleJoins && (
               <Button renderIcon={PlayFilled} onClick={handleStartClick}>
                 {t("hero.restartExam")}
               </Button>
-            </div>
-          );
-        }
-        return (
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Button kind="secondary" disabled renderIcon={Flag}>
-              {t("hero.finished")}
-            </Button>
+            )}
           </div>
         );
 
@@ -424,6 +457,32 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             value={newNickname}
             onChange={(e) => setNewNickname(e.target.value)}
           />
+        </div>
+      </Modal>
+
+      {/* Report Download Modal */}
+      <Modal
+        open={showReportModal}
+        modalHeading={t("report.download")}
+        primaryButtonText={reportDownloading ? t("report.preparing") : t("report.download")}
+        secondaryButtonText={tc("button.cancel")}
+        primaryButtonDisabled={reportDownloading}
+        onRequestClose={() => { if (!reportDownloading) setShowReportModal(false); }}
+        onRequestSubmit={handleDownloadReport}
+        size="xs"
+      >
+        <div style={{ marginBottom: "1rem" }}>
+          <Select
+            id="report-language"
+            labelText={t("report.language")}
+            value={reportLanguage}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReportLanguage(e.target.value)}
+          >
+            <SelectItem value="zh-TW" text="繁體中文" />
+            <SelectItem value="en" text="English" />
+            <SelectItem value="ja" text="日本語" />
+            <SelectItem value="ko" text="한국어" />
+          </Select>
         </div>
       </Modal>
 

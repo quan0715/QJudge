@@ -1,21 +1,12 @@
-/**
- * UserSettingsScreen - 用戶設定主頁面
- *
- * 使用 Carbon Tabs 組織不同的設定分類：
- * - Preferences: 主題和語言偏好
- * - API Key: Anthropic API Key 管理
- * - Usage: AI 用量統計
- */
-
 import React, { useState } from "react";
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@carbon/react";
-import { Settings, Password, ChartLine, Devices } from "@carbon/icons-react";
+import { UserAvatar, Settings, Password, Catalog } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { ProfilePanel } from "@/features/auth/components/ProfilePanel";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
 import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
-import { UsagePanel } from "@/features/auth/components/UsagePanel";
-import { LoginRecordsPanel } from "@/features/auth/components/LoginRecordsPanel";
+import { PlansPanel } from "@/features/auth/components/PlansPanel";
 import "./UserSettingsScreen.scss";
 
 export const UserSettingsScreen: React.FC = () => {
@@ -32,17 +23,6 @@ export const UserSettingsScreen: React.FC = () => {
         <h1 className="user-settings-screen__title">
           {t("settings.title", "設定")}
         </h1>
-        <p className="user-settings-screen__description">
-          {isTeacherOrAdmin
-            ? t(
-                "settings.description",
-                "管理您的偏好設定、API Key 和用量統計"
-              )
-            : t(
-                "settings.descriptionStudent",
-                "管理您的偏好設定"
-              )}
-        </p>
       </div>
 
       <div className="user-settings-screen__content">
@@ -51,41 +31,37 @@ export const UserSettingsScreen: React.FC = () => {
           onChange={(e) => setSelectedTab(e.selectedIndex)}
         >
           <TabList aria-label="Settings tabs" contained>
+            <Tab renderIcon={UserAvatar}>
+              {t("settings.tabs.profile", "個人檔案")}
+            </Tab>
             <Tab renderIcon={Settings}>
               {t("settings.tabs.preferences", "偏好設定")}
-            </Tab>
-            <Tab renderIcon={Devices}>
-              {t("settings.tabs.loginRecords", "登入紀錄")}
             </Tab>
             {isTeacherOrAdmin && (
               <Tab renderIcon={Password}>
                 {t("settings.tabs.apiKey", "API Key")}
               </Tab>
             )}
-            {isTeacherOrAdmin && (
-              <Tab renderIcon={ChartLine}>
-                {t("settings.tabs.usage", "用量統計")}
-              </Tab>
-            )}
+            <Tab renderIcon={Catalog}>
+              {t("settings.tabs.plans", "探索方案")}
+            </Tab>
           </TabList>
 
           <TabPanels>
             <TabPanel>
-              <PreferencesPanel />
+              <ProfilePanel />
             </TabPanel>
             <TabPanel>
-              <LoginRecordsPanel />
+              <PreferencesPanel />
             </TabPanel>
             {isTeacherOrAdmin && (
               <TabPanel>
                 <APIKeyPanel />
               </TabPanel>
             )}
-            {isTeacherOrAdmin && (
-              <TabPanel>
-                <UsagePanel />
-              </TabPanel>
-            )}
+            <TabPanel>
+              <PlansPanel />
+            </TabPanel>
           </TabPanels>
         </Tabs>
       </div>

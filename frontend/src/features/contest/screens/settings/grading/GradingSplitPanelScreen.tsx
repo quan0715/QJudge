@@ -2,12 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
-  Boolean as BooleanIcon,
-  Checkbox as CheckboxIcon,
   Checkmark,
-  Document,
-  Pen,
-  RadioButton as RadioButtonIcon,
   UserFollow,
 } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
@@ -16,16 +11,8 @@ import ScoreSlider, { formatScore, getScoreColor } from "./ScoreSlider";
 import type { GradingAnswerRow } from "./gradingTypes";
 import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import styles from "./GradingPanel.module.scss";
-
-const QUESTION_TYPE_ICON: Record<ExamQuestionType, React.ElementType> = {
-  single_choice: RadioButtonIcon,
-  multiple_choice: CheckboxIcon,
-  true_false: BooleanIcon,
-  short_answer: Pen,
-  essay: Document,
-};
 
 interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
@@ -216,7 +203,7 @@ export default function GradingSplitPanelScreen({
       <div className={styles.panelHeader}>
         <div className={styles.panelHeaderLeading}>
           {(() => {
-            const TypeIcon = QUESTION_TYPE_ICON[answer.questionType];
+            const TypeIcon = EXAM_QUESTION_TYPE_ICON[answer.questionType];
             return <TypeIcon size={14} className={styles.panelHeaderIcon} />;
           })()}
           <span className={styles.panelHeaderLabel}>Q{answer.questionIndex}</span>

@@ -1,0 +1,24 @@
+export interface PendingActionConfig {
+  /** Unique key, e.g. "teacher_activation" */
+  key: string;
+  /** sessionStorage key */
+  storageKey: string;
+  /**
+   * Priority controls ordering in getAuthedLandingPath.
+   *  - priority < 0: checked BEFORE onboarding gate
+   *  - priority >= 0: checked AFTER onboarding gate
+   */
+  priority: number;
+  /**
+   * Query param name used to carry value through login↔register links.
+   * null means this action only uses sessionStorage (e.g. classroom join).
+   */
+  queryParam: string | null;
+  /** i18n keys for the info banner shown on login/register screens */
+  banner: {
+    titleKey: string;
+    subtitleKey: string;
+  };
+  /** Given the stored value, return the redirect path */
+  getRedirectPath: (value: string) => string;
+}

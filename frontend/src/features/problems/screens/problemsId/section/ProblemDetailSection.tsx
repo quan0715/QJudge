@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { InlineNotification, Modal, Button } from "@carbon/react";
-import { Code, Edit } from "@carbon/icons-react";
+import { Code } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import type {
   ProblemDetail as Problem,
   LanguageConfig,
@@ -54,7 +53,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
   initialLanguage = "",
   onSubmit,
 }) => {
-  const { user } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation("problem");
   const { t: tc } = useTranslation("common");
@@ -65,7 +63,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   // -- State: Code & Language --
   const [activeLanguage, setActiveLanguage] = useState<string>(
-    initialLanguage || "python"
+    initialLanguage || "cpp"
   );
   const [code, setCode] = useState<string>(initialCode);
   const [languageConfigs, setLanguageConfigs] = useState<LanguageConfig[]>([]);
@@ -95,7 +93,14 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
     if (!problem) return;
 
     // 1. Language Configs
-    let configs = problem.languageConfigs || [];
+    let configs = (problem.languageConfigs || [])
+      .map((cfg) => ({
+        language: String(cfg.language || "").trim(),
+        templateCode: cfg.templateCode || "",
+        isEnabled: cfg.isEnabled !== false,
+      }))
+      .filter((cfg) => Boolean(cfg.language));
+
     if (configs.length === 0) {
       configs = LANGUAGE_OPTIONS.map((opt) => ({
         language: opt.id,
@@ -107,8 +112,8 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
     // 2. Select Language
     let targetLang = activeLanguage;
-    if (!configs.find((c) => c.language === targetLang)) {
-      targetLang = configs.find((c) => c.isEnabled)?.language || "python";
+    if (!configs.find((c) => c.language === targetLang && c.isEnabled)) {
+      targetLang = configs.find((c) => c.isEnabled)?.language || configs[0]?.language || "cpp";
       setActiveLanguage(targetLang);
     }
 
@@ -121,7 +126,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
         const tmpl = configs.find(
           (c) => c.language === targetLang
         )?.templateCode;
-        setCode(tmpl || "");
+        setCode(tmpl || DEFAULT_TEMPLATES[targetLang] || "");
       }
     }
 
@@ -164,15 +169,17 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   // -- Language Change Handler --
   const handleLanguageChange = (newLang: string) => {
+    const selected = languageConfigs.find(
+      (cfg) => cfg.language === newLang && cfg.isEnabled
+    );
+    if (!selected) return;
+
     setActiveLanguage(newLang);
     const savedCode = localStorage.getItem(getCodeKey(newLang));
     if (savedCode) {
       setCode(savedCode);
     } else {
-      const tmpl = languageConfigs.find(
-        (c) => c.language === newLang
-      )?.templateCode;
-      setCode(tmpl || "");
+      setCode(selected.templateCode || DEFAULT_TEMPLATES[newLang] || "");
     }
   };
 
@@ -249,7 +256,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   if (!problem) return null;
 
-  const isAdmin = user && (user.role === "admin" || user.role === "teacher");
   const contentMaxWidth = "66rem";
 
   return (
@@ -260,15 +266,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
         maxWidth={contentMaxWidth}
         actions={
           <>
-            {isAdmin && (
-              <Button
-                kind="tertiary"
-                renderIcon={Edit}
-                onClick={() => navigate(`/problems/${problem.id}/edit`)}
-              >
-                編輯
-              </Button>
-            )}
             <Button
               kind="primary"
               renderIcon={Code}

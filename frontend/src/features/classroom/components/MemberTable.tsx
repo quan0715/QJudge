@@ -1,98 +1,52 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
-import {
-  DataTable,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-  Button,
-  Tag,
-} from "@carbon/react";
-import { TrashCan } from "@carbon/icons-react";
-import { formatDate } from "@/i18n/dateUtils";
-import type { ClassroomMember } from "@/core/entities/classroom.entity";
+import "./MemberTable.scss";
 
-interface MemberTableProps {
-  members: ClassroomMember[];
-  isPrivileged: boolean;
-  onRemove: (userId: number) => void;
+export interface MemberCardData {
+  key: string;
+  username: string;
+  email?: string;
+  avatarUrl?: string;
+  role: "owner" | "manager" | "member";
 }
 
-export const MemberTable: React.FC<MemberTableProps> = ({
-  members,
-  isPrivileged,
-  onRemove,
-}) => {
-  const { t } = useTranslation("classroom");
-  const { t: tc } = useTranslation("common");
+interface MemberGridProps {
+  members: MemberCardData[];
+}
 
-  const headers = [
-    { key: "username", header: t("members.headers.username") },
-    { key: "email", header: t("members.headers.email") },
-    { key: "role", header: t("members.headers.role") },
-    { key: "joinedAt", header: t("members.headers.joinedAt") },
-    { key: "actions", header: "" },
-  ];
+function getInitials(username: string): string {
+  const words = username.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0] ?? ""}${words[1][0] ?? ""}`.toUpperCase();
+}
 
-  const rows = members.map((m) => ({
-    id: String(m.userId),
-    username: m.username,
-    email: m.email,
-    role: m.role,
-    joinedAt: formatDate(m.joinedAt),
-    actions: m.userId,
-  }));
+export const MemberGrid: React.FC<MemberGridProps> = ({ members }) => {
+  if (members.length === 0) return null;
 
   return (
-    <DataTable rows={rows} headers={isPrivileged ? headers : headers.slice(0, -1)}>
-      {({ rows: tableRows, headers: tableHeaders, getTableProps, getHeaderProps, getRowProps }) => (
-        <Table {...getTableProps()} size="md">
-          <TableHead>
-            <TableRow>
-              {tableHeaders.map((header) => (
-                <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                  {header.header}
-                </TableHeader>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {tableRows.map((row) => (
-              <TableRow {...getRowProps({ row })} key={row.id}>
-                {row.cells.map((cell) => {
-                  if (cell.info.header === "role") {
-                    return (
-                      <TableCell key={cell.id}>
-                        <Tag type={cell.value === "ta" ? "purple" : "teal"} size="sm">
-                          {tc(`user.role.${cell.value}`)}
-                        </Tag>
-                      </TableCell>
-                    );
-                  }
-                  if (cell.info.header === "actions" && isPrivileged) {
-                    return (
-                      <TableCell key={cell.id}>
-                        <Button
-                          kind="ghost"
-                          size="sm"
-                          hasIconOnly
-                          renderIcon={TrashCan}
-                          iconDescription={t("members.actions.remove")}
-                          onClick={() => onRemove(cell.value as number)}
-                        />
-                      </TableCell>
-                    );
-                  }
-                  return <TableCell key={cell.id}>{cell.value}</TableCell>;
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </DataTable>
+    <div className="classroom-member-grid">
+      {members.map((member) => (
+        <div key={member.key} className="classroom-member-card">
+          <div className="classroom-member-card__avatar">
+            {member.avatarUrl ? (
+              <img src={member.avatarUrl} alt={member.username} />
+            ) : (
+              <span className="classroom-member-card__avatar-fallback">
+                {getInitials(member.username)}
+              </span>
+            )}
+          </div>
+          <div className="classroom-member-card__info">
+            <span className="classroom-member-card__name">{member.username}</span>
+            {member.email && (
+              <span className="classroom-member-card__email">{member.email}</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 };
+
+// Backward-compat alias
+export const MemberTable = MemberGrid;

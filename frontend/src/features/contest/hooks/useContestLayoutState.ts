@@ -19,7 +19,7 @@ import { useInterval } from "@/shared/hooks/useInterval";
 const CONTEST_POLL_INTERVAL_MS = 15_000;
 
 export function useContestLayoutState() {
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +42,18 @@ export function useContestLayoutState() {
   const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
+  const dashboardPath =
+    classroomId && contestId
+      ? `/classrooms/${classroomId}/contest/${contestId}`
+      : contestId
+        ? getContestDashboardPath(contestId)
+        : "";
+  const precheckPath =
+    classroomId && contestId
+      ? `/classrooms/${classroomId}/contest/${contestId}/exam-precheck`
+      : contestId
+        ? getContestPrecheckPath(contestId)
+        : "";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
@@ -51,7 +63,11 @@ export function useContestLayoutState() {
       setIsRefreshing(true);
       try {
         const c = await getContest(contestId);
-        setContest(c || null);
+        // Only update if we got valid data — a transient API failure must not
+        // null-out the contest, which would kill monitoring flags and streams.
+        if (c) {
+          setContest(c);
+        }
       } finally {
         setIsRefreshing(false);
       }
@@ -71,7 +87,12 @@ export function useContestLayoutState() {
   // Fetch contest on mount and when navigating back (path changes)
   useEffect(() => {
     if (contestId) {
-      setContestLoading(true);
+      // Only show loading spinner on initial load, not on path change refreshes.
+      // This prevents monitoring flags from flickering during navigation.
+      setContest((prev) => {
+        if (!prev) setContestLoading(true);
+        return prev;
+      });
       setContestNotFound(false);
       getContest(contestId)
         .then((c) => {
@@ -79,13 +100,19 @@ export function useContestLayoutState() {
             setContest(c);
             setContestNotFound(false);
           } else {
-            setContest(null);
-            setContestNotFound(true);
+            setContest((prev) => {
+              // Only null-out if we never had data (genuine 404),
+              // not on transient API failures during navigation.
+              if (!prev) setContestNotFound(true);
+              return prev ?? null;
+            });
           }
         })
         .catch(() => {
-          setContest(null);
-          setContestNotFound(true);
+          setContest((prev) => {
+            if (!prev) setContestNotFound(true);
+            return prev ?? null;
+          });
         })
         .finally(() => {
           setContestLoading(false);
@@ -136,15 +163,12 @@ export function useContestLayoutState() {
     if (!contestId || !contest?.cheatDetectionEnabled) return;
     if (contest.examStatus !== "paused") return;
 
-    const dashboardPath = getContestDashboardPath(contestId);
-    const targetPath = getContestPrecheckPath(contestId);
-
     const normalizedPath = location.pathname.replace(/\/+$/, "");
     const isDashboardHome = normalizedPath === dashboardPath;
-    if (!isDashboardHome && location.pathname !== targetPath) {
-      navigate(targetPath, { replace: true });
+    if (!isDashboardHome && location.pathname !== precheckPath) {
+      navigate(precheckPath, { replace: true });
     }
-  }, [contest?.cheatDetectionEnabled, contest?.examStatus, contestId, location.pathname, navigate]);
+  }, [contest?.cheatDetectionEnabled, contest?.examStatus, dashboardPath, precheckPath, contestId, location.pathname, navigate]);
 
   // Strict mode anti-leak: submitted before contest end can only stay on dashboard overview.
   useEffect(() => {
@@ -161,10 +185,10 @@ export function useContestLayoutState() {
       return;
     }
 
-    navigate(`${getContestDashboardPath(contestId)}?tab=overview`, {
+    navigate(`${dashboardPath}?tab=overview`, {
       replace: true,
     });
-  }, [contest, contestId, location.pathname, location.search, navigate]);
+  }, [contest, contestId, dashboardPath, location.pathname, location.search, navigate]);
 
   // Exam active beforeunload
   useEffect(() => {

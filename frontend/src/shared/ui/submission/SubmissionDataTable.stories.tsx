@@ -1,22 +1,19 @@
 import React, { useState } from "react";
-import type { StoryModule, Story } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import {
   SubmissionDataTable,
-  type SubmissionDataTableProps,
   type FilterState,
 } from "./SubmissionDataTable";
 import {
   mockSubmissionList,
   mockSubmissionListLarge,
-} from "@/features/storybook/mocks";
+} from "@/shared/mocks";
 
-const meta = {
+const meta: Meta<typeof SubmissionDataTable> = {
   title: "shared/ui/submission/SubmissionDataTable",
   component: SubmissionDataTable,
-  category: "shared" as const,
-  description:
-    "繳交記錄資料表格，支援狀態篩選、時間範圍篩選、「只看我的」切換、分頁功能",
-  defaultArgs: {
+  
+  args: {
     submissions: mockSubmissionListLarge.slice(0, 10),
     loading: false,
     totalItems: 50,
@@ -32,34 +29,32 @@ const meta = {
   argTypes: {
     showProblem: {
       control: "boolean" as const,
-      label: "Show Problem",
-      description: "是否顯示題目欄位",
+            description: "是否顯示題目欄位",
     },
     showUser: {
       control: "boolean" as const,
-      label: "Show User",
-      description: "是否顯示用戶欄位",
+            description: "是否顯示用戶欄位",
     },
     showScore: {
       control: "boolean" as const,
-      label: "Show Score",
-      description: "是否顯示分數欄位",
+            description: "是否顯示分數欄位",
     },
     showMemory: {
       control: "boolean" as const,
-      label: "Show Memory",
-      description: "是否顯示記憶體欄位",
+            description: "是否顯示記憶體欄位",
     },
     showToolbar: {
       control: "boolean" as const,
-      label: "Show Toolbar",
-      description: "是否顯示工具列（篩選器）",
+            description: "是否顯示工具列（篩選器）",
     },
     loading: {
       control: "boolean" as const,
-      label: "Loading",
-      description: "載入中狀態",
+            description: "載入中狀態",
     },
+  },
+
+  parameters: {
+    docs: { description: { component: '繳交記錄資料表格，支援狀態篩選、時間範圍篩選、「只看我的」切換、分頁功能' } },
   },
 };
 
@@ -125,172 +120,72 @@ const InteractiveStory: React.FC = () => {
     />
   );
 };
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-const stories: Story<SubmissionDataTableProps>[] = [
-  {
-    name: "Playground",
-    description: "互動式 Playground，點擊篩選圖標選擇篩選條件",
-    render: () => <InteractiveStory />,
-    code: `const [filters, setFilters] = useState({
-  status: "all",
-  dateRange: "all",
-  onlyMine: false,
-});
-
-<SubmissionDataTable
-  submissions={submissions}
-  totalItems={100}
-  page={page}
-  pageSize={10}
-  showToolbar
-  filters={filters}
-  onFilterApply={(newFilters) => setFilters(newFilters)}
-  onFilterReset={() => setFilters(DEFAULT_FILTERS)}
-  onRowClick={(id) => handleViewSubmission(id)}
-  onPageChange={(newPage, newPageSize) => setPage(newPage)}
-/>`,
-  },
-  {
-    name: "All Statuses",
-    description: "顯示各種狀態的提交記錄",
-    render: () => (
-      <SubmissionDataTable
-        submissions={mockSubmissionList}
-        showToolbar={false}
-        onRowClick={(id) => console.log("Clicked:", id)}
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={submissionsWithVariousStatuses}
-  showToolbar={false}
-  onRowClick={(id) => handleClick(id)}
-/>`,
-  },
-  {
-    name: "With Filter Popover",
-    description: "點擊篩選圖標顯示篩選選項",
-    render: () => (
-      <SubmissionDataTable
-        submissions={mockSubmissionListLarge.slice(0, 5)}
-        totalItems={50}
-        page={1}
-        pageSize={5}
-        showToolbar
-        filters={DEFAULT_FILTERS}
-        showOnlyMineToggle
-        onRowClick={(id) => console.log("Clicked:", id)}
-        onPageChange={(p, ps) => console.log("Page:", p, ps)}
-        onFilterApply={(f) => console.log("Filter applied:", f)}
-        onFilterReset={() => console.log("Filter reset")}
-        onRefresh={() => console.log("Refresh")}
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={submissions}
-  totalItems={100}
-  showToolbar
-  filters={filters}
-  onFilterApply={handleFilterApply}
-  onFilterReset={handleFilterReset}
-  onRefresh={handleRefresh}
-/>`,
-  },
-  {
-    name: "Minimal Columns",
-    description: "只顯示基本欄位（狀態、語言、執行時間、提交時間）",
-    render: () => (
-      <SubmissionDataTable
-        submissions={mockSubmissionListLarge.slice(0, 5)}
-        showProblem={false}
-        showUser={false}
-        showScore={false}
-        showMemory={false}
-        showToolbar={false}
-        onRowClick={(id) => console.log("Clicked:", id)}
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={submissions}
-  showProblem={false}
-  showUser={false}
-  showScore={false}
-  showMemory={false}
-  showToolbar={false}
-/>`,
-  },
-  {
-    name: "Loading State",
-    description: "載入中狀態顯示骨架屏",
-    render: () => (
-      <SubmissionDataTable
-        submissions={[]}
-        loading={true}
-        showToolbar={false}
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={[]}
-  loading={true}
-/>`,
-  },
-  {
-    name: "Empty State",
-    description: "無資料時的空狀態（表格結構保持完整）",
-    render: () => (
-      <SubmissionDataTable
-        submissions={[]}
-        loading={false}
-        showToolbar
-        filters={DEFAULT_FILTERS}
-        onFilterApply={(f) => console.log("Filter applied:", f)}
-        onFilterReset={() => console.log("Filter reset")}
-        emptyTitle="尚無繳交記錄"
-        emptySubtitle="開始解題後，您的繳交記錄將會顯示在這裡"
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={[]}
-  showToolbar
-  filters={filters}
-  onFilterApply={handleFilterApply}
-  emptyTitle="尚無繳交記錄"
-  emptySubtitle="開始解題後，您的繳交記錄將會顯示在這裡"
-/>`,
-  },
-  {
-    name: "With Pagination",
-    description: "包含分頁功能",
-    render: () => (
-      <SubmissionDataTable
-        submissions={mockSubmissionListLarge.slice(0, 10)}
-        totalItems={50}
-        page={1}
-        pageSize={10}
-        pageSizes={[5, 10, 20]}
-        showToolbar={false}
-        onRowClick={(id) => console.log("Clicked:", id)}
-        onPageChange={(page, pageSize) =>
-          console.log("Page change:", page, pageSize)
-        }
-      />
-    ),
-    code: `<SubmissionDataTable
-  submissions={submissions}
-  totalItems={100}
-  page={page}
-  pageSize={10}
-  pageSizes={[5, 10, 20]}
-  onPageChange={(newPage, newPageSize) => {
-    setPage(newPage);
-    setPageSize(newPageSize);
-  }}
-/>`,
-  },
-];
-
-const storyModule: StoryModule<SubmissionDataTableProps> = {
-  meta,
-  stories,
+export const Playground: Story = {
+  render: () => <InteractiveStory />,
 };
 
-export default storyModule;
+export const AllStatuses: Story = {
+  render: () => (
+    <SubmissionDataTable
+      submissions={mockSubmissionList}
+      showToolbar={false}
+      onRowClick={(id) => console.log("Clicked:", id)}
+    />
+  ),
+};
+
+export const WithFilterPopover: Story = {
+  render: () => (
+    <SubmissionDataTable
+      submissions={mockSubmissionListLarge.slice(0, 5)}
+      totalItems={50}
+      page={1}
+      pageSize={5}
+      showToolbar
+      filters={DEFAULT_FILTERS}
+      showOnlyMineToggle
+      onRowClick={(id) => console.log("Clicked:", id)}
+      onPageChange={(p, ps) => console.log("Page:", p, ps)}
+      onFilterApply={(f) => console.log("Filter:", f)}
+      onFilterReset={() => console.log("Reset")}
+      onRefresh={() => console.log("Refresh")}
+    />
+  ),
+};
+
+export const LoadingState: Story = {
+  render: () => <SubmissionDataTable submissions={[]} loading={true} showToolbar={false} />,
+};
+
+export const EmptyState: Story = {
+  render: () => (
+    <SubmissionDataTable
+      submissions={[]}
+      loading={false}
+      showToolbar
+      filters={DEFAULT_FILTERS}
+      onFilterApply={(f) => console.log("Filter:", f)}
+      onFilterReset={() => console.log("Reset")}
+      emptyTitle="\u5c1a\u7121\u7e73\u4ea4\u8a18\u9304"
+      emptySubtitle="\u958b\u59cb\u89e3\u984c\u5f8c\uff0c\u60a8\u7684\u7e73\u4ea4\u8a18\u9304\u5c07\u6703\u986f\u793a\u5728\u9019\u88e1"
+    />
+  ),
+};
+
+export const WithPagination: Story = {
+  render: () => (
+    <SubmissionDataTable
+      submissions={mockSubmissionListLarge.slice(0, 10)}
+      totalItems={50}
+      page={1}
+      pageSize={10}
+      pageSizes={[5, 10, 20]}
+      showToolbar={false}
+      onRowClick={(id) => console.log("Clicked:", id)}
+      onPageChange={(page, pageSize) => console.log("Page change:", page, pageSize)}
+    />
+  ),
+};

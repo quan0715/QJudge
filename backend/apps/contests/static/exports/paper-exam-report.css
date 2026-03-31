@@ -302,6 +302,11 @@
   background-color: #f7fdf9;
 }
 
+/* Neutral highlight for student's selection (no-grading mode) */
+.option-selected {
+  background-color: #e8e8e8;
+}
+
 /* Inline marker — plain small text, no pill */
 .option-marker-text {
   font-size: 10px;

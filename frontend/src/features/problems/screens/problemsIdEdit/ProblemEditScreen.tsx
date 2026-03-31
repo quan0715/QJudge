@@ -5,7 +5,7 @@ import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@carbon/react";
 import { Upload, Download, View } from "@carbon/icons-react";
-import type { ProblemDetail, ProblemVisibility } from "@/core/entities/problem.entity";
+import type { ProblemDetail } from "@/core/entities/problem.entity";
 import {
   patchProblem,
   deleteProblem,
@@ -45,19 +45,12 @@ import {
   ProblemEditUIProvider,
   useProblemEditUI,
 } from "./contexts/ProblemEditUIContext";
-import {
-  BASE_SECTIONS,
-  getSectionValidationState,
-} from "./utils/sectionConfig";
 import { formSchemaToPreview } from "./utils/previewAdapter";
-import type { NavSection } from "./section/layout";
 import "./screen.scss";
 
 interface ProblemEditScreenContentProps {
   problem: ProblemDetail;
-  sectionsWithValidation: NavSection[];
   handleYAMLImport: (yamlData: ProblemYAML) => void;
-  handleVisibilityChange: (visibility: ProblemVisibility) => Promise<void>;
   handleDelete: () => Promise<void>;
   handleExportConfirm: (onClose: () => void) => void;
   onBack: () => void;
@@ -66,9 +59,7 @@ interface ProblemEditScreenContentProps {
 
 const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   problem,
-  sectionsWithValidation,
   handleYAMLImport,
-  handleVisibilityChange,
   handleDelete,
   handleExportConfirm,
   onBack,
@@ -143,11 +134,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
       <div className="problem-edit-page__main">
         <div className="problem-edit-page__content">
           <ProblemEditSections
-            sections={sectionsWithValidation}
-            onPreviewClick={() => previewModalRef.current?.open()}
             problemTitle={problem.title}
-            visibility={watchedValues.visibility || 'private'}
-            onVisibilityChange={handleVisibilityChange}
             onDelete={handleDelete}
           />
         </div>
@@ -194,7 +181,7 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
  * - Scroll-spy navigation
  * - Field-level auto-save (PATCH)
  * - Preview modal
- * - Danger Zone for delete/visibility
+ * - Danger Zone for delete
  */
 const ProblemEditPageInner: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -217,7 +204,6 @@ const ProblemEditPageInner: React.FC = () => {
 
   const {
     reset,
-    formState: { errors, touchedFields },
   } = methods;
 
   const { problem, formSchema, isLoading, error, refetch } = useProblemDetail(id, {
@@ -228,22 +214,6 @@ const ProblemEditPageInner: React.FC = () => {
   const handleProblemUpdated = useCallback(() => {
     refetch();
   }, [refetch]);
-
-  // Compute sections with validation state
-  const sectionsWithValidation: NavSection[] = useMemo(() => {
-    return BASE_SECTIONS.map((section) => {
-      const { state, errorCount } = getSectionValidationState(
-        section.id,
-        errors as Record<string, unknown>,
-        touchedFields as Record<string, unknown>,
-      );
-      return {
-        ...section,
-        validationState: state,
-        errorCount,
-      };
-    });
-  }, [errors, touchedFields]);
 
   // Reset form when problem data changes
   useEffect(() => {
@@ -278,36 +248,6 @@ const ProblemEditPageInner: React.FC = () => {
     },
     [id, reset, showToast],
   );
-
-  // Handle visibility change
-  const handleVisibilityChange = async (newVisibility: ProblemVisibility) => {
-    if (!problem) return;
-    try {
-      await patchProblem(problem.id, { visibility: newVisibility });
-      methods.setValue("visibility", newVisibility);
-
-      const labels = {
-        public: t("edit.status.public"),
-        private: t("edit.status.private"),
-        hidden: t("edit.status.hidden")
-      };
-
-      showToast({
-        kind: "success",
-        title: labels[newVisibility],
-      });
-    } catch (err) {
-      showToast({
-        kind: "error",
-        title: t("message.error", {
-          ns: "common",
-          defaultValue: "錯誤",
-        }),
-        subtitle: err instanceof Error ? err.message : t("message.tryAdjustFilters"),
-      });
-      throw err;
-    }
-  };
 
   // Handle delete
   const handleDelete = async () => {
@@ -417,9 +357,7 @@ const ProblemEditPageInner: React.FC = () => {
         <ProblemEditProvider problemId={id || ""}>
           <ProblemEditScreenContent
             problem={problem}
-            sectionsWithValidation={sectionsWithValidation}
             handleYAMLImport={handleYAMLImport}
-            handleVisibilityChange={handleVisibilityChange}
             handleDelete={handleDelete}
             handleExportConfirm={handleExportConfirm}
             onBack={() => navigate(-1)}

@@ -26,9 +26,11 @@ import {
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
-  type Announcement,
-  type CreateAnnouncementRequest,
 } from "@/infrastructure/api/repositories/announcement.repository";
+import type {
+  Announcement,
+  CreateAnnouncementRequest,
+} from "@/core/entities/announcement.entity";
 
 const AnnouncementManagementScreen = () => {
   const { t } = useTranslation("admin");

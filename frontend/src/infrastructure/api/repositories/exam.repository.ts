@@ -278,6 +278,8 @@ export interface ExamVideoDto {
   duration_seconds: number;
   frame_count: number;
   size_bytes: number;
+  recording_started_at?: string | null;
+  recording_finished_at?: string | null;
   is_suspected: boolean;
   suspected_note: string;
   suspected_by?: number | null;
@@ -286,7 +288,7 @@ export interface ExamVideoDto {
   created_at: string;
   updated_at: string;
   has_video?: boolean;
-  job_status?: "pending" | "running" | "success" | "failed";
+  job_status?: "pending" | "running" | "success" | "failed" | "no_data";
   job_error_message?: string;
   job_raw_count?: number;
   job_updated_at?: string;

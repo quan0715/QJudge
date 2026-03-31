@@ -60,6 +60,11 @@
   background: var(--cds-layer-selected);
 }
 
+.sessionRow {
+  background: var(--cds-layer-01);
+  font-weight: 600;
+}
+
 .sideColumn {
   display: flex;
   flex-direction: column;

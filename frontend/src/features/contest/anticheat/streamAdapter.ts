@@ -1,3 +1,5 @@
+import { getPrimaryVideoTrack, isStreamLive } from "./mediaStreamHealth";
+
 export interface StreamAdapter {
   acquireMonitorStream: () => Promise<MediaStream | null>;
   stopStream: (stream: MediaStream | null | undefined) => void;
@@ -12,7 +14,7 @@ export const createStreamAdapter = (): StreamAdapter => {
         video: true,
         audio: false,
       });
-      const track = stream.getVideoTracks?.()[0];
+      const track = getPrimaryVideoTrack(stream);
       const settings = (track?.getSettings?.() || {}) as MediaTrackSettings & {
         displaySurface?: string;
       };
@@ -35,15 +37,10 @@ export const createStreamAdapter = (): StreamAdapter => {
     }
   };
 
-  const isLive = (stream: MediaStream | null | undefined) => {
-    const track = stream?.getVideoTracks?.()[0];
-    return !!track && track.readyState === "live";
-  };
-
   return {
     acquireMonitorStream,
     stopStream,
-    isLive,
+    isLive: isStreamLive,
   };
 };
 

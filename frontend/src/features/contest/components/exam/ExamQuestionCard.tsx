@@ -1,13 +1,13 @@
-import { type FC, memo } from "react";
+import { type FC, memo, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RadioButton,
   RadioButtonGroup,
   Checkbox,
-  TextInput,
   TextArea,
   Tag,
 } from "@carbon/react";
+import { Flag, FlagFilled } from "@carbon/icons-react";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./ExamQuestionCard.module.scss";
@@ -18,6 +18,40 @@ const TYPE_COLORS: Record<ExamQuestionType, string> = {
   multiple_choice: "purple",
   short_answer: "cyan",
   essay: "magenta",
+};
+
+const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight?: number }> = ({ minHeight = 120, ...props }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const resize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, minHeight)}px`;
+  }, [minHeight]);
+
+  useEffect(() => {
+    resize();
+  }, [props.value, resize]);
+
+  return (
+    <div className={styles.textArea}>
+      <TextArea
+        {...props}
+        ref={(node: HTMLTextAreaElement | null) => {
+          (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
+          if (node) {
+            node.style.height = "auto";
+            node.style.height = `${Math.max(node.scrollHeight, minHeight)}px`;
+          }
+        }}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+          props.onChange?.(e);
+          resize();
+        }}
+      />
+    </div>
+  );
 };
 
 interface ExamQuestionCardProps {
@@ -31,6 +65,8 @@ interface ExamQuestionCardProps {
   ) => void;
   onBlur?: (questionId: string) => void;
   readOnly?: boolean;
+  isMarked?: boolean;
+  onToggleMark?: (id: string) => void;
 }
 
 export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
@@ -40,6 +76,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   onAnswerChange,
   onBlur,
   readOnly = false,
+  isMarked = false,
+  onToggleMark,
 }) => {
   const { t } = useTranslation(["contest", "common"]);
 
@@ -138,38 +176,35 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
 
       case "short_answer":
         return (
-          <div className={styles.shortInput}>
-            <TextInput
-              id={`q-${question.id}`}
-              data-testid={`exam-answer-input-${question.id}`}
-              labelText=""
-              placeholder={t("answering.question.shortAnswerPlaceholder")}
-              value={(answer as string) || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleChange(e.target.value)
-              }
-              onBlur={handleBlur}
-              disabled={readOnly}
-            />
-          </div>
+          <AutoResizeTextArea
+            id={`q-${question.id}`}
+            data-testid={`exam-answer-input-${question.id}`}
+            labelText=""
+            placeholder={t("answering.question.shortAnswerPlaceholder")}
+            value={(answer as string) || ""}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              handleChange(e.target.value)
+            }
+            onBlur={handleBlur}
+            disabled={readOnly}
+            minHeight={48}
+          />
         );
 
       case "essay":
         return (
-          <div className={styles.textArea}>
-            <TextArea
-              id={`q-${question.id}`}
-              data-testid={`exam-answer-input-${question.id}`}
-              labelText=""
-              placeholder={t("answering.question.essayPlaceholder")}
-              value={(answer as string) || ""}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                handleChange(e.target.value)
-              }
-              onBlur={handleBlur}
-              disabled={readOnly}
-            />
-          </div>
+          <AutoResizeTextArea
+            id={`q-${question.id}`}
+            data-testid={`exam-answer-input-${question.id}`}
+            labelText=""
+            placeholder={t("answering.question.essayPlaceholder")}
+            value={(answer as string) || ""}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              handleChange(e.target.value)
+            }
+            onBlur={handleBlur}
+            disabled={readOnly}
+          />
         );
 
       default:
@@ -186,7 +221,20 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
             {t(`answering.questionTypes.${question.questionType}`)}
           </Tag>
         </span>
-        <span className={styles.score}>{question.score} {t("scoreboard.status.pts")}</span>
+        <div className={styles.headerRight}>
+          {!readOnly && onToggleMark && (
+            <button
+              className={`${styles.markBtn} ${isMarked ? styles.markBtnActive : ""}`}
+              onClick={() => onToggleMark(question.id)}
+              aria-label={t("answering.mark.toggle")}
+              type="button"
+            >
+              {isMarked ? <FlagFilled size={16} /> : <Flag size={16} />}
+              <span>{t("answering.mark.toggle")}</span>
+            </button>
+          )}
+          <span className={styles.score}>{question.score} {t("scoreboard.status.pts")}</span>
+        </div>
       </div>
 
       {question.prompt ? (

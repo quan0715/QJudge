@@ -13,6 +13,7 @@ services:
   postgres-test:
     image: postgres:15-alpine
     container_name: oj_postgres_test
+    command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
       POSTGRES_DB: test_oj_e2e
       POSTGRES_USER: oj_user
@@ -23,6 +24,43 @@ services:
       - test-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U oj_user -d test_oj_e2e"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer-test:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    container_name: oj_pgbouncer_test
+    environment:
+      DB_HOST: postgres-test
+      DB_PORT: "5432"
+      DB_NAME: "*"
+      DB_USER: oj_user
+      DB_PASSWORD: oj_password
+      AUTH_TYPE: plain
+      POOL_MODE: session
+      MAX_CLIENT_CONN: "500"
+      DEFAULT_POOL_SIZE: "30"
+      RESERVE_POOL_SIZE: "15"
+      RESERVE_POOL_TIMEOUT: "2"
+      MAX_DB_CONNECTIONS: "100"
+      QUERY_WAIT_TIMEOUT: "120"
+      SERVER_IDLE_TIMEOUT: "600"
+      CLIENT_IDLE_TIMEOUT: "0"
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,options"
+      LOG_CONNECTIONS: "0"
+      LOG_DISCONNECTIONS: "0"
+      LOG_STATS: "0"
+    ports:
+      - "6433:5432"
+    networks:
+      - test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U oj_user"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -60,6 +98,7 @@ services:
       - POSTGRES_PASSWORD=oj_password
       - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
+      - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
@@ -72,6 +111,8 @@ services:
       judge-image-test:
         condition: service_started
       postgres-test:
+        condition: service_healthy
+      pgbouncer-test:
         condition: service_healthy
       redis-test:
         condition: service_healthy
@@ -96,6 +137,7 @@ services:
       - POSTGRES_PASSWORD=oj_password
       - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
+      - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
@@ -106,6 +148,8 @@ services:
       judge-image-test:
         condition: service_started
       postgres-test:
+        condition: service_healthy
+      pgbouncer-test:
         condition: service_healthy
       redis-test:
         condition: service_healthy

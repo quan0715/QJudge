@@ -22,7 +22,7 @@ import {
 } from "@/infrastructure/api/repositories";
 import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
-import s from "./AdminContestSettingsPanel.module.scss";
+import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 
 const sanitizeAnticheatPolicy = (
   policy: unknown
@@ -45,7 +45,6 @@ const sanitizeAnticheatPolicy = (
     );
     return {
       enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
-      required: typeof src.required === "boolean" ? src.required : fallback.required,
       captureIntervalSeconds:
         Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : fallback.captureIntervalSeconds,
     };
@@ -206,6 +205,7 @@ const AdminContestSettingsScreen = () => {
       : []),
     ...admins.map((admin) => ({ id: admin.id, username: admin.username, role: "co-admin" as const })),
   ];
+  const isClassroomBound = Boolean(contest?.isClassroomBound);
 
   const getState = useCallback(
     (field: string): FieldSaveState | undefined => autoSave.fieldStates[field],
@@ -316,14 +316,18 @@ const AdminContestSettingsScreen = () => {
   );
 
   const loadAdmins = useCallback(async () => {
-    if (!contestId) return;
+    if (!contestId || !contest) return;
+    if (isClassroomBound) {
+      setAdmins([]);
+      return;
+    }
     try {
       const data = await getContestAdmins(contestId);
       setAdmins(data);
     } catch {
       showToast({ kind: "error", title: "無法載入管理員列表" });
     }
-  }, [contestId, showToast]);
+  }, [contestId, contest, isClassroomBound, showToast]);
 
   const handleAddAdmin = async (username: string) => {
     if (!contestId) return;
@@ -397,9 +401,9 @@ const AdminContestSettingsScreen = () => {
   };
 
   useEffect(() => {
-    if (!contestId) return;
+    if (!contestId || !contest) return;
     void loadAdmins();
-  }, [contestId, loadAdmins]);
+  }, [contestId, contest, loadAdmins]);
 
   useEffect(() => {
     if (contestId && initializedContestIdRef.current !== contestId) {
@@ -423,6 +427,7 @@ const AdminContestSettingsScreen = () => {
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
+      screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs ?? 30_000,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       anonymousModeEnabled: contest.anonymousModeEnabled ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
@@ -471,6 +476,7 @@ const AdminContestSettingsScreen = () => {
           endTimeInput={endTimeInput}
           startMeridiem={form.startTime && isPM(form.startTime as string) ? "PM" : "AM"}
           endMeridiem={form.endTime && isPM(form.endTime as string) ? "PM" : "AM"}
+          isClassroomBound={isClassroomBound}
           admins={admins}
           adminRows={adminRows}
           publishing={publishing}

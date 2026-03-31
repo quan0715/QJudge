@@ -1,20 +1,11 @@
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import { DifficultyBadge } from "./DifficultyBadge";
 
-interface DifficultyBadgeProps {
-  difficulty: "easy" | "medium" | "hard" | string;
-  size?: "sm" | "md";
-  className?: string;
-  variant?: "tag" | "text";
-}
-
-const storyModule: StoryModule<DifficultyBadgeProps> = {
-  meta: {
+const meta: Meta<typeof DifficultyBadge> = {
     title: "shared/ui/tag/DifficultyBadge",
     component: DifficultyBadge,
-    description: "顯示題目難度的標籤組件，支援 Tag 和純文字兩種變體",
-    category: "shared",
-    defaultArgs: {
+    
+    args: {
       difficulty: "medium",
       size: "md",
       variant: "tag",
@@ -22,38 +13,53 @@ const storyModule: StoryModule<DifficultyBadgeProps> = {
     argTypes: {
       difficulty: {
         control: "select",
-        label: "難度",
-        description: "題目難度等級",
+                description: "題目難度等級",
         options: ["easy", "medium", "hard"],
         defaultValue: "medium",
       },
       size: {
         control: "select",
-        label: "尺寸",
-        description: "標籤大小",
+                description: "標籤大小",
         options: ["sm", "md"],
         defaultValue: "md",
       },
       variant: {
         control: "select",
-        label: "變體",
-        description: "顯示方式：Tag 或純文字",
+                description: "顯示方式：Tag 或純文字",
         options: ["tag", "text"],
         defaultValue: "tag",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: '顯示題目難度的標籤組件，支援 Tag 和純文字兩種變體' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "使用右側 Controls 面板調整 Props",
-      render: (args) => <DifficultyBadge {...args} />,
-      code: `<DifficultyBadge difficulty="medium" size="md" variant="tag" />`,
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '使用右側 Controls 面板調整 Props' },
+      source: { code: `<DifficultyBadge difficulty="medium" size="md" variant="tag" />` },
     },
-    {
-      name: "All Difficulties",
-      description: "所有難度等級：Easy 綠色、Medium 藍色、Hard 紅色",
-      render: () => (
+  },
+  render: (args) => <DifficultyBadge difficulty={args.difficulty ?? "medium"} {...args} />,
+};
+
+export const AllDifficulties: Story = {
+  parameters: {
+    docs: {
+      description: { story: '所有難度等級：Easy 綠色、Medium 藍色、Hard 紅色' },
+      source: { code: `<DifficultyBadge difficulty="easy" />
+<DifficultyBadge difficulty="medium" />
+<DifficultyBadge difficulty="hard" />
+<DifficultyBadge difficulty="easy" variant="text" />` },
+    },
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <DifficultyBadge difficulty="easy" />
@@ -72,12 +78,4 @@ const storyModule: StoryModule<DifficultyBadgeProps> = {
           </div>
         </div>
       ),
-      code: `<DifficultyBadge difficulty="easy" />
-<DifficultyBadge difficulty="medium" />
-<DifficultyBadge difficulty="hard" />
-<DifficultyBadge difficulty="easy" variant="text" />`,
-    },
-  ],
 };
-
-export default storyModule;

@@ -1,0 +1,117 @@
+/* ── Icon tone classes ── */
+
+.iconToneCoding { color: var(--cds-link-primary); }
+.iconToneSingleChoice { color: var(--cds-link-primary); }
+.iconToneMultipleChoice { color: var(--cds-support-success); }
+.iconToneTrueFalse { color: var(--cds-support-warning); }
+.iconToneShortAnswer { color: var(--cds-support-info); }
+.iconToneEssay { color: var(--cds-support-error); }
+
+/* ── Inbox list ── */
+
+.inboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.inboxCard {
+  border: 1px solid var(--cds-border-subtle);
+  border-bottom: none;
+  background: var(--cds-layer-01);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 80ms ease;
+
+  &:last-child {
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+}
+
+.inboxCardSelected {
+  background: var(--cds-layer-selected);
+}
+
+.inboxCheck {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  cursor: pointer;
+  accent-color: var(--cds-link-primary, #0f62fe);
+}
+
+.inboxCardBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.inboxCardTypeInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.inboxCardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.inboxCardTypeLabel {
+  color: var(--cds-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.inboxCardTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inboxCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.selectedText {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 2rem 0;
+}

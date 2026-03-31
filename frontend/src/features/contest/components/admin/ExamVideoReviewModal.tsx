@@ -36,27 +36,25 @@ interface Props {
 }
 
 type TranslateFn = TFunction<"contest">;
+type JobStatus = "pending" | "running" | "success" | "failed" | "no_data";
+
+const getEffectiveJobStatus = (video: ExamVideoDto): JobStatus =>
+  (video.job_status || (video.has_video === false ? "pending" : "success")) as JobStatus;
 
 const getJobStatusText = (video: ExamVideoDto, t: TranslateFn): string => {
-  const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as
-    | "pending"
-    | "running"
-    | "success"
-    | "failed";
+  const status = getEffectiveJobStatus(video);
   if (status === "failed") return t("examVideoReview.status.failed", "轉檔失敗");
+  if (status === "no_data") return t("examVideoReview.status.noData", "無畫面");
   if (status === "running") return t("examVideoReview.status.running", "轉檔中");
   if (status === "pending") return t("examVideoReview.status.pending", "待轉檔");
   return t("examVideoReview.status.ready", "可播放");
 };
 
 const getJobTag = (video: ExamVideoDto, t: TranslateFn) => {
-  const status = (video.job_status || (video.has_video === false ? "pending" : "success")) as
-    | "pending"
-    | "running"
-    | "success"
-    | "failed";
+  const status = getEffectiveJobStatus(video);
   const label = getJobStatusText(video, t);
   if (status === "failed") return <Tag type="red">{label}</Tag>;
+  if (status === "no_data") return <Tag type="cool-gray">{label}</Tag>;
   if (status === "running") return <Tag type="blue">{label}</Tag>;
   if (status === "pending") return <Tag type="cool-gray">{label}</Tag>;
   return <Tag type="green">{label}</Tag>;
@@ -86,6 +84,13 @@ const formatDuration = (seconds: number): string => {
 const getFpsText = (frames: number, duration: number): string => {
   if (!duration || duration <= 0) return "-";
   return `${(frames / duration).toFixed(2)} FPS`;
+};
+
+const formatDateTime = (value?: string | null): string => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
 };
 
 const ExamVideoReviewSkeleton = () => (
@@ -173,9 +178,9 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   const selectedVideoHasVideo = selectedVideo?.has_video === true;
   const tableHeaders = useMemo(
     () => [
-      t("examVideoReview.headers.student", "學生"),
       t("examVideoReview.headers.module", "來源"),
-      t("examVideoReview.headers.updatedAt", "最後更新"),
+      t("examVideoReview.headers.startedAt", "錄製開始"),
+      t("examVideoReview.headers.finishedAt", "錄製結束"),
       t("examVideoReview.headers.duration", "長度"),
       t("examVideoReview.headers.flag", "標記"),
     ],
@@ -284,7 +289,10 @@ const ExamVideoReviewModal: React.FC<Props> = ({
   };
 
   const pendingVideos = videos.filter(
-    (v) => v.has_video === false && v.job_status !== "running"
+    (v) =>
+      v.has_video === false &&
+      v.job_status !== "running" &&
+      v.job_status !== "no_data"
   );
   const isMutating = compiling || compilingAll || deleting;
 
@@ -415,14 +423,14 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                             aria-selected={isSelected}
                             onClick={() => setSelectedId(video.id)}
                           >
-                            <TableCell>{video.participant_username}</TableCell>
                             <TableCell>
                               {video.source_module === "webcam" ? "webcam" : "screen_share"}
                             </TableCell>
                             <TableCell>
-                              {new Date(
-                                video.last_activity_at || video.job_updated_at || video.updated_at || video.created_at
-                              ).toLocaleString()}
+                              {formatDateTime(video.recording_started_at)}
+                            </TableCell>
+                            <TableCell>
+                              {formatDateTime(video.recording_finished_at)}
                             </TableCell>
                             <TableCell>{formatDuration(video.duration_seconds)}</TableCell>
                             <TableCell>
@@ -455,6 +463,11 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                               "examVideoReview.preview.failed",
                               "影片轉檔失敗，請稍後重試或查看錯誤訊息。"
                             )
+                          : selectedVideo.job_status === "no_data"
+                            ? t(
+                                "examVideoReview.preview.noData",
+                                "此來源在本次作答沒有收到任何畫面，故不產生影片。"
+                              )
                           : selectedVideo.job_status === "running"
                             ? t(
                                 "examVideoReview.preview.running",
@@ -508,6 +521,18 @@ const ExamVideoReviewModal: React.FC<Props> = ({
                         <div className={styles.metaValue}>
                           {selectedVideo.frame_count.toLocaleString()} 幀 ({getFpsText(selectedVideo.frame_count, selectedVideo.duration_seconds)})
                         </div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.recordingStart", "錄製開始")}
+                        </div>
+                        <div className={styles.metaValue}>{formatDateTime(selectedVideo.recording_started_at)}</div>
+                      </div>
+                      <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>
+                          {t("examVideoReview.fields.recordingEnd", "錄製結束")}
+                        </div>
+                        <div className={styles.metaValue}>{formatDateTime(selectedVideo.recording_finished_at)}</div>
                       </div>
                       <div className={styles.metaItem}>
                         <div className={styles.metaLabel}>

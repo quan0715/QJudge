@@ -17,6 +17,10 @@ ENCRYPTION_KEY = '5CWm28LUn1E789amAyyHhlKpAempbJ7tI08p5FdibrE='
 # Test database
 # 優先使用 DATABASE_URL（CI 標準格式）
 DATABASE_URL = os.getenv('DATABASE_URL')
+DB_CONN_MAX_AGE = int(os.getenv('DB_CONN_MAX_AGE', '0'))
+DB_OPTIONS = {
+    'connect_timeout': 10,
+}
 
 if DATABASE_URL:
     # Parse DATABASE_URL (e.g., postgresql://user:pass@host:port/dbname)
@@ -29,6 +33,9 @@ if DATABASE_URL:
             'PASSWORD': url.password,
             'HOST': url.hostname,
             'PORT': url.port or '5432',
+            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': DB_OPTIONS,
         }
     }
 else:
@@ -47,6 +54,9 @@ else:
             'PASSWORD': os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', 'test_password')),
             'HOST': db_host,
             'PORT': os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', '5432')),
+            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': DB_OPTIONS,
         }
     }
 

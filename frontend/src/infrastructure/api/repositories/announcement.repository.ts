@@ -5,35 +5,14 @@
  */
 
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import type {
+  Announcement,
+  CreateAnnouncementRequest,
+  UpdateAnnouncementRequest,
+} from "@/core/entities/announcement.entity";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  author: {
-    username: string;
-    role: string;
-  };
-  visible: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateAnnouncementRequest {
-  title: string;
-  content: string;
-  visible?: boolean;
-}
-
-export interface UpdateAnnouncementRequest {
-  title?: string;
-  content?: string;
-  visible?: boolean;
-}
+// Re-export entity types for backward compatibility
+export type { Announcement, CreateAnnouncementRequest, UpdateAnnouncementRequest };
 
 // ============================================================================
 // Announcement Repository Implementation

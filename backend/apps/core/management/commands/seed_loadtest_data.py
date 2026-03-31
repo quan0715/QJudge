@@ -11,8 +11,9 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
 from apps.contests.models import (
-    Contest, ContestProblem, ContestParticipant, ExamQuestion,
+    Contest, ContestProblem, ContestParticipant, ExamQuestion, ExamAnswer, ExamEvent, ExamStatus,
 )
+from apps.submissions.models import Submission
 
 User = get_user_model()
 
@@ -21,6 +22,7 @@ STUDENT_PASSWORD = "loadtest123"
 TEACHER_USERNAME = "lt_teacher"
 TEACHER_PASSWORD = "loadtest123"
 CONTEST_NAME = "Load Test Exam"
+CODING_CONTEST_NAME = "Load Test Coding"
 
 
 class Command(BaseCommand):
@@ -31,8 +33,11 @@ class Command(BaseCommand):
         teacher = self._create_teacher()
         self._create_students()
         self._create_problems(teacher)
-        contest = self._create_contest(teacher)
-        self._register_participants(contest)
+        paper_contest, coding_contest = self._create_contests(teacher)
+        self._reset_contest_runtime_data(paper_contest)
+        self._register_participants(paper_contest)
+        self._reset_contest_runtime_data(coding_contest)
+        self._register_participants(coding_contest)
         self.stdout.write(self.style.SUCCESS("=== Load-test seed complete ==="))
 
     # ------------------------------------------------------------------
@@ -87,7 +92,6 @@ class Command(BaseCommand):
                 "title": "A+B Problem",
                 "slug": "a-plus-b",
                 "difficulty": "easy",
-                "display_id": "P001",
                 "order": 1,
                 "tests": [("1 2", "3", True, 30), ("10 20", "30", False, 30), ("-100 100", "0", False, 40)],
                 "template": '#include <iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;}',
@@ -96,7 +100,6 @@ class Command(BaseCommand):
                 "title": "Hello World",
                 "slug": "hello-world",
                 "difficulty": "easy",
-                "display_id": "P002",
                 "order": 2,
                 "tests": [("", "Hello, World!", True, 100)],
                 "template": '#include <iostream>\nusing namespace std;\nint main(){cout<<"Hello, World!"<<endl;}',
@@ -105,7 +108,6 @@ class Command(BaseCommand):
                 "title": "Factorial",
                 "slug": "factorial",
                 "difficulty": "medium",
-                "display_id": "P003",
                 "order": 3,
                 "tests": [("5", "120", True, 50), ("0", "1", False, 25), ("10", "3628800", False, 25)],
                 "template": '#include <iostream>\nusing namespace std;\nint main(){int n;cin>>n;int r=1;for(int i=2;i<=n;i++)r*=i;cout<<r<<endl;}',
@@ -121,8 +123,7 @@ class Command(BaseCommand):
                     "time_limit": 1000,
                     "memory_limit": 128,
                     "created_by": admin,
-                    "visibility": "public",
-                    "display_id": spec["display_id"],
+                    "visibility": "private",
                     "order": spec["order"],
                 },
             )
@@ -146,9 +147,9 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     # Contest + exam questions
     # ------------------------------------------------------------------
-    def _create_contest(self, teacher):
+    def _create_contests(self, teacher):
         now = timezone.now()
-        contest, created = Contest.objects.get_or_create(
+        paper_contest, _ = Contest.objects.get_or_create(
             name=CONTEST_NAME,
             defaults={
                 "description": "200-user load test exam",
@@ -165,18 +166,35 @@ class Command(BaseCommand):
             },
         )
 
-        # Always refresh times so the contest stays active
-        contest.start_time = now - timedelta(hours=1)
-        contest.end_time = now + timedelta(hours=3)
-        contest.save(update_fields=["start_time", "end_time"])
+        coding_contest, _ = Contest.objects.get_or_create(
+            name=CODING_CONTEST_NAME,
+            defaults={
+                "description": "200-user load test coding contest",
+                "start_time": now - timedelta(hours=1),
+                "end_time": now + timedelta(hours=3),
+                "owner": teacher,
+                "visibility": "public",
+                "status": "published",
+                "contest_type": "coding",
+                "cheat_detection_enabled": False,
+                "max_cheat_warnings": 10,
+                "allow_auto_unlock": False,
+                "scoreboard_visible_during_contest": True,
+            },
+        )
+
+        # Always refresh times so contests stay active
+        for contest in (paper_contest, coding_contest):
+            contest.start_time = now - timedelta(hours=1)
+            contest.end_time = now + timedelta(hours=3)
+            contest.save(update_fields=["start_time", "end_time"])
 
         # Attach coding problems
         for idx, title in enumerate(["A+B Problem", "Hello World", "Factorial"]):
             prob = Problem.objects.filter(title=title).first()
             if prob:
-                ContestProblem.objects.get_or_create(
-                    contest=contest, problem=prob, defaults={"order": idx}
-                )
+                ContestProblem.objects.get_or_create(contest=paper_contest, problem=prob, defaults={"order": idx})
+                ContestProblem.objects.get_or_create(contest=coding_contest, problem=prob, defaults={"order": idx})
 
         # Paper exam questions
         paper_questions = [
@@ -194,16 +212,48 @@ class Command(BaseCommand):
         ]
         for q in paper_questions:
             ExamQuestion.objects.get_or_create(
-                contest=contest, order=q["order"],
+                contest=paper_contest, order=q["order"],
                 defaults={k: v for k, v in q.items() if k != "order"},
             )
 
-        self.stdout.write(self.style.SUCCESS(f"  Contest '{CONTEST_NAME}' ready (id={contest.id})"))
-        return contest
+        self.stdout.write(self.style.SUCCESS(
+            f"  Contest '{CONTEST_NAME}' ready (id={paper_contest.id})"
+        ))
+        self.stdout.write(self.style.SUCCESS(
+            f"  Contest '{CODING_CONTEST_NAME}' ready (id={coding_contest.id})"
+        ))
+        return paper_contest, coding_contest
 
     # ------------------------------------------------------------------
     # Pre-register all students
     # ------------------------------------------------------------------
+    def _reset_contest_runtime_data(self, contest):
+        """
+        Make load tests repeatable by clearing prior runtime artifacts.
+        """
+        participants_qs = ContestParticipant.objects.filter(contest=contest)
+        participant_ids = list(participants_qs.values_list("id", flat=True))
+
+        if participant_ids:
+            ExamAnswer.objects.filter(participant_id__in=participant_ids).delete()
+            Submission.objects.filter(contest=contest, user_id__in=participants_qs.values_list("user_id", flat=True)).delete()
+        ExamEvent.objects.filter(contest=contest).delete()
+
+        updated = participants_qs.update(
+            score=0,
+            rank=None,
+            started_at=None,
+            left_at=None,
+            locked_at=None,
+            lock_reason="",
+            violation_count=0,
+            submit_reason="",
+            exam_status=ExamStatus.NOT_STARTED,
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f"  Reset runtime state for {updated} existing participants"
+        ))
+
     def _register_participants(self, contest):
         self.stdout.write("Registering participants ...")
         students = User.objects.filter(username__startswith="lt_").exclude(username=TEACHER_USERNAME)

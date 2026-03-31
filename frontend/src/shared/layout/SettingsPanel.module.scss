@@ -1,0 +1,116 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/theme" as *;
+
+// ── Root shell ──────────────────────────────────────────────────
+.root {
+  flex: 1 1 auto;  /* fill available height in flex parent */
+  min-height: 0;   /* allow shrinking below content — required for overflow-y scroll in flex */
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inner {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: $spacing-06 $spacing-07 $spacing-09;
+
+  @media (max-width: 671px) {
+    padding: $spacing-05 $spacing-03 $spacing-09;
+  }
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: $spacing-03;
+}
+
+// ── Section ─────────────────────────────────────────────────────
+.section {
+  padding: $spacing-05 0;
+  border-bottom: 1px solid $border-subtle-01;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-04;
+}
+
+.sectionTitle {
+  @include type-style("heading-compact-01");
+  margin: 0 0 $spacing-01;
+}
+
+.sectionDesc {
+  @include type-style("helper-text-01");
+  color: $text-helper;
+  margin: 0;
+}
+
+.sectionAction {
+  flex-shrink: 0;
+}
+
+// ── ActionRow (label + desc ↔ inline control) ───────────────────
+.actionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-04 0;
+
+  @media (max-width: 671px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-03;
+  }
+}
+
+.actionRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  flex: 1;
+  min-width: 0;
+}
+
+.actionRowControl {
+  flex-shrink: 0;
+}
+
+// ── FieldRow (label → desc → full-width control) ────────────────
+.fieldRow {
+  padding: $spacing-04 0;
+}
+
+.fieldRowHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+// ── DangerRow ───────────────────────────────────────────────────
+.dangerRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-06;
+  padding: $spacing-04 0;
+
+  @media (max-width: 671px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-03;
+  }
+}

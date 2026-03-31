@@ -14,7 +14,8 @@ const DEFAULT_EXAM_MONITORING_DISPLAY_CONFIRM_COUNT = 2;
 const DEFAULT_EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS = 2500;
 const DEFAULT_EXAM_MONITORING_RECOVERY_GRACE_MS = 3000;
 const DEFAULT_EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS = 3000;
-const DEFAULT_SCREEN_SHARE_RECOVERY_GRACE_MS = 10_000;
+const DEFAULT_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
+const DEFAULT_WEBCAM_RECOVERY_GRACE_MS = 10_000;
 
 export const EXAM_MONITORING_BLUR_DEBOUNCE_MS = DEFAULT_EXAM_MONITORING_BLUR_DEBOUNCE_MS;
 export const EXAM_MONITORING_FOCUS_CHECK_DELAY_MS = DEFAULT_EXAM_MONITORING_FOCUS_CHECK_DELAY_MS;
@@ -37,6 +38,7 @@ export let EXAM_MONITORING_RECOVERY_GRACE_MS = DEFAULT_EXAM_MONITORING_RECOVERY_
 export let EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS =
   DEFAULT_EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS;
 export let SCREEN_SHARE_RECOVERY_GRACE_MS = DEFAULT_SCREEN_SHARE_RECOVERY_GRACE_MS;
+export let WEBCAM_RECOVERY_GRACE_MS = DEFAULT_WEBCAM_RECOVERY_GRACE_MS;
 
 export let EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS =
   EXAM_MONITORING_BLUR_DEBOUNCE_MS +
@@ -53,6 +55,7 @@ export interface ExamMonitoringPolicyOverrides {
   monitoringRecoveryGraceMs?: number;
   mouseLeaveCooldownMs?: number;
   screenShareRecoveryGraceMs?: number;
+  webcamRecoveryGraceMs?: number;
   multiDisplayCheckIntervalMs?: number;
   multiDisplayReportCooldownMs?: number;
 }
@@ -70,6 +73,9 @@ export function applyExamMonitoringPolicyOverrides(
 
   const screenShareRecovery = positiveNumber(overrides.screenShareRecoveryGraceMs);
   if (screenShareRecovery != null) SCREEN_SHARE_RECOVERY_GRACE_MS = screenShareRecovery;
+
+  const webcamRecovery = positiveNumber(overrides.webcamRecoveryGraceMs);
+  if (webcamRecovery != null) WEBCAM_RECOVERY_GRACE_MS = webcamRecovery;
 
   const multiDisplayInterval = positiveNumber(overrides.multiDisplayCheckIntervalMs);
   if (multiDisplayInterval != null) {

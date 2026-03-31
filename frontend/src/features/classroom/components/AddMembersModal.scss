@@ -1,0 +1,48 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.classroom-add-members__actions-row {
+  margin-top: layout.$spacing-04;
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+}
+
+.classroom-add-members__hidden-input {
+  display: none;
+}
+
+.classroom-add-members__csv-name {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.classroom-add-members__hint {
+  margin-top: layout.$spacing-04;
+  margin-bottom: 0;
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.classroom-add-members__hint--tight {
+  margin-top: 0;
+}
+
+.classroom-add-members__preview {
+  margin-top: layout.$spacing-04;
+  display: grid;
+  gap: layout.$spacing-02;
+}
+
+.classroom-add-members__preview-tags {
+  display: flex;
+  gap: layout.$spacing-02;
+  flex-wrap: wrap;
+}
+
+.classroom-add-members__result {
+  margin-top: layout.$spacing-04;
+  display: grid;
+  gap: layout.$spacing-02;
+}

@@ -15,6 +15,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: oj_postgres_dev
+    command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
       POSTGRES_DB: ${DB_NAME:-online_judge}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -36,10 +37,52 @@ services:
       timeout: 5s
       retries: 5
 
+  # PgBouncer – connection pooler (session mode, compatible with SELECT FOR UPDATE)
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    container_name: oj_pgbouncer_dev
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-online_judge}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      AUTH_TYPE: plain
+      POOL_MODE: session
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "30"
+      RESERVE_POOL_SIZE: "10"
+      RESERVE_POOL_TIMEOUT: "3"
+      MAX_DB_CONNECTIONS: "80"
+      QUERY_WAIT_TIMEOUT: "120"
+      SERVER_IDLE_TIMEOUT: "600"
+      CLIENT_IDLE_TIMEOUT: "0"
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      LOG_CONNECTIONS: "0"
+      LOG_DISCONNECTIONS: "0"
+      LOG_STATS: "0"
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - oj_network_dev
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 5432 -U ${DB_USER:-postgres}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Redis for Celery
   redis:
     image: redis:7-alpine
     container_name: oj_redis_dev
+    command: redis-server --save "" --appendonly no
     ports:
       - "6379:6379"
     networks:
@@ -118,6 +161,8 @@ services:
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
@@ -130,6 +175,8 @@ services:
       judge-image:
         condition: service_started
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -152,6 +199,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -162,6 +211,8 @@ services:
       judge-image:
         condition: service_started
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -182,6 +233,8 @@ services:
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
@@ -190,6 +243,8 @@ services:
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -207,8 +262,13 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    environment:
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -228,6 +288,29 @@ services:
       - "5173:5173"
     env_file:
       - .env
+    environment:
+      - VITE_STORYBOOK_TARGET=http://storybook:6006
+    depends_on:
+      - backend
+      - storybook
+    networks:
+      - oj_network_dev
+
+  storybook:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: oj_storybook_dev
+    command: npm run storybook -- --host 0.0.0.0 --ci
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "6006:6006"
+    env_file:
+      - .env
+    environment:
+      - VITE_API_TARGET=http://backend:8000
     depends_on:
       - backend
     networks:

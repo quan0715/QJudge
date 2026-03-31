@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { debounce } from "@/shared/utils/debounce";
 import { patchProblem } from "@/infrastructure/api/repositories/problem.repository";
 import type { ProblemUpsertPayload } from "@/core/entities/problem.entity";
+import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
 
 /**
  * Field save state
@@ -293,7 +294,6 @@ const FIELD_NAME_MAP: Record<string, string> = {
   difficulty: "difficulty",
   timeLimit: "time_limit",
   memoryLimit: "memory_limit",
-  visibility: "visibility",
   existingTagIds: "existing_tag_ids",
   // Translation fields - need special handling
   translationZh: "translations",
@@ -407,11 +407,13 @@ function buildPatchPayload(
   // Handle language configs - need to convert field names
   if (parts[0] === "languageConfigs") {
     const languageConfigs = (formValues?.languageConfigs as Array<Record<string, unknown>>) || [];
-    const convertedConfigs = languageConfigs.map((lc) => ({
-      language: lc.language || "",
-      is_enabled: lc.isEnabled ?? true,
-      template_code: lc.templateCode || "",
-    }));
+    const convertedConfigs = languageConfigs
+      .map((lc, index) => ({
+        language: String(lc.language || LANGUAGE_OPTIONS[index]?.id || "").trim(),
+        is_enabled: lc.isEnabled ?? true,
+        template_code: lc.templateCode || "",
+      }))
+      .filter((lc) => Boolean(lc.language));
     return { language_configs: convertedConfigs } as unknown as Partial<ProblemUpsertPayload>;
   }
 

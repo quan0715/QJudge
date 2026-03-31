@@ -1,0 +1,24 @@
+charming_mcnulty|Up 2 weeks|minio/mc:latest
+hopeful_bhaskara|Up 2 weeks|minio/mc:latest
+oj_ai_service|Up 13 hours (healthy)|qjudge-ai-service
+oj_backend|Up About an hour|qjudge-backend
+oj_cadvisor|Up 13 days (healthy)|gcr.io/cadvisor/cadvisor:latest
+oj_celery_beat|Up 13 hours|qjudge-celery-beat
+oj_celery_high|Up 13 hours|qjudge-celery-high
+oj_celery_video|Up 13 hours|qjudge-celery-video
+oj_celery|Up 13 hours|qjudge-celery
+oj_cloudflared|Up 2 weeks|cloudflare/cloudflared:latest
+oj_frontend|Up 13 hours|qjudge-frontend
+oj_grafana|Up 13 days|grafana/grafana:latest
+oj_minio|Up 13 days|minio/minio:latest
+oj_pg_exporter|Up 13 days|prometheuscommunity/postgres-exporter:latest
+oj_postgres|Up 3 hours (healthy)|postgres:15-alpine
+oj_prometheus|Up 13 days|prom/prometheus:latest
+oj_redis_exporter|Up 13 days|oliver006/redis_exporter:latest
+oj_redis|Up 2 weeks (healthy)|redis:7-alpine
+quan_studio_cloudflared_prod|Up 5 weeks|cloudflare/cloudflared:2024.12.2
+quan_studio_next_prod|Up 4 weeks (healthy)|quan-studio-next:prod
+quan_studio_postgres_prod|Up 4 weeks (healthy)|postgres:16-alpine
+quan_studio_worker_prod|Up 4 weeks|quan-studio-next:prod
+thirsty_pasteur|Up 2 weeks|minio/mc:latest
+xenodochial_visvesvaraya|Up 2 weeks|minio/mc:latest

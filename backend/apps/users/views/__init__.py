@@ -15,11 +15,17 @@ from .profile import (
     CurrentUserView,
     UserStatsView,
     UserPreferencesView,
+    UserAvatarUploadView,
     ChangePasswordView,
     ForgotPasswordView,
     ResetPasswordView,
 )
 from .admin import UserSearchView, UserRoleUpdateView
+from .teacher_activation import (
+    TeacherActivationInviteConsumeView,
+    TeacherActivationInviteIssueView,
+    TeacherActivationInvitePreviewView,
+)
 from .api_key import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
 from ._impl import LoginRecordsView, LogoutOtherDevicesView
 
@@ -38,8 +44,12 @@ __all__ = [
     "CurrentUserView",
     "UserSearchView",
     "UserRoleUpdateView",
+    "TeacherActivationInviteIssueView",
+    "TeacherActivationInvitePreviewView",
+    "TeacherActivationInviteConsumeView",
     "UserStatsView",
     "UserPreferencesView",
+    "UserAvatarUploadView",
     "ChangePasswordView",
     "ForgotPasswordView",
     "ResetPasswordView",

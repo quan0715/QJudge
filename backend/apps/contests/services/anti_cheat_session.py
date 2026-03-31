@@ -269,7 +269,29 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
     allowed = cache.get(_exam_allowed_jti_key(user_id))
     if allowed is None:
         return True  # no restriction
-    return allowed == jti
+    if allowed == jti:
+        return True
+
+    # Failsafe: if the user is no longer in an active exam lock state,
+    # treat this pin as stale and release it to avoid login redirect loops.
+    now = timezone.now()
+    has_active_exam_lock = ContestParticipant.objects.filter(
+        user_id=user_id,
+        contest__status="published",
+        contest__start_time__lte=now,
+        contest__end_time__gte=now,
+        exam_status__in=[
+            ExamStatus.IN_PROGRESS,
+            ExamStatus.PAUSED,
+            ExamStatus.LOCKED,
+            ExamStatus.LOCKED_TAKEOVER,
+        ],
+    ).exists()
+    if not has_active_exam_lock:
+        clear_exam_allowed_jti(user_id)
+        return True
+
+    return False
 
 
 def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "") -> int:

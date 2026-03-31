@@ -1,0 +1,148 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.profile-panel {
+  // Identity: avatar + display name side by side
+  &__identity {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-05;
+    margin-bottom: $spacing-06;
+
+    // Shrink avatar trigger
+    :global(.image-edit-trigger),
+    :global(.image-edit-dialog__trigger) {
+      width: 56px;
+      height: 56px;
+      min-width: 56px;
+      font-size: 0.625rem;
+
+      img {
+        width: 56px;
+        height: 56px;
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  &__identity-fields {
+    flex: 1;
+    min-width: 0;
+    max-width: 320px;
+    align-self: center;
+  }
+
+  // Account fields (row table)
+  &__account-fields {
+    margin-bottom: $spacing-04;
+  }
+
+  // Shared option row: label left, button right
+  &__option-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-03 0;
+  }
+
+  &__option-desc {
+    @include type-style("helper-text-01");
+    color: $text-helper;
+  }
+
+  // Subscription
+  &__sub-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+    margin-bottom: $spacing-02;
+  }
+
+  &__sub-tier {
+    @include type-style("heading-03");
+    font-weight: 300;
+  }
+
+  &__sub-desc {
+    @include type-style("helper-text-01");
+    color: $text-helper;
+    margin: 0 0 $spacing-04;
+  }
+
+  // Device table header
+  &__device-table-head {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    padding: $spacing-03 0;
+    border-bottom: 1px solid $border-strong-01;
+    @include type-style("label-01");
+    color: $text-secondary;
+  }
+
+  // Device list
+  &__device-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__device-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    align-items: center;
+    padding: $spacing-04 0;
+    border-bottom: 1px solid $border-subtle-02;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__device-col {
+    @include type-style("body-compact-01");
+
+    &--name {
+      display: flex;
+      align-items: center;
+      gap: $spacing-03;
+    }
+
+    &--time {
+      color: $text-secondary;
+    }
+
+    &--ip {
+      font-family: monospace;
+      font-size: 0.8125rem;
+      color: $text-secondary;
+    }
+  }
+
+  &__device-icon {
+    color: $icon-secondary;
+    flex-shrink: 0;
+  }
+
+  &__device-name {
+    @include type-style("body-compact-01");
+    font-weight: 500;
+    display: block;
+  }
+
+  &__device-current {
+    @include type-style("helper-text-01");
+    color: $link-primary;
+    display: block;
+  }
+
+  &__empty {
+    @include type-style("body-compact-01");
+    color: $text-helper;
+    margin: 0;
+  }
+}

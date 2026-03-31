@@ -8,8 +8,10 @@ export * from "./contest.repository";
 export * from "./discussion.repository";
 export * from "./auth.repository";
 export * from "./announcement.repository";
-export * from "./database.repository";
 export * from "./chatbot.repository";
+export * from "./markdown.repository";
+export * from "./questionBank.repository";
+export * from "./subscription.repository";
 
 // Classroom Repository (exclude announcement names that conflict with global announcement.repository)
 export {
@@ -23,6 +25,13 @@ export {
   removeMember,
   regenerateCode,
   bindContest,
+  getClassroomContests,
+  createClassroomContest,
+  getClassroomLabs,
+  createClassroomLab,
+  getClassroomLab,
+  acceptClassroomLab,
+  getClassroomLabSolve,
   getAnnouncements as getClassroomAnnouncements,
   createAnnouncement as createClassroomAnnouncement,
   updateAnnouncement as updateClassroomAnnouncement,
@@ -46,5 +55,5 @@ export { default as contestRepository } from "./contest.repository";
 export { default as discussionRepository } from "./discussion.repository";
 export { default as authRepository } from "./auth.repository";
 export { default as announcementRepository } from "./announcement.repository";
-export { databaseService } from "./database.repository";
 export { default as chatbotRepository } from "./chatbot.repository";
+export { default as questionBankRepository } from "./questionBank.repository";

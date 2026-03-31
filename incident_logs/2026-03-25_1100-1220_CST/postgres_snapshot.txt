@@ -1,0 +1,10 @@
+ max_connections 
+-----------------
+ 500
+(1 row)
+
+ current_connections 
+---------------------
+                  15
+(1 row)
+

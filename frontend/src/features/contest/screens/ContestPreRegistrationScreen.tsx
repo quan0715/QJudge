@@ -11,7 +11,7 @@ import {
 } from "@/core/entities/contest.entity";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
+
 import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -202,59 +202,57 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       />
 
       {/* Content Section */}
-      <SurfaceSection maxWidth="1056px" style={{ minHeight: "400px", flex: 1 }}>
-        <div className={styles.surfaceContent}>
-          <div className={styles.notificationsStack}>
-            {contest.cheatDetectionEnabled && (
-              <InlineNotification
-                kind="warning"
-                title={t("overview.examModeWarning", "作弊檢查已啟用")}
-                subtitle={t(
-                  "overview.examModeDesc",
-                  "此競賽已啟用作弊檢查。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
-                )}
-                lowContrast
-                hideCloseButton
-              />
-            )}
+      <div className={styles.surfaceContent} style={{ maxWidth: "1056px", margin: "0 auto", padding: "1rem" }}>
+        <div className={styles.notificationsStack}>
+          {contest.cheatDetectionEnabled && (
+            <InlineNotification
+              kind="warning"
+              title={t("overview.examModeWarning", "作弊檢查已啟用")}
+              subtitle={t(
+                "overview.examModeDesc",
+                "此競賽已啟用作弊檢查。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
+              )}
+              lowContrast
+              hideCloseButton
+            />
+          )}
 
-            {contest.visibility === "private" && !contest.hasJoined && (
-              <InlineNotification
-                kind="info"
-                title={t("private", "私有")}
-                subtitle={t(
-                  "hero.privateContestHint",
-                  "此競賽為私有競賽，報名時需要輸入加入密碼。"
-                )}
-                lowContrast
-                hideCloseButton
-              />
-            )}
+          {contest.visibility === "private" && !contest.hasJoined && (
+            <InlineNotification
+              kind="info"
+              title={t("private", "私有")}
+              subtitle={t(
+                "hero.privateContestHint",
+                "此競賽為私有競賽，報名時需要輸入加入密碼。"
+              )}
+              lowContrast
+              hideCloseButton
+            />
+          )}
 
-            {contest.anonymousModeEnabled && (
-              <InlineNotification
-                kind="info"
-                title={t("preRegistration.anonymousTitle", "匿名模式")}
-                subtitle={t(
-                  "hero.anonymousModeHint",
-                  "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。"
-                )}
-                lowContrast
-                hideCloseButton
-              />
-            )}
-          </div>
-
-          {contest.rules && (
-            <section className={styles.rulesSection}>
-              <h4 className={styles.rulesTitle}>
-                {t("overview.contestRules", "競賽規則")}
-              </h4>
-              <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
-            </section>
+          {contest.anonymousModeEnabled && (
+            <InlineNotification
+              kind="info"
+              title={t("preRegistration.anonymousTitle", "匿名模式")}
+              subtitle={t(
+                "hero.anonymousModeHint",
+                "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。"
+              )}
+              lowContrast
+              hideCloseButton
+            />
           )}
         </div>
-      </SurfaceSection>
+
+        {contest.rules && (
+          <section className={styles.rulesSection}>
+            <h4 className={styles.rulesTitle}>
+              {t("overview.contestRules", "競賽規則")}
+            </h4>
+            <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
+          </section>
+        )}
+      </div>
 
       {/* Registration Modal */}
       <ContestRegistrationModal

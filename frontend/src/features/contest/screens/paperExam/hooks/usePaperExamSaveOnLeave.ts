@@ -96,12 +96,13 @@ export function usePaperExamSaveOnLeave({
         const value = answersRef.current[questionId];
         if (value === undefined) continue;
         const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
-        // Use sendBeacon for reliability on page close
-        const url = `/api/contests/${cId}/exam-answers/${questionId}/`;
-        const blob = new Blob([JSON.stringify(payload)], {
-          type: "application/json",
-        });
-        navigator.sendBeacon(url, blob);
+        // Keep endpoint aligned with submitExamAnswer API contract.
+        const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
+        const body = {
+          question_id: questionId,
+          answer: payload,
+        };
+        navigator.sendBeacon(url, new Blob([JSON.stringify(body)], { type: "application/json" }));
       }
       dirtySetRef.current.clear();
 
@@ -118,11 +119,12 @@ export function usePaperExamSaveOnLeave({
           const value = answersRef.current[questionId];
           if (value === undefined) continue;
           const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
-          const url = `/api/contests/${cId}/exam-answers/${questionId}/`;
-          const blob = new Blob([JSON.stringify(payload)], {
-            type: "application/json",
-          });
-          navigator.sendBeacon(url, blob);
+          const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
+          const body = {
+            question_id: questionId,
+            answer: payload,
+          };
+          navigator.sendBeacon(url, new Blob([JSON.stringify(body)], { type: "application/json" }));
         }
         dirtySetRef.current.clear();
       }

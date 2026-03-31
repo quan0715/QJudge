@@ -43,7 +43,6 @@ describe("Problem Mapper", () => {
     it("should map problem DTO with full data", () => {
       const dto = {
         id: 123,
-        display_id: "P001",
         title: "A+B Problem",
         difficulty: "easy",
         acceptance_rate: 85.5,
@@ -54,7 +53,6 @@ describe("Problem Mapper", () => {
           { id: 1, name: "Math", slug: "math" },
           { id: 2, name: "Basic", slug: "basic" },
         ],
-        visibility: "public",
         is_solved: false,
         created_at: "2024-01-15T10:00:00Z",
       };
@@ -62,7 +60,6 @@ describe("Problem Mapper", () => {
       const result = mapProblemDto(dto);
 
       expect(result.id).toBe("123");
-      expect(result.displayId).toBe("P001");
       expect(result.title).toBe("A+B Problem");
       expect(result.difficulty).toBe("easy");
       expect(result.acceptanceRate).toBe(85.5);
@@ -71,7 +68,6 @@ describe("Problem Mapper", () => {
       expect(result.createdBy).toBe("admin");
       expect(result.tags).toHaveLength(2);
       expect(result.tags[0].name).toBe("Math");
-      expect(result.visibility).toBe("public");
       expect(result.isSolved).toBe(false);
       expect(result.createdAt).toBe("2024-01-15T10:00:00Z");
     });
@@ -90,51 +86,24 @@ describe("Problem Mapper", () => {
       expect(result.submissionCount).toBe(0);
       expect(result.acceptedCount).toBe(0);
       expect(result.tags).toEqual([]);
-      expect(result.visibility).toBe("private");
       expect(result.isSolved).toBe(false);
-      expect(result.createdInContest).toBeNull();
     });
 
-    it("should handle created_in_contest field", () => {
-      const dto = {
+    it("should convert boolean solved field correctly", () => {
+      const dtoSolved = {
         id: 1,
-        created_in_contest: {
-          id: 10,
-          title: "Weekly Contest #1",
-          start_time: "2024-01-15T10:00:00Z",
-          end_time: "2024-01-15T12:00:00Z",
-        },
-      };
-
-      const result = mapProblemDto(dto);
-
-      expect(result.createdInContest).not.toBeNull();
-      expect(result.createdInContest?.id).toBe("10");
-      expect(result.createdInContest?.title).toBe("Weekly Contest #1");
-      expect(result.createdInContest?.startTime).toBe("2024-01-15T10:00:00Z");
-      expect(result.createdInContest?.endTime).toBe("2024-01-15T12:00:00Z");
-    });
-
-    it("should convert boolean and visibility fields correctly", () => {
-      const dtoPublic = {
-        id: 1,
-        visibility: "public",
         is_solved: true,
       };
-      const dtoPrivate = {
+      const dtoUnsolved = {
         id: 1,
-        visibility: "private",
         is_solved: false,
       };
 
-      const resultPublic = mapProblemDto(dtoPublic);
-      const resultPrivate = mapProblemDto(dtoPrivate);
+      const resultSolved = mapProblemDto(dtoSolved);
+      const resultUnsolved = mapProblemDto(dtoUnsolved);
 
-      expect(resultPublic.visibility).toBe("public");
-      expect(resultPublic.isSolved).toBe(true);
-
-      expect(resultPrivate.visibility).toBe("private");
-      expect(resultPrivate.isSolved).toBe(false);
+      expect(resultSolved.isSolved).toBe(true);
+      expect(resultUnsolved.isSolved).toBe(false);
     });
   });
 
@@ -228,7 +197,6 @@ describe("Problem Mapper", () => {
     it("should include base problem fields", () => {
       const dto = {
         id: 123,
-        display_id: "P001",
         title: "Test",
         difficulty: "hard",
         tags: [{ id: 1, name: "DP", slug: "dp" }],
@@ -238,7 +206,6 @@ describe("Problem Mapper", () => {
       const result = mapProblemDetailDto(dto);
 
       expect(result.id).toBe("123");
-      expect(result.displayId).toBe("P001");
       expect(result.difficulty).toBe("hard");
       expect(result.tags).toHaveLength(1);
       expect(result.isSolved).toBe(true);

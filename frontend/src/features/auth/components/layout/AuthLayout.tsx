@@ -70,6 +70,12 @@ const AuthLayout = () => {
         backTo: '/login',
       };
     }
+    if (path === '/onboarding') {
+      return {
+        title: "完成基本設定",
+        subtitle: "先完成個人偏好，之後可在設定中隨時調整。",
+      };
+    }
     return null;
   }, [location.pathname, t]);
 

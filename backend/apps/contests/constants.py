@@ -30,6 +30,13 @@ EVENT_PRIORITY: dict[str, int] = {
     'viewport_restored': 2,
     'exit_fullscreen_triggered': 2,
     'mouse_leave_triggered': 2,
+    'tab_hidden_triggered': 2,
+    'tab_hidden_restored': 2,
+    'window_blur_triggered': 2,
+    'window_blur_restored': 2,
+    'multi_display_triggered': 2,
+    'multi_display_restored': 2,
+    'display_api_degraded': 2,
     # P3: Lifecycle / management
     'exam_entered': 3,
     'exam_submit_initiated': 3,

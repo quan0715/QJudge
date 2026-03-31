@@ -4,6 +4,38 @@ info:
   version: 1.0.0
   description: API documentation for Online Judge Platform
 paths:
+  /api/v1/ai/internal/code/run:
+    post:
+      operationId: v1_ai_internal_code_run_create
+      description: |-
+        POST /api/v1/ai/internal/code/run
+
+        Execute code against test cases in a sandbox.
+        Returns per-case results and a summary.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeRunRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CodeRunRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CodeRunRequestRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeRunRequest'
+          description: ''
   /api/v1/ai/internal/pending-actions/{action_id}:
     get:
       operationId: v1_ai_internal_pending_actions_retrieve
@@ -104,7 +136,30 @@ paths:
       - in: path
         name: problem_id
         schema:
-          type: integer
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ai/internal/problems/{problem_id}/test-cases:
+    get:
+      operationId: v1_ai_internal_problems_test_cases_retrieve
+      description: |-
+        GET /api/v1/ai/internal/problems/{id}/test-cases
+
+        Returns ALL test cases (sample + hidden) for a problem.
+      parameters:
+      - in: path
+        name: problem_id
+        schema:
+          type: string
+          format: uuid
         required: true
       tags:
       - v1
@@ -670,6 +725,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserRoleUpdate'
           description: ''
+  /api/v1/auth/{provider}/callback:
+    post:
+      operationId: v1_auth_callback_create
+      description: POST /api/v1/auth/<provider>/callback → exchange code, return JWT.
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthCallbackRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OAuthCallbackRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OAuthCallbackRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthCallback'
+          description: ''
+  /api/v1/auth/{provider}/login:
+    get:
+      operationId: v1_auth_login_retrieve
+      description: GET /api/v1/auth/<provider>/login → return authorization URL.
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/v1/auth/change-password:
     post:
       operationId: v1_auth_change_password_create
@@ -702,11 +811,7 @@ paths:
   /api/v1/auth/dev/token:
     post:
       operationId: v1_auth_dev_token_create
-      description: |-
-        Development-only helper to generate JWT tokens for a test user.
-
-        POST /api/v1/auth/dev/token
-        Body: { role: "student"|"teacher"|"admin", email?, username?, password? }
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
       security:
@@ -719,15 +824,7 @@ paths:
   /api/v1/auth/email/login:
     post:
       operationId: v1_auth_email_login_create
-      description: |-
-        User login with email/password.
-        Rate limited to 10 requests per minute per IP.
-
-        POST /api/v1/auth/email/login
-
-        Response includes:
-        - JWT tokens in HttpOnly cookies (access_token, refresh_token)
-        - CSRF token in a readable cookie (csrftoken) for subsequent requests
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
       requestBody:
@@ -756,11 +853,7 @@ paths:
   /api/v1/auth/email/register:
     post:
       operationId: v1_auth_email_register_create
-      description: |-
-        User registration with email/password.
-        Rate limited to 5 requests per minute per IP.
-
-        POST /api/v1/auth/email/register
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
       requestBody:
@@ -786,14 +879,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Register'
           description: ''
+  /api/v1/auth/forgot-password:
+    post:
+      operationId: v1_auth_forgot_password_create
+      description: |-
+        Request a password reset token.
+
+        POST /api/v1/auth/forgot-password
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPassword'
+          description: ''
   /api/v1/auth/logout:
     post:
       operationId: v1_auth_logout_create
-      description: |-
-        Logout user by blacklisting their refresh token and clearing cookies.
-        This invalidates both access and refresh tokens.
-
-        POST /api/v1/auth/logout
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
       security:
@@ -937,6 +1058,47 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/auth/me/avatar/upload:
+    post:
+      operationId: v1_auth_me_avatar_upload_create
+      description: Upload current user's avatar and return public URL.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/me/login-records:
+    get:
+      operationId: v1_auth_me_login_records_retrieve
+      description: GET /api/v1/auth/me/login-records — list recent login records.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginRecord'
+          description: ''
+  /api/v1/auth/me/logout-other-devices:
+    post:
+      operationId: v1_auth_me_logout_other_devices_create
+      description: POST /api/v1/auth/me/logout-other-devices — blacklist all other
+        tokens.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/auth/me/preferences:
     get:
       operationId: v1_auth_me_preferences_retrieve
@@ -993,69 +1155,10 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/auth/nycu/callback:
-    post:
-      operationId: v1_auth_nycu_callback_create
-      description: |-
-        Handle NYCU OAuth callback.
-
-        POST /api/v1/auth/nycu-oauth/callback
-
-        ensure_csrf_cookie ensures the response includes CSRF token for subsequent requests.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OAuthCallbackRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/OAuthCallbackRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/OAuthCallbackRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OAuthCallback'
-          description: ''
-  /api/v1/auth/nycu/login:
-    get:
-      operationId: v1_auth_nycu_login_retrieve
-      description: |-
-        Initiate NYCU OAuth login.
-
-        GET /api/v1/auth/nycu/login
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/v1/auth/refresh:
     post:
       operationId: v1_auth_refresh_create
-      description: |-
-        Refresh access token.
-
-        POST /api/v1/auth/refresh
-
-        Token can be provided via:
-        1. HttpOnly cookie (preferred, more secure)
-        2. Request body with 'refresh' field (for API clients)
-
-        Note: ensure_csrf_cookie ensures updated CSRF token is provided.
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
       requestBody:
@@ -1081,6 +1184,67 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenRefresh'
           description: ''
+  /api/v1/auth/reset-password:
+    post:
+      operationId: v1_auth_reset_password_create
+      description: |-
+        Reset password by token.
+
+        POST /api/v1/auth/reset-password
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPassword'
+          description: ''
+  /api/v1/auth/resolve-conflict:
+    post:
+      operationId: v1_auth_resolve_conflict_create
+      description: APIView with serializer support for schema generation.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveConflictRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResolveConflictRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResolveConflictRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveConflict'
+          description: ''
   /api/v1/auth/search:
     get:
       operationId: v1_auth_search_retrieve
@@ -1098,6 +1262,833 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/auth/teacher-activations:
+    post:
+      operationId: v1_auth_teacher_activations_create
+      description: Admin-only endpoint for issuing teacher activation links.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/teacher-activations/consume:
+    post:
+      operationId: v1_auth_teacher_activations_consume_create
+      description: Authenticated endpoint that upgrades a matching user to teacher.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeacherActivationConsumeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeacherActivationConsumeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeacherActivationConsumeRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherActivationConsume'
+          description: ''
+  /api/v1/auth/teacher-activations/preview:
+    get:
+      operationId: v1_auth_teacher_activations_preview_retrieve
+      description: Public endpoint for checking invite status before login/consume.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/classrooms/:
+    get:
+      operationId: v1_classrooms_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClassroomListList'
+          description: ''
+    post:
+      operationId: v1_classrooms_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomCreateUpdate'
+          description: ''
+  /api/v1/classrooms/{id}/:
+    get:
+      operationId: v1_classrooms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+    put:
+      operationId: v1_classrooms_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomCreateUpdateRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomCreateUpdate'
+          description: ''
+    patch:
+      operationId: v1_classrooms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomCreateUpdateRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomCreateUpdate'
+          description: ''
+    delete:
+      operationId: v1_classrooms_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/classrooms/{id}/add_members/:
+    post:
+      operationId: v1_classrooms_add_members_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/announcements/:
+    get:
+      operationId: v1_classrooms_announcements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/announcements/{ann_id}/:
+    patch:
+      operationId: v1_classrooms_announcements_partial_update
+      parameters:
+      - in: path
+        name: ann_id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/announcements/{ann_id}/delete/:
+    delete:
+      operationId: v1_classrooms_announcements_delete_destroy
+      parameters:
+      - in: path
+        name: ann_id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/classrooms/{id}/announcements/create/:
+    post:
+      operationId: v1_classrooms_announcements_create_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/bind_contest/:
+    post:
+      operationId: v1_classrooms_bind_contest_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/contests/:
+    get:
+      operationId: v1_classrooms_contests_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+    post:
+      operationId: v1_classrooms_contests_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/labs/:
+    get:
+      operationId: v1_classrooms_labs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+    post:
+      operationId: v1_classrooms_labs_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/labs/{lab_id}/:
+    get:
+      operationId: v1_classrooms_labs_retrieve_2
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: lab_id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/labs/{lab_id}/accept/:
+    post:
+      operationId: v1_classrooms_labs_accept_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: lab_id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/labs/{lab_id}/solve/:
+    get:
+      operationId: v1_classrooms_labs_solve_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: lab_id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/members/:
+    get:
+      operationId: v1_classrooms_members_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/regenerate_code/:
+    post:
+      operationId: v1_classrooms_regenerate_code_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/remove_member/:
+    post:
+      operationId: v1_classrooms_remove_member_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/unbind_contest/:
+    post:
+      operationId: v1_classrooms_unbind_contest_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/update_member_role/:
+    post:
+      operationId: v1_classrooms_update_member_role_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/upload_cover/:
+    post:
+      operationId: v1_classrooms_upload_cover_create
+      description: Upload a cover image and store in S3, saving URL to cover_url.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/join/:
+    post:
+      operationId: v1_classrooms_join_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
   /api/v1/contests/:
     get:
       operationId: v1_contests_list
@@ -1253,7 +2244,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       tags:
@@ -1278,7 +2270,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       tags:
@@ -1313,7 +2306,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       - in: path
@@ -1342,7 +2336,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       - in: path
@@ -1382,7 +2377,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       - in: path
@@ -1421,7 +2417,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       - in: path
@@ -1662,10 +2659,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/Clarification'
           description: ''
-  /api/v1/contests/{contest_pk}/exam-questions/:
+  /api/v1/contests/{contest_pk}/exam-answers/{id}/grade/:
+    post:
+      operationId: v1_contests_exam_answers_grade_create
+      description: Grade a single answer (TA/admin only).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-answers/all-answers/:
     get:
-      operationId: v1_contests_exam_questions_list
-      description: CRUD for exam paper questions in contest admin backend.
+      operationId: v1_contests_exam_answers_all_answers_retrieve
+      description: List all answers for all students (TA/admin only).
       parameters:
       - in: path
         name: contest_pk
@@ -1679,16 +2699,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ExamQuestion'
-          description: ''
-    post:
-      operationId: v1_contests_exam_questions_create
-      description: CRUD for exam paper questions in contest admin backend.
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-answers/my-answers/:
+    get:
+      operationId: v1_contests_exam_answers_my_answers_retrieve
+      description: Get all answers for the current student in this contest.
       parameters:
       - in: path
         name: contest_pk
@@ -1697,32 +2712,96 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-answers/results/:
+    get:
+      operationId: v1_contests_exam_answers_results_retrieve
+      description: Get graded results (only when results are published).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
         required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-answers/submit/:
+    post:
+      operationId: v1_contests_exam_answers_submit_create
+      description: Submit or update a single answer (auto-save).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/:
+    get:
+      operationId: v1_contests_exam_questions_retrieve
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_contests_exam_questions_create
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamQuestion'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam-questions/{id}/:
     get:
-      operationId: v1_contests_exam_questions_retrieve
-      description: CRUD for exam paper questions in contest admin backend.
+      operationId: v1_contests_exam_questions_retrieve_2
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
       parameters:
       - in: path
         name: contest_pk
@@ -1741,14 +2820,13 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamQuestion'
-          description: ''
+          description: No response body
     put:
       operationId: v1_contests_exam_questions_update
-      description: CRUD for exam paper questions in contest admin backend.
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
       parameters:
       - in: path
         name: contest_pk
@@ -1762,31 +2840,18 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamQuestion'
-          description: ''
+          description: No response body
     patch:
       operationId: v1_contests_exam_questions_partial_update
-      description: CRUD for exam paper questions in contest admin backend.
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
       parameters:
       - in: path
         name: contest_pk
@@ -1800,30 +2865,18 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedExamQuestionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedExamQuestionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedExamQuestionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamQuestion'
-          description: ''
+          description: No response body
     delete:
       operationId: v1_contests_exam_questions_destroy
-      description: CRUD for exam paper questions in contest admin backend.
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
       parameters:
       - in: path
         name: contest_pk
@@ -1843,10 +2896,112 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/batch-import/:
+    post:
+      operationId: v1_contests_exam_questions_batch_import_create
+      description: Delete all existing questions and create new ones in a single transaction.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/export-paper/:
+    get:
+      operationId: v1_contests_exam_questions_export_paper_retrieve
+      description: |-
+        Export formal paper-exam PDF from backend.
+        mode=question | answer
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/import-from-bank/:
+    post:
+      operationId: v1_contests_exam_questions_import_from_bank_create
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/contests/{contest_pk}/exam-questions/reorder/:
     post:
       operationId: v1_contests_exam_questions_reorder_create
-      description: CRUD for exam paper questions in contest admin backend.
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/active-sessions/:
+    get:
+      operationId: v1_contests_exam_active_sessions_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/active-sessions/clear/:
+    post:
+      operationId: v1_contests_exam_active_sessions_clear_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
         name: contest_pk
@@ -1859,13 +3014,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
+              $ref: '#/components/schemas/ExamEventCreateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
+              $ref: '#/components/schemas/ExamEventCreateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ExamQuestionRequest'
+              $ref: '#/components/schemas/ExamEventCreateRequest'
         required: true
       security:
       - cookieJwtAuth: []
@@ -1875,7 +3030,29 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExamQuestion'
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/anticheat-urls/:
+    get:
+      operationId: v1_contests_exam_anticheat_urls_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
           description: ''
   /api/v1/contests/{contest_pk}/exam/end/:
     post:
@@ -1974,10 +3151,258 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExamEventCreate'
           description: ''
+  /api/v1/contests/{contest_pk}/exam/screenshots/:
+    get:
+      operationId: v1_contests_exam_screenshots_retrieve
+      description: |-
+        Return presigned GET URLs for raw screenshot frames matching filters.
+
+        Query params:
+          - user_id (required): participant user id
+          - ts_from: lower bound timestamp in ms (inclusive)
+          - ts_to: upper bound timestamp in ms (inclusive)
+          - upload_session_id: specific session (default: all sessions)
+          - source_module: "screen_share" or "webcam" (default: all modules)
+          - limit: max frames to return (default 20, max 50)
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
   /api/v1/contests/{contest_pk}/exam/start/:
     post:
       operationId: v1_contests_exam_start_create
       description: Signal that user is starting the exam (entering full screen).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/takeover-approve/:
+    post:
+      operationId: v1_contests_exam_takeover_approve_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/:
+    get:
+      operationId: v1_contests_exam_videos_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/{video_id}/download-url/:
+    get:
+      operationId: v1_contests_exam_videos_download_url_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: video_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/{video_id}/flag/:
+    patch:
+      operationId: v1_contests_exam_videos_flag_partial_update
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: video_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedExamEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedExamEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedExamEventCreateRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/{video_id}/play-url/:
+    get:
+      operationId: v1_contests_exam_videos_play_url_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: video_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/compile/:
+    post:
+      operationId: v1_contests_exam_videos_compile_create
+      description: Trigger on-demand video compilation for specific participants.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExamEventCreateRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamEventCreate'
+          description: ''
+  /api/v1/contests/{contest_pk}/exam/videos/delete/:
+    post:
+      operationId: v1_contests_exam_videos_delete_create
+      description: Delete compiled/pending evidence rows and underlying objects. Owner
+        only.
       parameters:
       - in: path
         name: contest_pk
@@ -2016,7 +3441,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       - name: page
         required: false
@@ -2045,7 +3471,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       tags:
       - v1
@@ -2078,7 +3505,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       - in: path
         name: id
@@ -2105,7 +3533,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       - in: path
         name: id
@@ -2121,6 +3550,48 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/contests/{contest_pk}/problems/{id}/score/:
+    patch:
+      operationId: v1_contests_problems_score_partial_update
+      description: |-
+        Update contest-level max score assignment for a contest problem.
+        This does not modify problem content or test cases.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 考試題目.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestProblem'
+          description: ''
   /api/v1/contests/{contest_pk}/submissions/:
     get:
       operationId: v1_contests_submissions_list
@@ -2129,17 +3600,15 @@ paths:
       - in: query
         name: contest
         schema:
-          type: integer
+          type: string
+          format: uuid
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
-      - in: query
-        name: lab
-        schema:
-          type: integer
       - in: query
         name: language
         schema:
@@ -2170,7 +3639,8 @@ paths:
       - in: query
         name: problem
         schema:
-          type: integer
+          type: string
+          format: uuid
       - in: query
         name: source_type
         schema:
@@ -2232,7 +3702,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       tags:
@@ -2269,7 +3740,8 @@ paths:
       - in: path
         name: contest_pk
         schema:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         required: true
       - in: path
@@ -2299,8 +3771,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2322,8 +3795,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2355,8 +3829,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2383,13 +3858,14 @@ paths:
           description: ''
     delete:
       operationId: v1_contests_destroy
-      description: Delete a contest. Only owner can delete.
+      description: Delete a contest. Only owner or platform_admin can delete.
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2403,14 +3879,15 @@ paths:
     post:
       operationId: v1_contests_add_admin_create
       description: |-
-        Add a user as admin for this contest.
-        Only owner can add admins.
+        Add a user as co-admin for this contest.
+        Only owner (or platform admin) can add co-admins.
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2443,8 +3920,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2474,13 +3952,16 @@ paths:
       operationId: v1_contests_add_problem_create
       description: |-
         Add a problem to the contest.
-        Supports adding existing problem (by ID) or creating a new one (by title).
+        Supports:
+        - legacy: existing problem (problem_id) or new blank problem (title)
+        - question bank import: question_bank_id + question_id (legacy import_mode ignored; fixed copy strategy)
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2513,8 +3994,33 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/anticheat-config/:
+    get:
+      operationId: v1_contests_anticheat_config_retrieve
+      description: Return frontend anti-cheat runtime config for this contest.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2536,8 +4042,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2572,8 +4079,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2595,8 +4103,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2621,29 +4130,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/contests/{id}/events/:
-    get:
-      operationId: v1_contests_events_retrieve
-      description: List exam events for a contest (Teacher/Admin only).
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/export_results/:
     get:
       operationId: v1_contests_export_results_retrieve
@@ -2654,8 +4140,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2678,8 +4165,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2710,14 +4198,37 @@ paths:
       description: |-
         Download current user's own exam report as PDF.
         Only accessible after exam submission (exam_status = 'submitted').
-
-        GET /api/v1/contests/{id}/my_report/
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/overview-metrics/:
+    get:
+      operationId: v1_contests_overview_metrics_retrieve
+      description: ViewSet for contests.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2734,13 +4245,46 @@ paths:
   /api/v1/contests/{id}/participants/:
     get:
       operationId: v1_contests_participants_retrieve
-      description: Get all participants for this contest (Teacher view).
+      description: |-
+        Get all participants for this contest (Teacher view).
+        Includes total_score_annotated to avoid N+1 queries.
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestDetail'
+          description: ''
+  /api/v1/contests/{id}/participants/{user_id}/dashboard/:
+    get:
+      operationId: v1_contests_participants_dashboard_retrieve
+      description: Return the admin dashboard payload for a single participant.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
+        required: true
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          pattern: ^\d+$
         required: true
       tags:
       - v1
@@ -2760,14 +4304,13 @@ paths:
       description: |-
         Download individual student's exam report as PDF.
         Only accessible by contest owners and admins.
-
-        GET /api/v1/contests/{id}/participants/{user_id}/report/
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       - in: path
         name: user_id
@@ -2797,14 +4340,14 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       - in: path
         name: problem_id
         schema:
           type: string
-          pattern: ^\d+$
         required: true
       tags:
       - v1
@@ -2837,8 +4380,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2871,8 +4415,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2901,14 +4446,15 @@ paths:
     post:
       operationId: v1_contests_remove_admin_create
       description: |-
-        Remove a user from admins.
-        Only owner can remove admins.
+        Remove a user from co-admins.
+        Only owner (or platform admin) can remove co-admins.
       parameters:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2943,8 +4489,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -2977,8 +4524,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3013,8 +4561,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3047,8 +4596,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3071,8 +4621,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3105,8 +4656,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3139,8 +4691,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3173,8 +4726,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 考試.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 考試.
         required: true
       tags:
       - v1
@@ -3199,246 +4753,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/labs/:
-    get:
-      operationId: v1_labs_list
-      description: ViewSet for labs.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedLabListList'
-          description: ''
-    post:
-      operationId: v1_labs_create
-      description: ViewSet for labs.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-  /api/v1/labs/{id}/:
-    get:
-      operationId: v1_labs_retrieve
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-    put:
-      operationId: v1_labs_update
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-    patch:
-      operationId: v1_labs_partial_update
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedLabDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedLabDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedLabDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-    delete:
-      operationId: v1_labs_destroy
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/labs/{id}/problems/:
-    get:
-      operationId: v1_labs_problems_retrieve
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-    post:
-      operationId: v1_labs_problems_create
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LabDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabDetail'
-          description: ''
-  /api/v1/labs/{id}/problems/{problem_id}/:
-    delete:
-      operationId: v1_labs_problems_destroy
-      description: ViewSet for labs.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Lab.
-        required: true
-      - in: path
-        name: problem_id
-        schema:
-          type: string
-          pattern: ^\d+$
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/management/announcements/:
     get:
       operationId: v1_management_announcements_list
@@ -3599,17 +4913,10 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/notifications/:
-    get:
-      operationId: v1_notifications_list
-      description: ViewSet for viewing notifications.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
+  /api/v1/markdown/images/:
+    post:
+      operationId: v1_markdown_images_create
+      description: Upload image and return markdown-ready URL.
       tags:
       - v1
       security:
@@ -3617,93 +4924,24 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedNotificationList'
-          description: ''
-  /api/v1/notifications/{id}/:
+          description: No response body
+  /api/v1/markdown/images/{object_key}:
     get:
-      operationId: v1_notifications_retrieve
-      description: ViewSet for viewing notifications.
+      operationId: v1_markdown_images_retrieve
+      description: Read markdown image through backend proxy.
       parameters:
       - in: path
-        name: id
+        name: object_key
         schema:
           type: string
         required: true
       tags:
       - v1
       security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
+      - {}
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-          description: ''
-  /api/v1/notifications/{id}/read/:
-    patch:
-      operationId: v1_notifications_read_partial_update
-      description: Mark notification as read.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-          description: ''
-  /api/v1/notifications/read_all/:
-    patch:
-      operationId: v1_notifications_read_all_partial_update
-      description: Mark all notifications as read.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedNotificationRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-          description: ''
+          description: No response body
   /api/v1/problems/:
     get:
       operationId: v1_problems_list
@@ -3810,8 +5048,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3832,8 +5071,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3866,8 +5106,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3899,8 +5140,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3921,8 +5163,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3961,8 +5204,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -3986,8 +5230,9 @@ paths:
       - in: path
         name: id
         schema:
-          type: integer
-        description: A unique integer value identifying this 題目.
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
         required: true
       tags:
       - v1
@@ -4016,12 +5261,13 @@ paths:
   /api/v1/problems/{problem_id}/discussions/:
     get:
       operationId: v1_problems_discussions_retrieve
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: problem_id
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       tags:
       - v1
@@ -4037,12 +5283,13 @@ paths:
           description: ''
     post:
       operationId: v1_problems_discussions_create
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: problem_id
         schema:
-          type: integer
+          type: string
+          format: uuid
         required: true
       tags:
       - v1
@@ -4071,7 +5318,7 @@ paths:
   /api/v1/problems/problem-discussion-comments/{id}/:
     patch:
       operationId: v1_problems_problem_discussion_comments_partial_update
-      description: Edit a comment - only author can edit.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4103,7 +5350,7 @@ paths:
           description: ''
     delete:
       operationId: v1_problems_problem_discussion_comments_destroy
-      description: View for editing and deleting comments.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4121,7 +5368,7 @@ paths:
   /api/v1/problems/problem-discussion-comments/{id}/like/:
     post:
       operationId: v1_problems_problem_discussion_comments_like_create
-      description: Toggle like on a comment.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4139,7 +5386,7 @@ paths:
   /api/v1/problems/problem-discussions/{discussion_id}/comments/:
     get:
       operationId: v1_problems_problem_discussions_comments_retrieve
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: discussion_id
@@ -4160,7 +5407,7 @@ paths:
           description: ''
     post:
       operationId: v1_problems_problem_discussions_comments_create
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: discussion_id
@@ -4194,7 +5441,7 @@ paths:
   /api/v1/problems/problem-discussions/{id}/:
     get:
       operationId: v1_problems_problem_discussions_retrieve
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4215,7 +5462,7 @@ paths:
           description: ''
     patch:
       operationId: v1_problems_problem_discussions_partial_update
-      description: Edit a discussion - only author can edit.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4247,7 +5494,7 @@ paths:
           description: ''
     delete:
       operationId: v1_problems_problem_discussions_destroy
-      description: APIView with serializer support for schema generation.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4265,7 +5512,7 @@ paths:
   /api/v1/problems/problem-discussions/{id}/like/:
     post:
       operationId: v1_problems_problem_discussions_like_create
-      description: Toggle like on a discussion.
+      description: Base API view with serializer support.
       parameters:
       - in: path
         name: id
@@ -4434,6 +5681,502 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/question-bank-items/{id}/:
+    get:
+      operationId: v1_question_bank_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    put:
+      operationId: v1_question_bank_items_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    patch:
+      operationId: v1_question_bank_items_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    delete:
+      operationId: v1_question_bank_items_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/question-bank-items/{id}/clone-to-my-bank/:
+    post:
+      operationId: v1_question_bank_items_clone_to_my_bank_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+  /api/v1/question-banks/:
+    get:
+      operationId: v1_question_banks_list
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    post:
+      operationId: v1_question_banks_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/{uuid}/:
+    get:
+      operationId: v1_question_banks_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    put:
+      operationId: v1_question_banks_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    patch:
+      operationId: v1_question_banks_partial_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    delete:
+      operationId: v1_question_banks_destroy
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/question-banks/{uuid}/questions/:
+    get:
+      operationId: v1_question_banks_questions_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    post:
+      operationId: v1_question_banks_questions_create
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/{uuid}/review/:
+    post:
+      operationId: v1_question_banks_review_create
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/{uuid}/submit-for-review/:
+    post:
+      operationId: v1_question_banks_submit_for_review_create
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/{uuid}/upload_cover/:
+    post:
+      operationId: v1_question_banks_upload_cover_create
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/explore/:
+    get:
+      operationId: v1_question_banks_explore_retrieve
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/inbox/:
+    get:
+      operationId: v1_question_banks_inbox_retrieve
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/inbox/ingest/:
+    post:
+      operationId: v1_question_banks_inbox_ingest_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/review-queue/:
+    get:
+      operationId: v1_question_banks_review_queue_retrieve
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
   /api/v1/submissions/:
     get:
       operationId: v1_submissions_list
@@ -4442,11 +6185,8 @@ paths:
       - in: query
         name: contest
         schema:
-          type: integer
-      - in: query
-        name: lab
-        schema:
-          type: integer
+          type: string
+          format: uuid
       - in: query
         name: language
         schema:
@@ -4477,7 +6217,8 @@ paths:
       - in: query
         name: problem
         schema:
-          type: integer
+          type: string
+          format: uuid
       - in: query
         name: source_type
         schema:
@@ -4584,6 +6325,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
+  /api/v1/subscriptions/checkout/:
+    post:
+      operationId: v1_subscriptions_checkout_create
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/subscriptions/me/:
+    get:
+      operationId: v1_subscriptions_me_retrieve
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/subscriptions/portal/:
+    post:
+      operationId: v1_subscriptions_portal_create
+      description: POST /api/v1/subscriptions/portal/ — create Recur customer portal
+        session.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/users/me/api-key:
     get:
       operationId: v1_users_me_api_key_retrieve
@@ -4828,6 +6604,11 @@ components:
         context:
           title: 上下文資料
           description: 存儲額外的會話元數據（如標題、自定義數據等）
+    ActionEnum:
+      enum:
+      - takeover_lock
+      type: string
+      description: '* `takeover_lock` - takeover_lock'
     Announcement:
       type: object
       properties:
@@ -4887,6 +6668,14 @@ components:
         * `nycu-oauth` - NYCU OAuth
         * `google` - Google
         * `github` - GitHub
+    CategoryEnum:
+      enum:
+      - coding
+      - exam
+      type: string
+      description: |-
+        * `coding` - Coding
+        * `exam` - Exam
     ChangePasswordRequest:
       type: object
       description: Serializer for changing password.
@@ -4915,10 +6704,12 @@ components:
           type: integer
           readOnly: true
         contest:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 題目
           description: 若為 null 則為一般問題
@@ -4979,7 +6770,8 @@ components:
       description: Serializer for creating a clarification.
       properties:
         problem_id:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
         question:
           type: string
@@ -4991,7 +6783,8 @@ components:
       description: Serializer for creating a clarification.
       properties:
         problem_id:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
         question:
           type: string
@@ -5004,10 +6797,12 @@ components:
       description: Serializer for clarifications/Q&A.
       properties:
         contest:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 題目
           description: 若為 null 則為一般問題
@@ -5034,6 +6829,295 @@ components:
       description: |-
         * `pending` - Pending
         * `answered` - Answered
+    ClassroomCreateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+      required:
+      - name
+    ClassroomCreateUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+      required:
+      - name
+    ClassroomDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        owner_username:
+          type: string
+          readOnly: true
+        member_count:
+          type: string
+          readOnly: true
+        is_archived:
+          type: boolean
+          title: 已封存
+        invite_code:
+          type: string
+          readOnly: true
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        current_user_role:
+          type: string
+          readOnly: true
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+        members:
+          type: string
+          readOnly: true
+        contests:
+          type: string
+          readOnly: true
+        labs:
+          type: string
+          readOnly: true
+        admins:
+          type: string
+          readOnly: true
+        announcements:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新時間
+      required:
+      - admins
+      - announcements
+      - contests
+      - created_at
+      - current_user_role
+      - id
+      - invite_code
+      - labs
+      - member_count
+      - members
+      - name
+      - owner_username
+      - updated_at
+      - uuid
+    ClassroomDetailRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        is_archived:
+          type: boolean
+          title: 已封存
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+      required:
+      - name
+    ClassroomList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        owner_username:
+          type: string
+          readOnly: true
+        member_count:
+          type: string
+          readOnly: true
+        is_archived:
+          type: boolean
+          title: 已封存
+        current_user_role:
+          type: string
+          readOnly: true
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+      required:
+      - created_at
+      - current_user_role
+      - id
+      - member_count
+      - name
+      - owner_username
+      - uuid
+    CodeRunRequest:
+      type: object
+      description: Request body for POST /internal/code/run.
+      properties:
+        code:
+          type: string
+          maxLength: 100000
+        language:
+          $ref: '#/components/schemas/Language443Enum'
+        test_cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeRunTestCase'
+        time_limit:
+          type: integer
+          maximum: 10000
+          minimum: 100
+          default: 1000
+        memory_limit:
+          type: integer
+          maximum: 512
+          minimum: 16
+          default: 128
+      required:
+      - code
+      - language
+      - test_cases
+    CodeRunRequestRequest:
+      type: object
+      description: Request body for POST /internal/code/run.
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 100000
+        language:
+          $ref: '#/components/schemas/Language443Enum'
+        test_cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeRunTestCaseRequest'
+        time_limit:
+          type: integer
+          maximum: 10000
+          minimum: 100
+          default: 1000
+        memory_limit:
+          type: integer
+          maximum: 512
+          minimum: 16
+          default: 128
+      required:
+      - code
+      - language
+      - test_cases
+    CodeRunTestCase:
+      type: object
+      description: Single test case for code execution.
+      properties:
+        input:
+          type: string
+        expected_output:
+          type: string
+      required:
+      - expected_output
+      - input
+    CodeRunTestCaseRequest:
+      type: object
+      description: Single test case for code execution.
+      properties:
+        input:
+          type: string
+        expected_output:
+          type: string
+      required:
+      - expected_output
+      - input
     CommitAction:
       type: object
       description: Serializer for internal commit action request.
@@ -5100,6 +7184,9 @@ components:
       - update_contest
       - update_problem
       - update_participant
+      - concurrent_login_detected
+      - takeover_lock
+      - takeover_approve
       - announce
       - other
       type: string
@@ -5117,6 +7204,9 @@ components:
         * `update_contest` - Update Contest
         * `update_problem` - Update Problem
         * `update_participant` - Update Participant
+        * `concurrent_login_detected` - Concurrent Login Detected
+        * `takeover_lock` - Takeover Lock
+        * `takeover_approve` - Takeover Approve
         * `announce` - Announce
         * `other` - Other
     ContestAnnouncement:
@@ -5177,7 +7267,8 @@ components:
         Minimal fields for creation, can be updated later.
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         name:
           type: string
@@ -5203,10 +7294,43 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -5241,6 +7365,10 @@ components:
           type: boolean
           title: 啟用匿名模式
           description: 啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
       required:
       - id
     ContestCreateUpdateRequest:
@@ -5279,10 +7407,43 @@ components:
           nullable: true
           title: 密碼
           maxLength: 255
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -5317,6 +7478,10 @@ components:
           type: boolean
           title: 啟用匿名模式
           description: 啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
     ContestDetail:
       type: object
       description: |-
@@ -5324,7 +7489,8 @@ components:
         Includes role-based permissions and full contest information.
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         name:
           type: string
@@ -5363,10 +7529,43 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -5411,7 +7610,19 @@ components:
         lock_reason:
           type: string
           readOnly: true
+        submit_reason:
+          type: string
+          readOnly: true
         exam_status:
+          type: string
+          readOnly: true
+        assignment_state:
+          type: string
+          readOnly: true
+        accepted_at:
+          type: string
+          readOnly: true
+        submitted_at:
           type: string
           readOnly: true
         auto_unlock_at:
@@ -5446,15 +7657,58 @@ components:
         admins:
           type: string
           readOnly: true
+        is_classroom_bound:
+          type: string
+          readOnly: true
+        bound_classroom_id:
+          type: string
+          readOnly: true
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
+        is_exam_questions_frozen:
+          type: string
+          readOnly: true
+        exam_questions_count:
+          type: string
+          readOnly: true
+        question_edit_locked:
+          type: boolean
+          readOnly: true
+        question_edit_locked_at:
+          type: string
+          format: date-time
+          readOnly: true
+        question_edit_lock_trigger:
+          type: string
+          readOnly: true
+        is_exam_monitored:
+          type: string
+          readOnly: true
+        requires_fullscreen:
+          type: string
+          readOnly: true
+        can_submit_exam:
+          type: string
+          readOnly: true
       required:
+      - accepted_at
       - admins
+      - assignment_state
       - auto_unlock_at
+      - bound_classroom_id
+      - can_submit_exam
       - created_at
       - current_user_role
+      - exam_questions_count
       - exam_status
       - has_joined
       - has_started
       - id
+      - is_classroom_bound
+      - is_exam_monitored
+      - is_exam_questions_frozen
       - left_at
       - lock_reason
       - locked_at
@@ -5463,8 +7717,14 @@ components:
       - participant_count
       - permissions
       - problems
+      - question_edit_lock_trigger
+      - question_edit_locked
+      - question_edit_locked_at
+      - requires_fullscreen
       - rule
       - started_at
+      - submit_reason
+      - submitted_at
       - updated_at
     ContestDetailRequest:
       type: object
@@ -5506,10 +7766,43 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -5534,6 +7827,10 @@ components:
           type: boolean
           title: 啟用匿名模式
           description: 啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
     ContestList:
       type: object
       description: |-
@@ -5541,7 +7838,8 @@ components:
         Returns minimal information for listing contests.
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         name:
           type: string
@@ -5571,6 +7869,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
+        delivery_mode:
+          type: string
+          readOnly: true
         owner_username:
           type: string
           readOnly: true
@@ -5580,6 +7881,16 @@ components:
         is_registered:
           type: string
           readOnly: true
+        question_edit_locked:
+          type: boolean
+          readOnly: true
+        question_edit_locked_at:
+          type: string
+          format: date-time
+          readOnly: true
+        question_edit_lock_trigger:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -5587,10 +7898,14 @@ components:
           title: 建立時間
       required:
       - created_at
+      - delivery_mode
       - id
       - is_registered
       - owner_username
       - participant_count
+      - question_edit_lock_trigger
+      - question_edit_locked
+      - question_edit_locked_at
     ContestProblem:
       type: object
       description: |-
@@ -5601,7 +7916,8 @@ components:
           type: integer
           readOnly: true
         problem_id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         title:
           type: string
@@ -5617,6 +7933,30 @@ components:
         score:
           type: string
           readOnly: true
+        max_score:
+          type: integer
+          readOnly: true
+        source_bank:
+          type: string
+          readOnly: true
+        source_question_id:
+          type: string
+          format: uuid
+          readOnly: true
+        source_mode:
+          type: string
+          readOnly: true
+        question_asset_id:
+          type: string
+          format: uuid
+          readOnly: true
+        question_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        binding_id:
+          type: string
+          readOnly: true
         difficulty:
           type: string
           readOnly: true
@@ -5624,11 +7964,18 @@ components:
           type: string
           readOnly: true
       required:
+      - binding_id
       - difficulty
       - id
       - label
+      - max_score
       - problem_id
+      - question_asset_id
+      - question_version_id
       - score
+      - source_bank
+      - source_mode
+      - source_question_id
       - title
       - user_status
     ContestProblemRequest:
@@ -5642,6 +7989,14 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
+    ContestTypeEnum:
+      enum:
+      - coding
+      - paper_exam
+      type: string
+      description: |-
+        * `coding` - Coding Test
+        * `paper_exam` - Paper Exam
     CreateSubmission:
       type: object
       description: Serializer for creating a submission.
@@ -5650,16 +8005,14 @@ components:
           type: integer
           readOnly: true
         problem:
-          type: integer
+          type: string
+          format: uuid
           title: 題目
         contest:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 考試
-        lab:
-          type: integer
-          nullable: true
-          title: 題目單
         source_type:
           allOf:
           - $ref: '#/components/schemas/SourceTypeEnum'
@@ -5700,16 +8053,14 @@ components:
       description: Serializer for creating a submission.
       properties:
         problem:
-          type: integer
+          type: string
+          format: uuid
           title: 題目
         contest:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 考試
-        lab:
-          type: integer
-          nullable: true
-          title: 題目單
         source_type:
           allOf:
           - $ref: '#/components/schemas/SourceTypeEnum'
@@ -5729,6 +8080,14 @@ components:
       - code
       - language
       - problem
+    DeliveryModeEnum:
+      enum:
+      - exam
+      - practice
+      type: string
+      description: |-
+        * `exam` - Exam
+        * `practice` - Practice
     DifficultyEnum:
       enum:
       - easy
@@ -5759,12 +8118,82 @@ components:
       - window_blur
       - exit_fullscreen
       - forbidden_focus_event
+      - forbidden_action
+      - multiple_displays
+      - mouse_leave
+      - warning_timeout
+      - force_submit_locked
+      - screen_share_stopped
+      - screen_share_interrupted
+      - screen_share_restored
+      - screen_share_invalid_surface
+      - webcam_interrupted
+      - webcam_restored
+      - webcam_stopped
+      - webcam_quality_degraded
+      - viewport_interrupted
+      - viewport_restored
+      - viewport_stopped
+      - split_view_detected
+      - capture_upload_degraded
+      - exam_entered
+      - exam_submit_initiated
+      - concurrent_login_detected
+      - takeover_locked
+      - takeover_approved
+      - heartbeat
+      - heartbeat_timeout
+      - listener_tampered
+      - exit_fullscreen_triggered
+      - mouse_leave_triggered
+      - tab_hidden_triggered
+      - tab_hidden_restored
+      - window_blur_triggered
+      - window_blur_restored
+      - multi_display_triggered
+      - multi_display_restored
+      - display_api_degraded
       type: string
       description: |-
         * `tab_hidden` - Tab Hidden
         * `window_blur` - Window Blur
         * `exit_fullscreen` - Exit Fullscreen
         * `forbidden_focus_event` - Forbidden Focus Event
+        * `forbidden_action` - Forbidden Action
+        * `multiple_displays` - Multiple Displays
+        * `mouse_leave` - Mouse Leave
+        * `warning_timeout` - Warning Timeout
+        * `force_submit_locked` - Force Submit Locked
+        * `screen_share_stopped` - Screen Share Stopped
+        * `screen_share_interrupted` - Screen Share Interrupted
+        * `screen_share_restored` - Screen Share Restored
+        * `screen_share_invalid_surface` - Screen Share Invalid Surface
+        * `webcam_interrupted` - Webcam Interrupted
+        * `webcam_restored` - Webcam Restored
+        * `webcam_stopped` - Webcam Stopped
+        * `webcam_quality_degraded` - Webcam Quality Degraded
+        * `viewport_interrupted` - Viewport Interrupted
+        * `viewport_restored` - Viewport Restored
+        * `viewport_stopped` - Viewport Stopped
+        * `split_view_detected` - Split View Detected
+        * `capture_upload_degraded` - Capture Upload Degraded
+        * `exam_entered` - Exam Entered
+        * `exam_submit_initiated` - Exam Submit Initiated
+        * `concurrent_login_detected` - Concurrent Login Detected
+        * `takeover_locked` - Takeover Locked
+        * `takeover_approved` - Takeover Approved
+        * `heartbeat` - Heartbeat
+        * `heartbeat_timeout` - Heartbeat Timeout
+        * `listener_tampered` - Listener Tampered
+        * `exit_fullscreen_triggered` - Exit Fullscreen Triggered
+        * `mouse_leave_triggered` - Mouse Leave Triggered
+        * `tab_hidden_triggered` - Tab Hidden Triggered
+        * `tab_hidden_restored` - Tab Hidden Restored
+        * `window_blur_triggered` - Window Blur Triggered
+        * `window_blur_restored` - Window Blur Restored
+        * `multi_display_triggered` - Multi Display Triggered
+        * `multi_display_restored` - Multi Display Restored
+        * `display_api_degraded` - Display API Degraded
     ExamEventCreateRequest:
       type: object
       description: Serializer for creating exam events.
@@ -5779,208 +8208,25 @@ components:
           description: JSON 格式的額外事件資訊
       required:
       - event_type
-    ExamQuestion:
+    ForgotPassword:
       type: object
-      description: Serializer for paper-style exam questions.
+      description: Serializer for forgot-password request.
       properties:
-        id:
-          type: integer
-          readOnly: true
-        contest:
-          type: integer
-          readOnly: true
-          title: 考試
-        question_type:
-          allOf:
-          - $ref: '#/components/schemas/QuestionTypeEnum'
-          title: 題型
-        prompt:
+        email:
           type: string
-          title: 題目內容
-        options:
-          title: 選項
-          description: 選擇題選項，陣列格式
-        correct_answer:
-          nullable: true
-          title: 標準答案
-          description: 是非/選擇題可存標準答案，問答題可留空
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 配分
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 排序
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 更新時間
+          format: email
       required:
-      - contest
-      - created_at
-      - id
-      - prompt
-      - updated_at
-    ExamQuestionRequest:
+      - email
+    ForgotPasswordRequest:
       type: object
-      description: Serializer for paper-style exam questions.
+      description: Serializer for forgot-password request.
       properties:
-        question_type:
-          allOf:
-          - $ref: '#/components/schemas/QuestionTypeEnum'
-          title: 題型
-        prompt:
+        email:
           type: string
+          format: email
           minLength: 1
-          title: 題目內容
-        options:
-          title: 選項
-          description: 選擇題選項，陣列格式
-        correct_answer:
-          nullable: true
-          title: 標準答案
-          description: 是非/選擇題可存標準答案，問答題可留空
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 配分
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 排序
       required:
-      - prompt
-    LabDetail:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        title:
-          type: string
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          title: 描述
-        owner:
-          type: string
-          title: 使用者名稱
-          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          readOnly: true
-        due_at:
-          type: string
-          format: date-time
-          nullable: true
-          title: 截止時間
-          description: 未設定則不限制作答期限
-        is_published:
-          type: boolean
-          title: 是否發布
-        is_overdue:
-          type: boolean
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 更新時間
-      required:
-      - created_at
-      - id
-      - is_overdue
-      - owner
-      - title
-      - updated_at
-    LabDetailRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          title: 描述
-        due_at:
-          type: string
-          format: date-time
-          nullable: true
-          title: 截止時間
-          description: 未設定則不限制作答期限
-        is_published:
-          type: boolean
-          title: 是否發布
-      required:
-      - title
-    LabList:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        title:
-          type: string
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          title: 描述
-        owner:
-          type: string
-          title: 使用者名稱
-          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          readOnly: true
-        due_at:
-          type: string
-          format: date-time
-          nullable: true
-          title: 截止時間
-          description: 未設定則不限制作答期限
-        is_published:
-          type: boolean
-          title: 是否發布
-        problem_count:
-          type: integer
-          readOnly: true
-        is_overdue:
-          type: boolean
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 更新時間
-      required:
-      - created_at
-      - id
-      - is_overdue
-      - owner
-      - problem_count
-      - title
-      - updated_at
+      - email
     Language040Enum:
       enum:
       - python
@@ -5993,6 +8239,18 @@ components:
         * `cpp` - C++ 20
         * `c` - C 11
         * `java` - Java 17
+    Language443Enum:
+      enum:
+      - cpp
+      - c++
+      - python
+      - py
+      type: string
+      description: |-
+        * `cpp` - cpp
+        * `c++` - c++
+        * `python` - python
+        * `py` - py
     LanguageConfig:
       type: object
       description: Serializer for language configuration.
@@ -6057,6 +8315,9 @@ components:
       properties:
         email:
           type: string
+        device_id:
+          type: string
+          maxLength: 128
       required:
       - email
     LoginRequest:
@@ -6070,6 +8331,9 @@ components:
           type: string
           writeOnly: true
           minLength: 1
+        device_id:
+          type: string
+          maxLength: 128
       required:
       - email
       - password
@@ -6102,53 +8366,6 @@ components:
       - display_name
       - is_default
       - model_id
-    Notification:
-      type: object
-      description: Serializer for notifications.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        notification_type:
-          allOf:
-          - $ref: '#/components/schemas/NotificationTypeEnum'
-          title: 類型
-        title:
-          type: string
-          title: 標題
-          maxLength: 255
-        message:
-          type: string
-          title: 內容
-        link:
-          type: string
-          title: 連結
-          maxLength: 255
-        is_read:
-          type: boolean
-          title: 已讀
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-      required:
-      - created_at
-      - id
-      - message
-      - title
-    NotificationTypeEnum:
-      enum:
-      - system
-      - contest
-      - submission
-      - discussion
-      type: string
-      description: |-
-        * `system` - 系統通知
-        * `contest` - 考試通知
-        * `submission` - 評測通知
-        * `discussion` - 討論通知
     OAuthCallback:
       type: object
       description: Serializer for OAuth callback.
@@ -6158,6 +8375,12 @@ components:
         redirect_uri:
           type: string
           format: uri
+        device_id:
+          type: string
+          maxLength: 128
+        conflict_token:
+          type: string
+          maxLength: 256
       required:
       - code
       - redirect_uri
@@ -6172,6 +8395,12 @@ components:
           type: string
           format: uri
           minLength: 1
+        device_id:
+          type: string
+          maxLength: 128
+        conflict_token:
+          type: string
+          maxLength: 256
       required:
       - code
       - redirect_uri
@@ -6235,6 +8464,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Clarification'
+    PaginatedClassroomListList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassroomList'
     PaginatedContestListList:
       type: object
       properties:
@@ -6275,46 +8524,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ContestProblem'
-    PaginatedLabListList:
-      type: object
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/LabList'
-    PaginatedNotificationList:
-      type: object
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Notification'
     PaginatedProblemListList:
       type: object
       properties:
@@ -6399,10 +8608,12 @@ components:
       description: Serializer for clarifications/Q&A.
       properties:
         contest:
-          type: integer
+          type: string
+          format: uuid
           title: 考試
         problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 題目
           description: 若為 null 則為一般問題
@@ -6418,6 +8629,55 @@ components:
           type: boolean
           title: 公開
           description: 是否對所有參賽者公開此 Q&A
+    PatchedClassroomCreateUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
+    PatchedClassroomDetailRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 名稱
+          maxLength: 255
+        description:
+          type: string
+          title: 描述
+        is_archived:
+          type: boolean
+          title: 已封存
+        invite_code_enabled:
+          type: boolean
+          title: 邀請碼啟用
+        icon:
+          type: string
+          title: 圖示
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          title: 封面圖片 URL
+          maxLength: 200
     PatchedContestAnnouncementRequest:
       type: object
       description: Serializer for contest announcements.
@@ -6467,10 +8727,43 @@ components:
           nullable: true
           title: 密碼
           maxLength: 255
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -6505,6 +8798,10 @@ components:
           type: boolean
           title: 啟用匿名模式
           description: 啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
     PatchedContestDetailRequest:
       type: object
       description: |-
@@ -6545,10 +8842,43 @@ components:
           allOf:
           - $ref: '#/components/schemas/Visibility076Enum'
           title: 可見性
+        contest_type:
+          allOf:
+          - $ref: '#/components/schemas/ContestTypeEnum'
+          title: 比賽類型
+          description: |-
+            coding: 程式題; paper_exam: 紙筆題考試
+
+            * `coding` - Coding Test
+            * `paper_exam` - Paper Exam
+        delivery_mode:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryModeEnum'
+          title: 交付模式
+          description: |-
+            exam: 正式考試流程; practice: 教室練習/作業流程
+
+            * `exam` - Exam
+            * `practice` - Practice
         cheat_detection_enabled:
           type: boolean
-          title: 啟用考試模式
-          description: 啟用全螢幕與防失焦的嚴格考試模式
+          title: 啟用防作弊模式
+          description: 啟用全螢幕與防失焦的嚴格防作弊模式
+        anticheat_device_policy:
+          title: 防作弊裝置策略
+          description: 依裝置定義 sources/detectors 的監考策略
+        warning_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 警告框冷卻秒數
+          description: 警告框顯示後，需等待幾秒才可手動關閉
+        screen_share_recovery_grace_ms:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 螢幕共享恢復寬限時間 (毫秒)
+          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -6573,79 +8903,33 @@ components:
           type: boolean
           title: 啟用匿名模式
           description: 啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱
-    PatchedExamQuestionRequest:
+        results_published:
+          type: boolean
+          title: 成績已公布
+          description: TA 完成批改後手動設為 True，學生才能查看成績
+    PatchedContestProblemRequest:
       type: object
-      description: Serializer for paper-style exam questions.
+      description: |-
+        Serializer for problems within a contest.
+        Includes label and problem summary.
       properties:
-        question_type:
-          allOf:
-          - $ref: '#/components/schemas/QuestionTypeEnum'
-          title: 題型
-        prompt:
-          type: string
-          minLength: 1
-          title: 題目內容
-        options:
-          title: 選項
-          description: 選擇題選項，陣列格式
-        correct_answer:
-          nullable: true
-          title: 標準答案
-          description: 是非/選擇題可存標準答案，問答題可留空
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 配分
         order:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
-    PatchedLabDetailRequest:
+    PatchedExamEventCreateRequest:
       type: object
+      description: Serializer for creating exam events.
       properties:
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          title: 描述
-        due_at:
-          type: string
-          format: date-time
-          nullable: true
-          title: 截止時間
-          description: 未設定則不限制作答期限
-        is_published:
-          type: boolean
-          title: 是否發布
-    PatchedNotificationRequest:
-      type: object
-      description: Serializer for notifications.
-      properties:
-        notification_type:
+        event_type:
           allOf:
-          - $ref: '#/components/schemas/NotificationTypeEnum'
-          title: 類型
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
-        message:
-          type: string
-          minLength: 1
-          title: 內容
-        link:
-          type: string
-          title: 連結
-          maxLength: 255
-        is_read:
-          type: boolean
-          title: 已讀
+          - $ref: '#/components/schemas/ExamEventCreateEventTypeEnum'
+          title: 事件類型
+        metadata:
+          nullable: true
+          title: 額外資訊
+          description: JSON 格式的額外事件資訊
     PatchedProblemDetailRequest:
       type: object
       description: Serializer for problem detail (full info).
@@ -6719,7 +9003,8 @@ components:
             * `private` - 私有
             * `hidden` - 隱藏
         origin_problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 來源題目
           description: 若此題由競賽題複製而來，記錄原始題目
@@ -6752,6 +9037,63 @@ components:
           type: string
           minLength: 1
           title: 內容
+    PatchedQuestionBankRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        icon:
+          type: string
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          maxLength: 200
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        visibility:
+          $ref: '#/components/schemas/Visibility076Enum'
+    PatchedQuestionRequest:
+      type: object
+      properties:
+        question_type:
+          $ref: '#/components/schemas/QuestionTypeEnum'
+        title:
+          type: string
+          maxLength: 255
+        prompt:
+          type: string
+        options: {}
+        correct_answer:
+          nullable: true
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        difficulty:
+          type: string
+          minLength: 1
+          maxLength: 10
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        coding_ext:
+          allOf:
+          - $ref: '#/components/schemas/QuestionCodingExtRequest'
+          nullable: true
     PatchedTagRequest:
       type: object
       description: Serializer for tags.
@@ -6763,8 +9105,6 @@ components:
           maxLength: 50
         slug:
           type: string
-          minLength: 1
-          maxLength: 50
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
@@ -6779,6 +9119,12 @@ components:
       type: object
       description: Serializer for updating user preferences.
       properties:
+        display_name:
+          type: string
+          maxLength: 50
+        avatar_url:
+          type: string
+          maxLength: 500
         preferred_language:
           type: string
           minLength: 1
@@ -6791,6 +9137,10 @@ components:
           minimum: 12
         editor_tab_size:
           $ref: '#/components/schemas/UserPreferencesUpdateEditorTabSizeEnum'
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
     PatchedUserRequest:
       type: object
       description: Serializer for user model.
@@ -6841,7 +9191,8 @@ components:
           readOnly: true
           title: 動作類型
         target_problem:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
           nullable: true
           title: 目標題目
@@ -6951,7 +9302,8 @@ components:
       description: Serializer for problem detail (full info).
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         display_id:
           type: string
@@ -7030,10 +9382,19 @@ components:
           type: string
           readOnly: true
         origin_problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 來源題目
           description: 若此題由競賽題複製而來，記錄原始題目
+        question_asset_id:
+          type: string
+          format: uuid
+          readOnly: true
+        question_version_id:
+          type: string
+          format: uuid
+          readOnly: true
         translation:
           type: string
           readOnly: true
@@ -7072,6 +9433,8 @@ components:
       - display_id
       - id
       - language_configs
+      - question_asset_id
+      - question_version_id
       - samples
       - tags
       - test_cases
@@ -7151,7 +9514,8 @@ components:
             * `private` - 私有
             * `hidden` - 隱藏
         origin_problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 來源題目
           description: 若此題由競賽題複製而來，記錄原始題目
@@ -7170,7 +9534,8 @@ components:
           type: integer
           readOnly: true
         problem:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
           title: 題目
         title:
@@ -7307,7 +9672,8 @@ components:
       description: Serializer for problem list (minimal info).
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         display_id:
           type: string
@@ -7372,12 +9738,14 @@ components:
             * `private` - 私有
             * `hidden` - 隱藏
         created_in_contest:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 來源競賽
           description: 記錄此題最初在哪場競賽中建立
         origin_problem:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 來源題目
           description: 若此題由競賽題複製而來，記錄原始題目
@@ -7390,6 +9758,14 @@ components:
           type: string
           title: 使用者名稱
           description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          readOnly: true
+        question_asset_id:
+          type: string
+          format: uuid
+          readOnly: true
+        question_version_id:
+          type: string
+          format: uuid
           readOnly: true
         language_configs:
           type: array
@@ -7413,6 +9789,8 @@ components:
       - id
       - is_solved
       - language_configs
+      - question_asset_id
+      - question_version_id
       - tags
       - title
     ProblemTranslation:
@@ -7480,18 +9858,265 @@ components:
       - language
       - output_description
       - title
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        bank_item_id:
+          type: string
+          readOnly: true
+        adapter_question_id:
+          type: string
+          readOnly: true
+        bank:
+          type: string
+          format: uuid
+          readOnly: true
+        question_type:
+          $ref: '#/components/schemas/QuestionTypeEnum'
+        title:
+          type: string
+          maxLength: 255
+        prompt:
+          type: string
+        options: {}
+        correct_answer:
+          nullable: true
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        difficulty:
+          type: string
+          maxLength: 10
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        source_question_id:
+          type: string
+          format: uuid
+          readOnly: true
+        source_bank_id:
+          type: string
+          readOnly: true
+        source_bank_name:
+          type: string
+          readOnly: true
+        contest_usages:
+          type: string
+          readOnly: true
+        question_asset_id:
+          type: string
+          readOnly: true
+        question_version_id:
+          type: string
+          readOnly: true
+        metadata:
+          readOnly: true
+        created_by_username:
+          type: string
+          readOnly: true
+        coding_ext:
+          allOf:
+          - $ref: '#/components/schemas/QuestionCodingExt'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - adapter_question_id
+      - bank
+      - bank_item_id
+      - contest_usages
+      - created_at
+      - created_by_username
+      - id
+      - metadata
+      - question_asset_id
+      - question_version_id
+      - source_bank_id
+      - source_bank_name
+      - source_question_id
+      - updated_at
+    QuestionBank:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        icon:
+          type: string
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          maxLength: 200
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        visibility:
+          $ref: '#/components/schemas/Visibility076Enum'
+        verified:
+          type: boolean
+          readOnly: true
+        review_status:
+          allOf:
+          - $ref: '#/components/schemas/ReviewStatusEnum'
+          readOnly: true
+        review_note:
+          type: string
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        reviewed_by_username:
+          type: string
+          readOnly: true
+        owner:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: Null means platform-managed official bank.
+        owner_username:
+          type: string
+          readOnly: true
+        question_count:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - owner
+      - owner_username
+      - question_count
+      - review_note
+      - review_status
+      - reviewed_at
+      - reviewed_by_username
+      - submitted_at
+      - updated_at
+      - verified
+    QuestionBankRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        icon:
+          type: string
+          maxLength: 32
+        cover_url:
+          type: string
+          format: uri
+          maxLength: 200
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        visibility:
+          $ref: '#/components/schemas/Visibility076Enum'
+      required:
+      - name
+    QuestionCodingExt:
+      type: object
+      properties:
+        translations: {}
+        test_cases: {}
+        language_configs: {}
+        forbidden_keywords: {}
+        required_keywords: {}
+    QuestionCodingExtRequest:
+      type: object
+      properties:
+        translations: {}
+        test_cases: {}
+        language_configs: {}
+        forbidden_keywords: {}
+        required_keywords: {}
+    QuestionRequest:
+      type: object
+      properties:
+        question_type:
+          $ref: '#/components/schemas/QuestionTypeEnum'
+        title:
+          type: string
+          maxLength: 255
+        prompt:
+          type: string
+        options: {}
+        correct_answer:
+          nullable: true
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        difficulty:
+          type: string
+          minLength: 1
+          maxLength: 10
+        time_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        memory_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        coding_ext:
+          allOf:
+          - $ref: '#/components/schemas/QuestionCodingExtRequest'
+          nullable: true
     QuestionTypeEnum:
       enum:
-      - true_false
-      - single_choice
-      - multiple_choice
-      - essay
+      - coding
+      - exam
       type: string
       description: |-
-        * `true_false` - 是非題
-        * `single_choice` - 單選題
-        * `multiple_choice` - 多選題
-        * `essay` - 問答題
+        * `coding` - Coding
+        * `exam` - Exam
     Register:
       type: object
       description: Serializer for user registration with email/password.
@@ -7530,6 +10155,72 @@ components:
       - password
       - password_confirm
       - username
+    ResetPassword:
+      type: object
+      description: Serializer for resetting password by token.
+      properties:
+        token:
+          type: string
+          maxLength: 255
+      required:
+      - token
+    ResetPasswordRequest:
+      type: object
+      description: Serializer for resetting password by token.
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 255
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - new_password
+      - new_password_confirm
+      - token
+    ResolveConflict:
+      type: object
+      description: Serializer for login conflict resolution (device takeover lock).
+      properties:
+        conflict_token:
+          type: string
+          maxLength: 256
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+      required:
+      - action
+      - conflict_token
+    ResolveConflictRequest:
+      type: object
+      description: Serializer for login conflict resolution (device takeover lock).
+      properties:
+        conflict_token:
+          type: string
+          minLength: 1
+          maxLength: 256
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+      required:
+      - action
+      - conflict_token
+    ReviewStatusEnum:
+      enum:
+      - draft
+      - pending
+      - approved
+      - rejected
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `pending` - Pending Review
+        * `approved` - Approved
+        * `rejected` - Rejected
     ScreenEvent:
       type: object
       description: Serializer for screen events.
@@ -7672,13 +10363,10 @@ components:
           - $ref: '#/components/schemas/ProblemList'
           readOnly: true
         contest:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
           title: 考試
-        lab:
-          type: integer
-          nullable: true
-          title: 題目單
         source_type:
           allOf:
           - $ref: '#/components/schemas/SourceTypeEnum'
@@ -7764,17 +10452,15 @@ components:
           type: string
           readOnly: true
         problem_id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         problem_title:
           type: string
           readOnly: true
         contest_id:
-          type: integer
-          readOnly: true
-          nullable: true
-        lab_id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
           nullable: true
         source_type:
@@ -7813,7 +10499,6 @@ components:
       - contest_id
       - created_at
       - id
-      - lab_id
       - language
       - problem_id
       - problem_title
@@ -7894,7 +10579,6 @@ components:
           maxLength: 50
         slug:
           type: string
-          maxLength: 50
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
@@ -7913,7 +10597,6 @@ components:
       - created_at
       - id
       - name
-      - slug
     TagRequest:
       type: object
       description: Serializer for tags.
@@ -7925,8 +10608,6 @@ components:
           maxLength: 50
         slug:
           type: string
-          minLength: 1
-          maxLength: 50
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
@@ -7939,7 +10620,25 @@ components:
           maxLength: 7
       required:
       - name
-      - slug
+    TeacherActivationConsume:
+      type: object
+      description: Serializer for consuming a teacher activation link.
+      properties:
+        token:
+          type: string
+          maxLength: 255
+      required:
+      - token
+    TeacherActivationConsumeRequest:
+      type: object
+      description: Serializer for consuming a teacher activation link.
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required:
+      - token
     TestCase:
       type: object
       description: Serializer for test cases.
@@ -7959,6 +10658,13 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 分數
+        weight_percent:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+          title: 權重百分比
+          description: 建議使用 0~100 的整數百分比；同題測資加總應為 100
         order:
           type: integer
           maximum: 2147483647
@@ -7987,6 +10693,13 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 分數
+        weight_percent:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+          title: 權重百分比
+          description: 建議使用 0~100 的整數百分比；同題測資加總應為 100
         order:
           type: integer
           maximum: 2147483647
@@ -8065,6 +10778,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/UserProfile'
           readOnly: true
+        subscription:
+          type: string
+          readOnly: true
       required:
       - auth_provider
       - date_joined
@@ -8073,11 +10789,52 @@ components:
       - id
       - last_login_at
       - profile
+      - subscription
       - username
+    UserLoginRecord:
+      type: object
+      description: Read-only serializer for login history entries.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        device_id:
+          type: string
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+        user_agent:
+          type: string
+          readOnly: true
+        login_method:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - device_id
+      - id
+      - ip_address
+      - is_current
+      - login_method
+      - user_agent
     UserPreferencesUpdate:
       type: object
       description: Serializer for updating user preferences.
       properties:
+        display_name:
+          type: string
+          maxLength: 50
+        avatar_url:
+          type: string
+          maxLength: 500
         preferred_language:
           type: string
           maxLength: 20
@@ -8089,6 +10846,10 @@ components:
           minimum: 12
         editor_tab_size:
           $ref: '#/components/schemas/UserPreferencesUpdateEditorTabSizeEnum'
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
     UserPreferencesUpdateEditorTabSizeEnum:
       enum:
       - 2
@@ -8125,6 +10886,16 @@ components:
           pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
           readOnly: true
           title: 通過率
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          title: 頭像 URL
+          maxLength: 500
         preferred_language:
           type: string
           title: 偏好語言
@@ -8144,6 +10915,11 @@ components:
           title: Tab 寬度
           minimum: -2147483648
           maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
       required:
       - accept_rate
       - solved_count
@@ -8170,6 +10946,16 @@ components:
       type: object
       description: Serializer for user profile.
       properties:
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          title: 頭像 URL
+          maxLength: 500
         preferred_language:
           type: string
           minLength: 1
@@ -8190,6 +10976,11 @@ components:
           title: Tab 寬度
           minimum: -2147483648
           maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
     UserRequest:
       type: object
       description: Serializer for user model.

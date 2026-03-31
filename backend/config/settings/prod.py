@@ -18,14 +18,18 @@ DATABASES['default'] = {
     'PASSWORD': os.getenv('DB_PASSWORD', ''),
     'HOST': os.getenv('DB_HOST', ''),
     'PORT': os.getenv('DB_PORT', '5432'),
-    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+    # CONN_MAX_AGE=0: release connections immediately so pgBouncer recycles them.
+    # pgBouncer (session mode) maintains the actual server-side pool, making
+    # per-request close/reopen cheap (local proxy, no TLS handshake).
+    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '0')),
+    'CONN_HEALTH_CHECKS': True,
     'OPTIONS': {
         'connect_timeout': 10,
-        # TCP Keepalive 設置 - 保持連接活躍，防止被防火牆/NAT 中斷
+        # TCP Keepalive - keeps the pgBouncer→Django socket alive through NAT.
         'keepalives': 1,
-        'keepalives_idle': 30,      # 30 秒無活動後開始發送 keepalive
-        'keepalives_interval': 10,  # 每 10 秒發送一次 keepalive
-        'keepalives_count': 5,      # 5 次無回應後視為斷線
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
         # External managed databases usually require SSL.
         'sslmode': os.getenv('DB_SSLMODE', 'require'),
     },

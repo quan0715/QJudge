@@ -28,8 +28,6 @@ describe("problemFormAdapters", () => {
         reCount: 0,
         ceCount: 0,
         tags: [{ id: "10", name: "Math", slug: "math" }],
-        isPracticeVisible: false,
-        isVisible: true,
         isSolved: false,
         description: "Desc",
         timeLimit: 500,
@@ -149,6 +147,34 @@ describe("problemFormAdapters", () => {
       expect(payload.language_configs[0].language).toBe("cpp");
       expect(payload.existing_tag_ids).toEqual([1, 2]);
     });
+
+    it("keeps language config in payload when language field is missing but index is known", () => {
+      const schema: ProblemFormSchema = {
+        ...DEFAULT_PROBLEM_FORM_VALUES,
+        title: "Form Problem",
+        translationZh: {
+          title: "標題",
+          description: "描述",
+          inputDescription: "",
+          outputDescription: "",
+          hint: "",
+        },
+        languageConfigs: [
+          { language: "", templateCode: "int main(){}", isEnabled: true },
+        ],
+      };
+
+      const payload = formSchemaToApiPayload(schema);
+
+      expect(payload.language_configs).toEqual([
+        {
+          language: "cpp",
+          template_code: "int main(){}",
+          is_enabled: true,
+          order: 0,
+        },
+      ]);
+    });
   });
 
   describe("yamlToApiPayload", () => {
@@ -171,7 +197,6 @@ describe("problemFormAdapters", () => {
 
       const payload = yamlToApiPayload(yaml);
 
-      expect(payload.visibility).toBe("private");
       expect(payload.test_cases).toEqual([]);
       expect(payload.language_configs).toEqual([]);
       expect(payload.required_keywords).toEqual([]);

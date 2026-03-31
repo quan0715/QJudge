@@ -7,6 +7,11 @@ from django.utils import timezone
 from apps.contests.models import ContestActivity, ContestParticipant, ExamStatus
 
 from .exam_submission import finalize_submission
+from .anti_cheat_session import (
+    clear_active_session,
+    clear_exam_allowed_jti,
+    clear_heartbeat,
+)
 
 ACTIVE_EXAM_STATUSES = {
     ExamStatus.IN_PROGRESS,
@@ -71,6 +76,21 @@ def _clear_lock_metadata(participant: ContestParticipant) -> list[str]:
     return changed
 
 
+def _clear_attempt_metadata(participant: ContestParticipant) -> list[str]:
+    """Clear lifecycle fields when resetting to not_started-like states."""
+    changed = []
+    if participant.started_at is not None:
+        participant.started_at = None
+        changed.append("started_at")
+    if participant.left_at is not None:
+        participant.left_at = None
+        changed.append("left_at")
+    if participant.submit_reason:
+        participant.submit_reason = ""
+        changed.append("submit_reason")
+    return changed
+
+
 def admin_update_participant(
     participant: ContestParticipant,
     *,
@@ -88,6 +108,8 @@ def admin_update_participant(
         # If transitioning away from a locked state, clear lock metadata
         if exam_status not in (ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER):
             update_fields.extend(_clear_lock_metadata(participant))
+        if exam_status == ExamStatus.NOT_STARTED:
+            update_fields.extend(_clear_attempt_metadata(participant))
 
     if lock_reason is not None:
         participant.lock_reason = lock_reason
@@ -95,6 +117,10 @@ def admin_update_participant(
 
     if update_fields:
         participant.save(update_fields=update_fields)
+        if exam_status is not None and exam_status not in ACTIVE_EXAM_STATUSES:
+            clear_active_session(participant.contest_id, participant.user_id)
+            clear_heartbeat(participant.contest_id, participant.user_id)
+            clear_exam_allowed_jti(participant.user_id)
 
     ContestActivity.objects.create(
         contest=participant.contest,

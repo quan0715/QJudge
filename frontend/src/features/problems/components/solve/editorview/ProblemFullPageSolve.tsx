@@ -120,6 +120,7 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
             onCodeChange={solver.setCode}
             language={solver.language}
             onLanguageChange={solver.setLanguage}
+            languageOptions={solver.languageOptions}
             fontSize={editorFontSize}
             tabSize={editorTabSize}
             onEditorSettingsChange={handleEditorSettingsChange}

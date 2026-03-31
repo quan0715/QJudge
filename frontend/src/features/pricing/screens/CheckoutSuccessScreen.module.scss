@@ -1,0 +1,47 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-05;
+}
+
+.card {
+  text-align: center;
+  padding: $spacing-09;
+  max-width: 480px;
+  border-radius: 8px;
+}
+
+.icon {
+  color: $support-success;
+  margin-bottom: $spacing-05;
+}
+
+.title {
+  @include type-style("heading-04");
+  margin-bottom: $spacing-03;
+}
+
+.message {
+  @include type-style("body-02");
+  color: $text-secondary;
+  margin-bottom: $spacing-03;
+}
+
+.sessionId {
+  @include type-style("body-01");
+  color: $text-helper;
+  margin-bottom: $spacing-06;
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-04;
+  justify-content: center;
+}

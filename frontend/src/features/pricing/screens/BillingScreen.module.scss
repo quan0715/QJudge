@@ -1,0 +1,60 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.container {
+  max-width: 640px;
+  padding: $spacing-07 $spacing-05;
+}
+
+.title {
+  @include type-style("heading-04");
+  margin-bottom: $spacing-06;
+}
+
+.card {
+  padding: $spacing-06;
+  border-radius: 8px;
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+  margin-bottom: $spacing-05;
+}
+
+.planName {
+  @include type-style("heading-03");
+  margin: 0;
+}
+
+.details {
+  margin-bottom: $spacing-06;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: $spacing-03 0;
+  border-bottom: 1px solid $border-subtle-01;
+  @include type-style("body-01");
+}
+
+.label {
+  color: $text-secondary;
+}
+
+.actions {
+  margin-top: $spacing-05;
+}
+
+.cancelNote {
+  @include type-style("body-01");
+  color: $text-secondary;
+
+  a {
+    color: $link-primary;
+  }
+}
