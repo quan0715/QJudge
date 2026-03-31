@@ -1,5 +1,4 @@
 export type Difficulty = "easy" | "medium" | "hard";
-export type ProblemVisibility = "public" | "private" | "hidden";
 
 export interface Tag {
   id: string;
@@ -36,9 +35,14 @@ export interface Translation {
   hint: string;
 }
 
-export interface Problem {
+/**
+ * Coding problem summary (list view).
+ *
+ * Content (title, difficulty) is owned by QuestionAsset.
+ * Execution config (timeLimit, testCases, etc.) is owned by this entity.
+ */
+export interface CodingProblem {
   id: string;
-  displayId?: string;
   title: string;
   difficulty: Difficulty;
   acceptanceRate: number;
@@ -52,24 +56,19 @@ export interface Problem {
   createdBy?: string;
   tags: Tag[];
 
-  // Visibility
-  visibility: ProblemVisibility;
-
   // User specific
   isSolved: boolean;
-
-  // Context
-  createdInContest?: {
-    id: string;
-    title: string;
-    startTime: string;
-    endTime: string;
-  } | null;
 
   createdAt?: string;
 }
 
-export interface ProblemDetail extends Problem {
+/** @deprecated Use {@link CodingProblem} */
+export type Problem = CodingProblem;
+
+/**
+ * Coding problem detail (full content for editing/solving).
+ */
+export interface CodingProblemDetail extends CodingProblem {
   description: string;
   inputDescription?: string;
   outputDescription?: string;
@@ -89,6 +88,9 @@ export interface ProblemDetail extends Problem {
   forbiddenKeywords?: string[];
   requiredKeywords?: string[];
 }
+
+/** @deprecated Use {@link CodingProblemDetail} */
+export type ProblemDetail = CodingProblemDetail;
 
 // API payload shape for create/update/import (snake_case).
 export interface ProblemUpsertTranslation {
@@ -121,8 +123,6 @@ export interface ProblemUpsertPayload {
   difficulty: Difficulty;
   time_limit: number;
   memory_limit: number;
-  visibility?: ProblemVisibility;
-  display_id?: string;
   translations: ProblemUpsertTranslation[];
   test_cases?: ProblemUpsertTestCase[];
   language_configs?: ProblemUpsertLanguageConfig[];

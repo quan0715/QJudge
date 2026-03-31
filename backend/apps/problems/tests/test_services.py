@@ -21,12 +21,9 @@ class ProblemServiceTests(TestCase):
         self.source_problem = Problem.objects.create(
             title="Two Sum",
             slug="two-sum",
-            display_id="Q010",
             difficulty="medium",
             time_limit=1000,
             memory_limit=128,
-            visibility="private",
-            created_in_contest=self.contest,
             created_by=self.user,
         )
         ProblemTranslation.objects.create(
@@ -74,47 +71,17 @@ class ProblemServiceTests(TestCase):
         tag = Tag.objects.create(name="array", slug="array")
         self.source_problem.tags.add(tag)
 
-    def test_generate_contest_problem_id_defaults_to_q001(self):
-        Problem.objects.exclude(id=self.source_problem.id).delete()
-        self.source_problem.delete()
-        self.assertEqual(ProblemService.generate_contest_problem_id(), "Q001")
-
-    def test_generate_contest_problem_id_increments_max_q_number(self):
-        Problem.objects.create(
-            title="P",
-            slug="problem-p001",
-            display_id="Q001",
-            created_by=self.user,
+        # Ensure the source problem has a QuestionAsset (required by Phase 1 invariant)
+        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        asset, version = write_coding_content_to_asset(
+            owner=self.user,
+            title="Two Sum",
+            prompt="desc",
+            difficulty="medium",
+            translations=[],
+            actor=self.user,
         )
-        Problem.objects.create(
-            title="P2",
-            slug="problem-q099",
-            display_id="Q099",
-            created_by=self.user,
-        )
-        next_id = ProblemService.generate_contest_problem_id()
-        self.assertEqual(next_id, "Q100")
-
-    def test_generate_practice_problem_id_defaults_to_p001(self):
-        Problem.objects.exclude(id=self.source_problem.id).delete()
-        self.source_problem.delete()
-        self.assertEqual(ProblemService.generate_practice_problem_id(), "P001")
-
-    def test_generate_practice_problem_id_increments_max_p_number(self):
-        Problem.objects.create(
-            title="Practice1",
-            slug="practice-p001",
-            display_id="P001",
-            created_by=self.user,
-        )
-        Problem.objects.create(
-            title="Practice20",
-            slug="practice-p020",
-            display_id="P020",
-            created_by=self.user,
-        )
-        next_id = ProblemService.generate_practice_problem_id()
-        self.assertEqual(next_id, "P021")
+        sync_asset_to_problem(question_asset=asset, problem=self.source_problem)
 
     def test_clone_problem_copies_related_models(self):
         new_problem = ProblemService.clone_problem(
@@ -124,8 +91,6 @@ class ProblemServiceTests(TestCase):
         )
 
         self.assertNotEqual(new_problem.id, self.source_problem.id)
-        self.assertEqual(new_problem.visibility, "private")
-        self.assertEqual(new_problem.created_in_contest_id, self.contest.id)
         self.assertTrue(new_problem.title.endswith("(Copy)"))
         self.assertEqual(new_problem.translations.count(), self.source_problem.translations.count())
         self.assertEqual(new_problem.test_cases.count(), self.source_problem.test_cases.count())
@@ -135,29 +100,22 @@ class ProblemServiceTests(TestCase):
         )
         self.assertEqual(new_problem.tags.count(), self.source_problem.tags.count())
 
-    def test_clone_problem_to_practice_sets_visibility_and_origin(self):
+    def test_clone_problem_to_practice_keeps_standalone_copy(self):
         practice_problem = ProblemService.clone_problem_to_practice(
             source_problem=self.source_problem,
-            source_contest=self.contest,
             created_by=self.user,
         )
 
-        self.assertEqual(practice_problem.visibility, "public")
-        self.assertEqual(practice_problem.origin_problem_id, self.source_problem.id)
-        self.assertEqual(practice_problem.created_in_contest_id, self.contest.id)
         self.assertEqual(practice_problem.translations.count(), self.source_problem.translations.count())
         self.assertEqual(practice_problem.test_cases.count(), self.source_problem.test_cases.count())
 
-    def test_create_contest_problem_uses_private_visibility_defaults(self):
+    def test_create_contest_problem_uses_default_problem_fields(self):
         contest_problem = ProblemService.create_contest_problem(
             contest=self.contest,
             created_by=self.user,
             title="New Contest Problem",
         )
 
-        self.assertEqual(contest_problem.visibility, "private")
         self.assertEqual(contest_problem.difficulty, "medium")
-        self.assertEqual(contest_problem.created_in_contest_id, self.contest.id)
         self.assertEqual(contest_problem.created_by_id, self.user.id)
         self.assertEqual(contest_problem.title, "New Contest Problem")
-        self.assertTrue(contest_problem.display_id.startswith("Q"))

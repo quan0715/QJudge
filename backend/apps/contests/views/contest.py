@@ -1,6 +1,7 @@
 """ContestViewSet — main CRUD + admin operations."""
 import csv
 import logging
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models import Max, Sum
@@ -9,6 +10,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -49,14 +51,22 @@ from ..services.participant_state import (
 from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
-from ..services.detail_cache import get_contest_detail_cache_key
+from ..services.detail_cache import (
+    bump_contest_detail_cache_version,
+    get_contest_detail_cache_key,
+)
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
+from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
 from apps.problems.serializers import ProblemAdminSerializer
 from apps.question_bank.models import Question, QuestionBank
-from apps.question_bank.services import is_platform_public_bank
+from apps.question_bank.question_assets import (
+    ensure_contest_binding_for_problem,
+    ensure_question_asset_for_bank_question,
+)
+from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 
 logger = logging.getLogger(__name__)
 CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
@@ -78,6 +88,25 @@ class ContestViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
+
+    @staticmethod
+    def _normalize_uuid(value, *, field_name: str) -> str:
+        try:
+            return str(UUID(str(value)))
+        except (TypeError, ValueError):
+            raise DRFValidationError({field_name: "Must be a valid UUID."})
+
+    @staticmethod
+    def _resolve_problem(identifier):
+        if identifier in (None, ""):
+            return None
+        try:
+            normalized_uuid = str(UUID(str(identifier)))
+        except (TypeError, ValueError):
+            return None
+        if normalized_uuid:
+            return Problem.objects.filter(id=normalized_uuid).first()
+        return None
 
     def _resolve_exam_window_status(self, contest: Contest, now):
         if contest.status == "archived":
@@ -183,6 +212,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Override to log contest update activity.
         """
         instance = serializer.save()
+        bump_contest_detail_cache_version(instance.id)
+        cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
         changed_fields = []
@@ -844,14 +875,28 @@ class ContestViewSet(viewsets.ModelViewSet):
         return max(1, int(score_sum or 100))
 
     def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
-        bank = QuestionBank.objects.filter(uuid=question_bank_id, is_archived=False).first()
+        try:
+            normalized_bank_uuid = self._normalize_uuid(
+                question_bank_id, field_name="question_bank_id"
+            )
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
         if not bank:
             return None, None, Response({'error': 'Question bank not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if bank.owner_id != user.id and not is_platform_public_bank(bank):
+        if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
             return None, None, Response({'error': 'No access to this question bank'}, status=status.HTTP_403_FORBIDDEN)
 
-        question = Question.objects.filter(bank=bank, id=question_id).first()
+        try:
+            normalized_question_uuid = self._normalize_uuid(
+                question_id, field_name="question_id"
+            )
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        question = Question.objects.filter(bank=bank, id=normalized_question_uuid).first()
         if not question:
             return None, None, Response({'error': 'Question not found in bank'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -960,7 +1005,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             'difficulty': question.difficulty or 'medium',
             'time_limit': question.time_limit or 1000,
             'memory_limit': question.memory_limit or 128,
-            'visibility': Problem.ProblemVisibility.PRIVATE,
             'translations': translations,
             'test_cases': test_cases,
             'language_configs': language_configs,
@@ -970,10 +1014,17 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         serializer = ProblemAdminSerializer(data=payload, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        return serializer.save(
+        problem = serializer.save(
             created_by=user,
-            created_in_contest=contest,
         )
+        question_asset, question_version = ensure_question_asset_for_bank_question(
+            question=question,
+            actor=user,
+        )
+        problem.question_asset = question_asset
+        problem.question_version = question_version
+        problem.save(update_fields=['question_asset', 'question_version', 'updated_at'])
+        return problem
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def add_problem(self, request, pk=None):
@@ -981,23 +1032,21 @@ class ContestViewSet(viewsets.ModelViewSet):
         Add a problem to the contest.
         Supports:
         - legacy: existing problem (problem_id) or new blank problem (title)
-        - question bank import: question_bank_id + question_id (+ import_mode)
+        - question bank import: question_bank_id + question_id (legacy import_mode ignored; fixed copy strategy)
         """
         contest = self.get_object()
         user = request.user
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(user, "id", None),
+            action="contest.add_problem",
+        )
 
         problem_id = request.data.get('problem_id')
         title = request.data.get('title')
         question_bank_id = request.data.get('question_bank_id')
         question_id = request.data.get('question_id')
-        import_mode = (request.data.get('import_mode') or ContestProblem.SourceMode.COPY).lower()
         requested_max_score = request.data.get('max_score')
-
-        if import_mode not in {
-            ContestProblem.SourceMode.COPY,
-            ContestProblem.SourceMode.REFERENCE,
-        }:
-            return Response({'error': 'Invalid import_mode'}, status=status.HTTP_400_BAD_REQUEST)
 
         source_bank_id = None
         source_bank_name = ""
@@ -1018,34 +1067,23 @@ class ContestViewSet(viewsets.ModelViewSet):
                     source_bank_id = bank.uuid
                     source_bank_name = bank.name
                     source_question_id = bank_question.id
-                    source_mode = import_mode
+                    source_mode = ContestProblem.SourceMode.COPY
 
-                    legacy_problem_id = (bank_question.metadata or {}).get("legacy_problem_id")
-
-                    if import_mode == ContestProblem.SourceMode.REFERENCE:
-                        if not legacy_problem_id:
-                            return Response(
-                                {'error': 'Reference mode requires a bank question linked to a source problem'},
-                                status=status.HTTP_400_BAD_REQUEST,
-                            )
-                        problem = Problem.objects.get(id=legacy_problem_id)
-                    elif legacy_problem_id:
-                        source_problem = Problem.objects.get(id=legacy_problem_id)
-                        problem = ProblemService.clone_problem(source_problem, contest, user)
-                    else:
-                        problem = self._materialize_problem_from_bank_question(
-                            contest=contest,
-                            question=bank_question,
-                            user=user,
-                            request=request,
-                        )
+                    problem = self._materialize_problem_from_bank_question(
+                        contest=contest,
+                        question=bank_question,
+                        user=user,
+                        request=request,
+                    )
                 elif problem_id:
                     # Clone existing problem (Template)
-                    try:
-                        source_problem = Problem.objects.get(id=problem_id)
-                        problem = ProblemService.clone_problem(source_problem, contest, user)
-                    except Problem.DoesNotExist:
+                    normalized_problem_id = self._normalize_uuid(
+                        problem_id, field_name="problem_id"
+                    )
+                    source_problem = self._resolve_problem(normalized_problem_id)
+                    if not source_problem:
                         return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+                    problem = ProblemService.clone_problem(source_problem, contest, user)
                 elif title:
                     problem = ProblemService.create_contest_problem(contest, user, title=title)
                 else:
@@ -1066,16 +1104,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                     except (TypeError, ValueError):
                         return Response({'error': 'max_score must be a positive integer'}, status=status.HTTP_400_BAD_REQUEST)
 
-                if (
-                    source_mode == ContestProblem.SourceMode.REFERENCE
-                    and ContestProblem.objects.filter(contest=contest, problem=problem).exists()
-                ):
-                    return Response(
-                        {'error': 'Referenced problem is already in this contest'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                ContestProblem.objects.create(
+                contest_problem = ContestProblem.objects.create(
+                    question_asset=problem.question_asset,
+                    question_version=problem.question_version,
                     contest=contest,
                     problem=problem,
                     order=new_order,
@@ -1085,6 +1116,12 @@ class ContestViewSet(viewsets.ModelViewSet):
                     source_question_id=source_question_id,
                     source_mode=source_mode,
                 )
+                ensure_contest_binding_for_problem(
+                    contest_problem=contest_problem,
+                    actor=user,
+                )
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             logger.exception("Failed to add contest problem from payload: %s", exc)
             return Response({'error': 'Failed to add problem'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1096,7 +1133,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             contest,
             request.user,
             'add_problem',
-            f"Added problem {problem.display_id} to contest"
+            f"Added problem {problem.title or problem.id} to contest"
         )
 
         # Include contest_id for frontend navigation
@@ -1111,6 +1148,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         Expects: { "orders": [{ "id": 1, "order": 0 }, ...] }  where id is ContestProblem ID
         """
         contest = self.get_object()
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="contest.reorder_problems",
+        )
         orders = request.data.get('orders', [])
 
         if not orders:
@@ -1136,11 +1178,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=['post'],
         permission_classes=[IsContestOwnerOrAdmin],
-        url_path=r'problems/(?P<problem_id>\d+)/publish'
+        url_path=r'problems/(?P<problem_id>[^/.]+)/publish'
     )
     def publish_problem_to_practice(self, request, pk=None, problem_id=None):
         """
-        Publish a single contest problem to the practice library by cloning.
+        Publish a single contest problem into a standalone legacy problem copy.
         Only allowed when contest is archived.
         """
         contest = self.get_object()
@@ -1152,9 +1194,14 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
 
         try:
+            normalized_problem_id = self._normalize_uuid(problem_id, field_name="problem_id")
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
             contest_problem = ContestProblem.objects.get(
                 contest=contest,
-                problem_id=problem_id
+                problem_id=normalized_problem_id
             )
             problem = contest_problem.problem
         except ContestProblem.DoesNotExist:
@@ -1163,10 +1210,16 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        if not problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            sync_problem_question_asset(problem=problem, actor=request.user)
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+
         exists = Problem.objects.filter(
-            origin_problem=problem,
-            created_in_contest=contest,
-        ).exists()
+            question_asset=problem.question_asset,
+            created_by=request.user,
+            contests__isnull=True,
+        ).exclude(id=problem.id).exists()
         if exists:
             return Response(
                 {'message': 'Problem already published to practice'},
@@ -1175,7 +1228,6 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         new_problem = ProblemService.clone_problem_to_practice(
             source_problem=problem,
-            source_contest=contest,
             created_by=request.user,
         )
 
@@ -1183,13 +1235,13 @@ class ContestViewSet(viewsets.ModelViewSet):
             contest,
             request.user,
             'other',
-            f"Published problem {problem.display_id} to practice",
+            f"Published problem {problem.title or problem.id} to practice",
         )
 
         return Response(
             {
                 'message': 'Problem published successfully',
-                'created_problem_id': new_problem.id,
+                'created_problem_id': str(new_problem.id),
             },
             status=status.HTTP_200_OK,
         )
@@ -1202,7 +1254,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     )
     def publish_problems_to_practice(self, request, pk=None):
         """
-        Clone archived contest problems into the practice library.
+        Clone archived contest problems into standalone legacy problem copies.
         """
         contest = self.get_object()
 
@@ -1215,6 +1267,14 @@ class ContestViewSet(viewsets.ModelViewSet):
         problem_ids = request.data.get('problem_ids')
         if isinstance(problem_ids, str):
             problem_ids = [pid for pid in problem_ids.split(",") if pid.strip()]
+        if problem_ids:
+            try:
+                problem_ids = [
+                    self._normalize_uuid(problem_id, field_name="problem_ids")
+                    for problem_id in problem_ids
+                ]
+            except DRFValidationError as exc:
+                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
         contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem')
         if problem_ids:
             contest_problems = contest_problems.filter(problem_id__in=problem_ids)
@@ -1224,20 +1284,24 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         for contest_problem in contest_problems:
             problem = contest_problem.problem
+            if not problem.question_asset_id:
+                from apps.question_bank.question_assets import sync_problem_question_asset
+                sync_problem_question_asset(problem=problem, actor=request.user)
+                problem.refresh_from_db(fields=["question_asset", "question_version"])
             exists = Problem.objects.filter(
-                origin_problem=problem,
-                created_in_contest=contest,
-            ).exists()
+                question_asset=problem.question_asset,
+                created_by=request.user,
+                contests__isnull=True,
+            ).exclude(id=problem.id).exists()
             if exists:
-                skipped_problem_ids.append(problem.id)
+                skipped_problem_ids.append(str(problem.id))
                 continue
 
             new_problem = ProblemService.clone_problem_to_practice(
                 source_problem=problem,
-                source_contest=contest,
                 created_by=request.user,
             )
-            created_problem_ids.append(new_problem.id)
+            created_problem_ids.append(str(new_problem.id))
 
         if created_problem_ids:
             ContestActivityViewSet.log_activity(

@@ -44,7 +44,7 @@ class AISession(models.Model):
 
     # 關聯創建的題目（如果有的話）
     created_problem = models.ForeignKey(
-        "problems.Problem",
+        "problems.CodingProblem",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -250,7 +250,7 @@ class AIPendingAction(models.Model):
         verbose_name="動作類型",
     )
     target_problem = models.ForeignKey(
-        "problems.Problem",
+        "problems.CodingProblem",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -277,7 +277,7 @@ class AIPendingAction(models.Model):
         help_text="預設 created_at + 30 分鐘",
     )
     executed_problem = models.ForeignKey(
-        "problems.Problem",
+        "problems.CodingProblem",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

@@ -11,7 +11,7 @@ from django.utils import timezone
 from .models import Submission, SubmissionResult
 from apps.problems.models import TestCase
 from apps.judge.judge_factory import get_judge
-from apps.contests.models import ContestProblem
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 logger = logging.getLogger(__name__)
 
@@ -141,15 +141,16 @@ def judge_submission(submission_id):
         # Calculate final score
         total_score = legacy_total_score
         if submission.source_type == 'contest' and submission.contest_id:
-            contest_problem = ContestProblem.objects.filter(
+            binding = ContestQuestionBinding.objects.filter(
                 contest_id=submission.contest_id,
-                problem_id=submission.problem_id,
-            ).only("max_score").first()
-            if contest_problem:
+                coding_problem_id=submission.problem_id,
+                binding_type=QuestionAsset.AssetType.CODING,
+            ).only("score").first()
+            if binding:
                 if total_weight_sum > 0:
-                    total_score = round(contest_problem.max_score * (passed_weight_sum / total_weight_sum))
+                    total_score = round(binding.score * (passed_weight_sum / total_weight_sum))
                 elif final_status == 'AC':
-                    total_score = contest_problem.max_score
+                    total_score = binding.score
                 else:
                     total_score = 0
         elif has_weight_percent:

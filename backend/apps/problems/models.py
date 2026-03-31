@@ -1,27 +1,35 @@
 """
-Models for problems, translations, and test cases.
+Models for coding problems, translations, and test cases.
+
+The canonical content (title, difficulty, translations) is owned by
+QuestionAsset.  CodingProblem is the *execution adapter* that owns
+time_limit, memory_limit, test_cases, language_configs, and keywords.
 """
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from .managers import ProblemQuerySet
 
 
-class Problem(models.Model):
+class CodingProblem(models.Model):
     """
-    Core problem model.
-    """
-    class ProblemVisibility(models.TextChoices):
-        PUBLIC = 'public', _('公開')    # 所有人可在練習題庫看到
-        PRIVATE = 'private', _('私有')  # 只有建立者+管理員可見（預設）
-        HIDDEN = 'hidden', _('隱藏')    # 封存/棄用題目（向後相容）
+    Execution adapter for coding-type questions.
 
+    Content (title, difficulty, translations) is read from the linked
+    QuestionAsset.  This model owns execution config: limits, test cases,
+    language configs, and keyword restrictions.
+
+    DB table stays ``problems`` for backward compatibility.
+    """
     DIFFICULTY_CHOICES = [
         ('easy', '簡單'),
         ('medium', '中等'),
         ('hard', '困難'),
     ]
     
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Basic info
     title = models.CharField(max_length=255, verbose_name='標題')
     slug = models.SlugField(max_length=255, unique=True, blank=True, verbose_name='Slug')
@@ -36,24 +44,6 @@ class Problem(models.Model):
     time_limit = models.IntegerField(default=1000, verbose_name='時間限制 (ms)')
     memory_limit = models.IntegerField(default=128, verbose_name='記憶體限制 (MB)')
     
-    # Display ID (e.g., P001, Q001)
-    display_id = models.CharField(
-        max_length=20,
-        unique=True,
-        null=True,
-        blank=True,
-        verbose_name='顯示編號'
-    )
-    
-    # Status and Visibility
-    visibility = models.CharField(
-        max_length=10,
-        choices=ProblemVisibility.choices,
-        default=ProblemVisibility.PRIVATE,
-        db_index=True,
-        verbose_name='可見性',
-        help_text='控制題目的可見範圍'
-    )
     order = models.IntegerField(default=0, verbose_name='排序')
     
     # Metadata
@@ -65,24 +55,21 @@ class Problem(models.Model):
         verbose_name='建立者'
     )
     
-    # Contest specific fields
-    created_in_contest = models.ForeignKey(
-        'contests.Contest',
+    question_asset = models.ForeignKey(
+        'question_bank.QuestionAsset',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='originally_created_problems',
-        verbose_name='來源競賽',
-        help_text='記錄此題最初在哪場競賽中建立'
+        related_name='legacy_problem_adapters',
+        verbose_name='對應題目資產',
     )
-    origin_problem = models.ForeignKey(
-        'self',
+    question_version = models.ForeignKey(
+        'question_bank.QuestionVersion',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='practice_copies',
-        verbose_name='來源題目',
-        help_text='若此題由競賽題複製而來，記錄原始題目'
+        related_name='legacy_problem_adapters',
+        verbose_name='對應題目版本',
     )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
@@ -125,10 +112,9 @@ class Problem(models.Model):
         db_table = 'problems'
         verbose_name = '題目'
         verbose_name_plural = '題目'
-        ordering = ['order', 'id']
+        ordering = ['order', 'created_at']
         indexes = [
             models.Index(fields=['difficulty']),
-            models.Index(fields=['visibility']),
         ]
     
     def __str__(self):
@@ -139,6 +125,41 @@ class Problem(models.Model):
         if self.submission_count == 0:
             return 0.0
         return (self.accepted_count / self.submission_count) * 100
+
+    # -- Asset-delegated content properties (Phase 0 prep) --
+    # These read from the linked QuestionAsset when available,
+    # falling back to local fields during the transition period.
+
+    @property
+    def effective_title(self) -> str:
+        if self.question_asset_id:
+            try:
+                return self.question_asset.title or self.title
+            except Exception:
+                pass
+        return self.title
+
+    @property
+    def effective_difficulty(self) -> str:
+        if self.question_asset_id:
+            try:
+                return self.question_asset.payload.get("difficulty") or self.difficulty
+            except Exception:
+                pass
+        return self.difficulty
+
+    @property
+    def effective_owner(self):
+        if self.question_asset_id:
+            try:
+                return self.question_asset.owner
+            except Exception:
+                pass
+        return self.created_by
+
+
+# Backward-compat alias — allows existing imports to keep working during transition.
+Problem = CodingProblem
 
 
 class LanguageConfig(models.Model):
@@ -155,7 +176,7 @@ class LanguageConfig(models.Model):
     ]
     
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         related_name='language_configs',
         verbose_name='題目'
@@ -195,7 +216,7 @@ class ProblemTranslation(models.Model):
     Translations for problem content.
     """
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         related_name='translations',
         verbose_name='題目'
@@ -224,7 +245,7 @@ class TestCase(models.Model):
     Test cases for problem judging.
     """
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         related_name='test_cases',
         verbose_name='題目'
@@ -261,7 +282,7 @@ class ProblemDiscussion(models.Model):
     """
 
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         related_name="discussions",
         verbose_name="題目",

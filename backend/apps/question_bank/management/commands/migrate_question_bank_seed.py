@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 from apps.contests.models import ExamQuestion
 from apps.problems.models import Problem
 from apps.question_bank.models import QuestionBank
-from apps.question_bank.services import (
+from apps.question_bank.bank_workflows import (
     upsert_exam_question_into_bank,
     upsert_problem_into_bank,
     validate_exam_question_reconstructibility,
@@ -72,8 +72,16 @@ class Command(BaseCommand):
         migrated_exam = 0
         skipped_exam: list[dict] = []
 
-        practice_qs = Problem.objects.filter(visibility=Problem.ProblemVisibility.PUBLIC).order_by("id")
+        practice_qs = (
+            Problem.objects.filter(contests__isnull=True)
+            .order_by("id")
+            .distinct()
+        )
+        from apps.question_bank.question_assets import sync_problem_question_asset
         for problem in practice_qs:
+            if not problem.question_asset_id:
+                sync_problem_question_asset(problem=problem, actor=platform_owner)
+                problem.refresh_from_db(fields=["question_asset", "question_version"])
             upsert_problem_into_bank(problem=problem, bank=coding_bank, created_by=platform_owner)
             migrated_practice += 1
 
@@ -111,7 +119,10 @@ class Command(BaseCommand):
 
         report_file = Path(report_path)
         report_file.parent.mkdir(parents=True, exist_ok=True)
-        report_file.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        report_file.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
 
         self.stdout.write(
             self.style.SUCCESS(

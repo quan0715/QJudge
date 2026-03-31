@@ -14,7 +14,9 @@ from ..models import (
 )
 from ..serializers import ContestProblemSerializer
 from ..permissions import can_manage_contest
+from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
+from apps.question_bank.question_assets import ensure_contest_binding_for_problem
 
 
 class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,30 +28,38 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
-        return ContestProblem.objects.filter(contest_id=contest_id).select_related('problem')
+        return ContestProblem.objects.filter(contest_id=contest_id).select_related(
+            'problem',
+            'question_binding',
+        )
+
+    def _resolve_contest_problem(self, *, contest_id, lookup_value):
+        lookup_str = str(lookup_value)
+        if lookup_str.isdigit():
+            contest_problem = ContestProblem.objects.filter(
+                contest_id=contest_id,
+                id=int(lookup_str),
+            ).select_related('problem', 'question_binding').first()
+            if contest_problem:
+                return contest_problem
+
+        return ContestProblem.objects.filter(
+            contest_id=contest_id,
+            problem_id=lookup_value,
+        ).select_related('problem', 'question_binding').first()
 
     def retrieve(self, request, *args, **kwargs):
         contest_id = self.kwargs.get('contest_pk')
-        problem_id = self.kwargs.get('pk')
-
-        try:
-            # We look up by problem_id (the Problem's ID), not ContestProblem's ID
-            contest_problem = ContestProblem.objects.get(
-                contest_id=contest_id,
-                problem_id=problem_id
+        lookup_value = self.kwargs.get('pk')
+        contest_problem = self._resolve_contest_problem(
+            contest_id=contest_id,
+            lookup_value=lookup_value,
+        )
+        if not contest_problem:
+            return Response(
+                {'detail': 'Problem not found in this contest.'},
+                status=status.HTTP_404_NOT_FOUND
             )
-        except ContestProblem.DoesNotExist:
-            # Try looking up by ContestProblem ID as a fallback
-            try:
-                contest_problem = ContestProblem.objects.get(
-                    contest_id=contest_id,
-                    id=problem_id
-                )
-            except ContestProblem.DoesNotExist:
-                return Response(
-                    {'detail': 'Problem not found in this contest.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
 
         contest = contest_problem.contest
         user = request.user
@@ -114,6 +124,11 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         )
         data['source_question_id'] = contest_problem.source_question_id
         data['source_mode'] = contest_problem.source_mode
+        data['binding_id'] = (
+            str(contest_problem.question_binding.id)
+            if getattr(contest_problem, 'question_binding', None)
+            else None
+        )
 
         return Response(data)
 
@@ -131,19 +146,22 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(user, "id", None),
+            action="contest_problem.create",
+        )
 
         # Use ProblemAdminSerializer to create the problem
         from apps.problems.serializers import ProblemAdminSerializer
 
-        # Ensure contest-created problem is not exposed in practice list.
         data = request.data.copy()
-        data['visibility'] = 'private'
 
         serializer = ProblemAdminSerializer(data=data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
-        # Save with created_in_contest
-        problem = serializer.save(created_in_contest=contest)
+        problem = serializer.save()
+        # Asset is created inside ProblemService.create_problem_adapter via serializer.save()
 
         # Calculate next order and label
         last_problem = ContestProblem.objects.filter(contest=contest).order_by('-order').first()
@@ -178,7 +196,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             contest,
             request.user,
             'update_problem',
-            f"Created new problem {problem.display_id} in contest"
+            f"Created new problem {problem.title or problem.id} in contest"
         )
 
         return Response(response_data, status=status.HTTP_201_CREATED)
@@ -188,7 +206,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         Remove a problem from the contest.
         """
         contest_id = self.kwargs.get('contest_pk')
-        problem_id = self.kwargs.get('pk')  # This is the problem_id (not ContestProblem id)
+        lookup_value = self.kwargs.get('pk')
 
         contest = get_object_or_404(Contest, pk=contest_id)
         user = request.user
@@ -198,37 +216,33 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 {'detail': 'Permission denied.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(user, "id", None),
+            action="contest_problem.destroy",
+        )
 
-        try:
-            try:
-                contest_problem = ContestProblem.objects.get(
-                    contest=contest,
-                    problem_id=problem_id
-                )
-            except ContestProblem.DoesNotExist:
-                contest_problem = ContestProblem.objects.get(
-                    contest=contest,
-                    id=problem_id
-                )
-
-            # Delete the relationship
-            problem_display_id = contest_problem.problem.display_id
-            contest_problem.delete()
-
-            ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                'update_problem',
-                f"Removed problem {problem_display_id} from contest"
-            )
-
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        except ContestProblem.DoesNotExist:
+        contest_problem = self._resolve_contest_problem(
+            contest_id=contest.id,
+            lookup_value=lookup_value,
+        )
+        if not contest_problem:
             return Response(
                 {'detail': 'Problem not found in this contest.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        problem_label = contest_problem.problem.title or str(contest_problem.problem_id)
+        contest_problem.delete()
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            'update_problem',
+            f"Removed problem {problem_label} from contest"
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated], url_path="score")
     def update_score(self, request, *args, **kwargs):
@@ -242,6 +256,11 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         contest = get_object_or_404(Contest, pk=contest_id)
         if not can_manage_contest(request.user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="contest_problem.update_score",
+        )
 
         contest_problem = ContestProblem.objects.filter(
             contest=contest,
@@ -274,7 +293,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             contest,
             request.user,
             'update_problem',
-            f"Updated problem {contest_problem.problem.display_id} score to {max_score}",
+            f"Updated problem {(contest_problem.problem.title or contest_problem.problem_id)} score to {max_score}",
         )
 
         return Response(

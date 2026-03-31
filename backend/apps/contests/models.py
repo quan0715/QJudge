@@ -190,6 +190,11 @@ class Contest(models.Model):
         verbose_name='警告框冷卻秒數',
         help_text='警告框顯示後，需等待幾秒才可手動關閉'
     )
+    screen_share_recovery_grace_ms = models.PositiveIntegerField(
+        default=30_000,
+        verbose_name='螢幕共享恢復寬限時間 (毫秒)',
+        help_text='螢幕共享中斷後，允許學生重新分享的寬限時間'
+    )
     
     # Scoreboard settings
     scoreboard_visible_during_contest = models.BooleanField(
@@ -309,7 +314,11 @@ class Contest(models.Model):
 
 class ContestProblem(models.Model):
     """
-    Problem in a contest with label (A, B, C, etc.) and ordering.
+    DEPRECATED — Use ContestQuestionBinding instead.
+
+    This model is kept as a dual-write shell. All reads should go through
+    ContestQuestionBinding. On save(), this model auto-syncs to a binding.
+    Will be removed in a future migration.
     """
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_problems')
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
@@ -332,6 +341,22 @@ class ContestProblem(models.Model):
         default=SourceMode.MANUAL,
         verbose_name='來源模式',
     )
+    question_asset = models.ForeignKey(
+        'question_bank.QuestionAsset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='legacy_contest_problem_links',
+        verbose_name='對應題目資產',
+    )
+    question_version = models.ForeignKey(
+        'question_bank.QuestionVersion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='legacy_contest_problem_links',
+        verbose_name='對應題目版本',
+    )
 
     def save(self, *args, **kwargs):
         if self._state.adding and self.problem_id and (self.max_score is None or self.max_score == 100):
@@ -339,7 +364,54 @@ class ContestProblem(models.Model):
             if score_sum > 0:
                 self.max_score = max(1, int(score_sum))
         super().save(*args, **kwargs)
+        # Dual-write: auto-sync to ContestQuestionBinding
+        self._sync_to_binding()
 
+    def delete(self, *args, **kwargs):
+        # Also delete the corresponding ContestQuestionBinding
+        from apps.question_bank.models import ContestQuestionBinding
+        ContestQuestionBinding.objects.filter(legacy_contest_problem=self).delete()
+        super().delete(*args, **kwargs)
+
+    def _sync_to_binding(self):
+        """Ensure a ContestQuestionBinding mirrors this ContestProblem."""
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+        asset_id = self.question_asset_id or (self.problem.question_asset_id if self.problem_id else None)
+        version_id = self.question_version_id or (self.problem.question_version_id if self.problem_id else None)
+
+        # Auto-sync asset if Problem doesn't have one yet
+        if not asset_id and self.problem_id:
+            try:
+                from apps.question_bank.question_assets import sync_problem_question_asset
+                asset, version = sync_problem_question_asset(
+                    problem=self.problem,
+                    actor=self.problem.created_by or (self.contest.owner if self.contest_id else None),
+                )
+                asset_id = asset.pk
+                version_id = version.pk
+            except Exception:
+                return
+
+        if not asset_id:
+            return
+
+        ContestQuestionBinding.objects.update_or_create(
+            legacy_contest_problem=self,
+            defaults={
+                "contest": self.contest,
+                "question_asset_id": asset_id,
+                "question_version_id": version_id,
+                "coding_problem_id": self.problem_id,
+                "binding_type": QuestionAsset.AssetType.CODING,
+                "order": self.order,
+                "score": self.max_score or 100,
+                "source_bank_id": self.source_bank_id,
+                "source_bank_name": self.source_bank_name,
+                "source_question_id": self.source_question_id,
+                "source_mode": self.source_mode,
+            },
+        )
 
     @property
     def label(self):
@@ -353,6 +425,9 @@ class ContestProblem(models.Model):
         verbose_name_plural = '考試題目'
         ordering = ['order']
         unique_together = ['contest', 'problem']
+        indexes = [
+            models.Index(fields=['source_question_id']),
+        ]
 
 
 class ExamQuestionType(models.TextChoices):
@@ -406,6 +481,22 @@ class ExamQuestion(models.Model):
         default=ContestProblem.SourceMode.MANUAL,
         verbose_name='來源模式',
     )
+    question_asset = models.ForeignKey(
+        'question_bank.QuestionAsset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='legacy_exam_question_adapters',
+        verbose_name='對應題目資產',
+    )
+    question_version = models.ForeignKey(
+        'question_bank.QuestionVersion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='legacy_exam_question_adapters',
+        verbose_name='對應題目版本',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
 
@@ -416,6 +507,7 @@ class ExamQuestion(models.Model):
         ordering = ['order', 'created_at']
         indexes = [
             models.Index(fields=['contest', 'order']),
+            models.Index(fields=['source_question_id']),
         ]
 
     def __str__(self):
