@@ -1,7 +1,13 @@
 import { ClickableTile, Tile } from "@carbon/react";
-import { Code, CheckmarkFilled, Download, Document } from "@carbon/icons-react";
+import { CheckmarkFilled, Download } from "@carbon/icons-react";
 import type { BankCategory } from "@/core/entities/question-bank.entity";
+import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import styles from "./BankGalleryCard.module.scss";
+
+function renderBankIcon(icon: string | undefined, size: number) {
+  const Icon = getClassroomIcon(icon);
+  return <Icon size={size} />;
+}
 
 export interface BankGalleryCardProps {
   title: string;
@@ -9,24 +15,29 @@ export interface BankGalleryCardProps {
   category: BankCategory;
   providerVerified?: boolean;
   downloads?: string;
+  coverUrl?: string;
+  icon?: string;
   onClick?: () => void;
 }
 
 export const BankGalleryCard = ({
   title,
   provider,
-  category,
   providerVerified = false,
   downloads = "0",
+  coverUrl,
+  icon,
   onClick,
 }: BankGalleryCardProps) => {
-  const CardIcon = category === "exam" ? Document : Code;
+  const bannerStyle = coverUrl
+    ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 65%), url(${coverUrl})` }
+    : undefined;
   const content = (
     <>
-      <div className={styles.banner}>
+      <div className={styles.banner} style={bannerStyle}>
         <h4 className={styles.bannerTitle}>{title}</h4>
         <div className={styles.bannerAvatar}>
-          <CardIcon size={20} />
+          {renderBankIcon(icon, 20)}
         </div>
       </div>
 
@@ -41,6 +52,22 @@ export const BankGalleryCard = ({
           <Download size={14} aria-hidden />
           {downloads}
         </p>
+      </div>
+
+      {/* Mini view for mobile */}
+      <div className={styles.miniBody}>
+        <div className={styles.miniIcon}>
+          {renderBankIcon(icon, 16)}
+        </div>
+        <div className={styles.miniInfo}>
+          <h4>{title}</h4>
+          <p>
+            by {provider}
+            {providerVerified && <CheckmarkFilled size={12} className={styles.verifiedIcon} />}
+            {" · "}
+            <Download size={12} aria-hidden /> {downloads}
+          </p>
+        </div>
       </div>
     </>
   );
