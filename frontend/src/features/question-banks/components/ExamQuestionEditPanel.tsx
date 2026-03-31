@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   TextInput,
   TextArea,
-  NumberInput,
   RadioButton,
   RadioButtonGroup,
   Checkbox,
@@ -26,9 +25,6 @@ import { GlobalSaveIndicator } from "./GlobalSaveIndicator";
 // ---------------------------------------------------------------------------
 const AUTO_SAVE_DELAY = 800;
 const TRUE_FALSE_OPTIONS = ["True", "False"];
-const toNumberInputValue = (value: string | number): number =>
-  typeof value === "number" ? value : Number(value || 0);
-
 const QUESTION_TYPE_ITEMS: Array<{ id: ExamQuestionType; label: string }> = [
   { id: "single_choice", label: "單選題" },
   { id: "multiple_choice", label: "多選題" },
@@ -252,17 +248,7 @@ const ExamQuestionEditPanel = ({ question, onSaved }: ExamQuestionEditPanelProps
             }}
           />
         </ActionRow>
-        <ActionRow label={t("questionBank.score", "配分")}>
-          <NumberInput
-            id="exam-score"
-            hideLabel
-            label=""
-            size="sm"
-            min={0}
-            value={form.score}
-            onChange={(_e, { value }) => update({ score: toNumberInputValue(value) })}
-          />
-        </ActionRow>
+{/* Score is set at contest level, not in the bank */}
       </Section>
 
       <Section title={t("questionBank.prompt", "題目內容")}>
