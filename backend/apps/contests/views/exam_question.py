@@ -99,11 +99,39 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         except DRFValidationError as exc:
             return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
 
+        # Try legacy Question adapter first
         question = Question.objects.filter(
             bank=bank,
             id=normalized_question_uuid,
             question_type=Question.QuestionType.EXAM,
         ).first()
+
+        # Fallback: resolve via QuestionBankMembership (new system)
+        if not question:
+            from apps.question_bank.models import QuestionBankMembership
+            from apps.question_bank.write_workflows import materialize_bank_question_adapter_for_membership
+
+            membership = (
+                QuestionBankMembership.objects.filter(
+                    bank=bank, id=normalized_question_uuid,
+                ).select_related("question_asset", "legacy_question")
+                .first()
+            )
+            if not membership:
+                membership = (
+                    QuestionBankMembership.objects.filter(
+                        bank=bank, question_asset_id=normalized_question_uuid,
+                    ).select_related("question_asset", "legacy_question")
+                    .first()
+                )
+            if membership:
+                if membership.legacy_question_id:
+                    question = membership.legacy_question
+                else:
+                    question = materialize_bank_question_adapter_for_membership(
+                        membership=membership, actor=user,
+                    )
+
         if not question:
             return (
                 None,
