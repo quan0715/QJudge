@@ -97,6 +97,17 @@ class SubmissionService:
         create_payload = dict(data)
         create_payload.pop("source_type", None)
 
+        # Resolve ContestQuestionBinding for contest submissions
+        if source_type == "contest" and contest_id and create_payload.get("problem_id"):
+            from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+            binding = ContestQuestionBinding.objects.filter(
+                contest_id=contest_id,
+                coding_problem_id=create_payload["problem_id"],
+                binding_type=QuestionAsset.AssetType.CODING,
+            ).only("id").first()
+            if binding:
+                create_payload["contest_question_binding_id"] = binding.id
+
         with transaction.atomic():
             if violation_message:
                 submission = Submission.objects.create(

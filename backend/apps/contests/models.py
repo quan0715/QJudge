@@ -358,14 +358,17 @@ class ContestProblem(models.Model):
         verbose_name='對應題目版本',
     )
 
+    # Set to True to skip auto-sync to ContestQuestionBinding (when caller manages binding explicitly).
+    _skip_binding_sync = False
+
     def save(self, *args, **kwargs):
         if self._state.adding and self.problem_id and (self.max_score is None or self.max_score == 100):
             score_sum = self.problem.test_cases.aggregate(total=Sum('score')).get('total') or 0
             if score_sum > 0:
                 self.max_score = max(1, int(score_sum))
         super().save(*args, **kwargs)
-        # Dual-write: auto-sync to ContestQuestionBinding
-        self._sync_to_binding()
+        if not self._skip_binding_sync:
+            self._sync_to_binding()
 
     def delete(self, *args, **kwargs):
         # Also delete the corresponding ContestQuestionBinding
